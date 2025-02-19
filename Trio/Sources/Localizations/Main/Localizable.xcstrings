@@ -5688,6 +5688,7 @@
       }
     },
     "%@" : {
+      "comment" : "Info message\nunits",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -5794,6 +5795,7 @@
       }
     },
     "%@ - 0.5 × (%@ - %@) = %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -8895,7 +8897,11 @@
         }
       }
     },
+    "• Dexcom G5" : {
+
+    },
     "• Dexcom G5 \n• Dexcom G6 / ONE \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle Libre \n• Freestyle Libre Demo \n• Glucose Simulator \n• Medtronic Enlite \n• Nightscout \n• xDrip4iOS" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -9000,6 +9006,15 @@
           }
         }
       }
+    },
+    "• Dexcom G6 / ONE" : {
+
+    },
+    "• Dexcom G7 / ONE+" : {
+
+    },
+    "• Dexcom Share" : {
+
     },
     "• Duration of Insulin Action" : {
       "localizations" : {
@@ -9743,6 +9758,12 @@
         }
       }
     },
+    "• Freestyle Libre" : {
+
+    },
+    "• Freestyle Libre Demo" : {
+
+    },
     "• Glucose Delta: Change in glucose value." : {
       "localizations" : {
         "ar" : {
@@ -9954,6 +9975,9 @@
           }
         }
       }
+    },
+    "• Glucose Simulator" : {
+
     },
     "• Glucose Target" : {
       "localizations" : {
@@ -11651,6 +11675,12 @@
         }
       }
     },
+    "• Medtronic Enlite" : {
+
+    },
+    "• Nightscout" : {
+
+    },
     "• None: No value displayed." : {
       "localizations" : {
         "ar" : {
@@ -12710,6 +12740,9 @@
           }
         }
       }
+    },
+    "• xDrip4iOS" : {
+
     },
     "→" : {
       "localizations" : {
@@ -16676,6 +16709,9 @@
         }
       }
     },
+    "110 - 0.5 × (110 - 40) = 75" : {
+
+    },
     "110% makes fat-to-carbs ratio essentially equal:" : {
       "localizations" : {
         "ar" : {
@@ -18388,6 +18424,15 @@
         }
       }
     },
+    "Activate Dynamic CR (Carb Ratio)" : {
+
+    },
+    "Activate Dynamic ISF" : {
+
+    },
+    "Activate Dynamic Sensitivity (Dynamic ISF)" : {
+
+    },
     "Activate Dynamic Sensitivity (ISF)" : {
       "comment" : "Enable Dyn ISF",
       "localizations" : {
@@ -19466,6 +19511,12 @@
         }
       }
     },
+    "Add and set a bolus option for meals that absorb quickly." : {
+
+    },
+    "Add and set a bolus option for meals that absorb slowly." : {
+
+    },
     "Add calibration" : {
       "localizations" : {
         "ar" : {
@@ -20435,6 +20486,9 @@
           }
         }
       }
+    },
+    "Add fat and protein macros to meal entries." : {
+
     },
     "Add Garmin Device to Trio. Please look at the docs to see which devices are supported." : {
       "localizations" : {
@@ -24247,6 +24301,15 @@
         }
       }
     },
+    "Adjust insulin sensitivity using a sigmoid-shaped curve." : {
+
+    },
+    "Adjust Ring Settings" : {
+
+    },
+    "Adjust the Warsaw Method FPU Conversion rate." : {
+
+    },
     "Adjust these values if you would like the statistics to reflect different values than the internationally accepted Time In Range values used as the default." : {
       "localizations" : {
         "ar" : {
@@ -24672,6 +24735,9 @@
         }
       }
     },
+    "Adjustment Factor (AF)" : {
+
+    },
     "Adjustment Tabs" : {
       "localizations" : {
         "ar" : {
@@ -24885,6 +24951,7 @@
       }
     },
     "Adjustments" : {
+      "comment" : "History Mode",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -25436,6 +25503,9 @@
         }
       }
     },
+    "Alarm with every Trio notification." : {
+
+    },
     "Alarms" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25760,6 +25830,9 @@
           }
         }
       }
+    },
+    "Algorithmic Target Settings" : {
+
     },
     "all" : {
       "comment" : "HbA1c for all glucose storage days",
@@ -26436,6 +26509,9 @@
         }
       }
     },
+    "Allow Fetching from Nightscout" : {
+
+    },
     "Allow Fetching From Nightscout" : {
       "localizations" : {
         "ar" : {
@@ -27080,6 +27156,12 @@
           }
         }
       }
+    },
+    "Allow Trio to read from and write to Apple Health." : {
+
+    },
+    "Allow Trio to receive commands from Loop Follow remotely." : {
+
     },
     "Allow Upload of Statistics to NS" : {
       "comment" : "Option in preferences",
@@ -28194,6 +28276,12 @@
         }
       }
     },
+    "Alter the rate of Dynamic ISF (Sensitivity) adjustments." : {
+
+    },
+    "Alter the rate of dynamic sensitivity adjustments for Sigmoid." : {
+
+    },
     "Always Color Glucose Value (green, yellow etc)" : {
       "comment" : "UI/UX option",
       "extractionState" : "manual",
@@ -28626,6 +28714,9 @@
         }
       }
     },
+    "Always Notify Algorithm Warnings." : {
+
+    },
     "Always Notify Carb" : {
       "localizations" : {
         "ar" : {
@@ -28732,6 +28823,9 @@
         }
       }
     },
+    "Always Notify Carb Warnings." : {
+
+    },
     "Always Notify CGM" : {
       "localizations" : {
         "ar" : {
@@ -28837,6 +28931,9 @@
           }
         }
       }
+    },
+    "Always Notify CGM Warnings." : {
+
     },
     "Always Notify Glucose" : {
       "extractionState" : "manual",
@@ -29056,6 +29153,9 @@
           }
         }
       }
+    },
+    "Always Notify Pump Warnings." : {
+
     },
     "Always:" : {
       "localizations" : {
@@ -30132,6 +30232,9 @@
         }
       }
     },
+    "App Expires" : {
+
+    },
     "App Icons" : {
       "comment" : "Service Section",
       "localizations" : {
@@ -30451,6 +30554,9 @@
         }
       }
     },
+    "Apple Health Integration" : {
+
+    },
     "Apple Watch" : {
       "localizations" : {
         "ar" : {
@@ -30556,6 +30662,9 @@
           }
         }
       }
+    },
+    "Apple Watch Configuration" : {
+
     },
     "Apply a Temporary Target" : {
       "localizations" : {
@@ -30980,6 +31089,9 @@
           }
         }
       }
+    },
+    "Are you sure you want to delete %@?" : {
+
     },
     "Are you sure you want to delete this CGM?" : {
       "extractionState" : "manual",
@@ -31645,6 +31757,12 @@
           }
         }
       }
+    },
+    "Automate boluses using the iOS Shortcuts App." : {
+
+    },
+    "Automated Insulin Delivery" : {
+
     },
     "Automatic" : {
       "comment" : "Automatic delivered treatments",
@@ -32715,6 +32833,9 @@
           }
         }
       }
+    },
+    "Autosens Ratio" : {
+
     },
     "Autosens Ratio =\n(Weighted Average of TDD) ÷ (10-day Average of TDD)" : {
       "localizations" : {
@@ -34139,6 +34260,9 @@
           }
         }
       }
+    },
+    "Backfill Glucose from Nightscout" : {
+
     },
     "Backfill missing glucose data from Nightscout." : {
       "localizations" : {
@@ -35773,6 +35897,12 @@
         }
       }
     },
+    "Beta (TestFlight) Expires" : {
+
+    },
+    "BGI" : {
+
+    },
     "Blood Glucose Test" : {
       "comment" : "Add Blood Glucose Test, headerAdd Blood Glucose Test, header",
       "extractionState" : "manual",
@@ -36229,6 +36359,7 @@
       }
     },
     "Bolus" : {
+      "comment" : "Treatment type",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -37216,6 +37347,9 @@
         }
       }
     },
+    "Bolus/Basal %" : {
+
+    },
     "Bolusing" : {
       "comment" : "When bolusing",
       "localizations" : {
@@ -38196,6 +38330,9 @@
           }
         }
       }
+    },
+    "Calculator Configuration" : {
+
     },
     "Calculator settings" : {
       "comment" : "Header",
@@ -39728,6 +39865,9 @@
         }
       }
     },
+    "Carb Entry" : {
+
+    },
     "Carb ratio" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -40161,6 +40301,7 @@
       }
     },
     "Carbs" : {
+      "comment" : "Treatment type",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -40381,6 +40522,7 @@
       }
     },
     "Carbs on Board (COB)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -40712,6 +40854,9 @@
           }
         }
       }
+    },
+    "Carbs Required Badge" : {
+
     },
     "Carbs Required Threshold" : {
       "localizations" : {
@@ -41353,6 +41498,7 @@
     },
     "CGM Configuration" : {
       "comment" : "--------------------------------------------------------  Dexcom G7 --------------------------------------",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -41457,6 +41603,9 @@
           }
         }
       }
+    },
+    "CGM Glucose Value" : {
+
     },
     "CGM Integration to Trio" : {
       "localizations" : {
@@ -41669,6 +41818,9 @@
           }
         }
       }
+    },
+    "CGM Model" : {
+
     },
     "Change CR" : {
       "extractionState" : "manual",
@@ -44274,6 +44426,9 @@
         }
       }
     },
+    "Clear temporary basal rates and reset IOB when suspended." : {
+      "comment" : "Mini Hint for Suspend Zeros IOB"
+    },
     "Click to Snooze Alerts" : {
       "localizations" : {
         "ar" : {
@@ -44599,6 +44754,9 @@
         }
       }
     },
+    "Closed Loop" : {
+
+    },
     "COB" : {
       "localizations" : {
         "ar" : {
@@ -44704,6 +44862,9 @@
           }
         }
       }
+    },
+    "COB (Carbs on Board)" : {
+
     },
     "COB / Carb Ratio" : {
       "localizations" : {
@@ -44917,6 +45078,12 @@
         }
       }
     },
+    "COBpredBG" : {
+
+    },
+    "Color Scheme Preference" : {
+
+    },
     "Cone" : {
       "localizations" : {
         "ar" : {
@@ -45022,6 +45189,9 @@
           }
         }
       }
+    },
+    "Cone of Uncertainty" : {
+
     },
     "Cone:" : {
       "localizations" : {
@@ -45585,6 +45755,7 @@
       }
     },
     "Config Nightscout" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -45915,6 +46086,9 @@
           }
         }
       }
+    },
+    "Configure Nightscout" : {
+
     },
     "Confirm Before applying" : {
       "localizations" : {
@@ -47319,6 +47493,7 @@
       }
     },
     "Contact Name" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -48720,6 +48895,9 @@
         }
       }
     },
+    "Current CGM Models Supported:" : {
+
+    },
     "Current Loop Status" : {
       "localizations" : {
         "ar" : {
@@ -49386,6 +49564,9 @@
         }
       }
     },
+    "Custom Override" : {
+
+    },
     "Custom Profile" : {
       "comment" : "Custom but unsaved Profile",
       "extractionState" : "manual",
@@ -49499,6 +49680,15 @@
           }
         }
       }
+    },
+    "Custom Temp Target" : {
+
+    },
+    "Customize Fonts" : {
+
+    },
+    "Customize Layout and Style" : {
+
     },
     "CV" : {
       "comment" : "CV",
@@ -56365,6 +56555,9 @@
         }
       }
     },
+    "Delay between fat & protein entry and first FPU entry." : {
+
+    },
     "Delay In Minutes" : {
       "comment" : "Delay",
       "extractionState" : "manual",
@@ -56584,6 +56777,9 @@
           }
         }
       }
+    },
+    "Delete %@" : {
+
     },
     "Delete autotune data" : {
       "extractionState" : "manual",
@@ -59010,6 +59206,9 @@
         }
       }
     },
+    "Dev" : {
+
+    },
     "Developer" : {
       "comment" : "Debug options",
       "extractionState" : "manual",
@@ -59449,6 +59648,9 @@
           }
         }
       }
+    },
+    "Diabetes Data as Calendar Event" : {
+
     },
     "Direct connection with Libre 1 transmitters or European Libre 2 sensors" : {
       "comment" : "Direct connection with Libre 1 transmitters or Libre 2",
@@ -60879,6 +61081,9 @@
           }
         }
       }
+    },
+    "Display customizable data on Lock Screen and Dynamic Island." : {
+
     },
     "Display Emojis as Labels" : {
       "localizations" : {
@@ -62314,6 +62519,9 @@
         }
       }
     },
+    "Display the Low and High glucose thresholds set below." : {
+
+    },
     "Display Values" : {
       "localizations" : {
         "ar" : {
@@ -63604,6 +63812,7 @@
       }
     },
     "Duration of Insulin Action" : {
+      "comment" : "Duration of Insulin Action",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -64026,6 +64235,9 @@
           }
         }
       }
+    },
+    "Dynamic ISF/CR" : {
+
     },
     "Dynamic Sensitivity" : {
       "comment" : "Insulin sensitivity config header",
@@ -64459,6 +64671,12 @@
           }
         }
       }
+    },
+    "Dynamically adjust insulin sensitivity using Dynamic Ratio rather than Autosens Ratio." : {
+
+    },
+    "Dynamically adjust your Carb Ratio (CR)." : {
+
     },
     "Edit" : {
       "localizations" : {
@@ -65883,6 +66101,9 @@
         }
       }
     },
+    "Enable automated insulin delivery." : {
+
+    },
     "Enable Dynamic CR" : {
       "comment" : "Headline Enable Dynamic CR",
       "extractionState" : "manual",
@@ -66111,6 +66332,9 @@
         }
       }
     },
+    "Enable Fat and Protein Entries" : {
+
+    },
     "Enable Fatty Meal Factor" : {
       "localizations" : {
         "ar" : {
@@ -66216,6 +66440,12 @@
           }
         }
       }
+    },
+    "Enable Fatty Meal Option" : {
+
+    },
+    "Enable fetching of selected data sets from Nightscout." : {
+
     },
     "Enable High Contrast Mode for better visibility in certain conditions." : {
       "localizations" : {
@@ -66647,6 +66877,12 @@
           }
         }
       }
+    },
+    "Enable Remote Command" : {
+
+    },
+    "Enable Remote Control" : {
+
     },
     "Enable SMB After Carbs" : {
       "comment" : "Enable SMB After Carbs",
@@ -67509,6 +67745,9 @@
         }
       }
     },
+    "Enable Super Bolus Option" : {
+
+    },
     "Enable UAM" : {
       "comment" : "Enable UAM",
       "localizations" : {
@@ -67615,6 +67854,12 @@
           }
         }
       }
+    },
+    "Enable uploading of CGM readings to Nightscout." : {
+
+    },
+    "Enable uploading of selected data sets to Nightscout." : {
+
     },
     "Enabled" : {
       "comment" : "Title string for BeepPreference.manualCommands",
@@ -70532,6 +70777,7 @@
       }
     },
     "Enter Name (Optional)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -74375,6 +74621,9 @@
         }
       }
     },
+    "Failed to fetch object %@." : {
+
+    },
     "Failed to Suspend Insulin Delivery" : {
       "comment" : "Alert title for suspend error",
       "extractionState" : "manual",
@@ -75370,6 +75619,9 @@
         }
       }
     },
+    "Fat and Protein Percentage" : {
+
+    },
     "Fat Conversion" : {
       "localizations" : {
         "ar" : {
@@ -75475,6 +75727,9 @@
           }
         }
       }
+    },
+    "Fat-Protein Carb Equivalent" : {
+
     },
     "Fat: " : {
       "localizations" : {
@@ -75688,6 +75943,9 @@
           }
         }
       }
+    },
+    "Fatty Meal Bolus Percentage" : {
+
     },
     "Fatty Meal Factor" : {
       "comment" : "For the  Bolus View pop-up",
@@ -76219,6 +76477,9 @@
           }
         }
       }
+    },
+    "Fetch NS Care Portal Data" : {
+
     },
     "Fine-tune the ring’s Width and Gap to suit your design preferences." : {
       "localizations" : {
@@ -80848,7 +81109,7 @@
       }
     },
     "Glucose" : {
-      "comment" : "Glucose",
+      "comment" : "Glucose\nHistory Mode",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -81279,6 +81540,9 @@
           }
         }
       }
+    },
+    "Glucose Deviations Algorithm" : {
+
     },
     "Glucose Level" : {
       "localizations" : {
@@ -81930,6 +82194,9 @@
           }
         }
       }
+    },
+    "Glucose Simulator for Demo Only" : {
+      "comment" : "Simple simulator"
     },
     "Glucose Target" : {
       "extractionState" : "manual",
@@ -84660,6 +84927,7 @@
       }
     },
     "Heartbeat" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -84766,6 +85034,7 @@
       }
     },
     "Help" : {
+      "comment" : "Help sheet title",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -87809,6 +88078,9 @@
         }
       }
     },
+    "How Trio Manages Contact Images" : {
+
+    },
     "If \"Display IOB and COB\" is also enabled, \"IOB\" and \"COB\" will be replaced with the following emojis:" : {
       "localizations" : {
         "ar" : {
@@ -89624,6 +89896,7 @@
       }
     },
     "If your glucose target is %@ %@, Trio will use a safety threshold of %@ %@, unless you set Minimum Safety Threshold to something > %@ %@." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -89734,6 +90007,9 @@
           }
         }
       }
+    },
+    "If your glucose target is 110 mg/dL, Trio will use a safety threshold of 75 mg/dL, unless you set Minimum Safety Threshold (mg/dL) to something > 75." : {
+
     },
     "Immediately applying ${carbQuantity} at ${dateAdded}" : {
       "localizations" : {
@@ -90499,6 +90775,9 @@
         }
       }
     },
+    "Import Settings from Nightscout" : {
+
+    },
     "Import settings?" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -91263,6 +91542,12 @@
           }
         }
       }
+    },
+    "Include IOB & COB in the calendar event data." : {
+
+    },
+    "Increase the safety threshold used to suspend insulin delivery." : {
+
     },
     "Increasing this setting can make ISF adjustments quicker, but will also change the glucose value that coincides with the ISF used at your Autosens Max and Autosens Min limits. Likewise, decreasing this setting can make ISF adjustments slower and will also change the glucose value that coincides with the ISF used when it reaches the Autosens Max and Autosens Min limits. It is best to utilize the Desmos graphs from TrioDocs.org to optimize all Dynamic Settings." : {
       "localizations" : {
@@ -92455,6 +92740,7 @@
       }
     },
     "Insulin on Board (IOB)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -94650,7 +94936,11 @@
         }
       }
     },
+    "IOB (Insulin on Board)" : {
+
+    },
     "IOB + COB" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -94861,6 +95151,9 @@
           }
         }
       }
+    },
+    "IOBpredBG" : {
+
     },
     "ISF" : {
       "localizations" : {
@@ -96027,6 +96320,12 @@
           }
         }
       }
+    },
+    "Largest basal rate allowed." : {
+
+    },
+    "Largest bolus of insulin allowed." : {
+
     },
     "Last Blood Sugar prediction" : {
       "extractionState" : "manual",
@@ -98003,6 +98302,12 @@
         }
       }
     },
+    "Limits temporary basal rates to this percentage of the current basal rate." : {
+      "comment" : "Mini Hint for Current Basal Safety Multiplier"
+    },
+    "Limits temporary basal rates to this percentage of your largest basal rate." : {
+      "comment" : "Mini Hint for Max Daily Safety Multiplier"
+    },
     "Lines" : {
       "localizations" : {
         "ar" : {
@@ -99934,6 +100239,9 @@
         }
       }
     },
+    "Logarithmic formula" : {
+
+    },
     "Loop Cycles" : {
       "comment" : "Debug option view",
       "extractionState" : "manual",
@@ -100702,6 +101010,12 @@
           }
         }
       }
+    },
+    "Low and High Glucose Alarm Limits" : {
+
+    },
+    "Low and High Thresholds" : {
+
     },
     "Low battery" : {
       "comment" : "Low Battery",
@@ -102450,6 +102764,9 @@
           }
         }
       }
+    },
+    "Manual Glucose Measurement" : {
+
     },
     "Manual Temp Basal" : {
       "localizations" : {
@@ -106017,6 +106334,15 @@
         }
       }
     },
+    "Maximum amount of carbs still available if no absorption is detected." : {
+      "comment" : "Mini hint for Remaining Carbs Cap"
+    },
+    "Maximum Carbs On Board (COB) allowed." : {
+
+    },
+    "Maximum Duration" : {
+
+    },
     "Maximum Duration (hours)" : {
       "localizations" : {
         "ar" : {
@@ -106236,6 +106562,9 @@
           }
         }
       }
+    },
+    "Maximum Meal Absorption Time" : {
+
     },
     "Meal" : {
       "comment" : "Debug option view Meal",
@@ -106677,6 +107006,9 @@
           }
         }
       }
+    },
+    "Meals" : {
+      "comment" : "History Mode"
     },
     "Median" : {
       "comment" : "Median BG",
@@ -108304,6 +108636,9 @@
         }
       }
     },
+    "minGuardBG" : {
+
+    },
     "Minilink transmitter" : {
       "comment" : "Minilink transmitter",
       "localizations" : {
@@ -108850,6 +109185,9 @@
           }
         }
       }
+    },
+    "minPredBG" : {
+
     },
     "minutes" : {
       "comment" : "minutes of target temp",
@@ -112778,6 +113116,9 @@
         }
       }
     },
+    "No name provided" : {
+
+    },
     "No recent oref algorithm determination." : {
       "localizations" : {
         "ar" : {
@@ -113546,8 +113887,11 @@
         }
       }
     },
+    "none" : {
+
+    },
     "None" : {
-      "comment" : "No CGM choiced",
+      "comment" : "No CGM selected",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -114220,6 +114564,9 @@
           }
         }
       }
+    },
+    "Not set" : {
+
     },
     "not snoozing" : {
       "comment" : "not snoozing",
@@ -115713,6 +116060,9 @@
           }
         }
       }
+    },
+    "Note: The CGM Heartbeat can come from either a CGM or a pump to wake up Trio when phone is locked or in the background. If CGM is on the same phone as Trio and xDrip4iOS is configured to use the same AppGroup as Trio and the heartbeat feature is turned on in xDrip4iOS, then the CGM can provide a heartbeat to wake up Trio when phone is locked or app is in the background." : {
+
     },
     "Note: The effect of this can be adjusted with the Half Basal Exercise Target" : {
       "localizations" : {
@@ -117448,6 +117798,9 @@
         }
       }
     },
+    "Number of hours insulin is active in your body." : {
+      "comment" : "Mini Hint for Duration of Insulin Action"
+    },
     "Number of hours insulin will contribute to IOB after dosing." : {
       "localizations" : {
         "ar" : {
@@ -118626,6 +118979,7 @@
     },
     "Online or internal server" : {
       "comment" : "Online or internal server",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -118950,6 +119304,9 @@
           }
         }
       }
+    },
+    "Open %@" : {
+
     },
     "Open iOS Settings" : {
       "comment" : "Manage Permissions in Settings button text",
@@ -119377,6 +119734,7 @@
       }
     },
     "Open URL" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -121358,6 +121716,9 @@
         }
       }
     },
+    "Overrides" : {
+      "comment" : "Selected Tab"
+    },
     "𝑷 = protein(g) × 40%" : {
       "localizations" : {
         "ar" : {
@@ -121689,6 +122050,9 @@
           }
         }
       }
+    },
+    "Pair your CGM with Trio. See hint for compatible devices." : {
+
     },
     "Pair your insulin pump with Trio. See hint for compatible devices." : {
       "localizations" : {
@@ -122136,6 +122500,12 @@
           }
         }
       }
+    },
+    "Past Carbs-on-Board (COB)" : {
+
+    },
+    "Past Insulin-on-Board (IOB)" : {
+
     },
     "Past Month " : {
       "comment" : "Duration displayed in statPanel",
@@ -122689,6 +123059,15 @@
           }
         }
       }
+    },
+    "Percentage increase of glucose target when CGM is inconsistent." : {
+      "comment" : "Mini Hint for Noisy CGM Target Increase"
+    },
+    "Percentage of bolus suggested in bolus calculator." : {
+
+    },
+    "Percentage of carbs still available if no absorption is detected." : {
+      "comment" : "Mini Hint for Remaining Carbs Percentage"
     },
     "Percentage setting" : {
       "extractionState" : "manual",
@@ -124558,6 +124937,9 @@
         }
       }
     },
+    "Preview Contact Image" : {
+
+    },
     "Previous Pod Information" : {
       "comment" : "Text for previous pod information row",
       "extractionState" : "manual",
@@ -125437,6 +125819,9 @@
           }
         }
       }
+    },
+    "Protein / Fat" : {
+      "comment" : "Treatment type"
     },
     "Protein Conversion" : {
       "localizations" : {
@@ -126640,6 +127025,9 @@
           }
         }
       }
+    },
+    "Pump Suspension" : {
+
     },
     "Quantity Carbs" : {
       "localizations" : {
@@ -128241,6 +128629,9 @@
         }
       }
     },
+    "Received unexpected error. %@" : {
+
+    },
     "Recommendation" : {
       "comment" : "Bolus screen",
       "localizations" : {
@@ -128780,6 +129171,9 @@
           }
         }
       }
+    },
+    "Reduce the number of crown rotations required for bolus confirmation." : {
+
     },
     "Remaining Carbs Cap" : {
       "comment" : "Remaining Carbs Cap",
@@ -130393,6 +130787,9 @@
         }
       }
     },
+    "Resume pump automatically after suspension." : {
+      "comment" : "Mini Hint for Unsuspend If No Temp"
+    },
     "Resuming insulin delivery..." : {
       "comment" : "Text for suspend resume button when insulin delivery is resuming",
       "extractionState" : "manual",
@@ -130833,6 +131230,9 @@
           }
         }
       }
+    },
+    "Review imported DIA" : {
+
     },
     "Rewind Resets Autosens" : {
       "comment" : "Rewind Resets Autosens",
@@ -133342,6 +133742,9 @@
         }
       }
     },
+    "Scheduled Basal Rate" : {
+
+    },
     "Scheduled Reminder" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -134311,6 +134714,9 @@
         }
       }
     },
+    "Select CGM Model" : {
+
+    },
     "Select font size, weight, and width to match your style:" : {
       "localizations" : {
         "ar" : {
@@ -134955,6 +135361,7 @@
       }
     },
     "Select your CGM. See hint for compatible devices." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -137175,6 +137582,12 @@
         }
       }
     },
+    "Set a custom time for peak insulin effect." : {
+      "comment" : "Mini Hint for Insulin Peak Time"
+    },
+    "Set Display Values" : {
+
+    },
     "Set limits for each type of macro per meal entry." : {
       "localizations" : {
         "ar" : {
@@ -138144,6 +138557,9 @@
           }
         }
       }
+    },
+    "Set the maximum timeframe to extend FPUs." : {
+
     },
     "Set the value enableSMB_high_bg will compare against to enable SMB. If BG > than this value, SMBs should enable." : {
       "comment" : "... When Blood Glucose Is Over (mg/dl):",
@@ -139879,6 +140295,9 @@
         }
       }
     },
+    "Show carbs required as a red icon on the main graph icon." : {
+
+    },
     "Show Carbs Required Badge" : {
       "localizations" : {
         "ar" : {
@@ -140531,6 +140950,9 @@
         }
       }
     },
+    "Show Main Chart X- and Y-Axis Grid Lines" : {
+
+    },
     "Show Protein and Fat" : {
       "localizations" : {
         "ar" : {
@@ -140848,6 +141270,9 @@
           }
         }
       }
+    },
+    "Show your current glucose on Trio app icon." : {
+
     },
     "Shows an insulin dose, which can be a small automated dose (super-micro-bolus), a manually entered dose, or one given externally (e.g., a pen shot)." : {
       "localizations" : {
@@ -141485,6 +141910,9 @@
         }
       }
     },
+    "Sigmoid function" : {
+
+    },
     "Simple" : {
       "localizations" : {
         "ar" : {
@@ -141593,6 +142021,7 @@
     },
     "Simple simulator" : {
       "comment" : "Simple simulator",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -142023,6 +142452,9 @@
           }
         }
       }
+    },
+    "Skip neutral temporary basal rates to reduce MDT pump alerts." : {
+      "comment" : "Mini Hint for Skip Neutral Temps"
     },
     "Skip Neutral Temps" : {
       "comment" : "Skip Neutral Temps",
@@ -143332,6 +143764,9 @@
         }
       }
     },
+    "SMB Ratio" : {
+
+    },
     "SMB Settings" : {
       "localizations" : {
         "ar" : {
@@ -143544,6 +143979,9 @@
         }
       }
     },
+    "Smooth CGM readings using Savitzky-Golay filtering." : {
+
+    },
     "Smooth Glucose Value" : {
       "comment" : "Smoothing of CGM readings",
       "localizations" : {
@@ -143650,6 +144088,9 @@
           }
         }
       }
+    },
+    "Smoothing" : {
+
     },
     "Snooze Alerts" : {
       "localizations" : {
@@ -144302,6 +144743,9 @@
         }
       }
     },
+    "Source of the glucose reading will be added to the notification." : {
+
+    },
     "Split" : {
       "localizations" : {
         "ar" : {
@@ -144407,6 +144851,9 @@
           }
         }
       }
+    },
+    "Spread Interval" : {
+
     },
     "Spread Interval (minutes)" : {
       "localizations" : {
@@ -148066,6 +148513,9 @@
         }
       }
     },
+    "Super Bolus Percentage" : {
+
+    },
     "Super Micro Bolus (SMB)" : {
       "localizations" : {
         "ar" : {
@@ -148171,6 +148621,9 @@
           }
         }
       }
+    },
+    "Super-Micro-Bolus" : {
+
     },
     "Support & Community" : {
       "localizations" : {
@@ -149460,6 +149913,9 @@
         }
       }
     },
+    "Tap the button below to open your Nightscout instance in your iPhone's default browser." : {
+
+    },
     "tapped save schedules" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -150657,6 +151113,7 @@
       }
     },
     "Temp Basal" : {
+      "comment" : "Treatment type",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -151331,6 +151788,9 @@
         }
       }
     },
+    "Temporary Basal Rate (TBR)" : {
+
+    },
     "Temporary Target" : {
       "localizations" : {
         "ar" : {
@@ -151975,6 +152435,7 @@
       }
     },
     "The CGM Heartbeat can come from either a CGM or a pump to wake up Trio when phone is locked or in the background. If CGM is on the same phone as Trio and xDrip4iOS is configured to use the same AppGroup as Trio and the heartbeat feature is turned on in xDrip4iOS, then the CGM can provide a heartbeat to wake up Trio when phone is locked or app is in the background." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -152187,6 +152648,7 @@
       }
     },
     "The default is an expected %@ %@/5min. This affects how fast COB is decayed in situations when carb absorption is not visible in BG deviations. The default of %@ %@/5min corresponds to a minimum carb absorption rate of 24 g/hr at a CSF of %@ %@/g." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -152631,6 +153093,9 @@
           }
         }
       }
+    },
+    "The default value of 8 mg/dL per 5 minutes corresponds to an absorption rate of 24 g of carbs per hour." : {
+
     },
     "The degree to which your glucose should be rising or falling based solely on insulin activity." : {
       "localizations" : {
@@ -154221,6 +154686,9 @@
           }
         }
       }
+    },
+    "The maximum duration for tracking carb entries in estimating Carbs on Board (COB)" : {
+
     },
     "The Noisy CGM Target Increase raises your glucose target when the system detects noisy or raw CGM data. By default, the target is increased to 130% of your set target glucose to account for the less reliable glucose readings." : {
       "localizations" : {
@@ -161769,6 +162237,7 @@
       }
     },
     "This setting is limited to values between %@ - %@ %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -161879,6 +162348,9 @@
           }
         }
       }
+    },
+    "This setting is limited to values between 60 - 120 mg/dL (3.3 - 6.6 mmol/L)" : {
+
     },
     "This setting restricts the maximum temporary basal rate Trio can set. At the default of 300%, it caps it at 3 times your highest programmed basal rate." : {
       "localizations" : {
@@ -163168,6 +163640,9 @@
         }
       }
     },
+    "Time Change Detected" : {
+
+    },
     "Time in Range Chart Style" : {
       "localizations" : {
         "ar" : {
@@ -163273,6 +163748,9 @@
           }
         }
       }
+    },
+    "Time interval between FPUs." : {
+
     },
     "Time of maximum blood glucose lowering effect of insulin, in minutes. Beware: Oref assumes for ultra-rapid (Lyumjev) & rapid-acting (Fiasp) curves minimal (35 & 50 min) and maximal (100 & 120 min) applicable insulinPeakTimes. Using a custom insulinPeakTime outside these bounds will result in issues with Trio, longer loop calculations and possible red loops." : {
       "comment" : "\"Insulin Peak Time\"",
@@ -163389,6 +163867,7 @@
       }
     },
     "Timezone" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -164765,6 +165244,9 @@
           }
         }
       }
+    },
+    "To configure your CGM, tap the button below. In the form that opens, enter your Nightscout credentials to connect to your instance." : {
+
     },
     "To disable smoothing, go to Settings > Devices > Continuous Glucose Monitor > Smooth Glucose Value and toggle off the setting." : {
       "localizations" : {
@@ -167366,7 +167848,7 @@
       }
     },
     "Treatments" : {
-      "comment" : "Treatments list",
+      "comment" : "History Mode",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -168532,6 +169014,9 @@
         }
       }
     },
+    "Trio Information Notifications" : {
+
+    },
     "Trio is currently using these metrics and values as determined by the oref algorithm:" : {
       "localizations" : {
         "ar" : {
@@ -169062,6 +169547,9 @@
           }
         }
       }
+    },
+    "Trio Remote Control" : {
+
     },
     "Trio State Result" : {
       "localizations" : {
@@ -169704,6 +170192,9 @@
           }
         }
       }
+    },
+    "Trio's glucose simulator does not offer any configuration. Its use is strictly for demonstration purposes only." : {
+
     },
     "Trio's Simple Lock Screen Widget displays current glucose reading, trend arrow, delta and the timestamp of the current reading." : {
       "localizations" : {
@@ -170556,6 +171047,9 @@
         }
       }
     },
+    "UAM (Unannounced Meal)" : {
+
+    },
     "UAM SMB Minutes" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -170668,6 +171162,9 @@
           }
         }
       }
+    },
+    "UAMpredBG" : {
+
     },
     "Ultra-Rapid: 55 minutes (permitted range 35-100 minutes)" : {
       "localizations" : {
@@ -172967,6 +173464,9 @@
         }
       }
     },
+    "Use calendar events to display current data." : {
+
+    },
     "Use Custom Peak Time" : {
       "comment" : "Use Custom Peak Time",
       "localizations" : {
@@ -173187,6 +173687,12 @@
           }
         }
       }
+    },
+    "Use Dynamic Ratio to adjust basal rates." : {
+
+    },
+    "Use emojis for calendar events. See hint for more details." : {
+
     },
     "Use local glucose server" : {
       "extractionState" : "manual",
@@ -173839,6 +174345,9 @@
         }
       }
     },
+    "Uses your Nightscout as CGM" : {
+      "comment" : "Online or internal server"
+    },
     "Using shared app group with external CGM app GlucoseDirect" : {
       "comment" : "Shared app group GlucoseDirect",
       "extractionState" : "manual",
@@ -174490,6 +174999,9 @@
           }
         }
       }
+    },
+    "Various Glucose Notifications" : {
+
     },
     "Vertical" : {
       "localizations" : {
@@ -176216,6 +176728,9 @@
           }
         }
       }
+    },
+    "Weight of 24-hr TDD against 10-day TDD." : {
+
     },
     "Weighted Average of TDD" : {
       "localizations" : {
@@ -181182,6 +181697,9 @@
           }
         }
       }
+    },
+    "ZT (Zero-Temp)" : {
+
     }
   },
   "version" : "1.0"
