@@ -5795,7 +5795,6 @@
       }
     },
     "%@ - 0.5 × (%@ - %@) = %@" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -8899,113 +8898,6 @@
     },
     "• Dexcom G5" : {
 
-    },
-    "• Dexcom G5 \n• Dexcom G6 / ONE \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle Libre \n• Freestyle Libre Demo \n• Glucose Simulator \n• Medtronic Enlite \n• Nightscout \n• xDrip4iOS" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Dexcom G5 \n• Dexcom G6 / ONE \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle Libre \n• Freestyle Libre \n• Glucose Simulator \n• Medtronic Enlite \n• Nightscout \n• xDrip4iOS"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Dexcom G5 \n• Dexcom G6 / ONE \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle Libre \n• Freestyle Libre Demo \n• Glukose Simulator \n• Medtronic Enlite \n• Nightscout \n• xDrip4iOS"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Dexcom G5 \n• Dexcom G6 / ONE \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle Libre \n• Freestyle Libre Demo \n• Glucose Simulator \n• Medtronic Enlite \n• Nachtscout \n• xDrip4iOS"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Dexcom G5 \n• Dexcom G6 / ONE \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle Libre \n• Freestyle Libre Demo \n• Glucose Simulator \n• Medtronic Enlite \n• Nightscout \n• xDrip4iOS"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Dexcom G5 \n• Dexcom G6 / ONE \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle Libre \n• Freestyle Libre \n• Glucose Simulator \n• Medtronic Enlite \n• Nightscout \n• xDrip4iOS"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Dexcom G5 \n• Dexcom G6 / ONE \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle Libre \n• Freestyle Libre Demo \n• Glucose Simulator \n• Medtronic Enlite \n• Nightscout \n• xDrip4iOS"
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Dexcom G5 \n• Dexcom G6 / ONE \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle \n• Freestyle Libre Demo \n• Blodsukker-simulator\n• Medtronic Enlite \n• Nightscout \n• xDrip4iOS"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "• Dexcom G5 \n• Dexcom G6 / ONE \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle Libre \n• Freestyle Libre Demo \n• Glucose Simulator \n• Medtronic Enlite \n• Nightscout \n• xDrip4iOS"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Dexcom G5 \n• Dexcom G6 / ONE \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle Libre \n• Freestyle Libre Demo \n• Symulator glukozy \n• Medtronic Enlite \n• Nightscout \n• xDrip4iOS"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Dexcom G5 \n• Dexcom G6 / UM \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle Libre \n• Freestyle Libre Demo \n• Glucose Simulator \n• Medtronic Enlite \n• Nightscout \n• xDrip4iOS"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Dexcom G5 \n• Dexcom G6 / ONE \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle Libre \n• Freestyle Libre \n• Симулятор Glucose \n• Medtronic Enlite \n• Nightscout \n• xDrip4iOS"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "• Dexcom G5 \n• Dexcom G6 / ONE \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle Libre \n• Freestyle Libre Demo \n• Glucose Simulator \n• Medtronic Enlite \n• Nightscout \n• xDrip4iOS"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Dexcom G5 \n• Dexcom G6 / ONE \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle Libre \n• Freestyle Libre Demo \n• Glukos Simulator \n• Medtronic Enlite \n• Nightscout \n• xDrip4iOS"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "• Dexcom G5 \n• Dexcom G6 / ONE \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle Libre \n• Freestyle Libre Demo \n• Glucose Simulator \n• Medtronic Enlite \n• Nightscout \n• xDrip4iOS"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Dexcom G5 \n• Dexcom G6 / ONE \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle Libre Demo \n• Freestyle Libre Demo \n• Glucose Симулятор \n• Medtronic Enlite \n• Nightscout \n• xDrip4iOS iOS"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "• Dexcom G5 \n• Dexcom G6 / ONE \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle Libre \n• Freestyle Libre Demo \n• Glucose Simulator \n• Medtronic Enlite \n• Nightscout \n• xDrip4iOS"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Dexcom G5 \n• Dexcom G6 / ONE \n• Dexcom G7 / ONE+ \n• Dexcom Share \n• Freestyle Libre \n• Freestyle Libre Demo \n• Glucose Simulator \n• Medelectronic Enlite \n• Nightscout \n• xDrip4iOS"
-          }
-        }
-      }
     },
     "• Dexcom G6 / ONE" : {
 
@@ -16708,9 +16600,6 @@
           }
         }
       }
-    },
-    "110 - 0.5 × (110 - 40) = 75" : {
-
     },
     "110% makes fat-to-carbs ratio essentially equal:" : {
       "localizations" : {
@@ -40521,113 +40410,6 @@
         }
       }
     },
-    "Carbs on Board (COB)" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "كربون على لوحة التحكم (COB)"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kulhydrater på bord (COB)"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Carbs an Board (COB)"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Carbohidratos en el tablero (COB)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Glucides sur carte (COB)"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Carboidrati a bordo (COB)"
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aktive karbohydrater (COB)"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Koolhydraten aan boord (COB)"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Węglowodany na pokładzie (COB)"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Carboidratos a bordo (COB)"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Углеводы на доске (СОБ)"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Carbs on Board (COB)"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kolhydrater ombord (COB)"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Carbs on Board (COB)"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Кошик на дошки (COB)"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Carbs on Board (COB)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "理事会专车(COB)"
-          }
-        }
-      }
-    },
     "Carbs Req Threshold" : {
       "comment" : "Headline \"Carbs Req Threshold\"",
       "extractionState" : "manual",
@@ -41492,114 +41274,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "CGM 地址："
-          }
-        }
-      }
-    },
-    "CGM Configuration" : {
-      "comment" : "--------------------------------------------------------  Dexcom G7 --------------------------------------",
-      "extractionState" : "stale",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تكوين CGM"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Konfiguration Af Cgm"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CGM Einstellungen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configuración CGM"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configuration du CGM"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configurazione CGM"
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CGM-konfigurasjon"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CGM instellingen"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Konfiguracja CGM"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configuração do CGM"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Конфигурация CGM"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Konfigurácia CGM"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CGM-inställning"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "CGM Configuration"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Конфігурація CGM"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cấu hình CGM"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CGM 配置"
           }
         }
       }
@@ -45754,113 +45428,6 @@
         }
       }
     },
-    "Config Nightscout" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ضبط التجسس الليلي"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Konfigurer Nightscout"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nachtcout konfigurieren"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configurar Nightscout"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configuration Nightscout"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Config Nightscout"
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Oppsett Nightscout"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nightscout configureren"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Konfiguracja Nightscout"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Config Nightscout"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Конфигурация Nightscout"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Config Nightscout"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Konfigurera Nightscout"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Config Nightscout"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Config Nightscout"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Config Nightscout"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "配置Nightscout"
-          }
-        }
-      }
-    },
     "Configuration" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -47493,7 +47060,6 @@
       }
     },
     "Contact Name" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -70777,7 +70343,6 @@
       }
     },
     "Enter Name (Optional)" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -74622,6 +74187,9 @@
       }
     },
     "Failed to fetch object %@." : {
+
+    },
+    "Failed to initialize Core Data's persistent store." : {
 
     },
     "Failed to Suspend Insulin Delivery" : {
@@ -84926,113 +84494,6 @@
         }
       }
     },
-    "Heartbeat" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Heartbeat"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Heartbeat"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Herzschlag"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Heartbeat"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Battement de coeur"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Battito Cardiaco"
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Puls"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hartslag"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Heartbeat"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Heartbeat"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Heartbeat"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tlkot srdca"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hjärtslag"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Heartbeat"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Серцебиття"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nhịp tim"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Heartbeat"
-          }
-        }
-      }
-    },
     "Help" : {
       "comment" : "Help sheet title",
       "localizations" : {
@@ -89896,7 +89357,6 @@
       }
     },
     "If your glucose target is %@ %@, Trio will use a safety threshold of %@ %@, unless you set Minimum Safety Threshold to something > %@ %@." : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -90007,9 +89467,6 @@
           }
         }
       }
-    },
-    "If your glucose target is 110 mg/dL, Trio will use a safety threshold of 75 mg/dL, unless you set Minimum Safety Threshold (mg/dL) to something > 75." : {
-
     },
     "Immediately applying ${carbQuantity} at ${dateAdded}" : {
       "localizations" : {
@@ -92300,7 +91757,7 @@
       }
     },
     "Info" : {
-      "comment" : "Info title",
+      "comment" : "Info icon in main view\nInfo title",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -92341,7 +91798,7 @@
         "nb-NO" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Informasjon"
+            "value" : "Info"
           }
         },
         "nl" : {
@@ -92735,113 +92192,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "硫化曲线"
-          }
-        }
-      }
-    },
-    "Insulin on Board (IOB)" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "السلسلة في مجلس الإدارة"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Insulin om bord (IOB)"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Insulin an Board (IOB)"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Insulina en el tablero (IOB)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Insuline à bord (IOB)"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Insulina a bordo (IOB)"
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aktivt insulin (IOB)"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Insuline aan boord (IOB)"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Insulina na płytce (IOB)"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Insulina a Bordo (IOB)"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Изолирование на доске (IOB)"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Insulin on Board (IOB)"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Insulin ombord (IOB)"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Insulin on Board (IOB)"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Інсулін на доплаті (IOB)"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Insulin on Board (IOB)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "板上的硫丹(IOB)"
           }
         }
       }
@@ -94938,113 +94288,6 @@
     },
     "IOB (Insulin on Board)" : {
 
-    },
-    "IOB + COB" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IOB + COB"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IOB + COB"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IOB + COB"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IOB + COB"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IA + COB"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IOB + COB"
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IOB + COB"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IOB + COB"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IOB + COB"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IOB + COB"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IOB + COB"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "IOB + COB"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IOB + COB"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "IOB + COB"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IOB + КОБ"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "IOB + COB"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "IOB + COB"
-          }
-        }
-      }
     },
     "IOB:" : {
       "localizations" : {
@@ -118977,114 +118220,6 @@
         }
       }
     },
-    "Online or internal server" : {
-      "comment" : "Online or internal server",
-      "extractionState" : "stale",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "على الإنترنت أو الخادم الداخلي"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Online eller intern server"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Online oder interner Server"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Servidor en línea o interno"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Serveur en ligne ou interne"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Server online o interno"
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Online eller intern server"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Online of interne server"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Serwer online lub wewnętrzny"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Servidor online ou interno"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Онлайн или внутренний сервер"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Online alebo interný server"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Online eller intern server"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Online or internal server"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Онлайн або внутрішній сервер"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Máy chủ trực tuyến hoặc nội bộ"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在线或内部服务器"
-          }
-        }
-      }
-    },
     "Only Alarm Limits:" : {
       "localizations" : {
         "ar" : {
@@ -119729,113 +118864,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开设置"
-          }
-        }
-      }
-    },
-    "Open URL" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "فتح عنوان URL"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Åbn URL"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "URL öffnen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abrir URL"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ouvrir l'URL"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apri URL"
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Åpne URL"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open URL"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Otwórz adres URL"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abrir URL"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Открыть URL"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Open URL"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Öppna URL"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Open URL"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Відкрити URL-адресу"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Open URL"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "打开网址"
           }
         }
       }
@@ -135360,113 +134388,6 @@
         }
       }
     },
-    "Select your CGM. See hint for compatible devices." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "حدد CGM الخاص بك. راجع تلميح للأجهزة المتوافقة."
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vælg din CGM. Se tip for kompatible enheder."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wählen Sie Ihre CGM. Siehe Hinweis für kompatible Geräte."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Seleccione su CGM. Vea pistas para dispositivos compatibles."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sélectionnez votre CGM. Voir les indices pour les périphériques compatibles."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Seleziona il tuo CGM. Vedi suggerimento per i dispositivi compatibili."
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Velg CGM. Se tips for kompatible enheter."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selecteer uw CGM. Zie hint voor compatibele apparaten."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wybierz CGM. Zobacz podpowiedź dla kompatybilnych urządzeń."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selecione o CGM. Veja a dica para dispositivos compatíveis."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выберите ваш CGM. Смотрите подсказку для совместимых устройств."
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Select your CGM. See hint for compatible devices."
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Välj din CGM. Se tips för kompatibla enheter."
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Select your CGM. See hint for compatible devices."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Виберіть CGM. Див. підказку для сумісних пристроїв."
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Select your CGM. See hint for compatible devices."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选择您的CGM。请查看兼容设备提示。"
-          }
-        }
-      }
-    },
     "Selection" : {
       "localizations" : {
         "ar" : {
@@ -142019,114 +140940,6 @@
         }
       }
     },
-    "Simple simulator" : {
-      "comment" : "Simple simulator",
-      "extractionState" : "stale",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "محاكاة بسيطة"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Simpel simulator"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Einfacher Simulator"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Simulador simple"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Simple simulateur"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Simulatore semplice"
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enkel simulator"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eenvoudige simulator"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prosty symulator"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Simulador simples"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Простой симулятор"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Jednoduchý simulátor"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enkel Glukossimulator"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Simple simulator"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Звичайний симулятор"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Simple simulator"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "简单模拟器"
-          }
-        }
-      }
-    },
     "Simple:" : {
       "localizations" : {
         "ar" : {
@@ -146692,6 +145505,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "统计与家庭视图"
+          }
+        }
+      }
+    },
+    "Stats" : {
+      "comment" : "Stats icon in main view",
+      "localizations" : {
+        "nb-NO" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stat"
           }
         }
       }
@@ -152434,113 +151258,6 @@
         }
       }
     },
-    "The CGM Heartbeat can come from either a CGM or a pump to wake up Trio when phone is locked or in the background. If CGM is on the same phone as Trio and xDrip4iOS is configured to use the same AppGroup as Trio and the heartbeat feature is turned on in xDrip4iOS, then the CGM can provide a heartbeat to wake up Trio when phone is locked or app is in the background." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ويمكن أن يأتي ضربة قلب مركز المرأة في سيغاث أو مضخة لإيقاظ ثلاثي عندما يكون الهاتف مقفلاً أو في الخلفية. إذا كان CGM على نفس الهاتف مثل Trio و xDrip4iOS تم تكوينه لاستخدام نفس مجموعة التطبيقات مثل Trio و يتم تشغيل ميزة القلب في xDrip4iOS ، ثم يمكن لـ CGM توفير نبض قلبي لإيقاظ تريو عندما يكون الهاتف مقفل أو التطبيق في الخلفية."
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CGM Heartbeat kan komme fra enten en CGM eller en pumpe til at vække Trio når telefonen er låst eller i baggrunden. Hvis CGM er på samme telefon som Trio og xDrip4iOS er konfigureret til at bruge den samme AppGroup som Trio og hjerteslag funktion er tændt i xDrip4iOS, så CGM kan give et hjerteslag til at vække Trio, når telefonen er låst eller app er i baggrunden."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die CGM Heartbeat kann entweder von einem CGM oder einer Pumpe zu wecken Trio, wenn Telefon gesperrt ist oder im Hintergrund. Wenn CGM auf demselben Telefon wie Trio und xDrip4iOS konfiguriert ist, die gleiche AppGroup wie Trio zu verwenden und die Heartbeat-Funktion in xDrip4iOS eingeschaltet ist, dann kann der CGM ein Heartbeat zum Aufwachen Trio bieten, wenn Telefon gesperrt ist oder die App im Hintergrund ist."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "El CGM Heartbeat puede venir de un CGM o de una bomba para despertar Trio cuando el teléfono está bloqueado o en segundo plano. Si CGM está en el mismo teléfono que Trio y xDrip4iOS está configurado para usar el mismo AppGroup que Trio y la función Heartbeat está activada en xDrip4iOS, entonces el CGM puede proporcionar un latido de corazón para despertar Trio cuando el teléfono está bloqueado o la aplicación está en segundo plano."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La CGM Heartbeat peut venir d'une MGC ou d'une pompe pour réveiller Trio quand le téléphone est verrouillé ou en arrière-plan. Si la MGC est sur le même téléphone que Trio et xDrip4iOS est configuré pour utiliser le même groupe d'applications que Trio et la fonctionnalité de pulsation du cœur est activée dans xDrip4iOS, alors la MGC peut fournir un coup de coeur pour réveiller Trio lorsque le téléphone est verrouillé ou que l'application est en arrière-plan."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il battito cardiaco CGM può provenire da una CGM o da una pompa per svegliare il Trio quando il telefono è bloccato o in background. Se CGM è sullo stesso telefono di Trio e xDrip4iOS è configurato per utilizzare lo stesso AppGroup come Trio e la funzione di battito cardiaco è attivata in xDrip4iOS, poi il CGM può fornire un battito cardiaco per svegliarsi Trio quando il telefono è bloccato o l'app è in background."
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CGM Heartbeat kan komme fra en CGM eller en pumpe som skal vekke Trio når telefonen er låst eller i bakgrunnen. Hvis CGM er på samme telefon som Trio og xDrip4iOS er konfigurert til å bruke samme AppGroup som Trio og hjertefunksjonen er skrudd på i xDrip4iOS, deretter kan CGM gi hjerteslag for å vekke Trio når telefonen er låst eller appen er i bakgrunnen."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "De CGM Heartbeat kan komen uit een CGM of een pomp om een Trio op te wekken wanneer de telefoon is vergrendeld of op de achtergrond. Als CGM op dezelfde telefoon staat als Trio en xDrip4iOS is geconfigureerd voor dezelfde AppGroup als Trio en de heartbeat functie is ingeschakeld in xDrip4iOS, dan kan de CGM zorgen voor een hartslag om Trio wakker te maken wanneer de telefoon is vergrendeld of de app op de achtergrond is."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Serce CGM może pochodzić z CGM lub pompy, aby obudzić Trio gdy telefon jest zablokowany lub w tle. Jeśli CGM jest na tym samym telefonie co Trio i xDrip4iOS jest skonfigurowany do używania tej samej AppGroup co Trio, a funkcja bicia serca jest włączona w xDrip4iOS, wtedy CGM może zapewnić bicie serca aby obudzić Trio gdy telefon jest zablokowany lub aplikacja jest w tle."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O CGM Heartbeat pode vir de um CGM ou de uma bomba para acordar Trio quando o telefone estiver bloqueado ou no fundo. Se o CGM está no mesmo telefone que o Trio e o xDrip4iOS estão configurados para usar o mesmo AppGroup que o Trio e o recurso heartbeat está ativado no xDrip4iOS, então o CGM poderá fornecer um pulso para acordar o Trio quando o telefone estiver bloqueado ou o aplicativo estiver em segundo plano."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CGM Heartbeat может прийти с CGM или насоса, чтобы разбудить трио, когда телефон заблокирован или находится в фоновом режиме. Если CGM работает на том же телефоне, что и Trio и xDrip4iOS настроены на использование той же группы приложений, что и Trio, и функция heartbeat включена в xDrip4iOS, то CGM может обеспечить пульт для включения Трио, когда телефон заблокирован или приложение находится в фоновом режиме."
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "The CGM Heartbeat can come from either a CGM or a pump to wake up Trio when phone is locked or in the background. If CGM is on the same phone as Trio and xDrip4iOS is configured to use the same AppGroup as Trio and the heartbeat feature is turned on in xDrip4iOS, then the CGM can provide a heartbeat to wake up Trio when phone is locked or app is in the background."
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CGM Heartbeat kan komma från antingen en CGM eller en pump för att vakna upp Trio när telefonen är låst eller i bakgrunden. Om CGM är på samma telefon som Trio och xDrip4iOS är konfigurerad att använda samma AppGroup som Trio och hjärtslag funktionen är påslagen i xDrip4iOS, då CGM kan ge ett hjärtslag för att vakna upp Trio när telefonen är låst eller appen är i bakgrunden."
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "The CGM Heartbeat can come from either a CGM or a pump to wake up Trio when phone is locked or in the background. If CGM is on the same phone as Trio and xDrip4iOS is configured to use the same AppGroup as Trio and the heartbeat feature is turned on in xDrip4iOS, then the CGM can provide a heartbeat to wake up Trio when phone is locked or app is in the background."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CGM Heartbeat може прийти з CGM або з насосу, щоб прокинутися племені, коли телефон замкнений або на задньому плані. Якщо CGM знаходиться на тому ж телефоні, що і Trio і xDrip4iOS налаштований на використання тієї ж групи, що і Trio, і функція heartbeat увімкнена в xDrip4iOS, потім CGM надає серцебиття, щоб пробудити плем'я, коли телефон заблоковано або додаток знаходиться в фоновому режимі."
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "The CGM Heartbeat can come from either a CGM or a pump to wake up Trio when phone is locked or in the background. If CGM is on the same phone as Trio and xDrip4iOS is configured to use the same AppGroup as Trio and the heartbeat feature is turned on in xDrip4iOS, then the CGM can provide a heartbeat to wake up Trio when phone is locked or app is in the background."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "当手机锁定时，CGM 心跳可以从 CGM 或水泵唤醒Trio或后台唤醒。 如果CGM 和 Trio 和 xDrip4iOS 在同一手机上配置为与Trio 相同的AppGroup 并且在xDrip4iOS中启用了心动功能。 然后当手机被锁定或应用程序处于后台时，CGM 可以提供心跳来唤醒Trio。"
-          }
-        }
-      }
-    },
     "The curve's steepness is influenced by the Adjustment Factor, while the Autosens Min/Max settings determine the limits of the ratio adjustment, which can also influence the steepness of the sigmoid curve." : {
       "localizations" : {
         "ar" : {
@@ -152648,7 +151365,6 @@
       }
     },
     "The default is an expected %@ %@/5min. This affects how fast COB is decayed in situations when carb absorption is not visible in BG deviations. The default of %@ %@/5min corresponds to a minimum carb absorption rate of 24 g/hr at a CSF of %@ %@/g." : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -153093,9 +151809,6 @@
           }
         }
       }
-    },
-    "The default value of 8 mg/dL per 5 minutes corresponds to an absorption rate of 24 g of carbs per hour." : {
-
     },
     "The degree to which your glucose should be rising or falling based solely on insulin activity." : {
       "localizations" : {
@@ -162237,7 +160950,6 @@
       }
     },
     "This setting is limited to values between %@ - %@ %@" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -162348,9 +161060,6 @@
           }
         }
       }
-    },
-    "This setting is limited to values between 60 - 120 mg/dL (3.3 - 6.6 mmol/L)" : {
-
     },
     "This setting restricts the maximum temporary basal rate Trio can set. At the default of 300%, it caps it at 3 times your highest programmed basal rate." : {
       "localizations" : {
@@ -163862,113 +162571,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "胰岛素的最大降血糖作用，以分钟为单位"
-          }
-        }
-      }
-    },
-    "Timezone" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timezone"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timezone"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timezone"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timezone"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timezone"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timezone"
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tidssone"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timezone"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timezone"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timezone"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timezone"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Timezone"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timezone"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Timezone"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timezone"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Timezone"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timezone"
           }
         }
       }
