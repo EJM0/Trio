@@ -6980,6 +6980,9 @@
         }
       }
     },
+    "%lld" : {
+
+    },
     "%lld %%" : {
       "localizations" : {
         "ar" : {
@@ -7085,6 +7088,9 @@
           }
         }
       }
+    },
+    "%lld g" : {
+
     },
     "%lld hr" : {
       "localizations" : {
@@ -36666,6 +36672,12 @@
         }
       }
     },
+    "Bolus limit cannot be fetched from phone!" : {
+
+    },
+    "Bolus Limit Reached!" : {
+
+    },
     "Bolus Snooze DIA Divisor" : {
       "comment" : "Headline \"Bolus Snooze DIA Divisor\"",
       "extractionState" : "manual",
@@ -37885,6 +37897,9 @@
         }
       }
     },
+    "Calculating Bolus..." : {
+
+    },
     "Calculations" : {
       "comment" : "For the  Bolus View pop-up",
       "localizations" : {
@@ -38873,6 +38888,9 @@
           }
         }
       }
+    },
+    "Cancel Bolus" : {
+
     },
     "Cancel Override" : {
       "localizations" : {
@@ -39961,6 +39979,9 @@
         }
       }
     },
+    "Carbohydrates" : {
+
+    },
     "Carbs" : {
       "comment" : "Treatment type",
       "localizations" : {
@@ -40181,6 +40202,9 @@
           }
         }
       }
+    },
+    "Carbs Limit Reached!" : {
+
     },
     "Carbs Req Threshold" : {
       "comment" : "Headline \"Carbs Req Threshold\"",
@@ -40624,6 +40648,9 @@
           }
         }
       }
+    },
+    "Carbs:" : {
+
     },
     "Carbs: " : {
       "localizations" : {
@@ -42379,6 +42406,12 @@
           }
         }
       }
+    },
+    "Check device settings, connect to phone, and try again." : {
+
+    },
+    "Check phone and CGM connectivity." : {
+
     },
     "Choose between Total Daily Dose (TDD) or Total Insulin in Scope (TINS) to be displayed above the main glucose graph. Descriptions for each option found below." : {
       "localizations" : {
@@ -45427,6 +45460,9 @@
       }
     },
     "Configure Nightscout" : {
+
+    },
+    "Confirm" : {
 
     },
     "Confirm Before applying" : {
@@ -62609,6 +62645,9 @@
           }
         }
       }
+    },
+    "Displays Trio app icon as complication" : {
+
     },
     "Do not enable this feature until you have optimized your CR (carb ratio) setting." : {
       "localizations" : {
@@ -94170,6 +94209,9 @@
     "IOBpredBG" : {
 
     },
+    "is running" : {
+
+    },
     "ISF" : {
       "localizations" : {
         "ar" : {
@@ -98073,6 +98115,9 @@
           }
         }
       }
+    },
+    "Live Activity Expired. Open Trio to Refresh" : {
+
     },
     "Local glucose source" : {
       "extractionState" : "manual",
@@ -111904,6 +111949,9 @@
         }
       }
     },
+    "No glucose readings." : {
+
+    },
     "No Libre Transmitter Selected" : {
       "comment" : "No Libre Transmitter Selected",
       "extractionState" : "manual",
@@ -112132,6 +112180,9 @@
       }
     },
     "No name provided" : {
+
+    },
+    "No Override Presets" : {
 
     },
     "No recent oref algorithm determination." : {
@@ -112687,6 +112738,9 @@
           }
         }
       }
+    },
+    "No Temp Target Presets" : {
+
     },
     "Noisy CGM Target Increase" : {
       "comment" : "Noisy CGM Target Increase",
@@ -122208,6 +122262,9 @@
         }
       }
     },
+    "Pick Treatment" : {
+
+    },
     "Play Alarm Sound" : {
       "localizations" : {
         "ar" : {
@@ -123959,6 +124016,9 @@
           }
         }
       }
+    },
+    "Processing…" : {
+
     },
     "profile" : {
       "localizations" : {
@@ -145511,6 +145571,9 @@
         }
       }
     },
+    "Stop %@" : {
+
+    },
     "Stop All Adjustments" : {
       "localizations" : {
         "ar" : {
@@ -149927,6 +149990,9 @@
           }
         }
       }
+    },
+    "Temp Target Presets" : {
+
     },
     "Temp targets" : {
       "comment" : "Debug option view Temp targets",
@@ -163622,6 +163688,9 @@
     "To configure your CGM, tap the button below. In the form that opens, enter your Nightscout credentials to connect to your instance." : {
 
     },
+    "To confirm, dial crown." : {
+
+    },
     "To disable smoothing, go to Settings > Devices > Continuous Glucose Monitor > Smooth Glucose Value and toggle off the setting." : {
       "localizations" : {
         "ar" : {
@@ -166433,6 +166502,9 @@
           }
         }
       }
+    },
+    "Trio" : {
+
     },
     "Trio Configuration" : {
       "localizations" : {
@@ -171069,6 +171141,9 @@
           }
         }
       }
+    },
+    "Updated:" : {
+
     },
     "Updating..." : {
       "comment" : "Updating Watch app",
