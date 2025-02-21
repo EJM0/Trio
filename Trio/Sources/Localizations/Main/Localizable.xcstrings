@@ -2203,6 +2203,9 @@
         }
       }
     },
+    " of " : {
+      "comment" : "Bolus string partial message: 'x U of y U' in home view"
+    },
     " SMBs are disabled either by schedule or during the entire duration." : {
       "comment" : "Alert string. Keep spaces.",
       "extractionState" : "manual",
@@ -5569,6 +5572,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%.0f%%"
+          }
+        }
+      }
+    },
+    "%.2f U of %.2f U" : {
+      "comment" : "Format for showing delivered and active bolus amounts, 'x U of y U' on watch",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$.2f U of %2$.2f U"
           }
         }
       }
@@ -36026,7 +36040,7 @@
       }
     },
     "Bolus" : {
-      "comment" : "Treatment type",
+      "comment" : "Treatment type\nWatch App Treatment Option 'Bolus'",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -36237,6 +36251,12 @@
           }
         }
       }
+    },
+    "Bolus cancelled successfully." : {
+      "comment" : "Success message for canceling a bolus"
+    },
+    "Bolus enacted successfully." : {
+      "comment" : "Success message for enacting a bolus"
     },
     "Bolus failed" : {
       "comment" : "Bolus failed",
@@ -37898,7 +37918,7 @@
       }
     },
     "Calculating Bolus..." : {
-
+      "comment" : "Progress view text on watch when calculating bolus"
     },
     "Calculations" : {
       "comment" : "For the  Bolus View pop-up",
@@ -40089,6 +40109,9 @@
         }
       }
     },
+    "Carbs and Bolus logged successfully." : {
+      "comment" : "Successful message sent to watch when logging carbs and bolus"
+    },
     "Carbs and previous insulin are included in the glucose prediction, but if the Eventual Glucose is lower than the Target Glucose, a bolus will not be recommended." : {
       "comment" : "Bolus pop-up footer",
       "extractionState" : "manual",
@@ -40205,6 +40228,9 @@
     },
     "Carbs Limit Reached!" : {
 
+    },
+    "Carbs logged successfully." : {
+      "comment" : "Success message sent to watch when carbs are logged successfully"
     },
     "Carbs Req Threshold" : {
       "comment" : "Headline \"Carbs Req Threshold\"",
@@ -69722,6 +69748,9 @@
         }
       }
     },
+    "Enacting bolus..." : {
+      "comment" : "Successful message sent to watch when enacting bolus"
+    },
     "end" : {
       "localizations" : {
         "ar" : {
@@ -71122,6 +71151,12 @@
           }
         }
       }
+    },
+    "Error! Bolus cancellation failed." : {
+      "comment" : "Error message for canceling a bolus"
+    },
+    "Error! Failed to enact bolus." : {
+      "comment" : "Error message for enacting a bolus\nError message for failing to enact a bolus"
     },
     "Errors" : {
       "comment" : "Loop Errors in statPanel",
@@ -79306,7 +79341,7 @@
       }
     },
     "g" : {
-      "comment" : "The short unit display string for grams",
+      "comment" : "The short unit display string for grams\ngram of carbs",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -90590,6 +90625,9 @@
         }
       }
     },
+    "Importing Profile..." : {
+      "comment" : "Progress text when importing profile via Nightscout"
+    },
     "In case you're using both profiles and temp targets" : {
       "comment" : "UI/UX option",
       "extractionState" : "manual",
@@ -98339,6 +98377,7 @@
       }
     },
     "Log Carbs" : {
+      "comment" : "Button Label to Log Carbs on Watch",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -105739,6 +105778,9 @@
           }
         }
       }
+    },
+    "Meal & Bolus" : {
+      "comment" : "Watch App Treatment Option 'Meal & Bolus'"
     },
     "Meal Presets" : {
       "localizations" : {
@@ -124017,6 +124059,9 @@
         }
       }
     },
+    "Proceed" : {
+      "comment" : "Button Label to Proceed to Bolus on Watch"
+    },
     "Processing…" : {
 
     },
@@ -127925,6 +127970,9 @@
           }
         }
       }
+    },
+    "Recommended:" : {
+      "comment" : "Recommended bolus on Watch"
     },
     "Red = Below Range" : {
       "localizations" : {
@@ -132162,6 +132210,9 @@
           }
         }
       }
+    },
+    "Saving Carbs..." : {
+      "comment" : "Successful message sent to watch when saving carbs"
     },
     "Saving..." : {
       "comment" : "button title for saving low reservoir reminder while saving",
@@ -143605,6 +143656,9 @@
           }
         }
       }
+    },
+    "STALE DATA" : {
+      "comment" : "Information displayed when watch app data outdated or stale."
     },
     "Standing / Laying TIR Chart" : {
       "localizations" : {
@@ -171145,6 +171199,9 @@
     "Updated:" : {
 
     },
+    "Updating IOB..." : {
+      "comment" : "Progress text when updating IOB"
+    },
     "Updating..." : {
       "comment" : "Updating Watch app",
       "extractionState" : "manual",
@@ -173557,6 +173614,9 @@
           }
         }
       }
+    },
+    "Via Watch" : {
+      "comment" : "Note added to carb entry when entered via watch"
     },
     "Wait please" : {
       "extractionState" : "manual",
