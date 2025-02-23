@@ -33705,6 +33705,9 @@
         }
       }
     },
+    "Backfill Failed" : {
+
+    },
     "Backfill from history" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -58772,6 +58775,9 @@
         }
       }
     },
+    "Determination Failed" : {
+
+    },
     "Dev" : {
 
     },
@@ -73762,7 +73768,18 @@
         }
       }
     },
+    "Failed to create a new object in %@ from %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Failed to create a new object in %1$@ from %2$@."
+          }
+        }
+      }
+    },
     "Failed to create a new object." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -73868,7 +73885,18 @@
         }
       }
     },
+    "Failed to execute a batch delete request in %@ from %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Failed to execute a batch delete request in %1$@ from %2$@."
+          }
+        }
+      }
+    },
     "Failed to execute a batch delete request." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -73974,7 +74002,18 @@
         }
       }
     },
+    "Failed to execute a batch insert request in %@ from %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Failed to execute a batch insert request in %1$@ from %2$@."
+          }
+        }
+      }
+    },
     "Failed to execute a batch insert request." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -74080,7 +74119,18 @@
         }
       }
     },
+    "Failed to execute a persistent history change request in %@ from %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Failed to execute a persistent history change request in %1$@ from %2$@."
+          }
+        }
+      }
+    },
     "Failed to execute a persistent history change request." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -74186,11 +74236,15 @@
         }
       }
     },
-    "Failed to fetch object %@." : {
-
-    },
-    "Failed to initialize Core Data's persistent store." : {
-
+    "Failed to fetch object %@ in %@ from %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Failed to fetch object %1$@ in %2$@ from %3$@."
+          }
+        }
+      }
     },
     "Failed to Suspend Insulin Delivery" : {
       "comment" : "Alert title for suspend error",
@@ -74306,6 +74360,9 @@
         }
       }
     },
+    "Failed to update COB/IOB: %@" : {
+
+    },
     "Failed to update confidence reminder preference." : {
       "comment" : "Alert title for error when updating confidence reminder preference",
       "extractionState" : "manual",
@@ -74416,6 +74473,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "更新信任提醒首选项失败。"
+          }
+        }
+      }
+    },
+    "Failed to validate object in %@ from %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Failed to validate object in %1$@ from %2$@."
           }
         }
       }
@@ -127657,8 +127724,15 @@
         }
       }
     },
-    "Received unexpected error. %@" : {
-
+    "Received unexpected error in %@ from %@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Received unexpected error in %1$@ from %2$@: %3$@"
+          }
+        }
+      }
     },
     "Recommendation" : {
       "comment" : "Bolus screen",
@@ -146371,6 +146445,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "停止临时目标\"%@\"？"
+          }
+        }
+      }
+    },
+    "Store not initialized in %@ from %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Store not initialized in %1$@ from %2$@."
           }
         }
       }
