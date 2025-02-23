@@ -43426,7 +43426,11 @@
         }
       }
     },
+    "Choose to display eA1c in percent or mmol/mol." : {
+
+    },
     "Choose to display HbA1c in percent or mmol/mol." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -43744,7 +43748,11 @@
         }
       }
     },
+    "Choose which format you'd prefer the eA1c (estimated A1c) value in the statistics view as a percentage (Example: 6.5%) or mmol/mol (Example: 48 mmol/mol)." : {
+
+    },
     "Choose which format you'd prefer the HbA1c value in the statistics view as a percentage (Example: 6.5%) or mmol/mol (Example: 48 mmol/mol)." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -64323,6 +64331,12 @@
     "Dynamically adjust your Carb Ratio (CR)." : {
 
     },
+    "eA1c Display Unit" : {
+
+    },
+    "ebA1c" : {
+
+    },
     "Edit" : {
       "localizations" : {
         "ar" : {
@@ -84048,6 +84062,7 @@
     },
     "HbA1c" : {
       "comment" : "Estimated HbA1c",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -84154,6 +84169,7 @@
       }
     },
     "HbA1c Display Unit" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -119900,7 +119916,11 @@
         }
       }
     },
+    "Override eA1c Unit" : {
+
+    },
     "Override HbA1c Unit" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
