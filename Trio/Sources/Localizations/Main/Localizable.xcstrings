@@ -13173,6 +13173,9 @@
         }
       }
     },
+    "< 54" : {
+
+    },
     "< 59" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -13600,6 +13603,9 @@
           }
         }
       }
+    },
+    "> 180" : {
+
     },
     "> 198" : {
       "extractionState" : "stale",
@@ -16427,7 +16433,6 @@
       }
     },
     "70-140" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -16532,6 +16537,9 @@
           }
         }
       }
+    },
+    "70-180" : {
+
     },
     "75%:" : {
 
@@ -82728,6 +82736,9 @@
           }
         }
       }
+    },
+    "GMI" : {
+
     },
     "Got it!" : {
       "localizations" : {
