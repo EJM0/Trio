@@ -563,120 +563,6 @@
         }
       }
     },
-    "\nNow please verify all of your new settings thoroughly:\n\n* Basal Settings\n * Carb Ratios\n * Glucose Targets\n * Insulin Sensitivities\n * DIA\n\n in iAPS Settings > Configuration.\n\nBad or invalid profile settings could have disatrous effects." : {
-      "comment" : "Imported Profiles Alert",
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "\nNow please verify all of your new settings thoroughly:\n\n* Basal Settings\n * Carb Ratios\n * Glucose Targets\n * Insulin Sensitivities\n * DIA\n\n in iAPS Settings > Configuration.\n\nBad or invalid profile settings could have disatrous effects."
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nKontroller nu alle dine nye indstillinger grundigt:\n\n* Basal Settings\n * Carb Ratios\n * Glucose Targets\n * Insulin Følsomhed\n * DIA\n\n i iAPS Indstillinger > Konfiguration.\n\nDårlige eller ugyldige profilindstillinger kan have disatrous effekter."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nBitte überprüfen Sie jetzt alle Ihre neuen Einstellungen gründlich:\n\n* Basaleinstellungen\n * Carb Ratios\n * Glukose-Ziele\n * Insulinempfindlichkeiten\n * DIA\n\n in iAPS-Einstellungen > Konfiguration.\n\nSchlechte oder ungültige Profileinstellungen können abscheuliche Effekte haben."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nNow please verify all of your new settings thoroughly:\n\n* Basal Settings\n * Carb Ratios\n * Glucose Targets\n * Insulin Sensitivities\n * DIA\n\n in iAPS Settings > Configuration.\n\nBad or invalid profile settings could have disatrous effects."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "\nNow please verify all of your new settings thoroughly:\n\n* Basal Settings\n * Carb Ratios\n * Glucose Targets\n * Insulin Sensitivities\n * DIA\n\n in iAPS Settings > Configuration.\n\nBad or invalid profile settings could have disatrous effects."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nVeuillez maintenant vérifier soigneusement tous vos nouveaux paramètres:\n\n* Paramètres basaux\n * Ratios glucidiques\n * Objectifs glycémiques\n * Sensibilité à l'insuline\n * DIA\n\n dans iAPS Paramètres > Configuration.\n\nDes paramètres de profil incorrects ou invalides peuvent avoir des effets désastreux."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nOra verifica attentamente tutte le nuove impostazioni:\n\n* Impostazioni basali\n * Rapporti carboidrati\n * Obiettivi glucosio\n * Sensibilità insulinica\n * DIA\n\n in Impostazioni iAPS > Configurazione.\n\nImpostazioni del profilo errate o non valide potrebbero avere effetti disastrosi."
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nGå nøye gjennom alle de nye innstillingene:\n\n* Basalprofil\n * Karbohydratforhold\n * Blodsukkermål\n * Insulinfølsomhet\n\n i innstillingene.\n\nFeil eller ugyldige profilinnstillinger kan ha katastrofale følger."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nCheck nu al je nieuwe instellingen:\n\n* Basaal instellingen\n * Koolhydraat ratio's\n * Doel glucose waarde\n * Insuline sensitiviteit\n * DIA\n\n in iAPS instellingen > Configuratie.\n\nSlechte of ongeldige profielinstellingen kunnen  desastreuze effecten hebben!"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nTeraz sprawdź dokładnie wszystkie nowe ustawienia:\n\n* Ustawienia bazy\n * Współczynnik węglowodanów\n * Cele glikemii\n * Wrażliwość na insulinę\n * DIA\n\n w ustawieniach iAPS > Konfiguracja.\n\nBłędne lub niepoprawne ustawienia profilu mogą mieć drażliwe skutki."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "\nNow please verify all of your new settings thoroughly:\n\n* Basal Settings\n * Carb Ratios\n * Glucose Targets\n * Insulin Sensitivities\n * DIA\n\n in iAPS Settings > Configuration.\n\nBad or invalid profile settings could have disatrous effects."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nПожалуйста, проверьте все ваши новые настройки:\n\n* Настройки базала\n * Углеводные коэффициенты\n * Целевой диапазон\n * Чувствительность к инсулину\n\n в настройках iAPS Настройки > Конфигурация.\n\nНекорректные настройки профиля могут привести к катастрофическим последствиям."
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "\nNow please verify all of your new settings thoroughly:\n\n* Basal Settings\n * Carb Ratios\n * Glucose Targets\n * Insulin Sensitivities\n * DIA\n\n in iAPS Settings > Configuration.\n\nBad or invalid profile settings could have disatrous effects."
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nKontrollera nu alla dina nya pumpinställningar noga:\n\n* Basalinställningar\n * Insulinkvoter\n * Målvärden\n * Insulinkänslighet\n\n i Inställningar > Konfiguration.\n\nDåliga eller ogiltiga pumpinställningar kan gå katastrofala följder."
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "\nNow please verify all of your new settings thoroughly:\n\n* Basal Settings\n * Carb Ratios\n * Glucose Targets\n * Insulin Sensitivities\n * DIA\n\n in iAPS Settings > Configuration.\n\nBad or invalid profile settings could have disatrous effects."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nТепер уважно перевірте всі ваші нові налаштування:\n\n* Базальні параметри\n * Вуглеводні співвідношення\n * Цільові показники глюкози\n * Чутливість до інсуліну\n\n у меню «Налаштування iAPS» > «Конфігурація».\n\nПоганий або недійсний профіль налаштування можуть мати згубні наслідки."
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "\nNow please verify all of your new settings thoroughly:\n\n* Basal Settings\n * Carb Ratios\n * Glucose Targets\n * Insulin Sensitivities\n * DIA\n\n in iAPS Settings > Configuration.\n\nBad or invalid profile settings could have disatrous effects."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\n现在请彻底验证您所有的新设置：\n\n* Basal 设置\n * Carb 比率\n * Glucose Targets\n * Insulin Sensitivies\n * DIA\n\n 在 iAPS 设置 > 配置 中。\n\n错误或无效的配置文件设置可能会产生隐藏效果。"
-          }
-        }
-      }
-    },
     "\nNow please verify all of your new settings thoroughly: \n\n • DIA (Pump settings)\n • Basal Profile\n • Insulin Sensitivities\n • Carb Ratios\n • Glucose Targets\n\n in Trio Settings -> Configuration.\n\nBad or invalid profile settings could have disastrous effects." : {
       "comment" : "Imported Profiles Alert",
       "extractionState" : "manual",
@@ -2316,6 +2202,9 @@
           }
         }
       }
+    },
+    " of " : {
+      "comment" : "Bolus string partial message: 'x U of y U' in home view"
     },
     " SMBs are disabled either by schedule or during the entire duration." : {
       "comment" : "Alert string. Keep spaces.",
@@ -5687,6 +5576,17 @@
         }
       }
     },
+    "%.2f U of %.2f U" : {
+      "comment" : "Format for showing delivered and active bolus amounts, 'x U of y U' on watch",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$.2f U of %2$.2f U"
+          }
+        }
+      }
+    },
     "%@" : {
       "comment" : "Info message\nunits",
       "localizations" : {
@@ -7094,6 +6994,9 @@
         }
       }
     },
+    "%lld" : {
+
+    },
     "%lld %%" : {
       "localizations" : {
         "ar" : {
@@ -7199,6 +7102,9 @@
           }
         }
       }
+    },
+    "%lld g" : {
+
     },
     "%lld hr" : {
       "localizations" : {
@@ -26507,120 +26413,6 @@
         }
       }
     },
-    "Allow Remote control of iAPS" : {
-      "comment" : "Allow remote control from NS",
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "السماح بالتحكم عن بعد في iAPS"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tillad fjernkontrol af iAPS"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Erlaube Fernsteuerung von iAPS"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allow Remote control of iAPS"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permitir control remoto de iAPS"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Autoriser le contrôle à distance d'iAPS"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Consenti il controllo remoto di iAPS"
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tillat fjernstyring av Trio"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Toestaan dat iAPS op afstand beheerd wordt"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zezwalaj na zdalne sterowanie iAPS"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permitir controle remoto de iAPS"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Разрешить дистанционное управление iAPS"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Allow Remote control of iAPS"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tillåt fjärrstyrning av iAPS"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Allow Remote control of iAPS"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Дозволити дистанційне керування iAPS"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Allow Remote control of iAPS"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "允许远程控制 iAPS"
-          }
-        }
-      }
-    },
     "Allow SMB With High Temporary Target" : {
       "localizations" : {
         "ar" : {
@@ -36251,7 +36043,7 @@
       }
     },
     "Bolus" : {
-      "comment" : "Treatment type",
+      "comment" : "Treatment type\nWatch App Treatment Option 'Bolus'",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -36462,6 +36254,12 @@
           }
         }
       }
+    },
+    "Bolus cancelled successfully." : {
+      "comment" : "Success message for canceling a bolus"
+    },
+    "Bolus enacted successfully." : {
+      "comment" : "Success message for enacting a bolus"
     },
     "Bolus failed" : {
       "comment" : "Bolus failed",
@@ -36896,6 +36694,12 @@
           }
         }
       }
+    },
+    "Bolus limit cannot be fetched from phone!" : {
+
+    },
+    "Bolus Limit Reached!" : {
+
     },
     "Bolus Snooze DIA Divisor" : {
       "comment" : "Headline \"Bolus Snooze DIA Divisor\"",
@@ -38116,6 +37920,9 @@
         }
       }
     },
+    "Calculating Bolus..." : {
+      "comment" : "Progress view text on watch when calculating bolus"
+    },
     "Calculations" : {
       "comment" : "For the  Bolus View pop-up",
       "localizations" : {
@@ -39104,6 +38911,9 @@
           }
         }
       }
+    },
+    "Cancel Bolus" : {
+
     },
     "Cancel Override" : {
       "localizations" : {
@@ -40192,6 +40002,9 @@
         }
       }
     },
+    "Carbohydrates" : {
+
+    },
     "Carbs" : {
       "comment" : "Treatment type",
       "localizations" : {
@@ -40298,6 +40111,9 @@
           }
         }
       }
+    },
+    "Carbs and Bolus logged successfully." : {
+      "comment" : "Successful message sent to watch when logging carbs and bolus"
     },
     "Carbs and previous insulin are included in the glucose prediction, but if the Eventual Glucose is lower than the Target Glucose, a bolus will not be recommended." : {
       "comment" : "Bolus pop-up footer",
@@ -40412,6 +40228,12 @@
           }
         }
       }
+    },
+    "Carbs Limit Reached!" : {
+
+    },
+    "Carbs logged successfully." : {
+      "comment" : "Success message sent to watch when carbs are logged successfully"
     },
     "Carbs Req Threshold" : {
       "comment" : "Headline \"Carbs Req Threshold\"",
@@ -40855,6 +40677,9 @@
           }
         }
       }
+    },
+    "Carbs:" : {
+
     },
     "Carbs: " : {
       "localizations" : {
@@ -42610,6 +42435,12 @@
           }
         }
       }
+    },
+    "Check device settings, connect to phone, and try again." : {
+
+    },
+    "Check phone and CGM connectivity." : {
+
     },
     "Choose between Total Daily Dose (TDD) or Total Insulin in Scope (TINS) to be displayed above the main glucose graph. Descriptions for each option found below." : {
       "localizations" : {
@@ -45658,6 +45489,9 @@
       }
     },
     "Configure Nightscout" : {
+
+    },
+    "Confirm" : {
 
     },
     "Confirm Before applying" : {
@@ -62844,6 +62678,9 @@
         }
       }
     },
+    "Displays Trio app icon as complication" : {
+
+    },
     "Do not enable this feature until you have optimized your CR (carb ratio) setting." : {
       "localizations" : {
         "ar" : {
@@ -69917,6 +69754,9 @@
         }
       }
     },
+    "Enacting bolus..." : {
+      "comment" : "Successful message sent to watch when enacting bolus"
+    },
     "end" : {
       "localizations" : {
         "ar" : {
@@ -71317,6 +71157,12 @@
           }
         }
       }
+    },
+    "Error! Bolus cancellation failed." : {
+      "comment" : "Error message for canceling a bolus"
+    },
+    "Error! Failed to enact bolus." : {
+      "comment" : "Error message for enacting a bolus\nError message for failing to enact a bolus"
     },
     "Errors" : {
       "comment" : "Loop Errors in statPanel",
@@ -79562,7 +79408,7 @@
       }
     },
     "g" : {
-      "comment" : "The short unit display string for grams",
+      "comment" : "The short unit display string for grams\ngram of carbs",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -90846,6 +90692,9 @@
         }
       }
     },
+    "Importing Profile..." : {
+      "comment" : "Progress text when importing profile via Nightscout"
+    },
     "In case you're using both profiles and temp targets" : {
       "comment" : "UI/UX option",
       "extractionState" : "manual",
@@ -94463,6 +94312,9 @@
       }
     },
     "IOBpredBG" : {
+
+    },
+    "is running" : {
 
     },
     "ISF" : {
@@ -98369,6 +98221,9 @@
         }
       }
     },
+    "Live Activity Expired. Open Trio to Refresh" : {
+
+    },
     "Local glucose source" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -98589,6 +98444,7 @@
       }
     },
     "Log Carbs" : {
+      "comment" : "Button Label to Log Carbs on Watch",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -105990,6 +105846,9 @@
         }
       }
     },
+    "Meal & Bolus" : {
+      "comment" : "Watch App Treatment Option 'Meal & Bolus'"
+    },
     "Meal Presets" : {
       "localizations" : {
         "ar" : {
@@ -112199,6 +112058,9 @@
         }
       }
     },
+    "No glucose readings." : {
+
+    },
     "No Libre Transmitter Selected" : {
       "comment" : "No Libre Transmitter Selected",
       "extractionState" : "manual",
@@ -112427,6 +112289,9 @@
       }
     },
     "No name provided" : {
+
+    },
+    "No Override Presets" : {
 
     },
     "No recent oref algorithm determination." : {
@@ -112982,6 +112847,9 @@
           }
         }
       }
+    },
+    "No Temp Target Presets" : {
+
     },
     "Noisy CGM Target Increase" : {
       "comment" : "Noisy CGM Target Increase",
@@ -122503,6 +122371,9 @@
         }
       }
     },
+    "Pick Treatment" : {
+
+    },
     "Play Alarm Sound" : {
       "localizations" : {
         "ar" : {
@@ -124254,6 +124125,12 @@
           }
         }
       }
+    },
+    "Proceed" : {
+      "comment" : "Button Label to Proceed to Bolus on Watch"
+    },
+    "Processing…" : {
+
     },
     "profile" : {
       "localizations" : {
@@ -128167,6 +128044,9 @@
           }
         }
       }
+    },
+    "Recommended:" : {
+      "comment" : "Recommended bolus on Watch"
     },
     "Red = Below Range" : {
       "localizations" : {
@@ -132404,6 +132284,9 @@
           }
         }
       }
+    },
+    "Saving Carbs..." : {
+      "comment" : "Successful message sent to watch when saving carbs"
     },
     "Saving..." : {
       "comment" : "button title for saving low reservoir reminder while saving",
@@ -143848,6 +143731,9 @@
         }
       }
     },
+    "STALE DATA" : {
+      "comment" : "Information displayed when watch app data outdated or stale."
+    },
     "Standing / Laying TIR Chart" : {
       "localizations" : {
         "ar" : {
@@ -145812,6 +145698,9 @@
           }
         }
       }
+    },
+    "Stop %@" : {
+
     },
     "Stop All Adjustments" : {
       "localizations" : {
@@ -150239,6 +150128,9 @@
           }
         }
       }
+    },
+    "Temp Target Presets" : {
+
     },
     "Temp targets" : {
       "comment" : "Debug option view Temp targets",
@@ -163934,6 +163826,9 @@
     "To configure your CGM, tap the button below. In the form that opens, enter your Nightscout credentials to connect to your instance." : {
 
     },
+    "To confirm, dial crown." : {
+
+    },
     "To disable smoothing, go to Settings > Devices > Continuous Glucose Monitor > Smooth Glucose Value and toggle off the setting." : {
       "localizations" : {
         "ar" : {
@@ -166745,6 +166640,9 @@
           }
         }
       }
+    },
+    "Trio" : {
+
     },
     "Trio Configuration" : {
       "localizations" : {
@@ -171382,6 +171280,12 @@
         }
       }
     },
+    "Updated:" : {
+
+    },
+    "Updating IOB..." : {
+      "comment" : "Progress text when updating IOB"
+    },
     "Updating..." : {
       "comment" : "Updating Watch app",
       "extractionState" : "manual",
@@ -173794,6 +173698,9 @@
           }
         }
       }
+    },
+    "Via Watch" : {
+      "comment" : "Note added to carb entry when entered via watch"
     },
     "Wait please" : {
       "extractionState" : "manual",
