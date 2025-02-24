@@ -127611,6 +127611,7 @@
       }
     },
     "Readings / 24 h" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
