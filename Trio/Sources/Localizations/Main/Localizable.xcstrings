@@ -13722,7 +13722,10 @@
     "≈" : {
 
     },
-    "⚠️ DANGEROUSLY LOW GLUCOSE ⚠️" : {
+    "⚠️ Enact Bolus and Ignore Warning" : {
+
+    },
+    "⚠️ Glucose is very low! Give insulin?" : {
 
     },
     "⚠️ Safety Notifications are OFF" : {
@@ -39684,9 +39687,6 @@
           }
         }
       }
-    },
-    "Cannot be negative." : {
-
     },
     "Carb entries will be fully decayed by the number of hours specified as Max Meal Absorption Time. Meals that are high in fat and/or protein can have long lasting effects on BG levels. To allow such late meal effects to be considered by the carb decay model, a longer Max Meal Absorption Time than the default 6 hours can be set." : {
       "localizations" : {
@@ -112198,6 +112198,9 @@
         }
       }
     },
+    "No insulin recommended." : {
+
+    },
     "No Libre Transmitter Selected" : {
       "comment" : "No Libre Transmitter Selected",
       "extractionState" : "manual",
@@ -179280,9 +179283,6 @@
         }
       }
     },
-    "Yes, Deliver Insulin" : {
-
-    },
     "Yes, Import" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -179930,16 +179930,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "您输入的金额受您最大块设置的 %d%@ 限制"
-          }
-        }
-      }
-    },
-    "Your glucose is %@ %@, which is dangerously low!\n\nAre you sure you want to deliver insulin? This could be EXTREMELY DANGEROUS." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Your glucose is %1$@ %2$@, which is dangerously low!\n\nAre you sure you want to deliver insulin? This could be EXTREMELY DANGEROUS."
           }
         }
       }
