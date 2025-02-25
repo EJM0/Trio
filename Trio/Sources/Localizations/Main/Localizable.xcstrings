@@ -1444,6 +1444,9 @@
         }
       }
     },
+    " × " : {
+
+    },
     " ≈ " : {
       "localizations" : {
         "ar" : {
@@ -1551,6 +1554,7 @@
       }
     },
     " ≈ Max Bolus" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -2867,6 +2871,7 @@
       }
     },
     " x " : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -4072,6 +4077,7 @@
       }
     },
     "(Current - Target) / ISF" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -4176,6 +4182,9 @@
           }
         }
       }
+    },
+    "(Current - Target) ÷ ISF" : {
+
     },
     "(Eventual Glucose - Target) / ISF" : {
       "comment" : "Formula displayed in Bolus info pop-up. Make translation short!",
@@ -4292,6 +4301,7 @@
       }
     },
     "(Factor x Full Bolus) + Super Bolus" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -4714,6 +4724,9 @@
           }
         }
       }
+    },
+    "(Full Bolus x Rec. Bolus %) + Super Bolus" : {
+
     },
     "(Optional)" : {
       "localizations" : {
@@ -5790,6 +5803,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@"
+          }
+        }
+      }
+    },
+    "%@ - %@ = %@ U" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ - %2$@ = %3$@ U"
           }
         }
       }
@@ -13696,6 +13719,12 @@
         }
       }
     },
+    "≈" : {
+
+    },
+    "⚠️ DANGEROUSLY LOW GLUCOSE ⚠️" : {
+
+    },
     "⚠️ Safety Notifications are OFF" : {
       "localizations" : {
         "ar" : {
@@ -15747,6 +15776,7 @@
       }
     },
     "15 min Delta / ISF" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -15851,6 +15881,9 @@
           }
         }
       }
+    },
+    "15 min Delta ÷ ISF" : {
+
     },
     "19:05" : {
       "localizations" : {
@@ -23085,6 +23118,7 @@
       }
     },
     "Added to Result" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -34923,6 +34957,9 @@
         }
       }
     },
+    "Basal Rate × Super Bolus %" : {
+
+    },
     "Basal Rate Adjustment" : {
       "localizations" : {
         "ar" : {
@@ -39647,6 +39684,9 @@
           }
         }
       }
+    },
+    "Cannot be negative." : {
+
     },
     "Carb entries will be fully decayed by the number of hours specified as Max Meal Absorption Time. Meals that are high in fat and/or protein can have long lasting effects on BG levels. To allow such late meal effects to be considered by the carb decay model, a longer Max Meal Absorption Time than the default 6 hours can be set." : {
       "localizations" : {
@@ -73438,6 +73478,7 @@
       }
     },
     "Factor x Fatty Meal Factor x Full Bolus" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -73544,6 +73585,7 @@
       }
     },
     "Factor x Full Bolus" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -73648,6 +73690,9 @@
           }
         }
       }
+    },
+    "Factors" : {
+
     },
     "Factory Calibration Parameters" : {
       "extractionState" : "manual",
@@ -79388,6 +79433,12 @@
         }
       }
     },
+    "Full Bolus x Rec. Bolus %" : {
+
+    },
+    "Full Bolus x Rec. Bolus % x Fatty Meal %" : {
+
+    },
     "Furthermore, you could adjust that sensitivity change independently from the Half Basal Exercise Target specified in Algorithm > Target Behavior settings by deliberatly setting a customized Insulin Percentage for a Temp Target." : {
       "localizations" : {
         "ar" : {
@@ -81110,6 +81161,9 @@
       }
     },
     "Glucose Deviations Algorithm" : {
+
+    },
+    "Glucose is very low." : {
 
     },
     "Glucose Level" : {
@@ -97439,6 +97493,9 @@
         }
       }
     },
+    "Limits" : {
+
+    },
     "Limits per Entry" : {
       "localizations" : {
         "ar" : {
@@ -102657,6 +102714,9 @@
         }
       }
     },
+    "Max Bolus = %@ U" : {
+
+    },
     "Max Bolus exceeded!" : {
       "comment" : "\"Max Bolus Exceeded label\"",
       "extractionState" : "manual",
@@ -103531,6 +103591,9 @@
         }
       }
     },
+    "Max COB:" : {
+
+    },
     "Max Daily Safety Multiplier" : {
       "comment" : "Max Daily Safety Multiplier",
       "localizations" : {
@@ -104390,6 +104453,9 @@
           }
         }
       }
+    },
+    "Max IOB - Current IOB" : {
+
     },
     "Max IOB is the maximum amount of insulin on board from all sources – both basal (or SMB correction) and bolus insulin – that your loop is allowed to accumulate to treat higher-than-target BG. Unlike the other two OpenAPS safety settings (max_daily_safety_multiplier and current_basal_safety_multiplier), max_iob is set as a fixed number of units of insulin. As of now manual boluses are NOT limited by this setting. \n\n To test your basal rates during nighttime, you can modify the Max IOB setting to zero while in Closed Loop. This will enable low glucose suspend mode while testing your basal rates settings." : {
       "comment" : "\"Max IOB\"",
@@ -127767,6 +127833,9 @@
         }
       }
     },
+    "Recommended Bolus" : {
+
+    },
     "Recommended Bolus Percentage" : {
       "comment" : "Recommendation for a Manual Bolus",
       "localizations" : {
@@ -129483,6 +129552,7 @@
     },
     "Result" : {
       "comment" : "For the  Bolus View pop-up",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -179210,6 +179280,9 @@
         }
       }
     },
+    "Yes, Deliver Insulin" : {
+
+    },
     "Yes, Import" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -179857,6 +179930,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "您输入的金额受您最大块设置的 %d%@ 限制"
+          }
+        }
+      }
+    },
+    "Your glucose is %@ %@, which is dangerously low!\n\nAre you sure you want to deliver insulin? This could be EXTREMELY DANGEROUS." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Your glucose is %1$@ %2$@, which is dangerously low!\n\nAre you sure you want to deliver insulin? This could be EXTREMELY DANGEROUS."
           }
         }
       }
