@@ -324,7 +324,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\nLiều tiêm nhiều hơn liều Max Bolus! \nBạn có chắc chắn muốn thêm "
+            "value" : "\nLiều tiêm nhiều hơn liều Max Bolus! \nBạn có chắc chắn muốn thêm "
           }
         },
         "zh-Hans" : {
@@ -438,7 +438,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\nCác cấu hình liều nền trên Nightscout không hợp lệ.\n\n Việc cập nhật bị bỏ. Đề nghị bạn kiểm tra cấu hình liều nền trên Nightscout!"
+            "value" : "\nCác cấu hình liều nền trên Nightscout không hợp lệ.\n\n Việc cập nhật bị bỏ. Đề nghị bạn kiểm tra cấu hình liều nền trên Nightscout!"
           }
         },
         "zh-Hans" : {
@@ -552,127 +552,13 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\n Sai khác đơn vị Glucose giữa Nightscout và Bơm. Cập nhật cấu hình bị bỏ."
+            "value" : "\n Sai khác đơn vị Glucose giữa Nightscout và Bơm. Cập nhật cấu hình bị bỏ."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "\n在 Nightscout 和 Pump 设置中不匹配血糖单位。导入设置中止。"
-          }
-        }
-      }
-    },
-    "\nNow please verify all of your new settings thoroughly:\n\n* Basal Settings\n * Carb Ratios\n * Glucose Targets\n * Insulin Sensitivities\n * DIA\n\n in iAPS Settings > Configuration.\n\nBad or invalid profile settings could have disatrous effects." : {
-      "comment" : "Imported Profiles Alert",
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "\nNow please verify all of your new settings thoroughly:\n\n* Basal Settings\n * Carb Ratios\n * Glucose Targets\n * Insulin Sensitivities\n * DIA\n\n in iAPS Settings > Configuration.\n\nBad or invalid profile settings could have disatrous effects."
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nKontroller nu alle dine nye indstillinger grundigt:\n\n* Basal Settings\n * Carb Ratios\n * Glucose Targets\n * Insulin Følsomhed\n * DIA\n\n i iAPS Indstillinger > Konfiguration.\n\nDårlige eller ugyldige profilindstillinger kan have disatrous effekter."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nBitte überprüfen Sie jetzt alle Ihre neuen Einstellungen gründlich:\n\n* Basaleinstellungen\n * Carb Ratios\n * Glukose-Ziele\n * Insulinempfindlichkeiten\n * DIA\n\n in iAPS-Einstellungen > Konfiguration.\n\nSchlechte oder ungültige Profileinstellungen können abscheuliche Effekte haben."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nNow please verify all of your new settings thoroughly:\n\n* Basal Settings\n * Carb Ratios\n * Glucose Targets\n * Insulin Sensitivities\n * DIA\n\n in iAPS Settings > Configuration.\n\nBad or invalid profile settings could have disatrous effects."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "\nNow please verify all of your new settings thoroughly:\n\n* Basal Settings\n * Carb Ratios\n * Glucose Targets\n * Insulin Sensitivities\n * DIA\n\n in iAPS Settings > Configuration.\n\nBad or invalid profile settings could have disatrous effects."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nVeuillez maintenant vérifier soigneusement tous vos nouveaux paramètres:\n\n* Paramètres basaux\n * Ratios glucidiques\n * Objectifs glycémiques\n * Sensibilité à l'insuline\n * DIA\n\n dans iAPS Paramètres > Configuration.\n\nDes paramètres de profil incorrects ou invalides peuvent avoir des effets désastreux."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nOra verifica attentamente tutte le nuove impostazioni:\n\n* Impostazioni basali\n * Rapporti carboidrati\n * Obiettivi glucosio\n * Sensibilità insulinica\n * DIA\n\n in Impostazioni iAPS > Configurazione.\n\nImpostazioni del profilo errate o non valide potrebbero avere effetti disastrosi."
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nGå nøye gjennom alle de nye innstillingene:\n\n* Basalprofil\n * Karbohydratforhold\n * Blodsukkermål\n * Insulinfølsomhet\n\n i innstillingene.\n\nFeil eller ugyldige profilinnstillinger kan ha katastrofale følger."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nCheck nu al je nieuwe instellingen:\n\n* Basaal instellingen\n * Koolhydraat ratio's\n * Doel glucose waarde\n * Insuline sensitiviteit\n * DIA\n\n in iAPS instellingen > Configuratie.\n\nSlechte of ongeldige profielinstellingen kunnen  desastreuze effecten hebben!"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nTeraz sprawdź dokładnie wszystkie nowe ustawienia:\n\n* Ustawienia bazy\n * Współczynnik węglowodanów\n * Cele glikemii\n * Wrażliwość na insulinę\n * DIA\n\n w ustawieniach iAPS > Konfiguracja.\n\nBłędne lub niepoprawne ustawienia profilu mogą mieć drażliwe skutki."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "\nNow please verify all of your new settings thoroughly:\n\n* Basal Settings\n * Carb Ratios\n * Glucose Targets\n * Insulin Sensitivities\n * DIA\n\n in iAPS Settings > Configuration.\n\nBad or invalid profile settings could have disatrous effects."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nПожалуйста, проверьте все ваши новые настройки:\n\n* Настройки базала\n * Углеводные коэффициенты\n * Целевой диапазон\n * Чувствительность к инсулину\n\n в настройках iAPS Настройки > Конфигурация.\n\nНекорректные настройки профиля могут привести к катастрофическим последствиям."
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "\nNow please verify all of your new settings thoroughly:\n\n* Basal Settings\n * Carb Ratios\n * Glucose Targets\n * Insulin Sensitivities\n * DIA\n\n in iAPS Settings > Configuration.\n\nBad or invalid profile settings could have disatrous effects."
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nKontrollera nu alla dina nya pumpinställningar noga:\n\n* Basalinställningar\n * Insulinkvoter\n * Målvärden\n * Insulinkänslighet\n\n i Inställningar > Konfiguration.\n\nDåliga eller ogiltiga pumpinställningar kan gå katastrofala följder."
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "\nNow please verify all of your new settings thoroughly:\n\n* Basal Settings\n * Carb Ratios\n * Glucose Targets\n * Insulin Sensitivities\n * DIA\n\n in iAPS Settings > Configuration.\n\nBad or invalid profile settings could have disatrous effects."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\nТепер уважно перевірте всі ваші нові налаштування:\n\n* Базальні параметри\n * Вуглеводні співвідношення\n * Цільові показники глюкози\n * Чутливість до інсуліну\n\n у меню «Налаштування iAPS» > «Конфігурація».\n\nПоганий або недійсний профіль налаштування можуть мати згубні наслідки."
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "\nNow please verify all of your new settings thoroughly:\n\n* Basal Settings\n * Carb Ratios\n * Glucose Targets\n * Insulin Sensitivities\n * DIA\n\n in iAPS Settings > Configuration.\n\nBad or invalid profile settings could have disatrous effects."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\n现在请彻底验证您所有的新设置：\n\n* Basal 设置\n * Carb 比率\n * Glucose Targets\n * Insulin Sensitivies\n * DIA\n\n 在 iAPS 设置 > 配置 中。\n\n错误或无效的配置文件设置可能会产生隐藏效果。"
           }
         }
       }
@@ -780,7 +666,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\n Bây giờ xin hãy xác minh lại tất cả các cài đặt của bạn kỹ lưỡng:\n\n* Cài đặt liều nền\n * Tỷ lệ Carb\n * Mục tiêu đường huyết \n * Độ nhạy của Insulin\n * Thời gian hoạt động của insulin\n\n trong Trio Cài đặt > Cấu hình.\n\n Cấu hình không hợp lệ hoặc tồi có thể có tác động thảm họa."
+            "value" : "\n Bây giờ xin hãy xác minh lại tất cả các cài đặt của bạn kỹ lưỡng:\n\n* Cài đặt liều nền\n * Tỷ lệ Carb\n * Mục tiêu đường huyết \n * Độ nhạy của Insulin\n * Thời gian hoạt động của insulin\n\n trong Trio Cài đặt > Cấu hình.\n\n Cấu hình không hợp lệ hoặc tồi có thể có tác động thảm họa."
           }
         },
         "zh-Hans" : {
@@ -894,7 +780,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\n Các cấu hình đã được nhập nhưng liều nền không được lưu vào bơm (không có bơm). Kiểm tra cấu hình liều nền của bạn và nhấn 'Lưu vào bơm' để đồng hóa cấu hình liều nền mới"
+            "value" : "\n Các cấu hình đã được nhập nhưng liều nền không được lưu vào bơm (không có bơm). Kiểm tra cấu hình liều nền của bạn và nhấn 'Lưu vào bơm' để đồng hóa cấu hình liều nền mới"
           }
         },
         "zh-Hans" : {
@@ -1008,7 +894,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : " -  Liều Basal thủ công⚠️"
+            "value" : " -  Liều Basal thủ công⚠️"
           }
         },
         "zh-Hans" : {
@@ -1980,7 +1866,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : " thời gian không xác định."
+            "value" : " thời gian không xác định."
           }
         },
         "zh-Hans" : {
@@ -2317,6 +2203,9 @@
         }
       }
     },
+    " of " : {
+      "comment" : "Bolus string partial message: 'x U of y U' in home view"
+    },
     " SMBs are disabled either by schedule or during the entire duration." : {
       "comment" : "Alert string. Keep spaces.",
       "extractionState" : "manual",
@@ -2420,7 +2309,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : " SMBs bị vô hiệu theo lịch trình hoặc theo toàn bộ thời gian."
+            "value" : " SMBs bị vô hiệu theo lịch trình hoặc theo toàn bộ thời gian."
           }
         },
         "zh-Hans" : {
@@ -2634,7 +2523,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : " U/ngày"
+            "value" : " U/ngày"
           }
         },
         "zh-Hans" : {
@@ -5688,6 +5577,17 @@
         }
       }
     },
+    "%.2f U of %.2f U" : {
+      "comment" : "Format for showing delivered and active bolus amounts, 'x U of y U' on watch",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$.2f U of %2$.2f U"
+          }
+        }
+      }
+    },
     "%@" : {
       "comment" : "Info message\nunits",
       "localizations" : {
@@ -7095,6 +6995,9 @@
         }
       }
     },
+    "%lld" : {
+
+    },
     "%lld %%" : {
       "localizations" : {
         "ar" : {
@@ -7200,6 +7103,9 @@
           }
         }
       }
+    },
+    "%lld g" : {
+
     },
     "%lld hr" : {
       "localizations" : {
@@ -14778,7 +14684,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2 giờ"
+            "value" : "2 giờ"
           }
         },
         "zh-Hans" : {
@@ -15316,7 +15222,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "4 giờ"
+            "value" : "4 giờ"
           }
         },
         "zh-Hans" : {
@@ -15641,7 +15547,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "6 giờ"
+            "value" : "6 giờ"
           }
         },
         "zh-Hans" : {
@@ -15766,7 +15672,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "12 giờ"
+            "value" : "12 giờ"
           }
         },
         "zh-Hans" : {
@@ -16091,7 +15997,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "24 giờ"
+            "value" : "24 giờ"
           }
         },
         "zh-Hans" : {
@@ -17302,6 +17208,9 @@
         }
       }
     },
+    "A new version (%@) is available. It is recommended to update." : {
+      "comment" : "Message for update available alert"
+    },
     "A notification will be triggered every time your glucose is updated in Trio." : {
       "localizations" : {
         "ar" : {
@@ -18040,7 +17949,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Về quá trình xử lý"
+            "value" : "Về quá trình xử lý"
           }
         },
         "zh-Hans" : {
@@ -18147,7 +18056,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thông tin nguồn này"
+            "value" : "Thông tin nguồn này"
           }
         },
         "zh-Hans" : {
@@ -18696,7 +18605,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thời gian Hoạt động"
+            "value" : "Thời gian Hoạt động"
           }
         },
         "zh-Hans" : {
@@ -18917,7 +18826,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thêm %@ và bỏ qua liều bolus"
+            "value" : "Thêm %@ và bỏ qua liều bolus"
           }
         },
         "zh-Hans" : {
@@ -19559,7 +19468,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thêm kết quả hiệu chuẩn"
+            "value" : "Thêm kết quả hiệu chuẩn"
           }
         },
         "zh-Hans" : {
@@ -20858,7 +20767,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tự thêm liều insulin và bỏ qua liều bolus thực tế"
+            "value" : "Tự thêm liều insulin và bỏ qua liều bolus thực tế"
           }
         },
         "zh-Hans" : {
@@ -20972,7 +20881,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Khai báo bữa ăn"
+            "value" : "Khai báo bữa ăn"
           }
         },
         "zh-Hans" : {
@@ -22601,7 +22510,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thêm Bơm mô phỏng"
+            "value" : "Thêm Bơm mô phỏng"
           }
         },
         "zh-Hans" : {
@@ -23350,7 +23259,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thêm các loại thông báo"
+            "value" : "Thêm các loại thông báo"
           }
         },
         "zh-Hans" : {
@@ -23795,7 +23704,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hãy sạc Pin của Transmitter"
+            "value" : "Hãy sạc Pin của Transmitter"
           }
         },
         "zh-Hans" : {
@@ -25439,7 +25348,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đồng ý và tiếp tục"
+            "value" : "Đồng ý và tiếp tục"
           }
         },
         "zh-Hans" : {
@@ -25555,7 +25464,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cảnh báo"
+            "value" : "Cảnh báo"
           }
         },
         "zh-Hans" : {
@@ -26565,120 +26474,6 @@
         }
       }
     },
-    "Allow Remote control of iAPS" : {
-      "comment" : "Allow remote control from NS",
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "السماح بالتحكم عن بعد في iAPS"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tillad fjernkontrol af iAPS"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Erlaube Fernsteuerung von iAPS"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allow Remote control of iAPS"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permitir control remoto de iAPS"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Autoriser le contrôle à distance d'iAPS"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Consenti il controllo remoto di iAPS"
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tillat fjernstyring av Trio"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Toestaan dat iAPS op afstand beheerd wordt"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zezwalaj na zdalne sterowanie iAPS"
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permitir controle remoto de iAPS"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Разрешить дистанционное управление iAPS"
-          }
-        },
-        "sk" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Allow Remote control of iAPS"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tillåt fjärrstyrning av iAPS"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Allow Remote control of iAPS"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Дозволити дистанційне керування iAPS"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Allow Remote control of iAPS"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "允许远程控制 iAPS"
-          }
-        }
-      }
-    },
     "Allow SMB With High Temporary Target" : {
       "localizations" : {
         "ar" : {
@@ -27213,7 +27008,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cho phép tải thống kê lên NS"
+            "value" : "Cho phép tải thống kê lên NS"
           }
         },
         "zh-Hans" : {
@@ -27774,7 +27569,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cũng thêm thông tin nguồn"
+            "value" : "Cũng thêm thông tin nguồn"
           }
         },
         "zh-Hans" : {
@@ -28099,7 +27894,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đồng thời bật âm thanh"
+            "value" : "Đồng thời bật âm thanh"
           }
         },
         "zh-Hans" : {
@@ -29421,7 +29216,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Khối lượng Carbs"
+            "value" : "Khối lượng Carbs"
           }
         },
         "zh-Hans" : {
@@ -30171,7 +29966,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Khóa API"
+            "value" : "Khóa API"
           }
         },
         "zh-Hans" : {
@@ -30281,7 +30076,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Biểu tượng ứng dụng"
+            "value" : "Biểu tượng ứng dụng"
           }
         },
         "zh-Hans" : {
@@ -31145,7 +30940,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bạn có chắc sẽ xóa CGM này?"
+            "value" : "Bạn có chắc sẽ xóa CGM này?"
           }
         },
         "zh-Hans" : {
@@ -31364,7 +31159,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bạn có chắc muốn xóa CGM này khỏi Loop không?"
+            "value" : "Bạn có chắc muốn xóa CGM này khỏi Loop không?"
           }
         },
         "zh-Hans" : {
@@ -31477,7 +31272,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bạn có chắc không?"
+            "value" : "Bạn có chắc không?"
           }
         },
         "zh-Hans" : {
@@ -31817,7 +31612,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tự động"
+            "value" : "Tự động"
           }
         },
         "zh-Hans" : {
@@ -33769,6 +33564,9 @@
         }
       }
     },
+    "Backfill Failed" : {
+
+    },
     "Backfill from history" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -33871,7 +33669,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chèn lấp từ lịch sử"
+            "value" : "Chèn lấp từ lịch sử"
           }
         },
         "zh-Hans" : {
@@ -33984,7 +33782,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chèn lấp từ xu hướng"
+            "value" : "Chèn lấp từ xu hướng"
           }
         },
         "zh-Hans" : {
@@ -34425,7 +34223,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tùy chọn chèn lấp"
+            "value" : "Tùy chọn chèn lấp"
           }
         },
         "zh-Hans" : {
@@ -35959,7 +35757,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Xét nghiệm đường huyết"
+            "value" : "Xét nghiệm đường huyết"
           }
         },
         "zh-Hans" : {
@@ -36073,7 +35871,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tắt bluetooth"
+            "value" : "Tắt bluetooth"
           }
         },
         "zh-Hans" : {
@@ -36312,7 +36110,7 @@
       }
     },
     "Bolus" : {
-      "comment" : "Treatment type",
+      "comment" : "Treatment type\nWatch App Treatment Option 'Bolus'",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -36407,7 +36205,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liều bolus"
+            "value" : "Liều bolus"
           }
         },
         "zh-Hans" : {
@@ -36524,6 +36322,12 @@
         }
       }
     },
+    "Bolus cancelled successfully." : {
+      "comment" : "Success message for canceling a bolus"
+    },
+    "Bolus enacted successfully." : {
+      "comment" : "Success message for enacting a bolus"
+    },
     "Bolus failed" : {
       "comment" : "Bolus failed",
       "localizations" : {
@@ -36620,7 +36424,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liều bolus thất bại"
+            "value" : "Liều bolus thất bại"
           }
         },
         "zh-Hans" : {
@@ -36727,7 +36531,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liều bolus thất bại hoặc không chính xác. Kiểm tra lại bơm trước khi lặp lại."
+            "value" : "Liều bolus thất bại hoặc không chính xác. Kiểm tra lại bơm trước khi lặp lại."
           }
         },
         "zh-Hans" : {
@@ -36958,6 +36762,12 @@
         }
       }
     },
+    "Bolus limit cannot be fetched from phone!" : {
+
+    },
+    "Bolus Limit Reached!" : {
+
+    },
     "Bolus Snooze DIA Divisor" : {
       "comment" : "Headline \"Bolus Snooze DIA Divisor\"",
       "extractionState" : "manual",
@@ -37109,7 +36919,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bolus snooze est activé apres votre bolus de repas, la boucle ne réagira pas avec des valeurs basses temporaire quand vous venez juste de manger. L’exemple ici et la valeur par défaut est 2 ; donc avec une Durée d'Action (DIA) de 3 heures signifie que snooze bolus sera graduellement éliminé après 1,5 heures (3DIA/2)."
+            "value" : "Bolus snooze est activé apres votre bolus de repas, la boucle ne réagira pas avec des valeurs basses temporaire quand vous venez juste de manger. L’exemple ici et la valeur par défaut est 2 ; donc avec une Durée d'Action (DIA) de 3 heures signifie que snooze bolus sera graduellement éliminé après 1,5 heures (3DIA/2)."
           }
         },
         "it" : {
@@ -37292,7 +37102,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tóm tắt liều bolus"
+            "value" : "Tóm tắt liều bolus"
           }
         },
         "zh-Hans" : {
@@ -37516,7 +37326,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mục tiêu dưới cùng"
+            "value" : "Mục tiêu dưới cùng"
           }
         },
         "zh-Hans" : {
@@ -38180,6 +37990,9 @@
         }
       }
     },
+    "Calculating Bolus..." : {
+      "comment" : "Progress view text on watch when calculating bolus"
+    },
     "Calculations" : {
       "comment" : "For the  Bolus View pop-up",
       "localizations" : {
@@ -38276,7 +38089,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Các tính toán"
+            "value" : "Các tính toán"
           }
         },
         "zh-Hans" : {
@@ -38725,7 +38538,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thông tin hiệu chuẩn"
+            "value" : "Thông tin hiệu chuẩn"
           }
         },
         "zh-Hans" : {
@@ -38945,7 +38758,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Không thể tìm thấy Profile Nightscout mặc định."
+            "value" : "Không thể tìm thấy Profile Nightscout mặc định."
           }
         },
         "zh-Hans" : {
@@ -39052,7 +38865,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hủy bỏ"
+            "value" : "Hủy bỏ"
           }
         },
         "zh-Hans" : {
@@ -39168,6 +38981,9 @@
           }
         }
       }
+    },
+    "Cancel Bolus" : {
+
     },
     "Cancel Override" : {
       "localizations" : {
@@ -39598,7 +39414,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hủy bỏ mục tiêu tạm thời"
+            "value" : "Hủy bỏ mục tiêu tạm thời"
           }
         },
         "zh-Hans" : {
@@ -39926,7 +39742,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tỷ lệ Carb"
+            "value" : "Tỷ lệ Carb"
           }
         },
         "zh-Hans" : {
@@ -40139,7 +39955,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tỷ lệ Carb"
+            "value" : "Tỷ lệ Carb"
           }
         },
         "zh-Hans" : {
@@ -40256,6 +40072,9 @@
         }
       }
     },
+    "Carbohydrates" : {
+
+    },
     "Carbs" : {
       "comment" : "Treatment type",
       "localizations" : {
@@ -40362,6 +40181,9 @@
           }
         }
       }
+    },
+    "Carbs and Bolus logged successfully." : {
+      "comment" : "Successful message sent to watch when logging carbs and bolus"
     },
     "Carbs and previous insulin are included in the glucose prediction, but if the Eventual Glucose is lower than the Target Glucose, a bolus will not be recommended." : {
       "comment" : "Bolus pop-up footer",
@@ -40477,6 +40299,12 @@
         }
       }
     },
+    "Carbs Limit Reached!" : {
+
+    },
+    "Carbs logged successfully." : {
+      "comment" : "Success message sent to watch when carbs are logged successfully"
+    },
     "Carbs Req Threshold" : {
       "comment" : "Headline \"Carbs Req Threshold\"",
       "extractionState" : "manual",
@@ -40580,7 +40408,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ngưỡng yêu cầu của lượng Carbs"
+            "value" : "Ngưỡng yêu cầu của lượng Carbs"
           }
         },
         "zh-Hans" : {
@@ -40693,7 +40521,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lượng Carbs được yêu cầu"
+            "value" : "Lượng Carbs được yêu cầu"
           }
         },
         "zh-Hans" : {
@@ -40802,7 +40630,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ngưỡng yêu cầu của lượng Carbs"
+            "value" : "Ngưỡng yêu cầu của lượng Carbs"
           }
         },
         "zh-Hans" : {
@@ -40909,7 +40737,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lượng carbs yêu cầu: %d g"
+            "value" : "Lượng carbs yêu cầu: %d g"
           }
         },
         "zh-Hans" : {
@@ -41671,7 +41499,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thay đổi CR"
+            "value" : "Thay đổi CR"
           }
         },
         "zh-Hans" : {
@@ -41899,7 +41727,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thay đổi đơn vị của HbA1c"
+            "value" : "Thay đổi đơn vị của HbA1c"
           }
         },
         "zh-Hans" : {
@@ -42012,7 +41840,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thay đổi ISF"
+            "value" : "Thay đổi ISF"
           }
         },
         "zh-Hans" : {
@@ -42125,7 +41953,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thay đổi ISF và CR"
+            "value" : "Thay đổi ISF và CR"
           }
         },
         "zh-Hans" : {
@@ -42345,7 +42173,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thay pod ngay. Insulin sẽ ngưng tiêm trong %1$@ hoặc khi không còn insulin."
+            "value" : "Thay pod ngay. Insulin sẽ ngưng tiêm trong %1$@ hoặc khi không còn insulin."
           }
         },
         "zh-Hans" : {
@@ -42451,7 +42279,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Biểu đồ"
+            "value" : "Biểu đồ"
           }
         },
         "zh-Hans" : {
@@ -42673,7 +42501,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kiểm tra Cannula"
+            "value" : "Kiểm tra Cannula"
           }
         },
         "zh-Hans" : {
@@ -42683,6 +42511,12 @@
           }
         }
       }
+    },
+    "Check device settings, connect to phone, and try again." : {
+
+    },
+    "Check phone and CGM connectivity." : {
+
     },
     "Choose between Total Daily Dose (TDD) or Total Insulin in Scope (TINS) to be displayed above the main glucose graph. Descriptions for each option found below." : {
       "localizations" : {
@@ -44282,7 +44116,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chọn để ẩn các cảnh báo"
+            "value" : "Chọn để ẩn các cảnh báo"
           }
         },
         "zh-Hans" : {
@@ -44388,7 +44222,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đóng"
+            "value" : "Đóng"
           }
         },
         "zh-Hans" : {
@@ -44501,7 +44335,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vòng lặp kín"
+            "value" : "Vòng lặp kín"
           }
         },
         "zh-Hans" : {
@@ -45387,7 +45221,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Các tác vụ sẽ có âm thanh như khi bạn bolus, hủy bỏ bolus, tạm dừng bơm, hoạt động lại hay lưu các lời nhắc thông báo... sẽ không có âm thanh khi ứng dụng chạy tự động."
+            "value" : "Các tác vụ sẽ có âm thanh như khi bạn bolus, hủy bỏ bolus, tạm dừng bơm, hoạt động lại hay lưu các lời nhắc thông báo... sẽ không có âm thanh khi ứng dụng chạy tự động."
           }
         },
         "zh-Hans" : {
@@ -45501,7 +45335,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sẽ có âm thanh báo nhắc khi ứng dụng tự động điều chỉnh liều cũng như khi bạn khởi tạo ứng dụng."
+            "value" : "Sẽ có âm thanh báo nhắc khi ứng dụng tự động điều chỉnh liều cũng như khi bạn khởi tạo ứng dụng."
           }
         },
         "zh-Hans" : {
@@ -45614,7 +45448,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cấu hình"
+            "value" : "Cấu hình"
           }
         },
         "zh-Hans" : {
@@ -45739,6 +45573,9 @@
       }
     },
     "Configure Nightscout" : {
+
+    },
+    "Confirm" : {
 
     },
     "Confirm Before applying" : {
@@ -46155,7 +45992,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kết nối"
+            "value" : "Kết nối"
           }
         },
         "zh-Hans" : {
@@ -46806,7 +46643,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đã kết nối"
+            "value" : "Đã kết nối"
           }
         },
         "zh-Hans" : {
@@ -46913,7 +46750,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đang kết nối..."
+            "value" : "Đang kết nối..."
           }
         },
         "zh-Hans" : {
@@ -47026,7 +46863,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tình trạng Kết nối"
+            "value" : "Tình trạng Kết nối"
           }
         },
         "zh-Hans" : {
@@ -47458,7 +47295,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tiếp tục"
+            "value" : "Tiếp tục"
           }
         },
         "zh-Hans" : {
@@ -47572,7 +47409,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tiếp tục và bỏ qua liều bolus"
+            "value" : "Tiếp tục và bỏ qua liều bolus"
           }
         },
         "zh-Hans" : {
@@ -49092,7 +48929,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hiện tại không có ghi đè nào hoạt động"
+            "value" : "Hiện tại không có ghi đè nào hoạt động"
           }
         },
         "zh-Hans" : {
@@ -50076,7 +49913,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ngày"
+            "value" : "Ngày"
           }
         },
         "zh-Hans" : {
@@ -50629,7 +50466,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hủy kích hoạt Pod"
+            "value" : "Hủy kích hoạt Pod"
           }
         },
         "zh-Hans" : {
@@ -50855,7 +50692,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tùy chọn gỡ lỗi"
+            "value" : "Tùy chọn gỡ lỗi"
           }
         },
         "zh-Hans" : {
@@ -56314,7 +56151,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Độ trễ theo phút"
+            "value" : "Độ trễ theo phút"
           }
         },
         "zh-Hans" : {
@@ -56420,7 +56257,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Xóa"
+            "value" : "Xóa"
           }
         },
         "zh-Hans" : {
@@ -56877,7 +56714,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Xóa CGM"
+            "value" : "Xóa CGM"
           }
         },
         "zh-Hans" : {
@@ -56991,7 +56828,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Xóa CGMManager và tạo mới. Các thông tin xác thực libreoopweb của bạn sẽ được bảo quản"
+            "value" : "Xóa CGMManager và tạo mới. Các thông tin xác thực libreoopweb của bạn sẽ được bảo quản"
           }
         },
         "zh-Hans" : {
@@ -57546,7 +57383,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Xóa mẫu cài đặt \"%@\""
+            "value" : "Xóa mẫu cài đặt \"%@\""
           }
         },
         "zh-Hans" : {
@@ -57878,7 +57715,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Các giới hạn liều tiêm"
+            "value" : "Các giới hạn liều tiêm"
           }
         },
         "zh-Hans" : {
@@ -58859,6 +58696,9 @@
         }
       }
     },
+    "Determination Failed" : {
+
+    },
     "Dev" : {
 
     },
@@ -59071,7 +58911,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thiết bị"
+            "value" : "Thiết bị"
           }
         },
         "zh-Hans" : {
@@ -59514,7 +59354,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vô hiệu hóa SMBs"
+            "value" : "Vô hiệu hóa SMBs"
           }
         },
         "zh-Hans" : {
@@ -60165,7 +60005,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Từ bỏ"
+            "value" : "Từ bỏ"
           }
         },
         "zh-Hans" : {
@@ -60498,7 +60338,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hiển thị các đường hiển thị Thấp và Cao"
+            "value" : "Hiển thị các đường hiển thị Thấp và Cao"
           }
         },
         "zh-Hans" : {
@@ -60611,7 +60451,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hiển thị biểu đồ dạng X-Grid"
+            "value" : "Hiển thị biểu đồ dạng X-Grid"
           }
         },
         "zh-Hans" : {
@@ -60724,7 +60564,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hiển thị biểu đồ dạng Y-Grid"
+            "value" : "Hiển thị biểu đồ dạng Y-Grid"
           }
         },
         "zh-Hans" : {
@@ -62925,6 +62765,9 @@
         }
       }
     },
+    "Displays Trio app icon as complication" : {
+
+    },
     "Do not enable this feature until you have optimized your CR (carb ratio) setting." : {
       "localizations" : {
         "ar" : {
@@ -63134,7 +62977,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hoàn thành"
+            "value" : "Hoàn thành"
           }
         },
         "zh-Hans" : {
@@ -63560,7 +63403,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thời gian hoạt động của Insulin"
+            "value" : "Thời gian hoạt động của Insulin"
           }
         },
         "zh-Hans" : {
@@ -64658,7 +64501,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thêm kết quả hiệu chuẩn"
+            "value" : "Thêm kết quả hiệu chuẩn"
           }
         },
         "zh-Hans" : {
@@ -64871,7 +64714,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chỉnh sửa bữa ăn"
+            "value" : "Chỉnh sửa bữa ăn"
           }
         },
         "zh-Hans" : {
@@ -65090,7 +64933,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chỉnh sửa cấu hình json"
+            "value" : "Chỉnh sửa cấu hình json"
           }
         },
         "zh-Hans" : {
@@ -65529,7 +65372,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cho phép"
+            "value" : "Cho phép"
           }
         },
         "zh-Hans" : {
@@ -67623,7 +67466,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cho phép"
+            "value" : "Cho phép"
           }
         },
         "zh-Hans" : {
@@ -69658,7 +69501,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tiêm liều bolus"
+            "value" : "Tiêm liều bolus"
           }
         },
         "zh-Hans" : {
@@ -69765,7 +69608,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tiêm liều bolus"
+            "value" : "Tiêm liều bolus"
           }
         },
         "zh-Hans" : {
@@ -69993,7 +69836,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thực hiện ở"
+            "value" : "Thực hiện ở"
           }
         },
         "zh-Hans" : {
@@ -70003,6 +69846,9 @@
           }
         }
       }
+    },
+    "Enacting bolus..." : {
+      "comment" : "Successful message sent to watch when enacting bolus"
     },
     "end" : {
       "localizations" : {
@@ -71174,7 +71020,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lỗi"
+            "value" : "Lỗi"
           }
         },
         "zh-Hans" : {
@@ -71288,7 +71134,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lỗi ở"
+            "value" : "Lỗi ở"
           }
         },
         "zh-Hans" : {
@@ -71405,6 +71251,12 @@
         }
       }
     },
+    "Error! Bolus cancellation failed." : {
+      "comment" : "Error message for canceling a bolus"
+    },
+    "Error! Failed to enact bolus." : {
+      "comment" : "Error message for enacting a bolus\nError message for failing to enact a bolus"
+    },
     "Errors" : {
       "comment" : "Loop Errors in statPanel",
       "extractionState" : "manual",
@@ -71508,7 +71360,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lỗi"
+            "value" : "Lỗi"
           }
         },
         "zh-Hans" : {
@@ -72525,7 +72377,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nhắc nhở hết hạn"
+            "value" : "Nhắc nhở hết hạn"
           }
         },
         "zh-Hans" : {
@@ -72639,7 +72491,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mặc định nhắc nhở hết hạn"
+            "value" : "Mặc định nhắc nhở hết hạn"
           }
         },
         "zh-Hans" : {
@@ -73086,7 +72938,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bên ngoài"
+            "value" : "Bên ngoài"
           }
         },
         "zh-Hans" : {
@@ -73193,7 +73045,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liều insulin tiêm ngoài"
+            "value" : "Liều insulin tiêm ngoài"
           }
         },
         "zh-Hans" : {
@@ -73858,7 +73710,18 @@
         }
       }
     },
+    "Failed to create a new object in %@ from %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Failed to create a new object in %1$@ from %2$@."
+          }
+        }
+      }
+    },
     "Failed to create a new object." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -73964,7 +73827,18 @@
         }
       }
     },
+    "Failed to execute a batch delete request in %@ from %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Failed to execute a batch delete request in %1$@ from %2$@."
+          }
+        }
+      }
+    },
     "Failed to execute a batch delete request." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -74070,7 +73944,18 @@
         }
       }
     },
+    "Failed to execute a batch insert request in %@ from %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Failed to execute a batch insert request in %1$@ from %2$@."
+          }
+        }
+      }
+    },
     "Failed to execute a batch insert request." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -74176,7 +74061,18 @@
         }
       }
     },
+    "Failed to execute a persistent history change request in %@ from %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Failed to execute a persistent history change request in %1$@ from %2$@."
+          }
+        }
+      }
+    },
     "Failed to execute a persistent history change request." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -74282,11 +74178,15 @@
         }
       }
     },
-    "Failed to fetch object %@." : {
-
-    },
-    "Failed to initialize Core Data's persistent store." : {
-
+    "Failed to fetch object %@ in %@ from %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Failed to fetch object %1$@ in %2$@ from %3$@."
+          }
+        }
+      }
     },
     "Failed to Suspend Insulin Delivery" : {
       "comment" : "Alert title for suspend error",
@@ -74391,7 +74291,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thất bại khi tạm dừng liều insulin"
+            "value" : "Thất bại khi tạm dừng liều insulin"
           }
         },
         "zh-Hans" : {
@@ -74401,6 +74301,9 @@
           }
         }
       }
+    },
+    "Failed to update COB/IOB: %@" : {
+
     },
     "Failed to update confidence reminder preference." : {
       "comment" : "Alert title for error when updating confidence reminder preference",
@@ -74516,6 +74419,16 @@
         }
       }
     },
+    "Failed to validate object in %@ from %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Failed to validate object in %1$@ from %2$@."
+          }
+        }
+      }
+    },
     "Fat" : {
       "comment" : "Add Fat",
       "localizations" : {
@@ -74612,7 +74525,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chất béo"
+            "value" : "Chất béo"
           }
         },
         "zh-Hans" : {
@@ -75600,7 +75513,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bữa ăn nhiều chất béo"
+            "value" : "Bữa ăn nhiều chất béo"
           }
         },
         "zh-Hans" : {
@@ -75710,7 +75623,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chỉ số bữa ăn nhiều chất béo"
+            "value" : "Chỉ số bữa ăn nhiều chất béo"
           }
         },
         "zh-Hans" : {
@@ -78831,7 +78744,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tìm thấy thiết bị: %d"
+            "value" : "Tìm thấy thiết bị: %d"
           }
         },
         "zh-Hans" : {
@@ -79476,7 +79389,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liều bolus đầy đủ"
+            "value" : "Liều bolus đầy đủ"
           }
         },
         "zh-Hans" : {
@@ -79594,7 +79507,7 @@
       }
     },
     "g" : {
-      "comment" : "The short unit display string for grams",
+      "comment" : "The short unit display string for grams\ngram of carbs",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -80764,7 +80677,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "đường huyết"
+            "value" : "đường huyết"
           }
         },
         "zh-Hans" : {
@@ -80871,7 +80784,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đường huyết"
+            "value" : "Đường huyết"
           }
         },
         "zh-Hans" : {
@@ -82301,7 +82214,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đơn vị Glucose"
+            "value" : "Đơn vị Glucose"
           }
         },
         "zh-Hans" : {
@@ -82740,7 +82653,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đường huyết: %@"
+            "value" : "Đường huyết: %@"
           }
         },
         "zh-Hans" : {
@@ -85037,7 +84950,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ẩn chất béo & chất đạm"
+            "value" : "Ẩn chất béo & chất đạm"
           }
         },
         "zh-Hans" : {
@@ -86333,7 +86246,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "CẢNH BÁO CAO!"
+            "value" : "CẢNH BÁO CAO!"
           }
         },
         "zh-Hans" : {
@@ -86553,7 +86466,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Giữ đầu iPhone gần sensor để ghép nối"
+            "value" : "Giữ đầu iPhone gần sensor để ghép nối"
           }
         },
         "zh-Hans" : {
@@ -86660,7 +86573,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trở về"
+            "value" : "Trở về"
           }
         },
         "zh-Hans" : {
@@ -87217,7 +87130,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "giờ"
+            "value" : "giờ"
           }
         },
         "zh-Hans" : {
@@ -89903,7 +89816,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cập nhật lỗi"
+            "value" : "Cập nhật lỗi"
           }
         },
         "zh-Hans" : {
@@ -90122,7 +90035,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cập nhật từ Nightscout"
+            "value" : "Cập nhật từ Nightscout"
           }
         },
         "zh-Hans" : {
@@ -90341,7 +90254,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cập nhật cấu hình từ Nightscout"
+            "value" : "Cập nhật cấu hình từ Nightscout"
           }
         },
         "zh-Hans" : {
@@ -90457,7 +90370,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cập nhật các cấu hình?"
+            "value" : "Cập nhật các cấu hình?"
           }
         },
         "zh-Hans" : {
@@ -90898,6 +90811,9 @@
           }
         }
       }
+    },
+    "Importing Profile..." : {
+      "comment" : "Progress text when importing profile via Nightscout"
     },
     "In case you're using both profiles and temp targets" : {
       "comment" : "UI/UX option",
@@ -91556,7 +91472,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "يشير إلى متى يكون التجاوز نشطاً أو كان نشطاً، يغير إعدادات العلاج مؤقتاً (مثلاً). المعدل الأساسي، حساسية الأنسولين، نسبة الكربون، الغلوكوز، الهدف أو ما إذا كانت تريو يمكن أن تجرِّد SMB)."
+            "value" : "يشير إلى متى يكون التجاوز نشطاً أو كان نشطاً، يغير إعدادات العلاج مؤقتاً (مثلاً). المعدل الأساسي، حساسية الأنسولين، نسبة الكربون، الغلوكوز، الهدف أو ما إذا كانت تريو يمكن أن تجرِّد SMB)."
           }
         },
         "da" : {
@@ -92741,7 +92657,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liều insulin được đề nghị"
+            "value" : "Liều insulin được đề nghị"
           }
         },
         "zh-Hans" : {
@@ -92854,7 +92770,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liều insulin được yêu cầu"
+            "value" : "Liều insulin được yêu cầu"
           }
         },
         "zh-Hans" : {
@@ -92960,7 +92876,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Độ nhạy của Insulin"
+            "value" : "Độ nhạy của Insulin"
           }
         },
         "zh-Hans" : {
@@ -93292,7 +93208,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Insulin Đã tạm ngưng"
+            "value" : "Insulin Đã tạm ngưng"
           }
         },
         "zh-Hans" : {
@@ -93398,7 +93314,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chặn"
+            "value" : "Chặn"
           }
         },
         "zh-Hans" : {
@@ -93619,7 +93535,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Khoảng thời gian tính bằng phút"
+            "value" : "Khoảng thời gian tính bằng phút"
           }
         },
         "zh-Hans" : {
@@ -93839,7 +93755,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mẫu đường huyết không hợp lệ, thử lại sau"
+            "value" : "Mẫu đường huyết không hợp lệ, thử lại sau"
           }
         },
         "zh-Hans" : {
@@ -93953,7 +93869,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tổng kiểm tra libre không hợp lệ"
+            "value" : "Tổng kiểm tra libre không hợp lệ"
           }
         },
         "zh-Hans" : {
@@ -94066,7 +93982,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lỗi nhập không hợp lệ"
+            "value" : "Lỗi nhập không hợp lệ"
           }
         },
         "zh-Hans" : {
@@ -94180,7 +94096,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cảm biến không hợp lệ"
+            "value" : "Cảm biến không hợp lệ"
           }
         },
         "zh-Hans" : {
@@ -94293,7 +94209,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "URL không xác thực"
+            "value" : "URL không xác thực"
           }
         },
         "zh-Hans" : {
@@ -94520,6 +94436,9 @@
       }
     },
     "IOBpredBG" : {
+
+    },
+    "is running" : {
 
     },
     "ISF" : {
@@ -96009,7 +95928,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Loop dừng hoạt động hơn %d phút trước"
+            "value" : "Loop dừng hoạt động hơn %d phút trước"
           }
         },
         "zh-Hans" : {
@@ -96351,6 +96270,12 @@
           }
         }
       }
+    },
+    "Latest version: %@" : {
+
+    },
+    "Latest version: Fetching..." : {
+
     },
     "Layout" : {
       "localizations" : {
@@ -96894,7 +96819,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cảm biến libre không được đọc đúng, CRCs không hợp lệ"
+            "value" : "Cảm biến libre không được đọc đúng, CRCs không hợp lệ"
           }
         },
         "zh-Hans" : {
@@ -98426,6 +98351,9 @@
         }
       }
     },
+    "Live Activity Expired. Open Trio to Refresh" : {
+
+    },
     "Local glucose source" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -98528,7 +98456,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "NGUỒN GLUCOSE NỘI TẠI"
+            "value" : "NGUỒN GLUCOSE NỘI TẠI"
           }
         },
         "zh-Hans" : {
@@ -98646,6 +98574,7 @@
       }
     },
     "Log Carbs" : {
+      "comment" : "Button Label to Log Carbs on Watch",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -99935,7 +99864,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Loop sẽ không tự động điều chỉnh liều insulin đến khi liều nền tạm thời thực hiện xong hoặc bị hủy bỏ."
+            "value" : "Loop sẽ không tự động điều chỉnh liều insulin đến khi liều nền tạm thời thực hiện xong hoặc bị hủy bỏ."
           }
         },
         "zh-Hans" : {
@@ -100822,7 +100751,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sắp hết thuốc"
+            "value" : "Sắp hết thuốc"
           }
         },
         "zh-Hans" : {
@@ -100935,7 +100864,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Báo nhắc gần hết thuốc"
+            "value" : "Báo nhắc gần hết thuốc"
           }
         },
         "zh-Hans" : {
@@ -101476,7 +101405,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "CẢNH BÁO THẤP!"
+            "value" : "CẢNH BÁO THẤP!"
           }
         },
         "zh-Hans" : {
@@ -101803,7 +101732,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đảm bảo điện thoại và pod được đặt gần nhau. Nếu kết nối vẫn gặp trở ngại, đặt lại chổ khác."
+            "value" : "Đảm bảo điện thoại và pod được đặt gần nhau. Nếu kết nối vẫn gặp trở ngại, đặt lại chổ khác."
           }
         },
         "zh-Hans" : {
@@ -102130,7 +102059,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liều Basal thủ công"
+            "value" : "Liều Basal thủ công"
           }
         },
         "zh-Hans" : {
@@ -102239,7 +102168,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liều cơ bản thủ công"
+            "value" : "Liều cơ bản thủ công"
           }
         },
         "zh-Hans" : {
@@ -102675,7 +102604,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liều nền tối đa"
+            "value" : "Liều nền tối đa"
           }
         },
         "zh-Hans" : {
@@ -102782,7 +102711,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liều bolus tối đa"
+            "value" : "Liều bolus tối đa"
           }
         },
         "zh-Hans" : {
@@ -103223,7 +103152,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Khối lượng carbs tối đa"
+            "value" : "Khối lượng carbs tối đa"
           }
         },
         "zh-Hans" : {
@@ -105931,7 +105860,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Giới hạn thời gian tính theo giờ"
+            "value" : "Giới hạn thời gian tính theo giờ"
           }
         },
         "zh-Hans" : {
@@ -106058,6 +105987,9 @@
           }
         }
       }
+    },
+    "Meal & Bolus" : {
+      "comment" : "Watch App Treatment Option 'Meal & Bolus'"
     },
     "Meal Chart Type" : {
 
@@ -106381,7 +106313,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tóm tắt bữa ăn"
+            "value" : "Tóm tắt bữa ăn"
           }
         },
         "zh-Hans" : {
@@ -106927,7 +106859,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Máy đo đường huyết"
+            "value" : "Máy đo đường huyết"
           }
         },
         "zh-Hans" : {
@@ -107907,7 +107839,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "phút trước đó"
+            "value" : "phút trước đó"
           }
         },
         "zh-Hans" : {
@@ -109013,7 +108945,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thiếu cấu hình"
+            "value" : "Thiếu cấu hình"
           }
         },
         "zh-Hans" : {
@@ -109785,7 +109717,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Các lựa chọn khác"
+            "value" : "Các lựa chọn khác"
           }
         },
         "zh-Hans" : {
@@ -110650,7 +110582,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Phát hiện được sensor mới"
+            "value" : "Phát hiện được sensor mới"
           }
         },
         "zh-Hans" : {
@@ -110870,7 +110802,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cấu hình Nightscout"
+            "value" : "Cấu hình Nightscout"
           }
         },
         "zh-Hans" : {
@@ -112283,6 +112215,9 @@
         }
       }
     },
+    "No glucose readings." : {
+
+    },
     "No Libre Transmitter Selected" : {
       "comment" : "No Libre Transmitter Selected",
       "extractionState" : "manual",
@@ -112386,7 +112321,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Không có Libre Transmitter nào được chọn"
+            "value" : "Không có Libre Transmitter nào được chọn"
           }
         },
         "zh-Hans" : {
@@ -112517,6 +112452,9 @@
 
     },
     "No name provided" : {
+
+    },
+    "No Override Presets" : {
 
     },
     "No recent oref algorithm determination." : {
@@ -112842,7 +112780,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Không phát hiện được cảm biến"
+            "value" : "Không phát hiện được cảm biến"
           }
         },
         "zh-Hans" : {
@@ -113062,7 +113000,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Không có gợi ý nào"
+            "value" : "Không có gợi ý nào"
           }
         },
         "zh-Hans" : {
@@ -113074,6 +113012,9 @@
       }
     },
     "No TDD Data" : {
+
+    },
+    "No Temp Target Presets" : {
 
     },
     "Noisy CGM Target Increase" : {
@@ -113616,7 +113557,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bình thường "
+            "value" : "Bình thường "
           }
         },
         "zh-Hans" : {
@@ -113957,7 +113898,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chưa được ghép nối"
+            "value" : "Chưa được ghép nối"
           }
         },
         "zh-Hans" : {
@@ -114067,7 +114008,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "không ẩn"
+            "value" : "không ẩn"
           }
         },
         "zh-Hans" : {
@@ -116314,7 +116255,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "không có gì xem ở đây"
+            "value" : "không có gì xem ở đây"
           }
         },
         "zh-Hans" : {
@@ -116533,7 +116474,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cài đặt thông báo"
+            "value" : "Cài đặt thông báo"
           }
         },
         "zh-Hans" : {
@@ -117097,7 +117038,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ملف تعريف مُحمَّل من NS"
+            "value" : "ملف تعريف مُحمَّل من NS"
           }
         },
         "da" : {
@@ -117416,7 +117357,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "của"
+            "value" : "của"
           }
         },
         "zh-Hans" : {
@@ -119693,7 +119634,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Khác"
+            "value" : "Khác"
           }
         },
         "zh-Hans" : {
@@ -121122,7 +121063,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kết nối Pod"
+            "value" : "Kết nối Pod"
           }
         },
         "zh-Hans" : {
@@ -121235,7 +121176,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ghép nối sensor & kết nối"
+            "value" : "Ghép nối sensor & kết nối"
           }
         },
         "zh-Hans" : {
@@ -121457,7 +121398,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thông tin ghép nối"
+            "value" : "Thông tin ghép nối"
           }
         },
         "zh-Hans" : {
@@ -122032,7 +121973,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thông tin bản vá lỗi"
+            "value" : "Thông tin bản vá lỗi"
           }
         },
         "zh-Hans" : {
@@ -122479,7 +122420,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Duy trì dữ liệu cảm biến"
+            "value" : "Duy trì dữ liệu cảm biến"
           }
         },
         "zh-Hans" : {
@@ -122592,7 +122533,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bật NFC của điện thoại lên!"
+            "value" : "Bật NFC của điện thoại lên!"
           }
         },
         "zh-Hans" : {
@@ -122602,6 +122543,9 @@
           }
         }
       }
+    },
+    "Pick Treatment" : {
+
     },
     "Play Alarm Sound" : {
       "localizations" : {
@@ -122917,7 +122861,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Xin chắc chắn rằng Libre 2 của bạn đã được kích hoạt and hoàn thành khởi động. Nếu bạn đang có app nào kết nối với cảm biến qua bluetooth thì nên đóng các app này lại hoặc gỡ các app khỏi máy.\n\n Bạn chỉ được dùng 01 app để kết nối với cảm biến qua bluetooth. Sau đó nhấn \"pairing and connection\" để tiếp tục. Bluetooth có thể mất vài phút để kết nối trước khi bắt đầu hoạt động."
+            "value" : "Xin chắc chắn rằng Libre 2 của bạn đã được kích hoạt and hoàn thành khởi động. Nếu bạn đang có app nào kết nối với cảm biến qua bluetooth thì nên đóng các app này lại hoặc gỡ các app khỏi máy.\n\n Bạn chỉ được dùng 01 app để kết nối với cảm biến qua bluetooth. Sau đó nhấn \"pairing and connection\" để tiếp tục. Bluetooth có thể mất vài phút để kết nối trước khi bắt đầu hoạt động."
           }
         },
         "zh-Hans" : {
@@ -123137,7 +123081,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Xin mở bluetooth lên"
+            "value" : "Xin mở bluetooth lên"
           }
         },
         "zh-Hans" : {
@@ -123364,7 +123308,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đợi 30 phút trước khi đường huyết được hiển thị!"
+            "value" : "Đợi 30 phút trước khi đường huyết được hiển thị!"
           }
         },
         "zh-Hans" : {
@@ -123584,7 +123528,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cổng"
+            "value" : "Cổng"
           }
         },
         "zh-Hans" : {
@@ -124354,6 +124298,12 @@
           }
         }
       }
+    },
+    "Proceed" : {
+      "comment" : "Button Label to Proceed to Bolus on Watch"
+    },
+    "Processing…" : {
+
     },
     "profile" : {
       "localizations" : {
@@ -125448,7 +125398,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cấu hình bơm"
+            "value" : "Cấu hình bơm"
           }
         },
         "zh-Hans" : {
@@ -126001,7 +125951,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cấu hình bơm"
+            "value" : "Cấu hình bơm"
           }
         },
         "zh-Hans" : {
@@ -126213,7 +126163,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bơm đã tạm ngưng"
+            "value" : "Bơm đã tạm ngưng"
           }
         },
         "zh-Hans" : {
@@ -127831,8 +127781,15 @@
         }
       }
     },
-    "Received unexpected error. %@" : {
-
+    "Received unexpected error in %@ from %@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Received unexpected error in %1$@ from %2$@: %3$@"
+          }
+        }
+      }
     },
     "Recommendation" : {
       "comment" : "Bolus screen",
@@ -127930,7 +127887,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LIỀU KHUYẾN NGHỊ"
+            "value" : "LIỀU KHUYẾN NGHỊ"
           }
         },
         "zh-Hans" : {
@@ -128257,7 +128214,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Insulin được đề xuất"
+            "value" : "Insulin được đề xuất"
           }
         },
         "zh-Hans" : {
@@ -128267,6 +128224,9 @@
           }
         }
       }
+    },
+    "Recommended:" : {
+      "comment" : "Recommended bolus on Watch"
     },
     "Red = Below Range" : {
       "localizations" : {
@@ -128900,7 +128860,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Điều khiển từ xa"
+            "value" : "Điều khiển từ xa"
           }
         },
         "zh-Hans" : {
@@ -129006,7 +128966,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Loại bỏ"
+            "value" : "Loại bỏ"
           }
         },
         "zh-Hans" : {
@@ -129112,7 +129072,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Loại bỏ tất cả"
+            "value" : "Loại bỏ tất cả"
           }
         },
         "zh-Hans" : {
@@ -129218,7 +129178,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Loại bỏ mục sau cùng"
+            "value" : "Loại bỏ mục sau cùng"
           }
         },
         "zh-Hans" : {
@@ -129431,7 +129391,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đề nghị thay pod"
+            "value" : "Đề nghị thay pod"
           }
         },
         "zh-Hans" : {
@@ -129751,7 +129711,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kết quả"
+            "value" : "Kết quả"
           }
         },
         "zh-Hans" : {
@@ -129978,7 +129938,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Phục hồi liều insulin"
+            "value" : "Phục hồi liều insulin"
           }
         },
         "zh-Hans" : {
@@ -130095,7 +130055,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đang phục hồi liều insulin..."
+            "value" : "Đang phục hồi liều insulin..."
           }
         },
         "zh-Hans" : {
@@ -130316,7 +130276,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quay lại chế độ bình thường không?"
+            "value" : "Quay lại chế độ bình thường không?"
           }
         },
         "zh-Hans" : {
@@ -132168,7 +132128,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lưu vào bơm"
+            "value" : "Lưu vào bơm"
           }
         },
         "zh-Hans" : {
@@ -132381,7 +132341,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lưu thực phẩm"
+            "value" : "Lưu thực phẩm"
           }
         },
         "zh-Hans" : {
@@ -132504,6 +132464,9 @@
           }
         }
       }
+    },
+    "Saving Carbs..." : {
+      "comment" : "Successful message sent to watch when saving carbs"
     },
     "Saving..." : {
       "comment" : "button title for saving low reservoir reminder while saving",
@@ -132707,7 +132670,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lịch trình"
+            "value" : "Lịch trình"
           }
         },
         "zh-Hans" : {
@@ -132820,7 +132783,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lịch trình "
+            "value" : "Lịch trình "
           }
         },
         "zh-Hans" : {
@@ -132933,7 +132896,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lịch trình khi SMBs tắt"
+            "value" : "Lịch trình khi SMBs tắt"
           }
         },
         "zh-Hans" : {
@@ -133268,7 +133231,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lịch trình được lưu thành công!"
+            "value" : "Lịch trình được lưu thành công!"
           }
         },
         "zh-Hans" : {
@@ -134445,7 +134408,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đề nghị chọn transmitter của bên thứ ba mà bạn muốn kết nối đến"
+            "value" : "Đề nghị chọn transmitter của bên thứ ba mà bạn muốn kết nối đến"
           }
         },
         "zh-Hans" : {
@@ -135205,7 +135168,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thời gian sử dụng sensor"
+            "value" : "Thời gian sử dụng sensor"
           }
         },
         "zh-Hans" : {
@@ -136111,7 +136074,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cảm biến có khả năng tạm dừng, bong khỏi hoặc quá lạnh hoặc quá nóng"
+            "value" : "Cảm biến có khả năng tạm dừng, bong khỏi hoặc quá lạnh hoặc quá nóng"
           }
         },
         "zh-Hans" : {
@@ -136158,7 +136121,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capteur non trouvé "
+            "value" : "Capteur non trouvé "
           }
         },
         "it" : {
@@ -136224,7 +136187,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Không phát hiện sensor"
+            "value" : "Không phát hiện sensor"
           }
         },
         "zh-Hans" : {
@@ -136669,7 +136632,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dịch vụ"
+            "value" : "Dịch vụ"
           }
         },
         "zh-Hans" : {
@@ -137433,7 +137396,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cài đặt liều nền tạm thời"
+            "value" : "Cài đặt liều nền tạm thời"
           }
         },
         "zh-Hans" : {
@@ -138300,7 +138263,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cài đặt"
+            "value" : "Cài đặt"
           }
         },
         "zh-Hans" : {
@@ -138413,7 +138376,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Các cấu hình đã được cập nhật"
+            "value" : "Các cấu hình đã được cập nhật"
           }
         },
         "zh-Hans" : {
@@ -138632,7 +138595,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cấu hình hoàn thành"
+            "value" : "Cấu hình hoàn thành"
           }
         },
         "zh-Hans" : {
@@ -139818,7 +139781,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thể hiện đường huyết lên trên Trio"
+            "value" : "Thể hiện đường huyết lên trên Trio"
           }
         },
         "zh-Hans" : {
@@ -141433,7 +141396,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bỏ qua màn hình bolus sau carbs"
+            "value" : "Bỏ qua màn hình bolus sau carbs"
           }
         },
         "zh-Hans" : {
@@ -141650,7 +141613,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Độ dốc"
+            "value" : "Độ dốc"
           }
         },
         "zh-Hans" : {
@@ -142744,7 +142707,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "SMB theo phút"
+            "value" : "SMB theo phút"
           }
         },
         "zh-Hans" : {
@@ -143401,7 +143364,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "tạm yên cho đến khi %@"
+            "value" : "tạm yên cho đến khi %@"
           }
         },
         "zh-Hans" : {
@@ -143726,7 +143689,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Một vài yếu tố ui đã không được chỉ định"
+            "value" : "Một vài yếu tố ui đã không được chỉ định"
           }
         },
         "zh-Hans" : {
@@ -143954,6 +143917,9 @@
           }
         }
       }
+    },
+    "STALE DATA" : {
+      "comment" : "Information displayed when watch app data outdated or stale."
     },
     "Standing / Laying TIR Chart" : {
       "localizations" : {
@@ -144481,7 +144447,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bắt đầu profile mới"
+            "value" : "Bắt đầu profile mới"
           }
         },
         "zh-Hans" : {
@@ -144701,7 +144667,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bắt đầu profile"
+            "value" : "Bắt đầu profile"
           }
         },
         "zh-Hans" : {
@@ -144807,7 +144773,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chấp nhận mục tiêu tạm thời"
+            "value" : "Chấp nhận mục tiêu tạm thời"
           }
         },
         "zh-Hans" : {
@@ -145026,7 +144992,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Việc sử dụng Ghi đè này sẽ thay đổi profile và/hoặc Mục tiêu Đường huyết của bạn được sử dụng cho looping trong suốt thời gian được chọn. Chọn \"Bắt đầu Profile\" sẽ cho phép bạn lập profile mới và chỉnh sửa profile hiện hữu đang hoạt động."
+            "value" : "Việc sử dụng Ghi đè này sẽ thay đổi profile và/hoặc Mục tiêu Đường huyết của bạn được sử dụng cho looping trong suốt thời gian được chọn. Chọn \"Bắt đầu Profile\" sẽ cho phép bạn lập profile mới và chỉnh sửa profile hiện hữu đang hoạt động."
           }
         },
         "zh-Hans" : {
@@ -145132,7 +145098,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "bắt đầu lúc"
+            "value" : "bắt đầu lúc"
           }
         },
         "zh-Hans" : {
@@ -145352,7 +145318,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trạng thái vừa được khôi phục"
+            "value" : "Trạng thái vừa được khôi phục"
           }
         },
         "zh-Hans" : {
@@ -145565,7 +145531,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thống kê"
+            "value" : "Thống kê"
           }
         },
         "zh-Hans" : {
@@ -145919,6 +145885,9 @@
           }
         }
       }
+    },
+    "Stop %@" : {
+
     },
     "Stop All Adjustments" : {
       "localizations" : {
@@ -146556,6 +146525,16 @@
         }
       }
     },
+    "Store not initialized in %@ from %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Store not initialized in %1$@ from %2$@."
+          }
+        }
+      }
+    },
     "Strength" : {
       "localizations" : {
         "ar" : {
@@ -146651,7 +146630,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sức mạnh"
+            "value" : "Sức mạnh"
           }
         },
         "zh-Hans" : {
@@ -147189,7 +147168,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đề xuất ở"
+            "value" : "Đề xuất ở"
           }
         },
         "zh-Hans" : {
@@ -147838,7 +147817,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đã tạm ngưng"
+            "value" : "Đã tạm ngưng"
           }
         },
         "zh-Hans" : {
@@ -148271,7 +148250,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đang tạm dừng liều insulin..."
+            "value" : "Đang tạm dừng liều insulin..."
           }
         },
         "zh-Hans" : {
@@ -149023,7 +149002,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "nhấn và lưu lịch trình"
+            "value" : "nhấn và lưu lịch trình"
           }
         },
         "zh-Hans" : {
@@ -149788,7 +149767,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Phạm vi Mục tiêu"
+            "value" : "Phạm vi Mục tiêu"
           }
         },
         "zh-Hans" : {
@@ -150337,6 +150316,9 @@
         }
       }
     },
+    "Temp Target Presets" : {
+
+    },
     "Temp targets" : {
       "comment" : "Debug option view Temp targets",
       "extractionState" : "manual",
@@ -150668,7 +150650,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liều nền tạm thời"
+            "value" : "Liều nền tạm thời"
           }
         },
         "zh-Hans" : {
@@ -150782,7 +150764,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liều nền tạm thời thất bại"
+            "value" : "Liều nền tạm thời thất bại"
           }
         },
         "zh-Hans" : {
@@ -151438,6 +151420,9 @@
           }
         }
       }
+    },
+    "The current version has a critical issue and should be updated as soon as possible." : {
+      "comment" : "Message for critical update alert"
     },
     "The curve's steepness is influenced by the Adjustment Factor, while the Autosens Min/Max settings determine the limits of the ratio adjustment, which can also influence the steepness of the sigmoid curve." : {
       "localizations" : {
@@ -156799,7 +156784,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Điều này cho phép tải số liệu thống kê lên Nightscout mà có thể được sử dụng bởi Dự án Community Statictics và Demographics. \n\nTham gia vào Thống kê Cộng đồng là tùy chọn và yêu cầu đăng ký riêng tại:\n"
+            "value" : "Điều này cho phép tải số liệu thống kê lên Nightscout mà có thể được sử dụng bởi Dự án Community Statictics và Demographics. \n\nTham gia vào Thống kê Cộng đồng là tùy chọn và yêu cầu đăng ký riêng tại:\n"
           }
         },
         "zh-Hans" : {
@@ -159627,7 +159612,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Có sự gián đoạn tạm thời, đề nghị kiểm tra lại transmitter đã được gắn chặt lên cảm biến"
+            "value" : "Có sự gián đoạn tạm thời, đề nghị kiểm tra lại transmitter đã được gắn chặt lên cảm biến"
           }
         },
         "zh-Hans" : {
@@ -160165,7 +160150,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liều nền tối đa chưa được cấu hình. Đề nghị vào Cài đặt-> Cấu hình bơm và cấu hình Liều nền tối đa mới."
+            "value" : "Liều nền tối đa chưa được cấu hình. Đề nghị vào Cài đặt-> Cấu hình bơm và cấu hình Liều nền tối đa mới."
           }
         },
         "zh-Hans" : {
@@ -161874,7 +161859,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Việc này sẽ thay đổi cấu hình trở lại profile Normal của bạn."
+            "value" : "Việc này sẽ thay đổi cấu hình trở lại profile Normal của bạn."
           }
         },
         "zh-Hans" : {
@@ -162200,7 +162185,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Việc này có thể thay thế một vài hoặc tất cả những cấu hình bơm hiện tại của bạn. Bạn có chắc bạn muốn nhập cấu hình từ Nightscout?"
+            "value" : "Việc này có thể thay thế một vài hoặc tất cả những cấu hình bơm hiện tại của bạn. Bạn có chắc bạn muốn nhập cấu hình từ Nightscout?"
           }
         },
         "zh-Hans" : {
@@ -164032,6 +164017,9 @@
     "To configure your CGM, tap the button below. In the form that opens, enter your Nightscout credentials to connect to your instance." : {
 
     },
+    "To confirm, dial crown." : {
+
+    },
     "To disable smoothing, go to Settings > Devices > Continuous Glucose Monitor > Smooth Glucose Value and toggle off the setting." : {
       "localizations" : {
         "ar" : {
@@ -164658,7 +164646,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Để hạn chế LOW yêu cầu %d g carbs"
+            "value" : "Để hạn chế LOW yêu cầu %d g carbs"
           }
         },
         "zh-Hans" : {
@@ -165642,7 +165630,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tổng liều"
+            "value" : "Tổng liều"
           }
         },
         "zh-Hans" : {
@@ -165755,7 +165743,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tổng số điều chỉnh Insulin"
+            "value" : "Tổng số điều chỉnh Insulin"
           }
         },
         "zh-Hans" : {
@@ -166293,7 +166281,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Số ID của Transmitter"
+            "value" : "Số ID của Transmitter"
           }
         },
         "zh-Hans" : {
@@ -166406,7 +166394,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Số ID của Transmitter"
+            "value" : "Số ID của Transmitter"
           }
         },
         "zh-Hans" : {
@@ -166849,6 +166837,9 @@
           }
         }
       }
+    },
+    "Trio" : {
+
     },
     "Trio Configuration" : {
       "localizations" : {
@@ -167793,7 +167784,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "biểu tượng Trio"
+            "value" : "biểu tượng Trio"
           }
         },
         "zh-Hans" : {
@@ -168115,7 +168106,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trio chưa hoạt động"
+            "value" : "Trio chưa hoạt động"
           }
         },
         "zh-Hans" : {
@@ -169942,7 +169933,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "UAM SMB theo phút"
+            "value" : "UAM SMB theo phút"
           }
         },
         "zh-Hans" : {
@@ -170384,7 +170375,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Không thể cài đặt liều nền tạm thời: %1$@"
+            "value" : "Không thể cài đặt liều nền tạm thời: %1$@"
           }
         },
         "zh-Hans" : {
@@ -170498,7 +170489,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Không thể cài đặt liều nền tạm thời: %1$@\n\n%2$@"
+            "value" : "Không thể cài đặt liều nền tạm thời: %1$@\n\n%2$@"
           }
         },
         "zh-Hans" : {
@@ -170936,7 +170927,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Không xác định"
+            "value" : "Không xác định"
           }
         },
         "zh-Hans" : {
@@ -171266,6 +171257,9 @@
         }
       }
     },
+    "Update Available" : {
+      "comment" : "Title for update available alert"
+    },
     "Update every number of minutes:" : {
       "comment" : "How often to update the statistics",
       "extractionState" : "manual",
@@ -171380,6 +171374,9 @@
         }
       }
     },
+    "Update Required" : {
+      "comment" : "Title for critical update alert"
+    },
     "Updated" : {
       "localizations" : {
         "ar" : {
@@ -171485,6 +171482,12 @@
           }
         }
       }
+    },
+    "Updated:" : {
+
+    },
+    "Updating IOB..." : {
+      "comment" : "Progress text when updating IOB"
     },
     "Updating..." : {
       "comment" : "Updating Watch app",
@@ -172586,7 +172589,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sử dụng nguồn glucose nội tại"
+            "value" : "Sử dụng nguồn glucose nội tại"
           }
         },
         "zh-Hans" : {
@@ -173899,6 +173902,9 @@
         }
       }
     },
+    "Via Watch" : {
+      "comment" : "Note added to carb entry when entered via watch"
+    },
     "View" : {
 
     },
@@ -174004,7 +174010,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Xin đợi chốc lát"
+            "value" : "Xin đợi chốc lát"
           }
         },
         "zh-Hans" : {
@@ -174651,6 +174657,9 @@
           }
         }
       }
+    },
+    "Warning: Known issues. Update now." : {
+
     },
     "Warning: This must be greater than 0 for any automatic temporary basal rates or SMBs to be given." : {
       "localizations" : {
@@ -178215,7 +178224,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "sẽ tạm ẩn cho %@ đến khi %@"
+            "value" : "sẽ tạm ẩn cho %@ đến khi %@"
           }
         },
         "zh-Hans" : {
@@ -179503,7 +179512,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đồng ý, hãy cập nhật"
+            "value" : "Đồng ý, hãy cập nhật"
           }
         },
         "zh-Hans" : {
@@ -180041,7 +180050,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liều thêm vào bị giới hạn bởi liều \"Liều bolus tối đa\" %d%@"
+            "value" : "Liều thêm vào bị giới hạn bởi liều \"Liều bolus tối đa\" %d%@"
           }
         },
         "zh-Hans" : {
@@ -180154,7 +180163,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Điện thoại hoặc ứng dụng của bạn không hỗ trợ NFC ghép nối với libre2"
+            "value" : "Điện thoại hoặc ứng dụng của bạn không hỗ trợ NFC ghép nối với libre2"
           }
         },
         "zh-Hans" : {
@@ -180267,7 +180276,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liều basal sẽ được điều chỉnh theo tỷ lệ phần trăm ghi đè trong khi ISF và CR sẽ được điều chỉnh ngược lại."
+            "value" : "Liều basal sẽ được điều chỉnh theo tỷ lệ phần trăm ghi đè trong khi ISF và CR sẽ được điều chỉnh ngược lại."
           }
         },
         "zh-Hans" : {
