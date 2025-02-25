@@ -13722,12 +13722,6 @@
     "≈" : {
 
     },
-    "⚠️ Enact Bolus and Ignore Warning" : {
-
-    },
-    "⚠️ Glucose is very low! Give insulin?" : {
-
-    },
     "⚠️ Safety Notifications are OFF" : {
       "localizations" : {
         "ar" : {
@@ -81163,6 +81157,9 @@
     "Glucose Deviations Algorithm" : {
 
     },
+    "Glucose is very low! Give insulin?" : {
+
+    },
     "Glucose is very low." : {
 
     },
@@ -89521,6 +89518,9 @@
           }
         }
       }
+    },
+    "Ignore Warning and Enact Bolus" : {
+
     },
     "Immediately applying ${carbQuantity} at ${dateAdded}" : {
       "localizations" : {
