@@ -6663,6 +6663,16 @@
         }
       }
     },
+    "%@-%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@-%2$@"
+          }
+        }
+      }
+    },
     "%@: %@" : {
       "localizations" : {
         "ar" : {
@@ -12972,6 +12982,9 @@
         }
       }
     },
+    "< %@" : {
+
+    },
     "< 3.3" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -13078,9 +13091,6 @@
           }
         }
       }
-    },
-    "< 54" : {
-
     },
     "< 59" : {
       "extractionState" : "stale",
@@ -13403,6 +13413,9 @@
         }
       }
     },
+    "> %@" : {
+
+    },
     "> 11.0" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -13509,9 +13522,6 @@
           }
         }
       }
-    },
-    "> 180" : {
-
     },
     "> 198" : {
       "extractionState" : "stale",
@@ -16339,6 +16349,7 @@
       }
     },
     "70-140" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -16443,9 +16454,6 @@
           }
         }
       }
-    },
-    "70-180" : {
-
     },
     "75%:" : {
 
