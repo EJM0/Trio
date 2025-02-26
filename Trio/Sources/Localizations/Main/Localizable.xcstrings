@@ -17150,6 +17150,9 @@
         }
       }
     },
+    "A new version (%@) is available. It is recommended to update." : {
+      "comment" : "Message for update available alert"
+    },
     "A notification will be triggered every time your glucose is updated in Trio." : {
       "localizations" : {
         "ar" : {
@@ -96147,6 +96150,12 @@
         }
       }
     },
+    "Latest version: %@" : {
+
+    },
+    "Latest version: Fetching..." : {
+
+    },
     "Layout" : {
       "localizations" : {
         "ar" : {
@@ -151234,6 +151243,9 @@
         }
       }
     },
+    "The current version has a critical issue and should be updated as soon as possible." : {
+      "comment" : "Message for critical update alert"
+    },
     "The curve's steepness is influenced by the Adjustment Factor, while the Autosens Min/Max settings determine the limits of the ratio adjustment, which can also influence the steepness of the sigmoid curve." : {
       "localizations" : {
         "ar" : {
@@ -171060,6 +171072,9 @@
         }
       }
     },
+    "Update Available" : {
+      "comment" : "Title for update available alert"
+    },
     "Update every number of minutes:" : {
       "comment" : "How often to update the statistics",
       "extractionState" : "manual",
@@ -171173,6 +171188,9 @@
           }
         }
       }
+    },
+    "Update Required" : {
+      "comment" : "Title for critical update alert"
     },
     "Updated" : {
       "localizations" : {
@@ -174451,6 +174469,9 @@
           }
         }
       }
+    },
+    "Warning: Known issues. Update now." : {
+
     },
     "Warning: This must be greater than 0 for any automatic temporary basal rates or SMBs to be given." : {
       "localizations" : {
