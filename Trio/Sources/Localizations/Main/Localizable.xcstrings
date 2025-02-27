@@ -124156,6 +124156,9 @@
     "Processing…" : {
 
     },
+    "Produce Stale Values" : {
+
+    },
     "profile" : {
       "localizations" : {
         "ar" : {
@@ -176986,6 +176989,9 @@
           }
         }
       }
+    },
+    "When stale values are enabled, the simulator will repeatedly output the last generated glucose value." : {
+
     },
     "When Suspend Zeros IOB is enabled, any active temporary basal rates during a pump suspension are reset, with new 0 U/hr temporary basal rates added to counteract those done during suspension." : {
       "localizations" : {
