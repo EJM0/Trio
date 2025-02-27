@@ -29272,6 +29272,9 @@
         }
       }
     },
+    "Amplitude: ±%lld mg/dL" : {
+
+    },
     "An example of a Carb Warning is 'Carbs required: 30 g'" : {
       "localizations" : {
         "ar" : {
@@ -40896,6 +40899,9 @@
         }
       }
     },
+    "Center Value: %lld mg/dL" : {
+
+    },
     "CGM" : {
       "comment" : "CGM",
       "localizations" : {
@@ -42113,6 +42119,9 @@
           }
         }
       }
+    },
+    "Changes will take effect on the next glucose reading." : {
+
     },
     "Chart" : {
       "localizations" : {
@@ -112860,6 +112869,9 @@
     "No Temp Target Presets" : {
 
     },
+    "Noise: ±%lld mg/dL" : {
+
+    },
     "Noisy CGM Target Increase" : {
       "comment" : "Noisy CGM Target Increase",
       "localizations" : {
@@ -122154,6 +122166,9 @@
         }
       }
     },
+    "Period: %lld hours" : {
+
+    },
     "Persist sensordata" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -126646,6 +126661,19 @@
         }
       }
     },
+    "Random variation added to each reading to simulate real-world sensor noise." : {
+
+    },
+    "Range: %lld–%lld mg/dL" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Range: %1$lld–%2$lld mg/dL"
+          }
+        }
+      }
+    },
     "Rapid-Acting: 75 minutes (permitted range 50-120 minutes)" : {
       "localizations" : {
         "ar" : {
@@ -129336,6 +129364,9 @@
           }
         }
       }
+    },
+    "Reset to Defaults" : {
+
     },
     "Resistance Lowers Target" : {
       "comment" : "Resistance Lowers Target",
@@ -141118,6 +141149,9 @@
         }
       }
     },
+    "Simulator Settings" : {
+
+    },
     "Skip Bolus screen after carbs" : {
       "comment" : "Do you want to show bolus screen after added carbs?",
       "extractionState" : "manual",
@@ -151243,6 +151277,9 @@
         }
       }
     },
+    "The average glucose level around which values will oscillate." : {
+
+    },
     "The current version has a critical issue and should be updated as soon as possible." : {
       "comment" : "Message for critical update alert"
     },
@@ -153388,6 +153425,9 @@
         }
       }
     },
+    "The maximum deviation from the center value. Higher values create wider swings." : {
+
+    },
     "The maximum duration for tracking carb entries in estimating Carbs on Board (COB)" : {
 
     },
@@ -154353,6 +154393,9 @@
         }
       }
     },
+    "The simulator creates a wave-like pattern that mimics natural glucose fluctuations throughout the day." : {
+
+    },
     "The source of the glucose reading will be added to the notification." : {
       "localizations" : {
         "ar" : {
@@ -154458,6 +154501,9 @@
           }
         }
       }
+    },
+    "The time it takes to complete one full cycle from high to low and back to high." : {
+
     },
     "The Upload Treatments toggle enables uploading of the following data sets to your connected Nightscout URL:" : {
       "localizations" : {
@@ -168788,9 +168834,6 @@
           }
         }
       }
-    },
-    "Trio's glucose simulator does not offer any configuration. Its use is strictly for demonstration purposes only." : {
-
     },
     "Trio's Simple Lock Screen Widget displays current glucose reading, trend arrow, delta and the timestamp of the current reading." : {
       "localizations" : {
