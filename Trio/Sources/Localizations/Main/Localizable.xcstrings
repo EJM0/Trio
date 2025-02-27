@@ -4077,7 +4077,6 @@
       }
     },
     "(Current - Target) / ISF" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -4182,9 +4181,6 @@
           }
         }
       }
-    },
-    "(Current - Target) ÷ ISF" : {
-
     },
     "(Eventual Glucose - Target) / ISF" : {
       "comment" : "Formula displayed in Bolus info pop-up. Make translation short!",
@@ -4941,7 +4937,11 @@
         }
       }
     },
+    "(𝒳 / 60) × current basal rate" : {
+
+    },
     "(𝒳 ÷ 60) × current basal rate" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -15773,7 +15773,6 @@
       }
     },
     "15 min Delta / ISF" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -15878,9 +15877,6 @@
           }
         }
       }
-    },
-    "15 min Delta ÷ ISF" : {
-
     },
     "19:05" : {
       "localizations" : {
@@ -32757,7 +32753,11 @@
     "Autosens Ratio" : {
 
     },
+    "Autosens Ratio =\n(Weighted Average of TDD) / (10-day Average of TDD)" : {
+
+    },
     "Autosens Ratio =\n(Weighted Average of TDD) ÷ (10-day Average of TDD)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -81157,7 +81157,7 @@
     "Glucose Deviations Algorithm" : {
 
     },
-    "Glucose is very low! Give insulin?" : {
+    "Glucose forecast is very low." : {
 
     },
     "Glucose is very low." : {
@@ -89089,7 +89089,11 @@
         }
       }
     },
+    "If you have a \"Recommended Bolus Percentage\" of 80%, and a \"Fatty Meal Bolus Percentage\" of 70%, your recommended bolus will be multiplied by: (80 × 70) / 100 = 56%." : {
+
+    },
     "If you have a \"Recommended Bolus Percentage\" of 80%, and a \"Fatty Meal Bolus Percentage\" of 70%, your recommended bolus will be multiplied by: (80 × 70) ÷ 100 = 56%." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -89301,7 +89305,11 @@
         }
       }
     },
+    "If your current basal rate is 0.8 U/hr and \"Super Bolus Percentage\" is set to 200%: 0.8 × (200 / 100) = 1.6 units will be added to your bolus recommendation." : {
+
+    },
     "If your current basal rate is 0.8 U/hr and \"Super Bolus Percentage\" is set to 200%: 0.8 × (200 ÷ 100) = 1.6 units will be added to your bolus recommendation." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
