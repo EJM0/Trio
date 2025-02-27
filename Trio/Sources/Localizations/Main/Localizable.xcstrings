@@ -81910,6 +81910,9 @@
         }
       }
     },
+    "Glucose trace WILL NOT be affected by any insulin or carb entries." : {
+
+    },
     "Glucose Trend" : {
       "localizations" : {
         "ar" : {
