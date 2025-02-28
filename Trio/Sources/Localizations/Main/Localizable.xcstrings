@@ -12754,6 +12754,9 @@
         }
       }
     },
+    "±" : {
+
+    },
     "<  3.3 " : {
       "localizations" : {
         "ar" : {
@@ -29272,6 +29275,9 @@
         }
       }
     },
+    "Amplitude:" : {
+
+    },
     "An example of a Carb Warning is 'Carbs required: 30 g'" : {
       "localizations" : {
         "ar" : {
@@ -40896,6 +40902,9 @@
         }
       }
     },
+    "Center Value:" : {
+
+    },
     "CGM" : {
       "comment" : "CGM",
       "localizations" : {
@@ -45377,6 +45386,9 @@
           }
         }
       }
+    },
+    "Configuration changes will take effect on the next glucose reading." : {
+
     },
     "Configure Libre Transmitter" : {
       "extractionState" : "manual",
@@ -81904,6 +81916,9 @@
         }
       }
     },
+    "Glucose trace WILL NOT be affected by any insulin or carb entries." : {
+
+    },
     "Glucose Trend" : {
       "localizations" : {
         "ar" : {
@@ -112863,6 +112878,9 @@
     "No Temp Target Presets" : {
 
     },
+    "Noise:" : {
+
+    },
     "Noisy CGM Target Increase" : {
       "comment" : "Noisy CGM Target Increase",
       "localizations" : {
@@ -122157,6 +122175,9 @@
         }
       }
     },
+    "Period:" : {
+
+    },
     "Persist sensordata" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -124142,6 +124163,9 @@
       "comment" : "Button Label to Proceed to Bolus on Watch"
     },
     "Processing…" : {
+
+    },
+    "Produce Stale Values" : {
 
     },
     "profile" : {
@@ -126645,6 +126669,19 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Quantity Protein"
+          }
+        }
+      }
+    },
+    "Random variation added to each reading to simulate real-world sensor noise." : {
+
+    },
+    "Range: %@–%@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Range: %1$@–%2$@ %3$@"
           }
         }
       }
@@ -129339,6 +129376,9 @@
           }
         }
       }
+    },
+    "Reset to Defaults" : {
+
     },
     "Resistance Lowers Target" : {
       "comment" : "Resistance Lowers Target",
@@ -151246,6 +151286,9 @@
         }
       }
     },
+    "The average glucose level around which values will oscillate." : {
+
+    },
     "The current version has a critical issue and should be updated as soon as possible." : {
       "comment" : "Message for critical update alert"
     },
@@ -153391,6 +153434,9 @@
         }
       }
     },
+    "The maximum deviation from the center value. Higher values create wider swings." : {
+
+    },
     "The maximum duration for tracking carb entries in estimating Carbs on Board (COB)" : {
 
     },
@@ -154356,6 +154402,9 @@
         }
       }
     },
+    "The simulator creates a wave-like pattern that mimics natural glucose fluctuations throughout the day." : {
+
+    },
     "The source of the glucose reading will be added to the notification." : {
       "localizations" : {
         "ar" : {
@@ -154461,6 +154510,9 @@
           }
         }
       }
+    },
+    "The time it takes to complete one full cycle from high to low and back to high." : {
+
     },
     "The Upload Treatments toggle enables uploading of the following data sets to your connected Nightscout URL:" : {
       "localizations" : {
@@ -168792,9 +168844,6 @@
         }
       }
     },
-    "Trio's glucose simulator does not offer any configuration. Its use is strictly for demonstration purposes only." : {
-
-    },
     "Trio's Simple Lock Screen Widget displays current glucose reading, trend arrow, delta and the timestamp of the current reading." : {
       "localizations" : {
         "ar" : {
@@ -176946,6 +176995,9 @@
           }
         }
       }
+    },
+    "When stale values are enabled, the simulator will repeatedly output the last generated glucose value." : {
+
     },
     "When Suspend Zeros IOB is enabled, any active temporary basal rates during a pump suspension are reset, with new 0 U/hr temporary basal rates added to counteract those done during suspension." : {
       "localizations" : {
