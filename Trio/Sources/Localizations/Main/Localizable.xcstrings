@@ -12754,6 +12754,9 @@
         }
       }
     },
+    "±" : {
+
+    },
     "<  3.3 " : {
       "localizations" : {
         "ar" : {
@@ -29272,7 +29275,7 @@
         }
       }
     },
-    "Amplitude: ±%lld mg/dL" : {
+    "Amplitude:" : {
 
     },
     "An example of a Carb Warning is 'Carbs required: 30 g'" : {
@@ -40899,7 +40902,7 @@
         }
       }
     },
-    "Center Value: %lld mg/dL" : {
+    "Center Value:" : {
 
     },
     "CGM" : {
@@ -42119,9 +42122,6 @@
           }
         }
       }
-    },
-    "Changes will take effect on the next glucose reading." : {
-
     },
     "Chart" : {
       "localizations" : {
@@ -45386,6 +45386,9 @@
           }
         }
       }
+    },
+    "Configuration changes will take effect on the next glucose reading." : {
+
     },
     "Configure Libre Transmitter" : {
       "extractionState" : "manual",
@@ -112872,7 +112875,7 @@
     "No Temp Target Presets" : {
 
     },
-    "Noise: ±%lld mg/dL" : {
+    "Noise:" : {
 
     },
     "Noisy CGM Target Increase" : {
@@ -122169,7 +122172,7 @@
         }
       }
     },
-    "Period: %lld hours" : {
+    "Period:" : {
 
     },
     "Persist sensordata" : {
@@ -126670,12 +126673,12 @@
     "Random variation added to each reading to simulate real-world sensor noise." : {
 
     },
-    "Range: %lld–%lld mg/dL" : {
+    "Range: %@–%@ %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Range: %1$lld–%2$lld mg/dL"
+            "value" : "Range: %1$@–%2$@ %3$@"
           }
         }
       }
@@ -141154,9 +141157,6 @@
           }
         }
       }
-    },
-    "Simulator Settings" : {
-
     },
     "Skip Bolus screen after carbs" : {
       "comment" : "Do you want to show bolus screen after added carbs?",
