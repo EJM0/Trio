@@ -1330,6 +1330,9 @@
         }
       }
     },
+    " × " : {
+
+    },
     " ≈ " : {
       "localizations" : {
         "ar" : {
@@ -1437,6 +1440,7 @@
       }
     },
     " ≈ Max Bolus" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -2756,6 +2760,7 @@
       }
     },
     " x " : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -4181,6 +4186,7 @@
       }
     },
     "(Factor x Full Bolus) + Super Bolus" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -4604,6 +4610,9 @@
         }
       }
     },
+    "(Full Bolus x Rec. Bolus %) + Super Bolus" : {
+
+    },
     "(Optional)" : {
       "localizations" : {
         "ar" : {
@@ -4817,7 +4826,11 @@
         }
       }
     },
+    "(𝒳 / 60) × current basal rate" : {
+
+    },
     "(𝒳 ÷ 60) × current basal rate" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -5690,6 +5703,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@"
+          }
+        }
+      }
+    },
+    "%@ - %@ = %@ U" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ - %2$@ = %3$@ U"
           }
         }
       }
@@ -7423,6 +7446,9 @@
           }
         }
       }
+    },
+    "•" : {
+
     },
     "• Basal Rate" : {
       "localizations" : {
@@ -13601,6 +13627,9 @@
           }
         }
       }
+    },
+    "≈" : {
+
     },
     "⚠️ Safety Notifications are OFF" : {
       "localizations" : {
@@ -22994,6 +23023,7 @@
       }
     },
     "Added to Result" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -27966,6 +27996,9 @@
     "Alter the rate of dynamic sensitivity adjustments for Sigmoid." : {
 
     },
+    "Always" : {
+
+    },
     "Always Color Glucose Value (green, yellow etc)" : {
       "comment" : "UI/UX option",
       "extractionState" : "manual",
@@ -32521,7 +32554,11 @@
     "Autosens Ratio" : {
 
     },
+    "Autosens Ratio =\n(Weighted Average of TDD) / (10-day Average of TDD)" : {
+
+    },
     "Autosens Ratio =\n(Weighted Average of TDD) ÷ (10-day Average of TDD)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -34720,6 +34757,9 @@
           }
         }
       }
+    },
+    "Basal Rate × Super Bolus %" : {
+
     },
     "Basal Rate Adjustment" : {
       "localizations" : {
@@ -45603,6 +45643,9 @@
         }
       }
     },
+    "Confirm Bolus" : {
+
+    },
     "Confirm Bolus Faster" : {
       "localizations" : {
         "ar" : {
@@ -54364,6 +54407,9 @@
           }
         }
       }
+    },
+    "Default: Very Low Glucose" : {
+
     },
     "Defaults to 0.2 (20%). Maximum positive percentual change of BG level to use SMB, above that will disable SMB. Hardcoded cap of 40%. For UAM fully-closed-loop 30% is advisable. Observe in log and popup (maxDelta 27 > 20% of BG 100 - disabling SMB!)." : {
       "comment" : "Max Delta-BG Threshold SMB",
@@ -73293,6 +73339,7 @@
       }
     },
     "Factor x Fatty Meal Factor x Full Bolus" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -73399,6 +73446,7 @@
       }
     },
     "Factor x Full Bolus" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -73503,6 +73551,9 @@
           }
         }
       }
+    },
+    "Factors" : {
+
     },
     "Factory Calibration Parameters" : {
       "extractionState" : "manual",
@@ -79304,6 +79355,12 @@
         }
       }
     },
+    "Full Bolus x Rec. Bolus %" : {
+
+    },
+    "Full Bolus x Rec. Bolus % x Fatty Meal %" : {
+
+    },
     "Furthermore, you could adjust that sensitivity change independently from the Half Basal Exercise Target specified in Algorithm > Target Behavior settings by deliberatly setting a customized Insulin Percentage for a Temp Target." : {
       "localizations" : {
         "ar" : {
@@ -81026,6 +81083,12 @@
       }
     },
     "Glucose Deviations Algorithm" : {
+
+    },
+    "Glucose forecast is very low." : {
+
+    },
+    "Glucose is very low." : {
 
     },
     "Glucose Level" : {
@@ -88954,7 +89017,11 @@
         }
       }
     },
+    "If you have a \"Recommended Bolus Percentage\" of 80%, and a \"Fatty Meal Bolus Percentage\" of 70%, your recommended bolus will be multiplied by: (80 × 70) / 100 = 56%." : {
+
+    },
     "If you have a \"Recommended Bolus Percentage\" of 80%, and a \"Fatty Meal Bolus Percentage\" of 70%, your recommended bolus will be multiplied by: (80 × 70) ÷ 100 = 56%." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -89166,7 +89233,11 @@
         }
       }
     },
+    "If your current basal rate is 0.8 U/hr and \"Super Bolus Percentage\" is set to 200%: 0.8 × (200 / 100) = 1.6 units will be added to your bolus recommendation." : {
+
+    },
     "If your current basal rate is 0.8 U/hr and \"Super Bolus Percentage\" is set to 200%: 0.8 × (200 ÷ 100) = 1.6 units will be added to your bolus recommendation." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -89383,6 +89454,9 @@
           }
         }
       }
+    },
+    "Ignore Warning and Enact Bolus" : {
+
     },
     "Immediately applying ${carbQuantity} at ${dateAdded}" : {
       "localizations" : {
@@ -97367,6 +97441,9 @@
         }
       }
     },
+    "Limits" : {
+
+    },
     "Limits per Entry" : {
       "localizations" : {
         "ar" : {
@@ -102589,6 +102666,9 @@
         }
       }
     },
+    "Max Bolus = %@ U" : {
+
+    },
     "Max Bolus exceeded!" : {
       "comment" : "\"Max Bolus Exceeded label\"",
       "extractionState" : "manual",
@@ -103463,6 +103543,9 @@
         }
       }
     },
+    "Max COB:" : {
+
+    },
     "Max Daily Safety Multiplier" : {
       "comment" : "Max Daily Safety Multiplier",
       "localizations" : {
@@ -104322,6 +104405,9 @@
           }
         }
       }
+    },
+    "Max IOB - Current IOB" : {
+
     },
     "Max IOB is the maximum amount of insulin on board from all sources – both basal (or SMB correction) and bolus insulin – that your loop is allowed to accumulate to treat higher-than-target BG. Unlike the other two OpenAPS safety settings (max_daily_safety_multiplier and current_basal_safety_multiplier), max_iob is set as a fixed number of units of insulin. As of now manual boluses are NOT limited by this setting. \n\n To test your basal rates during nighttime, you can modify the Max IOB setting to zero while in Closed Loop. This will enable low glucose suspend mode while testing your basal rates settings." : {
       "comment" : "\"Max IOB\"",
@@ -110019,6 +110105,9 @@
         }
       }
     },
+    "Never" : {
+
+    },
     "New Basal Profile =\n(Current Basal Profile) × (Autosens Ratio)" : {
       "localizations" : {
         "ar" : {
@@ -112068,6 +112157,9 @@
       }
     },
     "No glucose readings." : {
+
+    },
+    "No insulin recommended." : {
 
     },
     "No Libre Transmitter Selected" : {
@@ -114611,6 +114703,9 @@
           }
         }
       }
+    },
+    "Note: Does not affect logging external insulin." : {
+
     },
     "Note: If enabled, the smoothed values you see in Trio may differ from what is shown in your CGM app." : {
       "localizations" : {
@@ -127727,6 +127822,9 @@
         }
       }
     },
+    "Recommended Bolus" : {
+
+    },
     "Recommended Bolus Percentage" : {
       "comment" : "Recommendation for a Manual Bolus",
       "localizations" : {
@@ -129446,6 +129544,7 @@
     },
     "Result" : {
       "comment" : "For the  Bolus View pop-up",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -161155,6 +161254,9 @@
         }
       }
     },
+    "This setting triggers a confirmation dialog before enacting a bolus as an extra safeguard, but it does not affect authentication for bolusing (Face ID, Touch ID, password)." : {
+
+    },
     "This Temp Target preset is currently running. Deleting will stop it." : {
       "localizations" : {
         "ar" : {
@@ -166652,6 +166754,9 @@
           }
         }
       }
+    },
+    "Triggers a confirmation dialog before enacting a bolus." : {
+
     },
     "Trio" : {
 
@@ -173716,6 +173821,12 @@
           }
         }
       }
+    },
+    "Very Low Forecast" : {
+
+    },
+    "Very Low Glucose" : {
+
     },
     "Via Watch" : {
       "comment" : "Note added to carb entry when entered via watch"
