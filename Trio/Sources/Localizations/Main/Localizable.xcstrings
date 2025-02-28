@@ -5707,12 +5707,12 @@
         }
       }
     },
-    "%@ - %@ = %@ U" : {
+    "%@ - %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$@ - %2$@ = %3$@ U"
+            "value" : "%1$@ - %2$@"
           }
         }
       }
@@ -33111,6 +33111,9 @@
           }
         }
       }
+    },
+    "Available IOB = %@ U" : {
+
     },
     "Available Layouts:" : {
       "localizations" : {
