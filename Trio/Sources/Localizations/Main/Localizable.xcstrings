@@ -7541,6 +7541,9 @@
         }
       }
     },
+    "•" : {
+
+    },
     "• Basal Rate" : {
       "localizations" : {
         "ar" : {
@@ -28198,6 +28201,9 @@
     "Alter the rate of dynamic sensitivity adjustments for Sigmoid." : {
 
     },
+    "Always" : {
+
+    },
     "Always Color Glucose Value (green, yellow etc)" : {
       "comment" : "UI/UX option",
       "extractionState" : "manual",
@@ -45797,6 +45803,9 @@
         }
       }
     },
+    "Confirm Bolus" : {
+
+    },
     "Confirm Bolus Faster" : {
       "localizations" : {
         "ar" : {
@@ -54558,6 +54567,9 @@
           }
         }
       }
+    },
+    "Default: Very Low Glucose" : {
+
     },
     "Defaults to 0.2 (20%). Maximum positive percentual change of BG level to use SMB, above that will disable SMB. Hardcoded cap of 40%. For UAM fully-closed-loop 30% is advisable. Observe in log and popup (maxDelta 27 > 20% of BG 100 - disabling SMB!)." : {
       "comment" : "Max Delta-BG Threshold SMB",
@@ -110158,6 +110170,9 @@
         }
       }
     },
+    "Never" : {
+
+    },
     "New Basal Profile =\n(Current Basal Profile) × (Autosens Ratio)" : {
       "localizations" : {
         "ar" : {
@@ -114744,6 +114759,9 @@
           }
         }
       }
+    },
+    "Note: Does not affect logging external insulin." : {
+
     },
     "Note: If enabled, the smoothed values you see in Trio may differ from what is shown in your CGM app." : {
       "localizations" : {
@@ -161248,6 +161266,9 @@
         }
       }
     },
+    "This setting triggers a confirmation dialog before enacting a bolus as an extra safeguard, but it does not affect authentication for bolusing (Face ID, Touch ID, password)." : {
+
+    },
     "This Temp Target preset is currently running. Deleting will stop it." : {
       "localizations" : {
         "ar" : {
@@ -166742,6 +166763,9 @@
           }
         }
       }
+    },
+    "Triggers a confirmation dialog before enacting a bolus." : {
+
     },
     "Trio Configuration" : {
       "localizations" : {
@@ -173791,6 +173815,12 @@
           }
         }
       }
+    },
+    "Very Low Forecast" : {
+
+    },
+    "Very Low Glucose" : {
+
     },
     "Wait please" : {
       "extractionState" : "manual",
