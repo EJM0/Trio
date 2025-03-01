@@ -95788,6 +95788,9 @@
         }
       }
     },
+    "Last loop was > 15 mins ago." : {
+
+    },
     "Last loop was more than %d min ago" : {
       "comment" : "Last loop was more than %d min ago",
       "localizations" : {
@@ -130857,6 +130860,9 @@
           }
         }
       }
+    },
+    "Rounded for pump." : {
+
     },
     "Run now" : {
       "extractionState" : "manual",
