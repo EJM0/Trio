@@ -80930,6 +80930,9 @@
         }
       }
     },
+    "Glucose Count" : {
+
+    },
     "Glucose Data used for statistics" : {
       "comment" : "Debug option view Glucose Data used for statistics",
       "extractionState" : "manual",
@@ -100120,6 +100123,9 @@
           }
         }
       }
+    },
+    "Loops per day" : {
+
     },
     "Low" : {
       "comment" : "Low Glucose Threshold in Statistics settings",
@@ -127509,7 +127515,6 @@
     },
     "Readings" : {
       "comment" : "CGM readings in statView",
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -127835,6 +127840,9 @@
           }
         }
       }
+    },
+    "Readings per Day" : {
+
     },
     "Received unexpected error in %@ from %@: %@" : {
       "localizations" : {
@@ -147125,6 +147133,9 @@
           }
         }
       }
+    },
+    "Successful Loops" : {
+
     },
     "Suggested at" : {
       "comment" : "Headline in suggested pop up (at: at what time)",
