@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// This view presents insulin usage over time, with the ability to adjust the time interval
 /// and scroll through historical data.
-struct TDDChartView: View {
+struct TotalDailyDoseChart: View {
     /// The selected time interval for displaying statistics.
     @Binding var selectedDuration: Stat.StateModel.StatsTimeInterval
     /// The list of TDD statistics data.
@@ -24,7 +24,7 @@ struct TDDChartView: View {
 
     /// Computes the visible date range based on the current scroll position.
     private var visibleDateRange: (start: Date, end: Date) {
-        StatsHelper.visibleDateRange(from: scrollPosition, for: selectedDuration)
+        StatChartUtils.visibleDateRange(from: scrollPosition, for: selectedDuration)
     }
 
     /// Retrieves the TDD statistic for a given date.
@@ -32,7 +32,7 @@ struct TDDChartView: View {
     /// - Returns: The `TDDStats` object if available, otherwise `nil`.
     private func getTDDForDate(_ date: Date) -> TDDStats? {
         tddStats.first { stat in
-            StatsHelper.isSameTimeUnit(stat.date, date, for: selectedDuration)
+            StatChartUtils.isSameTimeUnit(stat.date, date, for: selectedDuration)
         }
     }
 
@@ -41,37 +41,13 @@ struct TDDChartView: View {
         currentAverage = state.getCachedTDDAverages(for: visibleDateRange)
     }
 
-    /// A view displaying the statistics summary including average TDD.
-    private var statsView: some View {
-        HStack {
-            Text("Average:")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-            Text(currentAverage.formatted(.number.precision(.fractionLength(1))))
-                .font(.headline)
-                .foregroundStyle(.secondary)
-            Text("U")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-
-            Spacer()
-
-            Text(
-                StatsHelper
-                    .formatVisibleDateRange(from: visibleDateRange.start, to: visibleDateRange.end, for: selectedDuration)
-            )
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-        }
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            statsView
+            statsView.padding(.bottom)
             chartsView
         }
         .onAppear {
-            scrollPosition = StatsHelper.getInitialScrollPosition(for: selectedDuration)
+            scrollPosition = StatChartUtils.getInitialScrollPosition(for: selectedDuration)
             updateAverages()
         }
         .onChange(of: scrollPosition) {
@@ -81,9 +57,51 @@ struct TDDChartView: View {
         }
         .onChange(of: selectedDuration) {
             Task {
-                scrollPosition = StatsHelper.getInitialScrollPosition(for: selectedDuration)
+                scrollPosition = StatChartUtils.getInitialScrollPosition(for: selectedDuration)
                 updateAverages()
             }
+        }
+    }
+
+    /// A view displaying the statistics summary including average TDD.
+    private var statsView: some View {
+        HStack {
+            if selectedDuration == .Day {
+                Grid(alignment: .leading) {
+                    GridRow {
+                        Text("Total:")
+                            .font(.headline)
+                        Text("--")
+                            .font(.headline)
+                        Text("U")
+                            .font(.headline)
+                    }
+                    GridRow {
+                        Text("Average:")
+                            .font(.headline)
+                        Text(currentAverage.formatted(.number.precision(.fractionLength(1))))
+                            .font(.headline)
+                        Text("U")
+                            .font(.headline)
+                    }
+                }
+                .font(.headline)
+            } else {
+                Text("Average:")
+                    .font(.headline)
+                Text(currentAverage.formatted(.number.precision(.fractionLength(1))))
+                    .font(.headline)
+                Text("U")
+                    .font(.headline)
+            }
+            Spacer()
+
+            Text(
+                StatChartUtils
+                    .formatVisibleDateRange(from: visibleDateRange.start, to: visibleDateRange.end, for: selectedDuration)
+            )
+            .font(.callout)
+            .foregroundStyle(.secondary)
         }
     }
 
@@ -98,7 +116,7 @@ struct TDDChartView: View {
                 .foregroundStyle(Color.insulin)
                 .opacity(
                     selectedDate.map { date in
-                        StatsHelper.isSameTimeUnit(stat.date, date, for: selectedDuration) ? 1 : 0.3
+                        StatChartUtils.isSameTimeUnit(stat.date, date, for: selectedDuration) ? 1 : 0.3
                     } ?? 1
                 )
             }
@@ -124,12 +142,18 @@ struct TDDChartView: View {
             AxisMarks(position: .trailing) { value in
                 if let amount = value.as(Double.self) {
                     AxisValueLabel {
-                        Text(amount.formatted(.number.precision(.fractionLength(0))) + " U")
+                        Text(amount.formatted(.number.precision(.fractionLength(0))))
                             .font(.footnote)
                     }
                     AxisGridLine()
                 }
             }
+        }
+        .chartYAxisLabel(alignment: .trailing) {
+            Text("Total Daily Dose (U)")
+                .foregroundStyle(.primary)
+                .font(.footnote)
+                .padding(.vertical, 3)
         }
         .chartXAxis {
             AxisMarks(preset: .aligned, values: .stride(by: selectedDuration == .Day ? .hour : .day)) { value in
@@ -140,24 +164,24 @@ struct TDDChartView: View {
                     switch selectedDuration {
                     case .Day:
                         if hour % 6 == 0 {
-                            AxisValueLabel(format: StatsHelper.dateFormat(for: selectedDuration), centered: true)
+                            AxisValueLabel(format: StatChartUtils.dateFormat(for: selectedDuration), centered: true)
                                 .font(.footnote)
                             AxisGridLine()
                         }
                     case .Month:
                         if day % 5 == 0 {
-                            AxisValueLabel(format: StatsHelper.dateFormat(for: selectedDuration), centered: true)
+                            AxisValueLabel(format: StatChartUtils.dateFormat(for: selectedDuration), centered: true)
                                 .font(.footnote)
                             AxisGridLine()
                         }
                     case .Total:
                         if day == 1 && Calendar.current.component(.month, from: date) % 3 == 1 {
-                            AxisValueLabel(format: StatsHelper.dateFormat(for: selectedDuration), centered: true)
+                            AxisValueLabel(format: StatChartUtils.dateFormat(for: selectedDuration), centered: true)
                                 .font(.footnote)
                             AxisGridLine()
                         }
                     default:
-                        AxisValueLabel(format: StatsHelper.dateFormat(for: selectedDuration), centered: true)
+                        AxisValueLabel(format: StatChartUtils.dateFormat(for: selectedDuration), centered: true)
                             .font(.footnote)
                         AxisGridLine()
                     }
@@ -172,10 +196,10 @@ struct TDDChartView: View {
                 matching: selectedDuration == .Day ?
                     DateComponents(minute: 0) :
                     DateComponents(hour: 0),
-                majorAlignment: .matching(StatsHelper.alignmentComponents(for: selectedDuration))
+                majorAlignment: .matching(StatChartUtils.alignmentComponents(for: selectedDuration))
             )
         )
-        .chartXVisibleDomain(length: StatsHelper.visibleDomainLength(for: selectedDuration))
+        .chartXVisibleDomain(length: StatChartUtils.visibleDomainLength(for: selectedDuration))
         .frame(height: 250)
     }
 }

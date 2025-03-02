@@ -36770,6 +36770,9 @@
         }
       }
     },
+    "Bolus Insulin (U)" : {
+
+    },
     "Bolus limit cannot be fetched from phone!" : {
 
     },
@@ -41190,6 +41193,9 @@
         }
       }
     },
+    "CGM Connection Trace Chart" : {
+
+    },
     "CGM Glucose Value" : {
 
     },
@@ -44685,6 +44691,9 @@
 
     },
     "Color Scheme Preference" : {
+
+    },
+    "Coming soon." : {
 
     },
     "Cone" : {
@@ -101543,6 +101552,9 @@
         }
       }
     },
+    "Macro Nutrients (g)" : {
+
+    },
     "Main" : {
       "localizations" : {
         "ar" : {
@@ -106343,6 +106355,9 @@
           }
         }
       }
+    },
+    "Meal to Hypoglycemia/Hyperglycemia Distribution Chart" : {
+
     },
     "Meals" : {
       "comment" : "History Mode"
@@ -114041,9 +114056,6 @@
           }
         }
       }
-    },
-    "Not yet implemented" : {
-
     },
     "Note" : {
       "comment" : "Food Type / Meal Note",
@@ -127497,6 +127509,7 @@
     },
     "Readings" : {
       "comment" : "CGM readings in statView",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -148627,6 +148640,9 @@
         }
       }
     },
+    "Swipe the chart to scroll through time." : {
+
+    },
     "Swipe to delete a single entry. Tap on it, to edit its time or rate." : {
       "localizations" : {
         "ar" : {
@@ -148944,6 +148960,15 @@
           }
         }
       }
+    },
+    "Tap and hold a bar to reveal more details." : {
+
+    },
+    "Tap and hold the AGP graph or Time-in-Range ring for details." : {
+
+    },
+    "Tap and hold the Time-in-Range ring to reveal more details." : {
+
     },
     "Tap the button below to open your Nightscout instance in your iPhone's default browser." : {
 
@@ -165042,9 +165067,6 @@
         }
       }
     },
-    "TODO: Meal to Hypoglycemia/Hyperglycemia Distribution" : {
-
-    },
     "Top target" : {
       "comment" : "Upper temp target limit",
       "extractionState" : "manual",
@@ -165477,6 +165499,9 @@
           }
         }
       }
+    },
+    "Total Daily Dose (U)" : {
+
     },
     "Total Daily Dose:" : {
       "localizations" : {
@@ -166131,6 +166156,9 @@
           }
         }
       }
+    },
+    "Total:" : {
+
     },
     "Tracks the carbohydrates you eat, entered to guide insulin dosing." : {
       "localizations" : {
@@ -168603,6 +168631,9 @@
           }
         }
       }
+    },
+    "Trio Up-Time Chart" : {
+
     },
     "Trio v%@ (%@)" : {
       "localizations" : {

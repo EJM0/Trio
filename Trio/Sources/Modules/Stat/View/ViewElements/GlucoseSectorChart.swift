@@ -3,7 +3,7 @@ import CoreData
 import SwiftDate
 import SwiftUI
 
-struct SectorChart: View {
+struct GlucoseSectorChart: View {
     let highLimit: Decimal
     let lowLimit: Decimal
     let units: GlucoseUnits
@@ -39,7 +39,7 @@ struct SectorChart: View {
             let sumReadings = justGlucoseArray.reduce(0, +)
 
             let glucoseAverage = Decimal(sumReadings) / total
-            let medianGlucose = BareStatisticsView.medianCalculation(array: justGlucoseArray)
+            let medianGlucose = StatChartUtils.medianCalculation(array: justGlucoseArray)
 
             let lowPercentage = Decimal(low) / total * 100
             let tightPercentage = Decimal(tight) / total * 100
@@ -276,7 +276,7 @@ struct SectorChart: View {
 
         let total = values.reduce(0, +)
         let average = Decimal(total / values.count)
-        let median = Decimal(BareStatisticsView.medianCalculation(array: values))
+        let median = Decimal(StatChartUtils.medianCalculation(array: values))
 
         let sumOfSquares = values.reduce(0.0) { sum, value in
             sum + pow(Double(value) - Double(average), 2)
@@ -292,9 +292,7 @@ struct SectorChart: View {
     private func formatSD(_ sd: Double) -> String {
         units == .mgdL ? sd.formatted(
             .number.grouping(.never).rounded().precision(.fractionLength(0))
-        ) : sd.asMmolL.formatted(
-            .number.grouping(.never).rounded().precision(.fractionLength(1))
-        )
+        ) : sd.formattedAsMmolL
     }
 
     /// Formats a glucose value based on the current units.

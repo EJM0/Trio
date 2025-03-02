@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-struct StatsHelper {
+struct StatChartUtils {
     /// Returns the time interval length for the visible domain based on the selected duration.
     /// - Parameter selectedDuration: The selected time interval for statistics.
     /// - Returns: The time interval in seconds.
@@ -108,5 +108,42 @@ struct StatsHelper {
         let endText = formatDate(end)
 
         return startText == endText ? startText : "\(startText) - \(endText)"
+    }
+
+    /// A helper function to create a `VStack` for each statistic.
+    ///
+    /// - Parameters:
+    ///   - title: The title of the statistic.
+    ///   - value: The formatted value to display.
+    /// - Returns: A `VStack` with the title and value.
+    static func statView(title: String, value: String) -> some View {
+        VStack(spacing: 5) {
+            Text(title)
+                .font(.subheadline)
+                .foregroundStyle(Color.secondary)
+            Text(value)
+        }
+    }
+
+    static func medianCalculation(array: [Int]) -> Double {
+        guard !array.isEmpty else { return 0 }
+        let sorted = array.sorted()
+        let length = array.count
+
+        if length % 2 == 0 {
+            return Double((sorted[length / 2 - 1] + sorted[length / 2]) / 2)
+        }
+        return Double(sorted[length / 2])
+    }
+
+    static func medianCalculationDouble(array: [Double]) -> Double {
+        guard !array.isEmpty else { return 0 }
+        let sorted = array.sorted()
+        let length = array.count
+
+        if length % 2 == 0 {
+            return (sorted[length / 2 - 1] + sorted[length / 2]) / 2
+        }
+        return sorted[length / 2]
     }
 }
