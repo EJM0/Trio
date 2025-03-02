@@ -129487,6 +129487,9 @@
         }
       }
     },
+    "Restart Live Activity" : {
+
+    },
     "Result" : {
       "comment" : "For the  Bolus View pop-up",
       "localizations" : {
