@@ -1224,6 +1224,9 @@
         }
       }
     },
+    " %@/U" : {
+
+    },
     " + " : {
       "localizations" : {
         "ar" : {
@@ -1763,6 +1766,9 @@
         }
       }
     },
+    " g/U" : {
+
+    },
     " infinite duration." : {
       "comment" : "Alert strings. Keep spaces",
       "extractionState" : "manual",
@@ -2202,6 +2208,9 @@
           }
         }
       }
+    },
+    " needed as min. Glucose Target)!" : {
+
     },
     " of " : {
       "comment" : "Bolus string partial message: 'x U of y U' in home view"
@@ -26204,6 +26213,9 @@
         }
       }
     },
+    "All settings are at default values." : {
+
+    },
     "Allow Bolusing with Shortcuts" : {
       "localizations" : {
         "ar" : {
@@ -28003,6 +28015,9 @@
     },
     "Alter the rate of dynamic sensitivity adjustments for Sigmoid." : {
 
+    },
+    "Always" : {
+      "extractionState" : "manual"
     },
     "Always Color Glucose Value (green, yellow etc)" : {
       "comment" : "UI/UX option",
@@ -59238,6 +59253,12 @@
         }
       }
     },
+    "Disable" : {
+      "extractionState" : "manual"
+    },
+    "Disable on Schedule" : {
+      "extractionState" : "manual"
+    },
     "Disable SMBs" : {
       "localizations" : {
         "ar" : {
@@ -62856,6 +62877,9 @@
         }
       }
     },
+    "Don't Disable" : {
+      "extractionState" : "manual",
+    },
     "Done" : {
       "comment" : "Button",
       "extractionState" : "manual",
@@ -66249,6 +66273,9 @@
           }
         }
       }
+    },
+    "Enable indefinitely or set a duration." : {
+
     },
     "Enable Live Activity" : {
       "localizations" : {
@@ -98321,6 +98348,9 @@
     "Live Activity Expired. Open Trio to Refresh" : {
 
     },
+    "Live Activity Personalization" : {
+
+    },
     "Local glucose source" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -115990,6 +116020,9 @@
         }
       }
     },
+    "Note..." : {
+
+    },
     "Notes" : {
       "localizations" : {
         "ar" : {
@@ -118266,6 +118299,9 @@
           }
         }
       }
+    },
+    "Only Alarm Limits" : {
+      "extractionState" : "manual"
     },
     "Only Alarm Limits:" : {
       "localizations" : {
@@ -124020,6 +124056,9 @@
           }
         }
       }
+    },
+    "Presets can't be saved with a future date!" : {
+
     },
     "Preview Contact Image" : {
 
@@ -136608,6 +136647,9 @@
     },
     "Set a custom time for peak insulin effect." : {
       "comment" : "Mini Hint for Insulin Peak Time"
+    },
+    "Set a duration!" : {
+
     },
     "Set Display Values" : {
 
@@ -149511,6 +149553,9 @@
           }
         }
       }
+    },
+    "Target glucose is out of range (%@)." : {
+
     },
     "Target presets" : {
       "comment" : "Debug option view Target presets",
