@@ -5374,6 +5374,7 @@
       }
     },
     "%" : {
+      "comment" : "Percentage symbol",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -47826,6 +47827,7 @@
       }
     },
     "CR" : {
+      "comment" : "Option for Carb Ratio",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -49477,6 +49479,9 @@
           }
         }
       }
+    },
+    "Dark" : {
+
     },
     "Dark Mode" : {
       "localizations" : {
@@ -62878,7 +62883,7 @@
       }
     },
     "Don't Disable" : {
-      "extractionState" : "manual",
+      "extractionState" : "manual"
     },
     "Done" : {
       "comment" : "Button",
@@ -63525,6 +63530,9 @@
           }
         }
       }
+    },
+    "Dynamic" : {
+
     },
     "Dynamic CR adjusts your carb ratio based on your Dynamic Ratio, adapting automatically to changes in insulin sensitivity." : {
       "localizations" : {
@@ -79507,7 +79515,7 @@
       }
     },
     "g" : {
-      "comment" : "The short unit display string for grams\ngram of carbs",
+      "comment" : "Gram abbreviation\nThe short unit display string for grams\ngram of carbs",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -87557,6 +87565,9 @@
     "How Trio Manages Contact Images" : {
 
     },
+    "hr" : {
+      "comment" : "Hours abbreviation"
+    },
     "If \"Display IOB and COB\" is also enabled, \"IOB\" and \"COB\" will be replaced with the following emojis:" : {
       "localizations" : {
         "ar" : {
@@ -94430,6 +94441,7 @@
 
     },
     "ISF" : {
+      "comment" : "Option for Insulin Sensitivity Factor",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -94640,6 +94652,9 @@
           }
         }
       }
+    },
+    "ISF/CR" : {
+      "comment" : "Option for both ISF and CR"
     },
     "It allows you to refer to live information at a glance and perform quick actions in your diabetes management." : {
       "localizations" : {
@@ -97043,6 +97058,9 @@
           }
         }
       }
+    },
+    "Light" : {
+
     },
     "Light Mode" : {
       "localizations" : {
@@ -107189,7 +107207,7 @@
       }
     },
     "min" : {
-      "comment" : "Minutes ago since last loop\nShort form for minutes",
+      "comment" : "Minutes abbreviation\nMinutes ago since last loop\nShort form for minutes",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -113211,7 +113229,7 @@
 
     },
     "None" : {
-      "comment" : "No CGM selected",
+      "comment" : "No CGM selected\nOption for no selection",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -145330,6 +145348,9 @@
         }
       }
     },
+    "Static" : {
+
+    },
     "Static:" : {
       "localizations" : {
         "ar" : {
@@ -148688,6 +148709,9 @@
           }
         }
       }
+    },
+    "System Default" : {
+
     },
     "System Default:" : {
       "localizations" : {
@@ -169518,7 +169542,7 @@
       }
     },
     "U" : {
-      "comment" : "Insulin unit\nThe short unit display string for international units of insulin",
+      "comment" : "Insulin unit\nInsulin unit abbreviation\nThe short unit display string for international units of insulin",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
