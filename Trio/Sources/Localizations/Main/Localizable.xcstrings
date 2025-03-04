@@ -1766,9 +1766,6 @@
         }
       }
     },
-    " g/U" : {
-
-    },
     " infinite duration." : {
       "comment" : "Alert strings. Keep spaces",
       "extractionState" : "manual",
@@ -6141,6 +6138,7 @@
       }
     },
     "%@ g/U" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -124075,7 +124073,7 @@
         }
       }
     },
-    "Presets can't be saved with a future date!" : {
+    "Presets cannot be saved with a future date!" : {
 
     },
     "Preview Contact Image" : {
