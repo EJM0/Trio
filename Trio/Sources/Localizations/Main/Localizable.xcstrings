@@ -27912,6 +27912,16 @@
         }
       }
     },
+    "Also triggered when the lowest forecasted glucose (minPredBG) is < %@ %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Also triggered when the lowest forecasted glucose (minPredBG) is < %1$@ %2$@."
+          }
+        }
+      }
+    },
     "Also vibrate" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -115543,6 +115553,9 @@
         }
       }
     },
+    "Note: The forecast used for this warning does not include carbs or insulin that have not yet been logged." : {
+
+    },
     "Note: These values are not used to calculate insulin dosing." : {
       "localizations" : {
         "ar" : {
@@ -166898,12 +166911,12 @@
         }
       }
     },
-    "Triggers a confirmation dialog if you attempt to bolus when glucose or forecasted glucose is < %@ %@." : {
+    "Triggers a confirmation dialog if you attempt to bolus when glucose is < %@ %@." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Triggers a confirmation dialog if you attempt to bolus when glucose or forecasted glucose is < %1$@ %2$@."
+            "value" : "Triggers a confirmation dialog if you attempt to bolus when glucose is < %1$@ %2$@."
           }
         }
       }
@@ -173976,6 +173989,9 @@
       }
     },
     "Very Low Glucose Bolus Warning" : {
+
+    },
+    "Very Low Glucose Warning" : {
 
     },
     "Via Watch" : {
