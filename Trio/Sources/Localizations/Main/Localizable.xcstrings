@@ -25304,9 +25304,6 @@
         }
       }
     },
-    "Alarm with every Trio notification." : {
-
-    },
     "Alarms" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -122493,6 +122490,7 @@
 
     },
     "Play Alarm Sound" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -161629,6 +161627,7 @@
       }
     },
     "This will cause a sound to be triggered by Trio notifications for Carbs Required, and Glucose Low/High Alarms." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
