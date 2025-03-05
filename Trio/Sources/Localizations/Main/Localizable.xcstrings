@@ -1224,6 +1224,9 @@
         }
       }
     },
+    " %@/U" : {
+
+    },
     " + " : {
       "localizations" : {
         "ar" : {
@@ -2202,6 +2205,9 @@
           }
         }
       }
+    },
+    " needed as min. Glucose Target)!" : {
+
     },
     " of " : {
       "comment" : "Bolus string partial message: 'x U of y U' in home view"
@@ -5365,6 +5371,7 @@
       }
     },
     "%" : {
+      "comment" : "Percentage symbol",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -6131,6 +6138,7 @@
       }
     },
     "%@ g/U" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -26201,6 +26209,9 @@
         }
       }
     },
+    "All settings are at default values." : {
+
+    },
     "Allow Bolusing with Shortcuts" : {
       "localizations" : {
         "ar" : {
@@ -28000,6 +28011,9 @@
     },
     "Alter the rate of dynamic sensitivity adjustments for Sigmoid." : {
 
+    },
+    "Always" : {
+      "extractionState" : "manual"
     },
     "Always Color Glucose Value (green, yellow etc)" : {
       "comment" : "UI/UX option",
@@ -47808,6 +47822,7 @@
       }
     },
     "CR" : {
+      "comment" : "Option for Carb Ratio",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -49459,6 +49474,9 @@
           }
         }
       }
+    },
+    "Dark" : {
+
     },
     "Dark Mode" : {
       "localizations" : {
@@ -59235,6 +59253,12 @@
         }
       }
     },
+    "Disable" : {
+      "extractionState" : "manual"
+    },
+    "Disable on Schedule" : {
+      "extractionState" : "manual"
+    },
     "Disable SMBs" : {
       "localizations" : {
         "ar" : {
@@ -62853,6 +62877,9 @@
         }
       }
     },
+    "Don't Disable" : {
+      "extractionState" : "manual"
+    },
     "Done" : {
       "comment" : "Button",
       "extractionState" : "manual",
@@ -63498,6 +63525,9 @@
           }
         }
       }
+    },
+    "Dynamic" : {
+
     },
     "Dynamic CR adjusts your carb ratio based on your Dynamic Ratio, adapting automatically to changes in insulin sensitivity." : {
       "localizations" : {
@@ -66246,6 +66276,9 @@
           }
         }
       }
+    },
+    "Enable indefinitely or set a duration." : {
+
     },
     "Enable Live Activity" : {
       "localizations" : {
@@ -79477,7 +79510,7 @@
       }
     },
     "g" : {
-      "comment" : "The short unit display string for grams\ngram of carbs",
+      "comment" : "Gram abbreviation\nThe short unit display string for grams\ngram of carbs",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -87527,6 +87560,9 @@
     "How Trio Manages Contact Images" : {
 
     },
+    "hr" : {
+      "comment" : "Hours abbreviation"
+    },
     "If \"Display IOB and COB\" is also enabled, \"IOB\" and \"COB\" will be replaced with the following emojis:" : {
       "localizations" : {
         "ar" : {
@@ -94400,6 +94436,7 @@
 
     },
     "ISF" : {
+      "comment" : "Option for Insulin Sensitivity Factor",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -94610,6 +94647,9 @@
           }
         }
       }
+    },
+    "ISF/CR" : {
+      "comment" : "Option for both ISF and CR"
     },
     "It allows you to refer to live information at a glance and perform quick actions in your diabetes management." : {
       "localizations" : {
@@ -97014,6 +97054,9 @@
         }
       }
     },
+    "Light" : {
+
+    },
     "Light Mode" : {
       "localizations" : {
         "ar" : {
@@ -98316,6 +98359,9 @@
       }
     },
     "Live Activity Expired. Open Trio to Refresh" : {
+
+    },
+    "Live Activity Personalization" : {
 
     },
     "Local glucose source" : {
@@ -107156,7 +107202,7 @@
       }
     },
     "min" : {
-      "comment" : "Minutes ago since last loop\nShort form for minutes",
+      "comment" : "Minutes abbreviation\nMinutes ago since last loop\nShort form for minutes",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -113178,7 +113224,7 @@
 
     },
     "None" : {
-      "comment" : "No CGM selected",
+      "comment" : "No CGM selected\nOption for no selection",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -115987,6 +116033,9 @@
         }
       }
     },
+    "Note..." : {
+
+    },
     "Notes" : {
       "localizations" : {
         "ar" : {
@@ -118263,6 +118312,9 @@
           }
         }
       }
+    },
+    "Only Alarm Limits" : {
+      "extractionState" : "manual"
     },
     "Only Alarm Limits:" : {
       "localizations" : {
@@ -124018,6 +124070,9 @@
           }
         }
       }
+    },
+    "Presets cannot be saved with a future date!" : {
+
     },
     "Preview Contact Image" : {
 
@@ -136610,6 +136665,9 @@
     "Set a custom time for peak insulin effect." : {
       "comment" : "Mini Hint for Insulin Peak Time"
     },
+    "Set a duration!" : {
+
+    },
     "Set Display Values" : {
 
     },
@@ -145289,6 +145347,9 @@
         }
       }
     },
+    "Static" : {
+
+    },
     "Static:" : {
       "localizations" : {
         "ar" : {
@@ -148648,6 +148709,9 @@
         }
       }
     },
+    "System Default" : {
+
+    },
     "System Default:" : {
       "localizations" : {
         "ar" : {
@@ -149512,6 +149576,9 @@
           }
         }
       }
+    },
+    "Target glucose is out of range (%@)." : {
+
     },
     "Target presets" : {
       "comment" : "Debug option view Target presets",
@@ -169478,7 +169545,7 @@
       }
     },
     "U" : {
-      "comment" : "Insulin unit\nThe short unit display string for international units of insulin",
+      "comment" : "Insulin unit\nInsulin unit abbreviation\nThe short unit display string for international units of insulin",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
