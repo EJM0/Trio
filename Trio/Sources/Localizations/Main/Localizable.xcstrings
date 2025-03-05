@@ -1224,6 +1224,9 @@
         }
       }
     },
+    " %@/U" : {
+
+    },
     " + " : {
       "localizations" : {
         "ar" : {
@@ -2202,6 +2205,9 @@
           }
         }
       }
+    },
+    " needed as min. Glucose Target)!" : {
+
     },
     " of " : {
       "comment" : "Bolus string partial message: 'x U of y U' in home view"
@@ -5365,7 +5371,7 @@
       }
     },
     "%" : {
-      "extractionState" : "stale",
+      "comment" : "Percentage symbol",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -6132,6 +6138,7 @@
       }
     },
     "%@ g/U" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -26264,6 +26271,9 @@
         }
       }
     },
+    "All settings are at default values." : {
+
+    },
     "Allow Bolusing with Shortcuts" : {
       "localizations" : {
         "ar" : {
@@ -26479,6 +26489,35 @@
         }
       }
     },
+    "Allow SMB for 6 hrs after a carb entry." : {
+
+    },
+    "Allow SMB when a manual Temporary Target is set greater than %@ %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Allow SMB when a manual Temporary Target is set greater than %1$@ %2$@."
+          }
+        }
+      }
+    },
+    "Allow SMB when a manual Temporary Target is set under %@ %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Allow SMB when a manual Temporary Target is set under %1$@ %2$@."
+          }
+        }
+      }
+    },
+    "Allow SMB when carbs are on board." : {
+
+    },
+    "Allow SMB when glucose is above the High BG Target value." : {
+
+    },
     "Allow SMB With High Temporary Target" : {
       "localizations" : {
         "ar" : {
@@ -26691,6 +26730,12 @@
           }
         }
       }
+    },
+    "Allow SMBs at all times except when a high Temp Target is set." : {
+
+    },
+    "Allow the creation of saved, preset meals." : {
+
     },
     "Allow to add carbs in Trio." : {
       "localizations" : {
@@ -28028,6 +28073,9 @@
     },
     "Alter the rate of dynamic sensitivity adjustments for Sigmoid." : {
 
+    },
+    "Always" : {
+      "extractionState" : "manual"
     },
     "Always Color Glucose Value (green, yellow etc)" : {
       "comment" : "UI/UX option",
@@ -47871,6 +47919,7 @@
 
     },
     "CR" : {
+      "comment" : "Option for Carb Ratio",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -49523,6 +49572,9 @@
         }
       }
     },
+    "Dark" : {
+
+    },
     "Dark Mode" : {
       "localizations" : {
         "ar" : {
@@ -50726,6 +50778,16 @@
         }
       }
     },
+    "Decrease sensitivity when glucose is below target if a manual Temp Target < %@ %@ is set." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Decrease sensitivity when glucose is below target if a manual Temp Target < %1$@ %2$@ is set."
+          }
+        }
+      }
+    },
     "Decreasing this setting may result in fewer FPU entries with larger carb values." : {
       "localizations" : {
         "ar" : {
@@ -51043,6 +51105,9 @@
           }
         }
       }
+    },
+    "Default impact of carb absorption over a 5 minute interval." : {
+
     },
     "Default is 20 minutes. How often to update and save the statistics.json and to upload last array, when enabled, to Nightscout." : {
       "comment" : "Description for update interval for statistics",
@@ -59285,6 +59350,12 @@
         }
       }
     },
+    "Disable" : {
+      "extractionState" : "manual"
+    },
+    "Disable on Schedule" : {
+      "extractionState" : "manual"
+    },
     "Disable SMBs" : {
       "localizations" : {
         "ar" : {
@@ -59610,6 +59681,9 @@
           }
         }
       }
+    },
+    "Disables SMBs if last two glucose values differ by more than this percent." : {
+
     },
     "Disabling this setting will still allow other commands, like Temp Targets, Add Carbs, and Start/End Overrides" : {
       "localizations" : {
@@ -62900,6 +62974,9 @@
         }
       }
     },
+    "Don't Disable" : {
+      "extractionState" : "manual"
+    },
     "Done" : {
       "comment" : "Button",
       "extractionState" : "manual",
@@ -63545,6 +63622,9 @@
           }
         }
       }
+    },
+    "Dynamic" : {
+
     },
     "Dynamic CR adjusts your carb ratio based on your Dynamic Ratio, adapting automatically to changes in insulin sensitivity." : {
       "localizations" : {
@@ -66300,6 +66380,9 @@
         }
       }
     },
+    "Enable indefinitely or set a duration." : {
+
+    },
     "Enable Live Activity" : {
       "localizations" : {
         "ar" : {
@@ -67382,6 +67465,9 @@
           }
         }
       }
+    },
+    "Enable Unannounced Meals SMB." : {
+
     },
     "Enable uploading of CGM readings to Nightscout." : {
 
@@ -79533,7 +79619,7 @@
       }
     },
     "g" : {
-      "comment" : "The short unit display string for grams\ngram of carbs",
+      "comment" : "Gram abbreviation\nThe short unit display string for grams\ngram of carbs",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -87607,6 +87693,9 @@
     "How Trio Manages Contact Images" : {
 
     },
+    "hr" : {
+      "comment" : "Hours abbreviation"
+    },
     "If \"Display IOB and COB\" is also enabled, \"IOB\" and \"COB\" will be replaced with the following emojis:" : {
       "localizations" : {
         "ar" : {
@@ -91072,6 +91161,16 @@
     "Include IOB & COB in the calendar event data." : {
 
     },
+    "Increase sensitivity when glucose is above target if a manual Temp Target > %@ %@ is set." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Increase sensitivity when glucose is above target if a manual Temp Target > %1$@ %2$@ is set."
+          }
+        }
+      }
+    },
     "Increase the safety threshold used to suspend insulin delivery." : {
 
     },
@@ -94474,6 +94573,7 @@
 
     },
     "ISF" : {
+      "comment" : "Option for Insulin Sensitivity Factor",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -94684,6 +94784,9 @@
           }
         }
       }
+    },
+    "ISF/CR" : {
+      "comment" : "Option for both ISF and CR"
     },
     "It allows you to refer to live information at a glance and perform quick actions in your diabetes management." : {
       "localizations" : {
@@ -97088,6 +97191,9 @@
         }
       }
     },
+    "Light" : {
+
+    },
     "Light Mode" : {
       "localizations" : {
         "ar" : {
@@ -97631,6 +97737,12 @@
     },
     "Limits temporary basal rates to this percentage of your largest basal rate." : {
       "comment" : "Mini Hint for Max Daily Safety Multiplier"
+    },
+    "Limits the size of a single Super Micro Bolus (SMB) dose." : {
+
+    },
+    "Limits the size of a single Unannounced Meal (UAM) SMB dose." : {
+
     },
     "Lines" : {
       "localizations" : {
@@ -98384,6 +98496,9 @@
       }
     },
     "Live Activity Expired. Open Trio to Refresh" : {
+
+    },
+    "Live Activity Personalization" : {
 
     },
     "Local glucose source" : {
@@ -101450,6 +101565,12 @@
           }
         }
       }
+    },
+    "Lower limit of the Autosens Ratio." : {
+
+    },
+    "Lower target glucose when Autosens Ratio is <1." : {
+
     },
     "m" : {
       "comment" : "abbreviation for minutes",
@@ -105912,6 +106033,9 @@
     "Maximum Meal Absorption Time" : {
 
     },
+    "Maximum units of insulin allowed to be active." : {
+
+    },
     "Meal" : {
       "comment" : "Debug option view Meal",
       "extractionState" : "manual",
@@ -107245,7 +107369,7 @@
       }
     },
     "min" : {
-      "comment" : "Minutes ago since last loop\nShort form for minutes",
+      "comment" : "Minutes abbreviation\nMinutes ago since last loop\nShort form for minutes",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -108220,6 +108344,9 @@
           }
         }
       }
+    },
+    "Minimum minutes since the last SMB or manual bolus to allow an automated SMB." : {
+
     },
     "Minimum Safety Threshold" : {
       "localizations" : {
@@ -113279,7 +113406,7 @@
 
     },
     "None" : {
-      "comment" : "No CGM selected",
+      "comment" : "No CGM selected\nOption for no selection",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -116088,6 +116215,9 @@
         }
       }
     },
+    "Note..." : {
+
+    },
     "Notes" : {
       "localizations" : {
         "ar" : {
@@ -118364,6 +118494,9 @@
           }
         }
       }
+    },
+    "Only Alarm Limits" : {
+      "extractionState" : "manual"
     },
     "Only Alarm Limits:" : {
       "localizations" : {
@@ -122243,6 +122376,9 @@
     "Percentage of bolus suggested in bolus calculator." : {
 
     },
+    "Percentage of calculated insulin required that is given as SMB." : {
+
+    },
     "Percentage of carbs still available if no absorption is detected." : {
       "comment" : "Mini Hint for Remaining Carbs Percentage"
     },
@@ -124120,6 +124256,9 @@
         }
       }
     },
+    "Presets cannot be saved with a future date!" : {
+
+    },
     "Preview Contact Image" : {
 
     },
@@ -125896,6 +126035,9 @@
         }
       }
     },
+    "Pump rewind initiates a reset in Autosens Ratio." : {
+
+    },
     "Pump Settings" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -126859,6 +127001,9 @@
           }
         }
       }
+    },
+    "Raise target glucose if when Autosens Ratio is >1." : {
+
     },
     "Random variation added to each reading to simulate real-world sensor noise." : {
 
@@ -129680,6 +129825,9 @@
           }
         }
       }
+    },
+    "Restart Live Activity" : {
+
     },
     "Result" : {
       "comment" : "For the  Bolus View pop-up",
@@ -132640,6 +132788,9 @@
           }
         }
       }
+    },
+    "Scales down your basal rate to 50% at this value." : {
+
     },
     "Schedule" : {
       "localizations" : {
@@ -136711,6 +136862,9 @@
     },
     "Set a custom time for peak insulin effect." : {
       "comment" : "Mini Hint for Insulin Peak Time"
+    },
+    "Set a duration!" : {
+
     },
     "Set Display Values" : {
 
@@ -145395,6 +145549,9 @@
         }
       }
     },
+    "Static" : {
+
+    },
     "Static:" : {
       "localizations" : {
         "ar" : {
@@ -148760,6 +148917,9 @@
         }
       }
     },
+    "System Default" : {
+
+    },
     "System Default:" : {
       "localizations" : {
         "ar" : {
@@ -149633,6 +149793,9 @@
           }
         }
       }
+    },
+    "Target glucose is out of range (%@)." : {
+
     },
     "Target presets" : {
       "comment" : "Debug option view Target presets",
@@ -168109,6 +168272,9 @@
         }
       }
     },
+    "Trio Live Activity restarted successfully." : {
+
+    },
     "Trio Not Active" : {
       "comment" : "Trio Not Active",
       "localizations" : {
@@ -169608,7 +169774,7 @@
       }
     },
     "U" : {
-      "comment" : "Insulin unit\nThe short unit display string for international units of insulin",
+      "comment" : "Insulin unit\nInsulin unit abbreviation\nThe short unit display string for international units of insulin",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -172022,6 +172188,9 @@
           }
         }
       }
+    },
+    "Upper limit of the Autosens Ratio." : {
+
     },
     "URL" : {
       "localizations" : {
