@@ -4,17 +4,17 @@ import SwiftUI
 struct LoopBarChartView: View {
     let loopStatRecords: [LoopStatRecord]
     let selectedDuration: Stat.StateModel.Duration
-    let statsData: [(category: String, count: Int, percentage: Double)]
+    let statsData: [(category: LoopStatsDataType, count: Int, percentage: Double, medianDuration: Double, medianInterval: Double)]
 
     var body: some View {
         VStack(spacing: 20) {
             Chart(statsData, id: \.category) { data in
                 BarMark(
                     x: .value("Percentage", data.percentage),
-                    y: .value("Category", data.category)
+                    y: .value("Category", data.category.displayName)
                 )
                 .cornerRadius(5)
-                .foregroundStyle(data.category == "Successful Loops" ? Color.blue : Color.green)
+                .foregroundStyle(data.category == .successfulLoop ? Color.blue : Color.green)
                 .annotation(position: .overlay) {
                     HStack {
                         Text(annotationText(for: data))
@@ -50,8 +50,14 @@ struct LoopBarChartView: View {
         }
     }
 
-    private func annotationText(for data: (category: String, count: Int, percentage: Double)) -> String {
-        if data.category == "Successful Loops" {
+    private func annotationText(for data: (
+        category: LoopStatsDataType,
+        count: Int,
+        percentage: Double,
+        medianDuration: Double,
+        medianInterval: Double
+    )) -> String {
+        if data.category == .successfulLoop {
             switch selectedDuration {
             case .Day,
                  .Today:
@@ -59,9 +65,7 @@ struct LoopBarChartView: View {
             case .Month,
                  .Total,
                  .Week:
-                let maxLoopsPerDay = 288.0
-                let averageLoopsPerDay = Double(data.count) / maxLoopsPerDay * 100
-                return "\(Int(round(averageLoopsPerDay))) " + String(localized: "Loops per day")
+                return "\(data.count) " + String(localized: "Loops per Day")
             }
         } else {
             // For Glucose Count, show different text based on duration
