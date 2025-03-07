@@ -93422,6 +93422,16 @@
         }
       }
     },
+    "High (%@-%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "High (%1$@-%2$@)"
+          }
+        }
+      }
+    },
     "High (>" : {
       "comment" : "Title High BG in statPanel",
       "extractionState" : "manual",
@@ -93729,6 +93739,9 @@
           }
         }
       }
+    },
+    "High Glucose" : {
+
     },
     "High Glucose Alarm active" : {
       "comment" : "High Glucose Alarm active",
@@ -99156,7 +99169,6 @@
     },
     "In Range" : {
       "comment" : "In Range",
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -109496,6 +109508,16 @@
         }
       }
     },
+    "Low (%@-%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Low (%1$@-%2$@)"
+          }
+        }
+      }
+    },
     "Low (<" : {
       "comment" : "Title Low BG in statPanel",
       "extractionState" : "manual",
@@ -109911,6 +109933,9 @@
           }
         }
       }
+    },
+    "Low Glucose" : {
+
     },
     "Low Glucose Alarm active" : {
       "comment" : "Low Glucose Alarm active",
@@ -124190,6 +124215,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正常"
+          }
+        }
+      }
+    },
+    "Normal (%@-%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Normal (%1$@-%2$@)"
           }
         }
       }
@@ -149253,6 +149288,9 @@
           }
         }
       }
+    },
+    "Series" : {
+
     },
     "Services" : {
       "localizations" : {
@@ -176542,6 +176580,16 @@
         }
       }
     },
+    "Tight (%@-%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tight (%1$@-%2$@)"
+          }
+        }
+      }
+    },
     "Time" : {
       "comment" : "Time basal profile",
       "localizations" : {
@@ -179360,6 +179408,9 @@
           }
         }
       }
+    },
+    "Tomorrow" : {
+
     },
     "Top target" : {
       "comment" : "Upper temp target limit",
@@ -189262,6 +189313,12 @@
         }
       }
     },
+    "Very High (>%@)" : {
+
+    },
+    "Very Low (<%@)" : {
+
+    },
     "Via Watch" : {
       "comment" : "Note added to carb entry when entered via watch",
       "localizations" : {
@@ -195062,6 +195119,9 @@
           }
         }
       }
+    },
+    "Yesterday" : {
+
     },
     "You can connect Trio to seamlessly upload and manage your diabetes data on Tidepool." : {
       "localizations" : {
