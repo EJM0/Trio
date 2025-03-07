@@ -47620,6 +47620,7 @@
       }
     },
     "Choose between Total Daily Dose (TDD) or Total Insulin in Scope (TINS) to be displayed above the main glucose graph. Descriptions for each option found below." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -48828,6 +48829,7 @@
       }
     },
     "Choose which total insulin calculation is displayed on the home screen. See hint for more details." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -69017,6 +69019,7 @@
       }
     },
     "Displays the last 24 hours of total insulin administered, both basal and bolus." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -69117,6 +69120,7 @@
       }
     },
     "Displays the total amount of insulin given as a bolus (manual or SMB) and through temporary basal rates above zero during the selected timeframe of the main chart." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -177048,6 +177052,7 @@
       }
     },
     "TINS" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -179666,6 +179671,7 @@
       }
     },
     "Total Daily Dose (TDD)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -179769,6 +179775,7 @@
 
     },
     "Total Daily Dose:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -180087,6 +180094,7 @@
       }
     },
     "Total Insulin Display Type" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -180187,6 +180195,7 @@
       }
     },
     "Total Insulin in Scope (TINS)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -180287,6 +180296,7 @@
       }
     },
     "Total Insulin in Scope:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
