@@ -111042,7 +111042,7 @@
       }
     },
     "m" : {
-      "comment" : "abbreviation for minutes",
+      "comment" : "Abbreviation for Minutes\nabbreviation for minutes",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -117299,7 +117299,7 @@
       }
     },
     "min" : {
-      "comment" : "Minutes abbreviation\nMinutes ago since last loop\nShort form for minutes",
+      "comment" : "Minutes abbreviation\nShort form for minutes",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
