@@ -15554,6 +15554,9 @@
         }
       }
     },
+    "3 M" : {
+      "comment" : "Abbreviation for three months"
+    },
     "3. Tap on \"Data Access & Devices\"." : {
       "localizations" : {
         "bg" : {
@@ -39906,6 +39909,9 @@
         }
       }
     },
+    "Bolus Distribution" : {
+
+    },
     "Bolus enacted successfully." : {
       "comment" : "Success message for enacting a bolus",
       "localizations" : {
@@ -45960,6 +45966,9 @@
           }
         }
       }
+    },
+    "CGM Connection Trace" : {
+
     },
     "CGM Connection Trace Chart" : {
 
@@ -55484,6 +55493,9 @@
           }
         }
       }
+    },
+    "D" : {
+      "comment" : "Abbreviation for day"
     },
     "Dana(RS/-i)" : {
       "localizations" : {
@@ -69319,6 +69331,9 @@
           }
         }
       }
+    },
+    "Distribution" : {
+
     },
     "Do not enable this feature until you have optimized your CR (carb ratio) setting." : {
       "localizations" : {
@@ -109303,6 +109318,9 @@
     "Looping Chart Type" : {
 
     },
+    "Looping Performance" : {
+
+    },
     "Loops" : {
       "comment" : "Nr of Loops in statPanel",
       "localizations" : {
@@ -111166,6 +111184,9 @@
           }
         }
       }
+    },
+    "M" : {
+      "comment" : "Abbreviation for month"
     },
     "Macro Nutrients (g)" : {
 
@@ -116390,6 +116411,9 @@
           }
         }
       }
+    },
+    "Meal to Hypo/Hyper" : {
+
     },
     "Meal to Hypoglycemia/Hyperglycemia Distribution Chart" : {
 
@@ -133672,6 +133696,9 @@
           }
         }
       }
+    },
+    "Percentile" : {
+
     },
     "Period:" : {
       "localizations" : {
@@ -179721,6 +179748,9 @@
         }
       }
     },
+    "Total Daily Dose" : {
+
+    },
     "Total Daily Dose (TDD)" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -180446,6 +180476,9 @@
           }
         }
       }
+    },
+    "Total Meals" : {
+
     },
     "Total:" : {
 
@@ -183077,6 +183110,9 @@
           }
         }
       }
+    },
+    "Trio Up-Time" : {
+
     },
     "Trio Up-Time Chart" : {
 
@@ -189422,6 +189458,9 @@
     },
     "View" : {
 
+    },
+    "W" : {
+      "comment" : "Abbreviation for week"
     },
     "Wait please" : {
       "extractionState" : "manual",
