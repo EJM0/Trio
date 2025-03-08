@@ -749,6 +749,9 @@
         }
       }
     },
+    " " : {
+
+    },
     " -  Manual Basal ⚠️" : {
       "comment" : "Current Manual Temp basal",
       "extractionState" : "manual",
@@ -69746,6 +69749,9 @@
         }
       }
     },
+    "Dummy" : {
+
+    },
     "Duration" : {
       "comment" : "Duration of target temp or temp basalMedian loop interval",
       "localizations" : {
@@ -128027,6 +128033,9 @@
         }
       }
     },
+    "ø" : {
+
+    },
     "of" : {
       "comment" : "Bolus progress view",
       "extractionState" : "manual",
@@ -179436,9 +179445,6 @@
         }
       }
     },
-    "Tomorrow" : {
-
-    },
     "Top target" : {
       "comment" : "Upper temp target limit",
       "extractionState" : "manual",
@@ -195158,9 +195164,6 @@
           }
         }
       }
-    },
-    "Yesterday" : {
-
     },
     "You can connect Trio to seamlessly upload and manage your diabetes data on Tidepool." : {
       "localizations" : {
