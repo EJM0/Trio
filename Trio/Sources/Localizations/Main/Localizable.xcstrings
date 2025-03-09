@@ -171530,7 +171530,7 @@
         }
       }
     },
-    "This feature cannot be enabled unless Autosens Max > 100%." : {
+    "This feature cannot be enabled unless Algorithm Settings > Autosens > Autosens Max is set higher than 100%." : {
 
     },
     "This feature ensures more accurate insulin adjustments when carb entries are missing or incorrect." : {
