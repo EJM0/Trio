@@ -43551,6 +43551,9 @@
         }
       }
     },
+    "Cannot Enable This Setting" : {
+
+    },
     "Carb entries will be fully decayed by the number of hours specified as Max Meal Absorption Time. Meals that are high in fat and/or protein can have long lasting effects on BG levels. To allow such late meal effects to be considered by the carb decay model, a longer Max Meal Absorption Time than the default 6 hours can be set." : {
       "localizations" : {
         "bg" : {
@@ -171222,6 +171225,9 @@
         }
       }
     },
+    "This feature cannot be enabled unless Autosens Max > 100%." : {
+
+    },
     "This feature ensures more accurate insulin adjustments when carb entries are missing or incorrect." : {
       "localizations" : {
         "bg" : {
@@ -192770,6 +192776,7 @@
       }
     },
     "When this feature is enabled, setting a temporary target below %@ %@ will increase the Autosens Ratio used for ISF and basal adjustments, resulting in more insulin delivered overall. This scales with the temporary target set; the lower the Temp Target, the higher the Autosens Ratio used." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -192871,6 +192878,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "當啟用此功能時，設置的臨時目標低於％1$@％2$@將增加用於ISF和基礎調整的自動敏感度比例，導致總體上輸送的胰島素增加。這將隨著設置的臨時目標的變低而變化；臨時目標越低，自動敏感度比例越高。"
+          }
+        }
+      }
+    },
+    "When this feature is enabled, setting a temporary target below %@ %@ will increase the Autosens Ratio used for ISF and basal adjustments, resulting in more insulin delivered overall. This scales with the temporary target set; the lower the Temp Target, the higher the Autosens Ratio used. It requires Algorithm Settings > Autosens > Autosens Max to be set to > 100%% to work." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "When this feature is enabled, setting a temporary target below %1$@ %2$@ will increase the Autosens Ratio used for ISF and basal adjustments, resulting in more insulin delivered overall. This scales with the temporary target set; the lower the Temp Target, the higher the Autosens Ratio used. It requires Algorithm Settings > Autosens > Autosens Max to be set to > 100%% to work."
           }
         }
       }
