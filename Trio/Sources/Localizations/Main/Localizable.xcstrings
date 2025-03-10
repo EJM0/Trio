@@ -88601,6 +88601,9 @@
         }
       }
     },
+    "Getting everything ready for you..." : {
+
+    },
     "Give Apple Health Write Permissions" : {
       "localizations" : {
         "bg" : {
@@ -129260,6 +129263,9 @@
         }
       }
     },
+    "Oops, there was an issue!" : {
+
+    },
     "Open %@" : {
       "localizations" : {
         "bg" : {
@@ -142721,6 +142727,9 @@
           }
         }
       }
+    },
+    "Retry" : {
+
     },
     "Return to Normal" : {
       "extractionState" : "manual",
@@ -157169,6 +157178,9 @@
           }
         }
       }
+    },
+    "Something went wrong while loading your data. Please try again in a few moments." : {
+
     },
     "Source of the glucose reading will be added to the notification." : {
       "localizations" : {
@@ -183127,6 +183139,9 @@
 
     },
     "Trio Up-Time Chart" : {
+
+    },
+    "Trio v%@" : {
 
     },
     "Trio v%@ (%@)" : {
