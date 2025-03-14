@@ -48237,6 +48237,7 @@
       }
     },
     "Choose the orientation of the Time in Range Chart." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -48745,6 +48746,7 @@
       }
     },
     "Choose which style for the time in range chart you'd prefer: a standing, i.e., vertical, bar chart or a laying, i.e., horizontal, line chart." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -95004,6 +95006,7 @@
       }
     },
     "Horizontal" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -176849,6 +176852,7 @@
       }
     },
     "Time in Range Chart Style" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -189280,6 +189284,7 @@
       }
     },
     "Vertical" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
