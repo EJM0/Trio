@@ -186411,6 +186411,18 @@
         }
       }
     },
+    "Updating COB ..." : {
+      "comment" : "Status message for updating COB"
+    },
+    "Updating History ..." : {
+      "comment" : "Status message for updating history"
+    },
+    "Updating IOB ..." : {
+      "comment" : "Status message for updating IOB"
+    },
+    "Updating IOB and COB ..." : {
+      "comment" : "Status message for updating both IOB and COB"
+    },
     "Updating IOB..." : {
       "comment" : "Progress text when updating IOB",
       "localizations" : {
@@ -186511,6 +186523,9 @@
           }
         }
       }
+    },
+    "Updating Treatments ..." : {
+      "comment" : "Status message for updating treatments"
     },
     "Updating..." : {
       "comment" : "Updating Watch app",
