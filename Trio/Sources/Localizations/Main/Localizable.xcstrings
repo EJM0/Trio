@@ -1165,6 +1165,7 @@
 
     },
     " + " : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -1265,6 +1266,7 @@
       }
     },
     " ≈ " : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -1365,6 +1367,7 @@
       }
     },
     " ≈ Max Bolus" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -1573,7 +1576,7 @@
       }
     },
     " g" : {
-      "comment" : "gram of carb equilvalents\ngram of carbs\ngrams",
+      "comment" : "gram of carb equilvalents\ngram of carbs",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -2713,6 +2716,7 @@
       }
     },
     " x " : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -3118,6 +3122,9 @@
           }
         }
       }
+    },
+    "-1" : {
+
     },
     ", %lld%%" : {
       "localizations" : {
@@ -3852,6 +3859,7 @@
       }
     },
     "(Current - Target) / ISF" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -4060,6 +4068,7 @@
       }
     },
     "(Factor x Full Bolus) + Super Bolus" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -4660,7 +4669,11 @@
         }
       }
     },
+    "(𝒳 / 60) × current basal rate" : {
+
+    },
     "(𝒳 ÷ 60) × current basal rate" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -4859,6 +4872,9 @@
           }
         }
       }
+    },
+    ")/" : {
+
     },
     "[ -1 ]" : {
       "comment" : "- Button",
@@ -5076,8 +5092,12 @@
         }
       }
     },
+    "/" : {
+
+    },
     "/U" : {
       "comment" : "/Insulin unit",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -5582,6 +5602,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@"
+          }
+        }
+      }
+    },
+    "%@ - %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ - %2$@"
           }
         }
       }
@@ -6613,6 +6643,19 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "%@/U" : {
+
+    },
+    "%@%% × %@%%" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@%% × %2$@%%"
           }
         }
       }
@@ -13328,6 +13371,12 @@
         }
       }
     },
+    "+" : {
+
+    },
+    "+ %@ U" : {
+
+    },
     "+6" : {
       "localizations" : {
         "bg" : {
@@ -13527,6 +13576,9 @@
           }
         }
       }
+    },
+    "×" : {
+
     },
     "<  3.3 " : {
       "extractionState" : "stale",
@@ -13935,6 +13987,9 @@
         }
       }
     },
+    "=" : {
+
+    },
     ">  11  " : {
       "extractionState" : "stale",
       "localizations" : {
@@ -14341,6 +14396,9 @@
           }
         }
       }
+    },
+    "−" : {
+
     },
     "⚠️ Safety Notifications are OFF" : {
       "localizations" : {
@@ -16292,6 +16350,7 @@
       }
     },
     "15 min Delta / ISF" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -23927,6 +23986,7 @@
       }
     },
     "Added to Result" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -24025,6 +24085,9 @@
           }
         }
       }
+    },
+    "Addend" : {
+
     },
     "Additional notification types" : {
       "extractionState" : "manual",
@@ -30105,6 +30168,16 @@
         }
       }
     },
+    "Also triggered when the lowest forecasted glucose (minPredBG) is < %@ %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Also triggered when the lowest forecasted glucose (minPredBG) is < %1$@ %2$@."
+          }
+        }
+      }
+    },
     "Also vibrate" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -35888,7 +35961,11 @@
         }
       }
     },
+    "Autosens Ratio =\n(Weighted Average of TDD) / (10-day Average of TDD)" : {
+
+    },
     "Autosens Ratio =\n(Weighted Average of TDD) ÷ (10-day Average of TDD)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -36411,6 +36488,9 @@
           }
         }
       }
+    },
+    "Available IOB:" : {
+
     },
     "Available Layouts:" : {
       "localizations" : {
@@ -38164,6 +38244,9 @@
           }
         }
       }
+    },
+    "Basal Rate" : {
+
     },
     "Basal Rate Adjustment" : {
       "localizations" : {
@@ -41986,6 +42069,7 @@
     },
     "Calculations" : {
       "comment" : "For the  Bolus View pop-up",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -43943,6 +44027,7 @@
       }
     },
     "Carb Ratio:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -49762,6 +49847,7 @@
       }
     },
     "COB / Carb Ratio" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -49862,6 +49948,7 @@
       }
     },
     "COB:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -53859,6 +53946,9 @@
           }
         }
       }
+    },
+    "Current" : {
+
     },
     "Current Algorithm Reasoning" : {
       "localizations" : {
@@ -63984,6 +64074,7 @@
       }
     },
     "Delta:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -64383,7 +64474,11 @@
         }
       }
     },
+    "Detailed Bolus Calculations" : {
+
+    },
     "Detailed Calculation Steps" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -80948,6 +81043,7 @@
       }
     },
     "Factor x Fatty Meal Factor x Full Bolus" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -81048,6 +81144,7 @@
       }
     },
     "Factor x Full Bolus" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -87594,6 +87691,7 @@
     },
     "Full Bolus" : {
       "comment" : "For the  Bolus View pop-up",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -89430,6 +89528,12 @@
     "Glucose Distribution" : {
 
     },
+    "Glucose forecast is very low." : {
+
+    },
+    "Glucose is very low." : {
+
+    },
     "Glucose Level" : {
       "localizations" : {
         "bg" : {
@@ -90871,6 +90975,7 @@
       }
     },
     "Glucose:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -97244,7 +97349,11 @@
         }
       }
     },
+    "If you have a \"Recommended Bolus Percentage\" of 80%, and a \"Fatty Meal Bolus Percentage\" of 70%, your recommended bolus will be multiplied by: (80 × 70) / 100 = 56%." : {
+
+    },
     "If you have a \"Recommended Bolus Percentage\" of 80%, and a \"Fatty Meal Bolus Percentage\" of 70%, your recommended bolus will be multiplied by: (80 × 70) ÷ 100 = 56%." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -97444,7 +97553,11 @@
         }
       }
     },
+    "If your current basal rate is 0.8 U/hr and \"Super Bolus Percentage\" is set to 200%: 0.8 × (200 / 100) = 1.6 units will be added to your bolus recommendation." : {
+
+    },
     "If your current basal rate is 0.8 U/hr and \"Super Bolus Percentage\" is set to 200%: 0.8 × (200 ÷ 100) = 1.6 units will be added to your bolus recommendation." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -97649,6 +97762,9 @@
           }
         }
       }
+    },
+    "Ignore Warning and Enact Bolus" : {
+
     },
     "Immediately applying ${carbQuantity} at ${dateAdded}" : {
       "localizations" : {
@@ -102806,6 +102922,7 @@
       }
     },
     "IOB:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -103207,6 +103324,7 @@
       }
     },
     "ISF:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -106378,6 +106496,9 @@
           }
         }
       }
+    },
+    "Limited from %@ U" : {
+
     },
     "Limits per Entry" : {
       "localizations" : {
@@ -114072,6 +114193,9 @@
         }
       }
     },
+    "Max IOB - Current IOB" : {
+
+    },
     "Max IOB is the maximum amount of insulin on board from all sources – both basal (or SMB correction) and bolus insulin – that your loop is allowed to accumulate to treat higher-than-target BG. Unlike the other two OpenAPS safety settings (max_daily_safety_multiplier and current_basal_safety_multiplier), max_iob is set as a fixed number of units of insulin. As of now manual boluses are NOT limited by this setting. \n\n To test your basal rates during nighttime, you can modify the Max IOB setting to zero while in Closed Loop. This will enable low glucose suspend mode while testing your basal rates settings." : {
       "comment" : "\"Max IOB\"",
       "extractionState" : "manual",
@@ -120550,6 +120674,9 @@
         }
       }
     },
+    "New COB" : {
+
+    },
     "New Glucose" : {
       "localizations" : {
         "bg" : {
@@ -126297,6 +126424,9 @@
           }
         }
       }
+    },
+    "Note: The forecast used for this warning does not include carbs or insulin that have not yet been logged." : {
+
     },
     "Note: These values are not used to calculate insulin dosing." : {
       "localizations" : {
@@ -140286,6 +140416,9 @@
         }
       }
     },
+    "Recommended Bolus" : {
+
+    },
     "Recommended Bolus Percentage" : {
       "comment" : "Recommendation for a Manual Bolus",
       "localizations" : {
@@ -142207,6 +142340,7 @@
     },
     "Result" : {
       "comment" : "For the  Bolus View pop-up",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -143642,6 +143776,9 @@
           }
         }
       }
+    },
+    "Rounded for pump" : {
+
     },
     "Run now" : {
       "extractionState" : "manual",
@@ -160841,7 +160978,11 @@
         }
       }
     },
+    "Subtract" : {
+
+    },
     "Subtract IOB" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -161351,6 +161492,9 @@
           }
         }
       }
+    },
+    "Super Bolus %" : {
+
     },
     "Super Bolus Factor" : {
       "localizations" : {
@@ -163917,6 +164061,7 @@
       }
     },
     "Target:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -165762,6 +165907,9 @@
           }
         }
       }
+    },
+    "The bolus calculator uses various inputs to determine the recommended insulin dosage. Find the detailed calculations below." : {
+
     },
     "The current version has a critical issue and should be updated as soon as possible." : {
       "comment" : "Message for critical update alert",
@@ -181234,6 +181382,16 @@
         }
       }
     },
+    "Triggers a confirmation dialog if you attempt to bolus when glucose is < %@ %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Triggers a confirmation dialog if you attempt to bolus when glucose is < %1$@ %2$@."
+          }
+        }
+      }
+    },
     "Trio" : {
       "localizations" : {
         "bg" : {
@@ -189385,6 +189543,12 @@
     "Very Low (<%@)" : {
 
     },
+    "Very Low Glucose Bolus Warning" : {
+
+    },
+    "Very Low Glucose Warning" : {
+
+    },
     "Via Watch" : {
       "comment" : "Note added to carb entry when entered via watch",
       "localizations" : {
@@ -189699,6 +189863,9 @@
           }
         }
       }
+    },
+    "Warning when bolusing with a very low or forecasted very low glucose." : {
+
     },
     "Warning: Before adjusting these settings, make sure you are fully aware of the impact those changes will have." : {
       "localizations" : {
