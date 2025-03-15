@@ -88949,7 +88949,7 @@
       }
     },
     "Glucose" : {
-      "comment" : "Glucose\nHistory Mode",
+      "comment" : "Glucose\nHistory Mode\nTitle for glucose-related statistics",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -100564,6 +100564,7 @@
       }
     },
     "Insulin" : {
+      "comment" : "Title for insulin-related statistics",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -109373,6 +109374,9 @@
         }
       }
     },
+    "Looping" : {
+      "comment" : "Title for looping and system statistics"
+    },
     "Looping Chart Type" : {
 
     },
@@ -116480,7 +116484,7 @@
 
     },
     "Meals" : {
-      "comment" : "History Mode",
+      "comment" : "History Mode\nTitle for meal-related statistics",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
