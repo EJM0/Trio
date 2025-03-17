@@ -33499,6 +33499,9 @@
         }
       }
     },
+    "Applied Factors" : {
+
+    },
     "Apply a Temporary Target" : {
       "localizations" : {
         "bg" : {
@@ -36465,6 +36468,9 @@
           }
         }
       }
+    },
+    "Available IOB:" : {
+
     },
     "Available Layouts:" : {
       "localizations" : {
@@ -39868,6 +39874,9 @@
           }
         }
       }
+    },
+    "Bolus Calculator Details" : {
+
     },
     "Bolus cancelled successfully." : {
       "comment" : "Success message for canceling a bolus",
@@ -44912,6 +44921,9 @@
           }
         }
       }
+    },
+    "Carbs On Board (COB)" : {
+
     },
     "Carbs Req Threshold" : {
       "comment" : "Headline \"Carbs Req Threshold\"",
@@ -64447,9 +64459,6 @@
           }
         }
       }
-    },
-    "Detailed Bolus Calculations" : {
-
     },
     "Detailed Calculation Steps" : {
       "extractionState" : "stale",
@@ -89087,6 +89096,9 @@
         }
       }
     },
+    "Glucose Calculation" : {
+
+    },
     "Glucose Chart Type" : {
 
     },
@@ -90635,6 +90647,9 @@
           }
         }
       }
+    },
+    "Glucose Trend (15 min)" : {
+
     },
     "Glucose units" : {
       "extractionState" : "manual",
@@ -100821,6 +100836,9 @@
         }
       }
     },
+    "Insulin On Board (IOB)" : {
+
+    },
     "Insulin Peak Time" : {
       "comment" : "Insulin Peak Time",
       "localizations" : {
@@ -104709,6 +104727,9 @@
           }
         }
       }
+    },
+    "Last loop was > 15 mins ago." : {
+
     },
     "Last loop was more than %d min ago" : {
       "comment" : "Last loop was more than %d min ago",
@@ -112527,6 +112548,9 @@
           }
         }
       }
+    },
+    "Max Bolus = %@ U" : {
+
     },
     "Max Bolus exceeded!" : {
       "comment" : "\"Max Bolus Exceeded label\"",
