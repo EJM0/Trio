@@ -5898,6 +5898,16 @@
         }
       }
     },
+    "%@ ÷ %@ = %@ units of insulin" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ ÷ %2$@ = %3$@ units of insulin"
+          }
+        }
+      }
+    },
     "%@ g" : {
       "localizations" : {
         "bg" : {
@@ -5999,7 +6009,6 @@
       }
     },
     "%@ g/U" : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -6400,6 +6409,9 @@
         }
       }
     },
+    "%@ U/h" : {
+
+    },
     "%@ U/hr" : {
       "comment" : "Number of units per hour",
       "localizations" : {
@@ -6716,6 +6728,9 @@
           }
         }
       }
+    },
+    "%@g" : {
+
     },
     "%1$@ for %2$@" : {
       "comment" : "Summary string for temporary basal rate configuration page",
@@ -7425,7 +7440,31 @@
         }
       }
     },
+    "%lld:00" : {
+
+    },
     "%lld%%" : {
+
+    },
+    "• A higher number means you need less insulin for the same amount of carbs" : {
+
+    },
+    "• A higher number means you're less sensitive to insulin" : {
+
+    },
+    "• A lower number means you need more insulin for the same amount of carbs" : {
+
+    },
+    "• A lower number means you're more sensitive to insulin" : {
+
+    },
+    "• A ratio of 10 g/U means 1 unit of insulin covers 10g of carbs" : {
+
+    },
+    "• An ISF of 2.8 mmol/L means 1 unit of insulin lowers your BG by 2.8 mmol/L" : {
+
+    },
+    "• An ISF of 50 mg/dL means 1 unit of insulin lowers your BG by 50 mg/dL" : {
 
     },
     "• Basal Rate" : {
@@ -13935,6 +13974,9 @@
         }
       }
     },
+    "=" : {
+
+    },
     ">  11  " : {
       "extractionState" : "stale",
       "localizations" : {
@@ -14541,6 +14583,9 @@
           }
         }
       }
+    },
+    "⟹" : {
+
     },
     "💉: IOB" : {
       "localizations" : {
@@ -15249,6 +15294,9 @@
           }
         }
       }
+    },
+    "1U" : {
+
     },
     "2 hours" : {
       "extractionState" : "manual",
@@ -16807,6 +16855,16 @@
         }
       }
     },
+    "45g ÷ %@ = %@ units of insulin" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "45g ÷ %1$@ = %2$@ units of insulin"
+          }
+        }
+      }
+    },
     "50% is half effect:" : {
       "localizations" : {
         "bg" : {
@@ -17014,6 +17072,9 @@
     "75th Percentile" : {
 
     },
+    "80" : {
+
+    },
     "90%:" : {
 
     },
@@ -17219,6 +17280,9 @@
           }
         }
       }
+    },
+    "120" : {
+
     },
     "123" : {
       "localizations" : {
@@ -20360,6 +20424,9 @@
           }
         }
       }
+    },
+    "Add Basal Rate" : {
+
     },
     "Add calibration" : {
       "localizations" : {
@@ -36834,6 +36901,9 @@
         }
       }
     },
+    "Back" : {
+
+    },
     "Backfill Failed" : {
       "localizations" : {
         "bg" : {
@@ -39305,6 +39375,9 @@
           }
         }
       }
+    },
+    "Blood Glucose Units" : {
+
     },
     "Bluetooth Power Off" : {
       "comment" : "Bluetooth Power Off",
@@ -43975,6 +44048,9 @@
         }
       }
     },
+    "Carb Ratio" : {
+
+    },
     "Carb Ratio:" : {
       "localizations" : {
         "bg" : {
@@ -48572,6 +48648,9 @@
           }
         }
       }
+    },
+    "Choose when this basal rate should start" : {
+
     },
     "Choose whether or not to display one or both X- and Y-Axis grid lines." : {
       "localizations" : {
@@ -79609,6 +79688,9 @@
         }
       }
     },
+    "Example Calculation" : {
+
+    },
     "exceeded" : {
       "comment" : "Limit Exceeded label",
       "extractionState" : "manual",
@@ -85584,6 +85666,9 @@
         }
       }
     },
+    "For 45g of carbs, you would need:" : {
+
+    },
     "For example, at a temp target of %@ %@, your basal is reduced to 50%%, but this scales depending on the target (e.g., 75%% at %@ %@, 60%% at %@ %@)." : {
       "localizations" : {
         "bg" : {
@@ -88637,6 +88722,9 @@
           }
         }
       }
+    },
+    "Get Started" : {
+
     },
     "Getting everything ready for you..." : {
 
@@ -94119,6 +94207,9 @@
         }
       }
     },
+    "High Target" : {
+
+    },
     "High Temp Target Raises Sensitivity" : {
       "comment" : "High Temp Target Raises Sensitivity",
       "localizations" : {
@@ -97079,6 +97170,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "如果使用動態 ISF (不搭配 S 型)，覆蓋您的 ISF 將僅調整算法可以設定的 ISF 的限制。"
+          }
+        }
+      }
+    },
+    "If you are %@ %@ above target:" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "If you are %1$@ %2$@ above target:"
           }
         }
       }
@@ -101597,6 +101698,9 @@
         }
       }
     },
+    "Insulin Sensitivity Factor" : {
+
+    },
     "Insulin Suspended" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -105376,6 +105480,9 @@
           }
         }
       }
+    },
+    "Let's go through a few quick steps to ensure Trio works optimally for you." : {
+
     },
     "Libre 2 Direct" : {
       "comment" : "Libre 2 Direct",
@@ -110542,6 +110649,9 @@
           }
         }
       }
+    },
+    "Low Target" : {
+
     },
     "Low Temp Target Lowers Sensitivity" : {
       "comment" : "Low Temp Target Lowers Sensitivity",
@@ -120909,6 +121019,9 @@
           }
         }
       }
+    },
+    "Next" : {
+
     },
     "Nightscout" : {
       "localizations" : {
@@ -141366,6 +141479,9 @@
         }
       }
     },
+    "Remember, you can adjust these settings at any time in the app settings if needed." : {
+
+    },
     "Remote Control" : {
       "comment" : "Allow remote control from NS",
       "localizations" : {
@@ -146798,6 +146914,9 @@
         }
       }
     },
+    "Select Blood Glucose Units" : {
+
+    },
     "Select CGM Model" : {
       "localizations" : {
         "bg" : {
@@ -147200,6 +147319,9 @@
           }
         }
       }
+    },
+    "Select Start Time" : {
+
     },
     "Select Temporary Target" : {
       "localizations" : {
@@ -163773,6 +163895,9 @@
     "Target glucose is out of range (%@)." : {
 
     },
+    "Target Glucose Range" : {
+
+    },
     "Target presets" : {
       "comment" : "Debug option view Target presets",
       "extractionState" : "manual",
@@ -170183,6 +170308,9 @@
         }
       }
     },
+    "These values reflect your personal target range and can be adjusted at any time in the Settings." : {
+
+    },
     "This adjusted ISF is temporary, will change with the next loop cycle, and should not be directly used as your profile ISF value." : {
       "localizations" : {
         "bg" : {
@@ -170589,6 +170717,9 @@
           }
         }
       }
+    },
+    "This chart shows your basal insulin delivery throughout a 24-hour day." : {
+
     },
     "This could be useful for fast absorbing meals like sugary cereal." : {
       "localizations" : {
@@ -174596,6 +174727,9 @@
           }
         }
       }
+    },
+    "This range defines your ideal blood glucose values. Trio uses this to calculate insulin doses." : {
+
     },
     "This range is for display and statistical purposes only and does not influence insulin dosing." : {
       "localizations" : {
@@ -182516,6 +182650,9 @@
         }
       }
     },
+    "Trio is designed to help manage your diabetes efficiently. To get the most out of the app, we'll guide you through setting up some essential parameters." : {
+
+    },
     "Trio lets you create automations using iOS Shortcuts. Go to the Shortcuts app to create new automations." : {
       "localizations" : {
         "bg" : {
@@ -189586,6 +189723,9 @@
     "View" : {
 
     },
+    "Visual Reference" : {
+
+    },
     "W" : {
       "comment" : "Abbreviation for week"
     },
@@ -191527,6 +191667,9 @@
         }
       }
     },
+    "Welcome to Trio!" : {
+
+    },
     "What is the numeric value of the carb to add" : {
       "localizations" : {
         "bg" : {
@@ -191726,6 +191869,9 @@
           }
         }
       }
+    },
+    "What This Means" : {
+
     },
     "When \"Fatty Meal\" is selected in the bolus calculator, the recommended bolus will be multiplied by the \"Fatty Meal Bolus Percentage\" as well as the \"Recommended Bolus Percentage\"." : {
       "localizations" : {
@@ -195597,6 +195743,21 @@
         }
       }
     },
+    "You're All Set!" : {
+
+    },
+    "You've successfully completed the initial setup of Trio. Your settings have been saved and you're ready to start using the app." : {
+
+    },
+    "Your basal insulin profile determines how much background insulin you receive throughout the day." : {
+
+    },
+    "Your Basal Profile" : {
+
+    },
+    "Your carb ratio tells how many grams of carbohydrates one unit of insulin will cover." : {
+
+    },
     "Your entered amount was limited by your max Bolus setting of %d%@" : {
       "comment" : "For the  Bolus View pop-up",
       "extractionState" : "manual",
@@ -195704,6 +195865,9 @@
           }
         }
       }
+    },
+    "Your insulin sensitivity factor (ISF) indicates how much one unit of insulin will lower your blood glucose." : {
+
     },
     "Your phone or app is not enabled for NFC communications, which is needed to pair to libre2 sensors" : {
       "extractionState" : "manual",
@@ -196019,6 +196183,9 @@
           }
         }
       }
+    },
+    "Your Target Range" : {
+
     },
     "ZT" : {
       "localizations" : {
