@@ -24063,9 +24063,6 @@
         }
       }
     },
-    "Addend" : {
-
-    },
     "Additional notification types" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -142337,6 +142334,7 @@
     },
     "Result" : {
       "comment" : "For the  Bolus View pop-up",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -160974,9 +160972,6 @@
         }
       }
     },
-    "Subtract" : {
-
-    },
     "Subtract IOB" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -161288,9 +161283,6 @@
           }
         }
       }
-    },
-    "Sum" : {
-
     },
     "Summary" : {
       "localizations" : {
