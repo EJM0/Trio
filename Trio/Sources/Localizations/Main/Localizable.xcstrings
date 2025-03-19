@@ -9167,6 +9167,9 @@
         }
       }
     },
+    "• Different times of day may require different ratios" : {
+
+    },
     "• Duration of Insulin Action" : {
       "localizations" : {
         "bg" : {
@@ -20528,6 +20531,9 @@
         }
       }
     },
+    "Add Carb Ratio" : {
+
+    },
     "Add carbs" : {
       "localizations" : {
         "bg" : {
@@ -21743,6 +21749,9 @@
           }
         }
       }
+    },
+    "Add Initial Carb Ratio" : {
+
     },
     "Add insulin without actually bolusing" : {
       "comment" : "Bolus screen when adding insulin",
@@ -44048,9 +44057,6 @@
         }
       }
     },
-    "Carb Ratio" : {
-
-    },
     "Carb Ratio:" : {
       "localizations" : {
         "bg" : {
@@ -48650,6 +48656,9 @@
       }
     },
     "Choose when this basal rate should start" : {
+
+    },
+    "Choose when this carb ratio should start" : {
 
     },
     "Choose whether or not to display one or both X- and Y-Axis grid lines." : {
