@@ -6729,9 +6729,6 @@
         }
       }
     },
-    "%@g" : {
-
-    },
     "%1$@ for %2$@" : {
       "comment" : "Summary string for temporary basal rate configuration page",
       "extractionState" : "manual",
@@ -13977,9 +13974,6 @@
         }
       }
     },
-    "=" : {
-
-    },
     ">  11  " : {
       "extractionState" : "stale",
       "localizations" : {
@@ -20530,9 +20524,6 @@
           }
         }
       }
-    },
-    "Add Carb Ratio" : {
-
     },
     "Add carbs" : {
       "localizations" : {
@@ -44056,6 +44047,9 @@
           }
         }
       }
+    },
+    "Carb Ratio Profile" : {
+
     },
     "Carb Ratio:" : {
       "localizations" : {
