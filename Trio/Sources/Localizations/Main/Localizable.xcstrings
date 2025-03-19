@@ -5485,6 +5485,9 @@
         }
       }
     },
+    "%.2f U/day" : {
+
+    },
     "%@" : {
       "comment" : "Info message\nunits",
       "localizations" : {
@@ -7436,9 +7439,6 @@
           }
         }
       }
-    },
-    "%lld:00" : {
-
     },
     "%lld%%" : {
 
@@ -11767,6 +11767,9 @@
         }
       }
     },
+    "• Lower rates are typically needed during sleep or periods of activity" : {
+
+    },
     "• Maximum Duration" : {
       "localizations" : {
         "bg" : {
@@ -12066,6 +12069,9 @@
           }
         }
       }
+    },
+    "• Morning hours may require more insulin due to 'dawn phenomenon'" : {
+
     },
     "• Nightscout" : {
       "localizations" : {
@@ -12667,6 +12673,9 @@
         }
       }
     },
+    "• Rates should be adjusted based on your body's varying insulin needs" : {
+
+    },
     "• Secondary Font Size: Adjust text size for values in split layouts." : {
       "localizations" : {
         "bg" : {
@@ -13166,6 +13175,9 @@
           }
         }
       }
+    },
+    "• The basal profile provides background insulin throughout the day" : {
+
     },
     "• xDrip4iOS" : {
       "localizations" : {
@@ -20422,9 +20434,6 @@
         }
       }
     },
-    "Add Basal Rate" : {
-
-    },
     "Add calibration" : {
       "localizations" : {
         "bg" : {
@@ -21740,6 +21749,9 @@
           }
         }
       }
+    },
+    "Add Initial Basal Rate" : {
+
     },
     "Add Initial Carb Ratio" : {
 
@@ -170721,9 +170733,6 @@
         }
       }
     },
-    "This chart shows your basal insulin delivery throughout a 24-hour day." : {
-
-    },
     "This could be useful for fast absorbing meals like sugary cereal." : {
       "localizations" : {
         "bg" : {
@@ -179994,6 +180003,9 @@
         }
       }
     },
+    "Total Daily Basal" : {
+
+    },
     "Total Daily Dose" : {
 
     },
@@ -185191,6 +185203,9 @@
           }
         }
       }
+    },
+    "Unable to Save Basal Profile" : {
+
     },
     "Unable to set a temporary basal rate: %1$@" : {
       "comment" : "Alert format string for a failure to set temporary basal. (1: error description)",
@@ -195753,9 +195768,6 @@
 
     },
     "Your basal insulin profile determines how much background insulin you receive throughout the day." : {
-
-    },
-    "Your Basal Profile" : {
 
     },
     "Your carb ratio tells how many grams of carbohydrates one unit of insulin will cover." : {
