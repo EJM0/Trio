@@ -48574,6 +48574,9 @@
         }
       }
     },
+    "Choose type type of time in range to be used for Trio's statistics." : {
+
+    },
     "Choose whether or not to display one or both X- and Y-Axis grid lines." : {
       "localizations" : {
         "bg" : {
@@ -48979,6 +48982,9 @@
           }
         }
       }
+    },
+    "Choose which type of time in range type want Trio to adopt for all its statistical charts and displays:" : {
+
     },
     "Clear" : {
       "comment" : "Button",
@@ -176937,6 +176943,12 @@
         }
       }
     },
+    "Time in Normoglycemia (TING)" : {
+
+    },
+    "Time in Normoglycemia (TING):" : {
+
+    },
     "Time in Range Chart Style" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -177037,6 +177049,15 @@
           }
         }
       }
+    },
+    "Time in Range Type" : {
+
+    },
+    "Time in Tight Range (TITR)" : {
+
+    },
+    "Time in Tight Range (TITR):" : {
+
     },
     "Time interval between FPUs." : {
       "localizations" : {
