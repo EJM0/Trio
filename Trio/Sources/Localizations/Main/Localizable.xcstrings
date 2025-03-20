@@ -2194,7 +2194,7 @@
       }
     },
     " SMB" : {
-      "comment" : "Super Micro Bolus indicator in alert"
+      "comment" : "Super Micro Bolus indicator in delete alert"
     },
     " SMBs are disabled either by schedule or during the entire duration." : {
       "comment" : "Alert string. Keep spaces.",
@@ -27230,7 +27230,7 @@
       }
     },
     "All FPUs and the carbs of the meal will be deleted." : {
-      "comment" : "Alert message for deletion"
+      "comment" : "Alert message for meal deletion"
     },
     "All FPUs of the meal will be deleted." : {
       "extractionState" : "manual",
@@ -63822,7 +63822,7 @@
       }
     },
     "Delete the Temp Target Preset \"%@\"?" : {
-      "comment" : "Delete confirmation title for the temporary target preset"
+      "comment" : "Delete confirmation title for temporary target presets"
     },
     "Delivery limits" : {
       "extractionState" : "manual",
