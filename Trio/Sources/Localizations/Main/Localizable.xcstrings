@@ -17356,6 +17356,9 @@
         }
       }
     },
+    "A bolus command of %@ U of insulin was sent." : {
+
+    },
     "A display of On/On indicates both Dynamic ISF and CR are enabled. On/Off indicates only Dynamic ISF is enabled. Dynamic CR cannot be enabled when Dynamic ISF is disabled." : {
       "localizations" : {
         "bg" : {
@@ -18771,6 +18774,9 @@
           }
         }
       }
+    },
+    "Activate an override" : {
+
     },
     "Activate Dynamic Carb Ratio (CR)" : {
       "comment" : "Enable Dyn CR",
@@ -28996,6 +29002,9 @@
         }
       }
     },
+    "Allow to send a bolus to the app" : {
+
+    },
     "Allow Trio to read from and write to Apple Health." : {
       "localizations" : {
         "bg" : {
@@ -33599,6 +33608,9 @@
         }
       }
     },
+    "Applying ${bolusQuantity} U" : {
+
+    },
     "Applying ${carbQuantity} at ${dateAdded}" : {
       "localizations" : {
         "bg" : {
@@ -33799,6 +33811,9 @@
         }
       }
     },
+    "Applying ${preset} override" : {
+
+    },
     "Are you sure to add %@ g of carbs ?" : {
       "localizations" : {
         "bg" : {
@@ -33898,6 +33913,9 @@
           }
         }
       }
+    },
+    "Are you sure you want to bolus %@ U of insulin?" : {
+
     },
     "Are you sure you want to delete %@?" : {
       "localizations" : {
@@ -39772,6 +39790,12 @@
         }
       }
     },
+    "Bolus amount (units of insulin)?" : {
+
+    },
+    "Bolus amount in U" : {
+
+    },
     "Bolus Calculator" : {
       "localizations" : {
         "bg" : {
@@ -41220,6 +41244,9 @@
           }
         }
       }
+    },
+    "Bolusing via Shortcuts is disabled in Trio settings." : {
+
     },
     "Bottom target" : {
       "comment" : "Bottom target temp",
@@ -43080,6 +43107,9 @@
         }
       }
     },
+    "Cancel an active override" : {
+
+    },
     "Cancel Bolus" : {
       "localizations" : {
         "bg" : {
@@ -43179,6 +43209,9 @@
           }
         }
       }
+    },
+    "Cancel override" : {
+
     },
     "Cancel Override" : {
       "localizations" : {
@@ -51678,6 +51711,9 @@
           }
         }
       }
+    },
+    "Confirm to apply override '%@'" : {
+
     },
     "Confirm to apply Temporary Target '%@'" : {
       "localizations" : {
@@ -88993,7 +89029,7 @@
       }
     },
     "Glucose" : {
-      "comment" : "Glucose\nHistory Mode",
+      "comment" : "Glucose\nHistory Mode\nTitle for glucose-related statistics",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -96937,6 +96973,9 @@
         }
       }
     },
+    "If toggled, you will need to confirm before applying." : {
+
+    },
     "If using Dynamic ISF (with Sigmoid), overriding your ISF will adjust the ISF used at your glucose target which extends to the ISF used at other glucose. Overriding your glucose target will change glucose level your ISF will be set to your profile ISF. Both of these can be combined in a single Override." : {
       "localizations" : {
         "bg" : {
@@ -97754,6 +97793,9 @@
     "Ignore Warning and Enact Bolus" : {
 
     },
+    "Immediately applying ${bolusQuantity} U" : {
+
+    },
     "Immediately applying ${carbQuantity} at ${dateAdded}" : {
       "localizations" : {
         "bg" : {
@@ -97953,6 +97995,9 @@
           }
         }
       }
+    },
+    "Immediately applying ${preset} override" : {
+
     },
     "Import Error" : {
       "comment" : "Import Error HeadlineImport Error Headline",
@@ -100623,6 +100668,7 @@
       }
     },
     "Insulin" : {
+      "comment" : "Title for insulin-related statistics",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -109440,6 +109486,9 @@
         }
       }
     },
+    "Looping" : {
+      "comment" : "Title for looping and system statistics"
+    },
     "Looping Chart Type" : {
 
     },
@@ -112444,6 +112493,9 @@
           }
         }
       }
+    },
+    "Max bolus" : {
+
     },
     "Max Bolus" : {
       "comment" : "Max setting",
@@ -116547,7 +116599,7 @@
 
     },
     "Meals" : {
-      "comment" : "History Mode",
+      "comment" : "History Mode\nTitle for meal-related statistics",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -124597,6 +124649,9 @@
         }
       }
     },
+    "Not allowed" : {
+
+    },
     "Not paired yet" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -130722,6 +130777,18 @@
           }
         }
       }
+    },
+    "Override '%@' applied" : {
+
+    },
+    "Override '%@' failed" : {
+
+    },
+    "Override canceled" : {
+
+    },
+    "Override choice" : {
+
     },
     "Override eA1c Unit" : {
 
@@ -142332,6 +142399,9 @@
     "Restart Live Activity" : {
 
     },
+    "Restarts Trio's Live Activity" : {
+
+    },
     "Result" : {
       "comment" : "For the  Bolus View pop-up",
       "extractionState" : "stale",
@@ -147058,6 +147128,9 @@
           }
         }
       }
+    },
+    "Select override" : {
+
     },
     "Select Pump Model" : {
       "localizations" : {
@@ -165292,6 +165365,12 @@
         }
       }
     },
+    "Temporary Target '%@' applied" : {
+
+    },
+    "Temporary Target '%@' failed" : {
+
+    },
     "Temporary Target canceled" : {
       "localizations" : {
         "bg" : {
@@ -165900,6 +165979,9 @@
       }
     },
     "The bolus calculator uses various inputs to determine the recommended insulin dosage. Find the detailed calculations below." : {
+
+    },
+    "The bolus cannot be larger than the pump setting max bolus (%@)." : {
 
     },
     "The current version has a critical issue and should be updated as soon as possible." : {
@@ -186560,6 +186642,18 @@
         }
       }
     },
+    "Updating COB ..." : {
+      "comment" : "Status message for updating COB"
+    },
+    "Updating History ..." : {
+      "comment" : "Status message for updating history"
+    },
+    "Updating IOB ..." : {
+      "comment" : "Status message for updating IOB"
+    },
+    "Updating IOB and COB ..." : {
+      "comment" : "Status message for updating both IOB and COB"
+    },
     "Updating IOB..." : {
       "comment" : "Progress text when updating IOB",
       "localizations" : {
@@ -186660,6 +186754,9 @@
           }
         }
       }
+    },
+    "Updating Treatments ..." : {
+      "comment" : "Status message for updating treatments"
     },
     "Updating..." : {
       "comment" : "Updating Watch app",
