@@ -11467,6 +11467,9 @@
         }
       }
     },
+    "• ISF may vary throughout the day" : {
+
+    },
     "• Last Loop Time: Time of the last algorithm run." : {
       "localizations" : {
         "bg" : {
@@ -14593,9 +14596,6 @@
         }
       }
     },
-    "⟹" : {
-
-    },
     "💉: IOB" : {
       "localizations" : {
         "bg" : {
@@ -15303,9 +15303,6 @@
           }
         }
       }
-    },
-    "1U" : {
-
     },
     "2 hours" : {
       "extractionState" : "manual",
@@ -21756,6 +21753,9 @@
     "Add Initial Carb Ratio" : {
 
     },
+    "Add Initial ISF Value" : {
+
+    },
     "Add insulin without actually bolusing" : {
       "comment" : "Bolus screen when adding insulin",
       "extractionState" : "manual",
@@ -21863,6 +21863,9 @@
           }
         }
       }
+    },
+    "Add ISF" : {
+
     },
     "Add Meal" : {
       "comment" : "Bolus View Meal Add Meal Button",
@@ -48665,6 +48668,9 @@
 
     },
     "Choose when this carb ratio should start" : {
+
+    },
+    "Choose when this sensitivity factor should start" : {
 
     },
     "Choose whether or not to display one or both X- and Y-Axis grid lines." : {
@@ -101713,9 +101719,6 @@
         }
       }
     },
-    "Insulin Sensitivity Factor" : {
-
-    },
     "Insulin Suspended" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -103370,6 +103373,9 @@
           }
         }
       }
+    },
+    "ISF Profile" : {
+
     },
     "ISF:" : {
       "localizations" : {
@@ -147955,6 +147961,9 @@
         }
       }
     },
+    "Sensitivity Factors" : {
+
+    },
     "Sensitivity Raises Target" : {
       "comment" : "Sensitivity Raises Target",
       "localizations" : {
@@ -185207,6 +185216,9 @@
     "Unable to Save Basal Profile" : {
 
     },
+    "Unable to Save ISF Profile" : {
+
+    },
     "Unable to set a temporary basal rate: %1$@" : {
       "comment" : "Alert format string for a failure to set temporary basal. (1: error description)",
       "extractionState" : "manual",
@@ -189739,9 +189751,6 @@
       }
     },
     "View" : {
-
-    },
-    "Visual Reference" : {
 
     },
     "W" : {
