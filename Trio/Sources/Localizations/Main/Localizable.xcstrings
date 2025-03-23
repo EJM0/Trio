@@ -21747,15 +21747,6 @@
         }
       }
     },
-    "Add Initial Basal Rate" : {
-
-    },
-    "Add Initial Carb Ratio" : {
-
-    },
-    "Add Initial ISF Value" : {
-
-    },
     "Add insulin without actually bolusing" : {
       "comment" : "Bolus screen when adding insulin",
       "extractionState" : "manual",
