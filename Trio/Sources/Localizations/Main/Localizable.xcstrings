@@ -2193,6 +2193,9 @@
         }
       }
     },
+    " SMB" : {
+      "comment" : "Super Micro Bolus indicator in delete alert"
+    },
     " SMBs are disabled either by schedule or during the entire duration." : {
       "comment" : "Alert string. Keep spaces.",
       "extractionState" : "manual",
@@ -18744,6 +18747,7 @@
     },
     "Activate Dynamic Carb Ratio (CR)" : {
       "comment" : "Enable Dyn CR",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -19145,6 +19149,7 @@
     },
     "Activate Dynamic Sensitivity (ISF)" : {
       "comment" : "Enable Dyn ISF",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -19660,6 +19665,9 @@
           }
         }
       }
+    },
+    "Add a CGM and pump to enable automated insuin delivery" : {
+
     },
     "Add a Garmin Device to Trio." : {
       "localizations" : {
@@ -25580,6 +25588,7 @@
     },
     "Adjustment Factor" : {
       "comment" : "Headline \"Adjustment Factor\"",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -26711,6 +26720,7 @@
       }
     },
     "Algorithm" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -27225,6 +27235,9 @@
           }
         }
       }
+    },
+    "All FPUs and the carbs of the meal will be deleted." : {
+      "comment" : "Alert message for meal deletion"
     },
     "All FPUs of the meal will be deleted." : {
       "extractionState" : "manual",
@@ -27753,6 +27766,7 @@
       }
     },
     "Allow Fetching From Nightscout" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -28365,6 +28379,7 @@
       }
     },
     "Allow SMB With High Temporary Target" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -53698,6 +53713,7 @@
       }
     },
     "Create Calendar Events" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -55652,6 +55668,7 @@
 
     },
     "Dark Mode" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -55752,6 +55769,7 @@
       }
     },
     "Dark Scheme" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -62765,6 +62783,9 @@
         }
       }
     },
+    "Delete Carbs Equivalents?" : {
+      "comment" : "Alert title for deleting carb equivalents"
+    },
     "Delete Carbs?" : {
       "comment" : "Delete carbs from data table and Nightscout",
       "extractionState" : "manual",
@@ -63819,6 +63840,9 @@
           }
         }
       }
+    },
+    "Delete the Temp Target Preset \"%@\"?" : {
+      "comment" : "Delete confirmation title for temporary target presets"
     },
     "Delivery limits" : {
       "extractionState" : "manual",
@@ -65360,6 +65384,7 @@
       }
     },
     "DIA" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -66597,6 +66622,7 @@
       }
     },
     "Display and Allow Fat and Protein Entries" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -67734,6 +67760,7 @@
       }
     },
     "Display on Watch" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -72782,6 +72809,7 @@
       }
     },
     "Enable Fatty Meal Factor" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -74096,6 +74124,7 @@
       }
     },
     "Enable SMB With Temporary Target" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -74405,6 +74434,7 @@
       }
     },
     "Enable Super Bolus" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -83280,6 +83310,7 @@
       }
     },
     "Fat and Protein Factor" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -83985,6 +84016,7 @@
     },
     "Fatty Meal Factor" : {
       "comment" : "For the  Bolus View pop-up",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -84185,6 +84217,7 @@
       }
     },
     "Features" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -84385,6 +84418,7 @@
       }
     },
     "Fetch and Remote Control" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -87229,6 +87263,7 @@
       }
     },
     "FPU" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -93613,6 +93648,7 @@
       }
     },
     "High BG Target" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -94230,6 +94266,7 @@
     },
     "High Temptarget Raises Sensitivity" : {
       "comment" : "Headline \"High Temptarget Raises Sensitivity\"",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -106027,6 +106064,7 @@
 
     },
     "Light Mode" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -106127,6 +106165,7 @@
       }
     },
     "Light Scheme" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -110655,6 +110694,7 @@
     },
     "Low Temptarget Lowers Sensitivity" : {
       "comment" : "Headline ”Low Temptarget Lowers Sensitivity\"",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -114954,6 +114994,7 @@
     },
     "Max UAM SMB Basal Minutes" : {
       "comment" : "Headline \"Max UAM SMB Basal Minutes\"",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -115555,6 +115596,7 @@
       }
     },
     "Maximum Duration (hours)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -117825,6 +117867,7 @@
     },
     "Min 5m Carbimpact" : {
       "comment" : "Headline \"Min 5m Carbimpact\"",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -121128,6 +121171,7 @@
       }
     },
     "Nightscout Fetch & Remote Control" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -121429,6 +121473,7 @@
       }
     },
     "Nightscout Upload" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -130679,9 +130724,6 @@
 
     },
     "Override choice" : {
-
-    },
-    "Override eA1c Unit" : {
 
     },
     "Override HbA1c Unit" : {
@@ -141075,6 +141117,7 @@
     },
     "Remaining Carbs Fraction" : {
       "comment" : "Headline \"Remaining Carbs Fraction\"",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -153204,6 +153247,7 @@
       }
     },
     "Show Protein and Fat" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -157571,6 +157615,7 @@
       }
     },
     "Spread Interval (minutes)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -157772,6 +157817,7 @@
       }
     },
     "Standing / Laying TIR Chart" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -161439,6 +161485,7 @@
       }
     },
     "Super Bolus Factor" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -169590,6 +169637,7 @@
       }
     },
     "Therapy" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -190936,6 +190984,7 @@
       }
     },
     "Watch Complication" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -194820,6 +194869,7 @@
       }
     },
     "X-Axis Interval Step" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
