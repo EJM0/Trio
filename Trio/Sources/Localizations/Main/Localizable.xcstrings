@@ -70220,6 +70220,9 @@
         }
       }
     },
+    "Dynamic Insulin Sensitivity" : {
+
+    },
     "Dynamic ISF" : {
 
     },
@@ -100595,9 +100598,6 @@
           }
         }
       }
-    },
-    "Insufficient insulin data. Cannot enable dynamic ISF." : {
-
     },
     "Insulin" : {
       "comment" : "Title for insulin-related statistics",
@@ -182163,6 +182163,9 @@
           }
         }
       }
+    },
+    "Trio has only been actively used and looping for less than seven days. Cannot enable dynamic ISF." : {
+
     },
     "Trio has successfully imported your default Nightscout profile and stored it as therapy settings. " : {
       "localizations" : {
