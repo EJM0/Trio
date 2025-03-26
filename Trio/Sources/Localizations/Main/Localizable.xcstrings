@@ -5695,6 +5695,16 @@
         }
       }
     },
+    "%@ (%@-%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$@-%3$@)"
+          }
+        }
+      }
+    },
     "%@ %@" : {
       "localizations" : {
         "bg" : {
@@ -176776,16 +176786,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tidepool 整合"
-          }
-        }
-      }
-    },
-    "Tight (%@-%@)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Tight (%1$@-%2$@)"
           }
         }
       }
