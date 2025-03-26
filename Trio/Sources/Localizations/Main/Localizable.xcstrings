@@ -48599,7 +48599,7 @@
         }
       }
     },
-    "Choose type type of time in range to be used for Trio's statistics." : {
+    "Choose type of time in range to be used for Trio's statistics." : {
 
     },
     "Choose whether or not to display one or both X- and Y-Axis grid lines." : {
@@ -49008,7 +49008,7 @@
         }
       }
     },
-    "Choose which type of time in range type want Trio to adopt for all its statistical charts and displays:" : {
+    "Choose which type of time in range Trio should adopt for all its statistical charts and displays:" : {
 
     },
     "Clear" : {
