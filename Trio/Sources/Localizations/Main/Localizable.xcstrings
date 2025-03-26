@@ -2408,10 +2408,10 @@
         }
       }
     },
-    " U - " : {
+    " U) - Current IOB (" : {
 
     },
-    " U = " : {
+    " U) = " : {
 
     },
     " U/day" : {
@@ -2931,6 +2931,9 @@
           }
         }
       }
+    },
+    "-" : {
+
     },
     "--" : {
       "localizations" : {
@@ -36493,9 +36496,6 @@
         }
       }
     },
-    "Available IOB:" : {
-
-    },
     "Available Layouts:" : {
       "localizations" : {
         "bg" : {
@@ -54275,6 +54275,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "當前支援的 CGM 型號："
+          }
+        }
+      }
+    },
+    "Current IOB (%@ U) > Max IOB (%@ U)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Current IOB (%1$@ U) > Max IOB (%2$@ U)"
           }
         }
       }
@@ -104786,7 +104796,7 @@
         }
       }
     },
-    "Last loop was > 15 mins ago." : {
+    "Last loop was > 15 m ago." : {
 
     },
     "Last loop was more than %d min ago" : {
@@ -106444,6 +106454,9 @@
         }
       }
     },
+    "Limit" : {
+
+    },
     "Limit Per Entry" : {
       "comment" : "Max setting",
       "extractionState" : "manual",
@@ -106551,6 +106564,9 @@
           }
         }
       }
+    },
+    "Limited by Max IOB." : {
+
     },
     "Limits per Entry" : {
       "localizations" : {
@@ -114254,7 +114270,7 @@
         }
       }
     },
-    "Max IOB - IOB = " : {
+    "Max IOB (" : {
 
     },
     "Max IOB is the maximum amount of insulin on board from all sources – both basal (or SMB correction) and bolus insulin – that your loop is allowed to accumulate to treat higher-than-target BG. Unlike the other two OpenAPS safety settings (max_daily_safety_multiplier and current_basal_safety_multiplier), max_iob is set as a fixed number of units of insulin. As of now manual boluses are NOT limited by this setting. \n\n To test your basal rates during nighttime, you can modify the Max IOB setting to zero while in Closed Loop. This will enable low glucose suspend mode while testing your basal rates settings." : {
