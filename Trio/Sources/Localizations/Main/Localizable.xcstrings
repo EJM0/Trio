@@ -5698,6 +5698,16 @@
         }
       }
     },
+    "%@ (%@-%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$@-%3$@)"
+          }
+        }
+      }
+    },
     "%@ %@" : {
       "localizations" : {
         "bg" : {
@@ -18918,6 +18928,7 @@
       }
     },
     "Activate Dynamic CR (Carb Ratio)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -19018,6 +19029,7 @@
       }
     },
     "Activate Dynamic ISF" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -19118,6 +19130,7 @@
       }
     },
     "Activate Dynamic Sensitivity (Dynamic ISF)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -25060,6 +25073,7 @@
       }
     },
     "Adjust insulin sensitivity using a sigmoid-shaped curve." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -48671,6 +48685,9 @@
         }
       }
     },
+    "Choose type of time in range to be used for Trio's statistics." : {
+
+    },
     "Choose when this basal rate should start" : {
 
     },
@@ -49088,6 +49105,9 @@
           }
         }
       }
+    },
+    "Choose which type of time in range Trio should adopt for all its statistical charts and displays:" : {
+
     },
     "Clear" : {
       "comment" : "Button",
@@ -60236,6 +60256,9 @@
         }
       }
     },
+    "Default: Disabled" : {
+
+    },
     "Default: OFF" : {
       "localizations" : {
         "bg" : {
@@ -65363,6 +65386,12 @@
         }
       }
     },
+    "Dexcom G5" : {
+
+    },
+    "Dexcom G6 / ONE" : {
+
+    },
     "Dexcom G6 app" : {
       "comment" : "Dexcom G6 app",
       "extractionState" : "manual",
@@ -65470,6 +65499,9 @@
           }
         }
       }
+    },
+    "Dexcom G7 / ONE+" : {
+
     },
     "DIA" : {
       "extractionState" : "stale",
@@ -70221,6 +70253,7 @@
 
     },
     "Dynamic CR adjusts your carb ratio based on your Dynamic Ratio, adapting automatically to changes in insulin sensitivity." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -70319,6 +70352,12 @@
           }
         }
       }
+    },
+    "Dynamic Insulin Sensitivity" : {
+
+    },
+    "Dynamic ISF" : {
+
     },
     "Dynamic ISF produces a Dynamic Ratio, replacing the Autosens Ratio, determining how much your profile ISF will be adjusted every loop cycle, ensuring it stays within safe limits set by your Autosens Min/Max settings. It provides more precise insulin dosing by responding to changes in insulin needs throughout the day." : {
       "localizations" : {
@@ -70829,6 +70868,9 @@
         }
       }
     },
+    "Dynamic-dependent Features" : {
+
+    },
     "Dynamic:" : {
       "localizations" : {
         "bg" : {
@@ -71030,6 +71072,7 @@
       }
     },
     "Dynamically adjust your Carb Ratio (CR)." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -75530,6 +75573,9 @@
           }
         }
       }
+    },
+    "Enabling this feature allows Trio to calculate a new Insulin Sensitivity Factor with each loop cycle dynamically. Trio offers two dynamic formulas:" : {
+
     },
     "Enabling this feature allows Trio to deliver insulin required using Super Micro Boluses (SMB) at times when a manual Temporary Target under %@ %@ is set." : {
       "localizations" : {
@@ -87664,6 +87710,9 @@
           }
         }
       }
+    },
+    "FreeStyle Libre" : {
+
     },
     "From" : {
       "localizations" : {
@@ -109018,6 +109067,12 @@
         }
       }
     },
+    "Logarithmic" : {
+
+    },
+    "Logarithmic Dynamic ISF" : {
+
+    },
     "Logarithmic formula" : {
       "localizations" : {
         "bg" : {
@@ -116122,6 +116177,9 @@
           }
         }
       }
+    },
+    "MaxIOB: 0 U" : {
+
     },
     "Meal" : {
       "comment" : "Debug option view Meal",
@@ -154181,6 +154239,9 @@
         }
       }
     },
+    "Sigmoid" : {
+
+    },
     "Sigmoid Adjustment Factor" : {
       "localizations" : {
         "bg" : {
@@ -154380,6 +154441,9 @@
           }
         }
       }
+    },
+    "Sigmoid Dynamic ISF" : {
+
     },
     "Sigmoid function" : {
       "localizations" : {
@@ -176923,16 +176987,6 @@
         }
       }
     },
-    "Tight (%@-%@)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Tight (%1$@-%2$@)"
-          }
-        }
-      }
-    },
     "Time" : {
       "comment" : "Time basal profile",
       "localizations" : {
@@ -177134,8 +177188,13 @@
         }
       }
     },
+    "Time in Normoglycemia (TING)" : {
+
+    },
+    "Time in Normoglycemia (TING):" : {
+
+    },
     "Time in Range Chart Style" : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -177234,6 +177293,15 @@
           }
         }
       }
+    },
+    "Time in Range Type" : {
+
+    },
+    "Time in Tight Range (TITR)" : {
+
+    },
+    "Time in Tight Range (TITR):" : {
+
     },
     "Time interval between FPUs." : {
       "localizations" : {
@@ -182324,6 +182392,9 @@
         }
       }
     },
+    "Trio has only been actively used and looping for less than seven days. Cannot enable dynamic ISF." : {
+
+    },
     "Trio has successfully imported your default Nightscout profile and stored it as therapy settings. " : {
       "localizations" : {
         "bg" : {
@@ -184047,6 +184118,7 @@
       }
     },
     "Turning on the Sigmoid Formula setting alters how your Dynamic Ratio, and thus your New ISF and New Carb Ratio, are calculated using a sigmoid curve rather than the default logarithmic function." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -184145,6 +184217,9 @@
           }
         }
       }
+    },
+    "Turning on the Sigmoid Formula setting alters how your Dynamic Ratio, and thus your New ISF, are calculated using a sigmoid curve." : {
+
     },
     "Turning this on will show the grams of carbs needed to prevent a low as a notification badge on the Trio home screen located above the main icon.\n\nOnce enabled, set the Carbs Required Threshold to the lowest number of carbs you'd like to be recommended. A recommendation will not be given if carbs required is below this number.\n\nNote: The carbs suggested with this feature are to be used as a recommendation, not as a requirement. Depending on the current accuracy of your sensor and the accuracy of your settings, the suggested carbs can vary widely. Use your best judgement before injesting the suggested quanitity of carbs." : {
       "localizations" : {
@@ -188269,6 +188344,7 @@
       }
     },
     "Use Sigmoid Formula" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -192253,6 +192329,7 @@
       }
     },
     "When Dynamic Ratio decreases, indicating you need less insulin, the carb ratio value is increased to avoid over-delivery." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -192353,6 +192430,7 @@
       }
     },
     "When Dynamic Ratio increases, indicating you need more insulin, the carb ratio value is decreased to make your insulin dosing more effective." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
