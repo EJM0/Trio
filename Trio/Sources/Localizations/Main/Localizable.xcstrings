@@ -65269,6 +65269,12 @@
         }
       }
     },
+    "Dexcom G5" : {
+
+    },
+    "Dexcom G6 / ONE" : {
+
+    },
     "Dexcom G6 app" : {
       "comment" : "Dexcom G6 app",
       "extractionState" : "manual",
@@ -65376,6 +65382,9 @@
           }
         }
       }
+    },
+    "Dexcom G7 / ONE+" : {
+
     },
     "DIA" : {
       "extractionState" : "stale",
@@ -87564,6 +87573,9 @@
           }
         }
       }
+    },
+    "FreeStyle Libre" : {
+
     },
     "From" : {
       "localizations" : {
