@@ -77421,6 +77421,9 @@
         }
       }
     },
+    "Enacted at %@" : {
+
+    },
     "Enacting bolus..." : {
       "comment" : "Successful message sent to watch when enacting bolus",
       "localizations" : {
@@ -78746,6 +78749,7 @@
       }
     },
     "Error During Algorithm Run at %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -89239,6 +89243,12 @@
       }
     },
     "Glucose Count" : {
+
+    },
+    "Glucose data is stale" : {
+
+    },
+    "Glucose data is too flat" : {
 
     },
     "Glucose Data used for statistics" : {
@@ -102102,6 +102112,9 @@
         }
       }
     },
+    "Invalid Algorithm Response (%@)." : {
+
+    },
     "Invalid CGM reading (HIGH)." : {
       "localizations" : {
         "bg" : {
@@ -102201,6 +102214,9 @@
           }
         }
       }
+    },
+    "Invalid Glucose (%@)." : {
+
     },
     "Invalid Glucose sample detected, try again later" : {
       "comment" : "Invalid Glucose sample detected, try again later",
@@ -102417,6 +102433,9 @@
           }
         }
       }
+    },
+    "Invalid Pump State (%@)." : {
+
     },
     "Invalid sensor" : {
       "extractionState" : "manual",
@@ -109051,6 +109070,9 @@
         }
       }
     },
+    "Loop at %@ failed." : {
+
+    },
     "Loop Cycles" : {
       "comment" : "Debug option view",
       "extractionState" : "manual",
@@ -112067,6 +112089,9 @@
           }
         }
       }
+    },
+    "Manual Temporary Basal Rate (%@). Looping suspended." : {
+
     },
     "Manual:" : {
 
@@ -124641,6 +124666,12 @@
       }
     },
     "Not allowed" : {
+
+    },
+    "Not enough glucose data" : {
+
+    },
+    "Not looping." : {
 
     },
     "Not paired yet" : {
@@ -137503,6 +137534,9 @@
         }
       }
     },
+    "Pump Error (%@)." : {
+
+    },
     "Pump History" : {
       "comment" : "Debug option view Pump History",
       "extractionState" : "manual",
@@ -137711,6 +137745,9 @@
         }
       }
     },
+    "Pump is bolusing" : {
+
+    },
     "Pump Model" : {
       "localizations" : {
         "bg" : {
@@ -137810,6 +137847,9 @@
           }
         }
       }
+    },
+    "Pump not set" : {
+
     },
     "Pump profile" : {
       "comment" : "Debug option view Pump profile",
@@ -142171,6 +142211,9 @@
           }
         }
       }
+    },
+    "Reservoir is empty" : {
+
     },
     "Reset to Defaults" : {
       "localizations" : {
@@ -177046,7 +177089,6 @@
 
     },
     "Time in Range Chart Style" : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -182240,6 +182282,9 @@
           }
         }
       }
+    },
+    "Trio has not looped in %lld minutes." : {
+
     },
     "Trio has only been actively used and looping for less than seven days. Cannot enable dynamic ISF." : {
 
@@ -188184,6 +188229,7 @@
       }
     },
     "Use Sigmoid Formula" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
