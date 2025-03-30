@@ -177204,7 +177204,6 @@
 
     },
     "Time in Range Chart Style" : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -188352,6 +188351,7 @@
       }
     },
     "Use Sigmoid Formula" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
