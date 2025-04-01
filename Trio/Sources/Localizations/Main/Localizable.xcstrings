@@ -5381,6 +5381,19 @@
         }
       }
     },
+    "%.1f" : {
+
+    },
+    "%.1f %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$.1f %2$@"
+          }
+        }
+      }
+    },
     "%.2f U of %.2f U" : {
       "comment" : "Format for showing delivered and active bolus amounts, 'x U of y U' on watch",
       "localizations" : {
@@ -39411,9 +39424,6 @@
         }
       }
     },
-    "Blood Glucose Units" : {
-
-    },
     "Bluetooth Power Off" : {
       "comment" : "Bluetooth Power Off",
       "extractionState" : "manual",
@@ -48695,9 +48705,6 @@
 
     },
     "Choose when this sensitivity factor should start" : {
-
-    },
-    "Choose when this target should start" : {
 
     },
     "Choose whether or not to display one or both X- and Y-Axis grid lines." : {
@@ -78630,6 +78637,9 @@
         }
       }
     },
+    "Entries" : {
+
+    },
     "Error" : {
       "comment" : "Error title",
       "localizations" : {
@@ -93159,6 +93169,9 @@
         }
       }
     },
+    "Hi there!" : {
+
+    },
     "Hidden" : {
       "localizations" : {
         "bg" : {
@@ -94308,9 +94321,6 @@
           }
         }
       }
-    },
-    "High Target" : {
-
     },
     "High Temp Target Raises Sensitivity" : {
       "comment" : "High Temp Target Raises Sensitivity",
@@ -110761,9 +110771,6 @@
           }
         }
       }
-    },
-    "Low Target" : {
-
     },
     "Low Temp Target Lowers Sensitivity" : {
       "comment" : "Low Temp Target Lowers Sensitivity",
@@ -147033,9 +147040,6 @@
         }
       }
     },
-    "Select Blood Glucose Units" : {
-
-    },
     "Select CGM Model" : {
       "localizations" : {
         "bg" : {
@@ -164031,9 +164035,6 @@
     "Target glucose is out of range (%@)." : {
 
     },
-    "Target Glucose Range" : {
-
-    },
     "Target presets" : {
       "comment" : "Debug option view Target presets",
       "extractionState" : "manual",
@@ -170445,9 +170446,6 @@
         }
       }
     },
-    "These values reflect your personal target range and can be adjusted at any time in the Settings." : {
-
-    },
     "This adjusted ISF is temporary, will change with the next loop cycle, and should not be directly used as your profile ISF value." : {
       "localizations" : {
         "bg" : {
@@ -174861,9 +174859,6 @@
           }
         }
       }
-    },
-    "This range defines your ideal blood glucose values. Trio uses this to calculate insulin doses." : {
-
     },
     "This range is for display and statistical purposes only and does not influence insulin dosing." : {
       "localizations" : {
@@ -191822,7 +191817,7 @@
         }
       }
     },
-    "Welcome to Trio!" : {
+    "Welcome to Trio - an automated insulin delivery system for iOS based on the OpenAPS algorithm with adaptations." : {
 
     },
     "What is the numeric value of the carb to add" : {
@@ -196338,9 +196333,6 @@
           }
         }
       }
-    },
-    "Your Target Range" : {
-
     },
     "ZT" : {
       "localizations" : {
