@@ -1165,6 +1165,7 @@
 
     },
     " + " : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -1265,6 +1266,7 @@
       }
     },
     " ≈ " : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -1365,6 +1367,7 @@
       }
     },
     " ≈ Max Bolus" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -1573,7 +1576,7 @@
       }
     },
     " g" : {
-      "comment" : "gram of carb equilvalents\ngram of carbs\ngrams",
+      "comment" : "gram of carb equilvalents\ngram of carbs",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -2405,6 +2408,12 @@
         }
       }
     },
+    " U) - Current IOB (" : {
+
+    },
+    " U) = " : {
+
+    },
     " U/day" : {
       "comment" : "Total AT / Scheduled basal insulin",
       "localizations" : {
@@ -2716,6 +2725,7 @@
       }
     },
     " x " : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -2922,6 +2932,9 @@
         }
       }
     },
+    "-" : {
+
+    },
     "--" : {
       "localizations" : {
         "bg" : {
@@ -3121,6 +3134,9 @@
           }
         }
       }
+    },
+    "-1" : {
+
     },
     ", %lld%%" : {
       "localizations" : {
@@ -3855,6 +3871,7 @@
       }
     },
     "(Current - Target) / ISF" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -4063,6 +4080,7 @@
       }
     },
     "(Factor x Full Bolus) + Super Bolus" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -4663,7 +4681,11 @@
         }
       }
     },
+    "(𝒳 / 60) × current basal rate" : {
+
+    },
     "(𝒳 ÷ 60) × current basal rate" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -5079,8 +5101,12 @@
         }
       }
     },
+    "/" : {
+
+    },
     "/U" : {
       "comment" : "/Insulin unit",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -5691,6 +5717,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ - 0.5 × (%2$@ - %3$@) = %4$@"
+          }
+        }
+      }
+    },
+    "%@ (%@-%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$@-%3$@)"
           }
         }
       }
@@ -6619,6 +6655,9 @@
           }
         }
       }
+    },
+    "%@/U" : {
+
     },
     "%@%% Insulin" : {
       "localizations" : {
@@ -13331,6 +13370,9 @@
         }
       }
     },
+    "+" : {
+
+    },
     "+6" : {
       "localizations" : {
         "bg" : {
@@ -13530,6 +13572,9 @@
           }
         }
       }
+    },
+    "×" : {
+
     },
     "<  3.3 " : {
       "extractionState" : "stale",
@@ -13938,6 +13983,9 @@
         }
       }
     },
+    "=" : {
+
+    },
     ">  11  " : {
       "extractionState" : "stale",
       "localizations" : {
@@ -14344,6 +14392,9 @@
           }
         }
       }
+    },
+    "−" : {
+
     },
     "⚠️ Safety Notifications are OFF" : {
       "localizations" : {
@@ -16295,6 +16346,7 @@
       }
     },
     "15 min Delta / ISF" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -18848,6 +18900,7 @@
       }
     },
     "Activate Dynamic CR (Carb Ratio)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -18948,6 +19001,7 @@
       }
     },
     "Activate Dynamic ISF" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -19048,6 +19102,7 @@
       }
     },
     "Activate Dynamic Sensitivity (Dynamic ISF)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -23941,6 +23996,7 @@
       }
     },
     "Added to Result" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -24987,6 +25043,7 @@
       }
     },
     "Adjust insulin sensitivity using a sigmoid-shaped curve." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -30129,6 +30186,16 @@
         }
       }
     },
+    "Also triggered when the lowest forecasted glucose (minPredBG) is < %@ %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Also triggered when the lowest forecasted glucose (minPredBG) is < %1$@ %2$@."
+          }
+        }
+      }
+    },
     "Also vibrate" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -33473,6 +33540,9 @@
         }
       }
     },
+    "Applied Factors" : {
+
+    },
     "Apply a Temporary Target" : {
       "localizations" : {
         "bg" : {
@@ -35921,7 +35991,11 @@
         }
       }
     },
+    "Autosens Ratio =\n(Weighted Average of TDD) / (10-day Average of TDD)" : {
+
+    },
     "Autosens Ratio =\n(Weighted Average of TDD) ÷ (10-day Average of TDD)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -38198,6 +38272,9 @@
         }
       }
     },
+    "Basal Rate" : {
+
+    },
     "Basal Rate Adjustment" : {
       "localizations" : {
         "bg" : {
@@ -39850,6 +39927,9 @@
           }
         }
       }
+    },
+    "Bolus Calculator Details" : {
+
     },
     "Bolus cancelled successfully." : {
       "comment" : "Success message for canceling a bolus",
@@ -42028,6 +42108,7 @@
     },
     "Calculations" : {
       "comment" : "For the  Bolus View pop-up",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -43991,6 +44072,7 @@
       }
     },
     "Carb Ratio:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -44901,6 +44983,9 @@
           }
         }
       }
+    },
+    "Carbs On Board (COB)" : {
+
     },
     "Carbs Req Threshold" : {
       "comment" : "Headline \"Carbs Req Threshold\"",
@@ -48589,6 +48674,9 @@
         }
       }
     },
+    "Choose type of time in range to be used for Trio's statistics." : {
+
+    },
     "Choose whether or not to display one or both X- and Y-Axis grid lines." : {
       "localizations" : {
         "bg" : {
@@ -48994,6 +49082,9 @@
           }
         }
       }
+    },
+    "Choose which type of time in range Trio should adopt for all its statistical charts and displays:" : {
+
     },
     "Clear" : {
       "comment" : "Button",
@@ -49812,6 +49903,7 @@
       }
     },
     "COB / Carb Ratio" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -49912,6 +50004,7 @@
       }
     },
     "COB:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -53914,6 +54007,9 @@
         }
       }
     },
+    "Current" : {
+
+    },
     "Current Algorithm Reasoning" : {
       "localizations" : {
         "bg" : {
@@ -54211,6 +54307,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "當前支援的 CGM 型號："
+          }
+        }
+      }
+    },
+    "Current IOB (%@ U) > Max IOB (%@ U)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Current IOB (%1$@ U) > Max IOB (%2$@ U)"
           }
         }
       }
@@ -60142,6 +60248,9 @@
         }
       }
     },
+    "Default: Disabled" : {
+
+    },
     "Default: OFF" : {
       "localizations" : {
         "bg" : {
@@ -64046,6 +64155,7 @@
       }
     },
     "Delta:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -64446,6 +64556,7 @@
       }
     },
     "Detailed Calculation Steps" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -65269,6 +65380,12 @@
         }
       }
     },
+    "Dexcom G5" : {
+
+    },
+    "Dexcom G6 / ONE" : {
+
+    },
     "Dexcom G6 app" : {
       "comment" : "Dexcom G6 app",
       "extractionState" : "manual",
@@ -65376,6 +65493,9 @@
           }
         }
       }
+    },
+    "Dexcom G7 / ONE+" : {
+
     },
     "DIA" : {
       "extractionState" : "stale",
@@ -70127,6 +70247,7 @@
 
     },
     "Dynamic CR adjusts your carb ratio based on your Dynamic Ratio, adapting automatically to changes in insulin sensitivity." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -70225,6 +70346,12 @@
           }
         }
       }
+    },
+    "Dynamic Insulin Sensitivity" : {
+
+    },
+    "Dynamic ISF" : {
+
     },
     "Dynamic ISF produces a Dynamic Ratio, replacing the Autosens Ratio, determining how much your profile ISF will be adjusted every loop cycle, ensuring it stays within safe limits set by your Autosens Min/Max settings. It provides more precise insulin dosing by responding to changes in insulin needs throughout the day." : {
       "localizations" : {
@@ -70735,6 +70862,9 @@
         }
       }
     },
+    "Dynamic-dependent Features" : {
+
+    },
     "Dynamic:" : {
       "localizations" : {
         "bg" : {
@@ -70936,6 +71066,7 @@
       }
     },
     "Dynamically adjust your Carb Ratio (CR)." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -75437,6 +75568,9 @@
         }
       }
     },
+    "Enabling this feature allows Trio to calculate a new Insulin Sensitivity Factor with each loop cycle dynamically. Trio offers two dynamic formulas:" : {
+
+    },
     "Enabling this feature allows Trio to deliver insulin required using Super Micro Boluses (SMB) at times when a manual Temporary Target under %@ %@ is set." : {
       "localizations" : {
         "bg" : {
@@ -77375,6 +77509,9 @@
         }
       }
     },
+    "Enacted at %@" : {
+
+    },
     "Enacting bolus..." : {
       "comment" : "Successful message sent to watch when enacting bolus",
       "localizations" : {
@@ -78700,6 +78837,7 @@
       }
     },
     "Error During Algorithm Run at %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -81016,6 +81154,7 @@
       }
     },
     "Factor x Fatty Meal Factor x Full Bolus" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -81116,6 +81255,7 @@
       }
     },
     "Factor x Full Bolus" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -83806,6 +83946,9 @@
           }
         }
       }
+    },
+    "Fatty %" : {
+
     },
     "Fatty Meal" : {
       "comment" : "For the  Bolus View pop-up",
@@ -87565,6 +87708,9 @@
         }
       }
     },
+    "FreeStyle Libre" : {
+
+    },
     "From" : {
       "localizations" : {
         "bg" : {
@@ -89086,6 +89232,9 @@
         }
       }
     },
+    "Glucose Calculation" : {
+
+    },
     "Glucose Chart Type" : {
 
     },
@@ -89190,6 +89339,12 @@
       }
     },
     "Glucose Count" : {
+
+    },
+    "Glucose data is stale" : {
+
+    },
+    "Glucose data is too flat" : {
 
     },
     "Glucose Data used for statistics" : {
@@ -89501,6 +89656,12 @@
       }
     },
     "Glucose Distribution" : {
+
+    },
+    "Glucose forecast is very low." : {
+
+    },
+    "Glucose is very low." : {
 
     },
     "Glucose Level" : {
@@ -90629,6 +90790,9 @@
         }
       }
     },
+    "Glucose Trend (15 min)" : {
+
+    },
     "Glucose units" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -90944,6 +91108,7 @@
       }
     },
     "Glucose:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -97323,7 +97488,11 @@
         }
       }
     },
+    "If you have a \"Recommended Bolus Percentage\" of 80%, and a \"Fatty Meal Bolus Percentage\" of 70%, your recommended bolus will be multiplied by: (80 × 70) / 100 = 56%." : {
+
+    },
     "If you have a \"Recommended Bolus Percentage\" of 80%, and a \"Fatty Meal Bolus Percentage\" of 70%, your recommended bolus will be multiplied by: (80 × 70) ÷ 100 = 56%." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -97523,7 +97692,11 @@
         }
       }
     },
+    "If your current basal rate is 0.8 U/hr and \"Super Bolus Percentage\" is set to 200%: 0.8 × (200 / 100) = 1.6 units will be added to your bolus recommendation." : {
+
+    },
     "If your current basal rate is 0.8 U/hr and \"Super Bolus Percentage\" is set to 200%: 0.8 × (200 ÷ 100) = 1.6 units will be added to your bolus recommendation." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -97728,6 +97901,9 @@
           }
         }
       }
+    },
+    "Ignore Warning and Enact Bolus" : {
+
     },
     "Immediately applying ${bolusQuantity} U" : {
 
@@ -100815,6 +100991,9 @@
         }
       }
     },
+    "Insulin On Board (IOB)" : {
+
+    },
     "Insulin Peak Time" : {
       "comment" : "Insulin Peak Time",
       "localizations" : {
@@ -102053,6 +102232,9 @@
         }
       }
     },
+    "Invalid Algorithm Response (%@)." : {
+
+    },
     "Invalid CGM reading (HIGH)." : {
       "localizations" : {
         "bg" : {
@@ -102152,6 +102334,9 @@
           }
         }
       }
+    },
+    "Invalid Glucose (%@)." : {
+
     },
     "Invalid Glucose sample detected, try again later" : {
       "comment" : "Invalid Glucose sample detected, try again later",
@@ -102368,6 +102553,9 @@
           }
         }
       }
+    },
+    "Invalid Pump State (%@)." : {
+
     },
     "Invalid sensor" : {
       "extractionState" : "manual",
@@ -102892,6 +103080,7 @@
       }
     },
     "IOB:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -103293,6 +103482,7 @@
       }
     },
     "ISF:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -104701,6 +104891,9 @@
           }
         }
       }
+    },
+    "Last loop was > 15 m ago." : {
+
     },
     "Last loop was more than %d min ago" : {
       "comment" : "Last loop was more than %d min ago",
@@ -106359,6 +106552,9 @@
         }
       }
     },
+    "Limit" : {
+
+    },
     "Limit Per Entry" : {
       "comment" : "Max setting",
       "extractionState" : "manual",
@@ -106466,6 +106662,9 @@
           }
         }
       }
+    },
+    "Limited by Max IOB." : {
+
     },
     "Limits per Entry" : {
       "localizations" : {
@@ -108896,6 +109095,12 @@
         }
       }
     },
+    "Logarithmic" : {
+
+    },
+    "Logarithmic Dynamic ISF" : {
+
+    },
     "Logarithmic formula" : {
       "localizations" : {
         "bg" : {
@@ -108995,6 +109200,9 @@
           }
         }
       }
+    },
+    "Loop at %@ failed." : {
+
     },
     "Loop Cycles" : {
       "comment" : "Debug option view",
@@ -112013,6 +112221,9 @@
         }
       }
     },
+    "Manual Temporary Basal Rate (%@). Looping suspended." : {
+
+    },
     "Manual:" : {
 
     },
@@ -112528,6 +112739,9 @@
           }
         }
       }
+    },
+    "Max Bolus = %@ U" : {
+
     },
     "Max Bolus exceeded!" : {
       "comment" : "\"Max Bolus Exceeded label\"",
@@ -114166,6 +114380,9 @@
           }
         }
       }
+    },
+    "Max IOB (" : {
+
     },
     "Max IOB is the maximum amount of insulin on board from all sources – both basal (or SMB correction) and bolus insulin – that your loop is allowed to accumulate to treat higher-than-target BG. Unlike the other two OpenAPS safety settings (max_daily_safety_multiplier and current_basal_safety_multiplier), max_iob is set as a fixed number of units of insulin. As of now manual boluses are NOT limited by this setting. \n\n To test your basal rates during nighttime, you can modify the Max IOB setting to zero while in Closed Loop. This will enable low glucose suspend mode while testing your basal rates settings." : {
       "comment" : "\"Max IOB\"",
@@ -115997,6 +116214,9 @@
           }
         }
       }
+    },
+    "MaxIOB: 0 U" : {
+
     },
     "Meal" : {
       "comment" : "Debug option view Meal",
@@ -124585,6 +124805,12 @@
     "Not allowed" : {
 
     },
+    "Not enough glucose data" : {
+
+    },
+    "Not looping." : {
+
+    },
     "Not paired yet" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -126400,6 +126626,9 @@
           }
         }
       }
+    },
+    "Note: The forecast used for this warning does not include carbs or insulin that have not yet been logged." : {
+
     },
     "Note: These values are not used to calculate insulin dosing." : {
       "localizations" : {
@@ -137445,6 +137674,9 @@
         }
       }
     },
+    "Pump Error (%@)." : {
+
+    },
     "Pump History" : {
       "comment" : "Debug option view Pump History",
       "extractionState" : "manual",
@@ -137653,6 +137885,9 @@
         }
       }
     },
+    "Pump is bolusing" : {
+
+    },
     "Pump Model" : {
       "localizations" : {
         "bg" : {
@@ -137752,6 +137987,9 @@
           }
         }
       }
+    },
+    "Pump not set" : {
+
     },
     "Pump profile" : {
       "comment" : "Debug option view Pump profile",
@@ -140191,6 +140429,12 @@
     "Readings per Day" : {
 
     },
+    "Rec. %" : {
+
+    },
+    "Rec. Bolus %" : {
+
+    },
     "Received unexpected error in %@ from %@: %@" : {
       "localizations" : {
         "bg" : {
@@ -140397,6 +140641,9 @@
           }
         }
       }
+    },
+    "Recommended Bolus" : {
+
     },
     "Recommended Bolus Percentage" : {
       "comment" : "Recommendation for a Manual Bolus",
@@ -142114,6 +142361,9 @@
         }
       }
     },
+    "Reservoir is empty" : {
+
+    },
     "Reset to Defaults" : {
       "localizations" : {
         "bg" : {
@@ -142323,6 +142573,7 @@
     },
     "Result" : {
       "comment" : "For the  Bolus View pop-up",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -143758,6 +144009,9 @@
           }
         }
       }
+    },
+    "Rounded for pump" : {
+
     },
     "Run now" : {
       "extractionState" : "manual",
@@ -154041,6 +154295,9 @@
         }
       }
     },
+    "Sigmoid" : {
+
+    },
     "Sigmoid Adjustment Factor" : {
       "localizations" : {
         "bg" : {
@@ -154240,6 +154497,9 @@
           }
         }
       }
+    },
+    "Sigmoid Dynamic ISF" : {
+
     },
     "Sigmoid function" : {
       "localizations" : {
@@ -160968,6 +161228,7 @@
       }
     },
     "Subtract IOB" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -161477,6 +161738,9 @@
           }
         }
       }
+    },
+    "Super Bolus %" : {
+
     },
     "Super Bolus Factor" : {
       "extractionState" : "stale",
@@ -164044,6 +164308,7 @@
       }
     },
     "Target:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -176774,16 +177039,6 @@
         }
       }
     },
-    "Tight (%@-%@)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Tight (%1$@-%2$@)"
-          }
-        }
-      }
-    },
     "Time" : {
       "comment" : "Time basal profile",
       "localizations" : {
@@ -176985,8 +177240,13 @@
         }
       }
     },
+    "Time in Normoglycemia (TING)" : {
+
+    },
+    "Time in Normoglycemia (TING):" : {
+
+    },
     "Time in Range Chart Style" : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -177085,6 +177345,15 @@
           }
         }
       }
+    },
+    "Time in Range Type" : {
+
+    },
+    "Time in Tight Range (TITR)" : {
+
+    },
+    "Time in Tight Range (TITR):" : {
+
     },
     "Time interval between FPUs." : {
       "localizations" : {
@@ -181372,6 +181641,16 @@
         }
       }
     },
+    "Triggers a confirmation dialog if you attempt to bolus when glucose is < %@ %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Triggers a confirmation dialog if you attempt to bolus when glucose is < %1$@ %2$@."
+          }
+        }
+      }
+    },
     "Trio" : {
       "localizations" : {
         "bg" : {
@@ -182171,6 +182450,12 @@
           }
         }
       }
+    },
+    "Trio has not looped in %lld minutes." : {
+
+    },
+    "Trio has only been actively used and looping for less than seven days. Cannot enable dynamic ISF." : {
+
     },
     "Trio has successfully imported your default Nightscout profile and stored it as therapy settings. " : {
       "localizations" : {
@@ -183892,6 +184177,7 @@
       }
     },
     "Turning on the Sigmoid Formula setting alters how your Dynamic Ratio, and thus your New ISF and New Carb Ratio, are calculated using a sigmoid curve rather than the default logarithmic function." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -183990,6 +184276,9 @@
           }
         }
       }
+    },
+    "Turning on the Sigmoid Formula setting alters how your Dynamic Ratio, and thus your New ISF, are calculated using a sigmoid curve." : {
+
     },
     "Turning this on will show the grams of carbs needed to prevent a low as a notification badge on the Trio home screen located above the main icon.\n\nOnce enabled, set the Carbs Required Threshold to the lowest number of carbs you'd like to be recommended. A recommendation will not be given if carbs required is below this number.\n\nNote: The carbs suggested with this feature are to be used as a recommendation, not as a requirement. Depending on the current accuracy of your sensor and the accuracy of your settings, the suggested carbs can vary widely. Use your best judgement before injesting the suggested quanitity of carbs." : {
       "localizations" : {
@@ -188108,6 +188397,7 @@
       }
     },
     "Use Sigmoid Formula" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -189539,6 +189829,12 @@
     "Very Low (<%@)" : {
 
     },
+    "Very Low Glucose Bolus Warning" : {
+
+    },
+    "Very Low Glucose Warning" : {
+
+    },
     "Via Watch" : {
       "comment" : "Note added to carb entry when entered via watch",
       "localizations" : {
@@ -189853,6 +190149,9 @@
           }
         }
       }
+    },
+    "Warning when bolusing with a very low or forecasted very low glucose." : {
+
     },
     "Warning: Before adjusting these settings, make sure you are fully aware of the impact those changes will have." : {
       "localizations" : {
@@ -192086,6 +192385,7 @@
       }
     },
     "When Dynamic Ratio decreases, indicating you need less insulin, the carb ratio value is increased to avoid over-delivery." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -192186,6 +192486,7 @@
       }
     },
     "When Dynamic Ratio increases, indicating you need more insulin, the carb ratio value is decreased to make your insulin dosing more effective." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
