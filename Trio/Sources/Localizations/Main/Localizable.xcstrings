@@ -6038,6 +6038,7 @@
       }
     },
     "%@ g/U" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -6437,9 +6438,6 @@
           }
         }
       }
-    },
-    "%@ U/h" : {
-
     },
     "%@ U/hr" : {
       "comment" : "Number of units per hour",
@@ -11796,9 +11794,6 @@
         }
       }
     },
-    "• Lower rates are typically needed during sleep or periods of activity" : {
-
-    },
     "• Maximum Duration" : {
       "localizations" : {
         "bg" : {
@@ -12098,9 +12093,6 @@
           }
         }
       }
-    },
-    "• Morning hours may require more insulin due to 'dawn phenomenon'" : {
-
     },
     "• Nightscout" : {
       "localizations" : {
@@ -12702,9 +12694,6 @@
         }
       }
     },
-    "• Rates should be adjusted based on your body's varying insulin needs" : {
-
-    },
     "• Secondary Font Size: Adjust text size for values in split layouts." : {
       "localizations" : {
         "bg" : {
@@ -13204,9 +13193,6 @@
           }
         }
       }
-    },
-    "• The basal profile provides background insulin throughout the day" : {
-
     },
     "• xDrip4iOS" : {
       "localizations" : {
@@ -44093,9 +44079,6 @@
         }
       }
     },
-    "Carb Ratio Profile" : {
-
-    },
     "Carb Ratio:" : {
       "localizations" : {
         "bg" : {
@@ -48696,12 +48679,6 @@
       }
     },
     "Choose type of time in range to be used for Trio's statistics." : {
-
-    },
-    "Choose when this basal rate should start" : {
-
-    },
-    "Choose when this carb ratio should start" : {
 
     },
     "Choose when this sensitivity factor should start" : {
@@ -185333,9 +185310,6 @@
         }
       }
     },
-    "Unable to Save Basal Profile" : {
-
-    },
     "Unable to Save ISF Profile" : {
 
     },
@@ -195900,12 +195874,6 @@
 
     },
     "You've successfully completed the initial setup of Trio. Your settings have been saved and you're ready to start using the app." : {
-
-    },
-    "Your basal insulin profile determines how much background insulin you receive throughout the day." : {
-
-    },
-    "Your carb ratio tells how many grams of carbohydrates one unit of insulin will cover." : {
 
     },
     "Your entered amount was limited by your max Bolus setting of %d%@" : {
