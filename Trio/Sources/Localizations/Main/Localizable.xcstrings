@@ -5953,16 +5953,6 @@
         }
       }
     },
-    "%@ ÷ %@ = %@ units of insulin" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ ÷ %2$@ = %3$@ units of insulin"
-          }
-        }
-      }
-    },
     "%@ g" : {
       "localizations" : {
         "bg" : {
@@ -7511,11 +7501,15 @@
     "• A ratio of 10 g/U means 1 unit of insulin covers 10g of carbs" : {
 
     },
-    "• An ISF of 2.8 mmol/L means 1 unit of insulin lowers your BG by 2.8 mmol/L" : {
-
-    },
-    "• An ISF of 50 mg/dL means 1 unit of insulin lowers your BG by 50 mg/dL" : {
-
+    "• An ISF of %@ means 1 U lowers your glucose by %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "• An ISF of %1$@ means 1 U lowers your glucose by %2$@"
+          }
+        }
+      }
     },
     "• Basal Rate" : {
       "localizations" : {
@@ -11519,9 +11513,6 @@
           }
         }
       }
-    },
-    "• ISF may vary throughout the day" : {
-
     },
     "• Last Loop Time: Time of the last algorithm run." : {
       "localizations" : {
@@ -16911,16 +16902,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "43.21 U"
-          }
-        }
-      }
-    },
-    "45g ÷ %@ = %@ units of insulin" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "45g ÷ %1$@ = %2$@ units of insulin"
           }
         }
       }
