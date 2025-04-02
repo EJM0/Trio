@@ -6656,6 +6656,9 @@
         }
       }
     },
+    "%@/U" : {
+
+    },
     "%@%% Insulin" : {
       "localizations" : {
         "bg" : {
@@ -21874,9 +21877,6 @@
           }
         }
       }
-    },
-    "Add ISF" : {
-
     },
     "Add Meal" : {
       "comment" : "Bolus View Meal Add Meal Button",
@@ -48679,9 +48679,6 @@
       }
     },
     "Choose type of time in range to be used for Trio's statistics." : {
-
-    },
-    "Choose when this sensitivity factor should start" : {
 
     },
     "Choose whether or not to display one or both X- and Y-Axis grid lines." : {
@@ -103444,9 +103441,6 @@
         }
       }
     },
-    "ISF Profile" : {
-
-    },
     "ISF:" : {
       "localizations" : {
         "bg" : {
@@ -147420,9 +147414,6 @@
         }
       }
     },
-    "Select Start Time" : {
-
-    },
     "Select Temporary Target" : {
       "localizations" : {
         "bg" : {
@@ -148039,9 +148030,6 @@
           }
         }
       }
-    },
-    "Sensitivity Factors" : {
-
     },
     "Sensitivity Raises Target" : {
       "comment" : "Sensitivity Raises Target",
@@ -185310,9 +185298,6 @@
         }
       }
     },
-    "Unable to Save ISF Profile" : {
-
-    },
     "Unable to set a temporary basal rate: %1$@" : {
       "comment" : "Alert format string for a failure to set temporary basal. (1: error description)",
       "extractionState" : "manual",
@@ -195983,9 +195968,6 @@
           }
         }
       }
-    },
-    "Your insulin sensitivity factor (ISF) indicates how much one unit of insulin will lower your blood glucose." : {
-
     },
     "Your phone or app is not enabled for NFC communications, which is needed to pair to libre2 sensors" : {
       "extractionState" : "manual",
