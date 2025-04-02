@@ -17113,9 +17113,6 @@
     "75th Percentile" : {
 
     },
-    "80" : {
-
-    },
     "90%:" : {
 
     },
@@ -17321,9 +17318,6 @@
           }
         }
       }
-    },
-    "120" : {
-
     },
     "123" : {
       "localizations" : {
@@ -125911,6 +125905,9 @@
         }
       }
     },
+    "Note: Choosing your pump model determines which increments for setting up your basal rates (0.1 or 0.05) are available. You will pair your actual pump after finishing the onboarding process through Trio's main screen, the Home View." : {
+
+    },
     "Note: If enabled, the smoothed values you see in Trio may differ from what is shown in your CGM app." : {
       "localizations" : {
         "bg" : {
@@ -134758,6 +134755,9 @@
           }
         }
       }
+    },
+    "Please choose from the options below." : {
+
     },
     "Please make sure that your Libre 2 sensor is already activated and finished warming up. If you have other apps connecting to the sensor via bluetooth, these need to be shut down or uninstalled. \n\n You can only have one app communicating with the sensor via bluetooth. Then press the \"pariring and connection\" button below to start the process. Please note that the bluetooth connection might take up to a couple of minutes before it starts working." : {
       "extractionState" : "manual",
