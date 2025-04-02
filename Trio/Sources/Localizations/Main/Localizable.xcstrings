@@ -125905,7 +125905,7 @@
         }
       }
     },
-    "Note: Choosing your pump model determines which increments for setting up your basal rates (0.1 or 0.05) are available. You will pair your actual pump after finishing the onboarding process through Trio's main screen, the Home View." : {
+    "Note: Choosing your pump model determines which increments for setting up your basal rates are available. You will pair your actual pump after finishing the onboarding process." : {
 
     },
     "Note: If enabled, the smoothed values you see in Trio may differ from what is shown in your CGM app." : {
