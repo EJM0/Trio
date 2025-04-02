@@ -5420,6 +5420,9 @@
         }
       }
     },
+    "%.2f" : {
+
+    },
     "%.2f U of %.2f U" : {
       "comment" : "Format for showing delivered and active bolus amounts, 'x U of y U' on watch",
       "localizations" : {
@@ -5526,9 +5529,6 @@
           }
         }
       }
-    },
-    "%.2f U/day" : {
-
     },
     "%@" : {
       "comment" : "Info message\nunits",
@@ -180287,9 +180287,6 @@
           }
         }
       }
-    },
-    "Total Daily Basal" : {
-
     },
     "Total Daily Dose" : {
 
