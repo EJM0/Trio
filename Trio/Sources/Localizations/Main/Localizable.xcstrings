@@ -173902,6 +173902,7 @@
       }
     },
     "This is the maximum bolus allowed to be delivered at one time. This limits manual and automatic bolus." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -174000,6 +174001,9 @@
           }
         }
       }
+    },
+    "This is the maximum bolus allowed to be delivered at one time. This only limits manual boluses and does not limit SMBs." : {
+
     },
     "This is the minimum number of minutes since the last SMB or manual bolus before Trio will permit an automated SMB." : {
       "localizations" : {
