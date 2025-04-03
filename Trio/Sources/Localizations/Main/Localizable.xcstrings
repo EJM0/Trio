@@ -39137,9 +39137,6 @@
         }
       }
     },
-    "Before you proceed, please decide if you want to import existing therapy settings from Nightscout (your \"default profile\"), or if you would like to start from scratch." : {
-
-    },
     "Beta (TestFlight) Expires" : {
       "localizations" : {
         "bg" : {
@@ -51502,6 +51499,9 @@
         }
       }
     },
+    "Configure Yourself" : {
+
+    },
     "Confirm" : {
       "localizations" : {
         "bg" : {
@@ -52312,6 +52312,9 @@
           }
         }
       }
+    },
+    "Connected" : {
+
     },
     "Connected Services" : {
       "localizations" : {
@@ -134765,6 +134768,9 @@
     "Please choose from the options below." : {
 
     },
+    "Please choose if you want to import existing therapy settings from Nightscout or start from scratch." : {
+
+    },
     "Please enter your credentials:" : {
 
     },
@@ -163467,9 +163473,6 @@
         }
       }
     },
-    "Tap \"Import Settings\" to begin, or \"Next\" to skip." : {
-
-    },
     "Tap and hold a bar to reveal more details." : {
 
     },
@@ -183984,7 +183987,7 @@
         }
       }
     },
-    "Trio will import the following therapy settings from Nightscout:" : {
+    "Trio will import the following therapy settings from your Nightscout instance:" : {
 
     },
     "Trio will use the larger of the default setting calculation below and the value entered here." : {
