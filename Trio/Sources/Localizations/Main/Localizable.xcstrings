@@ -5407,19 +5407,6 @@
         }
       }
     },
-    "%.1f" : {
-
-    },
-    "%.1f %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$.1f %2$@"
-          }
-        }
-      }
-    },
     "%.2f" : {
 
     },
@@ -117663,6 +117650,9 @@
         }
       }
     },
+    "mg/dL/U" : {
+
+    },
     "Middleware" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -119822,6 +119812,9 @@
           }
         }
       }
+    },
+    "mmol/L/U" : {
+
     },
     "mmol/mol" : {
       "localizations" : {
