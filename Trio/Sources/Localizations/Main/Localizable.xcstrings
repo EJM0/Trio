@@ -39137,6 +39137,9 @@
         }
       }
     },
+    "Before you proceed, please decide if you want to import existing therapy settings from Nightscout (your \"default profile\"), or if you would like to start from scratch." : {
+
+    },
     "Beta (TestFlight) Expires" : {
       "localizations" : {
         "bg" : {
@@ -121865,6 +121868,9 @@
         }
       }
     },
+    "Nightscout use is entirely optional. You can also setup Nightscout at a later time." : {
+
+    },
     "No" : {
       "comment" : "Button",
       "localizations" : {
@@ -134757,6 +134763,9 @@
       }
     },
     "Please choose from the options below." : {
+
+    },
+    "Please enter your credentials:" : {
 
     },
     "Please make sure that your Libre 2 sensor is already activated and finished warming up. If you have other apps connecting to the sensor via bluetooth, these need to be shut down or uninstalled. \n\n You can only have one app communicating with the sensor via bluetooth. Then press the \"pariring and connection\" button below to start the process. Please note that the bluetooth connection might take up to a couple of minutes before it starts working." : {
@@ -152056,6 +152065,9 @@
         }
       }
     },
+    "Setup Nightscout for Trio" : {
+
+    },
     "Shape" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -155297,6 +155309,9 @@
           }
         }
       }
+    },
+    "Skip Nightscout Setup" : {
+
     },
     "Slope" : {
       "comment" : "v",
@@ -163451,6 +163466,9 @@
           }
         }
       }
+    },
+    "Tap \"Import Settings\" to begin, or \"Next\" to skip." : {
+
     },
     "Tap and hold a bar to reveal more details." : {
 
@@ -183965,6 +183983,9 @@
           }
         }
       }
+    },
+    "Trio will import the following therapy settings from Nightscout:" : {
+
     },
     "Trio will use the larger of the default setting calculation below and the value entered here." : {
       "localizations" : {
