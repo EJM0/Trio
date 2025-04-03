@@ -7712,6 +7712,7 @@
       }
     },
     "• Basal Rates\n" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -8012,6 +8013,7 @@
       }
     },
     "• Carb Ratios\n" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -9215,6 +9217,7 @@
 
     },
     "• Duration of Insulin Action" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -10615,6 +10618,7 @@
       }
     },
     "• Glucose Targets\n" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -11115,6 +11119,7 @@
       }
     },
     "• Insulin Sensitivities\n" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -34204,6 +34209,7 @@
       }
     },
     "Are you sure you want to import profile settings from Nightscout?\n\n" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -70197,6 +70203,7 @@
       }
     },
     "Duration of Insulin Action (DIA)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -84915,6 +84922,7 @@
       }
     },
     "Finish" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -98712,6 +98720,7 @@
       }
     },
     "Import Settings from Nightscout" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -98919,6 +98928,7 @@
       }
     },
     "Import therapy settings from Nightscout.\nSee hint for the list of settings available for import." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -99019,6 +99029,7 @@
       }
     },
     "Import Therapy Settings?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -99226,6 +99237,7 @@
       }
     },
     "Imported Nightscout Data" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -127020,6 +127032,9 @@
         }
       }
     },
+    "Note: This setting must be greater than 0 for any automatic insulin dosing by Trio." : {
+
+    },
     "Note: UAM SMBs must be enabled to use this limit." : {
       "localizations" : {
         "bg" : {
@@ -128363,6 +128378,7 @@
       }
     },
     "Number of hours insulin will contribute to IOB after dosing." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -134882,6 +134898,7 @@
       }
     },
     "Please review the following settings:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -143412,6 +143429,7 @@
       }
     },
     "Review Import" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -143512,6 +143530,7 @@
       }
     },
     "Review imported DIA" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -172562,6 +172581,7 @@
       }
     },
     "This has replaced your previous therapy settings." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -176640,6 +176660,7 @@
       }
     },
     "This will overwrite the following Trio therapy settings:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -176740,6 +176761,7 @@
       }
     },
     "This will overwrite the following Trio therapy settings:\n" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -178173,6 +178195,7 @@
       }
     },
     "Tip: It is better to use a Custom Peak Time than to adjust Duration of Insulin Action (DIA)." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -182566,6 +182589,7 @@
 
     },
     "Trio has successfully imported your default Nightscout profile and stored it as therapy settings. " : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -195678,6 +195702,7 @@
       }
     },
     "Yes, Import!" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
