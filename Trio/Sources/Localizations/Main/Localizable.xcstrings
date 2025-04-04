@@ -194528,7 +194528,6 @@
       }
     },
     "This is the maximum bolus allowed to be delivered at one time. This limits manual and automatic bolus." : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
