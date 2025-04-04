@@ -8830,6 +8830,12 @@
         }
       }
     },
+    "•  App diagnostic insights help us enhance app stability, ensure safety for all users, and enable us to quickly identify and resolve critical issues." : {
+
+    },
+    "•  Trio collects the App state on crash, device, iOS and general system info, and crash stack trace." : {
+
+    },
     "• A higher number means you need less insulin for the same amount of carbs" : {
 
     },
@@ -31051,6 +31057,9 @@
         }
       }
     },
+    "All Set!" : {
+
+    },
     "All settings are at default values." : {
       "localizations" : {
         "bg" : {
@@ -43690,6 +43699,9 @@
         }
       }
     },
+    "Before you can begin with configuring your therapy settigns, Trio needs to know which units you use for your glucose and insulin measurements (based on your pump model)." : {
+
+    },
     "Beta (TestFlight) Expires" : {
       "localizations" : {
         "bg" : {
@@ -46867,6 +46879,9 @@
         }
       }
     },
+    "By default, Trio collects crash reports and other anonymized data related to errors, exceptions, and overall app performance." : {
+
+    },
     "Calculate a new Insulin Sensitivity Setting (ISF) upon every loop cycle. The new ISF will be based on your current Glucose, total daily dose of insulin (TDD, past 24 hours of all delivered insulin) and an individual Adjustment Factor (recommendation to start with is 0.5 if using Sigmoid Function and 0.8 if not).\n\nAll of the Dynamic ISF and CR adjustments will be limited by your autosens.min/max limits." : {
       "comment" : "Enable Dynamic ISF",
       "extractionState" : "manual",
@@ -49942,6 +49957,9 @@
           }
         }
       }
+    },
+    "Carbohydrate Ratio" : {
+
     },
     "Carbohydrates" : {
       "localizations" : {
@@ -71475,6 +71493,9 @@
         }
       }
     },
+    "Delivery Limits" : {
+
+    },
     "Delta" : {
       "localizations" : {
         "bg" : {
@@ -73409,6 +73430,9 @@
           }
         }
       }
+    },
+    "Diagnostics" : {
+
     },
     "Direct connection with Libre 1 transmitters or European Libre 2 sensors" : {
       "comment" : "Direct connection with Libre 1 transmitters or Libre 2",
@@ -102474,6 +102498,9 @@
         }
       }
     },
+    "Great job! You've completed the initial setup of Trio. You can always adjust these settings later in the app." : {
+
+    },
     "Green = At Target" : {
       "localizations" : {
         "bg" : {
@@ -108922,6 +108949,9 @@
           }
         }
       }
+    },
+    "If you prefer not to share this anonymized data, you can opt-out of data sharing." : {
+
     },
     "If your CGM readings are below the Low value or above the High value, you will receive a glucose alarm." : {
       "localizations" : {
@@ -136716,6 +136746,9 @@
           }
         }
       }
+    },
+    "Nightscout is a cloud-based platform that allows you to store your diabetes data. It's often used by caregivers to remotely monitor what Trio is doing." : {
+
     },
     "Nightscout ping: %d ms" : {
       "comment" : "Nightscout ping",
@@ -203716,6 +203749,9 @@
         }
       }
     },
+    "Trio diagnostic data is sent to a Google Firebase Crashlytics project, which is securely maintained and accessed only by the Trio team." : {
+
+    },
     "Trio Discord" : {
       "localizations" : {
         "bg" : {
@@ -204617,6 +204653,9 @@
         }
       }
     },
+    "Trio is a powerful app that helps you manage your diabetes. Let's get started by setting up a few important parameters that will help Trio work effectively for you." : {
+
+    },
     "Trio is currently using these metrics and values as determined by the oref algorithm:" : {
       "localizations" : {
         "bg" : {
@@ -205120,6 +205159,9 @@
           }
         }
       }
+    },
+    "Trio offers various delivery limits which represent the maximum amount of insulin it can deliver at a time. This helps ensure safe and effective experience." : {
+
     },
     "Trio Personalization" : {
       "localizations" : {
@@ -208170,6 +208212,9 @@
           }
         }
       }
+    },
+    "Units & Pump" : {
+
     },
     "Units and Limits" : {
       "localizations" : {
@@ -215405,6 +215450,9 @@
         }
       }
     },
+    "Welcome to Trio" : {
+
+    },
     "Welcome to Trio - an automated insulin delivery system for iOS based on the OpenAPS algorithm with adaptations." : {
 
     },
@@ -217648,6 +217696,9 @@
         }
       }
     },
+    "Why does Trio collect this data?" : {
+
+    },
     "Wide BG Target Range" : {
       "comment" : "Headline \"Wide BG Target Range\"",
       "extractionState" : "manual",
@@ -219587,6 +219638,12 @@
     "You've successfully completed the initial setup of Trio. Tap 'Get Started' to save your settings and get ready to start using Trio." : {
 
     },
+    "Your basal profile represents the amount of background insulin you need throughout the day. This helps Trio calculate your insulin needs." : {
+
+    },
+    "Your carb ratio tells how many grams of carbohydrates one unit of insulin will cover. This is essential for accurate meal bolus calculations." : {
+
+    },
     "Your entered amount was limited by your max Bolus setting of %d%@" : {
       "comment" : "For the  Bolus View pop-up",
       "extractionState" : "manual",
@@ -219694,6 +219751,12 @@
           }
         }
       }
+    },
+    "Your glucose target is the blood glucose level you aim to maintain. Trio will use this to calculate insulin doses and provide recommendations." : {
+
+    },
+    "Your insulin sensitivity factor (ISF) indicates how much one unit of insulin will lower your blood glucose. This helps calculate correction boluses." : {
+
     },
     "Your phone or app is not enabled for NFC communications, which is needed to pair to libre2 sensors" : {
       "extractionState" : "manual",
