@@ -65391,7 +65391,11 @@
         }
       }
     },
+    "Default: 2 %@" : {
+
+    },
     "Default: 2 units" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -126814,6 +126818,7 @@
     },
     "Max Basal" : {
       "comment" : "Max setting",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -126912,6 +126917,9 @@
           }
         }
       }
+    },
+    "Max Basal Rate" : {
+
     },
     "Max bolus" : {
       "localizations" : {
@@ -206979,7 +206987,7 @@
 
     },
     "U/hr" : {
-      "comment" : "Insulin unit per hour",
+      "comment" : "Insulin unit per hour abbreviation",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
