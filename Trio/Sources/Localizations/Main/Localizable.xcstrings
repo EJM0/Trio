@@ -111012,6 +111012,7 @@
     },
     "Importing Profile..." : {
       "comment" : "Progress text when importing profile via Nightscout",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -111110,6 +111111,9 @@
           }
         }
       }
+    },
+    "Importing Settings..." : {
+      "comment" : "Progress text when importing settings via Nightscout"
     },
     "In case you're using both profiles and temp targets" : {
       "comment" : "UI/UX option",
