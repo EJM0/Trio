@@ -114588,6 +114588,9 @@
         }
       }
     },
+    "Invalid Pump State" : {
+
+    },
     "Invalid Pump State (%@)." : {
       "localizations" : {
         "bg" : {
@@ -154753,6 +154756,9 @@
           }
         }
       }
+    },
+    "Pump Error" : {
+
     },
     "Pump Error (%@)." : {
       "localizations" : {
