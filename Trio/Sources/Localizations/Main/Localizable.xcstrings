@@ -211694,6 +211694,17 @@
         }
       }
     },
+    "Uses the fairly established Time in Tight Range definition, which is defined as time between %@ and %@  %@." : {
+      "comment" : "Time in Tight Range (TITR) verbose hint description",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Uses the fairly established Time in Tight Range definition, which is defined as time between %1$@ and %2$@  %3$@."
+          }
+        }
+      }
+    },
     "Uses the IOB, COB, UAM, and ZT forecast lines from OpenAPS. This option provides a more detailed view of the algorithm's forecast, but may be more confusing for some users." : {
       "localizations" : {
         "bg" : {
@@ -211790,6 +211801,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用OpenAPS的IOB、COB、UAM和ZT預測線。這個選項提供了對算法預測的更詳細視圖，但對一些使用者來說可能更具困惑性。"
+          }
+        }
+      }
+    },
+    "Uses the very new – first discussed at ATTD 2025 in Amsterdam, NL – Time in Normoglycemia definition, which adopts its range as all values between the normoglycemic minimum threshold (%@ %@) and %@ %@." : {
+      "comment" : "Time in Normoglycemia (TING) verbose hint description",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Uses the very new – first discussed at ATTD 2025 in Amsterdam, NL – Time in Normoglycemia definition, which adopts its range as all values between the normoglycemic minimum threshold (%1$@ %2$@) and %3$@ %4$@."
           }
         }
       }
