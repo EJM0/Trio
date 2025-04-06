@@ -42588,6 +42588,7 @@
       }
     },
     "Basal Profile" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -49960,9 +49961,6 @@
           }
         }
       }
-    },
-    "Carbohydrate Ratio" : {
-
     },
     "Carbohydrates" : {
       "localizations" : {
@@ -204571,6 +204569,9 @@
         }
       }
     },
+    "Trio includes several safety limits for insulin delivery and carbohydrate entry, helping ensure a safe and effective experience." : {
+
+    },
     "Trio Information Notifications" : {
       "localizations" : {
         "bg" : {
@@ -205177,9 +205178,6 @@
           }
         }
       }
-    },
-    "Trio offers various delivery limits which represent the maximum amount of insulin it can deliver at a time. This helps ensure safe and effective experience." : {
-
     },
     "Trio Personalization" : {
       "localizations" : {
