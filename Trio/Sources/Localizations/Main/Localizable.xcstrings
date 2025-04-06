@@ -36667,6 +36667,9 @@
         }
       }
     },
+    "Anonymized Data Sharing" : {
+
+    },
     "API secret" : {
       "comment" : "API secret in NS",
       "localizations" : {
@@ -36767,6 +36770,9 @@
           }
         }
       }
+    },
+    "App Diagnostics" : {
+
     },
     "App Expires" : {
       "localizations" : {
