@@ -2696,6 +2696,9 @@
         }
       }
     },
+    " the app before finishing onboarding, " : {
+
+    },
     " U" : {
       "comment" : "Insulin unit\nUnit in number of units delivered (keep the space character!)",
       "localizations" : {
@@ -8826,6 +8829,9 @@
           }
         }
       }
+    },
+    "•" : {
+
     },
     "•  App diagnostic insights help us enhance app stability, ensure safety for all users, and enable us to quickly identify and resolve critical issues." : {
 
@@ -43708,6 +43714,9 @@
           }
         }
       }
+    },
+    "Before you begin…" : {
+
     },
     "Before you can begin with configuring your therapy settigns, Trio needs to know which units you use for your glucose and insulin measurements (based on your pump model)." : {
 
@@ -88894,6 +88903,9 @@
         }
       }
     },
+    "Everything you enter here can be adjusted later in the app." : {
+
+    },
     "Example Calculation" : {
 
     },
@@ -95689,6 +95701,9 @@
           }
         }
       }
+    },
+    "force quit" : {
+
     },
     "Forecast Display Type" : {
       "localizations" : {
@@ -107240,6 +107255,9 @@
           }
         }
       }
+    },
+    "https://triodocs.org/startup-guide" : {
+
     },
     "If \"Display IOB and COB\" is also enabled, \"IOB\" and \"COB\" will be replaced with the following emojis:" : {
       "localizations" : {
@@ -178682,6 +178700,9 @@
         }
       }
     },
+    "Startup Guide" : {
+
+    },
     "State was restored" : {
       "comment" : "State was restored",
       "extractionState" : "manual",
@@ -183238,6 +183259,9 @@
           }
         }
       }
+    },
+    "Take a deep breath — you've got this." : {
+
     },
     "Tap and hold a bar to reveal more details." : {
       "localizations" : {
@@ -190955,6 +190979,9 @@
           }
         }
       }
+    },
+    "There's no rush. Take all the time you need." : {
+
     },
     "These two settings determine the range outside of which you will be notified via push notifications." : {
       "localizations" : {
@@ -203474,6 +203501,9 @@
         }
       }
     },
+    "Trio comes with a helpful Startup Guide designed to walk you through each step of your onboarding journey. We recommend opening it now and following along as you go — side by side." : {
+
+    },
     "Trio Configuration" : {
       "localizations" : {
         "bg" : {
@@ -213565,6 +213595,9 @@
         }
       }
     },
+    "Want a hand? You can open our full Startup Guide here:" : {
+
+    },
     "Warning" : {
       "comment" : "Warning title",
       "localizations" : {
@@ -219579,6 +219612,9 @@
         }
       }
     },
+    "You can pause at any time. Just be aware: if you " : {
+
+    },
     "You can personalize the conversion calculation by adjusting the following settings that will appear when this option is enabled:" : {
       "localizations" : {
         "bg" : {
@@ -220119,6 +220155,9 @@
           }
         }
       }
+    },
+    "your progress will not be saved." : {
+
     },
     "ZT" : {
       "localizations" : {
