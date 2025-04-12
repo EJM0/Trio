@@ -103867,6 +103867,9 @@
         }
       }
     },
+    "Here is an overview of what to expect:" : {
+
+    },
     "Hi there!" : {
 
     },
@@ -148948,6 +148951,9 @@
           }
         }
       }
+    },
+    "Overview" : {
+
     },
     "𝑷 = protein(g) × 40%" : {
       "localizations" : {
@@ -206323,6 +206329,9 @@
           }
         }
       }
+    },
+    "Trio's Onboarding consists of several steps. It takes about 5-10 minutes to complete. We'll guide you through each step." : {
+
     },
     "Trio's Simple Lock Screen Widget displays current glucose reading, trend arrow, delta and the timestamp of the current reading." : {
       "localizations" : {
