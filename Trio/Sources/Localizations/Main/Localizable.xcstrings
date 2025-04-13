@@ -2696,6 +2696,9 @@
         }
       }
     },
+    " the app before finishing onboarding, " : {
+
+    },
     " U" : {
       "comment" : "Insulin unit\nUnit in number of units delivered (keep the space character!)",
       "localizations" : {
@@ -8827,6 +8830,46 @@
         }
       }
     },
+    "•" : {
+
+    },
+    "•  App diagnostic insights help us enhance app stability, ensure safety for all users, and enable us to quickly identify and resolve critical issues." : {
+
+    },
+    "•  Trio collects the app's state on crash, device, iOS and general system info, and a stack trace." : {
+
+    },
+    "•  Trio does not collect any health related data, e.g. glucose readings, insulin rates or doses, meal data, setting values, or similar." : {
+
+    },
+    "•  Trio does not track any usage metrics or any other personal data about users other than the used iPhone model and iOS version." : {
+
+    },
+    "• A higher number means you need less insulin for the same amount of carbs" : {
+
+    },
+    "• A higher number means you're less sensitive to insulin" : {
+
+    },
+    "• A lower number means you need more insulin for the same amount of carbs" : {
+
+    },
+    "• A lower number means you're more sensitive to insulin" : {
+
+    },
+    "• A ratio of 10 g/U means 1 unit of insulin covers 10g of carbs" : {
+
+    },
+    "• An ISF of %@ means 1 U lowers your glucose by %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "• An ISF of %1$@ means 1 U lowers your glucose by %2$@"
+          }
+        }
+      }
+    },
     "• Basal Rate" : {
       "localizations" : {
         "bg" : {
@@ -9028,6 +9071,7 @@
       }
     },
     "• Basal Rates\n" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -9328,6 +9372,7 @@
       }
     },
     "• Carb Ratios\n" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -10527,7 +10572,11 @@
         }
       }
     },
+    "• Different times of day may require different ratios" : {
+
+    },
     "• Duration of Insulin Action" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -11928,6 +11977,7 @@
       }
     },
     "• Glucose Targets\n" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -12428,6 +12478,7 @@
       }
     },
     "• Insulin Sensitivities\n" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -31015,6 +31066,9 @@
         }
       }
     },
+    "All Set!" : {
+
+    },
     "All settings are at default values." : {
       "localizations" : {
         "bg" : {
@@ -36619,6 +36673,9 @@
         }
       }
     },
+    "Anonymized Data Sharing" : {
+
+    },
     "API secret" : {
       "comment" : "API secret in NS",
       "localizations" : {
@@ -36719,6 +36776,9 @@
           }
         }
       }
+    },
+    "App Diagnostics" : {
+
     },
     "App Expires" : {
       "localizations" : {
@@ -38429,6 +38489,7 @@
       }
     },
     "Are you sure you want to import profile settings from Nightscout?\n\n" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -41386,6 +41447,9 @@
         }
       }
     },
+    "Back" : {
+
+    },
     "Backfill Failed" : {
       "localizations" : {
         "bg" : {
@@ -42536,6 +42600,7 @@
       }
     },
     "Basal Profile" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -43649,6 +43714,12 @@
           }
         }
       }
+    },
+    "Before you begin…" : {
+
+    },
+    "Before you can begin with configuring your therapy settigns, Trio needs to know which units you use for your glucose and insulin measurements (based on your pump model)." : {
+
     },
     "Beta (TestFlight) Expires" : {
       "localizations" : {
@@ -46826,6 +46897,9 @@
           }
         }
       }
+    },
+    "By default, Trio collects crash reports and other anonymized data related to errors, exceptions, and overall app performance." : {
+
     },
     "Calculate a new Insulin Sensitivity Setting (ISF) upon every loop cycle. The new ISF will be based on your current Glucose, total daily dose of insulin (TDD, past 24 hours of all delivered insulin) and an individual Adjustment Factor (recommendation to start with is 0.5 if using Sigmoid Function and 0.8 if not).\n\nAll of the Dynamic ISF and CR adjustments will be limited by your autosens.min/max limits." : {
       "comment" : "Enable Dynamic ISF",
@@ -57952,6 +58026,9 @@
         }
       }
     },
+    "Configure Yourself" : {
+
+    },
     "Confirm" : {
       "localizations" : {
         "bg" : {
@@ -58859,6 +58936,9 @@
           }
         }
       }
+    },
+    "Connected" : {
+
     },
     "Connected Services" : {
       "localizations" : {
@@ -65330,7 +65410,11 @@
         }
       }
     },
+    "Default: 2 %@" : {
+
+    },
     "Default: 2 units" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -71429,6 +71513,9 @@
         }
       }
     },
+    "Delivery Limits" : {
+
+    },
     "Delta" : {
       "localizations" : {
         "bg" : {
@@ -73363,6 +73450,12 @@
           }
         }
       }
+    },
+    "Diagnostics" : {
+
+    },
+    "Diagnostics are sent to a Google Firebase Crashlytics project, which is securely maintained and accessed only by the Trio team." : {
+
     },
     "Direct connection with Libre 1 transmitters or European Libre 2 sensors" : {
       "comment" : "Direct connection with Libre 1 transmitters or Libre 2",
@@ -78298,6 +78391,7 @@
       }
     },
     "Duration of Insulin Action (DIA)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -87654,6 +87748,9 @@
         }
       }
     },
+    "Entries" : {
+
+    },
     "Error" : {
       "comment" : "Error title",
       "localizations" : {
@@ -88805,6 +88902,12 @@
           }
         }
       }
+    },
+    "Everything you enter here can be adjusted later in the app." : {
+
+    },
+    "Example Calculation" : {
+
     },
     "exceeded" : {
       "comment" : "Limit Exceeded label",
@@ -94174,6 +94277,7 @@
       }
     },
     "Finish" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -95081,6 +95185,9 @@
         }
       }
     },
+    "For 45g of carbs, you would need:" : {
+
+    },
     "For example, at a temp target of %@ %@, your basal is reduced to 50%%, but this scales depending on the target (e.g., 75%% at %@ %@, 60%% at %@ %@)." : {
       "localizations" : {
         "bg" : {
@@ -95594,6 +95701,9 @@
           }
         }
       }
+    },
+    "force quit" : {
+
     },
     "Forecast Display Type" : {
       "localizations" : {
@@ -98235,6 +98345,9 @@
           }
         }
       }
+    },
+    "Get Started" : {
+
     },
     "Getting everything ready for you..." : {
       "localizations" : {
@@ -102414,6 +102527,9 @@
         }
       }
     },
+    "Great job! You've completed the initial setup of Trio. You can always adjust these settings later in the app." : {
+
+    },
     "Green = At Target" : {
       "localizations" : {
         "bg" : {
@@ -103750,6 +103866,12 @@
           }
         }
       }
+    },
+    "Here is an overview of what to expect:" : {
+
+    },
+    "Hi there!" : {
+
     },
     "Hidden" : {
       "localizations" : {
@@ -107137,6 +107259,9 @@
         }
       }
     },
+    "https://triodocs.org/startup-guide" : {
+
+    },
     "If \"Display IOB and COB\" is also enabled, \"IOB\" and \"COB\" will be replaced with the following emojis:" : {
       "localizations" : {
         "bg" : {
@@ -108449,6 +108574,16 @@
         }
       }
     },
+    "If you are %@ %@ above target:" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "If you are %1$@ %2$@ above target:"
+          }
+        }
+      }
+    },
     "If you are not seeing calendars to choose here, please go to Settings -> Trio -> Calendars and change permissions to \"Full Access\"" : {
       "localizations" : {
         "bg" : {
@@ -108849,6 +108984,9 @@
           }
         }
       }
+    },
+    "If you prefer not to share this anonymized data, you can opt-out of data sharing." : {
+
     },
     "If your CGM readings are below the Low value or above the High value, you will receive a glucose alarm." : {
       "localizations" : {
@@ -110280,6 +110418,7 @@
       }
     },
     "Import Settings from Nightscout" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -110487,6 +110626,7 @@
       }
     },
     "Import therapy settings from Nightscout.\nSee hint for the list of settings available for import." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -110587,6 +110727,7 @@
       }
     },
     "Import Therapy Settings?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -110794,6 +110935,7 @@
       }
     },
     "Imported Nightscout Data" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -110895,6 +111037,7 @@
     },
     "Importing Profile..." : {
       "comment" : "Progress text when importing profile via Nightscout",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -110993,6 +111136,9 @@
           }
         }
       }
+    },
+    "Importing Settings..." : {
+      "comment" : "Progress text when importing settings via Nightscout"
     },
     "In case you're using both profiles and temp targets" : {
       "comment" : "UI/UX option",
@@ -117935,6 +118081,9 @@
           }
         }
       }
+    },
+    "Let's go through a few quick steps to ensure Trio works optimally for you." : {
+
     },
     "Libre 2 Direct" : {
       "comment" : "Libre 2 Direct",
@@ -126707,6 +126856,7 @@
     },
     "Max Basal" : {
       "comment" : "Max setting",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -126805,6 +126955,9 @@
           }
         }
       }
+    },
+    "Max Basal Rate" : {
+
     },
     "Max bolus" : {
       "localizations" : {
@@ -132613,6 +132766,9 @@
         }
       }
     },
+    "mg/dL/U" : {
+
+    },
     "Middleware" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -134773,6 +134929,9 @@
         }
       }
     },
+    "mmol/L/U" : {
+
+    },
     "mmol/mol" : {
       "localizations" : {
         "bg" : {
@@ -136219,6 +136378,9 @@
         }
       }
     },
+    "Next" : {
+
+    },
     "Nightscout" : {
       "localizations" : {
         "bg" : {
@@ -136628,6 +136790,9 @@
         }
       }
     },
+    "Nightscout is a cloud-based platform that allows you to store your diabetes data. It's often used by caregivers to remotely monitor what Trio is doing." : {
+
+    },
     "Nightscout ping: %d ms" : {
       "comment" : "Nightscout ping",
       "localizations" : {
@@ -136829,6 +136994,9 @@
           }
         }
       }
+    },
+    "Nightscout use is entirely optional. You can also setup Nightscout at a later time." : {
+
     },
     "No" : {
       "comment" : "Button",
@@ -141742,6 +141910,9 @@
         }
       }
     },
+    "Note: Choosing your pump model determines which increments for setting up your basal rates are available. You will pair your actual pump after finishing the onboarding process." : {
+
+    },
     "Note: If enabled, the smoothed values you see in Trio may differ from what is shown in your CGM app." : {
       "localizations" : {
         "bg" : {
@@ -142941,6 +143112,9 @@
           }
         }
       }
+    },
+    "Note: This setting must be greater than 0 for any automatic insulin dosing by Trio." : {
+
     },
     "Note: UAM SMBs must be enabled to use this limit." : {
       "localizations" : {
@@ -144382,6 +144556,7 @@
       }
     },
     "Number of hours insulin will contribute to IOB after dosing." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -148777,6 +148952,9 @@
         }
       }
     },
+    "Overview" : {
+
+    },
     "𝑷 = protein(g) × 40%" : {
       "localizations" : {
         "bg" : {
@@ -151561,6 +151739,15 @@
         }
       }
     },
+    "Please choose from the options below." : {
+
+    },
+    "Please choose if you want to import existing therapy settings from Nightscout or start from scratch." : {
+
+    },
+    "Please enter your credentials:" : {
+
+    },
     "Please make sure that your Libre 2 sensor is already activated and finished warming up. If you have other apps connecting to the sensor via bluetooth, these need to be shut down or uninstalled. \n\n You can only have one app communicating with the sensor via bluetooth. Then press the \"pariring and connection\" button below to start the process. Please note that the bluetooth connection might take up to a couple of minutes before it starts working." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -151669,6 +151856,7 @@
       }
     },
     "Please review the following settings:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -159515,6 +159703,9 @@
         }
       }
     },
+    "Remember, you can adjust these settings at any time in the app settings if needed." : {
+
+    },
     "Remote Control" : {
       "comment" : "Allow remote control from NS",
       "localizations" : {
@@ -161554,6 +161745,7 @@
       }
     },
     "Review Import" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -161654,6 +161846,7 @@
       }
     },
     "Review imported DIA" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -170795,6 +170988,9 @@
         }
       }
     },
+    "Setup Nightscout for Trio" : {
+
+    },
     "Shape" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -174230,6 +174426,9 @@
           }
         }
       }
+    },
+    "Skip Nightscout Setup" : {
+
     },
     "Slope" : {
       "comment" : "v",
@@ -178506,6 +178705,9 @@
           }
         }
       }
+    },
+    "Startup Guide" : {
+
     },
     "State was restored" : {
       "comment" : "State was restored",
@@ -183063,6 +183265,9 @@
           }
         }
       }
+    },
+    "Take a deep breath — you've got this." : {
+
     },
     "Tap and hold a bar to reveal more details." : {
       "localizations" : {
@@ -190781,6 +190986,9 @@
         }
       }
     },
+    "There's no rush. Take all the time you need." : {
+
+    },
     "These two settings determine the range outside of which you will be notified via push notifications." : {
       "localizations" : {
         "bg" : {
@@ -192929,6 +193137,7 @@
       }
     },
     "This has replaced your previous therapy settings." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -194377,7 +194586,6 @@
       }
     },
     "This is the maximum bolus allowed to be delivered at one time. This limits manual and automatic bolus." : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -197011,6 +197219,7 @@
       }
     },
     "This will overwrite the following Trio therapy settings:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -197111,6 +197320,7 @@
       }
     },
     "This will overwrite the following Trio therapy settings:\n" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -199029,6 +199239,7 @@
       }
     },
     "Tip: It is better to use a Custom Peak Time than to adjust Duration of Insulin Action (DIA)." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -203296,6 +203507,9 @@
         }
       }
     },
+    "Trio comes with a helpful Startup Guide. We recommend opening it now and following along as you go — side by side." : {
+
+    },
     "Trio Configuration" : {
       "localizations" : {
         "bg" : {
@@ -204197,6 +204411,7 @@
       }
     },
     "Trio has successfully imported your default Nightscout profile and stored it as therapy settings. " : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -204396,6 +204611,9 @@
         }
       }
     },
+    "Trio includes several safety limits for insulin delivery and carbohydrate entry, helping ensure a safe and effective experience." : {
+
+    },
     "Trio Information Notifications" : {
       "localizations" : {
         "bg" : {
@@ -204496,6 +204714,9 @@
         }
       }
     },
+    "Trio is a powerful app that helps you manage your diabetes. Let's get started by setting up a few important parameters that will help Trio work effectively for you." : {
+
+    },
     "Trio is currently using these metrics and values as determined by the oref algorithm:" : {
       "localizations" : {
         "bg" : {
@@ -204595,6 +204816,9 @@
           }
         }
       }
+    },
+    "Trio is designed to help manage your diabetes efficiently. To get the most out of the app, we'll guide you through setting up some essential parameters." : {
+
     },
     "Trio lets you create automations using iOS Shortcuts. Go to the Shortcuts app to create new automations." : {
       "localizations" : {
@@ -206003,6 +206227,9 @@
         }
       }
     },
+    "Trio will import the following therapy settings from your Nightscout instance:" : {
+
+    },
     "Trio will use the larger of the default setting calculation below and the value entered here." : {
       "localizations" : {
         "bg" : {
@@ -206102,6 +206329,9 @@
           }
         }
       }
+    },
+    "Trio's Onboarding consists of several steps. It takes about 5-10 minutes to complete. We'll guide you through each step." : {
+
     },
     "Trio's Simple Lock Screen Widget displays current glucose reading, trend arrow, delta and the timestamp of the current reading." : {
       "localizations" : {
@@ -206806,8 +207036,11 @@
         }
       }
     },
+    "U/day" : {
+
+    },
     "U/hr" : {
-      "comment" : "Insulin unit per hour",
+      "comment" : "Insulin unit per hour abbreviation",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -208043,6 +208276,9 @@
           }
         }
       }
+    },
+    "Units & Pump" : {
+
     },
     "Units and Limits" : {
       "localizations" : {
@@ -213368,6 +213604,9 @@
         }
       }
     },
+    "Want a hand? You can open our full Startup Guide here:" : {
+
+    },
     "Warning" : {
       "comment" : "Warning title",
       "localizations" : {
@@ -215300,6 +215539,12 @@
         }
       }
     },
+    "Welcome to Trio" : {
+
+    },
+    "Welcome to Trio - an automated insulin delivery system for iOS based on the OpenAPS algorithm with adaptations." : {
+
+    },
     "What is the numeric value of the carb to add" : {
       "localizations" : {
         "bg" : {
@@ -215499,6 +215744,9 @@
           }
         }
       }
+    },
+    "What This Means" : {
+
     },
     "When \"Fatty Meal\" is selected in the bolus calculator, the recommended bolus will be multiplied by the \"Fatty Meal Bolus Percentage\" as well as the \"Recommended Bolus Percentage\"." : {
       "localizations" : {
@@ -217537,6 +217785,9 @@
         }
       }
     },
+    "Why does Trio collect this data?" : {
+
+    },
     "Wide BG Target Range" : {
       "comment" : "Headline \"Wide BG Target Range\"",
       "extractionState" : "manual",
@@ -219070,6 +219321,7 @@
       }
     },
     "Yes, Import!" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -219369,6 +219621,9 @@
         }
       }
     },
+    "You can pause at any time. Just be aware: if you " : {
+
+    },
     "You can personalize the conversion calculation by adjusting the following settings that will appear when this option is enabled:" : {
       "localizations" : {
         "bg" : {
@@ -219468,6 +219723,18 @@
           }
         }
       }
+    },
+    "You're All Set!" : {
+
+    },
+    "You've successfully completed the initial setup of Trio. Tap 'Get Started' to save your settings and get ready to start using Trio." : {
+
+    },
+    "Your basal profile represents the amount of background insulin you need throughout the day. This helps Trio calculate your insulin needs." : {
+
+    },
+    "Your carb ratio tells how many grams of carbohydrates one unit of insulin will cover. This is essential for accurate meal bolus calculations." : {
+
     },
     "Your entered amount was limited by your max Bolus setting of %d%@" : {
       "comment" : "For the  Bolus View pop-up",
@@ -219576,6 +219843,12 @@
           }
         }
       }
+    },
+    "Your glucose target is the blood glucose level you aim to maintain. Trio will use this to calculate insulin doses and provide recommendations." : {
+
+    },
+    "Your insulin sensitivity factor (ISF) indicates how much one unit of insulin will lower your blood glucose. This helps calculate correction boluses." : {
+
     },
     "Your phone or app is not enabled for NFC communications, which is needed to pair to libre2 sensors" : {
       "extractionState" : "manual",
@@ -219891,6 +220164,9 @@
           }
         }
       }
+    },
+    "your progress will not be saved." : {
+
     },
     "ZT" : {
       "localizations" : {
