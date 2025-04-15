@@ -1661,6 +1661,9 @@
         }
       }
     },
+    " as a beginner." : {
+
+    },
     " day(s)" : {
       "comment" : "Sensor day(s)",
       "extractionState" : "manual",
@@ -20633,6 +20636,9 @@
         }
       }
     },
+    "A few important notes:" : {
+
+    },
     "A heartbeat tells Trio to start a loop cycle. This is required for closed loop." : {
       "localizations" : {
         "bg" : {
@@ -30126,7 +30132,6 @@
       }
     },
     "Algorithm" : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -30641,6 +30646,9 @@
           }
         }
       }
+    },
+    "All additional \"advanced settings\" have been reset." : {
+
     },
     "All FPUs and the carbs of the meal will be deleted." : {
       "comment" : "Alert message for meal deletion",
@@ -58032,6 +58040,9 @@
         }
       }
     },
+    "Configure the algorithm…" : {
+
+    },
     "Configure Yourself" : {
 
     },
@@ -78998,6 +79009,9 @@
         }
       }
     },
+    "Dynamic ISF requires at least 7 days of usage data and is not yet configurable." : {
+
+    },
     "Dynamic ISF/CR" : {
       "localizations" : {
         "bg" : {
@@ -88382,6 +88396,9 @@
           }
         }
       }
+    },
+    "Even if you’re an updating user, you’ll be guided through this step-by-step." : {
+
     },
     "Eventual Glucose" : {
       "localizations" : {
@@ -118097,6 +118114,9 @@
         }
       }
     },
+    "leave everything on default" : {
+
+    },
     "Let's go through a few quick steps to ensure Trio works optimally for you." : {
 
     },
@@ -145781,6 +145801,9 @@
         }
       }
     },
+    "Only adjust these settings if you’re an advanced or returning user who knows what they’re doing." : {
+
+    },
     "Only Alarm Limits" : {
       "comment" : "Option to notify only when glucose reaches alarm limits",
       "localizations" : {
@@ -147427,6 +147450,9 @@
           }
         }
       }
+    },
+    "Our strong recommendation is to " : {
+
     },
     "Override" : {
       "localizations" : {
@@ -175063,6 +175089,9 @@
         }
       }
     },
+    "SMB (Super Micro Bolus) is an oref algorithm feature that delivers small frequent boluses instead of temporary basals for faster glucose control." : {
+
+    },
     "SMB Delivery Ratio" : {
       "comment" : "SMB Delivery Ratio",
       "localizations" : {
@@ -175472,9 +175501,6 @@
           }
         }
       }
-    },
-    "SMB is an oref algorithm feature that delivers small frequent boluses instead of temporary basals for faster glucose control." : {
-
     },
     "SMB Minutes" : {
       "extractionState" : "manual",
@@ -187690,6 +187716,9 @@
           }
         }
       }
+    },
+    "The duration of insulin action (DIA) is now locked to Trio’s new default of 10 hours." : {
+
     },
     "The Fat and Protein Delay setting defines the time between when you log fat and protein and when the system starts delivering insulin for the Fat-Protein Unit Carb Equivalents (FPUs)." : {
       "localizations" : {
@@ -206354,6 +206383,9 @@
         }
       }
     },
+    "Trio’s algorithm can automatically adapt insulin delivery based on inputs and glucose forecsasts. Your algorithm settings play a major part in accurate and effective dosing." : {
+
+    },
     "Trio's Onboarding consists of several steps. It takes about 5-10 minutes to complete. We'll guide you through each step." : {
 
     },
@@ -215147,6 +215179,9 @@
           }
         }
       }
+    },
+    "We strongly recommend not changing DIA — it’s essential to stable and safe operation." : {
+
     },
     "Week" : {
       "extractionState" : "manual",
