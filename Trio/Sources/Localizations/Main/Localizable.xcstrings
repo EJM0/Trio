@@ -31982,6 +31982,9 @@
         }
       }
     },
+    "Allow SMB when glucose is above the High Glucose Target value." : {
+
+    },
     "Allow SMB With High Temporary Target" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -39010,6 +39013,9 @@
           }
         }
       }
+    },
+    "Auto-sensitivity (Autosens) adjusts insulin delivery based on observed sensitivity or resistance." : {
+
     },
     "Automate boluses using the iOS Shortcuts App." : {
       "localizations" : {
@@ -83175,6 +83181,9 @@
         }
       }
     },
+    "Enable SMB With High Glucose" : {
+      "comment" : "Enable SMB With High Glucose"
+    },
     "Enable SMB With Temporary Target" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -85006,6 +85015,9 @@
           }
         }
       }
+    },
+    "Enabling this feature allows Trio to deliver insulin required using Super Micro Boluses (SMB) when glucose reading is above the value set as High Glucose Target." : {
+
     },
     "Enabling this feature allows you to create and save preset meals." : {
       "localizations" : {
@@ -105104,6 +105116,9 @@
           }
         }
       }
+    },
+    "High Glucose Target" : {
+
     },
     "High Limit" : {
       "localizations" : {
@@ -175458,6 +175473,9 @@
         }
       }
     },
+    "SMB is an oref algorithm feature that delivers small frequent boluses instead of temporary basals for faster glucose control." : {
+
+    },
     "SMB Minutes" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -184075,6 +184093,9 @@
           }
         }
       }
+    },
+    "Target Behavior allows you to adjust how temporary targets influence ISF, basal, and auto-targeting based on sensitivity or resistance." : {
+
     },
     "Target Glucose" : {
       "extractionState" : "manual",
@@ -204610,6 +204631,9 @@
           }
         }
       }
+    },
+    "Trio includes several algorithm settings that allow you to customize the oref algorithm behavior to suit your specific needs." : {
+
     },
     "Trio includes several safety limits for insulin delivery and carbohydrate entry, helping ensure a safe and effective experience." : {
 
