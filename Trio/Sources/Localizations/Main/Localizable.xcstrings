@@ -102153,6 +102153,9 @@
         }
       }
     },
+    "Got it! I'm ready to continue." : {
+
+    },
     "Gradient Purple = As readings approach and exceed above target, they become more purple." : {
       "localizations" : {
         "bg" : {
@@ -107305,6 +107308,9 @@
       }
     },
     "https://triodocs.org/startup-guide" : {
+
+    },
+    "I have read and accept the" : {
 
     },
     "If \"Display IOB and COB\" is also enabled, \"IOB\" and \"COB\" will be replaced with the following emojis:" : {
@@ -151595,6 +151601,9 @@
         }
       }
     },
+    "Placeholder until policy is final." : {
+
+    },
     "Play Alarm Sound" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -153461,6 +153470,9 @@
           }
         }
       }
+    },
+    "Privacy Policy" : {
+
     },
     "Proceed" : {
       "comment" : "Button Label to Proceed to Bolus on Watch",
