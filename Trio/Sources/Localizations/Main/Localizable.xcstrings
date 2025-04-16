@@ -30132,6 +30132,7 @@
       }
     },
     "Algorithm" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -33426,6 +33427,9 @@
           }
         }
       }
+    },
+    "Already using Trio and updating from an older version?" : {
+
     },
     "Also add source info" : {
       "extractionState" : "manual",
@@ -57833,6 +57837,9 @@
         }
       }
     },
+    "Configure diagnostics sharing, optionally sync with Nightscout, and enter essentials." : {
+
+    },
     "Configure Libre Transmitter" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -62442,6 +62449,9 @@
           }
         }
       }
+    },
+    "Customize Trio’s algorithm features. Most users start with the recommended settings." : {
+
     },
     "CV" : {
       "comment" : "CV",
@@ -69542,6 +69552,9 @@
           }
         }
       }
+    },
+    "Define your glucose target, basal rates, carb ratios, and insulin sensitivity." : {
+
     },
     "Delay between fat & protein entry and first FPU entry." : {
       "localizations" : {
@@ -111381,6 +111394,9 @@
         }
       }
     },
+    "In the next few steps, you’ll configure your algorithm settings for" : {
+
+    },
     "Include IOB & COB in the calendar event data." : {
       "localizations" : {
         "bg" : {
@@ -152835,6 +152851,9 @@
         }
       }
     },
+    "Prepare Trio" : {
+
+    },
     "Preset" : {
       "localizations" : {
         "bg" : {
@@ -168881,6 +168900,9 @@
           }
         }
       }
+    },
+    "Set boundaries for insulin delivery and carb entries to help Trio keep you safe." : {
+
     },
     "Set Display Values" : {
       "localizations" : {
@@ -203557,6 +203579,9 @@
         }
       }
     },
+    "Trio can automatically adapt insulin delivery based on inputs and glucose forecasts. Your algorithm settings play a major part in accurate and effective dosing." : {
+
+    },
     "Trio comes with a helpful Startup Guide. We recommend opening it now and following along as you go — side by side." : {
 
     },
@@ -206383,10 +206408,7 @@
         }
       }
     },
-    "Trio’s algorithm can automatically adapt insulin delivery based on inputs and glucose forecsasts. Your algorithm settings play a major part in accurate and effective dosing." : {
-
-    },
-    "Trio's Onboarding consists of several steps. It takes about 5-10 minutes to complete. We'll guide you through each step." : {
+    "Trio's Onboarding takes about 15-30 minutes to complete. We'll guide you through each step." : {
 
     },
     "Trio's Simple Lock Screen Widget displays current glucose reading, trend arrow, delta and the timestamp of the current reading." : {
@@ -215180,6 +215202,9 @@
         }
       }
     },
+    "We recommend reviewing them carefully — Trio will guide you step-by-step." : {
+
+    },
     "We strongly recommend not changing DIA — it’s essential to stable and safe operation." : {
 
     },
@@ -219786,7 +219811,10 @@
     "You're All Set!" : {
 
     },
-    "You've successfully completed the initial setup of Trio. Tap 'Get Started' to save your settings and get ready to start using Trio." : {
+    "You've successfully completed the initial setup of Trio. Tap 'Get Started' to save your settings and start using Trio." : {
+
+    },
+    "Your algorithm settings (previously called \"OpenAPS settings\") will be reset to defaults." : {
 
     },
     "Your basal profile represents the amount of background insulin you need throughout the day. This helps Trio calculate your insulin needs." : {
@@ -220225,6 +220253,9 @@
       }
     },
     "your progress will not be saved." : {
+
+    },
+    "Your therapy settings, pump, and CGM configurations will be carried over." : {
 
     },
     "ZT" : {
