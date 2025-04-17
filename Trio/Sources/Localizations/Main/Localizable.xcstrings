@@ -36792,6 +36792,9 @@
     "App Diagnostics" : {
 
     },
+    "App diagnostics sharing, Nightscout setup, and unit and pump model selection are all complete." : {
+
+    },
     "App Expires" : {
       "localizations" : {
         "bg" : {
@@ -69577,7 +69580,7 @@
         }
       }
     },
-    "Define your glucose target, basal rates, carb ratios, and insulin sensitivity." : {
+    "Define your glucose targets, basal rates, carb ratios, and insulin sensitivities." : {
 
     },
     "Delay between fat & protein entry and first FPU entry." : {
@@ -73826,6 +73829,9 @@
           }
         }
       }
+    },
+    "Disable Sharing" : {
+
     },
     "Disable SMBs" : {
       "localizations" : {
@@ -82836,6 +82842,9 @@
           }
         }
       }
+    },
+    "Enable Sharing" : {
+
     },
     "Enable SMB After Carbs" : {
       "comment" : "Enable SMB After Carbs",
@@ -101065,6 +101074,9 @@
           }
         }
       }
+    },
+    "Glucose target, basal rates, carb ratios, and insulin sensitivity match your needs." : {
+
     },
     "Glucose Targets" : {
       "localizations" : {
@@ -163006,6 +163018,9 @@
         }
       }
     },
+    "Safety boundaries for insulin delivery and carb entries are set to help Trio keep you safe." : {
+
+    },
     "Save" : {
       "comment" : "Save preset namebutton title for saving low reservoir reminder",
       "localizations" : {
@@ -193922,6 +193937,9 @@
         }
       }
     },
+    "This is a safety limitation to avoid high SMB doses when glucose is rising abnormally fast, such as after a meal or with a very jumpy CGM sensor." : {
+
+    },
     "This is a setting for default carb absorption impact per 5 minutes. The default is an expected 8 mg/dL/5min. This affects how fast COB is decayed in situations when carb absorption is not visible in BG deviations. The default of 8 mg/dL/5min corresponds to a minimum carb absorption rate of 24g/hr at a CSF of 4 mg/dL/g." : {
       "comment" : "\"Min 5m Carbimpact\"",
       "extractionState" : "manual",
@@ -206542,6 +206560,9 @@
           }
         }
       }
+    },
+    "Trio’s algorithm features are customized to fit your preferences and needs." : {
+
     },
     "Trio's Onboarding takes about 15-30 minutes to complete. We'll guide you through each step." : {
 
