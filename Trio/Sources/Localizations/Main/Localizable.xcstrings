@@ -8836,18 +8836,6 @@
     "•" : {
 
     },
-    "•  App diagnostic insights help us enhance app stability, ensure safety for all users, and enable us to quickly identify and resolve critical issues." : {
-
-    },
-    "•  Trio collects the app's state on crash, device, iOS and general system info, and a stack trace." : {
-
-    },
-    "•  Trio does not collect any health related data, e.g. glucose readings, insulin rates or doses, meal data, setting values, or similar." : {
-
-    },
-    "•  Trio does not track any usage metrics or any other personal data about users other than the used iPhone model and iOS version." : {
-
-    },
     "• A higher number means you need less insulin for the same amount of carbs" : {
 
     },
@@ -20637,6 +20625,9 @@
       }
     },
     "A few important notes:" : {
+
+    },
+    "A generated unique identifier (a random code like \"A7B2C9D3\" that doesn't identify you personally)" : {
 
     },
     "A heartbeat tells Trio to start a loop cycle. This is required for closed loop." : {
@@ -36691,6 +36682,9 @@
     "Anonymized Data Sharing" : {
 
     },
+    "Any health-related statistics or personal medical information" : {
+
+    },
     "API secret" : {
       "comment" : "API secret in NS",
       "localizations" : {
@@ -36791,6 +36785,9 @@
           }
         }
       }
+    },
+    "App diagnostic insights help us enhance app stability, ensure safety for all users, and enable us to quickly identify and resolve critical issues." : {
+
     },
     "App Diagnostics" : {
 
@@ -38096,6 +38093,9 @@
         }
       }
     },
+    "April 15, 2025" : {
+
+    },
     "Are you sure to add %@ g of carbs ?" : {
       "localizations" : {
         "bg" : {
@@ -38817,6 +38817,9 @@
           }
         }
       }
+    },
+    "As an open source project, crash reports and debugging information may be visible to project contributors who help maintain and improve Trio. All contributors are expected to adhere to this privacy policy and handle any data responsibly." : {
+
     },
     "At the default setting, 35% of the calculation is based on the last 24 hours of insulin use, with the remaining 65% considering the last 10 days of data." : {
       "localizations" : {
@@ -43938,6 +43941,9 @@
           }
         }
       }
+    },
+    "Blood glucose (BG) readings" : {
+
     },
     "Blood Glucose Test" : {
       "comment" : "Add Blood Glucose Test, headerAdd Blood Glucose Test, header",
@@ -53268,6 +53274,9 @@
         }
       }
     },
+    "Changes to This Privacy Policy" : {
+
+    },
     "Chart" : {
       "localizations" : {
         "bg" : {
@@ -59680,6 +59689,9 @@
         }
       }
     },
+    "Contact Us" : {
+
+    },
     "Contacts Configuration" : {
       "localizations" : {
         "bg" : {
@@ -60596,6 +60608,12 @@
           }
         }
       }
+    },
+    "Crash Reporting (Opt-In by default, with ability to Opt-Out)" : {
+
+    },
+    "Crashlytics" : {
+
     },
     "Create Calendar Events" : {
       "extractionState" : "stale",
@@ -63258,6 +63276,9 @@
         }
       }
     },
+    "Data Sharing and Third-Party Services" : {
+
+    },
     "Date" : {
       "localizations" : {
         "bg" : {
@@ -64094,6 +64115,9 @@
           }
         }
       }
+    },
+    "Debug Symbols (dSYMs)" : {
+
     },
     "Decrease sensitivity when glucose is below target if a manual Temp Target < %@ %@ is set." : {
       "localizations" : {
@@ -72772,6 +72796,12 @@
         }
       }
     },
+    "Device model and OS version (example: \"iPhone 14 Pro running iOS 17.4.1\")" : {
+
+    },
+    "Device state at the time of the crash (example: \"Trio was in the foreground\" or \"Battery level was 42%\")" : {
+
+    },
     "Devices" : {
       "localizations" : {
         "bg" : {
@@ -80856,6 +80886,9 @@
           }
         }
       }
+    },
+    "Email us" : {
+
     },
     "Emoji or short text" : {
       "localizations" : {
@@ -95230,6 +95263,9 @@
     "For 45g of carbs, you would need:" : {
 
     },
+    "For complete transparency, we want to clarify that Trio does not collect:" : {
+
+    },
     "For example, at a temp target of %@ %@, your basal is reduced to 50%%, but this scales depending on the target (e.g., 75%% at %@ %@, 60%% at %@ %@)." : {
       "localizations" : {
         "bg" : {
@@ -102053,6 +102089,9 @@
         }
       }
     },
+    "Google Privacy Policy" : {
+
+    },
     "Got it!" : {
       "localizations" : {
         "bg" : {
@@ -107206,6 +107245,9 @@
         }
       }
     },
+    "How We Use Your Information" : {
+
+    },
     "hr" : {
       "comment" : "Hours abbreviation",
       "localizations" : {
@@ -107311,6 +107353,9 @@
 
     },
     "I have read and accept the" : {
+
+    },
+    "Identify and fix bugs and crashes" : {
 
     },
     "If \"Display IOB and COB\" is also enabled, \"IOB\" and \"COB\" will be replaced with the following emojis:" : {
@@ -109035,6 +109080,9 @@
           }
         }
       }
+    },
+    "If you have any questions about this Privacy Policy, please contact us on Discord, or send us an email." : {
+
     },
     "If you prefer not to share this anonymized data, you can opt-out of data sharing." : {
 
@@ -111191,6 +111239,9 @@
     "Importing Settings..." : {
       "comment" : "Progress text when importing settings via Nightscout"
     },
+    "Improve Trio's stability" : {
+
+    },
     "In case you're using both profiles and temp targets" : {
       "comment" : "UI/UX option",
       "extractionState" : "manual",
@@ -112517,6 +112568,9 @@
           }
         }
       }
+    },
+    "Information We Collect" : {
+
     },
     "Insert Cannula" : {
       "extractionState" : "manual",
@@ -114271,6 +114325,9 @@
           }
         }
       }
+    },
+    "Introduction" : {
+
     },
     "Invalid Algorithm Response (%@)." : {
       "localizations" : {
@@ -117735,6 +117792,9 @@
           }
         }
       }
+    },
+    "Last Updated:" : {
+
     },
     "Latest Raw Algorithm Output" : {
       "localizations" : {
@@ -138787,6 +138847,9 @@
         }
       }
     },
+    "No new crash data will be collected or sent to us" : {
+
+    },
     "No Override Presets" : {
       "localizations" : {
         "bg" : {
@@ -146736,6 +146799,9 @@
         }
       }
     },
+    "Open Source Contributors" : {
+
+    },
     "OpenAPS main settings" : {
       "comment" : "Headers for settings -----------------------",
       "extractionState" : "manual",
@@ -147164,6 +147230,9 @@
           }
         }
       }
+    },
+    "Opting Out and Data Retention" : {
+
     },
     "Oref Algorithm" : {
       "localizations" : {
@@ -151394,6 +151463,9 @@
         }
       }
     },
+    "Personal identifiable information such as name, address, or email" : {
+
+    },
     "Phone NFC required!" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -151600,9 +151672,6 @@
           }
         }
       }
-    },
-    "Placeholder until policy is final." : {
-
     },
     "Play Alarm Sound" : {
       "extractionState" : "stale",
@@ -153370,6 +153439,9 @@
           }
         }
       }
+    },
+    "Previously collected crash data will still be retained for approximately 90 days" : {
+
     },
     "Primary" : {
       "localizations" : {
@@ -177460,6 +177532,9 @@
         }
       }
     },
+    "Stack trace information (technical information showing which line of code failed)" : {
+
+    },
     "STALE DATA" : {
       "comment" : "Information displayed when watch app data outdated or stale.",
       "localizations" : {
@@ -188257,6 +188332,9 @@
         }
       }
     },
+    "The following information may be sent to Crashlytics when Trio crashes:" : {
+
+    },
     "The forecasted glucose value in 4 hours based on current deviations ramping down to zero at the same rate they have been recently." : {
       "localizations" : {
         "bg" : {
@@ -188656,6 +188734,9 @@
           }
         }
       }
+    },
+    "The information we store is anonymous, so we are unable to look up information for a particular individual. However, our general data retention policy ensures that data older than 90 days is deleted, enabling us to accommodate data deletion requests by design despite having anonymous data." : {
+
     },
     "The lowest forecasted glucose during the remaining duration of insulin action (DIA)." : {
       "localizations" : {
@@ -189764,6 +189845,12 @@
           }
         }
       }
+    },
+    "The right to opt-out of crash reporting" : {
+
+    },
+    "The right to request deletion of your data" : {
+
     },
     "The settings in this section typically do not require ANY modifications. Do not alter them without a solid understanding of what you are changing and the full impact it will have on the algorithm." : {
       "localizations" : {
@@ -191074,6 +191161,9 @@
       }
     },
     "There's no rush. Take all the time you need." : {
+
+    },
+    "These files only contain code-related information that helps us understand where crashes happen. They contain no personal information about you or how you use Trio." : {
 
     },
     "These two settings determine the range outside of which you will be notified via push notifications." : {
@@ -195583,6 +195673,9 @@
         }
       }
     },
+    "This Privacy Policy explains how we collect, use, and share information when you use Trio. We respect your privacy and are committed to protecting your personal data. Please read this Privacy Policy carefully to understand our practices regarding your personal data." : {
+
+    },
     "This PumpManager has not been configured with a maximum basal rate because it was added before manual temp basal was a feature. Please go to therapy settings -> delivery limits and set a new maximum basal rate." : {
       "comment" : "Alert format string for missing temp basal configuration.",
       "extractionState" : "manual",
@@ -197916,6 +198009,9 @@
         }
       }
     },
+    "Time and date of the crash (example: \"Trio crashed on April 6, 2025 at 2:15 PM\")" : {
+
+    },
     "Time Change Detected" : {
       "localizations" : {
         "bg" : {
@@ -199827,6 +199923,9 @@
         }
       }
     },
+    "To avoid sending dSYMs to Crashlytics, you can delete the Trio target Build Phase script, titled \"Copy dSYMs to Crashlytics\"." : {
+
+    },
     "To calculate the maximum SMB allowed based on this setting, use the following formula:" : {
       "localizations" : {
         "bg" : {
@@ -200726,6 +200825,9 @@
           }
         }
       }
+    },
+    "To opt-out of crash reporting, please see the section above for details about how to configure Trio to not record crash reports." : {
+
     },
     "To prevent LOW required %d g of carbs" : {
       "comment" : "To prevent LOW required %d g of carbs",
@@ -201845,6 +201947,9 @@
           }
         }
       }
+    },
+    "Total daily doses (TDD)" : {
+
     },
     "Total Daily Doses will appear here once data is available." : {
       "localizations" : {
@@ -203187,6 +203292,9 @@
         }
       }
     },
+    "Treatment data" : {
+
+    },
     "Treatments" : {
       "comment" : "History Mode",
       "localizations" : {
@@ -203595,6 +203703,9 @@
       }
     },
     "Trio can automatically adapt insulin delivery based on inputs and glucose forecasts. Your algorithm settings play a major part in accurate and effective dosing." : {
+
+    },
+    "Trio collects the app's state on crash, device, iOS and general system info, and a stack trace." : {
 
     },
     "Trio comes with a helpful Startup Guide. We recommend opening it now and following along as you go — side by side." : {
@@ -204099,6 +204210,12 @@
           }
         }
       }
+    },
+    "Trio does not collect any health related data, e.g. glucose readings, insulin rates or doses, meal data, setting values, or similar." : {
+
+    },
+    "Trio does not track any usage metrics or any other personal data about users other than the used iPhone model and iOS version." : {
+
     },
     "Trio Facebook" : {
       "localizations" : {
@@ -205913,6 +206030,9 @@
           }
         }
       }
+    },
+    "Trio uses Google Firebase Crashlytics to collect crash reports. During the initial app setup (onboarding process), you will be asked to opt in to crash reporting. The onboarding process is the series of screens you see when first launching Trio that helps you set up the app." : {
+
     },
     "Trio v%@" : {
       "localizations" : {
@@ -215217,10 +215337,22 @@
         }
       }
     },
+    "We do not use this information for any other purpose, such as analytics, marketing, or user profiling." : {
+
+    },
+    "We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the \"Last Updated\" date." : {
+
+    },
     "We recommend reviewing them carefully — Trio will guide you step-by-step." : {
 
     },
     "We strongly recommend not changing DIA — it’s essential to stable and safe operation." : {
+
+    },
+    "We use anonymous crash report information exclusively to:" : {
+
+    },
+    "We use Google Firebase Crashlytics to collect and analyze crash reports. Crashlytics' privacy practices are governed by the Google Privacy Policy. For more information about how Crashlytics processes data, please visit their documentation." : {
 
     },
     "Week" : {
@@ -215845,6 +215977,9 @@
       }
     },
     "What This Means" : {
+
+    },
+    "What We Do NOT Collect" : {
 
     },
     "When \"Fatty Meal\" is selected in the bolus calculator, the recommended bolus will be multiplied by the \"Fatty Meal Bolus Percentage\" as well as the \"Recommended Bolus Percentage\"." : {
@@ -217776,6 +217911,9 @@
         }
       }
     },
+    "When we build the Trio app, we create special files called debug symbols (dSYMs) that help us read crash reports. Think of these like a decoder ring for crashes:" : {
+
+    },
     "which is below your Threshold (" : {
       "comment" : "Bolus pop-up / Alert string. Make translations concise!",
       "extractionState" : "manual",
@@ -218810,6 +218948,9 @@
         }
       }
     },
+    "Without dSYMs, a crash might look like: \"Error at memory address 0x1234ABCD\". With dSYMs, we can see: \"Error in function 'calculateInsulin' at line 157\"" : {
+
+    },
     "𝒳 = Max SMB Basal Minutes" : {
       "localizations" : {
         "bg" : {
@@ -219720,6 +219861,9 @@
         }
       }
     },
+    "You can opt out of crash reporting at any time through the Trio settings. If you opt out:" : {
+
+    },
     "You can pause at any time. Just be aware: if you " : {
 
     },
@@ -219822,6 +219966,9 @@
           }
         }
       }
+    },
+    "You have certain rights regarding your information, including:" : {
+
     },
     "You're All Set!" : {
 
@@ -220268,6 +220415,9 @@
       }
     },
     "your progress will not be saved." : {
+
+    },
+    "Your Rights" : {
 
     },
     "Your therapy settings, pump, and CGM configurations will be carried over." : {
