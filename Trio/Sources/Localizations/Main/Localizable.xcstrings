@@ -4453,6 +4453,9 @@
         }
       }
     },
+    "“Trio” Would Like to Use Bluetooth" : {
+
+    },
     "(" : {
       "localizations" : {
         "bg" : {
@@ -31169,6 +31172,9 @@
         }
       }
     },
+    "Allow" : {
+
+    },
     "Allow Bolusing with Shortcuts" : {
       "localizations" : {
         "bg" : {
@@ -31469,6 +31475,9 @@
           }
         }
       }
+    },
+    "Allow Notifications" : {
+
     },
     "Allow SMB for 6 hrs after a carb entry." : {
       "localizations" : {
@@ -32886,6 +32895,9 @@
           }
         }
       }
+    },
+    "Allow Trio to use Bluetooth to communicate with your insulin pump and CGM." : {
+
     },
     "Allow Upload of Statistics to NS" : {
       "comment" : "Option in preferences",
@@ -39032,6 +39044,9 @@
         }
       }
     },
+    "Authorize Trio to send notifications and use Bluetooth. You must allow both for Trio to work properly." : {
+
+    },
     "Auto-sensitivity (Autosens) adjusts insulin delivery based on observed sensitivity or resistance." : {
 
     },
@@ -43539,6 +43554,9 @@
         }
       }
     },
+    "Be warned of connectivity or looping issues." : {
+
+    },
     "Because Trio utilizes SMBs and UAM SMBs to help you reach your target glucose and other AID systems do not bolus for COB the same way Trio does, this is initially set to below the full calculated amount (80%). When SMBs and UAM SMBs are enabled, you may find your current CR results in lows and needs to be increased before you increase this setting closer to or at 100%." : {
       "localizations" : {
         "bg" : {
@@ -44055,6 +44073,12 @@
           }
         }
       }
+    },
+    "Bluetooth" : {
+
+    },
+    "Bluetooth is used to communicate with insulin pump and continuous glucose monitor devices." : {
+
     },
     "Bluetooth Power Off" : {
       "comment" : "Bluetooth Power Off",
@@ -58972,6 +58996,9 @@
           }
         }
       }
+    },
+    "Connect to your insulin pump so Trio can send dosing commands and stay active in the background." : {
+
     },
     "Connected" : {
 
@@ -77745,6 +77772,9 @@
         }
       }
     },
+    "Don’t Allow" : {
+
+    },
     "Don't Disable" : {
       "comment" : "Option to keep SMB enabled",
       "localizations" : {
@@ -81518,6 +81548,9 @@
           }
         }
       }
+    },
+    "Enable device connectivity" : {
+
     },
     "Enable Dynamic CR" : {
       "comment" : "Headline Enable Dynamic CR",
@@ -144063,6 +144096,9 @@
         }
       }
     },
+    "Notifications and Bluetooth permissions are handled to your liking." : {
+
+    },
     "Notifications give you important Trio information without requiring you to open the app." : {
       "localizations" : {
         "bg" : {
@@ -151371,6 +151407,9 @@
         }
       }
     },
+    "Permission Requests" : {
+
+    },
     "Persist sensordata" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -158541,6 +158580,12 @@
         }
       }
     },
+    "Receive glucose readings every 5 minutes from your CGM to keep the loop running." : {
+
+    },
+    "Receive optional real‑time low/high glucose alerts." : {
+
+    },
     "Received unexpected error in %@ from %@: %@" : {
       "localizations" : {
         "bg" : {
@@ -165493,6 +165538,9 @@
           }
         }
       }
+    },
+    "See a badge count when you need a carb correction." : {
+
     },
     "See a live preview of your contact image design at the top of the screen. Changes made to styles, layouts, or settings are instantly reflected." : {
       "localizations" : {
@@ -203726,6 +203774,9 @@
     "Trio can automatically adapt insulin delivery based on inputs and glucose forecasts. Your algorithm settings play a major part in accurate and effective dosing." : {
 
     },
+    "Trio can notify of different events when you use it. You must Trio to send you notifications to work properly." : {
+
+    },
     "Trio collects the app's state on crash, device, iOS and general system info, and a stack trace." : {
 
     },
@@ -205651,6 +205702,9 @@
           }
         }
       }
+    },
+    "Trio requires Bluetooth to function as a (hybrid) closed‑loop system." : {
+
     },
     "Trio State Result" : {
       "localizations" : {
@@ -219684,6 +219738,9 @@
           }
         }
       }
+    },
+    "You can change these permissions any time in the iOS Settings app." : {
+
     },
     "You can connect Trio to seamlessly upload and manage your diabetes data on Tidepool." : {
       "localizations" : {
