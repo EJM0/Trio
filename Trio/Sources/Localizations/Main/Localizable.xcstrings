@@ -203774,7 +203774,7 @@
     "Trio can automatically adapt insulin delivery based on inputs and glucose forecasts. Your algorithm settings play a major part in accurate and effective dosing." : {
 
     },
-    "Trio can notify of different events when you use it. You must Trio to send you notifications to work properly." : {
+    "Trio can notify of different events when you use it. You must allow Trio to send you notifications to work properly." : {
 
     },
     "Trio collects the app's state on crash, device, iOS and general system info, and a stack trace." : {
