@@ -6383,6 +6383,7 @@
     },
     "%.2f U of %.2f U" : {
       "comment" : "Format for showing delivered and active bolus amounts, 'x U of y U' on watch",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -48553,6 +48554,7 @@
       }
     },
     "Cancel Bolus" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
