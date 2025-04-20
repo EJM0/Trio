@@ -1661,6 +1661,9 @@
         }
       }
     },
+    " Allow Trio to send you Notifications. These may include alerts, sounds, and icon badges." : {
+
+    },
     " as a beginner." : {
 
     },
@@ -84410,6 +84413,9 @@
         }
       }
     },
+    "Enabling SMB Always will disable other subsequent \"Enable SMB\" options during Onboarding." : {
+
+    },
     "Enabling the UAM (Unannounced Meals) feature allows the system to detect and respond to unexpected rises in glucose readings caused by unannounced or miscalculated carbs, meals high in fat or protein, or other factors like adrenaline." : {
       "localizations" : {
         "bg" : {
@@ -125394,7 +125400,6 @@
       }
     },
     "Lower target glucose when Autosens Ratio is <1." : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -156980,7 +156985,6 @@
       }
     },
     "Raise target glucose if when Autosens Ratio is >1." : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -170706,6 +170710,9 @@
           }
         }
       }
+    },
+    "Setting cannot be changed for as long as \"Enable SMB Always\" is enabled." : {
+
     },
     "Setting this to 100% means only the past 24 hours will be used." : {
       "localizations" : {
@@ -216582,6 +216589,9 @@
         }
       }
     },
+    "When enabled, Super Micro Boluses (SMBs) will always be allowed if dosing calculations determine insulin is needed via the SMB delivery method, except when a high Temp Target is set." : {
+
+    },
     "When enabled, Super Micro Boluses (SMBs) will always be allowed if dosing calculations determine insulin is needed via the SMB delivery method, except when a high Temp Target is set. Enabling SMB Always will remove redundant \"Enable SMB\" options when this setting is enacted." : {
       "localizations" : {
         "bg" : {
@@ -217383,7 +217393,6 @@
       }
     },
     "When the carb on board (COB) forecast line is active, enabling this feature allows Trio to use Super Micro Boluses (SMB) to deliver the insulin required." : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
