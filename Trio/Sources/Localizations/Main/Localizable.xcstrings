@@ -22974,6 +22974,7 @@
       }
     },
     "Add a CGM and pump to enable automated insuin delivery" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -23072,6 +23073,9 @@
           }
         }
       }
+    },
+    "Add a CGM and pump to enable automated insulin delivery" : {
+
     },
     "Add a Garmin Device to Trio." : {
       "localizations" : {
@@ -43760,7 +43764,7 @@
     "Before you begin…" : {
 
     },
-    "Before you can begin with configuring your therapy settigns, Trio needs to know which units you use for your glucose and insulin measurements (based on your pump model)." : {
+    "Before you can begin with configuring your therapy settings, Trio needs to know which units you use for your glucose and insulin measurements (based on your pump model)." : {
 
     },
     "Beta (TestFlight) Expires" : {
@@ -125390,6 +125394,7 @@
       }
     },
     "Lower target glucose when Autosens Ratio is <1." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -125488,6 +125493,9 @@
           }
         }
       }
+    },
+    "Lower target glucose when Autosens Ratio is >1." : {
+
     },
     "m" : {
       "comment" : "Abbreviation for Minutes\nabbreviation for minutes",
@@ -138177,7 +138185,11 @@
         }
       }
     },
+    "No Glucose Notifications will be triggered." : {
+
+    },
     "No Glucose Notificatitons will be triggered." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -142878,7 +142890,11 @@
         }
       }
     },
+    "Note: The forecast used for this warning does not include carbs or insulin that have been logged but not yet effective." : {
+
+    },
     "Note: The forecast used for this warning does not include carbs or insulin that have not yet been logged." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -156964,6 +156980,7 @@
       }
     },
     "Raise target glucose if when Autosens Ratio is >1." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -157062,6 +157079,9 @@
           }
         }
       }
+    },
+    "Raise target glucose when Autosens Ratio is <1." : {
+
     },
     "Random variation added to each reading to simulate real-world sensor noise." : {
       "localizations" : {
@@ -217363,6 +217383,7 @@
       }
     },
     "When the carb on board (COB) forecast line is active, enabling this feature allows Trio to use Super Micro Boluses (SMB) to deliver the insulin required." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -217461,6 +217482,9 @@
           }
         }
       }
+    },
+    "When there are carbs on board (COB > 0), enabling this feature allows Trio to use Super Micro Boluses (SMB) to deliver the insulin required." : {
+
     },
     "When this feature is enabled, manually setting a temporary target above %@ %@ will decrease the Autosens Ratio used for ISF and basal adjustments, resulting in less insulin delivered overall. This scales with the temporary target set; the higher the temp target, the lower the Autosens Ratio used." : {
       "localizations" : {
