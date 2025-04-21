@@ -84413,7 +84413,7 @@
         }
       }
     },
-    "Enabling SMB Always will disable other subsequent \"Enable SMB\" options during Onboarding." : {
+    "Enabling SMB Always will disable some of the subsequent \"Enable SMB\" options during Onboarding. These redundant options will be skipped." : {
 
     },
     "Enabling the UAM (Unannounced Meals) feature allows the system to detect and respond to unexpected rises in glucose readings caused by unannounced or miscalculated carbs, meals high in fat or protein, or other factors like adrenaline." : {
@@ -170710,9 +170710,6 @@
           }
         }
       }
-    },
-    "Setting cannot be changed for as long as \"Enable SMB Always\" is enabled." : {
-
     },
     "Setting this to 100% means only the past 24 hours will be used." : {
       "localizations" : {
