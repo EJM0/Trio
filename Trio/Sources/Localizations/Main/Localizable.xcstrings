@@ -1661,6 +1661,12 @@
         }
       }
     },
+    " Allow Trio to send you Notifications. These may include alerts, sounds, and icon badges." : {
+
+    },
+    " as a beginner." : {
+
+    },
     " day(s)" : {
       "comment" : "Sensor day(s)",
       "extractionState" : "manual",
@@ -4449,6 +4455,9 @@
           }
         }
       }
+    },
+    "“Trio” Would Like to Use Bluetooth" : {
+
     },
     "(" : {
       "localizations" : {
@@ -8831,18 +8840,6 @@
       }
     },
     "•" : {
-
-    },
-    "•  App diagnostic insights help us enhance app stability, ensure safety for all users, and enable us to quickly identify and resolve critical issues." : {
-
-    },
-    "•  Trio collects the app's state on crash, device, iOS and general system info, and a stack trace." : {
-
-    },
-    "•  Trio does not collect any health related data, e.g. glucose readings, insulin rates or doses, meal data, setting values, or similar." : {
-
-    },
-    "•  Trio does not track any usage metrics or any other personal data about users other than the used iPhone model and iOS version." : {
 
     },
     "• A higher number means you need less insulin for the same amount of carbs" : {
@@ -20633,6 +20630,12 @@
         }
       }
     },
+    "A few important notes:" : {
+
+    },
+    "A generated unique identifier (a random code like \"A7B2C9D3\" that doesn't identify you personally)" : {
+
+    },
     "A heartbeat tells Trio to start a loop cycle. This is required for closed loop." : {
       "localizations" : {
         "bg" : {
@@ -30646,6 +30649,9 @@
         }
       }
     },
+    "All additional \"advanced settings\" have been reset." : {
+
+    },
     "All FPUs and the carbs of the meal will be deleted." : {
       "comment" : "Alert message for meal deletion",
       "localizations" : {
@@ -31173,6 +31179,9 @@
         }
       }
     },
+    "Allow" : {
+
+    },
     "Allow Bolusing with Shortcuts" : {
       "localizations" : {
         "bg" : {
@@ -31473,6 +31482,9 @@
           }
         }
       }
+    },
+    "Allow Notifications" : {
+
     },
     "Allow SMB for 6 hrs after a carb entry." : {
       "localizations" : {
@@ -31985,6 +31997,9 @@
           }
         }
       }
+    },
+    "Allow SMB when glucose is above the High Glucose Target value." : {
+
     },
     "Allow SMB With High Temporary Target" : {
       "extractionState" : "stale",
@@ -32888,6 +32903,9 @@
         }
       }
     },
+    "Allow Trio to use Bluetooth to communicate with your insulin pump and CGM." : {
+
+    },
     "Allow Upload of Statistics to NS" : {
       "comment" : "Option in preferences",
       "extractionState" : "manual",
@@ -33419,6 +33437,9 @@
           }
         }
       }
+    },
+    "Already using Trio and updating from an older version?" : {
+
     },
     "Also add source info" : {
       "extractionState" : "manual",
@@ -36680,6 +36701,9 @@
     "Anonymized Data Sharing" : {
 
     },
+    "Any health-related statistics or personal medical information" : {
+
+    },
     "API secret" : {
       "comment" : "API secret in NS",
       "localizations" : {
@@ -36781,7 +36805,13 @@
         }
       }
     },
+    "App diagnostic insights help us enhance app stability, ensure safety for all users, and enable us to quickly identify and resolve critical issues." : {
+
+    },
     "App Diagnostics" : {
+
+    },
+    "App diagnostics sharing, Nightscout setup, and unit and pump model selection are all complete." : {
 
     },
     "App Expires" : {
@@ -38085,6 +38115,9 @@
         }
       }
     },
+    "April 15, 2025" : {
+
+    },
     "Are you sure to add %@ g of carbs ?" : {
       "localizations" : {
         "bg" : {
@@ -38807,6 +38840,9 @@
         }
       }
     },
+    "As an open source project, crash reports and debugging information may be visible to project contributors who help maintain and improve Trio. All contributors are expected to adhere to this privacy policy and handle any data responsibly." : {
+
+    },
     "At the default setting, 35% of the calculation is based on the last 24 hours of insulin use, with the remaining 65% considering the last 10 days of data." : {
       "localizations" : {
         "bg" : {
@@ -39014,6 +39050,12 @@
           }
         }
       }
+    },
+    "Authorize Trio to send notifications and use Bluetooth. You must allow both for Trio to work properly." : {
+
+    },
+    "Auto-sensitivity (Autosens) adjusts insulin delivery based on observed sensitivity or resistance." : {
+
     },
     "Automate boluses using the iOS Shortcuts App." : {
       "localizations" : {
@@ -43519,6 +43561,9 @@
         }
       }
     },
+    "Be warned of connectivity or looping issues." : {
+
+    },
     "Because Trio utilizes SMBs and UAM SMBs to help you reach your target glucose and other AID systems do not bolus for COB the same way Trio does, this is initially set to below the full calculated amount (80%). When SMBs and UAM SMBs are enabled, you may find your current CR results in lows and needs to be increased before you increase this setting closer to or at 100%." : {
       "localizations" : {
         "bg" : {
@@ -43925,6 +43970,9 @@
         }
       }
     },
+    "Blood glucose (BG) readings" : {
+
+    },
     "Blood Glucose Test" : {
       "comment" : "Add Blood Glucose Test, headerAdd Blood Glucose Test, header",
       "extractionState" : "manual",
@@ -44032,6 +44080,12 @@
           }
         }
       }
+    },
+    "Bluetooth" : {
+
+    },
+    "Bluetooth is used to communicate with insulin pump and continuous glucose monitor devices." : {
+
     },
     "Bluetooth Power Off" : {
       "comment" : "Bluetooth Power Off",
@@ -53254,6 +53308,9 @@
         }
       }
     },
+    "Changes to This Privacy Policy" : {
+
+    },
     "Chart" : {
       "localizations" : {
         "bg" : {
@@ -57823,6 +57880,9 @@
         }
       }
     },
+    "Configure diagnostics sharing, optionally sync with Nightscout, and enter essentials." : {
+
+    },
     "Configure Libre Transmitter" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -58029,6 +58089,9 @@
           }
         }
       }
+    },
+    "Configure the algorithm…" : {
+
     },
     "Configure Yourself" : {
 
@@ -58941,6 +59004,9 @@
         }
       }
     },
+    "Connect to your insulin pump so Trio can send dosing commands and stay active in the background." : {
+
+    },
     "Connected" : {
 
     },
@@ -59659,6 +59725,9 @@
           }
         }
       }
+    },
+    "Contact Us" : {
+
     },
     "Contacts Configuration" : {
       "localizations" : {
@@ -60576,6 +60645,12 @@
           }
         }
       }
+    },
+    "Crash Reporting (Opt-In by default, with ability to Opt-Out)" : {
+
+    },
+    "Crashlytics" : {
+
     },
     "Create Calendar Events" : {
       "extractionState" : "stale",
@@ -62430,6 +62505,9 @@
         }
       }
     },
+    "Customize Trio’s algorithm features. Most users start with the recommended settings." : {
+
+    },
     "CV" : {
       "comment" : "CV",
       "localizations" : {
@@ -63234,6 +63312,9 @@
           }
         }
       }
+    },
+    "Data Sharing and Third-Party Services" : {
+
     },
     "Date" : {
       "localizations" : {
@@ -64071,6 +64152,9 @@
           }
         }
       }
+    },
+    "Debug Symbols (dSYMs)" : {
+
     },
     "Decrease sensitivity when glucose is below target if a manual Temp Target < %@ %@ is set." : {
       "localizations" : {
@@ -69530,6 +69614,9 @@
         }
       }
     },
+    "Define your glucose targets, basal rates, carb ratios, and insulin sensitivities." : {
+
+    },
     "Delay between fat & protein entry and first FPU entry." : {
       "localizations" : {
         "bg" : {
@@ -72746,6 +72833,12 @@
         }
       }
     },
+    "Device model and OS version (example: \"iPhone 14 Pro running iOS 17.4.1\")" : {
+
+    },
+    "Device state at the time of the crash (example: \"Trio was in the foreground\" or \"Battery level was 42%\")" : {
+
+    },
     "Devices" : {
       "localizations" : {
         "bg" : {
@@ -73770,6 +73863,9 @@
           }
         }
       }
+    },
+    "Disable Sharing" : {
+
     },
     "Disable SMBs" : {
       "localizations" : {
@@ -77683,6 +77779,9 @@
         }
       }
     },
+    "Don’t Allow" : {
+
+    },
     "Don't Disable" : {
       "comment" : "Option to keep SMB enabled",
       "localizations" : {
@@ -78995,6 +79094,9 @@
           }
         }
       }
+    },
+    "Dynamic ISF requires at least 7 days of usage data and is not yet configurable." : {
+
     },
     "Dynamic ISF/CR" : {
       "localizations" : {
@@ -80828,6 +80930,9 @@
         }
       }
     },
+    "Email us" : {
+
+    },
     "Emoji or short text" : {
       "localizations" : {
         "bg" : {
@@ -81450,6 +81555,9 @@
           }
         }
       }
+    },
+    "Enable device connectivity" : {
+
     },
     "Enable Dynamic CR" : {
       "comment" : "Headline Enable Dynamic CR",
@@ -82775,6 +82883,9 @@
         }
       }
     },
+    "Enable Sharing" : {
+
+    },
     "Enable SMB After Carbs" : {
       "comment" : "Enable SMB After Carbs",
       "localizations" : {
@@ -83178,6 +83289,9 @@
           }
         }
       }
+    },
+    "Enable SMB With High Glucose" : {
+      "comment" : "Enable SMB With High Glucose"
     },
     "Enable SMB With Temporary Target" : {
       "extractionState" : "stale",
@@ -84299,6 +84413,9 @@
         }
       }
     },
+    "Enabling SMB Always will disable some of the subsequent \"Enable SMB\" options during Onboarding. These redundant options will be skipped." : {
+
+    },
     "Enabling the UAM (Unannounced Meals) feature allows the system to detect and respond to unexpected rises in glucose readings caused by unannounced or miscalculated carbs, meals high in fat or protein, or other factors like adrenaline." : {
       "localizations" : {
         "bg" : {
@@ -85010,6 +85127,9 @@
           }
         }
       }
+    },
+    "Enabling this feature allows Trio to deliver insulin required using Super Micro Boluses (SMB) when glucose reading is above the value set as High Glucose Target." : {
+
     },
     "Enabling this feature allows you to create and save preset meals." : {
       "localizations" : {
@@ -88374,6 +88494,9 @@
           }
         }
       }
+    },
+    "Even if you’re an updating user, you’ll be guided through this step-by-step." : {
+
     },
     "Eventual Glucose" : {
       "localizations" : {
@@ -95192,6 +95315,9 @@
     "For 45g of carbs, you would need:" : {
 
     },
+    "For complete transparency, we want to clarify that Trio does not collect:" : {
+
+    },
     "For example, at a temp target of %@ %@, your basal is reduced to 50%%, but this scales depending on the target (e.g., 75%% at %@ %@, 60%% at %@ %@)." : {
       "localizations" : {
         "bg" : {
@@ -100992,6 +101118,9 @@
         }
       }
     },
+    "Glucose target, basal rates, carb ratios, and insulin sensitivity match your needs." : {
+
+    },
     "Glucose Targets" : {
       "localizations" : {
         "bg" : {
@@ -102015,6 +102144,9 @@
         }
       }
     },
+    "Google Privacy Policy" : {
+
+    },
     "Got it!" : {
       "localizations" : {
         "bg" : {
@@ -102114,6 +102246,9 @@
           }
         }
       }
+    },
+    "Got it! I'm ready to continue." : {
+
     },
     "Gradient Purple = As readings approach and exceed above target, they become more purple." : {
       "localizations" : {
@@ -105109,6 +105244,9 @@
         }
       }
     },
+    "High Glucose Target" : {
+
+    },
     "High Limit" : {
       "localizations" : {
         "bg" : {
@@ -107162,6 +107300,9 @@
         }
       }
     },
+    "How We Use Your Information" : {
+
+    },
     "hr" : {
       "comment" : "Hours abbreviation",
       "localizations" : {
@@ -107264,6 +107405,12 @@
       }
     },
     "https://triodocs.org/startup-guide" : {
+
+    },
+    "I have read and accept the" : {
+
+    },
+    "Identify and fix bugs and crashes" : {
 
     },
     "If \"Display IOB and COB\" is also enabled, \"IOB\" and \"COB\" will be replaced with the following emojis:" : {
@@ -108988,6 +109135,9 @@
           }
         }
       }
+    },
+    "If you have any questions about this Privacy Policy, please contact us on Discord, or send us an email." : {
+
     },
     "If you prefer not to share this anonymized data, you can opt-out of data sharing." : {
 
@@ -111144,6 +111294,9 @@
     "Importing Settings..." : {
       "comment" : "Progress text when importing settings via Nightscout"
     },
+    "Improve Trio's stability" : {
+
+    },
     "In case you're using both profiles and temp targets" : {
       "comment" : "UI/UX option",
       "extractionState" : "manual",
@@ -111352,6 +111505,9 @@
           }
         }
       }
+    },
+    "In the next few steps, you’ll configure your algorithm settings for" : {
+
     },
     "Include IOB & COB in the calendar event data." : {
       "localizations" : {
@@ -112467,6 +112623,9 @@
           }
         }
       }
+    },
+    "Information We Collect" : {
+
     },
     "Insert Cannula" : {
       "extractionState" : "manual",
@@ -114221,6 +114380,9 @@
           }
         }
       }
+    },
+    "Introduction" : {
+
     },
     "Invalid Algorithm Response (%@)." : {
       "localizations" : {
@@ -117686,6 +117848,9 @@
         }
       }
     },
+    "Last Updated:" : {
+
+    },
     "Latest Raw Algorithm Output" : {
       "localizations" : {
         "bg" : {
@@ -118085,6 +118250,9 @@
           }
         }
       }
+    },
+    "leave everything on default" : {
+
     },
     "Let's go through a few quick steps to ensure Trio works optimally for you." : {
 
@@ -125232,7 +125400,6 @@
       }
     },
     "Lower target glucose when Autosens Ratio is <1." : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -138742,6 +138909,9 @@
         }
       }
     },
+    "No new crash data will be collected or sent to us" : {
+
+    },
     "No Override Presets" : {
       "localizations" : {
         "bg" : {
@@ -143947,6 +144117,9 @@
         }
       }
     },
+    "Notifications and Bluetooth permissions are handled to your liking." : {
+
+    },
     "Notifications give you important Trio information without requiring you to open the app." : {
       "localizations" : {
         "bg" : {
@@ -145782,6 +145955,12 @@
         }
       }
     },
+    "One last thing, before you begin..." : {
+
+    },
+    "Only adjust these settings if you’re an advanced or returning user who knows what they’re doing." : {
+
+    },
     "Only Alarm Limits" : {
       "comment" : "Option to notify only when glucose reaches alarm limits",
       "localizations" : {
@@ -146692,6 +146871,9 @@
         }
       }
     },
+    "Open Source Contributors" : {
+
+    },
     "OpenAPS main settings" : {
       "comment" : "Headers for settings -----------------------",
       "extractionState" : "manual",
@@ -147121,6 +147303,9 @@
         }
       }
     },
+    "Opting Out and Data Retention" : {
+
+    },
     "Oref Algorithm" : {
       "localizations" : {
         "bg" : {
@@ -147428,6 +147613,9 @@
           }
         }
       }
+    },
+    "Our strong recommendation is to " : {
+
     },
     "Override" : {
       "localizations" : {
@@ -151240,6 +151428,9 @@
         }
       }
     },
+    "Permission Requests" : {
+
+    },
     "Persist sensordata" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -151346,6 +151537,9 @@
           }
         }
       }
+    },
+    "Personal identifiable information such as name, address, or email" : {
+
     },
     "Phone NFC required!" : {
       "extractionState" : "manual",
@@ -152810,6 +153004,9 @@
         }
       }
     },
+    "Prepare Trio" : {
+
+    },
     "Preset" : {
       "localizations" : {
         "bg" : {
@@ -153318,6 +153515,9 @@
         }
       }
     },
+    "Previously collected crash data will still be retained for approximately 90 days" : {
+
+    },
     "Primary" : {
       "localizations" : {
         "bg" : {
@@ -153417,6 +153617,9 @@
           }
         }
       }
+    },
+    "Privacy Policy" : {
+
     },
     "Proceed" : {
       "comment" : "Button Label to Proceed to Bolus on Watch",
@@ -156782,7 +156985,6 @@
       }
     },
     "Raise target glucose if when Autosens Ratio is >1." : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -158401,6 +158603,12 @@
           }
         }
       }
+    },
+    "Receive glucose readings every 5 minutes from your CGM to keep the loop running." : {
+
+    },
+    "Receive optional real‑time low/high glucose alerts." : {
+
     },
     "Received unexpected error in %@ from %@: %@" : {
       "localizations" : {
@@ -162882,6 +163090,9 @@
         }
       }
     },
+    "Safety boundaries for insulin delivery and carb entries are set to help Trio keep you safe." : {
+
+    },
     "Save" : {
       "comment" : "Save preset namebutton title for saving low reservoir reminder",
       "localizations" : {
@@ -165351,6 +165562,9 @@
           }
         }
       }
+    },
+    "See a badge count when you need a carb correction." : {
+
     },
     "See a live preview of your contact image design at the top of the screen. Changes made to styles, layouts, or settings are instantly reflected." : {
       "localizations" : {
@@ -168860,6 +169074,9 @@
           }
         }
       }
+    },
+    "Set boundaries for insulin delivery and carb entries to help Trio keep you safe." : {
+
     },
     "Set Display Values" : {
       "localizations" : {
@@ -175068,6 +175285,9 @@
         }
       }
     },
+    "SMB (Super Micro Bolus) is an oref algorithm feature that delivers small frequent boluses instead of temporary basals for faster glucose control." : {
+
+    },
     "SMB Delivery Ratio" : {
       "comment" : "SMB Delivery Ratio",
       "localizations" : {
@@ -177401,6 +177621,9 @@
           }
         }
       }
+    },
+    "Stack trace information (technical information showing which line of code failed)" : {
+
     },
     "STALE DATA" : {
       "comment" : "Information displayed when watch app data outdated or stale.",
@@ -181670,6 +181893,9 @@
         }
       }
     },
+    "Super Micro Bolus" : {
+
+    },
     "Super Micro Bolus (SMB)" : {
       "localizations" : {
         "bg" : {
@@ -184095,6 +184321,9 @@
           }
         }
       }
+    },
+    "Target Behavior allows you to adjust how temporary targets influence ISF, basal, and auto-targeting based on sensitivity or resistance." : {
+
     },
     "Target Glucose" : {
       "extractionState" : "manual",
@@ -187690,6 +187919,9 @@
         }
       }
     },
+    "The duration of insulin action (DIA) is now locked to Trio’s new default of 10 hours." : {
+
+    },
     "The Fat and Protein Delay setting defines the time between when you log fat and protein and when the system starts delivering insulin for the Fat-Protein Unit Carb Equivalents (FPUs)." : {
       "localizations" : {
         "bg" : {
@@ -188190,6 +188422,9 @@
         }
       }
     },
+    "The following information may be sent to Crashlytics when Trio crashes:" : {
+
+    },
     "The forecasted glucose value in 4 hours based on current deviations ramping down to zero at the same rate they have been recently." : {
       "localizations" : {
         "bg" : {
@@ -188589,6 +188824,9 @@
           }
         }
       }
+    },
+    "The information we store is anonymous, so we are unable to look up information for a particular individual. However, our general data retention policy ensures that data older than 90 days is deleted, enabling us to accommodate data deletion requests by design despite having anonymous data." : {
+
     },
     "The lowest forecasted glucose during the remaining duration of insulin action (DIA)." : {
       "localizations" : {
@@ -189697,6 +189935,12 @@
           }
         }
       }
+    },
+    "The right to opt-out of crash reporting" : {
+
+    },
+    "The right to request deletion of your data" : {
+
     },
     "The settings in this section typically do not require ANY modifications. Do not alter them without a solid understanding of what you are changing and the full impact it will have on the algorithm." : {
       "localizations" : {
@@ -191007,6 +191251,9 @@
       }
     },
     "There's no rush. Take all the time you need." : {
+
+    },
+    "These files only contain code-related information that helps us understand where crashes happen. They contain no personal information about you or how you use Trio." : {
 
     },
     "These two settings determine the range outside of which you will be notified via push notifications." : {
@@ -193765,6 +194012,9 @@
         }
       }
     },
+    "This is a safety limitation to avoid high SMB doses when glucose is rising abnormally fast, such as after a meal or with a very jumpy CGM sensor." : {
+
+    },
     "This is a setting for default carb absorption impact per 5 minutes. The default is an expected 8 mg/dL/5min. This affects how fast COB is decayed in situations when carb absorption is not visible in BG deviations. The default of 8 mg/dL/5min corresponds to a minimum carb absorption rate of 24g/hr at a CSF of 4 mg/dL/g." : {
       "comment" : "\"Min 5m Carbimpact\"",
       "extractionState" : "manual",
@@ -195515,6 +195765,9 @@
           }
         }
       }
+    },
+    "This Privacy Policy explains how we collect, use, and share information when you use Trio. We respect your privacy and are committed to protecting your personal data. Please read this Privacy Policy carefully to understand our practices regarding your personal data." : {
+
     },
     "This PumpManager has not been configured with a maximum basal rate because it was added before manual temp basal was a feature. Please go to therapy settings -> delivery limits and set a new maximum basal rate." : {
       "comment" : "Alert format string for missing temp basal configuration.",
@@ -197849,6 +198102,9 @@
         }
       }
     },
+    "Time and date of the crash (example: \"Trio crashed on April 6, 2025 at 2:15 PM\")" : {
+
+    },
     "Time Change Detected" : {
       "localizations" : {
         "bg" : {
@@ -199760,6 +200016,9 @@
         }
       }
     },
+    "To avoid sending dSYMs to Crashlytics, you can delete the Trio target Build Phase script, titled \"Copy dSYMs to Crashlytics\"." : {
+
+    },
     "To calculate the maximum SMB allowed based on this setting, use the following formula:" : {
       "localizations" : {
         "bg" : {
@@ -200659,6 +200918,9 @@
           }
         }
       }
+    },
+    "To opt-out of crash reporting, please see the section above for details about how to configure Trio to not record crash reports." : {
+
     },
     "To prevent LOW required %d g of carbs" : {
       "comment" : "To prevent LOW required %d g of carbs",
@@ -201778,6 +202040,9 @@
           }
         }
       }
+    },
+    "Total daily doses (TDD)" : {
+
     },
     "Total Daily Doses will appear here once data is available." : {
       "localizations" : {
@@ -203120,6 +203385,9 @@
         }
       }
     },
+    "Treatment data" : {
+
+    },
     "Treatments" : {
       "comment" : "History Mode",
       "localizations" : {
@@ -203526,6 +203794,15 @@
           }
         }
       }
+    },
+    "Trio can automatically adapt insulin delivery based on inputs and glucose forecasts. Your algorithm settings play a major part in accurate and effective dosing." : {
+
+    },
+    "Trio can notify of different events when you use it. You must allow Trio to send you notifications to work properly." : {
+
+    },
+    "Trio collects the app's state on crash, device, iOS and general system info, and a stack trace." : {
+
     },
     "Trio comes with a helpful Startup Guide. We recommend opening it now and following along as you go — side by side." : {
 
@@ -204029,6 +204306,12 @@
           }
         }
       }
+    },
+    "Trio does not collect any health related data, e.g. glucose readings, insulin rates or doses, meal data, setting values, or similar." : {
+
+    },
+    "Trio does not track any usage metrics or any other personal data about users other than the used iPhone model and iOS version." : {
+
     },
     "Trio Facebook" : {
       "localizations" : {
@@ -204630,6 +204913,9 @@
           }
         }
       }
+    },
+    "Trio includes several algorithm settings that allow you to customize the oref algorithm behavior to suit your specific needs." : {
+
     },
     "Trio includes several safety limits for insulin delivery and carbohydrate entry, helping ensure a safe and effective experience." : {
 
@@ -205441,6 +205727,9 @@
         }
       }
     },
+    "Trio requires Bluetooth to function as a (hybrid) closed‑loop system." : {
+
+    },
     "Trio State Result" : {
       "localizations" : {
         "bg" : {
@@ -205840,6 +206129,9 @@
           }
         }
       }
+    },
+    "Trio uses Google Firebase Crashlytics to collect crash reports. During the initial app setup (onboarding process), you will be asked to opt in to crash reporting. The onboarding process is the series of screens you see when first launching Trio that helps you set up the app." : {
+
     },
     "Trio v%@" : {
       "localizations" : {
@@ -206350,7 +206642,10 @@
         }
       }
     },
-    "Trio's Onboarding consists of several steps. It takes about 5-10 minutes to complete. We'll guide you through each step." : {
+    "Trio’s algorithm features are customized to fit your preferences and needs." : {
+
+    },
+    "Trio's Onboarding takes about 15-30 minutes to complete. We'll guide you through each step." : {
 
     },
     "Trio's Simple Lock Screen Widget displays current glucose reading, trend arrow, delta and the timestamp of the current reading." : {
@@ -215144,6 +215439,24 @@
         }
       }
     },
+    "We do not use this information for any other purpose, such as analytics, marketing, or user profiling." : {
+
+    },
+    "We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the \"Last Updated\" date." : {
+
+    },
+    "We recommend reviewing them carefully — Trio will guide you step-by-step." : {
+
+    },
+    "We strongly recommend not changing DIA — it’s essential to stable and safe operation." : {
+
+    },
+    "We use anonymous crash report information exclusively to:" : {
+
+    },
+    "We use Google Firebase Crashlytics to collect and analyze crash reports. Crashlytics' privacy practices are governed by the Google Privacy Policy. For more information about how Crashlytics processes data, please visit their documentation." : {
+
+    },
     "Week" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -215768,6 +216081,9 @@
     "What This Means" : {
 
     },
+    "What We Do NOT Collect" : {
+
+    },
     "When \"Fatty Meal\" is selected in the bolus calculator, the recommended bolus will be multiplied by the \"Fatty Meal Bolus Percentage\" as well as the \"Recommended Bolus Percentage\"." : {
       "localizations" : {
         "bg" : {
@@ -216269,6 +216585,9 @@
           }
         }
       }
+    },
+    "When enabled, Super Micro Boluses (SMBs) will always be allowed if dosing calculations determine insulin is needed via the SMB delivery method, except when a high Temp Target is set." : {
+
     },
     "When enabled, Super Micro Boluses (SMBs) will always be allowed if dosing calculations determine insulin is needed via the SMB delivery method, except when a high Temp Target is set. Enabling SMB Always will remove redundant \"Enable SMB\" options when this setting is enacted." : {
       "localizations" : {
@@ -217071,7 +217390,6 @@
       }
     },
     "When the carb on board (COB) forecast line is active, enabling this feature allows Trio to use Super Micro Boluses (SMB) to deliver the insulin required." : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -217700,6 +218018,9 @@
           }
         }
       }
+    },
+    "When we build the Trio app, we create special files called debug symbols (dSYMs) that help us read crash reports. Think of these like a decoder ring for crashes:" : {
+
     },
     "which is below your Threshold (" : {
       "comment" : "Bolus pop-up / Alert string. Make translations concise!",
@@ -218735,6 +219056,9 @@
         }
       }
     },
+    "Without dSYMs, a crash might look like: \"Error at memory address 0x1234ABCD\". With dSYMs, we can see: \"Error in function 'calculateInsulin' at line 157\"" : {
+
+    },
     "𝒳 = Max SMB Basal Minutes" : {
       "localizations" : {
         "bg" : {
@@ -219445,6 +219769,9 @@
         }
       }
     },
+    "You can change these permissions any time in the iOS Settings app." : {
+
+    },
     "You can connect Trio to seamlessly upload and manage your diabetes data on Tidepool." : {
       "localizations" : {
         "bg" : {
@@ -219645,6 +219972,9 @@
         }
       }
     },
+    "You can opt out of crash reporting at any time through the Trio settings. If you opt out:" : {
+
+    },
     "You can pause at any time. Just be aware: if you " : {
 
     },
@@ -219748,10 +220078,16 @@
         }
       }
     },
+    "You have certain rights regarding your information, including:" : {
+
+    },
     "You're All Set!" : {
 
     },
-    "You've successfully completed the initial setup of Trio. Tap 'Get Started' to save your settings and get ready to start using Trio." : {
+    "You've successfully completed the initial setup of Trio. Tap 'Get Started' to save your settings and start using Trio." : {
+
+    },
+    "Your algorithm settings (previously called \"OpenAPS settings\") will be reset to defaults." : {
 
     },
     "Your basal profile represents the amount of background insulin you need throughout the day. This helps Trio calculate your insulin needs." : {
@@ -220190,6 +220526,12 @@
       }
     },
     "your progress will not be saved." : {
+
+    },
+    "Your Rights" : {
+
+    },
+    "Your therapy settings, pump, and CGM configurations will be carried over." : {
 
     },
     "ZT" : {
