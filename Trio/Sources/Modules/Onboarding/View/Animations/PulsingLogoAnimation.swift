@@ -1,5 +1,5 @@
 //
-//  LogoAnimation.swift
+//  PulsingLogoAnimation.swift
 //  Trio
 //
 //  Created by Marvin Polscheit on 11.04.25.
