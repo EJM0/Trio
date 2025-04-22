@@ -94783,8 +94783,12 @@
         }
       }
     },
+    "Error! Bolus cancellation failed with error: %@" : {
+      "comment" : "Error message for canceling a bolus"
+    },
     "Error! Bolus cancellation failed." : {
       "comment" : "Error message for canceling a bolus",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -94884,8 +94888,11 @@
         }
       }
     },
+    "Error! Bolus failed with error: %@" : {
+
+    },
     "Error! Failed to enact bolus." : {
-      "comment" : "Error message for enacting a bolus\nError message for failing to enact a bolus",
+      "comment" : "Error message for enacting a bolus",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
