@@ -42973,6 +42973,9 @@
         }
       }
     },
+    "Autosens Max sets the maximum Sensitivity Ratio used by Autosens, Dynamic ISF, and Sigmoid Formula." : {
+
+    },
     "Autosens Min" : {
       "comment" : "Autosens Min",
       "localizations" : {
@@ -43174,7 +43177,11 @@
         }
       }
     },
+    "Autosens Min sets the minimum Sensitivity Ratio used by Autosens, Dynamic ISF, and Sigmoid Formula." : {
+
+    },
     "Autosens modifies Insulin Sensitivity Factor (ISF), basal rates, and target blood sugar levels. It doesn’t account for carbs but adjusts for insulin effectiveness based on patterns in your glucose data." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -43273,6 +43280,9 @@
           }
         }
       }
+    },
+    "Autosens modifies Insulin Sensitivity Factor (ISF), basal rates, and target glucose. It doesn’t account for carbs but adjusts for insulin effectiveness based on patterns in your glucose data." : {
+
     },
     "Autosens Ratio" : {
       "localizations" : {
@@ -126054,6 +126064,7 @@
       }
     },
     "Key Limitations" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -134816,6 +134827,9 @@
           }
         }
       }
+    },
+    "Lower limit of the Sensitivity Ratio." : {
+
     },
     "Lower target glucose when Autosens Ratio is <1." : {
       "localizations" : {
@@ -168017,6 +168031,9 @@
           }
         }
       }
+    },
+    "Pump rewind initiates a reset in Sensitivity Ratio." : {
+
     },
     "Pump Settings" : {
       "extractionState" : "manual",
@@ -203923,6 +203940,9 @@
         }
       }
     },
+    "The Sensitivity Ratio is used to calculate the amount of adjustment needed to basal rates and ISF." : {
+
+    },
     "The settings in this section typically do not require ANY modifications. Do not alter them without a solid understanding of what you are changing and the full impact it will have on the algorithm." : {
       "localizations" : {
         "bg" : {
@@ -207261,6 +207281,9 @@
           }
         }
       }
+    },
+    "This feature resets the Sensitivity Ratio to neutral when you rewind your pump on the assumption that this corresponds to a site change." : {
+
     },
     "This feature was previously enabled by default but will now default to false (will NOT be enabled automatically) in oref0 0.6.0 and beyond. (There is no need for this with 0.6.0). This feature lowers oref0’s target BG automatically when current BG and eventualBG are high. This helps prevent and mitigate high BG, but automatically switches to low-temping to ensure that BG comes down smoothly toward your actual target. If you find this behavior too aggressive, you can disable this feature. If you do so, please let us know so we can better understand what settings work best for everyone." : {
       "comment" : "”Advanced Target Adjustments\"",
@@ -213677,6 +213700,9 @@
         }
       }
     },
+    "Tip: Decreasing this value allows automatic adjustments of basal rates to be lower and ISF to be higher." : {
+
+    },
     "Tip: Decreasing this value allows automatic adjustments of basal rates to be lower, ISF to be higher, and CR to be higher." : {
       "localizations" : {
         "bg" : {
@@ -213976,6 +214002,9 @@
           }
         }
       }
+    },
+    "Tip: Increasing this value allows automatic adjustments of basal rates to be higher and ISF to be lower." : {
+
     },
     "Tip: Increasing this value allows automatic adjustments of basal rates to be higher, ISF to be lower, and CR to be lower." : {
       "localizations" : {
@@ -227329,6 +227358,9 @@
           }
         }
       }
+    },
+    "Upper limit of the Sensitivity Ratio." : {
+
     },
     "URL" : {
       "localizations" : {
