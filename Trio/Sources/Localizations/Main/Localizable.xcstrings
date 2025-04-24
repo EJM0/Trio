@@ -142050,7 +142050,11 @@
         }
       }
     },
+    "Medtronic and Dana Users Only" : {
+
+    },
     "Medtronic Users Only" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
