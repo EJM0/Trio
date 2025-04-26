@@ -47686,9 +47686,6 @@
         }
       }
     },
-    "Bluetooth Access Required" : {
-
-    },
     "Bluetooth is used to communicate with insulin pump and continuous glucose monitor devices." : {
       "localizations" : {
         "bg" : {
@@ -47896,6 +47893,9 @@
           }
         }
       }
+    },
+    "Bluetooth Required" : {
+
     },
     "Bluetooth State restored (APS restarted?). Found %d peripherals, and connected to %@ with identifier %@" : {
       "comment" : "Restored state message",
@@ -87586,9 +87586,6 @@
           }
         }
       }
-    },
-    "Enable Bluetooth in Settings" : {
-
     },
     "Enable device connectivity" : {
       "localizations" : {
@@ -197342,6 +197339,9 @@
           }
         }
       }
+    },
+    "Tap to Enable Bluetooth in iOS Settings" : {
+
     },
     "tapped save schedules" : {
       "extractionState" : "manual",
