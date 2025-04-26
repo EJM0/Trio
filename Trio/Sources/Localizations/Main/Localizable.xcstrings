@@ -47686,6 +47686,9 @@
         }
       }
     },
+    "Bluetooth Access Required" : {
+
+    },
     "Bluetooth is used to communicate with insulin pump and continuous glucose monitor devices." : {
       "localizations" : {
         "bg" : {
@@ -87583,6 +87586,9 @@
           }
         }
       }
+    },
+    "Enable Bluetooth in Settings" : {
+
     },
     "Enable device connectivity" : {
       "localizations" : {
