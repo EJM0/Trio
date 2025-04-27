@@ -2897,6 +2897,7 @@
       }
     },
     " the app before finishing onboarding, " : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -32207,6 +32208,9 @@
         }
       }
     },
+    "All entries you made during Onboarding will be saved automatically when you complete the wizard." : {
+
+    },
     "All FPUs and the carbs of the meal will be deleted." : {
       "comment" : "Alert message for meal deletion",
       "localizations" : {
@@ -46677,6 +46681,9 @@
           }
         }
       }
+    },
+    "Be aware" : {
+
     },
     "Be warned of connectivity or looping issues." : {
       "localizations" : {
@@ -102936,6 +102943,7 @@
       }
     },
     "force quit" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -111791,6 +111799,9 @@
         }
       }
     },
+    "Here's what you can expect to be preserved:" : {
+
+    },
     "Hi there!" : {
       "localizations" : {
         "bg" : {
@@ -119635,6 +119646,9 @@
         }
       }
     },
+    "Important" : {
+
+    },
     "Important message" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -125965,6 +125979,9 @@
           }
         }
       }
+    },
+    "Just be aware: if you force quit the app before finishing onboarding, your progress will not be saved." : {
+
     },
     "Keep these turned ON in your phone’s settings to ensure you receive Trio Notifications, Critical Alerts, and Time Sensitive Notifications." : {
       "localizations" : {
@@ -238551,7 +238568,11 @@
         }
       }
     },
+    "You can pause at any time. If you feel like taking a break, do it and put the phone down!" : {
+
+    },
     "You can pause at any time. Just be aware: if you " : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -238851,6 +238872,9 @@
         }
       }
     },
+    "You will also be guided through re-configuring your algorithm settings, respecting Trio's new guardrails." : {
+
+    },
     "You're All Set!" : {
       "localizations" : {
         "bg" : {
@@ -239051,7 +239075,11 @@
         }
       }
     },
+    "Your algorithm settings (previously called \"OpenAPS settings\") are reset to defaults." : {
+
+    },
     "Your algorithm settings (previously called \"OpenAPS settings\") will be reset to defaults." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -239975,6 +240003,7 @@
       }
     },
     "your progress will not be saved." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -240073,6 +240102,9 @@
           }
         }
       }
+    },
+    "Your pump and CGM configurations are retained and fully functional." : {
+
     },
     "Your Rights" : {
       "localizations" : {
@@ -240174,7 +240206,11 @@
         }
       }
     },
+    "Your therapy settings (basal rates, carb ratios, insulin sensitivities and glucose targets) are carried over." : {
+
+    },
     "Your therapy settings, pump, and CGM configurations will be carried over." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -240273,6 +240309,9 @@
           }
         }
       }
+    },
+    "Your treatment data (pump events, carb entries, glucose trace, etc.) are not migrated." : {
+
     },
     "ZT" : {
       "localizations" : {
