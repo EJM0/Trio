@@ -1,19 +1,17 @@
 //
-//  StartupReturningUserStepView.swift
+//  AlgorithmSettingsImportantNotesStepView.swift
 //  Trio
 //
-//  Created by Cengiz Deniz on 27.04.25.
+//  Created by Cengiz Deniz on 14.04.25
 //
 import SwiftUI
 
-struct StartupReturningUserStepView: View {
+struct AlgorithmSettingsImportantNotesStepView: View {
     @Bindable var state: Onboarding.StateModel
-
-    @Environment(\.openURL) var openURL
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Already using Trio and updating from an older version?")
+            Text("A few important notes…")
                 .padding(.horizontal)
                 .font(.title3)
                 .bold()
@@ -25,11 +23,8 @@ struct StartupReturningUserStepView: View {
                     Text("Important").foregroundStyle(Color.orange)
                 }.bold()
 
-                Text("Your treatment data (pump events, carb entries, glucose trace, etc.) are not migrated.")
-
-                Divider().overlay(Color.orange)
-
-                Text("Your algorithm settings (previously called \"OpenAPS settings\") are reset to defaults.")
+                Text("Dynamic ISF requires at least ") + Text("7 days")
+                    .bold() + Text(" of usage data and is not yet configurable.")
             }
             .frame(maxWidth: .infinity)
             .padding()
@@ -41,24 +36,24 @@ struct StartupReturningUserStepView: View {
             .cornerRadius(10)
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("Here's what you can expect to be preserved:")
+                Text("Some helpful reminders:")
                     .font(.headline)
                     .padding(.bottom, 4)
+                    .multilineTextAlignment(.leading)
 
-                BulletPoint(String(localized: "Your pump and CGM configurations are retained and fully functional."))
                 BulletPoint(
                     String(
-                        localized: "Your therapy settings (basal rates, carb ratios, insulin sensitivities and glucose targets) are carried over."
+                        localized: "Even if you’re an updating user, you’ll be guided through the algorithm settings configuration step-by-step."
                     )
                 )
-                BulletPoint(String(localized: "We recommend reviewing them carefully — Trio will guide you step-by-step."))
+                BulletPoint(String(localized: "All additional \"advanced settings\" have been reset."))
                 BulletPoint(
-                    String(
-                        localized: "You will also be guided through re-configuring your algorithm settings, respecting Trio's new guardrails."
-                    )
+                    String(localized: "The duration of insulin action (DIA) is now locked to Trio’s new default of 10 hours.")
+                )
+                BulletPoint(
+                    String(localized: "We strongly recommend not changing DIA — it’s essential to stable and safe operation.")
                 )
             }
-            .frame(maxWidth: .infinity)
             .padding()
             .background(Color.chart.opacity(0.65))
             .cornerRadius(10)
