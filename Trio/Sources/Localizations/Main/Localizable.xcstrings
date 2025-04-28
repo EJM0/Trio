@@ -31272,6 +31272,9 @@
         }
       }
     },
+    "After completing onboarding, a red banner will appear on Trio's main screen to guide you to the iOS Settings app, where you can enable notifications." : {
+
+    },
     "Agree and continue" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -154816,6 +154819,9 @@
           }
         }
       }
+    },
+    "Notifications for “Trio” are Disabled" : {
+
     },
     "Notifications give you important Trio information without requiring you to open the app." : {
       "localizations" : {
