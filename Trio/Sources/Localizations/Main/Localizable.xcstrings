@@ -2687,6 +2687,9 @@
         }
       }
     },
+    " of usage data and is not yet configurable." : {
+
+    },
     " SMB" : {
       "comment" : "Super Micro Bolus indicator in delete alert",
       "localizations" : {
@@ -2897,6 +2900,7 @@
       }
     },
     " the app before finishing onboarding, " : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -19478,6 +19482,9 @@
         }
       }
     },
+    "7 days" : {
+
+    },
     "10-90" : {
       "localizations" : {
         "bg" : {
@@ -21795,6 +21802,7 @@
       }
     },
     "A few important notes:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -21893,6 +21901,9 @@
           }
         }
       }
+    },
+    "A few important notes…" : {
+
     },
     "A generated unique identifier (a random code like \"A7B2C9D3\" that doesn't identify you personally)" : {
       "localizations" : {
@@ -32206,6 +32217,9 @@
           }
         }
       }
+    },
+    "All entries you made during Onboarding will be saved automatically when you complete the wizard." : {
+
     },
     "All FPUs and the carbs of the meal will be deleted." : {
       "comment" : "Alert message for meal deletion",
@@ -84929,7 +84943,11 @@
         }
       }
     },
+    "Dynamic ISF requires at least " : {
+
+    },
     "Dynamic ISF requires at least 7 days of usage data and is not yet configurable." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -95113,7 +95131,11 @@
         }
       }
     },
+    "Even if you’re an updating user, you’ll be guided through the algorithm settings configuration step-by-step." : {
+
+    },
     "Even if you’re an updating user, you’ll be guided through this step-by-step." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -102936,6 +102958,7 @@
       }
     },
     "force quit" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -109739,6 +109762,7 @@
       }
     },
     "Got it! I'm ready to continue." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -111790,6 +111814,9 @@
           }
         }
       }
+    },
+    "Here's what you can expect to be preserved:" : {
+
     },
     "Hi there!" : {
       "localizations" : {
@@ -119635,6 +119662,9 @@
         }
       }
     },
+    "Important" : {
+
+    },
     "Important message" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -125965,6 +125995,9 @@
           }
         }
       }
+    },
+    "Just be aware: if you force quit the app before finishing onboarding, your progress will not be saved." : {
+
     },
     "Keep these turned ON in your phone’s settings to ensure you receive Trio Notifications, Critical Alerts, and Time Sensitive Notifications." : {
       "localizations" : {
@@ -189848,6 +189881,9 @@
         }
       }
     },
+    "Some helpful reminders:" : {
+
+    },
     "Some other cloud" : {
       "localizations" : {
         "bg" : {
@@ -238551,7 +238587,11 @@
         }
       }
     },
+    "You can pause at any time. If you feel like taking a break, do it and put the phone down!" : {
+
+    },
     "You can pause at any time. Just be aware: if you " : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -238851,6 +238891,9 @@
         }
       }
     },
+    "You will also be guided through re-configuring your algorithm settings, respecting Trio's new guardrails." : {
+
+    },
     "You're All Set!" : {
       "localizations" : {
         "bg" : {
@@ -239051,7 +239094,11 @@
         }
       }
     },
+    "Your algorithm settings (previously called \"OpenAPS settings\") are reset to defaults." : {
+
+    },
     "Your algorithm settings (previously called \"OpenAPS settings\") will be reset to defaults." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -239975,6 +240022,7 @@
       }
     },
     "your progress will not be saved." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -240073,6 +240121,9 @@
           }
         }
       }
+    },
+    "Your pump and CGM configurations are retained and fully functional." : {
+
     },
     "Your Rights" : {
       "localizations" : {
@@ -240174,7 +240225,11 @@
         }
       }
     },
+    "Your therapy settings (basal rates, carb ratios, insulin sensitivities and glucose targets) are carried over." : {
+
+    },
     "Your therapy settings, pump, and CGM configurations will be carried over." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -240273,6 +240328,9 @@
           }
         }
       }
+    },
+    "Your treatment data (pump events, carb entries, glucose trace, etc.) are not migrated." : {
+
     },
     "ZT" : {
       "localizations" : {
