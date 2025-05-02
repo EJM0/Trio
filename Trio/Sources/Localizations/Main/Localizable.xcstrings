@@ -142817,6 +142817,18 @@
         }
       }
     },
+    "Migration of JSON-based Carb History failed: %@" : {
+
+    },
+    "Migration of JSON-based Glucose History failed: %@" : {
+
+    },
+    "Migration of JSON-based OpenAPS Determination Data failed: %@" : {
+
+    },
+    "Migration of JSON-based Pump History failed: %@" : {
+
+    },
     "min" : {
       "comment" : "Minutes abbreviation\nShort form for minutes",
       "localizations" : {
