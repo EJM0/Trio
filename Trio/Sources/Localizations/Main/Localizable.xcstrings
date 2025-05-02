@@ -124070,6 +124070,9 @@
         }
       }
     },
+    "Invalid Pump State" : {
+
+    },
     "Invalid Pump State (%@)." : {
       "localizations" : {
         "bg" : {
@@ -167254,6 +167257,12 @@
           }
         }
       }
+    },
+    "Pump did not respond in time" : {
+
+    },
+    "Pump Error" : {
+
     },
     "Pump Error (%@)." : {
       "localizations" : {
