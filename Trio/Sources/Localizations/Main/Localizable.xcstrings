@@ -239751,6 +239751,9 @@
         }
       }
     },
+    "Your last 24 hr of treatment data (pump events, carb entries, glucose trace, etc.) are migrated." : {
+
+    },
     "Your phone or app is not enabled for NFC communications, which is needed to pair to libre2 sensors" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -240373,9 +240376,6 @@
           }
         }
       }
-    },
-    "Your treatment data (pump events, carb entries, glucose trace, etc.) are not migrated." : {
-
     },
     "ZT" : {
       "localizations" : {
