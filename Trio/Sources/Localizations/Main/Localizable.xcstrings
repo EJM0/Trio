@@ -7309,6 +7309,16 @@
         }
       }
     },
+    "%@ %@ / %@ %@/%@ = %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ / %3$@ %4$@/%5$@ = %6$@ %7$@"
+          }
+        }
+      }
+    },
     "%@ %%" : {
       "localizations" : {
         "bg" : {
@@ -136922,6 +136932,7 @@
     },
     "Max Bolus" : {
       "comment" : "Max setting",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -139984,6 +139995,9 @@
         }
       }
     },
+    "Maximum amount of active carbs considered by the algorithm." : {
+
+    },
     "Maximum amount of carbs still available if no absorption is detected." : {
       "comment" : "Mini hint for Remaining Carbs Cap",
       "localizations" : {
@@ -140085,7 +140099,17 @@
         }
       }
     },
+    "Maximum Basal Rate" : {
+
+    },
+    "Maximum Bolus" : {
+
+    },
+    "Maximum Carbs on Board (COB)" : {
+      "comment" : "Max COB"
+    },
     "Maximum Carbs On Board (COB) allowed." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -140493,6 +140517,9 @@
           }
         }
       }
+    },
+    "Maximum Insulin on Board (IOB)" : {
+      "comment" : "Max IOB"
     },
     "Maximum Meal Absorption Time" : {
       "localizations" : {
@@ -158766,7 +158793,7 @@
         }
       }
     },
-    "Other third-party services, like Apple Health or Tidepool, can later be set up in the settings menu." : {
+    "Other third-party services, like Apple Health or Tidepool, can be added later through the settings menu." : {
 
     },
     "Our strong recommendation is to " : {
@@ -211250,6 +211277,9 @@
         }
       }
     },
+    "This setting helps prevent delivering too much insulin at once. It’s typically a value close to the amount you might need for a very high blood sugar and the biggest meal of your life combined." : {
+
+    },
     "This setting helps the system estimate how much glucose your body is absorbing, even when it's not immediately visible in your glucose data, ensuring more accurate insulin dosing during carb absorption." : {
       "localizations" : {
         "bg" : {
@@ -238833,7 +238863,7 @@
         }
       }
     },
-    "You can use Nightscout to import existing therapy settings, or only set it up now but configure settings from scratch." : {
+    "You can use Nightscout to import your existing therapy settings, or if you prefer, you can only connect to Nightscout, and configure therapy settings from scratch." : {
 
     },
     "You have certain rights regarding your information, including:" : {
