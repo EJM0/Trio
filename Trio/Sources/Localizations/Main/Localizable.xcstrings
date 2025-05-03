@@ -10039,6 +10039,7 @@
       }
     },
     "• Basal Rates" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -10340,6 +10341,7 @@
       }
     },
     "• Carb Ratios" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -13042,6 +13044,7 @@
       }
     },
     "• Glucose Targets" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -13543,6 +13546,7 @@
       }
     },
     "• Insulin Sensitivities" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -33759,6 +33763,7 @@
       }
     },
     "Allow SMB when glucose is above the High BG Target value." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -42993,6 +42998,9 @@
     "Autosens Max sets the maximum Sensitivity Ratio used by Autosens, Dynamic ISF, and Sigmoid Formula." : {
 
     },
+    "Autosens Maximum" : {
+      "comment" : "Autosens Max"
+    },
     "Autosens Min" : {
       "comment" : "Autosens Min",
       "localizations" : {
@@ -43196,6 +43204,9 @@
     },
     "Autosens Min sets the minimum Sensitivity Ratio used by Autosens, Dynamic ISF, and Sigmoid Formula." : {
 
+    },
+    "Autosens Minimum" : {
+      "comment" : "Autosens Min"
     },
     "Autosens modifies Insulin Sensitivity Factor (ISF), basal rates, and target blood sugar levels. It doesn’t account for carbs but adjusts for insulin effectiveness based on patterns in your glucose data." : {
       "extractionState" : "stale",
@@ -89431,6 +89442,7 @@
     },
     "Enable SMB With High BG" : {
       "comment" : "Enable SMB With High BG",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -90242,6 +90254,9 @@
           }
         }
       }
+    },
+    "Enable UAM (Unannounced Meals)" : {
+      "comment" : "Enable UAM"
     },
     "Enable Unannounced Meals SMB." : {
       "localizations" : {
@@ -91464,6 +91479,7 @@
       }
     },
     "Enabling this feature allows Trio to deliver insulin required using Super Micro Boluses (SMB) when glucose reading is above the value set as High BG Target." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -134871,6 +134887,7 @@
 
     },
     "Lower target glucose when Autosens Ratio is <1." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -134971,6 +134988,7 @@
       }
     },
     "Lower target glucose when Autosens Ratio is >1." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -135069,6 +135087,9 @@
           }
         }
       }
+    },
+    "Lower target glucose when Autosens Ratio is greater than 1." : {
+
     },
     "m" : {
       "comment" : "Abbreviation for Minutes\nabbreviation for minutes",
@@ -138029,6 +138050,7 @@
     },
     "Max Delta-BG Threshold SMB" : {
       "comment" : "Max Delta-BG Threshold",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -139858,6 +139880,9 @@
           }
         }
       }
+    },
+    "Max. Allowed Glucose Rise for SMB" : {
+      "comment" : "Max. Allowed Glucose Rise for SMB, formerly Max Delta-BG Threshold"
     },
     "Maximum allowed positive percent change in glucose level to permit SMBs. If the difference in glucose is greater than this, Trio will disable SMBs." : {
       "localizations" : {
@@ -158741,6 +158766,9 @@
         }
       }
     },
+    "Other third-party services, like Apple Health or Tidepool, can later be set up in the settings menu." : {
+
+    },
     "Our strong recommendation is to " : {
       "localizations" : {
         "bg" : {
@@ -169091,6 +169119,7 @@
       }
     },
     "Raise target glucose if when Autosens Ratio is >1." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -169191,6 +169220,7 @@
       }
     },
     "Raise target glucose when Autosens Ratio is <1." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -169289,6 +169319,9 @@
           }
         }
       }
+    },
+    "Raise target glucose when Autosens Ratio is less than 1." : {
+
     },
     "Random variation added to each reading to simulate real-world sensor noise." : {
       "localizations" : {
@@ -238799,6 +238832,9 @@
           }
         }
       }
+    },
+    "You can use Nightscout to import existing therapy settings, or only set it up now but configure settings from scratch." : {
+
     },
     "You have certain rights regarding your information, including:" : {
       "localizations" : {
