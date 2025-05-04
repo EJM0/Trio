@@ -98681,6 +98681,15 @@
         }
       }
     },
+    "Failed to import algorithm data." : {
+
+    },
+    "Failed to import glucose history." : {
+
+    },
+    "Failed to import pump history." : {
+
+    },
     "Failed to Suspend Insulin Delivery" : {
       "comment" : "Alert title for suspend error",
       "extractionState" : "manual",
@@ -115703,6 +115712,9 @@
           }
         }
       }
+    },
+    "I understand! Proceed" : {
+
     },
     "Identify and fix bugs and crashes" : {
       "localizations" : {
@@ -136289,6 +136301,9 @@
         }
       }
     },
+    "Manually backdate some recent carbs or insulin you’ve entered in the last 6 to 8 hours." : {
+
+    },
     "Manually entered blood glucose, such as a fingerstick test." : {
       "localizations" : {
         "bg" : {
@@ -142816,6 +142831,9 @@
           }
         }
       }
+    },
+    "Migration of JSON-based OpenAPS Determination Data failed: %@" : {
+
     },
     "min" : {
       "comment" : "Minutes abbreviation\nShort form for minutes",
@@ -157302,6 +157320,9 @@
           }
         }
       }
+    },
+    "Oops! Some data didn’t make it over." : {
+
     },
     "Open %@" : {
       "localizations" : {
@@ -192843,6 +192864,9 @@
         }
       }
     },
+    "Stay in open loop (no automated dosing) for a bit to help Trio catch up to keep you safe" : {
+
+    },
     "Steps" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -209701,6 +209725,9 @@
         }
       }
     },
+    "This means Trio may not have complete information about how much active insulin or carbs were still on board when you switched over." : {
+
+    },
     "This might be an intermittent problem, but please check that your transmitter is tightly secured over your sensor" : {
       "comment" : "This might be an intermittent problem, but please check that your transmitter is tightly secured over your sensor",
       "extractionState" : "manual",
@@ -216060,6 +216087,9 @@
         }
       }
     },
+    "To stay safe, we recommend:" : {
+
+    },
     "Today" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -221126,6 +221156,9 @@
           }
         }
       }
+    },
+    "Trio is still fully functional and will adapt quickly — but your awareness right now helps it keep you safer." : {
+
     },
     "Trio lets you create automations using iOS Shortcuts. Go to the Shortcuts app to create new automations." : {
       "localizations" : {
@@ -236363,6 +236396,9 @@
         }
       }
     },
+    "While upgrading Trio to the new version, we ran into an issue transferring some of your historical data." : {
+
+    },
     "Why does Trio collect this data?" : {
       "localizations" : {
         "bg" : {
@@ -239715,6 +239751,9 @@
         }
       }
     },
+    "Your last 24 hr of treatment data (pump events, carb entries, glucose trace, etc.) are migrated." : {
+
+    },
     "Your phone or app is not enabled for NFC communications, which is needed to pair to libre2 sensors" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -240337,9 +240376,6 @@
           }
         }
       }
-    },
-    "Your treatment data (pump events, carb entries, glucose trace, etc.) are not migrated." : {
-
     },
     "ZT" : {
       "localizations" : {
