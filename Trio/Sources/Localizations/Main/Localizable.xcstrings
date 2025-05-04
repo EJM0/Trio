@@ -14858,6 +14858,7 @@
       }
     },
     "• Omnipod Dash" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -14956,6 +14957,9 @@
           }
         }
       }
+    },
+    "• Omnipod DASH" : {
+
     },
     "• Omnipod Eros" : {
       "localizations" : {
@@ -156246,6 +156250,7 @@
       }
     },
     "Omnipod Dash" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -156344,6 +156349,9 @@
           }
         }
       }
+    },
+    "Omnipod DASH" : {
+
     },
     "Omnipod Eros" : {
       "localizations" : {
