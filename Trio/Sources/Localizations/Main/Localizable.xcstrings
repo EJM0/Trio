@@ -121630,6 +121630,9 @@
         }
       }
     },
+    "Information" : {
+
+    },
     "Information We Collect" : {
       "localizations" : {
         "bg" : {
@@ -236433,6 +236436,9 @@
           }
         }
       }
+    },
+    "While onboarding, Trio continues to operate with your prior settings." : {
+
     },
     "Why does Trio collect this data?" : {
       "localizations" : {
