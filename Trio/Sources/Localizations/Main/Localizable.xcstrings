@@ -47908,6 +47908,9 @@
         }
       }
     },
+    "Bluetooth Required" : {
+
+    },
     "Bluetooth State restored (APS restarted?). Found %d peripherals, and connected to %@ with identifier %@" : {
       "comment" : "Restored state message",
       "extractionState" : "manual",
@@ -197405,6 +197408,9 @@
           }
         }
       }
+    },
+    "Tap to Enable Bluetooth in iOS Settings" : {
+
     },
     "tapped save schedules" : {
       "extractionState" : "manual",
