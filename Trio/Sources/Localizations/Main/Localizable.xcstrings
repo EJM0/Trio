@@ -7309,6 +7309,16 @@
         }
       }
     },
+    "%@ %@ / %@ %@/%@ = %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ / %3$@ %4$@/%5$@ = %6$@ %7$@"
+          }
+        }
+      }
+    },
     "%@ %%" : {
       "localizations" : {
         "bg" : {
@@ -10039,6 +10049,7 @@
       }
     },
     "• Basal Rates" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -10340,6 +10351,7 @@
       }
     },
     "• Carb Ratios" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -13042,6 +13054,7 @@
       }
     },
     "• Glucose Targets" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -13543,6 +13556,7 @@
       }
     },
     "• Insulin Sensitivities" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -14844,6 +14858,7 @@
       }
     },
     "• Omnipod Dash" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -14942,6 +14957,9 @@
           }
         }
       }
+    },
+    "• Omnipod DASH" : {
+
     },
     "• Omnipod Eros" : {
       "localizations" : {
@@ -33759,6 +33777,7 @@
       }
     },
     "Allow SMB when glucose is above the High BG Target value." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -42993,6 +43012,9 @@
     "Autosens Max sets the maximum Sensitivity Ratio used by Autosens, Dynamic ISF, and Sigmoid Formula." : {
 
     },
+    "Autosens Maximum" : {
+      "comment" : "Autosens Max"
+    },
     "Autosens Min" : {
       "comment" : "Autosens Min",
       "localizations" : {
@@ -43196,6 +43218,9 @@
     },
     "Autosens Min sets the minimum Sensitivity Ratio used by Autosens, Dynamic ISF, and Sigmoid Formula." : {
 
+    },
+    "Autosens Minimum" : {
+      "comment" : "Autosens Min"
     },
     "Autosens modifies Insulin Sensitivity Factor (ISF), basal rates, and target blood sugar levels. It doesn’t account for carbs but adjusts for insulin effectiveness based on patterns in your glucose data." : {
       "extractionState" : "stale",
@@ -89434,6 +89459,7 @@
     },
     "Enable SMB With High BG" : {
       "comment" : "Enable SMB With High BG",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -90245,6 +90271,9 @@
           }
         }
       }
+    },
+    "Enable UAM (Unannounced Meals)" : {
+      "comment" : "Enable UAM"
     },
     "Enable Unannounced Meals SMB." : {
       "localizations" : {
@@ -91467,6 +91496,7 @@
       }
     },
     "Enabling this feature allows Trio to deliver insulin required using Super Micro Boluses (SMB) when glucose reading is above the value set as High BG Target." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -121615,6 +121645,9 @@
         }
       }
     },
+    "Information" : {
+
+    },
     "Information We Collect" : {
       "localizations" : {
         "bg" : {
@@ -134886,6 +134919,7 @@
 
     },
     "Lower target glucose when Autosens Ratio is <1." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -134986,6 +135020,7 @@
       }
     },
     "Lower target glucose when Autosens Ratio is >1." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -135084,6 +135119,9 @@
           }
         }
       }
+    },
+    "Lower target glucose when Autosens Ratio is greater than 1." : {
+
     },
     "m" : {
       "comment" : "Abbreviation for Minutes\nabbreviation for minutes",
@@ -136919,6 +136957,7 @@
     },
     "Max Bolus" : {
       "comment" : "Max setting",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -138047,6 +138086,7 @@
     },
     "Max Delta-BG Threshold SMB" : {
       "comment" : "Max Delta-BG Threshold",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -139877,6 +139917,9 @@
         }
       }
     },
+    "Max. Allowed Glucose Rise for SMB" : {
+      "comment" : "Max. Allowed Glucose Rise for SMB, formerly Max Delta-BG Threshold"
+    },
     "Maximum allowed positive percent change in glucose level to permit SMBs. If the difference in glucose is greater than this, Trio will disable SMBs." : {
       "localizations" : {
         "bg" : {
@@ -139976,6 +140019,9 @@
           }
         }
       }
+    },
+    "Maximum amount of active carbs considered by the algorithm." : {
+
     },
     "Maximum amount of carbs still available if no absorption is detected." : {
       "comment" : "Mini hint for Remaining Carbs Cap",
@@ -140078,7 +140124,17 @@
         }
       }
     },
+    "Maximum Basal Rate" : {
+
+    },
+    "Maximum Bolus" : {
+
+    },
+    "Maximum Carbs on Board (COB)" : {
+      "comment" : "Max COB"
+    },
     "Maximum Carbs On Board (COB) allowed." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -140486,6 +140542,9 @@
           }
         }
       }
+    },
+    "Maximum Insulin on Board (IOB)" : {
+      "comment" : "Max IOB"
     },
     "Maximum Meal Absorption Time" : {
       "localizations" : {
@@ -156215,6 +156274,7 @@
       }
     },
     "Omnipod Dash" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -156313,6 +156373,9 @@
           }
         }
       }
+    },
+    "Omnipod DASH" : {
+
     },
     "Omnipod Eros" : {
       "localizations" : {
@@ -158764,6 +158827,9 @@
           }
         }
       }
+    },
+    "Other third-party services, like Apple Health or Tidepool, can be added later through the settings menu." : {
+
     },
     "Our strong recommendation is to " : {
       "localizations" : {
@@ -169115,6 +169181,7 @@
       }
     },
     "Raise target glucose if when Autosens Ratio is >1." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -169215,6 +169282,7 @@
       }
     },
     "Raise target glucose when Autosens Ratio is <1." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -169313,6 +169381,9 @@
           }
         }
       }
+    },
+    "Raise target glucose when Autosens Ratio is less than 1." : {
+
     },
     "Random variation added to each reading to simulate real-world sensor noise." : {
       "localizations" : {
@@ -211250,6 +211321,9 @@
         }
       }
     },
+    "This setting helps prevent delivering too much insulin at once. It’s typically a value close to the amount you might need for a very high blood sugar and the biggest meal of your life combined." : {
+
+    },
     "This setting helps the system estimate how much glucose your body is absorbing, even when it's not immediately visible in your glucose data, ensuring more accurate insulin dosing during carb absorption." : {
       "localizations" : {
         "bg" : {
@@ -236402,6 +236476,9 @@
         }
       }
     },
+    "While onboarding, Trio continues to operate with your prior settings." : {
+
+    },
     "While upgrading Trio to the new version, we ran into an issue transferring some of your historical data." : {
 
     },
@@ -238842,6 +238919,9 @@
         }
       }
     },
+    "You can use Nightscout to import your existing therapy settings, or if you prefer, you can only connect to Nightscout, and configure therapy settings from scratch." : {
+
+    },
     "You have certain rights regarding your information, including:" : {
       "localizations" : {
         "bg" : {
@@ -239758,6 +239838,9 @@
       }
     },
     "Your last 24 hr of treatment data (pump events, carb entries, glucose trace, etc.) are migrated." : {
+
+    },
+    "Your last 24 hr of treatment data (pump events, carb entries, glucose trace, etc.) are not migrated." : {
 
     },
     "Your phone or app is not enabled for NFC communications, which is needed to pair to libre2 sensors" : {
