@@ -228886,6 +228886,9 @@
         }
       }
     },
+    "Try again in a moment, or configure your Therapy Settings manually instead." : {
+
+    },
     "Turn this setting on to give basal adjustments more agility. Keep this setting off if your basal needs are not highly variable." : {
       "localizations" : {
         "bg" : {
