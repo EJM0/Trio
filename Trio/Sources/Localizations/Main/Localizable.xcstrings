@@ -96709,6 +96709,17 @@
         }
       }
     },
+    "Error! Something went wrong when processing your request." : {
+      "comment" : "Error message when activating override",
+      "localizations" : {
+        "nb-NO" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feil! Noe gikk galt under aktivering av overstyringen."
+          }
+        }
+      }
+    },
     "Errors" : {
       "comment" : "Loop Errors in statPanel",
       "extractionState" : "manual",
@@ -169182,6 +169193,17 @@
         }
       }
     },
+    "Preset \"(%@)\" not found." : {
+      "comment" : "Preset not found",
+      "localizations" : {
+        "nb-NO" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forhåndsinnstilling \"(%@)\" finnes ikke."
+          }
+        }
+      }
+    },
     "Presets" : {
       "localizations" : {
         "bg" : {
@@ -196480,6 +196502,28 @@
         }
       }
     },
+    "Started Override \"(%@)\" successfully." : {
+      "comment" : "Start override with override name",
+      "localizations" : {
+        "nb-NO" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Startet overstyring «(%@)»."
+          }
+        }
+      }
+    },
+    "Started Temp Target \"(%@)\" successfully." : {
+      "comment" : "Started Temp Target successfully.",
+      "localizations" : {
+        "nb-NO" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Startet midlertidig mål \"(%@)\"."
+          }
+        }
+      }
+    },
     "Starting this override will change your Profiles and/or your Target Glucose used for looping during the entire selected duration. Tapping ”Start Profile” will start your new profile or edit your current active profile." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -198508,6 +198552,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "停止臨時目標 \"%@\"？"
+          }
+        }
+      }
+    },
+    "Stopped Override successfully." : {
+      "comment" : "Stopped Override successfully",
+      "localizations" : {
+        "nb-NO" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overstyring stoppet."
+          }
+        }
+      }
+    },
+    "Stopped Temp Target successfully." : {
+      "comment" : "Stopped Temp Target successfully.",
+      "localizations" : {
+        "nb-NO" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Midlertidig mål ble stoppet."
           }
         }
       }
@@ -228887,7 +228953,14 @@
       }
     },
     "Try again in a moment, or configure your Therapy Settings manually instead." : {
-
+      "localizations" : {
+        "nb-NO" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prøv igjen om en liten stund, eller sett opp behandlingsinnstillinger manuelt i stedet."
+          }
+        }
+      }
     },
     "Turn this setting on to give basal adjustments more agility. Keep this setting off if your basal needs are not highly variable." : {
       "localizations" : {
