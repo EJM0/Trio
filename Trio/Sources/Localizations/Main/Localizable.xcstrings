@@ -27846,6 +27846,17 @@
         }
       }
     },
+    "Algorithm" : {
+      "comment" : "Algorithm menu item in the Settings main view.",
+      "localizations" : {
+        "nb-NO" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algoritme"
+          }
+        }
+      }
+    },
     "Algorithm Settings" : {
       "localizations" : {
         "bg" : {
@@ -72609,6 +72620,7 @@
       }
     },
     "Devices" : {
+      "comment" : "Devices menu item in the Settings main view.",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -93502,6 +93514,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "功能設定"
+          }
+        }
+      }
+    },
+    "Features" : {
+      "comment" : "Features menu item in the Settings main view.",
+      "localizations" : {
+        "nb-NO" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Funksjoner"
           }
         }
       }
@@ -144871,7 +144894,7 @@
       }
     },
     "Notifications" : {
-      "comment" : "Notifications Status text",
+      "comment" : "Notifications Status text\nNotifications menu item in the Settings main view.",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -171356,6 +171379,7 @@
       }
     },
     "Services" : {
+      "comment" : "Services menu item in the Settings main view.",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -194572,6 +194596,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "華沙方法幫助考慮到餐後因脂肪和蛋白質引起的延遲血糖峰值。它使用脂肪-蛋白質單位 (FPU) 計算脂肪和蛋白質的碳水化合物影響。該系統在幾小時內分散胰島素釋放，以模擬自然胰島素釋放，幫助管理餐後血糖峰值。"
+          }
+        }
+      }
+    },
+    "Therapy" : {
+      "comment" : "Therapy menu item in the Settings main view.",
+      "localizations" : {
+        "nb-NO" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Behandling"
           }
         }
       }
