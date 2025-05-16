@@ -19067,6 +19067,7 @@
       }
     },
     "A generated unique identifier (a random code like \"A7B2C9D3\" that doesn't identify you personally)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -34900,6 +34901,7 @@
       }
     },
     "Any health-related statistics or personal medical information" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -36702,6 +36704,7 @@
       }
     },
     "April 15, 2025" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -37423,6 +37426,7 @@
       }
     },
     "As an open source project, crash reports and debugging information may be visible to project contributors who help maintain and improve Trio. All contributors are expected to adhere to this privacy policy and handle any data responsibly." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -43432,6 +43436,7 @@
       }
     },
     "Blood glucose (BG) readings" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -52955,6 +52960,7 @@
       }
     },
     "Changes to This Privacy Policy" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -59046,6 +59052,7 @@
       }
     },
     "Contact Us" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -60063,6 +60070,7 @@
       }
     },
     "Crash Reporting (Opt-In by default, with ability to Opt-Out)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -60163,6 +60171,7 @@
       }
     },
     "Crashlytics" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -62718,6 +62727,7 @@
       }
     },
     "Data Sharing and Third-Party Services" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -63655,6 +63665,7 @@
       }
     },
     "Debug Symbols (dSYMs)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -72420,6 +72431,7 @@
       }
     },
     "Device model and OS version (example: \"iPhone 14 Pro running iOS 17.4.1\")" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -72520,6 +72532,7 @@
       }
     },
     "Device state at the time of the crash (example: \"Trio was in the foreground\" or \"Battery level was 42%\")" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -80389,6 +80402,7 @@
       }
     },
     "Email us" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -94738,6 +94752,7 @@
       }
     },
     "For complete transparency, we want to clarify that Trio does not collect:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -101653,6 +101668,7 @@
       }
     },
     "Google Privacy Policy" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -106783,6 +106799,7 @@
       }
     },
     "How We Use Your Information" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -107284,6 +107301,7 @@
       }
     },
     "Identify and fix bugs and crashes" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -109102,6 +109120,7 @@
       }
     },
     "If you have any questions about this Privacy Policy, please contact us on Discord, or send us an email." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -111045,6 +111064,7 @@
       }
     },
     "Improve Trio's stability" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -112669,6 +112689,7 @@
       }
     },
     "Information We Collect" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -114523,6 +114544,7 @@
       }
     },
     "Introduction" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -117985,6 +118007,7 @@
       }
     },
     "Last Updated:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -139600,6 +139623,7 @@
       }
     },
     "No new crash data will be collected or sent to us" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -148139,6 +148163,7 @@
       }
     },
     "Open Source Contributors" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -148668,6 +148693,7 @@
       }
     },
     "Opting Out and Data Retention" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -153290,6 +153316,7 @@
       }
     },
     "Personal identifiable information such as name, address, or email" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -155651,6 +155678,7 @@
       }
     },
     "Previously collected crash data will still be retained for approximately 90 days" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -180312,6 +180340,7 @@
       }
     },
     "Stack trace information (technical information showing which line of code failed)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -191793,6 +191822,7 @@
       }
     },
     "The following information may be sent to Crashlytics when Trio crashes:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -192293,6 +192323,7 @@
       }
     },
     "The information we store is anonymous, so we are unable to look up information for a particular individual. However, our general data retention policy ensures that data older than 90 days is deleted, enabling us to accommodate data deletion requests by design despite having anonymous data." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -193501,6 +193532,7 @@
       }
     },
     "The right to opt-out of crash reporting" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -193601,6 +193633,7 @@
       }
     },
     "The right to request deletion of your data" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -195119,6 +195152,7 @@
       }
     },
     "These files only contain code-related information that helps us understand where crashes happen. They contain no personal information about you or how you use Trio." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -199922,6 +199956,7 @@
       }
     },
     "This Privacy Policy explains how we collect, use, and share information when you use Trio. We respect your privacy and are committed to protecting your personal data. Please read this Privacy Policy carefully to understand our practices regarding your personal data." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -202152,6 +202187,7 @@
       }
     },
     "Time and date of the crash (example: \"Trio crashed on April 6, 2025 at 2:15 PM\")" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -204060,6 +204096,7 @@
       }
     },
     "To avoid sending dSYMs to Crashlytics, you can delete the Trio target Build Phase script, titled \"Copy dSYMs to Crashlytics\"." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -205060,6 +205097,7 @@
       }
     },
     "To opt-out of crash reporting, please see the section above for details about how to configure Trio to not record crash reports." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -206177,6 +206215,7 @@
       }
     },
     "Total daily doses (TDD)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -207315,6 +207354,7 @@
       }
     },
     "Treatment data" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -211223,6 +211263,7 @@
       }
     },
     "Trio uses Google Firebase Crashlytics to collect crash reports. During the initial app setup (onboarding process), you will be asked to opt in to crash reporting. The onboarding process is the series of screens you see when first launching Trio that helps you set up the app." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -221200,6 +221241,7 @@
       }
     },
     "We do not use this information for any other purpose, such as analytics, marketing, or user profiling." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -221300,6 +221342,7 @@
       }
     },
     "We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the \"Last Updated\" date." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -221600,6 +221643,7 @@
       }
     },
     "We use anonymous crash report information exclusively to:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -221700,6 +221744,7 @@
       }
     },
     "We use Google Firebase Crashlytics to collect and analyze crash reports. Crashlytics' privacy practices are governed by the Google Privacy Policy. For more information about how Crashlytics processes data, please visit their documentation." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -222715,6 +222760,7 @@
       }
     },
     "What We Do NOT Collect" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -224535,6 +224581,7 @@
       }
     },
     "When we build the Trio app, we create special files called debug symbols (dSYMs) that help us read crash reports. Think of these like a decoder ring for crashes:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -225966,6 +226013,7 @@
       }
     },
     "Without dSYMs, a crash might look like: \"Error at memory address 0x1234ABCD\". With dSYMs, we can see: \"Error in function 'calculateInsulin' at line 157\"" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -226874,6 +226922,7 @@
       }
     },
     "You can opt out of crash reporting at any time through the Trio settings. If you opt out:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -227274,6 +227323,7 @@
       }
     },
     "You have certain rights regarding your information, including:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -228897,6 +228947,7 @@
       }
     },
     "Your Rights" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
