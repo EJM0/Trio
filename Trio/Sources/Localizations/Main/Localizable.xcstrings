@@ -13810,8 +13810,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "• Spread Interval"
+            "state" : "translated",
+            "value" : "• Khoảng thời gian Phân bố"
           }
         },
         "zh-Hant" : {
@@ -20234,7 +20234,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Over de werkwijze"
+            "value" : "Over het proces"
           }
         },
         "pl" : {
@@ -25023,7 +25023,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Add Temp Target"
+            "value" : "Voeg tijdelijk doel toe"
           }
         },
         "pl" : {
@@ -25430,7 +25430,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Andere meldingsinstellingen"
+            "value" : "Extra meldingstypes"
           }
         },
         "pl" : {
@@ -26167,7 +26167,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dynamische ISF-constante aanpassen"
+            "value" : "Dynamisch ISF constante aanpassen"
           }
         },
         "pl" : {
@@ -27849,10 +27849,100 @@
     "Algorithm" : {
       "comment" : "Algorithm menu item in the Settings main view.",
       "localizations" : {
+        "bg" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Algorithm"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algoritme"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algorithmus"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Algorithm"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algorithme"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Algorithm"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Algorithm"
+          }
+        },
         "nb-NO" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Algoritme"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algoritme"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algorytm"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Algorithm"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algoritm"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Algorithm"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Algorithm"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thuật toán"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Algorithm"
           }
         }
       }
@@ -28850,7 +28940,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alle dagen in het verleden met gegevens "
+            "value" : "Alle data van dagen in het verleden "
           }
         },
         "pl" : {
@@ -33873,8 +33963,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Ambulatory Glucose Profile (AGP)"
+            "state" : "translated",
+            "value" : "Hồ sơ đường huyết lưu động (AGP)"
           }
         },
         "zh-Hant" : {
@@ -34280,8 +34370,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Amplitude:"
+            "state" : "translated",
+            "value" : "Biên độ:"
           }
         },
         "zh-Hant" : {
@@ -36189,8 +36279,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Applied Factors"
+            "state" : "translated",
+            "value" : "Các yếu tố được áp dụng"
           }
         },
         "zh-Hant" : {
@@ -39094,7 +39184,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Autosens min"
+            "value" : "Autosens Min"
           }
         },
         "pl" : {
@@ -39795,7 +39885,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Autosens zullen opnieuw de gevoeligheid leren vanaf de terugspoeling, die tot 6 uur kan duren."
+            "value" : "Autosens zal opnieuw de gevoeligheid opnieuw moeten leren vanaf de terugspoeling, die tot 6 uur kan duren."
           }
         },
         "pl" : {
@@ -40319,7 +40409,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beschikbare Rings:"
+            "value" : "Beschikbare Ringen:"
           }
         },
         "pl" : {
@@ -40927,7 +41017,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Terugzetten van geschiedenis"
+            "value" : "Terugzetten uit geschiedenis"
           }
         },
         "pl" : {
@@ -41241,7 +41331,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Backfill Glucose"
+            "value" : "Terugzetten Glucose"
           }
         },
         "pl" : {
@@ -41548,7 +41638,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Terugzet opties"
+            "value" : "Terugzetten opties"
           }
         },
         "pl" : {
@@ -44035,8 +44125,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Bluetooth Required"
+            "state" : "translated",
+            "value" : "Yêu cầu bật Bluetooth"
           }
         },
         "zh-Hant" : {
@@ -46661,7 +46751,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Waarde onder"
+            "value" : "Onderste waarde"
           }
         },
         "pl" : {
@@ -46696,8 +46786,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Bottom Value"
+            "state" : "translated",
+            "value" : "Giá trị thấp nhất"
           }
         },
         "zh-Hant" : {
@@ -46755,7 +46845,7 @@
         "nb-NO" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gren: %@"
+            "value" : "GREN: %@"
           }
         },
         "nl" : {
@@ -47178,7 +47268,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gecalculeerde ratio"
+            "value" : "Berekende ratio"
           }
         },
         "pl" : {
@@ -48109,7 +48199,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kan Nightscout profiel niet vinden."
+            "value" : "Kan de standaard Nightscout profiel niet vinden."
           }
         },
         "pl" : {
@@ -48410,7 +48500,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Annuleer een actieve overschrijving"
+            "value" : "Annuleer een actieve override"
           }
         },
         "pl" : {
@@ -48510,7 +48600,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Annuleer tijdelijk programma"
+            "value" : "Annuleer tijdelijke override"
           }
         },
         "pl" : {
@@ -48610,7 +48700,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Overschrijven annuleren"
+            "value" : "Annuleer Override"
           }
         },
         "pl" : {
@@ -48718,7 +48808,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Profieloverschrijving annuleren?"
+            "value" : "Profiel Override annuleren?"
           }
         },
         "pl" : {
@@ -48818,7 +48908,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Annuleer tijdelijke basaal"
+            "value" : "Annuleer tijdelijk basaal"
           }
         },
         "pl" : {
@@ -49326,7 +49416,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Koolhydraten invoer"
+            "value" : "Invoer Koolhydraten"
           }
         },
         "pl" : {
@@ -49433,7 +49523,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Koolhydraten ratio"
+            "value" : "Verhouding Koolhydraten"
           }
         },
         "pl" : {
@@ -49534,7 +49624,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Koolhydraten ratio's"
+            "value" : "Koolhydraat ratio's"
           }
         },
         "pl" : {
@@ -52197,7 +52287,7 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "CGM Model"
           }
         },
@@ -54090,7 +54180,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choisissez la palette de couleurs des mesures de glucose. Consultez l’astuce pour plus de détails."
+            "value" : "Choisissez la palette de couleurs des mesures de glucose. Consultez l’astuce (?) pour plus de détails."
           }
         },
         "he" : {
@@ -54822,7 +54912,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wissen"
+            "value" : "Verwijderen"
           }
         },
         "pl" : {
@@ -55329,7 +55419,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KAN"
+            "value" : "KAN (COB)"
           }
         },
         "pl" : {
@@ -55564,7 +55654,7 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "COBpredBG"
           }
         },
@@ -55729,7 +55819,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Binnenkort beschikbaar"
+            "value" : "Binnenkort beschikbaar."
           }
         },
         "pl" : {
@@ -55829,7 +55919,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bot"
+            "value" : "Kegel"
           }
         },
         "pl" : {
@@ -55929,7 +56019,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bot van de onzekerheid"
+            "value" : "Kegel van onzekerheid"
           }
         },
         "pl" : {
@@ -56029,7 +56119,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Congo:"
+            "value" : "Kegel:"
           }
         },
         "pl" : {
@@ -57374,7 +57464,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bevestig voordat je solliciteert"
+            "value" : "Bevestig voor toepassing"
           }
         },
         "pl" : {
@@ -75651,7 +75741,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Loop cyclusstatistieken tonen"
+            "value" : "Loop cyclusstatistieken weergeven"
           }
         },
         "pl" : {
@@ -75751,7 +75841,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Voorkeursinstellingen Maaltijd weergeven"
+            "value" : "Vooringevulde Maaltijd weergeven"
           }
         },
         "pl" : {
@@ -75967,7 +76057,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Toon vet en eiwit"
+            "value" : "Toon Vet en Proteïne"
           }
         },
         "pl" : {
@@ -77608,7 +77698,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "OK"
+            "value" : "Voltooid"
           }
         },
         "pl" : {
@@ -77943,8 +78033,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Dummy"
+            "state" : "translated",
+            "value" : "Mô hình"
           }
         },
         "zh-Hant" : {
@@ -88132,14 +88222,14 @@
         },
         "da" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Error! Something went wrong when processing your request."
+            "state" : "translated",
+            "value" : "Ups! Noget gik galt ved behandlingen af din forespørgsel."
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Error! Something went wrong when processing your request."
+            "state" : "translated",
+            "value" : "Fehler! Etwas ging schief bei der Verarbeitung."
           }
         },
         "es" : {
@@ -88150,8 +88240,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Error! Something went wrong when processing your request."
+            "state" : "translated",
+            "value" : "Erreur ! Un problème est survenu lors du traitement de votre demande."
           }
         },
         "he" : {
@@ -88180,8 +88270,8 @@
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Error! Something went wrong when processing your request."
+            "state" : "translated",
+            "value" : "Błąd! Coś poszło nie tak podczas przetwarzania Twojego żądania."
           }
         },
         "pt-PT" : {
@@ -88192,8 +88282,8 @@
         },
         "sv" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Error! Something went wrong when processing your request."
+            "state" : "translated",
+            "value" : "Fel! Något gick fel när din begäran behandlades."
           }
         },
         "tr" : {
@@ -88210,8 +88300,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Error! Something went wrong when processing your request."
+            "state" : "translated",
+            "value" : "Lỗi! Có lỗi xảy ra khi xử lý yêu cầu của bạn."
           }
         },
         "zh-Hant" : {
@@ -93521,10 +93611,100 @@
     "Features" : {
       "comment" : "Features menu item in the Settings main view.",
       "localizations" : {
+        "bg" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Features"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Funktioner"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Funktionen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Features"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fonctionnalités"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Features"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Features"
+          }
+        },
         "nb-NO" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Funksjoner"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Functies"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Funkcje"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Features"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Funktioner"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Features"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Features"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Features"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Features"
           }
         }
       }
@@ -116551,7 +116731,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đây là một yếu tố được sử dụng kết hợp với Độ trễ chất béo và chất đạm, Khoảng cách lan truyền và Yếu tố chất béo và chất đạm để tạo ra các mục nhập FPU."
+            "value" : "Đây là một yếu tố được sử dụng kết hợp với Độ trễ chất béo và chất đạm, Khoảng thời gian Phân bố và Yếu tố chất béo và chất đạm để tạo ra các mục nhập FPU."
           }
         },
         "zh-Hant" : {
@@ -122443,8 +122623,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Logarithmic"
+            "state" : "translated",
+            "value" : "Hàm logarit"
           }
         },
         "zh-Hant" : {
@@ -122543,8 +122723,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Logarithmic Dynamic ISF"
+            "state" : "translated",
+            "value" : "Hệ số độ nhạy insulin động theo hàm logarit"
           }
         },
         "zh-Hant" : {
@@ -122643,8 +122823,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Logarithmic formula"
+            "state" : "translated",
+            "value" : "Công thức theo hàm logarit"
           }
         },
         "zh-Hant" : {
@@ -130093,8 +130273,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Max UAM Basal Minutes"
+            "state" : "translated",
+            "value" : "Thời gian tiêm insulin nền tối đa cho UAM"
           }
         },
         "zh-Hant" : {
@@ -130223,7 +130403,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Max. Zulässiger BZ-Anstieg für SMB"
+            "value" : "Max. Zulässiger Glukoseanstieg für SMB"
           }
         },
         "es" : {
@@ -130294,8 +130474,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Max. Allowed Glucose Rise for SMB"
+            "state" : "translated",
+            "value" : "Tối đa. Mức tăng đường huyết cho phép đối với SMB"
           }
         },
         "zh-Hant" : {
@@ -130695,8 +130875,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Maximum Basal Rate"
+            "state" : "translated",
+            "value" : "Tốc độ insulin nền tối đa"
           }
         },
         "zh-Hant" : {
@@ -130795,8 +130975,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Maximum Bolus"
+            "state" : "translated",
+            "value" : "Liều Bolus tối đa"
           }
         },
         "zh-Hant" : {
@@ -133779,7 +133959,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Min 4 Stunden, maximal 10 Stunden."
+            "value" : "Mindestens 4 Stunden, maximal 10 Stunden."
           }
         },
         "es" : {
@@ -138293,7 +138473,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine Kontakt-Trick-Einträge."
+            "value" : "Keine Kontakt-Trick Einträge."
           }
         },
         "es" : {
@@ -138364,8 +138544,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "No Contact Trick Entries."
+            "state" : "translated",
+            "value" : "Các thao tác không cần tiếp xúc."
           }
         },
         "zh-Hant" : {
@@ -140712,8 +140892,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Noisy CGM Target Increase"
+            "state" : "translated",
+            "value" : "Tăng mục tiêu do tín hiệu CGM nhiễu"
           }
         },
         "zh-Hant" : {
@@ -141122,8 +141302,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Normal"
+            "state" : "translated",
+            "value" : "Tiêu chuẩn"
           }
         },
         "zh-Hant" : {
@@ -141443,8 +141623,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Normal Profile"
+            "state" : "translated",
+            "value" : "Cấu hình mặc định"
           }
         },
         "zh-Hant" : {
@@ -143496,7 +143676,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hinweis: The CGM Heartbeat kann entweder von einem CGM oder einer Pumpe kommen, um Trio aufzuwecken, wenn Telefon gesperrt ist oder im Hintergrund. Wenn CGM auf demselben Telefon wie Trio und xDrip4iOS konfiguriert ist, die gleiche AppGroup wie Trio zu verwenden und die Heartbeat-Funktion in xDrip4iOS eingeschaltet ist, dann kann der CGM ein Heartbeat zum Aufwachen Trio bieten, wenn Telefon gesperrt ist oder die App im Hintergrund ist."
+            "value" : "Hinweis: Der CGM Heartbeat kann entweder von einem CGM oder einer Pumpe kommen, um Trio aufzuwecken, wenn das Telefon gesperrt ist oder im Hintergrund läuft. Wenn dein CGM auf demselben Telefon wie Trio läuft und xDrip4iOS die gleiche AppGroup wie Trio verwendet, dazu noch die Heartbeat-Funktion in xDrip4iOS eingeschaltet ist, dann kann der CGM ein Heartbeat zum Aufwecken von Trio sein, während das Telefon gesperrt oder die App im Hintergrund ist."
           }
         },
         "es" : {
@@ -143596,7 +143776,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hinweis: Der Effekt kann mit dem Ziel der Halbbasalen Übung angepasst werden"
+            "value" : "Hinweis: Der Effekt kann angepasst werden mit dem halben Basal Trainingsziel"
           }
         },
         "es" : {
@@ -143696,7 +143876,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hinweis: Die für diese Warnung herangezogene Vorhersage enthält keine Kohlenhydrat- oder Insulinmengen, die zwar erfasst wurden, aber noch nicht wirksam sind."
+            "value" : "Hinweis: Die dieser Warnung zugrundeliegende Vorhersage enthält kein Insulin oder Kohlenhydrate die erfasst wurden, aber noch nicht wirksam sind."
           }
         },
         "es" : {
@@ -143896,7 +144076,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hinweis: Diese Einstellung hat eine hard-codierte Kappe von 40%"
+            "value" : "Hinweis: Diese Einstellung ist limitiert auf 40%"
           }
         },
         "es" : {
@@ -143996,7 +144176,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hinweis: This setting is only utilized if the settings \"Low Temp Target Swers Sensitivity\" OR \"High Temp Target Raises Sensitivity\" are enabled."
+            "value" : "Hinweis: Diese Einstellung wird nur verwendet, wenn \"Low Temp Target Lowers Sensitivity\" ODER \"High Temp Target Raises Sensitivity\" aktiviert sind."
           }
         },
         "es" : {
@@ -145011,7 +145191,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Benachrichtigungen und Bluetooth-Berechtigungen werden nach Ihren Wünschen gehandhabt."
+            "value" : "Mitteilungen und Bluetooth-Berechtigungen werden nach deinen Wünschen gehandhabt."
           }
         },
         "es" : {
@@ -145312,7 +145492,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Benachrichtigung per Lesung"
+            "value" : "Benachrichtige mit jedem Glukosewert"
           }
         },
         "en" : {
@@ -145520,7 +145700,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "NS Profil zum Hochladen"
+            "value" : "NS Profil Hochladen"
           }
         },
         "en" : {
@@ -145735,7 +145915,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anzahl der Stunden Insulin ist in deinem Körper aktiv."
+            "value" : "Anzahl der Stunden die dein Insulin in deinem Körper aktiv ist."
           }
         },
         "es" : {
@@ -146043,7 +146223,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Von dem gesamten Insulin, das in den letzten 24 Stunden geliefert wurde, zeigt dies an, welcher Prozentsatz durch Basale verabreicht wurde und was durch Bolus gegeben wurde."
+            "value" : "Vom gesamten Insulin, das in den letzten 24 Stunden abgegeben wurde, wird hier gezeigt, wieviel Prozent davon Basal und wie viel Bolus waren."
           }
         },
         "es" : {
@@ -154515,7 +154695,7 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "Plugin CGM"
           }
         },
@@ -155152,14 +155332,14 @@
         },
         "da" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Preset \"%@\" not found."
+            "state" : "translated",
+            "value" : "Forudindstilling \"%@\" ikke fundet."
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Preset \"%@\" not found."
+            "state" : "translated",
+            "value" : "Vorlage \"%@\" nicht gefunden."
           }
         },
         "es" : {
@@ -155170,8 +155350,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Preset \"%@\" not found."
+            "state" : "translated",
+            "value" : "Préréglage \"%@\" introuvable."
           }
         },
         "he" : {
@@ -155200,8 +155380,8 @@
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Preset \"%@\" not found."
+            "state" : "translated",
+            "value" : "Ustawienie \"%@\" nie zostało znalezione."
           }
         },
         "pt-PT" : {
@@ -155212,8 +155392,8 @@
         },
         "sv" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Preset \"%@\" not found."
+            "state" : "translated",
+            "value" : "Förval \"%@\" hittades inte."
           }
         },
         "tr" : {
@@ -155230,8 +155410,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Preset \"%@\" not found."
+            "state" : "translated",
+            "value" : "Không tìm thấy Preset \"%@\"."
           }
         },
         "zh-Hant" : {
@@ -156040,7 +156220,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tiếp tục"
+            "value" : "Tiến hành"
           }
         },
         "zh-Hant" : {
@@ -156547,8 +156727,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Profile at 100 %"
+            "state" : "translated",
+            "value" : "Thông tin ở 100%"
           }
         },
         "zh-Hant" : {
@@ -157915,7 +158095,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pump-Integration in Trio"
+            "value" : "Pumpen-Integration in Trio"
           }
         },
         "es" : {
@@ -158423,7 +158603,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pumpen-Rewind startet einen Reset im Autosens Verhältnis."
+            "value" : "Zurückspulen der Pumpe startet einen Reset im Autosens Verhältnis."
           }
         },
         "es" : {
@@ -164802,7 +164982,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Klingeleinstellungen"
+            "value" : "Ringeinstellungen"
           }
         },
         "es" : {
@@ -164902,7 +165082,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Klingeltyp"
+            "value" : "Ringtyp"
           }
         },
         "es" : {
@@ -165002,7 +165182,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Klingelbreite"
+            "value" : "Ringbreite"
           }
         },
         "es" : {
@@ -165309,7 +165489,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Trio läuft im geschlossenen Schleifenmodus erfordert eine aktive CGM-Sensor-Session und eine angeschlossene Pumpe. Dies ermöglicht eine automatisierte Insulinlieferung."
+            "value" : "Um Trio im Closed Loop Modus zu betreiben werden eine aktive CGM-Sensor-Session und eine angeschlossene Pumpe benötigt. Dies ermöglicht eine automatisierte Insulinlieferung."
           }
         },
         "es" : {
@@ -165517,7 +165697,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Sicherheitsgrenzen für die Insulinabgabe und die Eingabe von Kohlenhydraten sind so eingestellt, dass Trio für Ihre Sicherheit sorgt."
+            "value" : "Die Sicherheitsgrenzen für die Insulinabgabe und die Eingabe von Kohlenhydraten sind so eingestellt, dass Trio für Deine Sicherheit sorgt."
           }
         },
         "es" : {
@@ -166448,7 +166628,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Überschreiben speichern"
+            "value" : "Überschreibung speichern"
           }
         },
         "es" : {
@@ -166650,7 +166830,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In %@ gespeichert"
+            "value" : "Gespeichert unter %@"
           }
         },
         "en" : {
@@ -166757,7 +166937,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Speichere Carbs..."
+            "value" : "Speichere Kohlenhydrate..."
           }
         },
         "es" : {
@@ -167372,7 +167552,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Geplanter Basalkurs"
+            "value" : "Geplante Basalrate"
           }
         },
         "es" : {
@@ -167473,7 +167653,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Erinnerungen festlegen"
+            "value" : "Geplante Erinnerungen"
           }
         },
         "en" : {
@@ -167579,7 +167759,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Geplante Temp Ziele"
+            "value" : "Geplante Temporäre Ziele"
           }
         },
         "es" : {
@@ -168087,7 +168267,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beachten Sie die Zahl im Badge, wenn Sie eine Kohlenhydratkorrektur benötigen."
+            "value" : "Beachte die Zahl im Badge, wenn Du eine Kohlenhydratkorrektur benötigst."
           }
         },
         "es" : {
@@ -168187,7 +168367,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sehen Sie sich eine Live-Vorschau Ihres Kontaktbild-Designs am oberen Bildschirmrand an. Änderungen an Stil, Layout oder Einstellungen werden sofort reflektiert."
+            "value" : "Sieh eine Live-Vorschau deines Kontaktbild-Designs am oberen Bildschirmrand. Änderungen an Stil, Layout oder Einstellungen werden sofort dargestellt."
           }
         },
         "es" : {
@@ -168287,7 +168467,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähle \"Override\" um sofort mit der Überschreibung zu beginnen, oder wählen Sie \"Speichern als Preset\", um die Überschreibung zu einem späteren Zeitpunkt zu starten."
+            "value" : "Wähle \"Überschreibung\" um sofort mit der Überschreibung zu beginnen, oder wähle \"Speichern als Vorlage\", um die Überschreibung zu einem späteren Zeitpunkt zu starten."
           }
         },
         "es" : {
@@ -172613,7 +172793,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Legen Sie das Farbschema für Glukosemessungen auf dem Glukosegraphen fest, Live-Aktivitäten und bolusberechner. Beschreibungen für jede unten stehende Option."
+            "value" : "Lege das Farbschema für Glukosemessungen auf dem Haupt-Glukosegraphen, der Live-Aktivität und dem Bolusrechner fest. Beschreibungen für jede Option findest Du unten."
           }
         },
         "es" : {
@@ -172713,7 +172893,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Legen Sie die Glucose Notifications Option fest. Beschreibungen für jede unten gefundene Option."
+            "value" : "Lege die Glucose Benachrichtigungs-Option fest. Beschreibungen für jede Option findest Du unten."
           }
         },
         "es" : {
@@ -172813,7 +172993,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Legen Sie den maximalen Zeitrahmen fest, um FPUs zu erweitern."
+            "value" : "Lege den maximalen Zeitrahmen fest, um FPUs zu erweitern."
           }
         },
         "es" : {
@@ -172915,7 +173095,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Legen Sie den Wert fest, mit dem enableSMB_high_bg verglichen wird, um SMB zu aktivieren. Wenn BG > diesen Wert überschreitet, sollten SMBs aktiviert sein."
+            "value" : "Lege den Wert fest, mit dem enableSMB_high_bg verglichen wird, um SMB zu aktivieren. Wenn die Glukose diesen Wert überschreitet, sollten SMBs aktiviert sein."
           }
         },
         "en" : {
@@ -173023,7 +173203,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Auf eine Wert setzen, z. B. 160, was bedeutet, wenn das Temp Ziel 160 mg/dL und der exercise_mode=an ist, laufen 50% basal auf diesem Level (120 = 75%; 140 = 60%). Dies kann angepasst werden, um Ihnen mehr Kontrolle über Ihre Übungsmodi zu geben."
+            "value" : "Auf eine Zahl setzen, z. B. 160, was bedeutet, wenn das Temporäre Ziel 160 mg/dL und der exercise_mode = \"an\" ist, laufen 50 % Basal auf diesem Level (120 = 75%; 140 = 60%). Dies kann angepasst werden, um Dir mehr Kontrolle über Deine \"Exercise Modi\" zu geben."
           }
         },
         "en" : {
@@ -173229,7 +173409,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Legt das Aussehen von Trio fest. Beschreibungen jeder unten aufgeführten Option."
+            "value" : "Legt das Aussehen von Trio fest. Beschreibungen der einzelnen Optionen finden Sie unten."
           }
         },
         "es" : {
@@ -173329,7 +173509,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Einstellung auf 100% bedeutet, dass nur die letzten 24 Stunden verwendet werden."
+            "value" : "Wenn man diese Einstellung auf 100% setzt, bedeutet dies, dass nur die letzten 24 Stunden verwendet werden."
           }
         },
         "es" : {
@@ -173636,7 +173816,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Setup & Configuraton"
+            "value" : "Setup & Konfiguraton"
           }
         },
         "es" : {
@@ -174351,7 +174531,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verknüpfungen"
+            "value" : "Kurzbefehle"
           }
         },
         "es" : {
@@ -174451,7 +174631,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verknüpfungen Integration"
+            "value" : "Integration von Kurzbefehlen"
           }
         },
         "es" : {
@@ -174651,7 +174831,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zeige Carbs Benötigte Abzeichen"
+            "value" : "Zeige \"benötigte Kohlenhydrate\" Badge"
           }
         },
         "es" : {
@@ -174822,8 +175002,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Show Future"
+            "state" : "translated",
+            "value" : "Hiển thị sự kiện"
           }
         },
         "zh-Hant" : {
@@ -174851,7 +175031,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Glucose-App-Abzeichen anzeigen"
+            "value" : "Glucose-App-Badge anzeigen"
           }
         },
         "es" : {
@@ -175267,7 +175447,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zeige Hauptdiagramm X- und Y-Achsenrasterlinien"
+            "value" : "Zeigt im Hauptdiagramm X- und Y-Achsenrasterlinien"
           }
         },
         "es" : {
@@ -175567,7 +175747,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zeige deine aktuelle Glukose auf dem Trio-App-Symbol."
+            "value" : "Zeigt Deine aktuelle Glukose auf dem Trio-App-Symbol."
           }
         },
         "es" : {
@@ -175667,7 +175847,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zeigt eine Insulindosis an, die eine kleine automatisierte Dosis (Super-Mikro-Bolus), eine manuell eingegebene Dosis oder eine extern (z.B. ein Stift Schuss) sein kann."
+            "value" : "Zeigt eine Insulindosis an, die eine kleine automatisierte Dosis (Super-Mikro-Bolus), eine manuell eingegebene Dosis oder eine extern Insulingabe (z.B. durch einen Pen) sein kann."
           }
         },
         "es" : {
@@ -175867,7 +176047,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zeigt den COB-Wert, der vom Algorithmus zu einem bestimmten Zeitpunkt in der Vergangenheit berechnet wird. Diese Werte sind Snapshots und werden sich nicht ändern, wenn Kohlenhydrate hinzugefügt oder entfernt werden."
+            "value" : "Zeigt den COB-Wert, der vom Algorithmus zu einem bestimmten Zeitpunkt in der Vergangenheit berechnet wird. Diese Werte sind Momentaufnahmen und werden sich nicht ändern, wenn Kohlenhydrate hinzugefügt oder entfernt werden."
           }
         },
         "es" : {
@@ -175967,7 +176147,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zeigt den vom Algorithmus berechneten IOB-Wert zu einem bestimmten Zeitpunkt in der Vergangenheit an. Diese Werte sind Schnappschüsse und werden sich nicht ändern, wenn Insulin nachträglich hinzugefügt oder entfernt wird."
+            "value" : "Zeigt den vom Algorithmus berechneten IOB-Wert zu einem bestimmten Zeitpunkt in der Vergangenheit an. Diese Werte sind Momentaufnahmen und werden sich nicht ändern, wenn Insulin nachträglich hinzugefügt oder entfernt wird."
           }
         },
         "es" : {
@@ -176138,7 +176318,7 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "Sigmoid"
           }
         },
@@ -176267,7 +176447,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sigmoid Adjustment Factor beeinflusst sowohl die Schnelligkeit der ISF Werte als auch die Schnelligkeit des Autosens Max und Min Limits. Die Erhöhung des Sigmoid-Anpassungsfaktors erhöht die Veränderungsrate Ihres ISF und reduziert den Bereich der Glukosewerte zwischen Ihren Autosens Max und Min Grenzen."
+            "value" : "Der Sigmoid-Anpassungsfaktor beeinflusst sowohl die Geschwindigkeit, mit der sich Deine ISF-Werte ändern, als auch die Geschwindigkeit, mit der Du Deine eingestellten Autosens Max- und Min-Grenzwerte erreichst. Eine Erhöhung des Sigmoid-Anpassungsfaktors erhöht die Änderungsrate Deines ISF und verringert den Bereich der Glukosewerte zwischen den Autosens-Grenzwerten Max und Min."
           }
         },
         "es" : {
@@ -176976,7 +177156,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Überspringen Sie neutrale temporäre Basalraten um MDT-Pumpenwarnungen zu reduzieren."
+            "value" : "Überspringe neutrale temporäre Basalraten um MDT-Pumpenwarnungen zu reduzieren."
           }
         },
         "es" : {
@@ -177077,7 +177257,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Neutrale Temps überspringen"
+            "value" : "Neutrale temporäre Basalraten überspringen"
           }
         },
         "es" : {
@@ -177488,7 +177668,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kleinste verordnete SMB-Menge. Die Mindestmenge für Omnipod-Pumpen beträgt 0,05 U, während sie bei Medtronic-Pumpen je nach Modell von 0,025 U bis 0,10 U variiert. Bitte prüfen Sie die minimale Bolusmenge, die von Ihrer Pumpe abgegeben werden kann. Der Standardwert ist 0,1."
+            "value" : "Kleinste verordnete SMB-Menge. Die Mindestmenge für Omnipod-Pumpen beträgt 0,05 IE, während sie bei Medtronic-Pumpen je nach Modell von 0,025 IE bis 0,10 IE variiert. Bitte prüfe die minimale Bolusmenge, die von Deiner Pumpe abgegeben werden kann. Der Standardwert ist 0,1 IE."
           }
         },
         "en" : {
@@ -178096,7 +178276,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "SMB Lieferverhältnis von berechnetem Insulin, das als SMB angegeben wird."
+            "value" : "SMB Lieferverhältnis des berechneten Insulinbedarfs, welches als SMB abgegeben wird."
           }
         },
         "es" : {
@@ -178812,7 +178992,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "SMBs und Non-Zero Temp. Basal-Tarife sind deaktiviert."
+            "value" : "SMBs und Nicht-Null Temp. Basal-Raten sind deaktiviert."
           }
         },
         "es" : {
@@ -178912,7 +179092,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Glatte CGM Lesungen mit Savitzky-Golay Filter."
+            "value" : "Glättung der CGM-Messwerte durch Savitzky-Golay-Filterung."
           }
         },
         "es" : {
@@ -179314,7 +179494,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "snooze in der Testansicht angeklickt"
+            "value" : "Schlummern von testview angeklickt"
           }
         },
         "en" : {
@@ -179822,7 +180002,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "UI Element(e) wurde(n) falsch eingegeben"
+            "value" : "Einige UI Element(e) wurde(n) falsch eingegeben"
           }
         },
         "en" : {
@@ -179928,7 +180108,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beim Laden Ihrer Daten ist ein Fehler aufgetreten. Bitte versuchen Sie es in einigen Augenblicken erneut."
+            "value" : "Beim Laden Deiner Daten ist ein Fehler aufgetreten. Bitte versuche es in einigen Augenblicken erneut."
           }
         },
         "es" : {
@@ -180028,7 +180208,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Quelle des Glukose-Lesens wird der Benachrichtigung hinzugefügt."
+            "value" : "Die Quelle der Glukosemessung wird der Benachrichtigung hinzugefügt."
           }
         },
         "es" : {
@@ -180300,7 +180480,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Khoảng cách lan truyền"
+            "value" : "Khoảng thời gian Phân bố"
           }
         },
         "zh-Hant" : {
@@ -180429,7 +180609,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "STALE DATEN"
+            "value" : "VERALTETE DATEN"
           }
         },
         "es" : {
@@ -180529,7 +180709,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "anfangen"
+            "value" : "Anfang"
           }
         },
         "es" : {
@@ -180936,7 +181116,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Überschreiben starten"
+            "value" : "Überschreibung starten"
           }
         },
         "es" : {
@@ -181338,14 +181518,14 @@
         },
         "da" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Started Override \"%@\" successfully."
+            "state" : "translated",
+            "value" : "Startede Overskriv \"%@\" succesfuldt."
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Started Override \"%@\" successfully."
+            "state" : "translated",
+            "value" : "Überschreibung \"%@\" erfolgreich gestartet."
           }
         },
         "es" : {
@@ -181356,8 +181536,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Started Override \"%@\" successfully."
+            "state" : "translated",
+            "value" : "Dérogation \"%@\" démarrée avec succès."
           }
         },
         "he" : {
@@ -181386,8 +181566,8 @@
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Started Override \"%@\" successfully."
+            "state" : "translated",
+            "value" : "Rozpoczęto nadpisanie \"%@\"."
           }
         },
         "pt-PT" : {
@@ -181398,8 +181578,8 @@
         },
         "sv" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Started Override \"%@\" successfully."
+            "state" : "translated",
+            "value" : "Startade Override \"%@\" framgångsrikt."
           }
         },
         "tr" : {
@@ -181416,8 +181596,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Started Override \"%@\" successfully."
+            "state" : "translated",
+            "value" : "Đã khởi động Ghi Đè \"%@\" thành công."
           }
         },
         "zh-Hant" : {
@@ -181439,14 +181619,14 @@
         },
         "da" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Started Temp Target \"%@\" successfully."
+            "state" : "translated",
+            "value" : "Startede Midlertidigt Mål \"%@\" succesfuldt."
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Started Temp Target \"%@\" successfully."
+            "state" : "translated",
+            "value" : "Tmeporäres Ziel \"%@\" erfolgreich gestartet."
           }
         },
         "es" : {
@@ -181457,8 +181637,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Started Temp Target \"%@\" successfully."
+            "state" : "translated",
+            "value" : "Cible temporaire \"%@\" démarrée avec succès."
           }
         },
         "he" : {
@@ -181487,8 +181667,8 @@
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Started Temp Target \"%@\" successfully."
+            "state" : "translated",
+            "value" : "Rozpoczęto cel tymczasowy \"%@\"."
           }
         },
         "pt-PT" : {
@@ -181499,8 +181679,8 @@
         },
         "sv" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Started Temp Target \"%@\" successfully."
+            "state" : "translated",
+            "value" : "Startade Tillfälligt mål \"%@\" framgångsrikt."
           }
         },
         "tr" : {
@@ -181517,8 +181697,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Started Temp Target \"%@\" successfully."
+            "state" : "translated",
+            "value" : "Đã khởi động Mục Tiêu Tạm thời \"%@\" thành công."
           }
         },
         "zh-Hant" : {
@@ -181547,7 +181727,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Starten dieser Überschreibung ändert Ihre Profile und/oder Ihren Zielglukosegehalt, der für die Schleifenbildung während der gesamten ausgewählten Dauer verwendet wird. Tippen Sie auf \"Profil starten\", um Ihr neues Profil zu starten oder Ihr aktuell aktives Profil zu bearbeiten."
+            "value" : "Das Starten dieser Überschreibung ändert Deine Profile und/oder Deine Zielglukose, die für den Loop während der gesamten Dauer verwendet werden. Tippe auf \"Profil starten\", um Dein neues Profil zu starten oder Dein aktuell aktives Profil zu bearbeiten."
           }
         },
         "en" : {
@@ -182571,7 +182751,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bleiben Sie eine Zeit lang im \"offenen Loop\" (keine automatische Dosierung), damit Trio aufholen kann und Sie sicher sind"
+            "value" : "Bleib eine Zeit lang im \"offenen Loop\" (keine automatische Dosierung), damit Trio aufholen kann und Du sicher bist"
           }
         },
         "es" : {
@@ -182778,7 +182958,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stoppen"
+            "value" : "Stopp"
           }
         },
         "es" : {
@@ -182978,7 +183158,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alle Einstellungen stoppen"
+            "value" : "Alle Anpassungen stoppen"
           }
         },
         "es" : {
@@ -183178,7 +183358,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Überschreiben stoppen"
+            "value" : "Überschreibung stoppen"
           }
         },
         "es" : {
@@ -183278,7 +183458,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stop Temp Target"
+            "value" : "Temporäres Ziel stoppen"
           }
         },
         "es" : {
@@ -183378,7 +183558,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Überschreiben \"%@ \"stoppen?"
+            "value" : "Überschreibung \"%@ \"stoppen?"
           }
         },
         "es" : {
@@ -183478,7 +183658,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Temp Ziel \"%@ \"stoppen?"
+            "value" : "Temporäres Ziel \"%@ \"stoppen?"
           }
         },
         "es" : {
@@ -183572,14 +183752,14 @@
         },
         "da" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Stopped Override successfully."
+            "state" : "translated",
+            "value" : "Stoppede overskriv succesfuldt."
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Stopped Override successfully."
+            "state" : "translated",
+            "value" : "Überschreibung erfolgreich gestoppt."
           }
         },
         "es" : {
@@ -183590,8 +183770,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Stopped Override successfully."
+            "state" : "translated",
+            "value" : "Dérogation bien arrêtée."
           }
         },
         "he" : {
@@ -183620,8 +183800,8 @@
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Stopped Override successfully."
+            "state" : "translated",
+            "value" : "Zatrzymano nadpisanie."
           }
         },
         "pt-PT" : {
@@ -183632,8 +183812,8 @@
         },
         "sv" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Stopped Override successfully."
+            "state" : "translated",
+            "value" : "Override stoppades."
           }
         },
         "tr" : {
@@ -183650,8 +183830,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Stopped Override successfully."
+            "state" : "translated",
+            "value" : "Đã dừng ghi đè thành công."
           }
         },
         "zh-Hant" : {
@@ -183673,14 +183853,14 @@
         },
         "da" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Stopped Temp Target successfully."
+            "state" : "translated",
+            "value" : "Startede Midlertidigt Mål succesfuldt."
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Stopped Temp Target successfully."
+            "state" : "translated",
+            "value" : "Temporäres Ziel  erfolgreich gestoppt."
           }
         },
         "es" : {
@@ -183691,8 +183871,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Stopped Temp Target successfully."
+            "state" : "translated",
+            "value" : "Cible temporaire bien arrêtée."
           }
         },
         "he" : {
@@ -183721,8 +183901,8 @@
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Stopped Temp Target successfully."
+            "state" : "translated",
+            "value" : "Zatrzymano cel tymczasowy."
           }
         },
         "pt-PT" : {
@@ -183733,8 +183913,8 @@
         },
         "sv" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Stopped Temp Target successfully."
+            "state" : "translated",
+            "value" : "Tillfälligt mål stoppades."
           }
         },
         "tr" : {
@@ -183751,8 +183931,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Stopped Temp Target successfully."
+            "state" : "translated",
+            "value" : "Đã dừng Mục Tiêu Tạm thời thành công."
           }
         },
         "zh-Hant" : {
@@ -184086,7 +184266,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ticket auf GitHub senden"
+            "value" : "Ticket an GitHub senden"
           }
         },
         "es" : {
@@ -184286,7 +184466,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Erfolgreich"
+            "value" : "Erfolg"
           }
         },
         "es" : {
@@ -184594,7 +184774,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Summary"
+            "value" : "Zusammenfassung"
           }
         },
         "es" : {
@@ -184765,8 +184945,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Super Bolus"
+            "state" : "translated",
+            "value" : "Liều Bolus Tăng cường"
           }
         },
         "zh-Hant" : {
@@ -184865,8 +185045,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Super Bolus %"
+            "state" : "translated",
+            "value" : "Liều Bolus Tăng cường %"
           }
         },
         "zh-Hant" : {
@@ -185065,8 +185245,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Super Micro Bolus"
+            "state" : "translated",
+            "value" : "Liều Bolus Tăng cường Siêu nhỏ"
           }
         },
         "zh-Hant" : {
@@ -185165,8 +185345,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Super Micro Bolus (SMB)"
+            "state" : "translated",
+            "value" : "Liều Bolus Tăng cường Siêu nhỏ (SMB)"
           }
         },
         "zh-Hant" : {
@@ -185265,7 +185445,7 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "Super-Micro-Bolus"
           }
         },
@@ -185501,7 +185681,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "suspendierende"
+            "value" : "Unterbrechung beenden"
           }
         },
         "es" : {
@@ -185601,7 +185781,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "unterbrechen-Start"
+            "value" : "Unterbrechung starten"
           }
         },
         "es" : {
@@ -185809,7 +185989,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wischen Sie nach links, um einen einzelnen Eintrag zu löschen. Tippen Sie darauf, um seine Zeit oder Rate zu bearbeiten."
+            "value" : "Wische nach links, um einen einzelnen Eintrag zu löschen. Tippe darauf, um seine Zeit oder Rate zu bearbeiten."
           }
         },
         "es" : {
@@ -185909,7 +186089,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nach links wischen, um eine temporäre Voreinstellung zu bearbeiten oder zu löschen. Halten, ziehen und Ablegen, um eine Voreinstellung neu zu ordnen."
+            "value" : "Nach links wischen, um eine temporäre Ziel-Vorlage zu bearbeiten oder zu löschen. Halten, ziehen und Ablegen, um eine Vorlage neu zu ordnen."
           }
         },
         "es" : {
@@ -186009,7 +186189,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nach links wischen, um eine Voreinstellung zu bearbeiten oder zu löschen. Halten, ziehen und Ablegen, um eine Voreinstellung neu zu ordnen."
+            "value" : "Nach links wischen, um eine Überschreibungsvorlage zu bearbeiten oder zu löschen. Halten, ziehen und Ablegen, um eine Vorlage neu zu ordnen."
           }
         },
         "es" : {
@@ -186109,7 +186289,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wischen Sie über das Diagramm, um durch die Zeit zu scrollen."
+            "value" : "Wische über das Diagramm, um durch die Zeit zu scrollen."
           }
         },
         "es" : {
@@ -186209,7 +186389,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wischen um einen einzelnen Eintrag zu löschen. Tippen Sie darauf, um die Zeit oder die Rate zu bearbeiten."
+            "value" : "Wischen um einen einzelnen Eintrag zu löschen. Darauf Tippen, um die Zeit oder die Rate zu bearbeiten."
           }
         },
         "es" : {
@@ -186409,7 +186589,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "System-Standard:"
+            "value" : "Systemstandard:"
           }
         },
         "es" : {
@@ -186709,7 +186889,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tippen und halten Sie einen Balken, um weitere Details anzuzeigen."
+            "value" : "Tippe und halte einen Balken, um weitere Details zu sehen."
           }
         },
         "es" : {
@@ -186809,7 +186989,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tippen Sie auf das AGP-Diagramm oder den \"Time-in-Range\"-Ring und halten Sie es gedrückt, um weitere Details anzuzeigen."
+            "value" : "Tippe auf das AGP-Diagramm oder den \"Time-in-Range\"-Ring und halte es gedrückt, um weitere Details anzuzeigen."
           }
         },
         "es" : {
@@ -186909,7 +187089,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tippen und halten Sie den \"Time-in-Range\"-Ring, um weitere Details anzuzeigen."
+            "value" : "Tippe und halte den \"Time-in-Range\"-Ring, um weitere Details anzuzeigen."
           }
         },
         "es" : {
@@ -187009,7 +187189,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tippen Sie auf die Schaltfläche unten, um Ihre Nacht-cout-Instanz im Standardbrowser Ihres iPhones zu öffnen."
+            "value" : "Tippe auf die Schaltfläche unten, um Deine Nightscoutseite im Standardbrowser Deines iPhones zu öffnen."
           }
         },
         "es" : {
@@ -187210,7 +187390,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "angetippte Zeitpläne speichern"
+            "value" : "ausgewählte Zeitpläne speichern"
           }
         },
         "en" : {
@@ -187416,7 +187596,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Target "
+            "value" : "Ziel "
           }
         },
         "es" : {
@@ -187516,7 +187696,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verhalten des Ziels"
+            "value" : "Zielverhalten"
           }
         },
         "es" : {
@@ -187616,7 +187796,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit dem Zielverhalten können Sie einstellen, wie temporäre Ziele ISF, Basal und Auto-Zielanpassung auf der Grundlage von Empfindlichkeit oder Resistenz beeinflussen."
+            "value" : "Mit dem Zielverhalten kannst Du einstellen, wie temporäre Ziele den ISF, die Basalrate und die Auto-Zielanpassung auf der Grundlage von Empfindlichkeit oder Resistenz beeinflussen."
           }
         },
         "es" : {
@@ -187717,7 +187897,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ziel Glukose"
+            "value" : "Zielglukose"
           }
         },
         "en" : {
@@ -187823,7 +188003,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ziel Glucose für 24 Stunden bedeckt. Sie können nicht mehr Raten hinzufügen. Bitte entfernen Sie oder passen Sie die vorhandenen Raten an, um Platz zu schaffen."
+            "value" : "Zielglukose für 24 Stunden abgedeckt. Du kannst keine weiteren Raten hinzufügen. Bitte entferne oder passe bestehende Raten an, um Platz zu schaffen."
           }
         },
         "es" : {
@@ -187923,7 +188103,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ziel Glukose ist außerhalb des Bereichs (%@) ."
+            "value" : "Die Zielglukose liegt außerhalb des Bereichs (%@)."
           }
         },
         "es" : {
@@ -188025,7 +188205,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Temporäre Ziele"
+            "value" : "Zielvorlagen"
           }
         },
         "en" : {
@@ -188239,7 +188419,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "TargetGlucose - 0.5 × (TargetGlucose - 40)"
+            "value" : "Zielglukose - 0.5 × (Zielglukose - 40)"
           }
         },
         "es" : {
@@ -188647,7 +188827,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Temp Target Presets"
+            "value" : "Temporäre Ziel-Vorlagen"
           }
         },
         "es" : {
@@ -189679,7 +189859,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Temporary Target Presets"
+            "value" : "Temporäre Ziel-Vorlagen"
           }
         },
         "es" : {
@@ -189779,7 +189959,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit dem Anpassungsfaktor (AF) können Sie steuern, wie schnell und effektiv Dynamic ISF auf Veränderungen des Glukosespiegels reagiert."
+            "value" : "Mit dem Anpassungsfaktor (AF) kannst Du steuern, wie schnell und effektiv Dynamic ISF auf Änderungen des Blutzuckerspiegels reagiert."
           }
         },
         "es" : {
@@ -189880,7 +190060,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die App Garmin Connect muss installiert sein, um Trio nutzen zu können.\n Laden Sie sie im App Store herunter"
+            "value" : "Die App Garmin Connect muss installiert sein, um Trio nutzen zu können.\n Lade sie im App Store herunter"
           }
         },
         "en" : {
@@ -189986,7 +190166,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Autosens Ratio wird zur Berechnung des Anpassungsbedarfs für Basisraten, ISF und CR verwendet."
+            "value" : "Das Autosensverhältnis wird zur Berechnung des Anpassungsbedarfs für Basalraten, ISF und CR verwendet."
           }
         },
         "es" : {
@@ -190487,7 +190667,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Standardeinstellung ist ein erwartetes %1$@ %2$@/5min. Dies wirkt sich darauf aus, wie schnell COB in Situationen verfällt, in denen die Kohlendioxidabsorption in Abweichungen nicht sichtbar ist. Der Standard von %3$@ %4$@/5min entspricht einer minimalen Kohlenstoffabsorptionsrate von 24 g/h bei einem CSF von %5$@ %6$@/g."
+            "value" : "Der Standardwert ist ein erwarteter %1$@ %2$@/5min. Dies wirkt sich darauf aus, wie schnell die COB in Situationen abbaut, in denen die Kohlenhydrataufnahme nicht in den Glukose-Abweichungen sichtbar ist. Der Standardwert von %3$@ %4$@/5min entspricht einer minimalen Kohlenhydratabsorptionsrate von 24 g/Std. bei einem CSF von %5$@ %6$@/g."
           }
         },
         "en" : {
@@ -190909,7 +191089,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Grad in dem Ihre Glukose ansteigen oder fallen soll, nur aufgrund der Insulinaktivität."
+            "value" : "Der Grad in dem Deine Glukose ansteigen oder fallen sollte, nur aufgrund der Insulinaktivität."
           }
         },
         "es" : {
@@ -191109,7 +191289,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Dauer von Insulin Action (DIA) legt fest, wie lange Ihr Insulin nach einer Dosis die Glukosewerte weiter senken wird."
+            "value" : "Die Dauer der Insulinwirkung (DIA) legt fest, wie lange Dein Insulin nach einer Dosis die Glukosewerte weiter senken wird."
           }
         },
         "es" : {
@@ -191309,7 +191489,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Einstellung Fett- und Proteinverzögerung definiert die Zeit zwischen Fett- und Proteinprotokollierung und dem Beginn der Insulinlieferung für die Fat-Protein-Einheitskarbäquivalente (FPUs)."
+            "value" : "Die Einstellung Fett- und Eiweißverzögerung definiert den Zeitraum zwischen der Erfassung von Fett und Eiweiß und dem Beginn der Insulinabgabe für die Fett-Eiweiß-Einheiten-Kohlenhydrat-Äquivalente (FPUs)."
           }
         },
         "es" : {
@@ -191409,7 +191589,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Schalter Fetch Treatments ermöglicht das Abrufen von Kohlenhydraten und Temp-Zielen, die in Careportal oder durch ein anderes Hochladegerät als Trio von Nachtscout."
+            "value" : "Der Schalter \"Behandlungen importieren\" ermöglicht das Abrufen von Kohlenhydraten und Temporären-Zielen, die im Careportal oder durch ein anderes Hochladegerät als Trio in Nightscout gespeichert wurden."
           }
         },
         "es" : {
@@ -191509,7 +191689,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der erste Wert ist Ihr Profil Carb Ratio (CR). Der zweite Wert nach dem Pfeil ist Ihre angepasste CR für die aktuellste automatisierte Dosierungsberechnung."
+            "value" : "Der erste Wert ist Dein Profil-Kohlenhydratverhältnis (CR). Der zweite Wert nach dem Pfeil ist Deine angepasste CR, die für die letzte automatische Dosierungsberechnung verwendet wurde."
           }
         },
         "es" : {
@@ -191609,7 +191789,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der erste Wert ist Ihr Profil Insulin Empfindlichkeit Faktor (ISF). Der zweite Wert nach dem Pfeil ist die angepasste ISF, die für die aktuellste automatisierte Dosierungsberechnung verwendet wird."
+            "value" : "Der erste Wert ist Dein Profil-Insulin-Empfindlichkeits- Faktor (ISF). Der zweite Wert nach dem Pfeil ist der angepasste ISF, der für die aktuellste automatisierte Dosierungsberechnung verwendet wird."
           }
         },
         "es" : {
@@ -191709,7 +191889,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der erste Wert ist Ihre Zielzufuhr aus Ihren Einstellungen. Der zweite Wert nach dem Pfeil ist die angepasste Glukose für die neueste automatisierte Dosierungsberechnung. Ein zweiter Wert wird angezeigt, wenn ein temporäres Ziel, eine Überschreibung oder eine der aktivierten Optionen für das Verhalten des Ziels aktiviert ist."
+            "value" : "Der erste Wert ist Deine Zielglukose aus Deinen Einstellungen. Der zweite Wert, nach dem Pfeil, ist Deine angepasste Zielglukose, die für die letzte automatische Dosierungsberechnung verwendet wurde. Ein zweiter Wert wird angezeigt, wenn Du ein temporäres Ziel, eine Überschreibung oder eine der Zielverhaltensoptionen aktiviert hast."
           }
         },
         "es" : {
@@ -191909,7 +192089,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der prognostizierte Glukosewert in 4 Stunden auf der Grundlage aktueller Abweichungen, die in letzter Zeit auf Null abgesprengt wurden."
+            "value" : "Der prognostizierte Glukosewert in 4 Stunden auf der Grundlage der aktuellen Abweichungen, die mit der gleichen Geschwindigkeit wie in der letzten Zeit auf Null sinken."
           }
         },
         "es" : {
@@ -192209,7 +192389,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Ziel 'Halbe Basale Übung' erlaubt es dir, dein Basal-Insulin während des Trainings herunterzuschrauben oder dein Basal-Insulin zu vergrößern, wenn bald ein vorübergehendes Glukose-Ziel gesetzt wird."
+            "value" : "Mit dem Halb-Basal-Trainings-Ziel kannst Du Dein Basalinsulin während des Trainings herabsetzen oder Dein Basalinsulin beim Essen erhöhen, wenn ein vorübergehendes Glukoseziel festgelegt wird."
           }
         },
         "es" : {
@@ -192509,7 +192689,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der niedrigste geschätzte Wert, den Trio für Ihre zukünftige Glukose geschätzt hat."
+            "value" : "Der niedrigste geschätzte Wert, den Trio für Deine zukünftige Glukose geschätzt hat."
           }
         },
         "es" : {
@@ -192609,7 +192789,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Hauptdiagramm im Trio besteht aus verschiedenen Elementen und Formen."
+            "value" : "Das Hauptdiagramm in Trio besteht aus verschiedenen Elementen und Formen. Ihre Bedeutungen findest Du unten."
           }
         },
         "es" : {
@@ -192809,7 +192989,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die maximale Dauer für die Verfolgung von Carb-Einträgen bei der Schätzung von Carbs auf dem Board (COB)"
+            "value" : "Die maximale Dauer für die Nachverfolgung von Kohlenhydrateinträgen bei der Schätzung von Kohlenhydrate an Bord (COB)"
           }
         },
         "es" : {
@@ -192909,7 +193089,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Noisy CGM Target erhöht Ihr Glukoseziel, wenn das System Geräusch- oder Rohdaten von CGM erkennt. Standardmäßig wird das Ziel auf 130 % der Zielzuckerwerte erhöht, um die weniger zuverlässigen Glukosewerte zu erfassen."
+            "value" : "Die Zielerhöhung für verrauschte CGM-Daten erhöht Deinen Glukosezielwert, wenn das System verrauschte oder rohe CGM-Daten erkennt. Standardmäßig wird das Ziel auf 130 % Deiner eingestellten Zielglukose erhöht, um die weniger zuverlässigen Glukosemessungen zu kompensieren."
           }
         },
         "es" : {
@@ -193109,7 +193289,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Oref-Algorithmus gibt Empfehlungen, die Schlüsselvariablen, Entscheidungen über temporäre Basisraten oder Super-Mikro-Bolusse und ein 'Vernunft'-Feld zeigen, das seine Aktionen erklärt. Finden Sie alle Schlüsselbegriffe dieses 'Grunds' unten erläutert:"
+            "value" : "Der oref-Algorithmus gibt Empfehlungen, zeigt Schlüsselvariablen, Entscheidungen über temporäre Basalraten oder Super-Micro-Boli und ein \"Begründungs\"-Feld, das sein Handeln erklärt. Alle Schlüsselbegriffe dieser \"Begründung\" werden im Folgenden erklärt:"
           }
         },
         "es" : {
@@ -193211,7 +193391,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die andere Seite der Autosens Sicherheitsgrenzen, indem eine Grenze gesetzt wird, wie niedrig Autosens Basaleinstellung einstellen kann, und wie hoch er ISF und BG Ziele anpassen darf."
+            "value" : "Die andere Seite der Autosens-Sicherheitsgrenzen, die eine Obergrenze dafür setzt, wie niedrig Autosens die Basalraten anpassen kann und wie hoch es ISF-Werte und Glukoseziele anpassen kann."
           }
         },
         "en" : {
@@ -193317,7 +193497,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Verhältnis der Empfindlichkeit oder Widerstandsfähigkeit gegen Insulin im aktuellen Schleifzyklus. Baseline = 1.0, Sensitiv < 1.0, resistent > 1.0"
+            "value" : "Das Verhältnis, wie empfindlich oder resistent Du im aktuellen Loop auf Insulin reagierst. Ausgangswert = 1,0, empfindlich < 1,0, resistent > 1,0"
           }
         },
         "es" : {
@@ -193417,7 +193597,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die verbleibende Carbs Cap legt die Obergrenze fest, wie viele Kohlenhydrate das System über 4 Stunden absorbieren wird auch wenn es keine klaren Anzeichen für die Aufnahme aus Ihren Glukose-Messungen gibt."
+            "value" : "Die Obergrenze für verbleibende Kohlenhydrate legt fest, wie viele Kohlenhydrate das System innerhalb von 4 Stunden aufnehmen kann, auch wenn die Glukosemessungen keine eindeutigen Anzeichen für eine Aufnahme zeigen."
           }
         },
         "es" : {
@@ -193617,7 +193797,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Recht, die Löschung Ihrer Daten zu verlangen"
+            "value" : "Das Recht, die Löschung Deiner Daten zu verlangen"
           }
         },
         "es" : {
@@ -193817,7 +193997,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Einstellungen in diesem Abschnitt erfordern in der Regel keine Änderungen. Ändern Sie sie nicht ohne ein solides Verständnis dessen, was Sie ändern und die volle Auswirkung auf den Algorithmus."
+            "value" : "Die Einstellungen in diesem Abschnitt müssen normalerweise NICHT geändert werden. Ändere sie nicht, ohne genau zu wissen, was Du änderst und welche Auswirkungen dies auf den Algorithmus hat."
           }
         },
         "es" : {
@@ -193917,7 +194097,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Je kürzer das Intervall, desto glatter das korrelierte Dosierergebnis."
+            "value" : "Je kürzer das Intervall, desto gleichmäßiger ist das Ergebnis der korrelierenden Dosierung."
           }
         },
         "es" : {
@@ -194017,7 +194197,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit dem Sigmoid-Anpassungsfaktor (AF) können Sie kontrollieren, wie schnell Sigmoid Dynamic ISF auf Veränderungen des Glukosespiegels reagiert und mit welchem Glukosewert Sie Ihre Autosens Max und Autosens Min Limits erreichen."
+            "value" : "Mit dem Sigmoid-Anpassungsfaktor (AF) kannst Du steuern, wie schnell der Sigmoid Dynamic ISF auf Änderungen des Glukosespiegels reagiert und bei welchem Glukosewert Du Deine Autosens Max- und Autosens Min-Grenzwerte erreichst."
           }
         },
         "es" : {
@@ -194117,7 +194297,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Simulator erzeugt ein wave-ähnliches Muster, das natürliche Glukosefluktuationen den ganzen Tag über nachahmt."
+            "value" : "Der Simulator erzeugt ein wellenförmiges Muster, das die natürlichen Schwankungen des Glukosespiegels im Laufe des Tages nachahmt."
           }
         },
         "es" : {
@@ -194217,7 +194397,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Quelle des Glukose-Lesens wird der Benachrichtigung hinzugefügt."
+            "value" : "Die Quelle der Glukosemessung wird der Benachrichtigung hinzugefügt."
           }
         },
         "es" : {
@@ -194317,7 +194497,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Zeit, die benötigt wird, um einen vollen Zyklus von hoch bis tief und zurück bis hoch zu vollenden."
+            "value" : "Die Zeit, die benötigt wird, um einen vollen Zyklus von hoch bis tief und zurück bis hoch zu durchlaufen."
           }
         },
         "es" : {
@@ -194417,7 +194597,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Upload-Behandlungs-Schalter ermöglicht das Hochladen der folgenden Datensätze zu Ihrer verbundenen Nightscout-URL:"
+            "value" : "Die Option \"Behandlungen hochladen\" ermöglicht das Hochladen der folgenden Datensätze auf Deine verbundene Nightscout-URL:"
           }
         },
         "es" : {
@@ -194603,10 +194783,100 @@
     "Therapy" : {
       "comment" : "Therapy menu item in the Settings main view.",
       "localizations" : {
+        "bg" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Therapy"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Behandling"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Therapie"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Therapy"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thérapie"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Therapy"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Therapy"
+          }
+        },
         "nb-NO" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Behandling"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Therapie"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terapia"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Therapy"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Behandling"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Therapy"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Therapy"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liệu pháp"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Therapy"
           }
         }
       }
@@ -194929,7 +195199,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rücknahme nicht möglich"
+            "value" : "Es gibt kein rückgängig"
           }
         },
         "en" : {
@@ -195035,7 +195305,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Es besteht kein Grund zur Eile. Nimm dir die Zeit, die du brauchst."
+            "value" : "Es besteht kein Grund zur Eile. Nimm dir die Zeit, die Du brauchst."
           }
         },
         "es" : {
@@ -195135,7 +195405,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Dateien enthalten nur codebezogene Informationen, die uns helfen zu verstehen, wo Abstürze auftreten. Sie enthalten keine persönlichen Informationen über Sie oder wie Sie Trio verwenden."
+            "value" : "Diese Dateien enthalten nur codebezogene Informationen, die uns helfen zu verstehen, wo Abstürze auftreten. Sie enthalten keine persönlichen Informationen über Dich oder wie Du Trio verwendest."
           }
         },
         "es" : {
@@ -195235,7 +195505,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese beiden Einstellungen bestimmen den Bereich, außerhalb dessen Sie über Push-Benachrichtigungen benachrichtigt werden."
+            "value" : "Diese beiden Einstellungen bestimmen den Bereich, außerhalb dessen Du über Push-Benachrichtigungen informiert wirst."
           }
         },
         "es" : {
@@ -195335,7 +195605,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese angepasste ISF ist vorübergehend, wird sich mit dem nächsten Schleifzyklus ändern und sollte nicht direkt als ISF-Profil verwendet werden."
+            "value" : "Dieser angepasste ISF ist temporär, wird sich mit dem nächsten Loop ändern und sollte nicht direkt als ISF-Wert für Dein Profil verwendet werden."
           }
         },
         "es" : {
@@ -195435,7 +195705,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies erlaubt Trio von Apple Health zu lesen und zu schreiben."
+            "value" : "Dies erlaubt Trio von Apple Health zu lesen und in es zu schreiben."
           }
         },
         "es" : {
@@ -195536,7 +195806,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies erlaubt Trio, von Apple Heath zu lesen und in Apple Heath zu schreiben. Sie müssen auch unter Einstellungen > Gesundheit > Datenzugriff Berechtigungen erteilen. Wenn Sie einen Glukosewert in Apple Health eingeben, öffnen Sie Trio, um zu bestätigen, dass er angezeigt wird."
+            "value" : "Dies erlaubt Trio, von Apple Health zu lesen und in Apple Health zu schreiben. Du musst auch unter Einstellungen > Gesundheit > Datenzugriff Berechtigungen erteilen. Wenn Du einen Glukosewert in Apple Health eingibst, öffne Trio, um zu bestätigen, dass er angezeigt wird."
           }
         },
         "en" : {
@@ -195642,7 +195912,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Kappe verhindert, dass das System überschätzt, wie viel Insulin benötigt wird, wenn die Kohlenstoffabsorption nicht sichtbar ist, was einen Schutz für eine genaue Dosierung bietet."
+            "value" : "Diese Obergrenze verhindert, dass das System die benötigte Insulinmenge überschätzt, wenn die Kohlenhydrataufnahme nicht sichtbar ist, und bietet somit einen Schutz für eine genaue Dosierung."
           }
         },
         "es" : {
@@ -195742,7 +196012,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies könnte für schnelle Aufnahme von Mahlzeiten wie zuckerhaltigem Getreide nützlich sein."
+            "value" : "Dies könnte bei schnell absorbierenden Mahlzeiten wie zuckerhaltigem Müsli nützlich sein."
           }
         },
         "es" : {
@@ -195842,7 +196112,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies könnte für langsame Aufnahme von Mahlzeiten wie Pizza nützlich sein."
+            "value" : "Dies könnte für die langsame Aufnahme von Mahlzeiten wie Pizza nützlich sein."
           }
         },
         "es" : {
@@ -195942,7 +196212,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Verzögerung verursacht die langsamere Absorption von Fett und Protein, wie sie nach der Warschauer Methode berechnet wurde, Die Sicherstellung der Insulinlieferung ist zur richtigen Zeit für den Umgang mit Glukosespikes, die durch hochfette, hochproteinreiche Mahlzeiten verursacht werden."
+            "value" : "Diese Verzögerung trägt der langsameren Absorption von Fett und Eiweiß Rechnung, die nach der Warschauer Methode berechnet wird, und stellt sicher, dass die Insulinabgabe zum richtigen Zeitpunkt erfolgt, um die durch fett- und eiweißreiche Mahlzeiten verursachten Glukosespitzen zu bewältigen."
           }
         },
         "es" : {
@@ -196042,7 +196312,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies legt fest, wie viele Minuten zwischen einzelnen Fat-Protein Unit Carb Equivalent (FPU) Einträgen aus einem einzigen Fat und/oder Protein bolus Taschenrechner sein werden."
+            "value" : "Damit wird festgelegt, wie viele Minuten zwischen den einzelnen Fett-Eiweiß-Einheiten-Kohlenhydrat-Äquivalenten (FPU) eines einzelnen Fett- und/oder Eiweißbolus-Rechnereingangs liegen."
           }
         },
         "es" : {
@@ -196352,7 +196622,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies aktiviert Supermikrobolus (SMB) mit sofortigen essen / niedrige Temp Ziele. Wenn diese Funktion aktiviert ist, ist jedes temporäre Ziel unter 100mg/dL z. B. ein Temp Ziel von 99 (oder 80, das typische sofort essen Ziel) ermöglicht SMB."
+            "value" : "Dies ermöglicht Supermikroboli (SMB) mit für baldiges Essen / niedrige temporäre Ziele. Wenn diese Funktion aktiviert ist, wird jedes temporäre Ziel unter 100 mg/dL, wie z. B. ein temporäres Ziel von 99 (oder 80, das typische Ziel für \"baldiges Essen\"), SMB aktivieren."
           }
         },
         "en" : {
@@ -196460,7 +196730,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies ermöglicht das Hochladen der statistics.json zu Nightscout, die vom Community Statistics and Demographics Project genutzt werden kann.\n\nDie Teilnahme an der Gemeinschaftsstatistik erfolgt auf freiwilliger Basis und erfordert eine gesonderte Registrierung unter:\n"
+            "value" : "Dies ermöglicht das Hochladen der statistics.json zu Nightscout, die vom Community \"Statistics and Demographics Project\" genutzt werden kann.\n\nDie Teilnahme an der Gemeinschaftsstatistik erfolgt auf freiwilliger Basis und erfordert eine gesonderte Registrierung unter:\n"
           }
         },
         "en" : {
@@ -196566,7 +196836,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Fallback-Einstellung verhindert die Unterdosierung durch die Verbreitung eines Teils der eingegebenen Kohlenhydrate im Laufe der Zeit, das Gleichgewicht des Insulinbedarfs mit unerkannter Kohlenstoffbelastung."
+            "value" : "Diese Rückfalleinstellung verhindert eine Unterdosierung, indem sie einen Teil der eingegebenen Kohlenhydrate über die Zeit verteilt und so den Insulinbedarf mit den unerkannten Auswirkungen der Kohlenhydrate ausgleicht."
           }
         },
         "es" : {
@@ -196866,7 +197136,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieses Feature sorgt für genauere Insulinanpassungen, wenn Kohlenstoffeinträge fehlen oder nicht korrekt sind."
+            "value" : "Dieses Einstellung sorgt für genauere Insulinanpassungen, wenn Kohlenhydrateingaben fehlen oder nicht korrekt sind."
           }
         },
         "es" : {
@@ -196966,7 +197236,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Funktion setzt das Autosens Ratio auf neutral zurück, wenn Sie Ihre Pumpe zurückziehen, vorausgesetzt, dass dies einer Änderung der Site entspricht."
+            "value" : "Diese Funktion setzt das Autosens-Verhältnis auf neutral zurück, wenn Du Deine Pumpe zurückspulst, in der Annahme, dass dies einem Katheterwechsel entspricht."
           }
         },
         "es" : {
@@ -197066,7 +197336,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Funktion setzt das Empfindlichkeitsverhältnis auf neutral zurück, wenn Sie Ihre Pumpe zurückspulen, in der Annahme, dass dies einem Katheterwechsel entspricht."
+            "value" : "Diese Funktion setzt das Empfindlichkeitsverhältnis auf neutral zurück, wenn Du Deine Pumpe zurückspulst, in der Annahme, dass dies einem Katheterwechsel entspricht."
           }
         },
         "es" : {
@@ -197168,7 +197438,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Funktion wurde früher immer aktiviert, steht aber nun standardmäßig auf \"Aus\". Dies ist mit oref 0.6.0 nicht mehr nötig. Diese Funktion senkt das Blutzucker Ziel von oref0 automatisch, wenn der aktuelle BG oder der zu erwartende BG hoch sind. Dies hilft hohe BG zu verhindern und zu mildern, aber schaltet automatisch auf Niedrigempfindlichkeit um, um sicherzustellen, dass die BG reibungslos auf Ihr eigentliches Ziel zugeht. Wenn Sie dieses Verhalten zu aggressiv finden, können Sie diese Funktion deaktivieren. Wenn Sie dies tun, teilen Sie uns dies bitte mit, damit wir besser verstehen können, welche Einstellungen für alle am besten funktionieren."
+            "value" : "Diese Funktion war bisher standardmäßig aktiviert, wird nun aber ab oref0 0.6.0 standardmäßig auf false gesetzt (wird NICHT automatisch aktiviert). (Für 0.6.0 besteht keine Notwendigkeit für diese Funktion). Diese Funktion senkt die Zielgukose von oref0 automatisch, wenn die aktuelle Glukose und die prognostizierte Glukose hoch sind. Dies trägt dazu bei, hohe Glukosewerte zu verhindern und abzumildern, schaltet aber automatisch auf Low-Temping um, um sicherzustellen, dass die Glukose sanft in Richtung des tatsächlichen Ziels sinkt. Wenn Du dieses Verhalten zu aggressiv findest, kannst Du diese Funktion deaktivieren. Wenn Du dies tust, lasse es uns bitte wissen, damit wir besser verstehen können, welche Einstellungen für alle am besten funktionieren."
           }
         },
         "en" : {
@@ -197276,7 +197546,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese standardmäßig aktivierte Funktion setzt Autosense auf neutral zurück, wenn Sie Ihre Pumpen Gewindestange zurücklaufen lassen, wobei davon ausgegangen wird, dass dies einen Katheter- und Reservoirwechsel bedeutet. Autosens startet ab dem Zeitpunkt des Rücklaufes neu und es kann bis zu 6 Stunden dauern, die Sensibilität neu zu beurteilen. Wenn Sie Ihre Pumpe normalerweise unabhängig vom Resevoir- und Kathetherwechsel zurück laufen lassen, sollten Sie diese Funktion deaktivieren."
+            "value" : "Diese Funktion, die standardmäßig aktiviert ist, setzt das Autosens-Verhältnis auf neutral zurück, wenn Du Deine Pumpe zurückspulst, in der Annahme, dass dies einem wahrscheinlichen Katheterwechsel entspricht. Autosens beginnt mit dem Erlernen der Empfindlichkeit ab dem Zeitpunkt des Zurückspulens, was bis zu 6 Stunden dauern kann. Wenn Du Deine Pumpe normalerweise unabhängig von Katheterwechseln zurückspulst, solltest Du diese Funktion deaktivieren."
           }
         },
         "en" : {
@@ -197382,7 +197652,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieser Filter betrachtet kleine Gruppen von nahe gelegenen Lesungen und passt sie zu einer einfachen mathematischen Kurve. Dieser Prozess ändert nicht das allgemeine Muster Ihrer Glukosedaten, sondern hilft die \"geräuschen\" oder unregelmäßigen Schwankungen, die zu falschen Höhen oder Tiefen führen können, zu mildern."
+            "value" : "Dieser Filter betrachtet kleine Gruppen von nahe beieinander liegenden Messwerten und passt sie an eine einfache mathematische Kurve an. Dieser Prozess verändert nicht das Gesamtmuster Deiner Glukosedaten, sondern hilft, das \"Rauschen\" oder unregelmäßige Schwankungen zu glätten, die zu falschen Höchst- oder Tiefstwerten führen könnten."
           }
         },
         "es" : {
@@ -197482,7 +197752,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dadurch wird das Risiko einer fehlerhaften Insulindosierung auf der Grundlage fehlerhafter Sensordaten verringert, wodurch eine sicherere Anpassung des Insulins in Zeiten schlechter CGM-Genauigkeit gewährleistet ist."
+            "value" : "Dies trägt dazu bei, das Risiko einer falschen Insulindosierung aufgrund ungenauer Sensordaten zu verringern, und gewährleistet sicherere Insulinanpassungen in Zeiten schlechter CGM-Genauigkeit."
           }
         },
         "es" : {
@@ -197582,7 +197852,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies hilft dem System, Insulin auf einem Board (IOB) genau zu verfolgen und dabei Über- oder Unterkorrekturen zu vermeiden, indem das Schwanzende des Insulineffekts berücksichtigt wird."
+            "value" : "Dies hilft dem System, Insulin an Bord (IOB) genau zu verfolgen und Über- oder Unterkorrekturen zu vermeiden, indem das Ende der Insulinwirkung berücksichtigt wird."
           }
         },
         "es" : {
@@ -197682,7 +197952,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies ist ein Limit für die Größe eines einzelnen SMB. Ein SMB kann nur so groß sein wie viele Minuten Ihres aktuellen Profil-Basal-Rates."
+            "value" : "Dies ist ein Grenzwert für die Größe eines einzelnen SMB. Ein SMB kann nur so groß sein wie so viele Minuten Deiner aktuellen Profil-Basalrate."
           }
         },
         "es" : {
@@ -205863,8 +206133,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Top Value"
+            "state" : "translated",
+            "value" : "Giá trị cao nhất"
           }
         },
         "zh-Hant" : {
@@ -211529,6 +211799,7 @@
       }
     },
     "Trio Website" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -212238,14 +212509,14 @@
         },
         "da" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Try again in a moment, or configure your Therapy Settings manually instead."
+            "state" : "translated",
+            "value" : "Prøv igen om et øjeblik, eller konfigurer dine behandlingsindstillinger manuelt i stedet."
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Try again in a moment, or configure your Therapy Settings manually instead."
+            "state" : "translated",
+            "value" : "Versuche es gleich noch mal, oder konfiguriere statt dessen deine Therapie Einstellungen manuell."
           }
         },
         "es" : {
@@ -212256,8 +212527,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Try again in a moment, or configure your Therapy Settings manually instead."
+            "state" : "translated",
+            "value" : "Réessayez dans un moment, ou configurez vos réglages de thérapie manuellement."
           }
         },
         "he" : {
@@ -212286,8 +212557,8 @@
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Try again in a moment, or configure your Therapy Settings manually instead."
+            "state" : "translated",
+            "value" : "Spróbuj ponownie za chwilę lub ręcznie skonfiguruj ustawienia Terapii."
           }
         },
         "pt-PT" : {
@@ -212298,8 +212569,8 @@
         },
         "sv" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Try again in a moment, or configure your Therapy Settings manually instead."
+            "state" : "translated",
+            "value" : "Försök igen om ett ögonblick, eller konfigurera dina behandlingsinställningar manuellt istället."
           }
         },
         "tr" : {
@@ -212316,8 +212587,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Try again in a moment, or configure your Therapy Settings manually instead."
+            "state" : "translated",
+            "value" : "Hãy thử lại sau giây lát hoặc tự cấu hình Cài đặt trị liệu theo cách thủ công."
           }
         },
         "zh-Hant" : {
@@ -222501,8 +222772,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "What is the numeric value of the carb to add"
+            "state" : "translated",
+            "value" : "Cần bổ sung bao nhiêu gam carb"
           }
         },
         "zh-Hant" : {
