@@ -211529,6 +211529,7 @@
       }
     },
     "Trio Website" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
