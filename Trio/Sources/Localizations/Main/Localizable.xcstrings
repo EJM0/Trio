@@ -2272,7 +2272,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : " cần thiết như tối thiểu. Glucose mục tiêu)!"
+            "value" : " cần thiết như tối thiểu. Đường huyết mục tiêu)!"
           }
         },
         "zh-Hant" : {
@@ -5211,7 +5211,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "(Wysłany)"
+            "value" : "(Uśpiony)"
           }
         },
         "pt-PT" : {
@@ -9011,7 +9011,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "• ISF %1$@ nghĩa là 1 U làm giảm lượng glucose của bạn xuống %2$@"
+            "value" : "• ISF %1$@ nghĩa là 1 U làm giảm lượng đường huyết của bạn xuống %2$@"
           }
         },
         "zh-Hant" : {
@@ -9611,7 +9611,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đang đọc Đường huyết hiện tại"
+            "value" : "Đường huyết hiện tại"
           }
         },
         "zh-Hant" : {
@@ -9781,7 +9781,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "• Domyślnie: Pojedyncza 'podstawowa' wartość z maksymalnie dwiema mniejszymi wartościami ('Góra, 'Dół') powyżej i poniżej niego."
+            "value" : "• Domyślnie: pojedyncza wartość „podstawowa” oraz maksymalnie dwie mniejsze wartości („Góra”, „Dół”) powyżej i poniżej."
           }
         },
         "pt-PT" : {
@@ -11281,7 +11281,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "• Delta glukozy: Zmiana stężenia glukozy."
+            "value" : "• Delta glikemii: Zmiana stężenia glikemii."
           }
         },
         "pt-PT" : {
@@ -11311,7 +11311,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "• Glucose Delta: Sự thay đổi giá trị glucose."
+            "value" : "• Glucose Delta: Sự thay đổi giá trị đường huyết."
           }
         },
         "zh-Hant" : {
@@ -11381,7 +11381,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "• Odczyt glukozy: bieżący CGM podał wartość glukozy."
+            "value" : "• Odczyt glikemii: bieżący CGM podał wartość glikemii."
           }
         },
         "pt-PT" : {
@@ -11481,7 +11481,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "• Symulator glukozy"
+            "value" : "• Symulator glikemii"
           }
         },
         "pt-PT" : {
@@ -11781,7 +11781,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "• Trend glikemii: Kierunek zmiany stężenia glukozy."
+            "value" : "• Trend glikemii: Kierunek zmiany stężenia glikemii."
           }
         },
         "pt-PT" : {
@@ -13681,7 +13681,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "• Podział: Podziela wartości na dwa odrębne obszary o tej samej wielkości."
+            "value" : "• Podział: Dzieli wartości na dwa oddzielne obszary o tym samym rozmiarze."
           }
         },
         "pt-PT" : {
@@ -13781,7 +13781,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "• Interwał rozprzestrzeniania"
+            "value" : "• Interwał rozproszenia"
           }
         },
         "pt-PT" : {
@@ -15081,7 +15081,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "❗ Wymagane są powiadomienia"
+            "value" : "❗ Powiadomienia są wymagane"
           }
         },
         "pt-PT" : {
@@ -15896,7 +15896,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2 godziny"
+            "value" : "2 godz"
           }
         },
         "pt-PT" : {
@@ -16196,7 +16196,7 @@
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "3 M"
           }
         },
@@ -16404,7 +16404,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "4 godziny"
+            "value" : "4 godz"
           }
         },
         "pt-PT" : {
@@ -16711,7 +16711,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "6 godzin"
+            "value" : "6 godz"
           }
         },
         "pt-PT" : {
@@ -17218,7 +17218,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "12 godzin"
+            "value" : "12 godz"
           }
         },
         "pt-PT" : {
@@ -17425,7 +17425,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "24 godziny"
+            "value" : "24 godz"
           }
         },
         "pt-PT" : {
@@ -19433,7 +19433,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Niższa wartość wygładza te odmiany dla większej stabilności."
+            "value" : "Niższa wartość wygładza te wahania, zapewniając większą stabilność."
           }
         },
         "pt-PT" : {
@@ -19634,7 +19634,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Powiadomienie będzie wyzwalane za każdym razem, gdy twoja glukoza jest aktualizowana w Trio."
+            "value" : "Powiadomienie zostanie wysłane za każdym razem, gdy poziom glikemii w Trio zostanie zaktualizowany."
           }
         },
         "pt-PT" : {
@@ -19734,7 +19734,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Powiadomienie będzie wyzwalane tylko wtedy, gdy poziom glukozy jest niższy niż limit HIGH lub wyższy od limitu HIGH, zgodnie z poniższymi wartościami granicznymi dla Alarm Glukozy."
+            "value" : "Powiadomienie zostanie wysłane tylko wtedy, gdy poziom glikemii będzie niższy od dolnej granicy lub wyższy od górnej granicy, zgodnie z podanymi poniżej limitami alarmowymi poziomu glikemii."
           }
         },
         "pt-PT" : {
@@ -19834,7 +19834,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Warunkiem wstępnym dostosowania Czułości tymczasowej jest to, że odpowiednie ustawienia zachowania docelowego zwiększają wrażliwość lub niski poziom Czasu Docelowego są ustawione na włączone."
+            "value" : "Warunkiem wstępnym dostosowania czułości przez cele tymczasowe jest włączenie odpowiednich ustawień zachowania celu: Wysoka temperatura celu zwiększa czułość lub Niska temperatura celu zmniejsza czułość."
           }
         },
         "pt-PT" : {
@@ -19964,7 +19964,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Temporary Target thay thế Target Glucose được chỉ định trong Therapy settings."
+            "value" : "Mục tiêu Tạm thời thay thế Mục tiêuu Đường huyết được chỉ định trong Cài đặt điều trị."
           }
         },
         "zh-Hant" : {
@@ -20034,7 +20034,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skrót „Odchylenie”. Jaka rzeczywista zmiana stężenia glukozy odbiegała od BGI."
+            "value" : "Skrót „Odchylenie”. Jaka rzeczywista zmiana stężenia glikemii odbiegała od BGI."
           }
         },
         "pt-PT" : {
@@ -20064,7 +20064,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Viết tắt của 'Deviation'. Mức độ thay đổi glucose thực tế lệch so với BGI."
+            "value" : "Viết tắt của 'Deviation'. Mức độ thay đổi đường huyết thực tế lệch so với BGI."
           }
         },
         "zh-Hant" : {
@@ -21289,7 +21289,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thêm mục nhập bằng cách chạm vào 'Add Rate +' ở góc trên bên phải màn hình."
+            "value" : "Thêm mục nhập bằng cách chạm vào 'Thêm tỷ lệ +' ở góc trên bên phải màn hình."
           }
         },
         "zh-Hant" : {
@@ -21389,7 +21389,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thêm mục nhập bằng cách chạm vào 'Add Ratio+' ở góc trên bên phải màn hình."
+            "value" : "Thêm mục nhập bằng cách chạm vào 'Thêm Tỷ lệ +' ở góc trên bên phải màn hình."
           }
         },
         "zh-Hant" : {
@@ -21489,7 +21489,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thêm mục nhập bằng cách chạm vào 'Add Sensitivity +' ở góc trên bên phải màn hình."
+            "value" : "Thêm mục nhập bằng cách chạm vào 'Thêm Độ nhạy +' ở góc trên bên phải màn hình."
           }
         },
         "zh-Hant" : {
@@ -21589,7 +21589,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thêm mục nhập bằng cách chạm vào 'Add Target +' ở góc trên bên phải màn hình."
+            "value" : "Thêm mục nhập bằng cách chạm vào 'Thêm Mục tiêu +' ở góc trên bên phải màn hình."
           }
         },
         "zh-Hant" : {
@@ -22805,7 +22805,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thêm chất béo và protein vào mục bữa ăn."
+            "value" : "Thêm chất béo và chất đạm vào mục bữa ăn."
           }
         },
         "zh-Hant" : {
@@ -22975,7 +22975,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dodaj Glukozę"
+            "value" : "Dodaj glikemię"
           }
         },
         "pt-PT" : {
@@ -23075,7 +23075,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dodaj źródło glukozy do alarmu"
+            "value" : "Dodaj źródło glikemii do alarmu"
           }
         },
         "pt-PT" : {
@@ -23105,7 +23105,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thêm nguồn Glucose vào báo động"
+            "value" : "Thêm nguồn Đường Huyết vào báo động"
           }
         },
         "zh-Hant" : {
@@ -23922,7 +23922,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dodaj jeden lub więcej kontaktów do kontaktów iOS aby wyświetlić Trio w czasie rzeczywistym na twarzy zegarka. Upewnij się, że Trio uzyska pełny dostęp do Twoich kontaktów, gdy zostaniesz o to poproszony."
+            "value" : "Dodaj jeden lub więcej kontaktów do Twoich kontaktów iOS aby wyświetlić Trio w czasie rzeczywistym na tarczy zegarka. Upewnij się, że Trio uzyska pełny dostęp do Twoich kontaktów, gdy zostaniesz o to poproszony."
           }
         },
         "pt-PT" : {
@@ -25160,7 +25160,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thêm vào phương pháp điều trị"
+            "value" : "Thêm vào điều trị"
           }
         },
         "zh-Hant" : {
@@ -26405,8 +26405,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Adjust Ring Settings"
+            "state" : "translated",
+            "value" : "Điều chỉnh cài đặt vòng"
           }
         },
         "zh-Hant" : {
@@ -26706,7 +26706,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Việc điều chỉnh giá trị này không chỉ có thể điều chỉnh tốc độ phản ứng của độ nhạy với các chỉ số glucose thay đổi mà còn điều chỉnh mức độ đạt được của chỉ số glucose Autosens Max."
+            "value" : "Điều chỉnh giá trị này không chỉ ảnh hưởng đến tốc độ mà độ nhạy insulin của bạn phản ứng với sự thay đổi của mức đường huyết, mà còn ảnh hưởng đến mức đường huyết tại đó bạn đạt đến giới hạn Autosens Max/Min."
           }
         },
         "zh-Hant" : {
@@ -27207,7 +27207,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Các Điều chỉnh"
+            "value" : "Điều chỉnh"
           }
         },
         "zh-Hant" : {
@@ -27942,8 +27942,8 @@
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Algorithm"
+            "state" : "translated",
+            "value" : "演算法"
           }
         }
       }
@@ -29347,7 +29347,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zezwalaj na bolusowanie ze skrótami"
+            "value" : "Zezwalaj na bolusy za pomocą skrótów"
           }
         },
         "pt-PT" : {
@@ -29477,7 +29477,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cho phép lấy từ Nightscout"
+            "value" : "Cho phép tải về từ Nightscout"
           }
         },
         "zh-Hant" : {
@@ -30460,7 +30460,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zezwalaj dodawać węglowodany w Trio."
+            "value" : "Pozwól na dodanie węglowodanów w Trio."
           }
         },
         "pt-PT" : {
@@ -30590,7 +30590,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cho phép liệt kê kết quả đo glucose gần đây nhất, xu hướng, IOB và COB có sẵn trong Trio"
+            "value" : "Cho phép liệt kê kết quả đo đường huyết gần đây nhất, xu hướng, IOB và COB có sẵn trong Trio"
           }
         },
         "zh-Hant" : {
@@ -32142,7 +32142,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cũng được kích hoạt khi mức glucose dự báo thấp nhất (minPredBG) là < %1$@ %2$@."
+            "value" : "Cũng được kích hoạt khi mức đường huyết dự báo thấp nhất (minPredBG) là < %1$@ %2$@."
           }
         },
         "zh-Hant" : {
@@ -32658,7 +32658,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Luôn tô màu Giá trị Glucose (xanh, vàng, v. v.)"
+            "value" : "Luôn tô màu giá trị Đường huyết (xanh, vàng, v. v.)"
           }
         },
         "zh-Hant" : {
@@ -33565,7 +33565,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Luôn thông báo Glucose"
+            "value" : "Luôn thông báo Đường huyết"
           }
         },
         "zh-Hant" : {
@@ -33864,8 +33864,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Always:"
+            "state" : "translated",
+            "value" : "Luôn luôn:"
           }
         },
         "zh-Hant" : {
@@ -33965,7 +33965,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hồ sơ đường huyết lưu động (AGP)"
+            "value" : "Biểu đồ đường huyết lưu động (AGP)"
           }
         },
         "zh-Hant" : {
@@ -34772,7 +34772,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Một ví dụ về Cảnh báo thuật toán là 'Lỗi: Glucose không hợp lệ: Không đủ dữ liệu glucose'"
+            "value" : "Một ví dụ về Cảnh báo thuật toán là 'Lỗi: Đường huyết không hợp lệ: Không đủ dữ liệu đường huyết'"
           }
         },
         "zh-Hant" : {
@@ -40249,7 +40249,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Phân số điều chỉnh Autotune ISF"
+            "value" : "Tỷ lệ tinh chỉnh ISF bằng Autotune"
           }
         },
         "zh-Hant" : {
@@ -40448,8 +40448,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Available Rings:"
+            "state" : "translated",
+            "value" : "Các vòng tròn có sẵn:"
           }
         },
         "zh-Hant" : {
@@ -41271,7 +41271,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bổ sung glucose"
+            "value" : "Bổ sung đường huyết"
           }
         },
         "zh-Hant" : {
@@ -41371,7 +41371,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bổ sung glucose"
+            "value" : "Bổ sung Đường huyết"
           }
         },
         "zh-Hant" : {
@@ -41471,7 +41471,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bổ sung Glucose từ Nightscout"
+            "value" : "Bổ sung Đường huyết từ Nightscout"
           }
         },
         "zh-Hant" : {
@@ -41571,7 +41571,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bổ sung dữ liệu glucose bị thiếu từ Nightscout."
+            "value" : "Bổ sung dữ liệu đường huyết bị thiếu từ Nightscout."
           }
         },
         "zh-Hant" : {
@@ -42499,7 +42499,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tỷ lệ và mục tiêu liều insulin cơ bản"
+            "value" : "Liều Cơ Bản Insulin và Mục Tiêu"
           }
         },
         "zh-Hant" : {
@@ -43314,7 +43314,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trước khi bạn có thể bắt đầu cấu hình cài đặt liệu pháp điều trị, Trio cần biết bạn sử dụng đơn vị nào để đo lượng glucose và insulin (dựa trên kiểu máy bơm của bạn)."
+            "value" : "Trước khi bạn có thể bắt đầu cấu hình cài đặt liệu pháp điều trị, Trio cần biết bạn sử dụng đơn vị nào để đo lượng đường huyết và insulin (dựa trên kiểu máy bơm của bạn)."
           }
         },
         "zh-Hant" : {
@@ -46792,7 +46792,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Giá trị thấp nhất"
+            "value" : "Dưới Đáy"
           }
         },
         "zh-Hant" : {
@@ -46850,7 +46850,7 @@
         "nb-NO" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "GREN: %@"
+            "value" : "Gren: %@"
           }
         },
         "nl" : {
@@ -54046,7 +54046,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chọn cách trình bày dự báo glucose. Xem gợi ý để biết thêm chi tiết."
+            "value" : "Chọn cách trình bày dự báo đường huyết. Xem gợi ý để biết thêm chi tiết."
           }
         },
         "zh-Hant" : {
@@ -54146,7 +54146,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chọn tùy chọn thông báo glucose. Xem gợi ý để biết thêm chi tiết."
+            "value" : "Chọn tùy chọn thông báo đường huyết. Xem gợi ý để biết thêm chi tiết."
           }
         },
         "zh-Hant" : {
@@ -54246,7 +54246,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chọn bảng màu đọc glucose. Xem gợi ý để biết thêm chi tiết."
+            "value" : "Chọn bảng màu đọc đường huyết. Xem gợi ý để biết thêm chi tiết."
           }
         },
         "zh-Hant" : {
@@ -56799,7 +56799,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Những thay đổi về cấu hình sẽ có hiệu lực vào lần đo glucose tiếp theo."
+            "value" : "Những thay đổi về cấu hình sẽ có hiệu lực vào lần đo đường huyết tiếp theo."
           }
         },
         "zh-Hant" : {
@@ -59747,7 +59747,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Máy theo dõi đường huyết liên tục"
+            "value" : "Cảm biến đường huyết"
           }
         },
         "zh-Hant" : {
@@ -60657,7 +60657,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lý giải thuật toán hiện tại"
+            "value" : "Thuật toán hiện tại"
           }
         },
         "zh-Hant" : {
@@ -63950,7 +63950,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Giảm độ nhạy khi lượng glucose thấp hơn mục tiêu nếu Temp Target thủ công < %1$@ %2$@ được đặt."
+            "value" : "Giảm độ nhạy khi lượng đường huyết thấp hơn mục tiêu nếu Temp Target thủ công < %1$@ %2$@ được đặt."
           }
         },
         "zh-Hant" : {
@@ -70552,7 +70552,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Xóa Glucose không?"
+            "value" : "Xóa Đường huyết không?"
           }
         },
         "zh-Hant" : {
@@ -71685,7 +71685,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tùy thuộc vào cài đặt Hành vi mục tiêu của bạn (xem Settings > the Algorithm > Target Behavior), các mục tiêu glucose tạm thời này cũng có thể tăng Độ nhạy insulin cho mục tiêu cao hoặc giảm độ nhạy cho mục tiêu thấp."
+            "value" : "Tùy thuộc vào cài đặt Hành vi mục tiêu của bạn (xem Settings > the Algorithm > Target Behavior), các mục tiêu đường huyết tạm thời này cũng có thể tăng Độ nhạy insulin cho mục tiêu cao hoặc giảm độ nhạy cho mục tiêu thấp."
           }
         },
         "zh-Hant" : {
@@ -74338,7 +74338,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vô hiệu hóa SMB nếu hai giá trị glucose cuối cùng khác nhau nhiều hơn phần trăm này."
+            "value" : "Vô hiệu hóa SMB nếu hai giá trị đường huyết gần nhất chênh lệch nhau quá mức phần trăm này."
           }
         },
         "zh-Hant" : {
@@ -76530,7 +76530,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hiển thị các đường lưới phía sau biểu đồ glucose."
+            "value" : "Hiển thị các đường lưới phía sau biểu đồ đường huyết."
           }
         },
         "zh-Hant" : {
@@ -76630,7 +76630,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hiển thị ngưỡng glucose Thấp và Cao được thiết lập bên dưới."
+            "value" : "Hiển thị ngưỡng đường huyết Thấp và Cao được thiết lập bên dưới."
           }
         },
         "zh-Hant" : {
@@ -76938,7 +76938,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hiển thị các chỉ số glucose theo thời gian thực từ CGM của bạn đã được làm mịn bằng bộ lọc Savatzky-Golay. Các chỉ số glucose được hiển thị có thể không khớp với các chỉ số thực tế từ CGM của bạn."
+            "value" : "Hiển thị các chỉ số đường huyết theo thời gian thực từ CGM của bạn đã được làm mịn bằng bộ lọc Savatzky-Golay. Các chỉ số đường huyết được hiển thị có thể không khớp với các chỉ số thực tế từ CGM của bạn."
           }
         },
         "zh-Hant" : {
@@ -77038,7 +77038,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hiển thị chỉ số glucose theo thời gian thực từ CGM của bạn. Tùy thuộc vào cài đặt giao diện người dùng, thông tin này có thể được hiển thị theo sơ đồ màu tĩnh (đỏ, xanh lá cây, cam) hoặc động (phổ màu đầy đủ)."
+            "value" : "Hiển thị chỉ số đường huyết theo thời gian thực từ CGM của bạn. Tùy thuộc vào cài đặt giao diện người dùng, thông tin này có thể được hiển thị theo sơ đồ màu tĩnh (đỏ, xanh lá cây, cam) hoặc động (phổ màu đầy đủ)."
           }
         },
         "zh-Hant" : {
@@ -78348,7 +78348,7 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "Dynamic"
           }
         },
@@ -79257,7 +79257,7 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "Dynamic-dependent Features"
           }
         },
@@ -79357,7 +79357,7 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "Dynamic:"
           }
         },
@@ -81820,7 +81820,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cho phép lấy các tập dữ liệu đã chọn từ Nightscout."
+            "value" : "Cho phép tải về các tập dữ liệu đã chọn từ Nightscout."
           }
         },
         "zh-Hant" : {
@@ -84350,7 +84350,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bật tính năng này cho phép Trio tính toán Insulin Sensitivity Factor mới với mỗi chu kỳ vòng lặp bằng cách xem xét lượng glucose hiện tại của bạn, tổng liều insulin hàng ngày có trọng số, hệ số điều chỉnh đã đặt và một vài điểm dữ liệu khác. Điều này giúp điều chỉnh phản ứng insulin của bạn chính xác hơn theo thời gian thực."
+            "value" : "Khi bật tính năng này, Trio sẽ tự động điều chỉnh Hệ số Nhạy cảm Insulin theo thời gian thực dựa trên đường huyết hiện tại, liều insulin sử dụng trong ngày, hệ số điều chỉnh và một số yếu tố khác, giúp kiểm soát insulin hiệu quả hơn."
           }
         },
         "zh-Hant" : {
@@ -84862,7 +84862,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bật tính năng này cho phép Trio cung cấp insulin cần thiết bằng Super Micro Boluses (SMB) khi lượng glucose cao hơn giá trị được đặt là High BG Target."
+            "value" : "Bật tính năng này cho phép Trio cung cấp insulin cần thiết bằng Super Micro Boluses (SMB) khi lượng đường huyết cao hơn giá trị được đặt là High BG Target."
           }
         },
         "zh-Hant" : {
@@ -85062,7 +85062,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bật tính năng này sẽ khiến Trio tự động tăng lượng glucose mục tiêu nếu phát hiện độ nhạy insulin tăng so với mức cơ bản của bạn."
+            "value" : "Bật tính năng này sẽ khiến Trio tự động tăng lượng đường huyết mục tiêu nếu phát hiện độ nhạy insulin tăng so với mức cơ bản của bạn."
           }
         },
         "zh-Hant" : {
@@ -85162,7 +85162,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bật tính năng này sẽ khiến Trio tự động giảm lượng glucose mục tiêu nếu phát hiện độ nhạy (kháng thuốc) giảm so với mức cơ bản của bạn."
+            "value" : "Bật tính năng này sẽ khiến Trio tự động giảm lượng đường huyết mục tiêu nếu phát hiện độ nhạy (kháng thuốc) giảm so với mức cơ bản của bạn."
           }
         },
         "zh-Hant" : {
@@ -88320,8 +88320,8 @@
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Error! Something went wrong when processing your request."
+            "state" : "translated",
+            "value" : "錯誤！處理您的請求時發生問題。"
           }
         }
       }
@@ -88623,7 +88623,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Glucose hiện tại"
+            "value" : "Đường huyết dự đoán"
           }
         },
         "zh-Hant" : {
@@ -88731,7 +88731,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Glucose cuối cùng > Glucose mục tiêu, nhưng glucose đang thay đổi nhanh hơn dự kiến. Hy vọng: "
+            "value" : "Đường huyết gần nhất > Đường huyết mục tiêu, nhưng đường huyết đang thay đổi Nhanh hơn dự kiến. Dự kiến: "
           }
         },
         "zh-Hant" : {
@@ -88839,7 +88839,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Glucose hiện tại > Glucose mục tiêu, nhưng glucose tăng chậm hơn dự kiến. Hy vọng: "
+            "value" : "Đường huyết gần nhất > Đường huyết mục tiêu, nhưng đường huyết đang tăng Chậm hơn dự kiến. Dự kiến: "
           }
         },
         "zh-Hant" : {
@@ -88947,7 +88947,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Glucose hiện tại > Glucose mục tiêu, nhưng glucose đang giảm nhanh hơn dự kiến. Hy vọng: "
+            "value" : "Đường huyết gần nhất > Đường huyết mục tiêu, nhưng đường huyết đang giảm nhanh hơn dự kiến. Dự kiến: "
           }
         },
         "zh-Hant" : {
@@ -89055,7 +89055,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Glucose hiện tại > Glucose mục tiêu, nhưng glucose được dự đoán trước tiên sẽ giảm xuống "
+            "value" : "Đường huyết gần nhất > Đường huyết mục tiêu, nhưng glucose được dự đoán trước tiên sẽ giảm xuống "
           }
         },
         "zh-Hant" : {
@@ -93711,14 +93711,14 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Features"
+            "state" : "translated",
+            "value" : "Các tính năng"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Features"
+            "state" : "translated",
+            "value" : "功能"
           }
         }
       }
@@ -93812,7 +93812,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lấy"
+            "value" : "Tải về"
           }
         },
         "zh-Hant" : {
@@ -95427,7 +95427,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vì lý do đơn giản, các đường cong dự báo khác nhau của oref được hiển thị dưới dạng \"Cone of Uncertainty\" mô tả phạm vi dự báo có thể có về biến động glucose trong tương lai dựa trên dữ liệu hiện tại và kết quả của thuật toán."
+            "value" : "Để đơn giản hóa, các đường dự báo khác nhau của oref được hiển thị dưới dạng “hình nón bất định” (Cone of Uncertainty), mô tả phạm vi dao động đường huyết trong tương lai có thể xảy ra, dựa trên dữ liệu hiện tại và kết quả từ thuật toán."
           }
         },
         "zh-Hant" : {
@@ -95935,7 +95935,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dự báo lượng glucose trong tương lai và nhu cầu liều insulin cho các bữa ăn bất ngờ hoặc các nguyên nhân khác khiến lượng glucose tăng mà không cần báo trước."
+            "value" : "Dự báo mức đường huyết trong tương lai và nhu cầu tiêm insulin đối với các bữa ăn đột xuất hoặc các nguyên nhân khác gây tăng đường huyết mà không được thông báo trước."
           }
         },
         "zh-Hant" : {
@@ -96035,7 +96035,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dự báo những thay đổi về lượng glucose trong tương lai bằng cách xem xét lượng carbohydrate vẫn đang được cơ thể hấp thụ."
+            "value" : "Dự báo sự thay đổi đường huyết trong tương lai bằng cách xem xét lượng carbohydrate vẫn đang được hấp thụ trong cơ thể."
           }
         },
         "zh-Hant" : {
@@ -96135,7 +96135,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dự báo lượng glucose trong tương lai dựa trên lượng insulin vẫn còn hoạt động trong cơ thể."
+            "value" : "Dự báo mức đường huyết trong tương lai dựa trên lượng insulin vẫn còn hoạt động trong cơ thể."
           }
         },
         "zh-Hant" : {
@@ -96235,7 +96235,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dự báo tình huống xấu nhất về lượng glucose trong tương lai nếu không hấp thụ carbs và ngừng cung cấp insulin cho đến khi lượng glucose bắt đầu tăng."
+            "value" : "Dự báo kịch bản xấu nhất về mức đường huyết trong tương lai nếu không có carbohydrate nào được hấp thụ và việc bơm insulin bị dừng lại cho đến khi đường huyết bắt đầu tăng trở lại."
           }
         },
         "zh-Hant" : {
@@ -98783,7 +98783,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tính toán Glucose"
+            "value" : "Tính toán Đường huyết"
           }
         },
         "zh-Hant" : {
@@ -99083,7 +99083,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Số lượng Glucose"
+            "value" : "Số lượng đường huyết"
           }
         },
         "zh-Hant" : {
@@ -99183,7 +99183,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dữ liệu glucose đã cũ"
+            "value" : "Dữ liệu đường huyết đã cũ"
           }
         },
         "zh-Hant" : {
@@ -99283,7 +99283,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dữ liệu glucose quá phẳng"
+            "value" : "Dữ liệu đường huyết quá phẳng"
           }
         },
         "zh-Hant" : {
@@ -99791,7 +99791,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dự báo lượng Glucose rất thấp."
+            "value" : "Dự báo đường huyết rất thấp."
           }
         },
         "zh-Hant" : {
@@ -99891,7 +99891,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lượng Glucose rất thấp."
+            "value" : "Đường huyết rất thấp."
           }
         },
         "zh-Hant" : {
@@ -99991,7 +99991,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mức Glucose"
+            "value" : "Mức Đường huyết"
           }
         },
         "zh-Hant" : {
@@ -100098,7 +100098,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Khả năng hiển thị thông báo Glucose"
+            "value" : "Khả năng hiển thị thông báo đường huyết"
           }
         },
         "zh-Hant" : {
@@ -101114,7 +101114,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Glucose KHÔNG bị ảnh hưởng bởi bất kỳ lượng insulin hoặc carb nào."
+            "value" : "Đường huyết KHÔNG bị ảnh hưởng bởi bất kỳ lượng insulin hoặc carb nào."
           }
         },
         "zh-Hant" : {
@@ -101421,7 +101421,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đơn vị Glucose"
+            "value" : "Đơn vị đường huyết"
           }
         },
         "zh-Hant" : {
@@ -104917,7 +104917,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Báo động Glucose đang Cao"
+            "value" : "Báo động đường huyết đang Cao"
           }
         },
         "zh-Hant" : {
@@ -108782,7 +108782,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nếu sử dụng Dynamic ISF (với Sigmoid), việc ghi đè ISF của bạn sẽ điều chỉnh ISF được sử dụng tại mục tiêu glucose của bạn, mở rộng sang ISF được sử dụng tại glucose khác. Việc ghi đè mục tiêu glucose của bạn sẽ thay đổi mức glucose, ISF của bạn sẽ được đặt thành ISF hồ sơ của bạn. Cả hai đều có thể được kết hợp trong một Override duy nhất."
+            "value" : "Nếu sử dụng Dynamic ISF (với Sigmoid), việc ghi đè ISF của bạn sẽ điều chỉnh ISF được sử dụng tại mục tiêu đường huyết của bạn, mở rộng sang ISF được sử dụng tại glucose khác. Việc ghi đè mục tiêu đường huyết của bạn sẽ thay đổi mức đường huyết, ISF của bạn sẽ được đặt thành ISF hồ sơ của bạn. Cả hai đều có thể được kết hợp trong một Override duy nhất."
           }
         },
         "zh-Hant" : {
@@ -109589,7 +109589,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nếu chỉ số CGM của bạn thấp hơn giá trị Thấp hoặc cao hơn giá trị Cao, bạn sẽ nhận được cảnh báo lượng glucose."
+            "value" : "Nếu chỉ số CGM của bạn thấp hơn giá trị Thấp hoặc cao hơn giá trị Cao, bạn sẽ nhận được cảnh báo lượng đường huyết."
           }
         },
         "zh-Hant" : {
@@ -111848,7 +111848,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tăng độ nhạy khi lượng glucose cao hơn mục tiêu nếu manual Temp Target > %1$@ %2$@ được đặt."
+            "value" : "Tăng độ nhạy khi lượng đường huyết cao hơn mục tiêu nếu manual Temp Target > %1$@ %2$@ được đặt."
           }
         },
         "zh-Hant" : {
@@ -112348,7 +112348,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chỉ ra rằng tính năng làm mịn glucose được bật."
+            "value" : "Chỉ ra rằng tính năng làm mịn đường huyết được bật."
           }
         },
         "zh-Hant" : {
@@ -115113,7 +115113,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Glucose không hợp lệ (%@)."
+            "value" : "Đường huyết không hợp lệ (%@)."
           }
         },
         "zh-Hant" : {
@@ -117053,7 +117053,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nó sử dụng thuật toán SMB (Super Micro Bolus) để cung cấp insulin với lượng nhỏ để điều chỉnh lượng glucose tăng đột biến. UAM cũng hoạt động ngược lại, giảm hoặc dừng SMB nếu lượng glucose giảm đột ngột."
+            "value" : "Nó sử dụng thuật toán SMB (Super Micro Bolus) để cung cấp insulin với lượng nhỏ để điều chỉnh lượng đường huyết tăng đột biến. UAM cũng hoạt động ngược lại, giảm hoặc dừng SMB nếu lượng đường huyết giảm đột ngột."
           }
         },
         "zh-Hant" : {
@@ -117153,7 +117153,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nó được thiết kế để giữ lại các xu hướng quan trọng trong dữ liệu của bạn trong khi giảm thiểu những biến thể nhỏ, gây hiểu lầm, giúp bạn và Trio hiểu rõ hơn về hướng đi thực sự của lượng đường trong máu. Kiểu lọc này hữu ích trong Trio vì nó có thể giúp ngăn ngừa việc hiệu chỉnh quá mức dựa trên các chỉ số glucose không chính xác. Điều này có thể giúp giảm tác động của các đột biến hoặc giảm đột ngột có thể không phản ánh đúng lượng đường trong máu thực sự của bạn."
+            "value" : "Nó được thiết kế để giữ lại các xu hướng quan trọng trong dữ liệu của bạn trong khi giảm thiểu những biến thể nhỏ, gây hiểu lầm, giúp bạn và Trio hiểu rõ hơn về hướng đi thực sự của lượng đường trong máu. Kiểu lọc này hữu ích trong Trio vì nó có thể giúp ngăn ngừa việc hiệu chỉnh quá mức dựa trên các chỉ số đường huyết không chính xác. Điều này có thể giúp giảm tác động của các đột biến hoặc giảm đột ngột có thể không phản ánh đúng lượng đường trong máu thực sự của bạn."
           }
         },
         "zh-Hant" : {
@@ -118376,7 +118376,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đầu ra thuật toán thô mới nhất"
+            "value" : "Dữ liệu thuật toán (thô) mới nhất"
           }
         },
         "zh-Hant" : {
@@ -120622,7 +120622,7 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "Lines"
           }
         },
@@ -121232,7 +121232,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hoạt động trực tiếp hiển thị đường huyết trực tiếp trên màn hình khóa và trên đảo động (nếu có)"
+            "value" : "Hoạt động trực tiếp hiển thị mức đường huyết theo thời gian thực trên màn hình khóa và trên Dynamic Island (nếu có)"
           }
         },
         "zh-Hant" : {
@@ -122347,7 +122347,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nhật ký Glucose"
+            "value" : "Nhật ký đường huyết"
           }
         },
         "zh-Hant" : {
@@ -124790,7 +124790,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Báo động Glucose đang Thấp"
+            "value" : "Báo động đường huyết đang Thấp"
           }
         },
         "zh-Hant" : {
@@ -124890,7 +124890,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Giới hạn báo động Glucose thấp"
+            "value" : "Giới hạn báo động đường huyết thấp"
           }
         },
         "zh-Hant" : {
@@ -126316,7 +126316,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Điều khiển chính"
+            "value" : "Trang chủ"
           }
         },
         "zh-Hant" : {
@@ -127541,7 +127541,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đánh dấu thời điểm mục tiêu glucose tạm thời trong thời gian ngắn đang hoặc đã hoạt động, (có khả năng) thay đổi thời điểm hoặc lượng insulin được cung cấp."
+            "value" : "Đánh dấu thời điểm mục tiêu đường huyết tạm thời trong thời gian ngắn đang hoặc đã hoạt động, (có khả năng) thay đổi thời điểm hoặc lượng insulin được cung cấp."
           }
         },
         "zh-Hant" : {
@@ -129586,7 +129586,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "IOB Max là lượng insulin tối đa được cung cấp từ tất cả các nguồn – cả insulin cơ bản (hoặc hiệu chỉnh SMB) và insulin bolus – mà vòng lặp của bạn được phép tích lũy để điều trị BG cao hơn mục tiêu. Không giống như hai cài đặt an toàn OpenAPS khác (Hệ số tối đa an toàn hàng ngày và Hệ số an toàn cơ bản hiện tại), Tối đa IOB được đặt thành số lượng đơn vị insulin cố định. Tính đến thời điểm hiện tại, việc tiêm liều thủ công KHÔNG bị giới hạn bởi cài đặt này. \n\n Để kiểm tra lãi suất cơ bản của bạn vào ban đêm, bạn có thể sửa đổi cài đặt IOB tối đa thành 0 khi ở Vòng kín. Điều này sẽ kích hoạt chế độ tạm ngưng lượng glucose thấp trong khi kiểm tra cài đặt tốc độ cơ bản của bạn\n\n(Mẹo từ https://www.loopandlearn.org/freeaps-x/#open-loop)."
+            "value" : "IOB Max là lượng insulin tối đa được cung cấp từ tất cả các nguồn – cả insulin cơ bản (hoặc hiệu chỉnh SMB) và insulin bolus – mà vòng lặp của bạn được phép tích lũy để điều trị BG cao hơn mục tiêu. Không giống như hai cài đặt an toàn OpenAPS khác (Hệ số tối đa an toàn hàng ngày và Hệ số an toàn cơ bản hiện tại), Tối đa IOB được đặt thành số lượng đơn vị insulin cố định. Tính đến thời điểm hiện tại, việc tiêm liều thủ công KHÔNG bị giới hạn bởi cài đặt này. \n\n Để kiểm tra lãi suất cơ bản của bạn vào ban đêm, bạn có thể sửa đổi cài đặt IOB tối đa thành 0 khi ở Vòng kín. Điều này sẽ kích hoạt chế độ tạm ngưng lượng đường huyết thấp trong khi kiểm tra cài đặt tốc độ cơ bản của bạn\n\n(Mẹo từ https://www.loopandlearn.org/freeaps-x/#open-loop)."
           }
         },
         "zh-Hant" : {
@@ -130598,7 +130598,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Phần trăm thay đổi dương tối đa được phép trong mức glucose để cho phép SMB. Nếu sự khác biệt trong glucose lớn hơn mức này, Trio sẽ vô hiệu hóa SMB."
+            "value" : "Phần trăm thay đổi dương tối đa được phép trong mức glucose để cho phép SMB. Nếu sự khác biệt trong đường huyết lớn hơn mức này, Trio sẽ vô hiệu hóa SMB."
           }
         },
         "zh-Hant" : {
@@ -130899,7 +130899,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tốc độ insulin nền tối đa"
+            "value" : "Lưu lượng insulin nền tối đa"
           }
         },
         "zh-Hant" : {
@@ -131100,7 +131100,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lượng Carbs tối đa đang hoạt động (COB)"
+            "value" : "Lượng carb đang hấp thụ tối đa (COB)"
           }
         },
         "zh-Hant" : {
@@ -131409,7 +131409,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lượng Insulin Tối Đa đang hoạt động (IOB)"
+            "value" : "Lượng Insulin đang hoạt động tối đa (IOB)"
           }
         },
         "zh-Hant" : {
@@ -133236,7 +133236,7 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "Menu"
           }
         },
@@ -134255,7 +134255,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tối thiểu 5 phút Carb Impact thiết lập mức tăng glucose dự kiến ​​từ carbohydrate trong 5 phút khi quá trình hấp thụ không rõ ràng từ dữ liệu glucose."
+            "value" : "Tối thiểu 5 phút Carb Impact thiết lập mức tăng đường huyết dự kiến ​​từ carb trong 5 phút khi quá trình hấp thụ không rõ ràng từ dữ liệu đường huyết."
           }
         },
         "zh-Hant" : {
@@ -135594,8 +135594,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Misc"
+            "state" : "translated",
+            "value" : "Hỗn hợp"
           }
         },
         "zh-Hant" : {
@@ -138260,7 +138260,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Không có điều chỉnh chủ động"
+            "value" : "Hiện tại không có điều chỉnh"
           }
         },
         "zh-Hant" : {
@@ -138976,7 +138976,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Báo động Không có Glucose đang hoạt động"
+            "value" : "Báo động không có đường huyết đang hoạt động"
           }
         },
         "zh-Hant" : {
@@ -139076,7 +139076,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Không có dữ liệu Glucose"
+            "value" : "Không có dữ liệu đường huyết"
           }
         },
         "zh-Hant" : {
@@ -139176,7 +139176,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sẽ không có thông báo về lượng Glucose nào được kích hoạt."
+            "value" : "Sẽ không có thông báo về lượng đường huyết nào được kích hoạt."
           }
         },
         "zh-Hant" : {
@@ -139276,7 +139276,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Không có chỉ số glucose."
+            "value" : "Không có chỉ số đường huyết."
           }
         },
         "zh-Hant" : {
@@ -141756,7 +141756,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thông thường glucose chỉ có màu đỏ khi vượt quá hoặc dưới giới hạn thông báo của bạn về mức cao"
+            "value" : "Thông thường đường huyết chỉ có màu đỏ khi vượt quá hoặc dưới giới hạn thông báo của bạn về mức cao"
           }
         },
         "zh-Hant" : {
@@ -142972,7 +142972,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lưu ý: Có thể tiếp tục dùng chế độ liều cơ bản nếu IOB âm tính và glucose tăng nhanh hơn dự kiến."
+            "value" : "Lưu ý: Có thể tiếp tục dùng chế độ liều cơ bản nếu IOB âm tính và đường huyết tăng nhanh hơn dự kiến."
           }
         },
         "zh-Hant" : {
@@ -145802,7 +145802,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tải hồ sơ lên NS"
+            "value" : "Tải cấu hình lên NS"
           }
         },
         "zh-Hant" : {
@@ -145910,7 +145910,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hồ sơ đã tải lên NS"
+            "value" : "Cấu hình đã tải lên NS"
           }
         },
         "zh-Hant" : {
@@ -150908,7 +150908,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Các Ghi đè"
+            "value" : "Ghi đè"
           }
         },
         "zh-Hant" : {
@@ -152669,7 +152669,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tỷ lệ phần trăm tăng mục tiêu glucose khi CGM không ổn định."
+            "value" : "Tỷ lệ phần trăm tăng mục tiêu đường huyết khi CGM không ổn định."
           }
         },
         "zh-Hant" : {
@@ -155443,8 +155443,8 @@
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Preset \"%@\" not found."
+            "state" : "translated",
+            "value" : "預設 \"%@\" 未找到。"
           }
         }
       }
@@ -156046,8 +156046,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Primary"
+            "state" : "translated",
+            "value" : "Cơ bản"
           }
         },
         "zh-Hant" : {
@@ -156548,7 +156548,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "hồ sơ"
+            "value" : "cấu hình"
           }
         },
         "zh-Hant" : {
@@ -156656,7 +156656,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hồ sơ"
+            "value" : "Cấu hình"
           }
         },
         "zh-Hant" : {
@@ -156756,7 +156756,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thông tin ở 100%"
+            "value" : "Liều dùng ở mức 100%"
           }
         },
         "zh-Hant" : {
@@ -156971,7 +156971,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hồ sơ"
+            "value" : "Cấu hình"
           }
         },
         "zh-Hant" : {
@@ -158603,7 +158603,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hồ sơ Bơm"
+            "value" : "Cấu hình Bơm"
           }
         },
         "zh-Hant" : {
@@ -162544,7 +162544,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lượng carb còn lại"
+            "value" : "Giới hạn lượng carb còn lại"
           }
         },
         "zh-Hant" : {
@@ -162645,7 +162645,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tỷ lệ phần trăm carb còn lại"
+            "value" : "Phần trăm lượng Carbs còn lại"
           }
         },
         "zh-Hant" : {
@@ -162745,7 +162745,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tỷ lệ phần trăm carbs còn lại ước tính lượng carbs vẫn được hấp thụ trong hơn 4 giờ nếu dữ liệu glucose không cho thấy khả năng hấp thụ rõ ràng."
+            "value" : "Tỷ lệ phần trăm carbs còn lại ước tính lượng carbs vẫn được hấp thụ trong hơn 4 giờ nếu dữ liệu đường huyết không cho thấy khả năng hấp thụ rõ ràng."
           }
         },
         "zh-Hant" : {
@@ -164981,8 +164981,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Ring Gap"
+            "state" : "translated",
+            "value" : "Khoảng cách"
           }
         },
         "zh-Hant" : {
@@ -165081,8 +165081,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Ring Settings"
+            "state" : "translated",
+            "value" : "Cài đặt Vòng tròn Lặp"
           }
         },
         "zh-Hant" : {
@@ -165181,8 +165181,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Ring Type"
+            "state" : "translated",
+            "value" : "Kiểu"
           }
         },
         "zh-Hant" : {
@@ -165281,8 +165281,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Ring Width"
+            "state" : "translated",
+            "value" : "Độ rộng"
           }
         },
         "zh-Hant" : {
@@ -166414,7 +166414,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lưu profile"
+            "value" : "Lưu Cấu hình"
           }
         },
         "zh-Hant" : {
@@ -172277,7 +172277,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cài đặt giá trị glucose thấp và cao cho màn hình chính, ứng dụng xem và biểu đồ glucose hoạt động trực tiếp."
+            "value" : "Cài đặt giá trị đường huyết thấp và cao cho màn hình chính, ứng dụng xem và biểu đồ đường huyết hoạt động trực tiếp."
           }
         },
         "zh-Hant" : {
@@ -172893,7 +172893,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thiết lập bảng màu cho chỉ số glucose trên biểu đồ glucose chính, hoạt động trực tiếp và máy tính bolus. Mô tả cho từng tùy chọn được tìm thấy bên dưới."
+            "value" : "Thiết lập bảng màu cho chỉ số glucose trên biểu đồ đường huyết chính, hoạt động trực tiếp và máy tính bolus. Mô tả cho từng tùy chọn được tìm thấy bên dưới."
           }
         },
         "zh-Hant" : {
@@ -172993,7 +172993,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thiết lập Tùy chọn Thông báo Glucose. Mô tả cho từng tùy chọn được tìm thấy bên dưới."
+            "value" : "Thiết lập Tùy chọn Thông báo đường huyết. Mô tả cho từng tùy chọn được tìm thấy bên dưới."
           }
         },
         "zh-Hant" : {
@@ -173409,7 +173409,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đặt giới hạn quá thấp và quá cao cho cảnh báo glucose."
+            "value" : "Đặt giới hạn quá thấp và quá cao cho cảnh báo đường huyết."
           }
         },
         "zh-Hant" : {
@@ -175131,7 +175131,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hiển thị biểu tượng ứng dụng Glucose"
+            "value" : "Hiển thị biểu tượng ứng dụng đường huyết"
           }
         },
         "zh-Hant" : {
@@ -176846,8 +176846,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Simple"
+            "state" : "translated",
+            "value" : "Đơn giản"
           }
         },
         "zh-Hant" : {
@@ -176946,8 +176946,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Simple:"
+            "state" : "translated",
+            "value" : "Đơn giản:"
           }
         },
         "zh-Hant" : {
@@ -179293,7 +179293,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Giá trị Glucose mịn"
+            "value" : "Giá trị đường huyết mịn"
           }
         },
         "zh-Hant" : {
@@ -180308,7 +180308,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nguồn của kết quả đo glucose sẽ được thêm vào thông báo."
+            "value" : "Nguồn của kết quả đo đường huyết sẽ được thêm vào thông báo."
           }
         },
         "zh-Hant" : {
@@ -180407,8 +180407,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Split"
+            "state" : "translated",
+            "value" : "Chia nhỏ"
           }
         },
         "zh-Hant" : {
@@ -181117,7 +181117,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bắt đầu profile mới"
+            "value" : "Bắt đầu cấu hình mới"
           }
         },
         "zh-Hant" : {
@@ -181325,7 +181325,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bắt đầu profile"
+            "value" : "Bắt đầu Cấu hình"
           }
         },
         "zh-Hant" : {
@@ -181631,8 +181631,8 @@
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Started Override \"%@\" successfully."
+            "state" : "translated",
+            "value" : "已成功啟動覆寫 \"%@\" 。"
           }
         }
       }
@@ -181732,8 +181732,8 @@
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Started Temp Target \"%@\" successfully."
+            "state" : "translated",
+            "value" : "已成功啟動臨時目標 \"%@\"。"
           }
         }
       }
@@ -181834,7 +181834,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Việc sử dụng Ghi đè này sẽ thay đổi profile và/hoặc Mục tiêu Đường huyết của bạn được sử dụng cho looping trong suốt thời gian được chọn. Chọn \"Bắt đầu Profile\" sẽ cho phép bạn lập profile mới và chỉnh sửa profile hiện hữu đang hoạt động."
+            "value" : "Việc sử dụng Ghi đè này sẽ thay đổi cấu hình và/hoặc Mục tiêu Đường huyết của bạn được sử dụng cho looping trong suốt thời gian được chọn. Chọn \"Bắt đầu Cấu hình\" sẽ cho phép bạn lập cấu hình mới và chỉnh sửa cấu hình hiện hữu đang hoạt động."
           }
         },
         "zh-Hant" : {
@@ -182341,8 +182341,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Static"
+            "state" : "translated",
+            "value" : "Cố định"
           }
         },
         "zh-Hant" : {
@@ -182441,8 +182441,8 @@
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Static:"
+            "state" : "translated",
+            "value" : "Cố định:"
           }
         },
         "zh-Hant" : {
@@ -183865,8 +183865,8 @@
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Stopped Override successfully."
+            "state" : "translated",
+            "value" : "已成功停止覆寫。"
           }
         }
       }
@@ -183966,8 +183966,8 @@
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Stopped Temp Target successfully."
+            "state" : "translated",
+            "value" : "已成功停止臨時目標。"
           }
         }
       }
@@ -184367,7 +184367,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thêm Ghi đè"
+            "value" : "Tạo yêu cầu hỗ trợ trên GitHub"
           }
         },
         "zh-Hant" : {
@@ -185275,7 +185275,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liều Bolus Tăng cường Siêu nhỏ"
+            "value" : "Liều Bolus Siêu nhỏ"
           }
         },
         "zh-Hant" : {
@@ -185375,7 +185375,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liều Bolus Tăng cường Siêu nhỏ (SMB)"
+            "value" : "Liều Bolus Siêu nhỏ (SMB)"
           }
         },
         "zh-Hant" : {
@@ -187797,7 +187797,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hành vi mục tiêu"
+            "value" : "Xử lý mục tiêu đường huyết"
           }
         },
         "zh-Hant" : {
@@ -187897,7 +187897,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hành vi mục tiêu cho phép bạn điều chỉnh cách các mục tiêu tạm thời ảnh hưởng đến ISF, mục tiêu cơ bản và mục tiêu tự động dựa trên độ nhạy hoặc sức đề kháng."
+            "value" : "Xử lý mục tiêu cho phép bạn điều chỉnh cách các mục tiêu tạm thời ảnh hưởng đến ISF, mục tiêu cơ bản và mục tiêu tự động dựa trên độ nhạy hoặc sức đề kháng."
           }
         },
         "zh-Hant" : {
@@ -188104,7 +188104,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mục tiêu Glucose được bảo hiểm trong 24 giờ. Bạn không thể thêm nhiều tỷ lệ hơn. Vui lòng xóa hoặc điều chỉnh các tỷ lệ hiện có để tạo chỗ trống."
+            "value" : "Mục tiêu đường huyết đã được thiết lập đủ cho 24 giờ. Bạn không thể thêm mức mới. Vui lòng xóa hoặc điều chỉnh các mức hiện có để tạo khoảng trống."
           }
         },
         "zh-Hant" : {
@@ -188204,7 +188204,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mức glucose mục tiêu nằm ngoài phạm vi (%@)."
+            "value" : "Mức đường huyết mục tiêu nằm ngoài phạm vi (%@)."
           }
         },
         "zh-Hant" : {
@@ -190060,7 +190060,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hệ số điều chỉnh (AF) cho phép bạn kiểm soát tốc độ và hiệu quả mà ISF động phản ứng với những thay đổi về lượng glucose."
+            "value" : "Hệ số điều chỉnh (AF) cho phép bạn kiểm soát tốc độ và hiệu quả mà ISF động phản ứng với những thay đổi về lượng đường huyết."
           }
         },
         "zh-Hant" : {
@@ -190367,7 +190367,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mức glucose trung bình mà các giá trị sẽ dao động xung quanh."
+            "value" : "Mức đường huyết trung bình mà các giá trị sẽ dao động xung quanh."
           }
         },
         "zh-Hant" : {
@@ -191190,7 +191190,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mức độ tăng hoặc giảm lượng glucose của bạn chỉ dựa trên hoạt động của insulin."
+            "value" : "Mức độ tăng hoặc giảm lượng đường huyết của bạn chỉ dựa trên hoạt động của insulin."
           }
         },
         "zh-Hant" : {
@@ -191290,7 +191290,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tiện ích Màn hình khóa chi tiết cung cấp cho người dùng biểu đồ glucose cũng như khả năng tùy chỉnh thông tin được cung cấp trong Tiện ích chi tiết bằng các tùy chọn sau:"
+            "value" : "Tiện ích Màn hình khóa chi tiết cung cấp cho người dùng biểu đồ đường huyết cũng như khả năng tùy chỉnh thông tin được cung cấp trong Tiện ích chi tiết bằng các tùy chọn sau:"
           }
         },
         "zh-Hant" : {
@@ -191790,7 +191790,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Giá trị đầu tiên là Tỷ lệ Carb (CR) của hồ sơ bạn. Giá trị thứ hai, sau mũi tên, là CR đã điều chỉnh của bạn được sử dụng cho phép tính liều lượng tự động gần đây nhất."
+            "value" : "Giá trị đầu tiên là Tỷ lệ Carb (CR) trong cấu hình của bạn. Giá trị thứ hai, sau mũi tên, là CR đã điều chỉnh của bạn được sử dụng cho phép tính liều lượng tự động gần đây nhất."
           }
         },
         "zh-Hant" : {
@@ -191890,7 +191890,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Giá trị đầu tiên là Hệ số nhạy cảm insulin (ISF) của bạn. Giá trị thứ hai, sau mũi tên, là ISF đã điều chỉnh của bạn được sử dụng cho phép tính liều lượng tự động gần đây nhất."
+            "value" : "Giá trị đầu tiên là Hệ số Nhạy cảm Insulin (ISF) trong cấu hình của bạn. Giá trị thứ hai, sau dấu mũi tên, là ISF đã được điều chỉnh và được sử dụng cho phép tính liều insulin tự động gần nhất."
           }
         },
         "zh-Hant" : {
@@ -191990,7 +191990,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Giá trị đầu tiên là lượng glucose mục tiêu của bạn từ cài đặt của bạn. Giá trị thứ hai, sau mũi tên, là lượng glucose mục tiêu đã điều chỉnh của bạn được sử dụng cho phép tính liều lượng tự động gần đây nhất. Giá trị thứ hai được hiển thị nếu bạn có mục tiêu tạm thời, ghi đè hoặc một trong các tùy chọn Hành vi mục tiêu được bật."
+            "value" : "Giá trị đầu tiên là lượng đường huyết mục tiêu của bạn từ cài đặt của bạn. Giá trị thứ hai, sau mũi tên, là lượng đường huyết mục tiêu đã điều chỉnh của bạn được sử dụng cho phép tính liều lượng tự động gần đây nhất. Giá trị thứ hai được hiển thị nếu bạn có mục tiêu tạm thời, ghi đè hoặc một trong các tùy chọn Hành vi mục tiêu được bật."
           }
         },
         "zh-Hant" : {
@@ -192191,7 +192191,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Giá trị glucose dự báo trong 4 giờ dựa trên độ lệch hiện tại giảm dần xuống 0 với cùng tốc độ như thời gian gần đây."
+            "value" : "Giá trị đường huyết dự báo trong 4 giờ dựa trên độ lệch hiện tại giảm dần xuống 0 với cùng tốc độ như thời gian gần đây."
           }
         },
         "zh-Hant" : {
@@ -192291,7 +192291,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Giá trị glucose dự báo trong 4 giờ được tính toán dựa trên IOB và COB hiện tại."
+            "value" : "Giá trị đường huyết dự báo trong 4 giờ được tính toán dựa trên IOB và COB hiện tại."
           }
         },
         "zh-Hant" : {
@@ -192391,7 +192391,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Giá trị glucose dự báo trong 4 giờ chỉ được tính dựa trên IOB."
+            "value" : "Giá trị đường huyết dự báo trong 4 giờ chỉ được tính dựa trên IOB."
           }
         },
         "zh-Hant" : {
@@ -192491,7 +192491,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mục tiêu tập luyện cơ bản một nửa cho phép bạn giảm lượng insulin cơ bản trong khi tập luyện hoặc tăng lượng insulin cơ bản khi ăn sớm khi mục tiêu glucose tạm thời được thiết lập."
+            "value" : "Mục tiêu tập luyện cơ bản một nửa cho phép bạn giảm lượng insulin cơ bản trong khi tập luyện hoặc tăng lượng insulin cơ bản khi ăn sớm khi mục tiêu đường huyết tạm thời được thiết lập."
           }
         },
         "zh-Hant" : {
@@ -192692,7 +192692,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nồng độ glucose dự kiến ​​thấp nhất trong thời gian tác dụng còn lại của insulin (DIA)."
+            "value" : "Nồng độ đường huyết dự kiến ​​thấp nhất trong thời gian tác dụng còn lại của insulin (DIA)."
           }
         },
         "zh-Hant" : {
@@ -192792,7 +192792,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Giá trị dự báo thấp nhất mà Trio ước tính cho lượng glucose trong tương lai của bạn."
+            "value" : "Giá trị dự báo thấp nhất mà Trio ước tính cho lượng đường huyết trong tương lai của bạn."
           }
         },
         "zh-Hant" : {
@@ -193162,7 +193162,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hałas wzrost docelowy CGM zwiększa poziom glukozy w momencie, gdy system wykrywa hałas lub surowe dane CGM. Domyślnie docelowy poziom glukozy jest zwiększony do 130% ustalonego docelowego poziomu glukozy, aby uwzględnić mniej wiarygodne odczyty glukozy."
+            "value" : "Noisy CGM Target Increase podnosi Twój cel glikemii, gdy system wykryje zakłócone lub surowe dane CGM. Domyślnie cel jest zwiększany do 130% ustawionego docelowego poziomu glukozy, aby uwzględnić mniej wiarygodne odczyty glikemii."
           }
         },
         "pt-PT" : {
@@ -193192,7 +193192,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Noisey CGM Target Increase sẽ tăng mục tiêu glucose của bạn khi hệ thống phát hiện dữ liệu CGM nhiễu hoặc thô. Theo mặc định, mục tiêu được tăng lên 130% mục tiêu glucose đã đặt để tính đến các chỉ số glucose kém tin cậy hơn."
+            "value" : "Noisey CGM Target Increase sẽ tăng mục tiêu glucose của bạn khi hệ thống phát hiện dữ liệu CGM nhiễu hoặc thô. Theo mặc định, mục tiêu được tăng lên 130% mục tiêu glucose đã đặt để tính đến các chỉ số đường huyết kém tin cậy hơn."
           }
         },
         "zh-Hant" : {
@@ -193362,7 +193362,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Algorytm ref dostarcza zaleceń, pokazując kluczowe zmienne, decyzje dotyczące tymczasowych dawek bazowych lub super-mikro-bolusów oraz pole „powód” wyjaśniające jego działania. Znajdź wszystkie kluczowe terminy z tego \"powodu\" wyjaśnione poniżej:"
+            "value" : "Algorytm oref dostarcza zaleceń, pokazując kluczowe zmienne, decyzje dotyczące tymczasowych dawek bazowych lub super-mikro-bolusów oraz pole „powód” wyjaśniające jego działania. Znajdź wszystkie kluczowe terminy z tego \"powodu\" wyjaśnione poniżej:"
           }
         },
         "pt-PT" : {
@@ -193700,7 +193700,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Giới hạn lượng carbs còn lại xác định giới hạn trên cho lượng carbs mà hệ thống sẽ hấp thụ trong 4 giờ, ngay cả khi không có dấu hiệu hấp thụ rõ ràng từ chỉ số glucose của bạn."
+            "value" : "Giới hạn lượng carbs còn lại xác định giới hạn trên cho lượng carbs mà hệ thống sẽ hấp thụ trong 4 giờ, ngay cả khi không có dấu hiệu hấp thụ rõ ràng từ chỉ số đường huyết của bạn."
           }
         },
         "zh-Hant" : {
@@ -194072,7 +194072,7 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ustawienia w tej sekcji zazwyczaj nie wymagają ANALNYCH modyfikacji. Nie zmieniaj ich bez solidnego zrozumienia tego, co zmieniasz i pełnego wpływu, jaki będzie ona miała na algorytm."
+            "value" : "Ustawienia w tej sekcji zazwyczaj nie wymagają ŻADNYCH modyfikacji. Nie zmieniaj ich bez solidnego zrozumienia tego, co zmieniasz i jaki będzie to miało pełny wpływ na algorytm."
           }
         },
         "pt-PT" : {
@@ -194302,7 +194302,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hệ số điều chỉnh Sigmoid (AF) cho phép bạn kiểm soát tốc độ phản ứng của Sigmoid Dynamic ISF với những thay đổi về nồng độ glucose và ở giá trị glucose nào bạn sẽ đạt đến giới hạn Autosens Max và Autosens Min."
+            "value" : "Hệ số điều chỉnh Sigmoid (AF) cho phép bạn kiểm soát tốc độ phản ứng của Sigmoid Dynamic ISF với những thay đổi về nồng độ đường huyết và ở giá trị glucose nào bạn sẽ đạt đến giới hạn Autosens Max và Autosens Min."
           }
         },
         "zh-Hant" : {
@@ -194402,7 +194402,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Máy mô phỏng tạo ra một mô hình dạng sóng mô phỏng sự biến động glucose tự nhiên trong ngày."
+            "value" : "Máy mô phỏng tạo ra một mô hình dạng sóng mô phỏng sự biến động đường huyết tự nhiên trong ngày."
           }
         },
         "zh-Hant" : {
@@ -194502,7 +194502,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nguồn của kết quả đo glucose sẽ được thêm vào thông báo."
+            "value" : "Nguồn của kết quả đo đường huyết sẽ được thêm vào thông báo."
           }
         },
         "zh-Hant" : {
@@ -194730,7 +194730,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Warschauer Methode hilft, die verzögerten Glukosespikes, die durch Fett- und Eiweiße in Mahlzeiten verursacht werden, zu berücksichtigen. Es verwendet Fat-Protein Units (FPU) zur Berechnung des Kohlenstoffeffekts aus Fett und Protein. Das System verteilt die Insulinlieferung über mehrere Stunden bis hin zur Nachahmung der natürlichen Insulinfreisetzung."
+            "value" : "Die Warschauer Methode hilft, die durch Fett und Eiweiß in den Mahlzeiten verursachten verzögerten Glukosespitzen zu berücksichtigen. Sie verwendet Fett-Eiweiß-Einheiten (FPU), um den Kohlenhydrat-Effekt von Fett und Eiweiß zu berechnen. Das System verteilt die Insulinabgabe über mehrere Stunden, um die natürliche Insulinausschüttung nachzuahmen, und hilft so, Glukosespitzen nach einer Mahlzeit zu bewältigen."
           }
         },
         "es" : {
@@ -194802,7 +194802,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Phương pháp Warsaw giúp tính toán các đợt tăng đột biến glucose chậm do chất béo và chất đạm trong bữa ăn. Phương pháp này sử dụng Đơn vị Chất béo-Chất đạm (FPU) để tính hiệu ứng carb từ chất béo và chất đạm. Hệ thống này phân bổ insulin trong nhiều giờ để mô phỏng quá trình giải phóng insulin tự nhiên, giúp kiểm soát các đợt tăng đột biến glucose sau bữa ăn."
+            "value" : "Phương pháp Warsaw giúp tính toán các đợt tăng đột biến đường huyết chậm do chất béo và chất đạm trong bữa ăn. Phương pháp này sử dụng Đơn vị Chất béo-Chất đạm (FPU) để tính hiệu ứng carb từ chất béo và chất đạm. Hệ thống này phân bổ insulin trong nhiều giờ để mô phỏng quá trình giải phóng insulin tự nhiên, giúp kiểm soát các đợt tăng đột biến đường huyết sau bữa ăn."
           }
         },
         "zh-Hant" : {
@@ -194903,13 +194903,13 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Liệu pháp"
+            "value" : "Phác đồ điều trị"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Therapy"
+            "state" : "translated",
+            "value" : "治療"
           }
         }
       }
@@ -195031,7 +195031,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Es gibt auch Optionen, Ihre Max-SMB Minuten und Max UAM SMB Minuten zu überschreiben sowie die SMB zu deaktivieren."
+            "value" : "Es gibt auch Optionen, Deine Max SMB Minuten und Max UAM SMB Minuten zu überschreiben sowie die SMB zu deaktivieren."
           }
         },
         "es" : {
@@ -195711,7 +195711,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ISF đã điều chỉnh này chỉ là tạm thời, sẽ thay đổi theo chu kỳ lặp tiếp theo và không nên được sử dụng trực tiếp làm giá trị hồ sơ ISF của bạn."
+            "value" : "ISF đã điều chỉnh này chỉ là tạm thời, sẽ thay đổi theo chu kỳ lặp tiếp theo và không nên được sử dụng trực tiếp làm giá trị cấu hình ISF của bạn."
           }
         },
         "zh-Hant" : {
@@ -195918,7 +195918,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Điều này cho phép Trio đọc và ghi vào Apple Heath. Bạn cũng phải cấp quyền trong Cài đặt > Sức khỏe > Truy cập dữ liệu. Nếu bạn nhập giá trị glucose vào Apple Health, hãy mở Trio để xác nhận giá trị đó hiển thị."
+            "value" : "Điều này cho phép Trio đọc và ghi vào Apple Heath. Bạn cũng phải cấp quyền trong Cài đặt > Sức khỏe > Truy cập dữ liệu. Nếu bạn nhập giá trị đường huyết vào Apple Health, hãy mở Trio để xác nhận giá trị đó hiển thị."
           }
         },
         "zh-Hant" : {
@@ -196318,7 +196318,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sự chậm trễ này là nguyên nhân khiến quá trình hấp thụ chất béo và chất đạm chậm hơn, theo tính toán của Phương pháp Warsaw, đảm bảo thời điểm cung cấp insulin thích hợp để kiểm soát tình trạng tăng đột biến glucose do các bữa ăn nhiều chất béo, nhiều chất đạm gây ra."
+            "value" : "Sự chậm trễ này là nguyên nhân khiến quá trình hấp thụ chất béo và chất đạm chậm hơn, theo tính toán của Phương pháp Warsaw, đảm bảo thời điểm cung cấp insulin thích hợp để kiểm soát tình trạng tăng đột biến đường huyết do các bữa ăn nhiều chất béo, nhiều chất đạm gây ra."
           }
         },
         "zh-Hant" : {
@@ -197758,7 +197758,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bộ lọc này sẽ xem xét các nhóm nhỏ các số đọc gần đó và khớp chúng với một đường cong toán học đơn giản. Quá trình này không thay đổi mô hình tổng thể của dữ liệu glucose của bạn nhưng giúp làm mịn \"noise\" hoặc các biến động bất thường có thể dẫn đến mức cao hoặc thấp sai."
+            "value" : "Bộ lọc này sẽ xem xét các nhóm nhỏ các số đọc gần đó và khớp chúng với một đường cong toán học đơn giản. Quá trình này không thay đổi mô hình tổng thể của dữ liệu đường huyết của bạn nhưng giúp làm mịn \"noise\" hoặc các biến động bất thường có thể dẫn đến mức cao hoặc thấp sai."
           }
         },
         "zh-Hant" : {
@@ -198058,7 +198058,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đây là giới hạn về quy mô của một SMB duy nhất. Một SMB chỉ có thể lớn bằng số phút này của hồ sơ tỷ lệ cơ bản hiện tại của bạn."
+            "value" : "Đây là giới hạn về quy mô của một SMB duy nhất. Một SMB chỉ có thể lớn bằng số phút này của cấu hình tỷ lệ cơ bản hiện tại của bạn."
           }
         },
         "zh-Hant" : {
@@ -198086,7 +198086,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies ist eine Begrenzung der Größe eines einzelnen UAM SMB. Ein UAM SMB kann nur so groß sein wie viele Minuten Ihres aktuellen Profil-Basal-Rates."
+            "value" : "Dies ist eine Begrenzung der Größe eines einzelnen UAM SMB. Ein UAM SMB kann nur so groß sein wie so viele Minuten Deiner aktuellen Profil-Basal-Rate."
           }
         },
         "es" : {
@@ -198158,7 +198158,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đây là giới hạn về kích thước của một UAM SMB duy nhất. Một UAM SMB chỉ có thể lớn bằng số phút này của hồ sơ ỷ lệ cơ sở hiện tại của bạn."
+            "value" : "Đây là giới hạn về kích thước của một UAM SMB duy nhất. Một UAM SMB chỉ có thể lớn bằng số phút này của cấu hình tỷ lệ liều cơ bản hiện tại của bạn."
           }
         },
         "zh-Hant" : {
@@ -198188,7 +198188,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies ist eine Sicherheitsgrenze für Autosens (und Autotune), die besagt, wie hoch Autosens Basalraten anpassen darf und wie niedrig der ISF (Insulin-Sensitivitäts-Faktor) und der BZ-Zielwert eingestellt werden können. Eine Anpassung um max 20% ist erlaubt."
+            "value" : "Hierbei handelt es sich um einen Multiplikator für Autosens (und Autotune), mit dem eine Obergrenze von 20 % für das Autosens-Verhältnis festgelegt wird, die wiederum bestimmt, wie hoch Autosens die Basalwerte anpassen kann, wie niedrig es den ISF anpassen kann und wie niedrig es das Glukose-Ziel setzen kann."
           }
         },
         "en" : {
@@ -198396,7 +198396,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies ist eine Einstellung für die standardmäßige Kohlenhydrateabsorption pro 5 Minuten. Der Standardwert ist eine erwartete 8 mg/dL/5min. Dies wirkt sich darauf aus, wie schnell COB in Situationen verfällt, in denen die Kohlenhydrateabsorption in Abweichungen nicht sichtbar ist. Der Standardwert von 8 mg/dL/5min entspricht einer minimalen Kohlenstoffabsorptionsrate von 24g/h bei einer CSF von 4 mg/dL/g."
+            "value" : "Dies ist eine Einstellung für die standardmäßige Wirkung der Kohlenhydrataufnahme pro 5 Minuten. Die Standardeinstellung ist ein erwarteter Wert von 8 mg/dL/5min. Dies wirkt sich darauf aus, wie schnell die COB in Situationen, in denen die Kohlenhydratabsorption nicht in Glukoseabweichungen sichtbar ist, abgebaut wird. Der Standardwert von 8 mg/dL/5min entspricht einer minimalen Kohlenhydrat-Absorptionsrate von 24 g/Std. bei einem CSF von 4 mg/dL/g."
           }
         },
         "en" : {
@@ -198604,7 +198604,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies ist ein wichtiges OpenAPS-Sicherheitslimit. Die Standardeinstellung (die wahrscheinlich nicht angepasst werden muss) ist 3. Das bedeutet, dass es OpenAPS niemals erlaubt sein wird, eine temporäre Basalrate festzulegen, die mehr als das dreifache der höchsten Stunden-Basalrate ist, die in der Pumpe eines Benutzers gespeichert ist. Auch bei aktiviertem Autotune gilt diese Grenze."
+            "value" : "Dies ist ein wichtiger Sicherheitsgrenzwert für OpenAPS. Die Standardeinstellung (die wahrscheinlich nicht angepasst werden muss) ist 3. Das bedeutet, dass OpenAPS niemals eine temporäre Basalrate einstellen darf, die mehr als das Dreifache der höchsten stündlichen Basalrate beträgt, die in der Pumpe eines Benutzers programmiert ist oder, falls aktiviert, durch Autotune bestimmt wird."
           }
         },
         "en" : {
@@ -198712,7 +198712,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies ist ein weiteres wichtiges OpenAPS-Sicherheitslimit. Die Standardeinstellung (die ebenfalls vermutlich nicht angepasst werden muss) ist 4. Das bedeutet, dass OpenAPS niemals eine temporäre Basalrate festlegen darf, die mehr als das vierfache der aktuellen Stunden-Basalrate ist, die in der Pumpe eines Benutzers programmiert ist. Auch ein aktiviertes Autotune kann diese Grenze nicht überschreiten."
+            "value" : "Dies ist ein weiterer wichtiger Sicherheitsgrenzwert für OpenAPS. Die Standardeinstellung (die wahrscheinlich auch nicht angepasst werden muss) ist 4. Das bedeutet, dass OpenAPS niemals eine temporäre Basalrate einstellen darf, die mehr als das Vierfache der aktuellen stündlichen Basalrate beträgt, die in der Pumpe des Benutzers programmiert ist oder, falls aktiviert, durch Autotune bestimmt wird."
           }
         },
         "en" : {
@@ -198820,7 +198820,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies ist die maximale Anzahl der geschätzten abgebauten Kohlenhydrate in 4 Stunden, wenn keine Kohlenhydrat-Resorption ersichtlich ist."
+            "value" : "Dies ist die maximale Anzahl der geschätzten aufgenommenen Kohlenhydrate in 4 Stunden, wenn keine Kohlenhydrat-Resorption ersichtlich ist."
           }
         },
         "en" : {
@@ -198928,7 +198928,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies ist die maximale Anzahl der geschätzt abgebauten Kohlenhydrate in 4 Stunden, wenn keine Kohlenhydratabbau ersichtlich ist."
+            "value" : "Dies ist der Anteil der Kohlenhydrate, von dem wir annehmen, dass er über 4 Stunden absorbiert wird, wenn wir noch keine Kohlenhydratabsorption sehen."
           }
         },
         "en" : {
@@ -199106,7 +199106,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đây là lượng Insulin On Board (IOB) tối đa vượt quá mức liều cơ bản từ mọi nguồn - mức cơ bản tạm thời dương tính, liều tiêm thủ công hoặc liều tiêm trong bữa ăn và SMB - mà Trio được phép tích lũy để giải quyết tình trạng đường huyết cao hơn mục tiêu."
+            "value" : "Đây là lượng Insulin On Board (IOB) tối đa vượt quá mức cấu hình liều cơ bản từ mọi nguồn - mức cơ bản tạm thời dương tính, liều tiêm thủ công hoặc liều tiêm trong bữa ăn và SMB - mà Trio được phép tích lũy để giải quyết tình trạng đường huyết cao hơn mục tiêu."
           }
         },
         "zh-Hant" : {
@@ -199434,7 +199434,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies ist die minimale Anzahl von Minuten, da der letzte SMB oder manueller Bolus vor Trio ein automatisiertes SMB zulässt."
+            "value" : "Dies ist die Mindestanzahl von Minuten seit der letzten SMB oder dem letzten manuellen Bolus, bevor Trio einen erneuten automatischen SMB zulässt."
           }
         },
         "es" : {
@@ -199534,7 +199534,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies ist nützlich, wenn Sie CarPlay oder eine Reihe anderer externer Dienste verwenden, die die Ansicht der meisten Apps einschränken, aber erlauben Sie die Kalender-App."
+            "value" : "Dies ist nützlich, wenn Sie CarPlay oder eine Reihe anderer externer Dienste verwenden, die die Ansicht der meisten Apps einschränken, aber die Kalender-App zulassen."
           }
         },
         "es" : {
@@ -199634,7 +199634,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies beschränkt die automatische Anpassung der temporären Basisrate auf diesen Prozentsatz der aktuellen Stundenprofil-Basalrate zum Zeitpunkt des Loop-Zyklus."
+            "value" : "Dadurch wird die automatische Anpassung der temporären Basalrate auf diesen Prozentsatz der aktuellen stündlichen Profilbasalrate zum Zeitpunkt des Loops begrenzt."
           }
         },
         "es" : {
@@ -199836,7 +199836,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies könnte ein vorübergehendes Problem sein, bitte überprüfen Sie, ob Ihr Sender fest über Ihren Sensor befestigt ist"
+            "value" : "Dies könnte ein vorübergehendes Problem sein, aber überprüfen Sie bitte, ob Ihr Sender fest über dem Sensor befestigt ist"
           }
         },
         "en" : {
@@ -199942,7 +199942,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Voreinstellung wird gerade überschrieben. Löschen wird sie beenden."
+            "value" : "Diese Überschreibungsvoreinstellung wird gerade ausgeführt. Durch Löschen wird sie beendet."
           }
         },
         "es" : {
@@ -200042,7 +200042,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieser Spitzenwert informiert das System darüber, wann der stärkste Glukoseabsenkungseffekt zu erwarten ist, was dazu beiträgt, die Glukoseentwicklung genauer vorherzusagen."
+            "value" : "Dieser Spitzenwert informiert das System darüber, wann die stärkste Glukose-senkende Wirkung zu erwarten ist, und hilft ihm, Glukosetrends genauer vorherzusagen."
           }
         },
         "es" : {
@@ -200114,7 +200114,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Đỉnh insulin này thông báo cho hệ thống biết thời điểm có thể đạt được hiệu quả hạ glucose mạnh nhất, giúp dự đoán xu hướng glucose chính xác hơn."
+            "value" : "Đỉnh insulin này thông báo cho hệ thống biết thời điểm có thể đạt được hiệu quả hạ đường huyết mạnh nhất, giúp dự đoán xu hướng đường huyết chính xác hơn."
           }
         },
         "zh-Hant" : {
@@ -200243,7 +200243,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Datenschutzrichtlinie erklärt, wie wir Informationen sammeln, verwenden und weitergeben, wenn Sie Trio nutzen. Wir respektieren Ihre Privatsphäre und verpflichten uns, Ihre persönlichen Daten zu schützen. Bitte lesen Sie diese Datenschutzrichtlinie sorgfältig durch, um unsere Vorgehensweisen bezüglich Ihrer persönlichen Daten zu verstehen."
+            "value" : "Diese Datenschutzrichtlinie erklärt, wie wir Informationen sammeln, verwenden und weitergeben, wenn Du Trio nutzt. Wir respektieren Deine Privatsphäre und verpflichten uns, Deine persönlichen Daten zu schützen. Bitte lies diese Datenschutzrichtlinie sorgfältig durch, um unsere Vorgehensweisen bezüglich Deiner persönlichen Daten zu verstehen."
           }
         },
         "es" : {
@@ -200345,7 +200345,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieser PumpManager wurde nicht mit einer maximalen Basalrate konfiguriert, da er hinzugefügt wurde, bevor es die Funktion \"manuelle temporäre Basalrate\" gab. Bitte gehe zum Menü Therapieeinstellungen -> Verabreichungsgrenzen und lege eine neue maximale Basalrate fest."
+            "value" : "Dieser Pumpen-Manager wurde nicht mit einer maximalen Basalrate konfiguriert, da er hinzugefügt wurde, bevor die manuelle temporäre Basalrate eine Funktion war. Bitte gehe zu Therapieeinstellungen -> Abgabegrenzen und lege eine neue maximale Basalrate fest."
           }
         },
         "en" : {
@@ -200551,7 +200551,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies legt die maximale Zeitspanne fest, in der Fett- und Proteinkarb-Äquivalente (FPUs) von einem einzigen Fett- und/oder Proteinbolusrechner übertragen werden."
+            "value" : "Hier wird die maximale Zeitspanne festgelegt, über die Fett- und Eiweiß-Kohlenhydrat-Äquivalente (FPUs) aus einem einzelnen Fett- und/oder Eiweißbolus-Rechnereintrag verteilt werden."
           }
         },
         "es" : {
@@ -200651,7 +200651,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Einstellung legt fest, wieviel Gewicht bei der Berechnung von Dynamic ISF und Dynamic CR an die aktuelle tägliche Insulindosis übergeben wird."
+            "value" : "Mit dieser Einstellung wird festgelegt, wie stark Deine aktuelle tägliche Gesamtinsulindosis bei der Berechnung des Dynamischen ISF und des Dynamischen CR berücksichtigt wird."
           }
         },
         "es" : {
@@ -200751,7 +200751,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Einstellung erlaubt ein reaktiveres System, aber die Effekte sind durch die Autosens Min/Max Einstellungen eingeschränkt."
+            "value" : "Diese Einstellung ermöglicht ein reaktionsschnelleres System, aber die Auswirkungen werden durch die Autosens Min/Max-Einstellungen eingeschränkt."
           }
         },
         "es" : {
@@ -200851,7 +200851,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit dieser Einstellung können Sie zwischen Ungewissheit (Cone) und OpenAPS Forecast Lines (Prognoselinien) für die Glukosevorhersage wählen. Beschreibungen für jede nachstehende Option."
+            "value" : "Mit dieser Einstellung kannst Du zwischen dem Unsicherheitskegel (Cone) und den OpenAPS-Vorhersagelinien (Forecast Lines) für die Glukosevorhersage wählen. Beschreibungen für jede Option findest Du unten."
           }
         },
         "es" : {
@@ -200951,7 +200951,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Einstellung ändert die Auswirkung des Fett- und Eiweißeinsatzes auf FPUs."
+            "value" : "Diese Einstellung ändert, wie stark sich die Eingabe von Fett und Eiweiß auf die FPUs auswirkt."
           }
         },
         "es" : {
@@ -201151,7 +201151,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Einstellung zeigt die oberen und unteren Werte für Ihren Glukose-Zielbereich an."
+            "value" : "Diese Einstellung zeigt die oberen und unteren Werte für Deinen Glukose-Zielbereich an."
           }
         },
         "es" : {
@@ -201223,7 +201223,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cài đặt này hiển thị giá trị trên và dưới cho phạm vi mục tiêu glucose của bạn."
+            "value" : "Cài đặt này hiển thị giá trị trên và dưới cho phạm vi mục tiêu đường huyết của bạn."
           }
         },
         "zh-Hant" : {
@@ -201351,7 +201351,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Einstellung hilft dem System zu beurteilen, wie viel Glukose Ihr Körper absorbiert, auch wenn es in Ihren Glukose-Daten nicht sofort sichtbar ist, um eine genauere Insulindosierung während der Kohlendioxidabsorption zu gewährleisten."
+            "value" : "Mit dieser Einstellung kann das System abschätzen, wie viel Glukose Dein Körper aufnimmt, auch wenn dies in Deinen Glukosedaten nicht sofort sichtbar ist. Dies gewährleistet eine genauere Insulindosierung während der Kohlenhydrataufnahme."
           }
         },
         "es" : {
@@ -201423,7 +201423,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thiết lập này giúp hệ thống ước tính lượng glucose mà cơ thể bạn hấp thụ, ngay cả khi lượng glucose này không hiển thị ngay trong dữ liệu glucose, đảm bảo liều lượng insulin chính xác hơn trong quá trình hấp thụ carbohydrate."
+            "value" : "Thiết lập này giúp hệ thống ước tính lượng đường huyết mà cơ thể bạn hấp thụ, ngay cả khi lượng đường huyết này không hiển thị ngay trong dữ liệu đường huyết, đảm bảo liều lượng insulin chính xác hơn trong quá trình hấp thụ carb."
           }
         },
         "zh-Hant" : {
@@ -201557,7 +201557,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Einstellung schränkt die maximal zulässige Temporärrate des Trios ein. Bei der Standardeinstellung von 300% kappt sie auf das Dreifache Ihrer höchsten programmierten Basalrate."
+            "value" : "Diese Einstellung schränkt die maximale temporäre Basalrate ein, die Trio einstellen kann. Bei der Standardeinstellung von 300 % ist sie auf das Dreifache Deiner höchsten programmierten Basalrate begrenzt."
           }
         },
         "es" : {
@@ -201657,7 +201657,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieses Temp Target Preset wird gerade ausgeführt. Das Löschen wird gestoppt."
+            "value" : "Diese Temporäre-Ziel-Voreinstellung wird gerade ausgeführt. Durch Löschen wird sie beendet."
           }
         },
         "es" : {
@@ -201757,7 +201757,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dadurch wird dein aktuelles Glukose oben rechts auf deinem Trio-Symbol als rote Benachrichtigungs-Abzeichen hinzugefügt. Das Ändern der Einstellung wird beim nächsten Lesen von Glucose wirksam."
+            "value" : "Dadurch wird Deine aktuelle Glukose oben rechts auf dem Trio-Symbol als rotes Benachrichtigungssymbol hinzugefügt. Die Änderung der Einstellung wird bei der nächsten Glukosemessung wirksam."
           }
         },
         "es" : {
@@ -201829,7 +201829,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thao tác này sẽ thêm lượng glucose hiện tại của bạn vào góc trên bên phải biểu tượng Trio dưới dạng huy hiệu thông báo màu đỏ. Thay đổi cài đặt có hiệu lực vào lần đọc Glucose tiếp theo."
+            "value" : "Thao tác này sẽ thêm lượng đường huyết hiện tại của bạn vào góc trên bên phải biểu tượng Trio dưới dạng huy hiệu thông báo màu đỏ. Thay đổi cài đặt có hiệu lực vào lần đọc đường huyết tiếp theo."
           }
         },
         "zh-Hant" : {
@@ -201857,7 +201857,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies wird 24 Stunden Glukose-Daten von Ihrer verbundenen Nachtcout-URL an das Trio zurückgeben"
+            "value" : "Damit werden 24 Stunden Glukosedaten von Deiner verbundenen Nightscout-URL in Trio aufgefüllt"
           }
         },
         "es" : {
@@ -201929,7 +201929,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Điều này sẽ điền lại 24 giờ dữ liệu glucose từ URL Nightscout được kết nối của bạn tới Trio"
+            "value" : "Điều này sẽ điền lại 24 giờ dữ liệu đường huyết từ URL Nightscout được kết nối của bạn tới Trio"
           }
         },
         "zh-Hant" : {
@@ -201958,7 +201958,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dadurch werden die Einstellungen auf Ihr normales Profil zurückgesetzt."
+            "value" : "Dadurch werden die Einstellungen auf Dein normales Profil zurückgesetzt."
           }
         },
         "en" : {
@@ -202066,7 +202066,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies wird einige oder alle deine aktuellen Pumpeneinstellungen ersetzen. Bist du sicher, dass du die Profileinstellungen von Nightscout importieren möchtest?"
+            "value" : "Dies wird einige oder alle Deiner aktuellen Pumpeneinstellungen ersetzen. Bist Du sicher, dass Du die Profileinstellungen von Nightscout importieren möchtest?"
           }
         },
         "en" : {
@@ -202874,7 +202874,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zeit im Bereichsdiagramm-Stil"
+            "value" : "\"Time-in-Range\"-Diagramm-Stil"
           }
         },
         "es" : {
@@ -202974,7 +202974,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Time in Range Typ"
+            "value" : "\"Time in Range\"-Typ"
           }
         },
         "es" : {
@@ -203274,7 +203274,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zeitintervall zwischen FPU."
+            "value" : "Zeitintervall zwischen FPUs."
           }
         },
         "es" : {
@@ -203376,7 +203376,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Benutzerspezifische Zeit des maximalen Wirkungshochs des Insulins. Achtung: Oref wendet für die ultra-rapid (Lyumjev) & rapid-acting (Fiasp) Insulinwirkungs-Kurven Unter- (35 & 50 min) und Obergrenzen (100 & 120 min) an. Falls das benutzerdefinierte Wirkungshoch außerhalb dieser Grenzen liegt, kann es zu Komplikationen mit Trio kommen, langen Loop-Berechnungszeiten und \"red loops\"."
+            "value" : "Zeit der maximalen glukosesenkenden Wirkung von Insulin in Minuten. Achtung! Oref geht bei ultraschnellen (Lyumjev) und schnell wirkenden (Fiasp) Kurven von minimalen (35 & 50 min) und maximalen (100 & 120 min) anwendbaren insulinPeakTimes aus. Die Verwendung einer benutzerdefinierten insulinPeakTime außerhalb dieser Grenzen führt zu Problemen mit Trio, längeren Loopberechnungen und möglichen roten Loops."
           }
         },
         "en" : {
@@ -203482,7 +203482,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tipp: Wenn Sie diesen Wert verringern, können die automatische Anpassung der Basalraten niedriger und die ISF höher ausfallen."
+            "value" : "Tipp: Wenn Du diesen Wert verringerst, können die automatische Anpassung der Basalraten niedriger und die ISF höher ausfallen."
           }
         },
         "es" : {
@@ -203582,7 +203582,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tipp: Durch die Verringerung dieses Wertes können automatische Korrekturen der Basalraten niedriger sein, ISF höher und CR höher sein."
+            "value" : "Tipp: Durch die Verringerung dieses Wertes können automatische Korrekturen der Basalraten niedriger sein, ISF und CR höher sein."
           }
         },
         "es" : {
@@ -203682,7 +203682,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tipp: Wenn du ein neuer Trio-Benutzer bist, es wird nicht empfohlen, dies auf 100% zu setzen, bevor Sie nicht verifiziert haben, dass Ihre Kerneinstellungen (Basisraten, ISF und CR müssen nicht angepasst werden."
+            "value" : "Tipp: Wenn Du ein neuer Trio-Benutzer bist, ist es nicht ratsam, diesen Wert auf 100 % einzustellen, bis Du sichergestellt hast, dass Deine Grundeinstellungen (Basalraten, ISF und CR) nicht angepasst werden müssen."
           }
         },
         "es" : {
@@ -203782,7 +203782,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tipp: Wenn Sie Ihre Pumpe normalerweise unabhängig von Änderungen der Website zurückgeben, sollten Sie diese Funktion deaktivieren."
+            "value" : "Tipp: Wenn Du Dekme Pumpe normalerweise unabhängig von Katheterwechseln zurückspulst, solltest Du diese Funktion deaktivieren."
           }
         },
         "es" : {
@@ -203982,7 +203982,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tipp: Durch die Erhöhung dieses Wertes können automatische Korrekturen der Basalraten höher sein, ISF niedriger und CR niedriger sein."
+            "value" : "Tipp: Durch die Erhöhung dieses Wertes können automatische Korrekturen der Basalraten höher sein, ISF und CR niedriger sein."
           }
         },
         "es" : {
@@ -204082,7 +204082,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tipp: Es ist besser, benutzerdefinierte Spitzenzeit zu verwenden, als deine Dauer der Insulin-Aktion (DIA) anzupassen."
+            "value" : "Tipp: Es ist besser, eine benutzerdefinierte Spitzenzeit zu verwenden, als Deine Dauer der Insulin-Aktion (DIA) anzupassen."
           }
         },
         "es" : {
@@ -204182,7 +204182,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tipp: Ihr normales Kohlenhydratverhältnis muss sich möglicherweise auf eine größere Zahl erhöhen, wenn Sie Fett- und Proteineinträge hinzufügen. Aus diesem Grund ist es am besten, mit einem Faktor von etwa 50 % zu beginnen."
+            "value" : "Tipp: Es kann sein, dass Du feststellst, dass Dein normales Kohlenhydratverhältnis auf eine größere Zahl erhöht werden muss, wenn Du anfängst, Fett- und Proteingaben hinzuzufügen. Aus diesem Grund ist es am besten, mit einem Faktor von etwa 50 % zu beginnen."
           }
         },
         "es" : {
@@ -204483,7 +204483,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um die maximal zulässige SMB basierend auf dieser Einstellung zu berechnen, verwenden Sie folgende Formel:"
+            "value" : "Verwende die folgende Formel, um den maximal zulässigen SMB auf der Grundlage dieser Einstellung zu berechnen:"
           }
         },
         "es" : {
@@ -204583,7 +204583,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um das maximal zulässige UAM-SMB basierend auf dieser Einstellung zu berechnen, verwenden Sie die folgende Formel:"
+            "value" : "Um den maximal zulässigen UAM-SMB auf der Grundlage dieser Einstellung zu berechnen, wird folgende Formel verwendet:"
           }
         },
         "es" : {
@@ -204783,7 +204783,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um zu bestätigen, wählen Sie Krone."
+            "value" : "Zur Bestätigung drehe die Krone."
           }
         },
         "es" : {
@@ -204883,7 +204883,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um Glätten zu deaktivieren, gehen Sie auf Einstellungen > Geräte > Kontinuierlicher Glukose-Monitor > Glättungswert und schalten die Einstellung aus."
+            "value" : "Um die Glättung zu deaktivieren, gehe zu Einstellungen > Geräte > Kontinuierliches Glukosemessgerät > Glukosewert glätten und schalte die Einstellung aus."
           }
         },
         "es" : {
@@ -205083,7 +205083,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um die Sicherheit zu gewährleisten, werden diese Befehle durch ein gemeinsames Geheimnis geschützt, das in der Loop Follow App eingegeben werden muss."
+            "value" : "Um die Sicherheit zu erhöhen, sind diese Befehle durch ein gemeinsames Geheimnis geschützt, das in der Loop Follow-App eingegeben werden muss."
           }
         },
         "es" : {
@@ -205183,7 +205183,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um die Anzeige der Glukose-Messwerte zu ändern, gehen Sie auf Einstellungen > Funktionen > Benutzeroberfläche > Glukose-Farbschema."
+            "value" : "Um die Anzeige der Glukose-Messwerte zu ändern, gehen auf Einstellungen > Funktionen > Benutzeroberfläche > Glukose-Farbschema."
           }
         },
         "es" : {
@@ -205255,7 +205255,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Để sửa đổi cách hiển thị kết quả đo glucose, hãy vào Settings > Features > User Interface > Glucose Color Scheme."
+            "value" : "Để sửa đổi cách hiển thị kết quả đo đường huyết, hãy vào Cài đặt > Các tính năng > Giao diện người dùng > Sơ đồ màu đường huyết."
           }
         },
         "zh-Hant" : {
@@ -205283,7 +205283,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um zu ändern, wie die Vorhersage angezeigt wird, gehen Sie auf Einstellungen > Funktionen > Benutzeroberfläche > Anzeigetyp."
+            "value" : "Um die Art der Anzeige der Vorhersage zu ändern, gehe zu Einstellungen > Funktionen > Benutzeroberfläche > Art der Vorhersageanzeige."
           }
         },
         "es" : {
@@ -205485,7 +205485,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um einen NIEDRIGEN BZ zu verhindern, werden %d g Kohlenhydrate benötigt"
+            "value" : "Um einen UNTERZUCKERUNG zu verhindern, werden %d g Kohlenhydrate benötigt"
           }
         },
         "es" : {
@@ -205585,7 +205585,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um Widgets neu anzuordnen, entfernen Sie sie und fügen Sie sie in der gewünschten Reihenfolge wieder hinzu."
+            "value" : "Um Widgets neu anzuordnen, entferne sie und füge sie in der gewünschten Reihenfolge wieder ein."
           }
         },
         "es" : {
@@ -205685,7 +205685,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um Ihre geplanten Basiskurse zu überprüfen oder zu ändern, gehen Sie auf Einstellungen > Therapie > Basalkurse."
+            "value" : "Um Deine geplanten Basalraten zu überprüfen oder zu ändern, gehen auf Einstellungen > Therapie > Basalraten."
           }
         },
         "es" : {
@@ -205785,7 +205785,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zu Ihrer Sicherheit empfehlen wir:"
+            "value" : "Zu Deiner Sicherheit empfehlen wir:"
           }
         },
         "es" : {
@@ -205994,7 +205994,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Obergrenze"
+            "value" : "Oberes Ziel"
           }
         },
         "en" : {
@@ -206172,7 +206172,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Giá trị cao nhất"
+            "value" : "Trên cùng"
           }
         },
         "zh-Hant" : {
@@ -206811,7 +206811,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gesamte Insulinanpassung"
+            "value" : "Insulinanpassung insgesamt"
           }
         },
         "en" : {
@@ -207117,7 +207117,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trackt die Kohlenhydrate die du isst, eingegeben, um die Insulindosis zu lenken."
+            "value" : "Verfolgt die von Dir gegessenen Kohlenhydrate, die zur Steuerung der Insulindosierung eingegeben werden."
           }
         },
         "es" : {
@@ -207219,7 +207219,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sender-ID"
+            "value" : "Transmitter ID"
           }
         },
         "en" : {
@@ -207326,7 +207326,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sender-Info"
+            "value" : "Transmitter Info"
           }
         },
         "en" : {
@@ -207540,7 +207540,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sender: %@%%"
+            "value" : "Transmitter: %@%%"
           }
         },
         "es" : {
@@ -207942,7 +207942,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Löst einen Bestätigungsdialog aus, falls Sie versuchen, einen Bolus zu verabreichen, wenn die Glukose < %1$@ %2$@ ist."
+            "value" : "Löst einen Bestätigungsdialog aus, falls Du versuchst, einen Bolus zu verabreichen, wenn die Glukose < %1$@ %2$@ ist."
           }
         },
         "en" : {
@@ -208020,7 +208020,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kích hoạt hộp thoại xác nhận nếu bạn cố gắng tiêm thuốc khi lượng glucose < %1$@ %2$@."
+            "value" : "Kích hoạt hộp thoại xác nhận nếu bạn cố gắng tiêm thuốc khi lượng đường huyết < %1$@ %2$@."
           }
         },
         "zh-Hant" : {
@@ -208220,7 +208220,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trio có thể tự động điều chỉnh việc cung cấp insulin dựa trên dữ liệu đầu vào và dự báo glucose. Cài đặt thuật toán của bạn đóng vai trò quan trọng trong việc định lượng chính xác và hiệu quả."
+            "value" : "Trio có thể tự động điều chỉnh việc cung cấp insulin dựa trên dữ liệu đầu vào và dự báo đường huyết. Cài đặt thuật toán của bạn đóng vai trò quan trọng trong việc định lượng chính xác và hiệu quả."
           }
         },
         "zh-Hant" : {
@@ -208248,7 +208248,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trio kann Sie über verschiedene Ereignisse benachrichtigen, wenn Sie es verwenden. Sie müssen Trio erlauben, Ihnen Benachrichtigungen zu senden, damit es richtig funktioniert."
+            "value" : "Trio kann Dich über verschiedene Ereignisse benachrichtigen, wenn Du es verwendest. Du musst Trio erlauben, Dir Benachrichtigungen zu senden, damit es richtig funktioniert."
           }
         },
         "es" : {
@@ -208448,7 +208448,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trio kommt mir einem hilfreichen Start-Leitfaden. Wir empfehlen ihn jetzt durchzugehen und begleiten dich - Seite an Seite."
+            "value" : "Trio wird mit einer hilfreichen Startup-Anleitung geliefert. Wir empfehlen Dir, diese jetzt zu öffnen und sie Seite für Seite durchzuarbeiten."
           }
         },
         "es" : {
@@ -208620,7 +208620,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trio Configuration"
+            "value" : "Cấu hình Trio"
           }
         },
         "zh-Hant" : {
@@ -208720,7 +208720,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trio Core Setup"
+            "value" : "Cài đặt cốt lõi của Trio"
           }
         },
         "zh-Hant" : {
@@ -208748,7 +208748,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trio konnte nicht mit deiner Pumpe kommunizieren. Änderungen an deinem Basisprofil wurden nicht gespeichert."
+            "value" : "Trio konnte nicht mit deiner Pumpe kommunizieren. Änderungen an Deinem Basisprofil wurden nicht gespeichert."
           }
         },
         "es" : {
@@ -209420,7 +209420,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trio Features"
+            "value" : "Cá tính năng của Trio"
           }
         },
         "zh-Hant" : {
@@ -209748,7 +209748,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trio enthält mehrere Algorithmuseinstellungen, mit denen Sie das Verhalten des oref-Algorithmus an Ihre speziellen Bedürfnisse anpassen können."
+            "value" : "Trio enthält mehrere Algorithmuseinstellungen, mit denen Du das Verhalten des oref-Algorithmus an Deine speziellen Bedürfnisse anpassen kannst."
           }
         },
         "es" : {
@@ -209948,7 +209948,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trio-Information Benachrichtigungen"
+            "value" : "Trio-Informations-Benachrichtigungen"
           }
         },
         "es" : {
@@ -210048,7 +210048,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trio ist eine leistungsstarke App, die Sie bei der Verwaltung Ihres Diabetes unterstützt. Lassen Sie uns zunächst ein paar wichtige Parameter einstellen, damit Trio effektiv für Sie arbeiten kann."
+            "value" : "Trio ist eine leistungsstarke App, die Dich bei der Kontrolle Deines Diabetes unterstützt. Lasse uns zunächst ein paar wichtige Parameter einstellen, damit Trio effektiv für Dich arbeiten kann."
           }
         },
         "es" : {
@@ -210148,7 +210148,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Trio verwendet derzeit diese Metriken und Werte gemäß dem Oref-Algorithmus:"
+            "value" : "Trio verwendet derzeit diese Metriken und Werte gemäß dem Oref-Algorithmus:"
           }
         },
         "es" : {
@@ -210248,7 +210248,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trio wurde entwickelt, um dich bei deinem Diabetes Management zu unterstützen. Um die besten Ergebnisse mit der App zu erzielen, begleiten wir dich durch das Erst-Setup bei dem du grundlegende Parameter einstellst."
+            "value" : "Trio wurde entwickelt, um Dich bei Deinem Diabetes Management zu unterstützen. Um die besten Ergebnisse mit der App zu erzielen, begleiten wir Dich durch das Erst-Setup bei dem Du grundlegende Parameter einstellst."
           }
         },
         "es" : {
@@ -210348,7 +210348,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trio ist noch voll funktionsfähig und wird sich schnell anpassen - aber wenn Sie jetzt aufmerksam sind, hilft es Ihnen, sicherer zu werden."
+            "value" : "Trio ist noch voll funktionsfähig und wird sich schnell anpassen - aber wenn Du jetzt aufmerksam bist, hilft es Dir, sicherer zu werden."
           }
         },
         "es" : {
@@ -210448,7 +210448,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit Trio können Sie Automatisierungen mithilfe von iOS-Verknüpfungen erstellen. Gehen Sie zur Shortcuts App, um neue Automatisierungen zu erstellen."
+            "value" : "Mit Trio kannst Du Automatisierungen mit iOS Kurzbefehlen erstellen. Gehe zur App \"Kurzbefehle\", um neue Automatisierungen zu erstellen."
           }
         },
         "es" : {
@@ -210821,7 +210821,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trio Notifications"
+            "value" : "Thông báo Trio"
           }
         },
         "zh-Hant" : {
@@ -211550,7 +211550,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trio verwendet Google Firebase Crashlytics, um Absturzberichte zu sammeln. Während der anfänglichen Einrichtung der App (Onboarding-Prozess) werden Sie aufgefordert, sich für das Crash Reporting zu entscheiden. Der Onboarding-Prozess ist die Reihe von Masken, die Sie beim ersten Start von Trio sehen und die Ihnen helfen, die App einzurichten."
+            "value" : "Trio verwendet Google Firebase Crashlytics, um Absturzberichte zu sammeln. Während der anfänglichen Einrichtung der App (Onboarding-Prozess) wirst Du aufgefordert, dich für das Crash Reporting zu entscheiden. Der Einrichtungs-Prozess ist die Reihe von Bildschirmen, die Du beim ersten Start von Trio siehst und die Dir helfen, die App einzurichten."
           }
         },
         "es" : {
@@ -211750,7 +211750,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trio gegen%1$@ (%2$@)"
+            "value" : "Trio v%1$@ (%2$@)"
           }
         },
         "en" : {
@@ -211957,7 +211957,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Trio wird automatisch einem beliebigen Kontaktbild einen Namen wie 'Trio 1' zuweisen und einen Eintrag unter Ihren iOS-Kontakten erstellen. Benutzen Sie die Schaltfläche 'Speichern', um Ihr individuelles Kontaktbild zu speichern."
+            "value" : "Trio weist jedem Kontaktbild, das Du hinzufügst, automatisch einen Namen wie \"Trio 1\" zu und erstellt einen Eintrag unter Deinen iOS-Kontakten. Verwende die Schaltfläche \"Speichern\" am unteren Rand, um Dein angepasstes Kontaktbild zu speichern."
           }
         },
         "es" : {
@@ -212157,7 +212157,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trio wird die größere der Standardeinstellungsberechnung unten und den hier eingegebenen Wert verwenden."
+            "value" : "Trio verwendet den größeren Wert aus der unten stehenden Standardberechnung und dem hier eingegebenen Wert."
           }
         },
         "es" : {
@@ -212257,7 +212257,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Algorithmusfunktionen von Trio sind auf Ihre Vorstellungen und Bedürfnisse zugeschnitten."
+            "value" : "Die Algorithmusfunktionen von Trio sind auf Deine Vorstellungen und Bedürfnisse zugeschnitten."
           }
         },
         "es" : {
@@ -212457,7 +212457,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Simple Lock Screen Widget von Trio zeigt das aktuelle Glukose-Lesen, Trendpfeile, Delta und den Zeitstempel des aktuellen Lesens."
+            "value" : "Das Simple Lock Screen Widget von Trio zeigt die aktuelle Glukosemessung, Trendpfeile, Delta und den Zeitstempel der aktuellen Messung."
           }
         },
         "es" : {
@@ -212529,7 +212529,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tiện ích màn hình khóa đơn giản của Trio hiển thị chỉ số glucose hiện tại, mũi tên xu hướng, delta và dấu thời gian của chỉ số hiện tại."
+            "value" : "Tiện ích màn hình khóa đơn giản của Trio hiển thị chỉ số đường huyết hiện tại, mũi tên xu hướng, delta và dấu thời gian của chỉ số hiện tại."
           }
         },
         "zh-Hant" : {
@@ -212634,8 +212634,8 @@
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Try again in a moment, or configure your Therapy Settings manually instead."
+            "state" : "translated",
+            "value" : "請稍後再試，或改為手動設定您的治療設定。"
           }
         }
       }
@@ -216604,7 +216604,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tải glucose lên Nightscout"
+            "value" : "Tải đường huyết lên Nightscout"
           }
         },
         "zh-Hant" : {
@@ -217657,7 +217657,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lokalen BZ-Server verwenden"
+            "value" : "Lokalen Glukose-Server verwenden"
           }
         },
         "en" : {
@@ -217735,7 +217735,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sử dụng nguồn glucose nội tại"
+            "value" : "Sử dụng đường huyết cục bộ"
           }
         },
         "zh-Hant" : {
@@ -217971,7 +217971,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verwendet eine kombinierte Auswahl aller möglichen Prognosen aus den OpenAPS-Linien und bietet Ihnen eine Reihe von möglichen Prognosen. Diese Option hat gezeigt, dass Verwirrung und Stress rund um Algorithmus-Prognosen durch eine geringere visuelle Darstellung reduziert werden."
+            "value" : "Verwendet einen kombinierten Bereich aller möglichen Vorhersagen aus den OpenAPS-Linien und bietet Dir eine Reihe von möglichen Vorhersagen. Es hat sich gezeigt, dass diese Option Verwirrung und Stress im Zusammenhang mit Algorithmusvorhersagen verringert, da sie eine weniger beunruhigende visuelle Darstellung bietet."
           }
         },
         "es" : {
@@ -218178,7 +218178,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verwendet die IOB, COB, UAM und ZT Vorhersagelinien von OpenAPS. Diese Option bietet eine detailliertere Ansicht der Prognose des Algorithmus, kann aber für einige Benutzer etwas verwirrender sein."
+            "value" : "Verwendet die IOB-, COB-, UAM- und ZT-Prognoselinien von OpenAPS. Diese Option bietet eine detailliertere Ansicht der Vorhersage des Algorithmus, kann aber für einige Benutzer verwirrender sein."
           }
         },
         "es" : {
@@ -218386,7 +218386,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verwende deine Nachtschau als CGM"
+            "value" : "Verwendet Dein Nightscout als CGM"
           }
         },
         "es" : {
@@ -218488,7 +218488,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Benutze gemeinsame App-Groups (Xcode) mit externer CGM App GlucoseDirect"
+            "value" : "Benutzt gemeinsame App-Groups (Xcode) mit externer CGM App GlucoseDirect"
           }
         },
         "en" : {
@@ -218595,7 +218595,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Benutze gemeinsame App-Groups (Xcode) mit externer CGM App xDrip4iOS"
+            "value" : "Benutzt gemeinsame App-Groups (Xcode) mit externer CGM App xDrip4iOS"
           }
         },
         "es" : {
@@ -218696,7 +218696,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gültig für Fußzeile"
+            "value" : "Gültig für die Fußzeile"
           }
         },
         "en" : {
@@ -218902,7 +218902,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "wert: %lf"
+            "value" : "Wert: %lf"
           }
         },
         "es" : {
@@ -220011,7 +220011,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Brauchst du Hilfe? Hier kannst du unseren vollständigen Startup-Leitfaden öffnen:"
+            "value" : "Brauchst Du Hilfe? Hier kannst Du unseren vollständigen Startup-Leitfaden öffnen:"
           }
         },
         "es" : {
@@ -220284,7 +220284,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cảnh báo khi tiêm thuốc với lượng glucose rất thấp hoặc dự kiến ​​rất thấp."
+            "value" : "Cảnh báo khi tiêm thuốc với đường huyết rất thấp hoặc dự kiến ​​rất thấp."
           }
         },
         "zh-Hant" : {
@@ -220312,7 +220312,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Warnung: Bevor Sie diese Einstellungen anpassen, stellen Sie sicher, dass Sie sich der Auswirkungen dieser Änderungen voll bewusst sind."
+            "value" : "Warnung: Bevor Du diese Einstellungen anpasst, stelle sicher, dass Du Dich der Auswirkungen dieser Änderungen voll bewusst bist."
           }
         },
         "es" : {
@@ -220412,7 +220412,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Warnung: Hohe Temp Ziele werden oft bei der Wiederherstellung von niedrigen Werten gesetzt. Wenn Sie hohe Temp Ziele für diesen Zweck verwenden, sollte dieses Feature deaktiviert bleiben."
+            "value" : "Warnung: Hohe Temporäre Ziele werden oft gesetzt, wenn man sich von Tiefs erholt. Wenn Du zu diesem Zweck hohe Temporäre Ziele verwendest, sollte diese Funktion deaktiviert bleiben."
           }
         },
         "es" : {
@@ -220612,7 +220612,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Warnung: Die Erhöhung dieses Wertes über 60 Minuten kann die Fähigkeit von Trio beeinflussen, effektiv Null Temperatur zu vermeiden und niedrige Werte zu verhindern."
+            "value" : "Warnung: Die Erhöhung dieses Wertes über 60 Minuten kann die Fähigkeit von Trio beeinflussen, effektiv Temporäre-Baalraten von Null zu starten und niedrige Werte zu verhindern."
           }
         },
         "es" : {
@@ -220712,7 +220712,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Warnung: Die Erhöhung dieses Wertes über 90 Minuten kann die Fähigkeit von Trio beeinflussen, effektiv Null Temperatur zu vermeiden und niedrige Werte zu verhindern."
+            "value" : "Warnung: Die Erhöhung dieses Wertes über 90 Minuten kann die Fähigkeit von Trio beeinflussen, effektiv Temporäre Basalraten von Null zu starten und niedrige Werte zu vermeiden."
           }
         },
         "es" : {
@@ -220912,7 +220912,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Warnung: Dies muss größer als 0 sein, um automatische Temporärkurse oder SMB zu geben."
+            "value" : "Warnung: Dies muss größer als 0 sein, um automatische Temporäre Basalraten zu starten oder SMB ab zu geben."
           }
         },
         "es" : {
@@ -221012,7 +221012,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Warnung: Sie müssen auch Berechtigungen in den iOS-Systemeinstellungen für die Health App erteilen."
+            "value" : "Warnung: Du musst auch Berechtigungen in den iOS-Systemeinstellungen für die Health App erteilen."
           }
         },
         "es" : {
@@ -221320,7 +221320,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beobachten"
+            "value" : "Watch"
           }
         },
         "es" : {
@@ -221528,7 +221528,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wir verwenden diese Informationen nicht für andere Zwecke, z. B. für Analysen, Marketing oder die Erstellung von Nutzerprofilen."
+            "value" : "Wir verwenden diese Informationen nicht für andere Zwecke, wie z. B. für Analysen, Marketing oder die Erstellung von Nutzerprofilen."
           }
         },
         "es" : {
@@ -221629,7 +221629,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wir könnten diese Datenschutzrichtlinie von Zeit zu Zeit aktualisieren. Wir werden Sie über alle Änderungen informieren, indem wir die neue Datenschutzrichtlinie auf dieser Seite veröffentlichen und das Datum „Letzte Aktualisierung“ aktualisieren."
+            "value" : "Wir könnten diese Datenschutzrichtlinie von Zeit zu Zeit aktualisieren. Wir werden Dich über alle Änderungen informieren, indem wir die neue Datenschutzrichtlinie auf dieser Seite veröffentlichen und das Datum „Letzte Aktualisierung“ aktualisieren."
           }
         },
         "es" : {
@@ -222031,7 +222031,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wir verwenden Google Firebase Crashlytics zum Sammeln und Analysieren von Absturzprotokollen. Die Datenschutzpraktiken von Crashlytics unterliegen den Datenschutzbestimmungen von Google. Weitere Informationen darüber, wie Crashlytics Daten verarbeitet, finden Sie in deren Dokumentation."
+            "value" : "Wir verwenden Google Firebase Crashlytics zum Sammeln und Analysieren von Absturzprotokollen. Die Datenschutzpraktiken von Crashlytics unterliegen den Datenschutzbestimmungen von Google. Weitere Informationen darüber, wie Crashlytics Daten verarbeitet, findest Du in deren Dokumentation."
           }
         },
         "es" : {
@@ -222440,7 +222440,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gewichteter Durchschnitt von TDD. Gewichtung von 24 Stunden:"
+            "value" : "Gewichteter Durchschnitt von TDD. Gewicht der letzten 24 Stunden:"
           }
         },
         "en" : {
@@ -222746,7 +222746,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Was ist der numerische Wert des Kohlenstoff hinzuzufügen"
+            "value" : "Wie lautet der numerische Wert der zu addierenden Kohlenhydrate"
           }
         },
         "es" : {
@@ -223719,7 +223719,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Khi được bật, sự kiện lịch được tạo sẽ cho biết chỉ số glucose nằm trong phạm vi hay ngoài phạm vi bằng cách sử dụng các biểu tượng cảm xúc màu sau:"
+            "value" : "Khi được bật, sự kiện lịch được tạo sẽ cho biết chỉ số đường huyết nằm trong phạm vi hay ngoài phạm vi bằng cách sử dụng các biểu tượng cảm xúc màu sau:"
           }
         },
         "zh-Hant" : {
@@ -223819,7 +223819,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Khi được bật, Trio sẽ tạo một sự kiện lịch có thể tùy chỉnh để thông báo cho bạn về lượng glucose hiện tại sau mỗi chu kỳ lặp thành công."
+            "value" : "Khi được bật, Trio sẽ tạo một sự kiện lịch có thể tùy chỉnh để thông báo cho bạn về đường huyết hiện tại sau mỗi chu kỳ lặp thành công."
           }
         },
         "zh-Hant" : {
@@ -223919,7 +223919,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Khi được bật, Trio sẽ bao gồm các giá trị IOB và COB hiện tại, cùng với chỉ số glucose hiện tại, trong mỗi sự kiện lịch được tạo."
+            "value" : "Khi được bật, Trio sẽ bao gồm các giá trị IOB và COB hiện tại, cùng với chỉ số đường huyết hiện tại, trong mỗi sự kiện lịch được tạo."
           }
         },
         "zh-Hant" : {
@@ -224219,7 +224219,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Khi các giá trị cũ được bật, trình mô phỏng sẽ liên tục đưa ra giá trị glucose được tạo ra gần đây nhất."
+            "value" : "Khi các giá trị cũ được bật, trình mô phỏng sẽ liên tục đưa ra giá trị đường huyết được tạo ra gần đây nhất."
           }
         },
         "zh-Hant" : {
@@ -224613,7 +224613,7 @@
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "När denna funktion är aktiverad, och ett tillfälligt mål under %1$@ %2$@ aktiveras, kommer Autosens-ration som används för ISF och basaljusteringar att öka, vilket resulterar i att mer insulin levereras. Detta anpassas utifrån det aktuella tillfälliga målet: ju lägre tillfälligt mål, desto högre Autosens-ratio. En förutsättning för att detta ska fungera är att 'Algoritm > Autosens > Autosens maxinställning är inställd till ett värde högre än 100%."
+            "value" : "När denna funktion är aktiverad, och ett tillfälligt mål under %1$@ %2$@ aktiveras, kommer Autosens-ration som används för ISF och basaljusteringar att öka, vilket resulterar i att mer insulin levereras. Detta anpassas utifrån det aktuella tillfälliga målet: ju lägre tillfälligt mål, desto högre Autosens-ratio. En förutsättning för att detta ska fungera är att 'Algoritm > Autosens > Autosens maxinställning är inställd till ett värde högre än 100%%."
           }
         },
         "tr" : {
@@ -226271,7 +226271,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Khi bật tùy chọn này, thuật toán SMB có thể nhận ra các bữa ăn không báo trước. Điều này rất hữu ích nếu bạn quên thông báo cho Trio về lượng carb của mình hoặc ước tính sai lượng carb của bạn và lượng carb đã nhập sai hoặc nếu một bữa ăn có nhiều chất béo và protein kéo dài hơn dự kiến. Nếu không có bất kỳ lượng carb nào được đưa vào, UAM có thể nhận ra mức tăng đường huyết nhanh chóng do carbs, adrenaline, v. v. gây ra và cố gắng điều chỉnh nó bằng SMB. Điều này cũng hoạt động theo cách ngược lại: nếu lượng glucose giảm nhanh, nó có thể dừng SMB sớm hơn."
+            "value" : "Khi bật tùy chọn này, thuật toán SMB có thể nhận ra các bữa ăn không báo trước. Điều này rất hữu ích nếu bạn quên thông báo cho Trio về lượng carb của mình hoặc ước tính sai lượng carb của bạn và lượng carb đã nhập sai hoặc nếu một bữa ăn có nhiều chất béo và protein kéo dài hơn dự kiến. Nếu không có bất kỳ lượng carb nào được đưa vào, UAM có thể nhận ra mức tăng đường huyết nhanh chóng do carbs, adrenaline, v. v. gây ra và cố gắng điều chỉnh nó bằng SMB. Điều này cũng hoạt động theo cách ngược lại: nếu đường huyết giảm nhanh, nó có thể dừng SMB sớm hơn."
           }
         },
         "zh-Hant" : {
@@ -228490,7 +228490,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mục tiêu đường huyết của bạn là mức glucose trong máu mà bạn muốn duy trì. Trio sẽ sử dụng thông tin này để tính liều insulin và đưa ra khuyến nghị."
+            "value" : "Mục tiêu đường huyết của bạn là mức đường huyết trong máu mà bạn muốn duy trì. Trio sẽ sử dụng thông tin này để tính liều insulin và đưa ra khuyến nghị."
           }
         },
         "zh-Hant" : {
