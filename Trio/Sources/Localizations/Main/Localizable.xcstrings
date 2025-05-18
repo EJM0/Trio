@@ -40861,6 +40861,9 @@
         }
       }
     },
+    "Backdated carbs (%lld g) included in COB calculation" : {
+
+    },
     "Backfill Failed" : {
       "localizations" : {
         "bg" : {
