@@ -37824,6 +37824,9 @@
         }
       }
     },
+    "Authentication failed. Please ensure you have configured a Passcode for your iPhone under iOS Settings > Face ID & Code." : {
+
+    },
     "Authorize Trio to send notifications and use Bluetooth. You must allow both for Trio to work properly." : {
       "localizations" : {
         "bg" : {
@@ -72213,6 +72216,7 @@
       }
     },
     "Determination Failed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -87923,6 +87927,9 @@
         }
       }
     },
+    "Error while processing Treatment" : {
+
+    },
     "Error! Bolus cancellation failed with error: %@" : {
       "comment" : "Error message for canceling a bolus",
       "localizations" : {
@@ -91783,6 +91790,7 @@
       }
     },
     "Failed to update COB/IOB: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
