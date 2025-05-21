@@ -34783,6 +34783,12 @@
         }
       }
     },
+    "An unknown authentication error occurred. Please try again." : {
+
+    },
+    "An unknown biometric authentication error occurred. Please try again." : {
+
+    },
     "Animated Background" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37823,6 +37829,27 @@
           }
         }
       }
+    },
+    "Authentication context is invalid. Please try again." : {
+
+    },
+    "Authentication failed. Please try again." : {
+
+    },
+    "Authentication requires a device passcode. Please set one in iOS Settings > Face ID & Passcode." : {
+
+    },
+    "Authentication UI cannot be displayed. Try restarting the app." : {
+
+    },
+    "Authentication was canceled by the app." : {
+
+    },
+    "Authentication was canceled by the system. Try again." : {
+
+    },
+    "Authentication was canceled by you." : {
+
     },
     "Authorize Trio to send notifications and use Bluetooth. You must allow both for Trio to work properly." : {
       "localizations" : {
@@ -43524,6 +43551,15 @@
           }
         }
       }
+    },
+    "Biometric accessory is missing or not connected. Please reconnect it and try again." : {
+
+    },
+    "Biometric authentication is locked due to multiple failed attempts. Please unlock your device using your passcode." : {
+
+    },
+    "Biometric authentication is not available on this device." : {
+
     },
     "Blood glucose (BG) readings" : {
       "extractionState" : "stale",
@@ -72213,6 +72249,7 @@
       }
     },
     "Determination Failed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -87923,6 +87960,9 @@
         }
       }
     },
+    "Error while processing Treatment" : {
+
+    },
     "Error! Bolus cancellation failed with error: %@" : {
       "comment" : "Error message for canceling a bolus",
       "localizations" : {
@@ -91783,6 +91823,7 @@
       }
     },
     "Failed to update COB/IOB: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -138270,6 +138311,9 @@
           }
         }
       }
+    },
+    "No biometric identities are enrolled. Please set up Face ID or Touch ID." : {
+
     },
     "No Bolus Data" : {
       "localizations" : {
@@ -227692,6 +227736,9 @@
           }
         }
       }
+    },
+    "You tapped the fallback option, but no fallback method is configured." : {
+
     },
     "You will also be guided through re-configuring your algorithm settings, respecting Trio's new guardrails." : {
       "localizations" : {
