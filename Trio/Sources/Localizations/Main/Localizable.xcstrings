@@ -125293,6 +125293,12 @@
         }
       }
     },
+    "Latest dev: %@" : {
+
+    },
+    "Latest dev: Fetching..." : {
+
+    },
     "Latest Raw Algorithm Output" : {
       "localizations" : {
         "bg" : {
