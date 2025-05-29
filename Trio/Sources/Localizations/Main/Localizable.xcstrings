@@ -20088,6 +20088,16 @@
         }
       }
     },
+    "A external bolus of %@ U of insulin was recorded." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un bolus externe de %@ U d'insuline a été enregistré."
+          }
+        }
+      }
+    },
     "A few important notes…" : {
       "localizations" : {
         "bg" : {
@@ -95686,6 +95696,16 @@
         }
       }
     },
+    "External Insulin?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insuline externe ?"
+          }
+        }
+      }
+    },
     "External:" : {
       "localizations" : {
         "bg" : {
@@ -114707,6 +114727,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "如果顯示，則已啟用 S 型動態 ISF。"
+          }
+        }
+      }
+    },
+    "If toggled, Insulin will be added to IOB but it will not be delivered" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si cette option est activée, l'insuline sera ajoutée à l'IOB mais ne sera pas administrée."
           }
         }
       }
