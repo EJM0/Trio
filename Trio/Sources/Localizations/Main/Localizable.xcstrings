@@ -138023,7 +138023,7 @@
         }
       }
     },
-    "Maximum allowed positive percent change in glucose level to permit SMBs. If the difference in glucose is greater than this, Trio will disable SMBs." : {
+    "Maximum allowed positive percent change in glucose level to permit SMBs. If the difference in glucose is greater than this, Trio will only adjust Temp Basal Rate and not deliver an SMB that loop cycle." : {
       "localizations" : {
         "bg" : {
           "stringUnit" : {
