@@ -6424,6 +6424,16 @@
         }
       }
     },
+    "%@  %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@  %2$@"
+          }
+        }
+      }
+    },
     "%@ - 0.5 × (%@ - %@) = %@" : {
       "localizations" : {
         "bg" : {
@@ -6974,6 +6984,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ %%"
+          }
+        }
+      }
+    },
+    "%@ and %@ g fat" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ and %2$@ g fat"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ et %2$@ g lipides"
+          }
+        }
+      }
+    },
+    "%@ and %@ g protein" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ and %2$@ g protein"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ et %2$@ g de protéines"
+          }
+        }
+      }
+    },
+    "%@ at %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ at %2$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ à %2$@"
           }
         }
       }
@@ -22128,6 +22186,16 @@
         }
       }
     },
+    "Add %@ grams of carbs?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter %@ grammes de glucose ?"
+          }
+        }
+      }
+    },
     "Add %@ without bolusing" : {
       "comment" : "Add insulin from source outside of pump",
       "extractionState" : "manual",
@@ -26867,6 +26935,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新增小工具"
+          }
+        }
+      }
+    },
+    "Added %@ g carbs" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajout de %@ g de glucides"
           }
         }
       }
@@ -39185,7 +39263,18 @@
         }
       }
     },
+    "Are you sure to bolus %@ U of insulin?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etes-vous certain d’appliquer un bonus de %@ U d’insuline ? "
+          }
+        }
+      }
+    },
     "Are you sure you want to bolus %@ U of insulin?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -82044,9 +82133,6 @@
         }
       }
     },
-    "Do you want to add %@ grams of carbs?" : {
-
-    },
     "Don’t Allow" : {
       "localizations" : {
         "bg" : {
@@ -112998,8 +113084,56 @@
         }
       }
     },
-    "How many carbs do you want to add?" : {
-
+    "How many grams of carbs did you eat?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combien de grammes de glucides avez-vous mangé ?"
+          }
+        }
+      }
+    },
+    "How many grams of carbs?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combien de grammes de glucides ?"
+          }
+        }
+      }
+    },
+    "How many grams of fat did you eat?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combien de grammes de lipides avez-vous mangé ? "
+          }
+        }
+      }
+    },
+    "How many grams of fats did you eat?" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combien de grammes de lipides avez-vous mangé ?"
+          }
+        }
+      }
+    },
+    "How many grams of protein did you eat?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combien de grammes de protéines avez-vous mangé ?"
+          }
+        }
+      }
     },
     "How Trio Manages Contact Images" : {
       "localizations" : {
@@ -149945,6 +150079,17 @@
         }
       }
     },
+    "not adding carbs in Trio" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas d’ajout de glucides dans Trio"
+          }
+        }
+      }
+    },
     "Not allowed" : {
       "localizations" : {
         "bg" : {
@@ -159302,6 +159447,9 @@
           }
         }
       }
+    },
+    "Override to Stop" : {
+
     },
     "Override With A Factor Of " : {
       "comment" : "Override",
@@ -200111,6 +200259,9 @@
         }
       }
     },
+    "Temp Target to Stop" : {
+
+    },
     "Temp targets" : {
       "comment" : "Debug option view Temp targets",
       "extractionState" : "manual",
@@ -204949,6 +205100,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "自動敏感度安全限制的另一個方面，限制自動敏感度對基礎的下限調整和對ISF及BG目標的上限調整。"
+          }
+        }
+      }
+    },
+    "the preset to apply" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L"
           }
         }
       }
@@ -218155,6 +218316,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "今天"
+          }
+        }
+      }
+    },
+    "Tomorrow" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demain"
           }
         }
       }
@@ -235908,6 +236079,7 @@
       }
     },
     "What is the numeric value of the carb to add" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -236646,6 +236818,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "連線時，從Trio上傳碳水化合物、注射、基礎及血糖到您的Tidepool帳號已啟用。\n\n使用您的Tidepool帳號登入。如果您尚未擁有Tidepool帳號，可以在登入頁面註冊。"
+          }
+        }
+      }
+    },
+    "When did you eat ?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quand avez-vous mangé ?"
           }
         }
       }
@@ -238371,6 +238553,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "這低於您的門檻值（"
+          }
+        }
+      }
+    },
+    "Which override do you want to apply?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quelle dérogations voulez-vous appliquer ? "
+          }
+        }
+      }
+    },
+    "Which preset to apply?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quelle dérogation à appliquer ?"
           }
         }
       }
@@ -240311,6 +240513,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "是的，匯入"
+          }
+        }
+      }
+    },
+    "Yesterday" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hier"
           }
         }
       }
