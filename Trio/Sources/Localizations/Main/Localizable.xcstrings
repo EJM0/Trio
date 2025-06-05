@@ -104949,6 +104949,7 @@
       }
     },
     "Glucose data is too flat" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
