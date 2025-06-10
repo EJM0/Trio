@@ -82343,10 +82343,10 @@
         }
       }
     },
-    "Distribution (by Day)" : {
+    "Distribution (by day)" : {
 
     },
-    "Distribution (by Time)" : {
+    "Distribution (over time)" : {
 
     },
     "Do not enable this feature until you have optimized your CR (carb ratio) setting." : {
@@ -161481,10 +161481,10 @@
         }
       }
     },
-    "Percentile (by Day)" : {
+    "Percentile (by day)" : {
 
     },
-    "Percentile (by Time)" : {
+    "Percentile (over time)" : {
 
     },
     "Period:" : {
