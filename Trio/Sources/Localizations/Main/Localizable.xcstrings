@@ -8832,9 +8832,6 @@
         }
       }
     },
-    "%lld h" : {
-
-    },
     "%lld hr" : {
       "localizations" : {
         "bg" : {
@@ -82261,7 +82258,6 @@
       }
     },
     "Distribution" : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -82368,9 +82364,6 @@
       }
     },
     "Distribution (by day)" : {
-
-    },
-    "Distribution (over time)" : {
 
     },
     "Do not enable this feature until you have optimized your CR (carb ratio) setting." : {
@@ -161411,7 +161404,6 @@
       }
     },
     "Percentile" : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -161518,9 +161510,6 @@
       }
     },
     "Percentile (by day)" : {
-
-    },
-    "Percentile (over time)" : {
 
     },
     "Period:" : {
