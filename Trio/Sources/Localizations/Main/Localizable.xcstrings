@@ -129104,6 +129104,16 @@
         }
       }
     },
+    "Log external insulin bolus ${bolusQuantity} U" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer un bolus d’insuline externe ${bolusQuantity} U"
+          }
+        }
+      }
+    },
     "Log FPU" : {
       "localizations" : {
         "bg" : {
@@ -202851,6 +202861,9 @@
           }
         }
       }
+    },
+    "The external bolus cannot be larger than 3 x the pump setting max bolus (%@)." : {
+
     },
     "The Fat and Protein Delay setting defines the time between when you log fat and protein and when the system starts delivering insulin for the Fat-Protein Unit Carb Equivalents (FPUs)." : {
       "localizations" : {
