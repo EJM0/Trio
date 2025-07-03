@@ -191,17 +191,19 @@ extension DataTable {
                 }
             }
             .popover(isPresented: $showTreatmentTypeFilter, arrowEdge: .top) {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 20) {
                     Button(action: {
                         selectedTreatmentTypes = ["Bolus", "External Bolus", "SMB", "Temp Basal", "Suspend", "Other"]
                     }) {
-                        HStack {
+                        HStack(spacing: 20) {
                             Image(systemName: selectedTreatmentTypes.count == 6 ? "checkmark.circle.fill" : "circle")
                                 .frame(width: 20)
+                                .foregroundColor(Color.accentColor)
                             Text("Select All")
-                        }
+                                .foregroundColor(Color.primary)
+                        }.padding(4)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.borderless)
 
                     Divider()
 
@@ -209,13 +211,15 @@ extension DataTable {
                         Button(action: {
                             toggleTreatmentType(type)
                         }) {
-                            HStack {
+                            HStack(spacing: 20) {
                                 Image(systemName: selectedTreatmentTypes.contains(type) ? "checkmark.circle.fill" : "circle")
                                     .frame(width: 20)
+                                    .foregroundColor(Color.accentColor)
                                 Text(type)
-                            }
+                                    .foregroundColor(Color.primary)
+                            }.padding(4)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.borderless)
                     }
 
                     Divider()
@@ -224,10 +228,11 @@ extension DataTable {
                         showTreatmentTypeFilter = false
                     }
                     .frame(maxWidth: .infinity)
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.borderless)
                 }
                 .padding()
                 .presentationCompactAdaptation(.popover)
+                .background(Color.chart)
             }
         }
 
