@@ -59538,6 +59538,9 @@
         }
       }
     },
+    "Clear filters" : {
+
+    },
     "Click to Snooze Alerts" : {
       "localizations" : {
         "bg" : {
@@ -178069,9 +178072,6 @@
           }
         }
       }
-    },
-    "Select All" : {
-
     },
     "Select CGM Model" : {
       "localizations" : {
