@@ -18,7 +18,7 @@ extension DataTable {
         @State private var showFutureEntries: Bool = false // default to hide future entries
         @State private var showManualGlucose: Bool = false
         @State private var isAmountUnconfirmed: Bool = true
-        @State private var showTreatmentTypeFilter: Bool = false
+        @State private var showTreatmentTypeFilter = false
         @State private var selectedTreatmentTypes: Set<String> = [
             "Bolus",
             "External Bolus",
@@ -26,7 +26,8 @@ extension DataTable {
             "Temp Basal",
             "Suspend",
             "Other"
-        ] // All selected by default
+        ]
+        @State private var filterPopoverAnchor: CGRect = .zero
 
         @Environment(\.colorScheme) var colorScheme
         @Environment(\.managedObjectContext) var context
@@ -181,9 +182,17 @@ extension DataTable {
         private var filterTreatmentsButton: some View {
             Menu {
                 Button(action: {
-                    selectedTreatmentTypes = ["Bolus", "External Bolus", "SMB", "Temp Basal", "Suspend", "Other"]
+                    if selectedTreatmentTypes.count == 6 {
+                        selectedTreatmentTypes = []
+                    } else {
+                        selectedTreatmentTypes = ["Bolus", "External Bolus", "SMB", "Temp Basal", "Suspend", "Other"]
+                    }
                 }) {
-                    Label("Select All", systemImage: "checkmark.circle.fill")
+                    HStack {
+                        Image(systemName: selectedTreatmentTypes.count == 6 ? "checkmark.circle.fill" : "circle")
+                            .frame(width: 20)
+                        Text("Select All")
+                    }
                 }
 
                 Divider()
