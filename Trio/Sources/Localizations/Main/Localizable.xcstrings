@@ -20558,6 +20558,7 @@
       }
     },
     "A external bolus of %@ U of insulin was recorded." : {
+      "extractionState" : "stale",
       "localizations" : {
         "fr" : {
           "stringUnit" : {
@@ -37419,6 +37420,9 @@
         }
       }
     },
+    "An external bolus of %@ U of insulin was recorded." : {
+
+    },
     "An unknown authentication error occurred. Please try again." : {
       "localizations" : {
         "bg" : {
@@ -39655,6 +39659,7 @@
       }
     },
     "Are you sure to bolus %@ U of insulin?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
