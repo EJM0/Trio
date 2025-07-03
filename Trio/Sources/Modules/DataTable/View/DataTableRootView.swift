@@ -180,42 +180,54 @@ extension DataTable {
         }
 
         private var filterTreatmentsButton: some View {
-            Menu {
-                Button(action: {
-                    if selectedTreatmentTypes.count == 6 {
-                        selectedTreatmentTypes = []
-                    } else {
-                        selectedTreatmentTypes = ["Bolus", "External Bolus", "SMB", "Temp Basal", "Suspend", "Other"]
-                    }
-                }) {
-                    HStack {
-                        Image(systemName: selectedTreatmentTypes.count == 6 ? "checkmark.circle.fill" : "circle")
-                            .frame(width: 20)
-                        Text("Select All")
-                    }
-                }
+            Button(action: {
+                   showTreatmentTypeFilter.toggle()
+               }) {
+                   HStack {
+                       Text("Filter")
+                           .foregroundColor(Color.accentColor)
+                       Image(systemName: "line.3.horizontal.decrease.circle")
+                           .foregroundColor(Color.accentColor)
+                   }
+               }
+               .popover(isPresented: $showTreatmentTypeFilter, arrowEdge: .top) {
+                   VStack(alignment: .leading, spacing: 10) { Button(action: {
+                       selectedTreatmentTypes = ["Bolus", "External Bolus", "SMB", "Temp Basal", "Suspend", "Other"]
+                   }) { HStack {
+                       Image(systemName: selectedTreatmentTypes.count == 6 ? "checkmark.circle.fill" : "circle")
+                           .frame(width: 20)
+                       Text("Select All")
+                   }
+               }
+               .buttonStyle(.plain)
+                               
+               Divider()
+               
+               ForEach(["Bolus", "External Bolus", "SMB", "Temp Basal", "Suspend", "Other"], id: \.self) { type in
+                   Button(action: {
+                       toggleTreatmentType(type)
+                   }) {
+                       HStack {
+                           Image(systemName: selectedTreatmentTypes.contains(type) ? "checkmark.circle.fill" : "circle")
+                               .frame(width: 20)
+                           Text(type)
+                       }
+                   }
+                   .buttonStyle(.plain)
+               }
+               
+               Divider()
+               
+               Button("Done") {
+                   showTreatmentTypeFilter = false
+               }
+               .frame(maxWidth: .infinity)
+               .buttonStyle(.borderedProminent)
+           }
+           .padding()
+           .frame(minWidth: 200)
 
-                Divider()
-
-                ForEach(["Bolus", "External Bolus", "SMB", "Temp Basal", "Suspend", "Other"], id: \.self) { type in
-                    Button(action: {
-                        toggleTreatmentType(type)
-                    }) {
-                        HStack {
-                            Image(systemName: selectedTreatmentTypes.contains(type) ? "checkmark.circle.fill" : "circle")
-                                .frame(width: 20)
-                            Text(type)
-                        }
-                    }
-                }
-            } label: {
-                HStack {
-                    Text("Filter")
-                        .foregroundColor(Color.accentColor)
-                    Image(systemName: "line.3.horizontal.decrease.circle")
-                        .foregroundColor(Color.accentColor)
-                }
-            }
+               }
         }
 
         private var filterFutureEntriesButton: some View {
