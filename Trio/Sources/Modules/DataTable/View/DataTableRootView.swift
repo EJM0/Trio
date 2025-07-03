@@ -18,6 +18,15 @@ extension DataTable {
         @State private var showFutureEntries: Bool = false // default to hide future entries
         @State private var showManualGlucose: Bool = false
         @State private var isAmountUnconfirmed: Bool = true
+        @State private var showTreatmentTypeFilter: Bool = false
+        @State private var selectedTreatmentTypes: Set<String> = [
+            "Bolus",
+            "External Bolus",
+            "SMB",
+            "Temp Basal",
+            "Suspend",
+            "Other"
+        ] // All selected by default
 
         @Environment(\.colorScheme) var colorScheme
         @Environment(\.managedObjectContext) var context
@@ -169,15 +178,99 @@ extension DataTable {
             ).buttonStyle(.borderless)
         }
 
+        private var filterTreatmentsButton: some View {
+            Menu {
+                Button(action: {
+                    selectedTreatmentTypes = ["Bolus", "External Bolus", "SMB", "Temp Basal", "Suspend", "Other"]
+                }) {
+                    Label("Select All", systemImage: "checkmark.circle.fill")
+                }
+
+                Divider()
+
+                ForEach(["Bolus", "External Bolus", "SMB", "Temp Basal", "Suspend", "Other"], id: \.self) { type in
+                    Button(action: {
+                        toggleTreatmentType(type)
+                    }) {
+                        HStack {
+                            Image(systemName: selectedTreatmentTypes.contains(type) ? "checkmark.circle.fill" : "circle")
+                                .frame(width: 20)
+                            Text(type)
+                        }
+                    }
+                }
+            } label: {
+                HStack {
+                    Text("Filter")
+                        .foregroundColor(Color.accentColor)
+                    Image(systemName: "line.3.horizontal.decrease.circle")
+                        .foregroundColor(Color.accentColor)
+                }
+            }
+        }
+
+        private var filterFutureEntriesButton: some View {
+            Button(
+                action: {
+                    showFutureEntries.toggle()
+                },
+                label: {
+                    HStack {
+                        Text(showFutureEntries ? "Hide Future" : "Show Future")
+                            .foregroundColor(Color.accentColor)
+                        Image(systemName: showFutureEntries ? "eye.slash" : "eye")
+                            .foregroundColor(Color.accentColor)
+                    }
+                }
+            ).buttonStyle(.borderless)
+        }
+
+        private func toggleTreatmentType(_ type: String) {
+            if selectedTreatmentTypes.contains(type) {
+                // Don't allow removing the last selected type
+                if selectedTreatmentTypes.count > 1 {
+                    selectedTreatmentTypes.remove(type)
+                }
+            } else {
+                selectedTreatmentTypes.insert(type)
+            }
+        }
+
+        private var filteredPumpEvents: [PumpEventStored] {
+            pumpEventStored.filter { item in
+                // First filter by date
+                let passesDateFilter = !showFutureEntries ? item.timestamp ?? Date() <= Date() : true
+
+                guard passesDateFilter else { return false }
+
+                // Then filter by treatment type
+                if let bolus = item.bolus {
+                    if bolus.isSMB {
+                        return selectedTreatmentTypes.contains("SMB")
+                    } else if bolus.isExternal {
+                        return selectedTreatmentTypes.contains("External Bolus")
+                    } else {
+                        return selectedTreatmentTypes.contains("Bolus")
+                    }
+                } else if item.tempBasal != nil {
+                    return selectedTreatmentTypes.contains("Temp Basal")
+                } else if item.type == "PumpSuspend" {
+                    return selectedTreatmentTypes.contains("Suspend")
+                } else {
+                    return selectedTreatmentTypes.contains("Other")
+                }
+            }
+        }
+
         private var treatmentsList: some View {
             List {
                 HStack {
-                    Text("Insulin").foregroundStyle(.secondary)
+                    filterTreatmentsButton
                     Spacer()
                     Text("Time").foregroundStyle(.secondary)
                 }
                 if !pumpEventStored.isEmpty {
-                    ForEach(pumpEventStored.filter({ !showFutureEntries ? $0.timestamp ?? Date() <= Date() : true })) { item in
+                    ForEach(filteredPumpEvents) { item in
                         treatmentView(item)
                     }
                 } else {
@@ -194,7 +287,7 @@ extension DataTable {
                 HStack {
                     Text("Type").foregroundStyle(.secondary)
                     Spacer()
-                    filterEntriesButton
+                    filterFutureEntriesButton
                 }
                 if !carbEntryStored.isEmpty {
                     ForEach(carbEntryStored.filter({ !showFutureEntries ? $0.date ?? Date() <= Date() : true })) { item in

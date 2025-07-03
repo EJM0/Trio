@@ -76824,6 +76824,9 @@
         }
       }
     },
+    "Deselect All" : {
+
+    },
     "Detailed" : {
       "localizations" : {
         "bg" : {
@@ -99513,6 +99516,9 @@
           }
         }
       }
+    },
+    "Filter" : {
+
     },
     "Fine-tune the ring’s Width and Gap to suit your design preferences." : {
       "localizations" : {
@@ -178066,6 +178072,9 @@
           }
         }
       }
+    },
+    "Select All" : {
+
     },
     "Select CGM Model" : {
       "localizations" : {
