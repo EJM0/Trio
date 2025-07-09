@@ -16,6 +16,7 @@ extension ISFEditor {
     @Observable final class StateModel: BaseStateModel<Provider> {
         @ObservationIgnored @Injected() var determinationStorage: DeterminationStorage!
         @ObservationIgnored @Injected() private var nightscout: NightscoutManager!
+        @ObservationIgnored @Injected() private var unlockmanager: UnlockManager!
 
         var items: [Item] = []
         var initialItems: [Item] = []
@@ -79,35 +80,53 @@ extension ISFEditor {
 
         func save() {
             guard hasChanges else { return }
-            shouldDisplaySaving.toggle()
-
-            let sensitivities = items.map { item -> InsulinSensitivityEntry in
-                let fotmatter = DateFormatter()
-                fotmatter.timeZone = TimeZone(secondsFromGMT: 0)
-                fotmatter.dateFormat = "HH:mm:ss"
-                let date = Date(timeIntervalSince1970: self.timeValues[item.timeIndex])
-                let minutes = Int(date.timeIntervalSince1970 / 60)
-                let rate = self.rateValues[item.rateIndex]
-                return InsulinSensitivityEntry(sensitivity: rate, offset: minutes, start: fotmatter.string(from: date))
+            
+            Task {
+                await authenticateAndSave()
             }
-            let profile = InsulinSensitivities(
-                units: .mgdL,
-                userPreferredUnits: .mgdL,
-                sensitivities: sensitivities
-            )
-            provider.saveProfile(profile)
-            initialItems = items.map { Item(rateIndex: $0.rateIndex, timeIndex: $0.timeIndex) }
+        }
 
-            Task.detached(priority: .low) {
-                do {
-                    debug(.nightscout, "Attempting to upload ISF to Nightscout")
-                    try await self.nightscout.uploadProfiles()
-                } catch {
-                    debug(
-                        .default,
-                        "\(DebuggingIdentifiers.failed) Faile to upload ISF to Nightscout: \(error)"
-                    )
+        @MainActor
+        private func authenticateAndSave() async {
+            do {
+                let authenticated = try await unlockmanager.unlock()
+                guard authenticated else {
+                    debug(.default, "ISF save cancelled: Authentication failed")
+                    return
                 }
+
+                shouldDisplaySaving.toggle()
+
+                let sensitivities = items.map { item -> InsulinSensitivityEntry in
+                    let fotmatter = DateFormatter()
+                    fotmatter.timeZone = TimeZone(secondsFromGMT: 0)
+                    fotmatter.dateFormat = "HH:mm:ss"
+                    let date = Date(timeIntervalSince1970: self.timeValues[item.timeIndex])
+                    let minutes = Int(date.timeIntervalSince1970 / 60)
+                    let rate = self.rateValues[item.rateIndex]
+                    return InsulinSensitivityEntry(sensitivity: rate, offset: minutes, start: fotmatter.string(from: date))
+                }
+                let profile = InsulinSensitivities(
+                    units: .mgdL,
+                    userPreferredUnits: .mgdL,
+                    sensitivities: sensitivities
+                )
+                provider.saveProfile(profile)
+                initialItems = items.map { Item(rateIndex: $0.rateIndex, timeIndex: $0.timeIndex) }
+
+                Task.detached(priority: .low) {
+                    do {
+                        debug(.nightscout, "Attempting to upload ISF to Nightscout")
+                        try await self.nightscout.uploadProfiles()
+                    } catch {
+                        debug(
+                            .default,
+                            "\(DebuggingIdentifiers.failed) Faile to upload ISF to Nightscout: \(error)"
+                        )
+                    }
+                }
+            } catch {
+                debug(.default, "ISF save failed: \(error)")
             }
         }
 

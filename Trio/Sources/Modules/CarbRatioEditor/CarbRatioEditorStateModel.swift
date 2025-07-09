@@ -3,6 +3,7 @@ import SwiftUI
 extension CarbRatioEditor {
     final class StateModel: BaseStateModel<Provider> {
         @Injected() private var nightscout: NightscoutManager!
+        @Injected() private var unlockmanager: UnlockManager!
         @Published var items: [Item] = []
         @Published var initialItems: [Item] = []
         @Published var shouldDisplaySaving: Bool = false
@@ -55,27 +56,45 @@ extension CarbRatioEditor {
 
         func save() {
             guard hasChanges else { return }
-            shouldDisplaySaving = true
-
-            let schedule = items.enumerated().map { _, item -> CarbRatioEntry in
-                let fotmatter = DateFormatter()
-                fotmatter.timeZone = TimeZone(secondsFromGMT: 0)
-                fotmatter.dateFormat = "HH:mm:ss"
-                let date = Date(timeIntervalSince1970: self.timeValues[item.timeIndex])
-                let minutes = Int(date.timeIntervalSince1970 / 60)
-                let rate = self.rateValues[item.rateIndex]
-                return CarbRatioEntry(start: fotmatter.string(from: date), offset: minutes, ratio: rate)
+            
+            Task {
+                await authenticateAndSave()
             }
-            let profile = CarbRatios(units: .grams, schedule: schedule)
-            provider.saveProfile(profile)
-            initialItems = items.map { Item(rateIndex: $0.rateIndex, timeIndex: $0.timeIndex) }
-            Task.detached(priority: .low) {
-                do {
-                    debug(.nightscout, "Attempting to upload CRs to Nightscout")
-                    try await self.nightscout.uploadProfiles()
-                } catch {
-                    debug(.default, "Failed to upload CRs to Nightscout: \(error)")
+        }
+
+        @MainActor
+        private func authenticateAndSave() async {
+            do {
+                let authenticated = try await unlockmanager.unlock()
+                guard authenticated else {
+                    debug(.default, "Carb ratio save cancelled: Authentication failed")
+                    return
                 }
+
+                shouldDisplaySaving = true
+
+                let schedule = items.enumerated().map { _, item -> CarbRatioEntry in
+                    let fotmatter = DateFormatter()
+                    fotmatter.timeZone = TimeZone(secondsFromGMT: 0)
+                    fotmatter.dateFormat = "HH:mm:ss"
+                    let date = Date(timeIntervalSince1970: self.timeValues[item.timeIndex])
+                    let minutes = Int(date.timeIntervalSince1970 / 60)
+                    let rate = self.rateValues[item.rateIndex]
+                    return CarbRatioEntry(start: fotmatter.string(from: date), offset: minutes, ratio: rate)
+                }
+                let profile = CarbRatios(units: .grams, schedule: schedule)
+                provider.saveProfile(profile)
+                initialItems = items.map { Item(rateIndex: $0.rateIndex, timeIndex: $0.timeIndex) }
+                Task.detached(priority: .low) {
+                    do {
+                        debug(.nightscout, "Attempting to upload CRs to Nightscout")
+                        try await self.nightscout.uploadProfiles()
+                    } catch {
+                        debug(.default, "Failed to upload CRs to Nightscout: \(error)")
+                    }
+                }
+            } catch {
+                debug(.default, "Carb ratio save failed: \(error)")
             }
         }
 

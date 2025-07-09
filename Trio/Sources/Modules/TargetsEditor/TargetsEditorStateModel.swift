@@ -4,6 +4,7 @@ extension TargetsEditor {
     final class StateModel: BaseStateModel<Provider> {
         @Injected() private var nightscout: NightscoutManager!
         @Injected() private var broadcaster: Broadcaster!
+        @Injected() private var unlockmanager: UnlockManager!
 
         @Published var items: [Item] = []
         @Published var initialItems: [Item] = []
@@ -60,38 +61,56 @@ extension TargetsEditor {
 
         func save() {
             guard hasChanges else { return }
-            shouldDisplaySaving.toggle()
-
-            let targets = items.map { item -> BGTargetEntry in
-                let formatter = DateFormatter()
-                formatter.timeZone = TimeZone(secondsFromGMT: 0)
-                formatter.dateFormat = "HH:mm:ss"
-                let date = Date(timeIntervalSince1970: self.timeValues[item.timeIndex])
-                let minutes = Int(date.timeIntervalSince1970 / 60)
-                let low = self.rateValues[item.lowIndex]
-                let high = low
-                return BGTargetEntry(low: low, high: high, start: formatter.string(from: date), offset: minutes)
+            
+            Task {
+                await authenticateAndSave()
             }
-            let profile = BGTargets(units: .mgdL, userPreferredUnits: .mgdL, targets: targets)
-            provider.saveProfile(profile)
-            initialItems = items.map { Item(lowIndex: $0.lowIndex, highIndex: $0.highIndex, timeIndex: $0.timeIndex) }
+        }
 
-            DispatchQueue.main.async {
-                self.broadcaster.notify(BGTargetsObserver.self, on: .main) {
-                    $0.bgTargetsDidChange(profile)
+        @MainActor
+        private func authenticateAndSave() async {
+            do {
+                let authenticated = try await unlockmanager.unlock()
+                guard authenticated else {
+                    debug(.default, "Targets save cancelled: Authentication failed")
+                    return
                 }
-            }
 
-            Task.detached(priority: .low) {
-                do {
-                    debug(.nightscout, "Attempting to upload targets to Nightscout")
-                    try await self.nightscout.uploadProfiles()
-                } catch {
-                    debug(
-                        .default,
-                        "\(DebuggingIdentifiers.failed) failed to upload targets to Nightscout: \(error)"
-                    )
+                shouldDisplaySaving.toggle()
+
+                let targets = items.map { item -> BGTargetEntry in
+                    let formatter = DateFormatter()
+                    formatter.timeZone = TimeZone(secondsFromGMT: 0)
+                    formatter.dateFormat = "HH:mm:ss"
+                    let date = Date(timeIntervalSince1970: self.timeValues[item.timeIndex])
+                    let minutes = Int(date.timeIntervalSince1970 / 60)
+                    let low = self.rateValues[item.lowIndex]
+                    let high = low
+                    return BGTargetEntry(low: low, high: high, start: formatter.string(from: date), offset: minutes)
                 }
+                let profile = BGTargets(units: .mgdL, userPreferredUnits: .mgdL, targets: targets)
+                provider.saveProfile(profile)
+                initialItems = items.map { Item(lowIndex: $0.lowIndex, highIndex: $0.highIndex, timeIndex: $0.timeIndex) }
+
+                DispatchQueue.main.async {
+                    self.broadcaster.notify(BGTargetsObserver.self, on: .main) {
+                        $0.bgTargetsDidChange(profile)
+                    }
+                }
+
+                Task.detached(priority: .low) {
+                    do {
+                        debug(.nightscout, "Attempting to upload targets to Nightscout")
+                        try await self.nightscout.uploadProfiles()
+                    } catch {
+                        debug(
+                            .default,
+                            "\(DebuggingIdentifiers.failed) failed to upload targets to Nightscout: \(error)"
+                        )
+                    }
+                }
+            } catch {
+                debug(.default, "Targets save failed: \(error)")
             }
         }
 

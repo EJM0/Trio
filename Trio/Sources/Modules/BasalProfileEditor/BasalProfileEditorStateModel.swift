@@ -5,6 +5,7 @@ extension BasalProfileEditor {
     @Observable final class StateModel: BaseStateModel<Provider> {
         @ObservationIgnored @Injected() private var nightscout: NightscoutManager!
         @ObservationIgnored @Injected() private var broadcaster: Broadcaster!
+        @ObservationIgnored @Injected() private var unlockmanager: UnlockManager!
 
         var syncInProgress: Bool = false
         var initialItems: [Item] = []
@@ -74,47 +75,65 @@ extension BasalProfileEditor {
         func save() {
             guard hasChanges else { return }
 
-            syncInProgress = true
-            let profile = items.map { item -> BasalProfileEntry in
-                let formatter = DateFormatter()
-                formatter.timeZone = TimeZone(secondsFromGMT: 0)
-                formatter.dateFormat = "HH:mm:ss"
-                let date = Date(timeIntervalSince1970: self.timeValues[item.timeIndex])
-                let minutes = Int(date.timeIntervalSince1970 / 60)
-                let rate = self.rateValues[item.rateIndex]
-                return BasalProfileEntry(start: formatter.string(from: date), minutes: minutes, rate: rate)
+            Task {
+                await authenticateAndSave()
             }
-            provider.saveProfile(profile)
-                .receive(on: DispatchQueue.main)
-                .sink { completion in
-                    self.syncInProgress = false
-                    switch completion {
-                    case .finished:
-                        // Successfully saved and synced
-                        self.initialItems = self.items.map { Item(rateIndex: $0.rateIndex, timeIndex: $0.timeIndex) }
+        }
 
-                        Task.detached(priority: .low) {
-                            do {
-                                debug(.nightscout, "Attempting to upload basal rates to Nightscout")
-                                try await self.nightscout.uploadProfiles()
-                            } catch {
-                                debug(.default, "Failed to upload basal rates to Nightscout: \(error)")
+        @MainActor
+        private func authenticateAndSave() async {
+            do {
+                let authenticated = try await unlockmanager.unlock()
+                guard authenticated else {
+                    debug(.default, "Basal profile save cancelled: Authentication failed")
+                    return
+                }
+
+                syncInProgress = true
+                let profile = items.map { item -> BasalProfileEntry in
+                    let formatter = DateFormatter()
+                    formatter.timeZone = TimeZone(secondsFromGMT: 0)
+                    formatter.dateFormat = "HH:mm:ss"
+                    let date = Date(timeIntervalSince1970: self.timeValues[item.timeIndex])
+                    let minutes = Int(date.timeIntervalSince1970 / 60)
+                    let rate = self.rateValues[item.rateIndex]
+                    return BasalProfileEntry(start: formatter.string(from: date), minutes: minutes, rate: rate)
+                }
+                provider.saveProfile(profile)
+                    .receive(on: DispatchQueue.main)
+                    .sink { completion in
+                        self.syncInProgress = false
+                        switch completion {
+                        case .finished:
+                            // Successfully saved and synced
+                            self.initialItems = self.items.map { Item(rateIndex: $0.rateIndex, timeIndex: $0.timeIndex) }
+
+                            Task.detached(priority: .low) {
+                                do {
+                                    debug(.nightscout, "Attempting to upload basal rates to Nightscout")
+                                    try await self.nightscout.uploadProfiles()
+                                } catch {
+                                    debug(.default, "Failed to upload basal rates to Nightscout: \(error)")
+                                }
                             }
+                        case .failure:
+                            // Handle the error, show error message
+                            self.showAlert = true
                         }
-                    case .failure:
-                        // Handle the error, show error message
-                        self.showAlert = true
+                    } receiveValue: {
+                        // Handle any successful value if needed
+                        print("We were successful")
                     }
-                } receiveValue: {
-                    // Handle any successful value if needed
-                    print("We were successful")
-                }
-                .store(in: &lifetime)
+                    .store(in: &lifetime)
 
-            DispatchQueue.main.async {
-                self.broadcaster.notify(BasalProfileObserver.self, on: .main) {
-                    $0.basalProfileDidChange(profile)
+                DispatchQueue.main.async {
+                    self.broadcaster.notify(BasalProfileObserver.self, on: .main) {
+                        $0.basalProfileDidChange(profile)
+                    }
                 }
+            } catch {
+                debug(.default, "Basal profile save failed: \(error)")
+                showAlert = true
             }
         }
 

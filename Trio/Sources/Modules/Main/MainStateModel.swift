@@ -202,7 +202,7 @@ extension Main {
 
         /*
           Reclassification is needed for Medtronic pumps for 'Pump error:' RileyLink related messages.
-          For details, see https://discord.com/channels/1020905149037813862/1338245444186279946/1343469793013141525.
+          For details, see https://discosaferd.com/channels/1020905149037813862/1338245444186279946/1343469793013141525.
           These messages are repeatedly displayed causing users to simply ignore them.
           Reclassification of these Info type messages is based on APSManager.APSError enum values.
           We reclassify APSError.pumpError and APSError.invalidPumpState as MessageType.info and MessageSubtype.pump.
