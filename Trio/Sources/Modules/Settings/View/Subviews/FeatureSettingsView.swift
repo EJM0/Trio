@@ -34,6 +34,9 @@ struct FeatureSettingsView: BaseView {
                 content: {
                     Text("User Interface").navigationLink(to: .userInterfaceSettings, from: self)
                     Text("App Icons").navigationLink(to: .iconConfig, from: self)
+                    NavigationLink(destination: SecuritySettingsView(resolver: resolver, state: state)) {
+                        Text("Security")
+                    }
                 }
             )
             .listRowBackground(Color.chart)
@@ -50,5 +53,44 @@ struct FeatureSettingsView: BaseView {
         .background(appState.trioBackgroundColor(for: colorScheme))
         .navigationTitle("Feature Settings")
         .navigationBarTitleDisplayMode(.automatic)
+    }
+}
+
+struct SecuritySettingsView: BaseView {
+    let resolver: Resolver
+    @ObservedObject var state: Settings.StateModel
+
+    @Environment(\.colorScheme) var colorScheme
+    @Environment(AppState.self) var appState
+
+    var body: some View {
+        Form {
+            Section(
+                header: Text("Authentication Settings"),
+                footer: footerText,
+                content: {
+                    Toggle("Lock Settings View", isOn: $state.lockSettingsViewEnabled)
+                        .onChange(of: state.lockSettingsViewEnabled) { _, newValue in
+                            state.settingsManager.settings.lockSettingsViewEnabled = newValue
+                        }
+                }
+            )
+            .listRowBackground(Color.chart)
+        }
+        .scrollContentBackground(.hidden)
+        .background(appState.trioBackgroundColor(for: colorScheme))
+        .navigationTitle("Security Settings")
+        .navigationBarTitleDisplayMode(.automatic)
+        .onAppear {
+            state.lockSettingsViewEnabled = state.settingsManager.settings.lockSettingsViewEnabled
+        }
+    }
+
+    private var footerText: some View {
+        Text(
+            "When enabled, accessing the settings menu requires authentication, but therapy settings can be accessed directly without authentication."
+        )
+        .font(.footnote)
+        .foregroundColor(.secondary)
     }
 }

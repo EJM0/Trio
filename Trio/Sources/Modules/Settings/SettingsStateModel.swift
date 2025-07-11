@@ -16,6 +16,7 @@ extension Settings {
         @Published var debugOptions = false
         @Published var serviceUIType: ServiceUI.Type?
         @Published var setupTidepool = false
+        @Published var lockSettingsViewEnabled = false
 
         private(set) var buildNumber = ""
         private(set) var versionNumber = ""
@@ -27,6 +28,7 @@ extension Settings {
 
             subscribeSetting(\.debugOptions, on: $debugOptions) { debugOptions = $0 }
             subscribeSetting(\.closedLoop, on: $closedLoop) { closedLoop = $0 }
+            subscribeSetting(\.lockSettingsViewEnabled, on: $lockSettingsViewEnabled) { lockSettingsViewEnabled = $0 }
 
             broadcaster.register(SettingsObserver.self, observer: self)
 
@@ -87,6 +89,7 @@ extension Settings.StateModel: SettingsObserver {
     func settingsDidChange(_ settings: TrioSettings) {
         closedLoop = settings.closedLoop
         debugOptions = settings.debugOptions
+        lockSettingsViewEnabled = settings.lockSettingsViewEnabled
     }
 }
 

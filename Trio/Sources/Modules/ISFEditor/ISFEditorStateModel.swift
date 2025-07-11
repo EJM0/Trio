@@ -80,14 +80,13 @@ extension ISFEditor {
 
         func save() {
             guard hasChanges else { return }
-            
+
             Task {
                 await authenticateAndSave()
             }
         }
 
-        @MainActor
-        private func authenticateAndSave() async {
+        @MainActor private func authenticateAndSave() async {
             do {
                 let authenticated = try await unlockmanager.unlock()
                 guard authenticated else {
