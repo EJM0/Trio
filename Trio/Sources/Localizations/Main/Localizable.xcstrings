@@ -6430,6 +6430,9 @@
         }
       }
     },
+    "%@ " : {
+
+    },
     "%@  %@" : {
       "localizations" : {
         "bg" : {
@@ -7752,6 +7755,7 @@
     },
     "%@ U" : {
       "comment" : "Number of units insulin delivered",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
