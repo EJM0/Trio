@@ -85,9 +85,13 @@ extension TrioRemoteControl {
 
         try await carbsStorage.storeCarbs([mealEntry], areFetchedFromRemote: false)
 
-        debug(
-            .remoteControl,
-            "Remote command processed successfully. \(pushMessage.humanReadableDescription())"
-        )
+        // Only send success notification if there's no bolus
+        // If there's a bolus, the bolus handler will send the notification
+        if pushMessage.bolusAmount == nil {
+            await logSuccess(
+                "Remote command processed successfully. \(pushMessage.humanReadableDescription())",
+                pushMessage: pushMessage
+            )
+        }
     }
 }

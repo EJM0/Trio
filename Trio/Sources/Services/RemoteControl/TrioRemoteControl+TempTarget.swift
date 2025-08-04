@@ -29,9 +29,9 @@ extension TrioRemoteControl {
         try await tempTargetsStorage.storeTempTarget(tempTarget: tempTarget)
         tempTargetsStorage.saveTempTargetsToStorage([tempTarget])
 
-        debug(
-            .remoteControl,
-            "Remote command processed successfully. \(pushMessage.humanReadableDescription())"
+        await logSuccess(
+            "Remote command processed successfully. \(pushMessage.humanReadableDescription())",
+            pushMessage: pushMessage
         )
     }
 
@@ -40,9 +40,9 @@ extension TrioRemoteControl {
 
         await disableAllActiveTempTargets()
 
-        debug(
-            .remoteControl,
-            "Remote command processed successfully. \(pushMessage.humanReadableDescription())"
+        await logSuccess(
+            "Remote command processed successfully. \(pushMessage.humanReadableDescription())",
+            pushMessage: pushMessage
         )
     }
 

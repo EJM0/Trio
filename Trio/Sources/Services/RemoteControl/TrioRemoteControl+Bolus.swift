@@ -50,9 +50,9 @@ extension TrioRemoteControl {
 
         await apsManager.enactBolus(amount: Double(truncating: bolusAmount as NSNumber), isSMB: false, callback: nil)
 
-        debug(
-            .remoteControl,
-            "Remote command processed successfully. \(pushMessage.humanReadableDescription())"
+        await logSuccess(
+            "Remote command processed successfully. \(pushMessage.humanReadableDescription())",
+            pushMessage: pushMessage
         )
     }
 

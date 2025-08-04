@@ -13,6 +13,25 @@ struct PushMessage: Codable, Sendable {
     var timestamp: TimeInterval
     var overrideName: String?
     var scheduledTime: TimeInterval?
+    var returnNotification: ReturnNotificationInfo?
+
+    struct ReturnNotificationInfo: Codable, Sendable {
+        let productionEnvironment: Bool
+        let deviceToken: String
+        let bundleId: String
+        let teamId: String
+        let keyId: String
+        let apnsKey: String
+
+        enum CodingKeys: String, CodingKey {
+            case productionEnvironment = "production_environment"
+            case deviceToken = "device_token"
+            case bundleId = "bundle_id"
+            case teamId = "team_id"
+            case keyId = "key_id"
+            case apnsKey = "apns_key"
+        }
+    }
 
     enum CodingKeys: String, CodingKey {
         case aps
@@ -28,6 +47,7 @@ struct PushMessage: Codable, Sendable {
         case timestamp
         case overrideName
         case scheduledTime = "scheduled_time"
+        case returnNotification = "return_notification"
     }
 
     func encode(to encoder: Encoder) throws {
@@ -43,9 +63,8 @@ struct PushMessage: Codable, Sendable {
         try container.encode(sharedSecret, forKey: .sharedSecret)
         try container.encode(timestamp, forKey: .timestamp)
         try container.encodeIfPresent(overrideName, forKey: .overrideName)
-        if let scheduledTime = scheduledTime {
-            try container.encode(scheduledTime, forKey: .scheduledTime)
-        }
+        try container.encodeIfPresent(scheduledTime, forKey: .scheduledTime)
+        try container.encodeIfPresent(returnNotification, forKey: .returnNotification)
     }
 
     init(from decoder: Decoder) throws {
@@ -62,6 +81,7 @@ struct PushMessage: Codable, Sendable {
         timestamp = try container.decode(TimeInterval.self, forKey: .timestamp)
         overrideName = try container.decodeIfPresent(String.self, forKey: .overrideName)
         scheduledTime = try container.decodeIfPresent(TimeInterval.self, forKey: .scheduledTime)
+        returnNotification = try container.decodeIfPresent(ReturnNotificationInfo.self, forKey: .returnNotification)
     }
 
     init(
@@ -76,7 +96,8 @@ struct PushMessage: Codable, Sendable {
         sharedSecret: String,
         timestamp: TimeInterval,
         overrideName: String? = nil,
-        scheduledTime: TimeInterval? = nil
+        scheduledTime: TimeInterval? = nil,
+        returnNotification: ReturnNotificationInfo? = nil
     ) {
         self.user = user
         self.commandType = commandType
@@ -90,6 +111,7 @@ struct PushMessage: Codable, Sendable {
         self.timestamp = timestamp
         self.overrideName = overrideName
         self.scheduledTime = scheduledTime
+        self.returnNotification = returnNotification
     }
 
     func humanReadableDescription() -> String {

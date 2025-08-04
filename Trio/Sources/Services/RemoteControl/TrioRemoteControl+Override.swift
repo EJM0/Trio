@@ -5,9 +5,9 @@ extension TrioRemoteControl {
     @MainActor internal func handleCancelOverrideCommand(_ pushMessage: PushMessage) async {
         await disableAllActiveOverrides()
 
-        debug(
-            .remoteControl,
-            "Remote command processed successfully. \(pushMessage.humanReadableDescription())"
+        await logSuccess(
+            "Remote command processed successfully. \(pushMessage.humanReadableDescription())",
+            pushMessage: pushMessage
         )
     }
 
@@ -58,10 +58,14 @@ extension TrioRemoteControl {
                 Foundation.NotificationCenter.default.post(name: .willUpdateOverrideConfiguration, object: nil)
                 await awaitNotification(.didUpdateOverrideConfiguration)
 
-                debug(.remoteControl, "Remote command processed successfully. \(pushMessage.humanReadableDescription())")
+                await logSuccess(
+                    "Remote command processed successfully. \(pushMessage.humanReadableDescription())",
+                    pushMessage: pushMessage
+                )
             }
         } catch {
             debug(.remoteControl, "Failed to enact override preset: \(error)")
+            await logError("Failed to enact override preset: \(error.localizedDescription)", pushMessage: pushMessage)
         }
     }
 
