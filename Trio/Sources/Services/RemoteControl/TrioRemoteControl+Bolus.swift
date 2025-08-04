@@ -48,12 +48,33 @@ extension TrioRemoteControl {
             return
         }
 
-        await apsManager.enactBolus(amount: Double(truncating: bolusAmount as NSNumber), isSMB: false, callback: nil)
+        if let returnInfo = pushMessage.returnNotification {
+            await RemoteNotificationResponseManager.shared.sendResponseNotification(
+                to: returnInfo,
+                commandType: pushMessage.commandType,
+                success: true,
+                message: "Starting bolus..."
+            )
+        }
 
-        await logSuccess(
-            "Remote command processed successfully. \(pushMessage.humanReadableDescription())",
-            pushMessage: pushMessage
-        )
+        await apsManager
+            .enactBolus(amount: Double(truncating: bolusAmount as NSNumber), isSMB: false) { [weak self] success, message in
+                guard let self = self else { return }
+
+                Task {
+                    if success {
+                        await self.logSuccess(
+                            "Bolus successfull.",
+                            pushMessage: pushMessage
+                        )
+                    } else {
+                        await self.logError(
+                            message,
+                            pushMessage: pushMessage
+                        )
+                    }
+                }
+            }
     }
 
     private func fetchCurrentIOB() async throws -> Decimal {
