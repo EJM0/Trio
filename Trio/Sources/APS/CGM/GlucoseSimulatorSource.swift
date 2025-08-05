@@ -210,8 +210,7 @@ class OscillatingGenerator: BloodGlucoseGenerator {
                 direction = .flat
             } else {
                 // Generate a new glucose value
-                // glucose = generate(date: currentDate)
-                glucose = 400
+                glucose = generate(date: currentDate)
                 direction = calculateDirection(at: currentDate)
                 lastGeneratedGlucose = glucose
             }

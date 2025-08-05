@@ -9,6 +9,13 @@ protocol IOBService {
     func updateIOB()
 }
 
+/// The single source of truth for current IoB data
+///
+/// The main idea behind this class is that we want one single place to lookup IoB values that is separate
+/// from determinations. Behind the scenes it uses determinations or IoB results stored in the file system
+/// but these are implementation details that we can change with time.
+///
+/// TODO: Calculate IoB using APSManager after enough time has elapsed from the last file or determination data
 final class BaseIOBService: IOBService, Injectable {
     @Injected() private var fileStorage: FileStorage!
     @Injected() private var determinationStorage: DeterminationStorage!
@@ -19,6 +26,7 @@ final class BaseIOBService: IOBService, Injectable {
         iobSubject.eraseToAnyPublisher()
     }
 
+    // Query the current IOB syncrhonously
     var currentIOB: Decimal? {
         lookupIOB()
     }
@@ -54,6 +62,7 @@ final class BaseIOBService: IOBService, Injectable {
             .store(in: &subscriptions)
     }
 
+    // Fetches the IoB and timestamp from the most recent determination
     private func fetchLatestDeterminationIOB() -> (iob: Decimal?, date: Date?) {
         var iob: Decimal?
         var date: Date?
@@ -69,6 +78,8 @@ final class BaseIOBService: IOBService, Injectable {
         return (iob, date)
     }
 
+    // Lookup IOB data from the file system and determinations core data, use the most
+    // recent value
     func lookupIOB() -> Decimal? {
         let iobFromFile = fileStorage.retrieve(OpenAPS.Monitor.iob, as: [IOBEntry].self)
         let iobFromFileValue = iobFromFile?.first?.iob
