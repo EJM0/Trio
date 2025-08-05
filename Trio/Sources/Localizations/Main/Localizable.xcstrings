@@ -8832,9 +8832,6 @@
         }
       }
     },
-    "%lld h" : {
-
-    },
     "%lld hr" : {
       "localizations" : {
         "bg" : {
@@ -162430,6 +162427,12 @@
         }
       }
     },
+    "Please choose if you want to upload CGM readings from Trio to Nightscout." : {
+
+    },
+    "Please choose if you want to upload treatment data to Nightscout." : {
+
+    },
     "Please enter your credentials:" : {
       "localizations" : {
         "bg" : {
@@ -205237,6 +205240,7 @@
       }
     },
     "The Upload Treatments toggle enables uploading of the following data sets to your connected Nightscout URL:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -212570,6 +212574,9 @@
           }
         }
       }
+    },
+    "This toggle enables uploading of the following data sets to your connected Nightscout URL:" : {
+
     },
     "This will add your current glucose on the top right of your Trio icon as a red notification badge. Changing setting takes effect on next Glucose reading." : {
       "localizations" : {
