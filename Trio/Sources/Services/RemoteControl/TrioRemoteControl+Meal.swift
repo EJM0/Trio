@@ -90,7 +90,8 @@ extension TrioRemoteControl {
         if pushMessage.bolusAmount == nil {
             await logSuccess(
                 "Remote command processed successfully. \(pushMessage.humanReadableDescription())",
-                pushMessage: pushMessage
+                pushMessage: pushMessage,
+                customNotificationMessage: "Meal logged"
             )
         }
     }

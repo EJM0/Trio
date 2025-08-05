@@ -20,7 +20,7 @@ extension TrioRemoteControl {
         await nightscoutManager.uploadNoteTreatment(note: note)
     }
 
-    func logSuccess(_ message: String, pushMessage: PushMessage) async {
+    func logSuccess(_ message: String, pushMessage: PushMessage, customNotificationMessage: String? = nil) async {
         debug(.remoteControl, message)
 
         // Send success notification back to LoopFollow if return info exists
@@ -29,7 +29,7 @@ extension TrioRemoteControl {
                 to: returnInfo,
                 commandType: pushMessage.commandType,
                 success: true,
-                message: "\(pushMessage.commandType.description) completed successfully"
+                message: customNotificationMessage ?? "Command successful"
             )
         }
     }

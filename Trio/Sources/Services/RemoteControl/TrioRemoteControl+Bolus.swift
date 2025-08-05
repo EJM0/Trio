@@ -48,12 +48,13 @@ extension TrioRemoteControl {
             return
         }
 
+        // Send "initiating bolus" notification
         if let returnInfo = pushMessage.returnNotification {
             await RemoteNotificationResponseManager.shared.sendResponseNotification(
                 to: returnInfo,
                 commandType: pushMessage.commandType,
                 success: true,
-                message: "Starting bolus..."
+                message: "Initiating bolus..."
             )
         }
 
@@ -64,8 +65,9 @@ extension TrioRemoteControl {
                 Task {
                     if success {
                         await self.logSuccess(
-                            "Bolus successfull.",
-                            pushMessage: pushMessage
+                            "Remote command processed successfully. \(pushMessage.humanReadableDescription())",
+                            pushMessage: pushMessage,
+                            customNotificationMessage: "Bolus started"
                         )
                     } else {
                         await self.logError(

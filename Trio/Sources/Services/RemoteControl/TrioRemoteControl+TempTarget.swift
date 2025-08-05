@@ -31,7 +31,8 @@ extension TrioRemoteControl {
 
         await logSuccess(
             "Remote command processed successfully. \(pushMessage.humanReadableDescription())",
-            pushMessage: pushMessage
+            pushMessage: pushMessage,
+            customNotificationMessage: "Temp target set"
         )
     }
 
@@ -42,7 +43,8 @@ extension TrioRemoteControl {
 
         await logSuccess(
             "Remote command processed successfully. \(pushMessage.humanReadableDescription())",
-            pushMessage: pushMessage
+            pushMessage: pushMessage,
+            customNotificationMessage: "Temp target canceled"
         )
     }
 

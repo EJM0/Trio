@@ -7,7 +7,8 @@ extension TrioRemoteControl {
 
         await logSuccess(
             "Remote command processed successfully. \(pushMessage.humanReadableDescription())",
-            pushMessage: pushMessage
+            pushMessage: pushMessage,
+            customNotificationMessage: "Override canceled"
         )
     }
 
@@ -60,7 +61,8 @@ extension TrioRemoteControl {
 
                 await logSuccess(
                     "Remote command processed successfully. \(pushMessage.humanReadableDescription())",
-                    pushMessage: pushMessage
+                    pushMessage: pushMessage,
+                    customNotificationMessage: "Override started"
                 )
             }
         } catch {
