@@ -52,7 +52,7 @@ final class BaseGarminManager: NSObject, GarminManager, Injectable {
 
     /// Stores, retrieves, and updates insulin dose determinations in CoreData.
     @Injected() private var determinationStorage: DeterminationStorage!
-    
+
     @Injected() private var iobService: IOBService!
 
     /// Persists the user's device list between app launches.
@@ -149,7 +149,7 @@ final class BaseGarminManager: NSObject, GarminManager, Injectable {
                 }
             }
             .store(in: &subscriptions)
-        
+
         iobService.iobPublisher
             .receive(on: DispatchQueue.global(qos: .background))
             .sink { [weak self] _ in

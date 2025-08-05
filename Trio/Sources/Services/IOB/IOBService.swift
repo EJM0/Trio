@@ -15,7 +15,7 @@ protocol IOBService {
 /// from determinations. Behind the scenes it uses determinations or IoB results stored in the file system
 /// but these are implementation details that we can change with time.
 ///
-/// TODO: Calculate IoB using APSManager after enough time has elapsed from the last file or determination data
+// TODO: Calculate IoB using APSManager after enough time has elapsed from the last file or determination data
 final class BaseIOBService: IOBService, Injectable {
     @Injected() private var fileStorage: FileStorage!
     @Injected() private var determinationStorage: DeterminationStorage!
