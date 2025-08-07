@@ -22,7 +22,6 @@ class RemoteNotificationResponseManager {
     struct APSPayload: Encodable {
         let alert: Alert
         let sound: String = "default"
-        let badge: Int = 1
     }
 
     struct Alert: Encodable {
