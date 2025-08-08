@@ -574,6 +574,7 @@
 		DD3F1F8B2D9E08B600DCE7B3 /* NightscoutLoginStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD3F1F8A2D9E08B200DCE7B3 /* NightscoutLoginStepView.swift */; };
 		DD3F1F8D2D9E0E0600DCE7B3 /* NightscoutSetupStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD3F1F8C2D9E0E0000DCE7B3 /* NightscoutSetupStepView.swift */; };
 		DD3F1F902D9E153F00DCE7B3 /* NightscoutImportStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD3F1F8F2D9E153A00DCE7B3 /* NightscoutImportStepView.swift */; };
+		DD485F182E466F1800CE8CBF /* SecureMessenger.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD485F172E466F1800CE8CBF /* SecureMessenger.swift */; };
 		DD498F2B2D692BEA00AAEA30 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 8A9134292D63D9A1007F8874 /* Localizable.xcstrings */; };
 		DD498F2C2D692BEA00AAEA30 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 8A9134292D63D9A1007F8874 /* Localizable.xcstrings */; };
 		DD498F2D2D692BEA00AAEA30 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 8A9134292D63D9A1007F8874 /* Localizable.xcstrings */; };
@@ -607,7 +608,7 @@
 		DD940BAC2CA75889000830A5 /* DynamicGlucoseColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD940BAB2CA75889000830A5 /* DynamicGlucoseColor.swift */; };
 		DD98ACC02D71013200C0778F /* StatChartUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD98ACBF2D71013200C0778F /* StatChartUtils.swift */; };
 		DD9ECB682CA99F4500AA7C45 /* TrioRemoteControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9ECB672CA99F4500AA7C45 /* TrioRemoteControl.swift */; };
-		DD9ECB6A2CA99F6C00AA7C45 /* PushMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9ECB692CA99F6C00AA7C45 /* PushMessage.swift */; };
+		DD9ECB6A2CA99F6C00AA7C45 /* CommandPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9ECB692CA99F6C00AA7C45 /* CommandPayload.swift */; };
 		DD9ECB702CA9A0BA00AA7C45 /* RemoteControlConfigStateModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9ECB6D2CA9A0BA00AA7C45 /* RemoteControlConfigStateModel.swift */; };
 		DD9ECB712CA9A0BA00AA7C45 /* RemoteControlConfigProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9ECB6E2CA9A0BA00AA7C45 /* RemoteControlConfigProvider.swift */; };
 		DD9ECB722CA9A0BA00AA7C45 /* RemoteControlConfigDataFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9ECB6F2CA9A0BA00AA7C45 /* RemoteControlConfigDataFlow.swift */; };
@@ -1400,6 +1401,7 @@
 		DD3F1F8A2D9E08B200DCE7B3 /* NightscoutLoginStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NightscoutLoginStepView.swift; sourceTree = "<group>"; };
 		DD3F1F8C2D9E0E0000DCE7B3 /* NightscoutSetupStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NightscoutSetupStepView.swift; sourceTree = "<group>"; };
 		DD3F1F8F2D9E153A00DCE7B3 /* NightscoutImportStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NightscoutImportStepView.swift; sourceTree = "<group>"; };
+		DD485F172E466F1800CE8CBF /* SecureMessenger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureMessenger.swift; sourceTree = "<group>"; };
 		DD4A00202DAEEEC400AB7387 /* OnboardingView+AlgorithmUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OnboardingView+AlgorithmUtil.swift"; sourceTree = "<group>"; };
 		DD4A00232DAEF5DC00AB7387 /* AlgorithmSettingsSubstepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlgorithmSettingsSubstepView.swift; sourceTree = "<group>"; };
 		DD4AFFF02DADB59100AB7387 /* AlgorithmSettingsContentsStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlgorithmSettingsContentsStepView.swift; sourceTree = "<group>"; };
@@ -1430,7 +1432,7 @@
 		DD940BAB2CA75889000830A5 /* DynamicGlucoseColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicGlucoseColor.swift; sourceTree = "<group>"; };
 		DD98ACBF2D71013200C0778F /* StatChartUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatChartUtils.swift; sourceTree = "<group>"; };
 		DD9ECB672CA99F4500AA7C45 /* TrioRemoteControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrioRemoteControl.swift; sourceTree = "<group>"; };
-		DD9ECB692CA99F6C00AA7C45 /* PushMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushMessage.swift; sourceTree = "<group>"; };
+		DD9ECB692CA99F6C00AA7C45 /* CommandPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPayload.swift; sourceTree = "<group>"; };
 		DD9ECB6D2CA9A0BA00AA7C45 /* RemoteControlConfigStateModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RemoteControlConfigStateModel.swift; sourceTree = "<group>"; };
 		DD9ECB6E2CA9A0BA00AA7C45 /* RemoteControlConfigProvider.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RemoteControlConfigProvider.swift; sourceTree = "<group>"; };
 		DD9ECB6F2CA9A0BA00AA7C45 /* RemoteControlConfigDataFlow.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RemoteControlConfigDataFlow.swift; sourceTree = "<group>"; };
@@ -2398,7 +2400,7 @@
 				BDC2EA462C3045AD00E5BBD0 /* Override.swift */,
 				DD21FCB42C6952AD00AF2C25 /* DecimalPickerSettings.swift */,
 				DD6B7CB32C7B71F700B75029 /* ForecastDisplayType.swift */,
-				DD9ECB692CA99F6C00AA7C45 /* PushMessage.swift */,
+				DD9ECB692CA99F6C00AA7C45 /* CommandPayload.swift */,
 				DDD6D4D22CDE90720029439A /* EstimatedA1cDisplayUnit.swift */,
 			);
 			path = Models;
@@ -3400,6 +3402,7 @@
 		DD9ECB662CA99EFE00AA7C45 /* RemoteControl */ = {
 			isa = PBXGroup;
 			children = (
+				DD485F172E466F1800CE8CBF /* SecureMessenger.swift */,
 				DD17A0312E3FEA1F008E1BF0 /* RemoteNotificationResponseManager.swift */,
 				DD868FD72E381A54005D3308 /* APNSJWTClaims.swift */,
 				DD32CFA12CC824E1003686D6 /* TrioRemoteControl+Helpers.swift */,
@@ -4094,7 +4097,7 @@
 				3811DEEB25CA063400A708ED /* PersistedProperty.swift in Sources */,
 				38E44537274E411700EC9A94 /* Disk+Helpers.swift in Sources */,
 				388E5A6025B6F2310019842D /* Autosens.swift in Sources */,
-				DD9ECB6A2CA99F6C00AA7C45 /* PushMessage.swift in Sources */,
+				DD9ECB6A2CA99F6C00AA7C45 /* CommandPayload.swift in Sources */,
 				3811DE8F25C9D80400A708ED /* User.swift in Sources */,
 				5825A1BE2C97335C0046467E /* EditTempTargetForm.swift in Sources */,
 				BD47FDDD2D8B65B10043966B /* GlucoseTargetStepView.swift in Sources */,
@@ -4253,6 +4256,7 @@
 				DD32CFA22CC824E2003686D6 /* TrioRemoteControl+Helpers.swift in Sources */,
 				CE1856F52ADC4858007E39C7 /* AddCarbPresetIntent.swift in Sources */,
 				38569347270B5DFB0002C50D /* CGMType.swift in Sources */,
+				DD485F182E466F1800CE8CBF /* SecureMessenger.swift in Sources */,
 				3821ED4C25DD18BA00BC42AD /* Constants.swift in Sources */,
 				384E803425C385E60086DB71 /* JavaScriptWorker.swift in Sources */,
 				CE1F6DE92BAF37C90064EB8D /* TidepoolConfigView.swift in Sources */,

@@ -1,16 +1,15 @@
 import Foundation
 
 extension TrioRemoteControl {
-    func logError(_ errorMessage: String, pushMessage: PushMessage? = nil) async {
+    func logError(_ errorMessage: String, payload: CommandPayload? = nil) async {
         var note = errorMessage
-        if let pushMessage = pushMessage {
-            note += " Details: \(pushMessage.humanReadableDescription())"
+        if let payload = payload {
+            note += " Details: \(payload.humanReadableDescription())"
 
-            // Send error notification back to LoopFollow if return info exists
-            if let returnInfo = pushMessage.returnNotification {
+            if let returnInfo = payload.returnNotification {
                 await RemoteNotificationResponseManager.shared.sendResponseNotification(
                     to: returnInfo,
-                    commandType: pushMessage.commandType,
+                    commandType: payload.commandType,
                     success: false,
                     message: errorMessage
                 )
@@ -20,14 +19,13 @@ extension TrioRemoteControl {
         await nightscoutManager.uploadNoteTreatment(note: note)
     }
 
-    func logSuccess(_ message: String, pushMessage: PushMessage, customNotificationMessage: String? = nil) async {
+    func logSuccess(_ message: String, payload: CommandPayload, customNotificationMessage: String? = nil) async {
         debug(.remoteControl, message)
 
-        // Send success notification back to LoopFollow if return info exists
-        if let returnInfo = pushMessage.returnNotification {
+        if let returnInfo = payload.returnNotification {
             await RemoteNotificationResponseManager.shared.sendResponseNotification(
                 to: returnInfo,
-                commandType: pushMessage.commandType,
+                commandType: payload.commandType,
                 success: true,
                 message: customNotificationMessage ?? "Command successful"
             )

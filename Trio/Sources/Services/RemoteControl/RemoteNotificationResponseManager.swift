@@ -30,12 +30,11 @@ class RemoteNotificationResponseManager {
     }
 
     func sendResponseNotification(
-        to returnInfo: PushMessage.ReturnNotificationInfo?,
+        to returnInfo: CommandPayload.ReturnNotificationInfo?,
         commandType: TrioRemoteControl.CommandType,
         success: Bool,
         message: String
     ) async {
-        // Don't send notification if no return info provided (old LoopFollow version)
         guard let returnInfo = returnInfo,
               !returnInfo.deviceToken.isEmpty
         else {
@@ -65,7 +64,7 @@ class RemoteNotificationResponseManager {
     private func sendPushNotification(
         payload: NotificationPayload,
         to deviceToken: String,
-        using returnInfo: PushMessage.ReturnNotificationInfo
+        using returnInfo: CommandPayload.ReturnNotificationInfo
     ) async {
         guard let jwt = APNSJWTManager.shared.getOrGenerateJWT(
             keyId: returnInfo.keyId,
