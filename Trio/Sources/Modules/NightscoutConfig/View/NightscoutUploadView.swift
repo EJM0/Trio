@@ -35,7 +35,7 @@ struct NightscoutUploadView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Default: OFF").bold()
                     Text(
-                        "This toggle enables uploading of the following data sets to your connected Nightscout URL:"
+                        "The Upload Treatments toggle enables uploading of the following data sets to your connected Nightscout URL:"
                     )
                     VStack(alignment: .leading, spacing: 5) {
                         Text("• Carbs")

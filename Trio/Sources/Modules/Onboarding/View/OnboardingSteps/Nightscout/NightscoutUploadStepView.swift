@@ -22,7 +22,7 @@ struct NightscoutUploadStepView: View {
             .cornerRadius(10)
 
             Text(
-                "This toggle enables uploading of the following data sets to your connected Nightscout URL:"
+                "The Upload Treatments toggle enables uploading of the following data sets to your connected Nightscout URL:"
             )
             .padding(.horizontal)
             .font(.footnote)
