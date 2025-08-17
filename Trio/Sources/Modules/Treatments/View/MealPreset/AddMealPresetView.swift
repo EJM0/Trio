@@ -76,7 +76,7 @@ struct AddMealPresetView: View {
                 placeholder: "0",
                 keyboardType: .numberPad,
                 numberFormatter: mealFormatter,
-                unitsText: "g"
+                unitsText: String(localized: "g", comment: "Units for carbs")
             )
         }
     }
@@ -90,7 +90,7 @@ struct AddMealPresetView: View {
                 placeholder: "0",
                 keyboardType: .numberPad,
                 numberFormatter: mealFormatter,
-                unitsText: "g"
+                unitsText: String(localized: "g", comment: "Units for carbs")
             )
         }
         HStack {
@@ -101,7 +101,7 @@ struct AddMealPresetView: View {
                 placeholder: "0",
                 keyboardType: .numberPad,
                 numberFormatter: mealFormatter,
-                unitsText: "g"
+                unitsText: String(localized: "g", comment: "Units for carbs")
             )
         }
     }

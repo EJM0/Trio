@@ -94,7 +94,7 @@ extension Treatments {
                         showArrows: true,
                         previousTextField: { focusedField = previousField(from: .protein) },
                         nextTextField: { focusedField = nextField(from: .protein) },
-                        unitsText: "g"
+                        unitsText: String(localized: "g", comment: "Units for carbs")
                     )
                     .focused($focusedField, equals: .protein)
                 }
@@ -111,7 +111,7 @@ extension Treatments {
                         showArrows: true,
                         previousTextField: { focusedField = previousField(from: .fat) },
                         nextTextField: { focusedField = nextField(from: .fat) },
-                        unitsText: "g"
+                        unitsText: String(localized: "g", comment: "Units for carbs")
                     )
                     .focused($focusedField, equals: .fat)
                 }
@@ -130,7 +130,7 @@ extension Treatments {
                     showArrows: true,
                     previousTextField: { focusedField = previousField(from: .carbs) },
                     nextTextField: { focusedField = nextField(from: .carbs) },
-                    unitsText: "g"
+                    unitsText: String(localized: "g", comment: "Units for carbs")
                 )
                 .focused($focusedField, equals: .carbs)
                 .onChange(of: state.carbs) {
@@ -332,7 +332,7 @@ extension Treatments {
                                     showArrows: true,
                                     previousTextField: { focusedField = previousField(from: .bolus) },
                                     nextTextField: { focusedField = nextField(from: .bolus) },
-                                    unitsText: "U"
+                                    unitsText: String(localized: "U", comment: "Units for bolus amount")
                                 ).focused($focusedField, equals: .bolus)
                                     .onChange(of: state.amount) {
                                         Task {

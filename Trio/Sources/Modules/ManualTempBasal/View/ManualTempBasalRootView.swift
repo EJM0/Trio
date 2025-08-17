@@ -28,7 +28,7 @@ extension ManualTempBasal {
                             placeholder: "0",
                             numberFormatter: formatter,
                             initialFocus: true,
-                            unitsText: "U/hr"
+                            unitsText: String(localized: "U/hr", comment: "Units text for temporary basal rate")
                         )
                     }
                     Picker(selection: $state.durationIndex, label: Text("Duration")) {

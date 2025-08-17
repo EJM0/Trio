@@ -139,7 +139,7 @@ struct CarbEntryEditorView: View {
                             placeholder: "0",
                             keyboardType: .numberPad,
                             numberFormatter: mealFormatter,
-                            unitsText: "g"
+                            unitsText: String(localized: "g", comment: "Units for carbs")
                         )
                     }
 
@@ -151,7 +151,7 @@ struct CarbEntryEditorView: View {
                                 placeholder: "0",
                                 keyboardType: .numberPad,
                                 numberFormatter: mealFormatter,
-                                unitsText: "g"
+                                unitsText: String(localized: "g", comment: "Units for carbs")
                             )
                         }
 
@@ -162,7 +162,7 @@ struct CarbEntryEditorView: View {
                                 placeholder: "0",
                                 keyboardType: .numberPad,
                                 numberFormatter: mealFormatter,
-                                unitsText: "g"
+                                unitsText: String(localized: "g", comment: "Units for carbs")
                             )
                         }
                     }
