@@ -12,6 +12,7 @@ struct OpenAPSStatus: JSON {
     let suggested: Determination?
     let enacted: Determination?
     let version: String
+    let recommendedBolus: Decimal?
 }
 
 struct NSPumpStatus: JSON {

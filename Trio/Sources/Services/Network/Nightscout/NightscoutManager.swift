@@ -39,6 +39,9 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
     @Injected() private var reachabilityManager: ReachabilityManager!
     @Injected() var healthkitManager: HealthKitManager!
 
+    private let resolver: Resolver
+    private let syncedResolver: Resolver
+
     private let orefDeterminationSubject = PassthroughSubject<Void, Never>()
     private let uploadOverridesSubject = PassthroughSubject<Void, Never>()
     private let uploadPumpHistorySubject = PassthroughSubject<Void, Never>()
@@ -87,6 +90,13 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
     private let debouncedQueue = DispatchQueue(label: "OrefDeterminationDebounce", qos: .utility)
 
     init(resolver: Resolver) {
+        self.resolver = resolver
+        if let container = resolver as? Container {
+            syncedResolver = container.synchronize() // thread-safe resolves from bg queues
+        } else {
+            syncedResolver = resolver
+        }
+
         injectServices(resolver)
         subscribe()
 
@@ -119,6 +129,13 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
                 )
             }
         }
+    }
+
+    @inline(__always) private func resolve<Service>(_: Service.Type = Service.self) -> Service {
+        guard let svc = syncedResolver.resolve(Service.self) else {
+            fatalError("DI resolve failed for \(Service.self)")
+        }
+        return svc
     }
 
     private func subscribe() {
@@ -588,6 +605,29 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
             fetchedEnactedDetermination = enacted
         }
 
+        // Calculate recommended bolus
+        var recommendedBolus: Decimal = 0
+
+        if let latest = fetchedSuggestedDetermination ?? fetchedEnactedDetermination {
+            let bcm: BolusCalculationManager = resolve()
+            let aps: APSManager = resolve()
+
+            let minPredBG = latest.minPredBGFromReason ?? 0
+            let simulatedCOB: Int16? = latest.cob.map { Int16(truncating: NSDecimalNumber(decimal: $0)) }
+
+            let result = await bcm.handleBolusCalculation(
+                carbs: 0,
+                useFattyMealCorrection: false,
+                useSuperBolus: false,
+                lastLoopDate: aps.lastLoopDate,
+                minPredBG: minPredBG,
+                simulatedCOB: simulatedCOB,
+                isBackdated: false
+            )
+
+            recommendedBolus = aps.roundBolus(amount: result.insulinCalculated)
+        }
+
         // Gather all relevant data for OpenAPS Status
         let iob = await fetchedIOBEntry
 
@@ -598,7 +638,8 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
             iob: iob?.first,
             suggested: suggestedToUpload,
             enacted: settingsManager.settings.closedLoop ? enactedToUpload : nil,
-            version: Bundle.main.releaseVersionNumber ?? "Unknown"
+            version: Bundle.main.releaseVersionNumber ?? "Unknown",
+            recommendedBolus: recommendedBolus
         )
 
         debug(.nightscout, "To be uploaded openapsStatus: \(openapsStatus)")
