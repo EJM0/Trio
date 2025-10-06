@@ -20,6 +20,7 @@ struct NSPumpStatus: JSON {
     let battery: Battery?
     let reservoir: Decimal?
     let status: PumpStatus?
+    let bolusIncrement: Decimal
 }
 
 struct Uploader: JSON {

@@ -92,7 +92,7 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
     init(resolver: Resolver) {
         self.resolver = resolver
         if let container = resolver as? Container {
-            syncedResolver = container.synchronize() // thread-safe resolves from bg queues
+            syncedResolver = container.synchronize()
         } else {
             syncedResolver = resolver
         }
@@ -607,10 +607,10 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
 
         // Calculate recommended bolus
         var recommendedBolus: Decimal = 0
+        let aps: APSManager = resolve()
 
         if let latest = fetchedSuggestedDetermination ?? fetchedEnactedDetermination {
             let bcm: BolusCalculationManager = resolve()
-            let aps: APSManager = resolve()
 
             let minPredBG = latest.minPredBGFromReason ?? 0
             let simulatedCOB: Int16? = latest.cob.map { Int16(truncating: NSDecimalNumber(decimal: $0)) }
@@ -627,6 +627,11 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
 
             recommendedBolus = aps.roundBolus(amount: result.insulinCalculated)
         }
+
+        // Bolus increment
+        let pumpSupportedIncrement = aps.pumpManager?.supportedBolusVolumes.min()
+        let fallbackIncrement = settingsManager.preferences.bolusIncrement
+        let bolusIncrement: Decimal = pumpSupportedIncrement.map { (d: Double) -> Decimal in Decimal(d) } ?? fallbackIncrement
 
         // Gather all relevant data for OpenAPS Status
         let iob = await fetchedIOBEntry
@@ -652,7 +657,8 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
             clock: Date(),
             battery: battery,
             reservoir: reservoir != 0xDEAD_BEEF ? reservoir : nil,
-            status: pumpStatus
+            status: pumpStatus,
+            bolusIncrement: bolusIncrement
         )
 
         let batteryLevel = await UIDevice.current.batteryLevel
