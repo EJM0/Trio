@@ -38,9 +38,8 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
     @Injected() private var broadcaster: Broadcaster!
     @Injected() private var reachabilityManager: ReachabilityManager!
     @Injected() var healthkitManager: HealthKitManager!
-
-    private let resolver: Resolver
-    private let syncedResolver: Resolver
+    @Injected() private var bolusCalculationManager: BolusCalculationManager!
+    @Injected() private var apsManager: APSManager!
 
     private let orefDeterminationSubject = PassthroughSubject<Void, Never>()
     private let uploadOverridesSubject = PassthroughSubject<Void, Never>()
@@ -90,13 +89,6 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
     private let debouncedQueue = DispatchQueue(label: "OrefDeterminationDebounce", qos: .utility)
 
     init(resolver: Resolver) {
-        self.resolver = resolver
-        if let container = resolver as? Container {
-            syncedResolver = container.synchronize()
-        } else {
-            syncedResolver = resolver
-        }
-
         injectServices(resolver)
         subscribe()
 
@@ -129,13 +121,6 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
                 )
             }
         }
-    }
-
-    @inline(__always) private func resolve<Service>(_: Service.Type = Service.self) -> Service {
-        guard let svc = syncedResolver.resolve(Service.self) else {
-            fatalError("DI resolve failed for \(Service.self)")
-        }
-        return svc
     }
 
     private func subscribe() {
@@ -607,31 +592,26 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
 
         // Calculate recommended bolus
         var recommendedBolus: Decimal = 0
-        let aps: APSManager = resolve()
 
         if let latest = fetchedSuggestedDetermination ?? fetchedEnactedDetermination {
-            let bcm: BolusCalculationManager = resolve()
-
             let minPredBG = latest.minPredBGFromReason ?? 0
             let simulatedCOB: Int16? = latest.cob.map { Int16(truncating: NSDecimalNumber(decimal: $0)) }
 
-            let result = await bcm.handleBolusCalculation(
+            let result = await bolusCalculationManager.handleBolusCalculation(
                 carbs: 0,
                 useFattyMealCorrection: false,
                 useSuperBolus: false,
-                lastLoopDate: aps.lastLoopDate,
+                lastLoopDate: apsManager.lastLoopDate,
                 minPredBG: minPredBG,
                 simulatedCOB: simulatedCOB,
                 isBackdated: false
             )
 
-            recommendedBolus = aps.roundBolus(amount: result.insulinCalculated)
+            recommendedBolus = apsManager.roundBolus(amount: result.insulinCalculated)
         }
 
         // Bolus increment
-        let pumpSupportedIncrement = aps.pumpManager?.supportedBolusVolumes.min()
-        let fallbackIncrement = settingsManager.preferences.bolusIncrement
-        let bolusIncrement: Decimal = pumpSupportedIncrement.map { (d: Double) -> Decimal in Decimal(d) } ?? fallbackIncrement
+        let bolusIncrement = settingsManager.preferences.bolusIncrement
 
         // Gather all relevant data for OpenAPS Status
         let iob = await fetchedIOBEntry
