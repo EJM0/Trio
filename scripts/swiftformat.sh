@@ -111,5 +111,4 @@ trailingClosures \
   OmniBLE, \
   MinimedKit, \
   TidepoolService \
-  DanaKit \
-  MedtrumKit
+  DanaKit 
