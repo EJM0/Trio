@@ -23036,6 +23036,7 @@
       }
     },
     "Add an entry by tapping 'Add Ratio +' in the top right-hand corner of the screen." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -26493,6 +26494,7 @@
       }
     },
     "Add Ratio" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -54049,6 +54051,7 @@
       }
     },
     "Carb Ratios cover 24 hours. You cannot add more rates. Please remove or adjust existing rates to make space." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -182067,6 +182070,7 @@
       }
     },
     "Set Ratio" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -196806,6 +196810,7 @@
       }
     },
     "Swipe to delete a single entry. Tap on it, to edit its time or rate." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
