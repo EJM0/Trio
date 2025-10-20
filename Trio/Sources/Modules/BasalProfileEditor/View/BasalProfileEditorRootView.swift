@@ -179,10 +179,10 @@ extension BasalProfileEditor {
                                 )
                                 .padding(.horizontal)
 
-                                Spacer(minLength: 20)
-
                                 // Total daily basal calculation
                                 if !state.items.isEmpty {
+                                    Spacer(minLength: 20)
+
                                     VStack(alignment: .leading, spacing: 0) {
                                         HStack {
                                             Text("Total")

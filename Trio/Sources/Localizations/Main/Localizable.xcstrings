@@ -19504,6 +19504,16 @@
         }
       }
     },
+    "45 %@ / %@ = %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "45 %1$@ / %2$@ = %3$@ %4$@"
+          }
+        }
+      }
+    },
     "50% is half effect:" : {
       "localizations" : {
         "bg" : {
