@@ -76,12 +76,31 @@ extension ISFEditor {
                             VStack(alignment: .leading, spacing: 0) {
                                 // Chart visualization
                                 if !state.items.isEmpty {
-                                    VStack(alignment: .leading) {
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            HStack {
+                                                Image(systemName: "drop.fill")
+                                                    .font(.title2)
+                                                    .foregroundStyle(.cyan)
+                                                Text("Insulin Sensitivities")
+                                                    .font(.headline)
+                                                Spacer()
+                                            }
+
+                                            Text(
+                                                "Your insulin sensitivity factor (ISF) indicates how much one unit of insulin will lower your blood glucose. This helps calculate correction boluses."
+                                            )
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                        }
+                                        .padding(.horizontal)
+                                        .padding(.top)
+
                                         isfChart
                                             .frame(height: 180)
                                             .padding(.horizontal)
+                                            .padding(.bottom)
                                     }
-                                    .padding(.vertical)
                                     .background(Color.chart.opacity(0.65))
                                     .clipShape(
                                         .rect(

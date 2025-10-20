@@ -72,12 +72,31 @@ extension CarbRatioEditor {
                             VStack(alignment: .leading, spacing: 0) {
                                 // Chart visualization
                                 if !state.items.isEmpty {
-                                    VStack(alignment: .leading) {
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            HStack {
+                                                Image(systemName: "fork.knife")
+                                                    .font(.title2)
+                                                    .foregroundStyle(.orange)
+                                                Text("Carb Ratios")
+                                                    .font(.headline)
+                                                Spacer()
+                                            }
+
+                                            Text(
+                                                "Your carb ratio tells how many grams of carbohydrates one unit of insulin will cover. This is essential for accurate meal bolus calculations."
+                                            )
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                        }
+                                        .padding(.horizontal)
+                                        .padding(.top)
+
                                         carbRatioChart
                                             .frame(height: 180)
                                             .padding(.horizontal)
+                                            .padding(.bottom)
                                     }
-                                    .padding(.vertical)
                                     .background(Color.chart.opacity(0.65))
                                     .clipShape(
                                         .rect(
