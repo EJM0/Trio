@@ -23245,6 +23245,7 @@
       }
     },
     "Add an entry by tapping 'Add Target +' in the top right-hand corner of the screen." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -26814,6 +26815,7 @@
       }
     },
     "Add Target" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -182166,6 +182168,7 @@
       }
     },
     "Set Target" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -198083,6 +198086,7 @@
       }
     },
     "Target " : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -198514,6 +198518,7 @@
       }
     },
     "Target Glucose covered for 24 hours. You cannot add more rates. Please remove or adjust existing rates to make space." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
