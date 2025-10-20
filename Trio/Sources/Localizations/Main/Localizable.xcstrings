@@ -3176,6 +3176,7 @@
     },
     " U/day" : {
       "comment" : "Total AT / Scheduled basal insulin",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -7863,6 +7864,7 @@
     },
     "%@ U/hr" : {
       "comment" : "Number of units per hour",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -22927,6 +22929,7 @@
       }
     },
     "Add an entry by tapping 'Add Rate +' in the top right-hand corner of the screen." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -26383,6 +26386,7 @@
       }
     },
     "Add Rate" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -45717,6 +45721,7 @@
       }
     },
     "Basal profile covers 24 hours. You cannot add more rates. Please remove or adjust existing rates to make space." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
