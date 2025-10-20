@@ -1337,6 +1337,7 @@
       }
     },
     " %@/U" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -23143,6 +23144,7 @@
       }
     },
     "Add an entry by tapping 'Add Sensitivity +' in the top right-hand corner of the screen." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -26601,6 +26603,7 @@
       }
     },
     "Add Sensitivity" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -120510,6 +120513,7 @@
       }
     },
     "Insulin Sensitivities cover 24 hours. You cannot add more rates. Please remove or adjust existing rates to make space." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -176625,6 +176629,7 @@
       }
     },
     "Schedule" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -181964,6 +181969,7 @@
       }
     },
     "Set Rate" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -196386,6 +196392,7 @@
       }
     },
     "Swipe left to delete a single entry. Tap on it, to edit its time or rate." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
