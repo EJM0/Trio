@@ -10,33 +10,33 @@ struct TherapySettingEditorView: View {
     @State private var selectedItemID: UUID?
 
     var body: some View {
-        List {
-            HStack {
-                Text("Entries").bold()
-                Spacer()
-                Button {
-                    // Prepare and add new entry
-                    let lastTime = items.last?.time ?? 0
-                    let newTime = min(lastTime + 1800, 23 * 3600 + 1800)
-                    let newValue = items.last?.value ?? 1.0
-                    items.append(TherapySettingItem(time: newTime, value: newValue))
+        HStack {
+            Text("Entries").bold()
+            Spacer()
+            Button {
+                // Prepare and add new entry
+                let lastTime = items.last?.time ?? 0
+                let newTime = min(lastTime + 1800, 23 * 3600 + 1800)
+                let newValue = items.last?.value ?? 1.0
+                items.append(TherapySettingItem(time: newTime, value: newValue))
 
-                    // Reset selected item to close picker
-                    selectedItemID = nil
+                // Reset selected item to close picker
+                selectedItemID = nil
 
-                    // Sort items, in case user has changed time of one item, then taps 'Add'
-                    sortTherapyItems()
-                } label: {
-                    HStack {
-                        Image(systemName: "plus.circle.fill")
-                        Text("Add")
-                    }.foregroundColor(.accentColor)
-                }
-                .disabled(items.count >= 48)
+                // Sort items, in case user has changed time of one item, then taps 'Add'
+                sortTherapyItems()
+            } label: {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Add")
+                }.foregroundColor(.accentColor)
             }
-            .listRowBackground(Color.chart.opacity(0.65))
-            .padding(.vertical, 5)
+            .disabled(items.count >= 48)
+        }
+        .listRowBackground(Color.chart.opacity(0.65))
+        .padding(.vertical, 10)
 
+        List {
             ForEach($items) { $item in
                 VStack(spacing: 0) {
                     Button {
@@ -92,22 +92,8 @@ struct TherapySettingEditorView: View {
                 }
             }
             .listRowBackground(Color.chart.opacity(0.65))
-
-            Rectangle().fill(Color.chart.opacity(0.65)).frame(height: 10)
-                .clipShape(
-                    .rect(
-                        topLeadingRadius: 0,
-                        bottomLeadingRadius: 10,
-                        bottomTrailingRadius: 10,
-                        topTrailingRadius: 0
-                    )
-                )
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: -22, leading: 0, bottom: 0, trailing: 0))
-                .listRowSeparator(.hidden)
         }
         .listStyle(.plain)
-        .scrollDisabled(true)
         .scrollContentBackground(.hidden)
         // 55 for header row, item counts x 45 for every entry row + 230 for a visible picker row
         .frame(height: 55 + CGFloat(items.count) * 45 + (items.contains(where: { $0.id == selectedItemID }) ? 230 : 0))
