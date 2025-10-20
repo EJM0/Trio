@@ -217,6 +217,11 @@ final class BaseAPSManager: APSManager, Injectable {
             do {
                 // Execute loop logic
                 try await self.executeLoop(loopStatRecord: &loopStatRecord)
+
+                requestNightscoutUpload(
+                    [.carbs, .pumpHistory, .overrides, .tempTargets],
+                    source: "APSManager"
+                )
             } catch {
                 var updatedStats = loopStatRecord
                 updatedStats.end = Date()
