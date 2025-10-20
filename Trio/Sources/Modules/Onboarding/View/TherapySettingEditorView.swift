@@ -101,6 +101,7 @@ struct TherapySettingEditorView: View {
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
+                                .tint(.red)
                             }
                         }
                     }
