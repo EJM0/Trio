@@ -128322,7 +128322,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nếu Mục tiêu Tập luyện với 50% Basal là %1$@ %2$@, thì Mục tiêu Tạm thời %3$@ %4$@ sẽ sử dụng Tỷ lệ Autosens là 1.09. Mục tiêu Tạm thời %5$@ %6$@ sẽ sử dụng Tỷ lệ Autosens là 1.33."
+            "value" : "Nếu Mục tiêu Tập luyện với 50%% Basal là %1$@ %2$@, thì Mục tiêu Tạm thời %3$@ %4$@ sẽ sử dụng Tỷ lệ Autosens là 1.09. Mục tiêu Tạm thời %5$@ %6$@ sẽ sử dụng Tỷ lệ Autosens là 1.33."
           }
         },
         "zh-Hant" : {
@@ -128446,7 +128446,7 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nếu Mục tiêu Tập luyện với 50% Basal được đặt là %1$@ %2$@, thì Mục tiêu Tạm thời %3$@ %4$@ sẽ sử dụng Tỷ lệ Autosens là 0.75. Mục tiêu Tạm thời %5$@ %6$@ sẽ sử dụng Tỷ lệ Autosens là 0.6."
+            "value" : "Nếu Mục tiêu Tập luyện với 50%% Basal được đặt là %1$@ %2$@, thì Mục tiêu Tạm thời %3$@ %4$@ sẽ sử dụng Tỷ lệ Autosens là 0.75. Mục tiêu Tạm thời %5$@ %6$@ sẽ sử dụng Tỷ lệ Autosens là 0.6."
           }
         },
         "zh-Hant" : {
