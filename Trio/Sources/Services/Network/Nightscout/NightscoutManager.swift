@@ -44,25 +44,34 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
     private let processQueue = DispatchQueue(label: "BaseNetworkManager.processQueue")
     private var ping: TimeInterval?
 
+    // Queue where lane pipelines run.
     let laneQueue = DispatchQueue(label: "NightscoutManager.lanes", qos: .utility)
 
+    // Background Core Data context for fetches used by upload tasks.
     var backgroundContext = CoreDataStack.shared.newTaskContext()
 
+    /// Throttle window (seconds) per lane. Any kicks inside this window
+    /// coalesce into a single upload run for that lane.
     let laneInterval: [NightscoutLane: TimeInterval] = [
         .carbs: 2, .pumpHistory: 2, .overrides: 2, .tempTargets: 2,
         .glucose: 2, .manualGlucose: 2, .deviceStatus: 2
     ]
 
+    /// Subjects used to “kick” a lane. The pipeline applies a throttle so
+    /// close calls don’t double-upload.
     var laneSubjects: [NightscoutLane: PassthroughSubject<Void, Never>] = {
         var d: [NightscoutLane: PassthroughSubject<Void, Never>] = [:]
         NightscoutLane.allCases.forEach { d[$0] = PassthroughSubject<Void, Never>() }
         return d
     }()
 
+    /// Send a kick for a lane (enqueue work). Safe to call from anywhere.
     func kick(_ lane: NightscoutLane) {
         laneSubjects[lane]?.send(())
     }
 
+    /// Build the Combine pipelines for all lanes: subject → throttle → upload.
+    /// Must be called once during init().
     func setupLanePipelines() {
         for lane in NightscoutLane.allCases {
             guard let subject = laneSubjects[lane], let window = laneInterval[lane] else { continue }
@@ -77,6 +86,8 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
         }
     }
 
+    /// Runs the actual upload for a single lane.
+    /// Called by the throttled pipeline, not directly by callers.
     func runLane(_ lane: NightscoutLane) async {
         switch lane {
         case .carbs: await uploadCarbs()
@@ -122,7 +133,12 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
 
     // Queue for handling Core Data change notifications
     let queue = DispatchQueue(label: "BaseNightscoutManager.queue", qos: .utility)
+
+    /// Emits changed Core Data object IDs from the app. We filter by entity names
+    /// and kick lanes based on what changed.
     var coreDataPublisher: AnyPublisher<Set<NSManagedObjectID>, Never>?
+
+    /// Bag for Combine subscriptions owned by this manager.
     var subscriptions = Set<AnyCancellable>()
 
     init(resolver: Resolver) {

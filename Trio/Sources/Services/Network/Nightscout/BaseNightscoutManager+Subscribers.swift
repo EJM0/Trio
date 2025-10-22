@@ -3,12 +3,18 @@ import CoreData
 import Foundation
 
 extension BaseNightscoutManager {
+    /// Call once from init. Hooks up:
+    /// 1) external upload requests (NotificationCenter)
+    /// 2) Core Data change triggers → kicks per lane
+    /// 3) Glucose storage updates → kick glucose lane
     func wireSubscribers() {
         wireExternalUploadRequests()
         wireCoreDataSubscribers()
         wireGlucoseStorageSubscriber()
     }
 
+    /// Listens for `.nightscoutUploadRequested`, converts userInfo lanes to enums,
+    /// and kicks those lanes. Posts `.nightscoutUploadDidFinish` after enqueuing.
     func wireExternalUploadRequests() {
         Foundation.NotificationCenter.default.publisher(for: .nightscoutUploadRequested)
             .sink { [weak self] note in
@@ -25,6 +31,8 @@ extension BaseNightscoutManager {
             .store(in: &subscriptions)
     }
 
+    /// Maps Core Data entity changes into lane kicks. We rely on
+    /// per-lane throttle so rapid changes don’t spam Nightscout.
     func wireCoreDataSubscribers() {
         coreDataPublisher?
             .filteredByEntityName("OrefDetermination")
@@ -70,8 +78,7 @@ extension BaseNightscoutManager {
             .store(in: &subscriptions)
     }
 
-    // MARK: 3) Glucose storage tick → kick glucose lane
-
+    /// Glucose storage updates → kick glucose lane
     func wireGlucoseStorageSubscriber() {
         glucoseStorage.updatePublisher
             .receive(on: queue)
