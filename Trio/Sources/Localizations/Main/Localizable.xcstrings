@@ -10034,6 +10034,7 @@
       }
     },
     "%lld h" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
