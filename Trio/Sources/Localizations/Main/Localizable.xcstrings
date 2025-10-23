@@ -1711,6 +1711,7 @@
       }
     },
     " %@/U" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -3754,6 +3755,7 @@
     },
     " U/day" : {
       "comment" : "Total AT / Scheduled basal insulin",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -8952,6 +8954,7 @@
     },
     "%@ U/hr" : {
       "comment" : "Number of units per hour",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -11452,6 +11455,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "• An ISF of %1$@ %2$@/U means 1 U lowers your glucose by %3$@ %4$@"
+          }
+        }
+      }
+    },
+    "• An ISF of %@ means 1 U lowers your glucose by %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "• An ISF of %1$@ means 1 U lowers your glucose by %2$@"
           }
         }
       }
@@ -22474,6 +22487,16 @@
         }
       }
     },
+    "45 %@ / %@ = %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "45 %1$@ / %2$@ = %3$@ %4$@"
+          }
+        }
+      }
+    },
     "50% is half effect:" : {
       "localizations" : {
         "bg" : {
@@ -26284,6 +26307,7 @@
       }
     },
     "Add an entry by tapping 'Add Rate +' in the top right-hand corner of the screen." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -26402,6 +26426,7 @@
       }
     },
     "Add an entry by tapping 'Add Ratio +' in the top right-hand corner of the screen." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -26520,6 +26545,7 @@
       }
     },
     "Add an entry by tapping 'Add Sensitivity +' in the top right-hand corner of the screen." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -26638,6 +26664,7 @@
       }
     },
     "Add an entry by tapping 'Add Target +' in the top right-hand corner of the screen." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -30123,6 +30150,7 @@
       }
     },
     "Add Rate" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -30241,6 +30269,7 @@
       }
     },
     "Add Ratio" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -30359,6 +30388,7 @@
       }
     },
     "Add Sensitivity" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -30603,6 +30633,7 @@
       }
     },
     "Add Target" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -51589,6 +51620,7 @@
       }
     },
     "Basal profile covers 24 hours. You cannot add more rates. Please remove or adjust existing rates to make space." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -60840,6 +60872,7 @@
       }
     },
     "Carb Ratios cover 24 hours. You cannot add more rates. Please remove or adjust existing rates to make space." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -135289,6 +135322,7 @@
       }
     },
     "Insulin Sensitivities cover 24 hours. You cannot add more rates. Please remove or adjust existing rates to make space." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -198754,6 +198788,7 @@
       }
     },
     "Schedule" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -204911,6 +204946,7 @@
       }
     },
     "Set Rate" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -205029,6 +205065,7 @@
       }
     },
     "Set Ratio" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -205147,6 +205184,7 @@
       }
     },
     "Set Target" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -220935,6 +220973,7 @@
       }
     },
     "Swipe left to delete a single entry. Tap on it, to edit its time or rate." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -221407,6 +221446,7 @@
       }
     },
     "Swipe to delete a single entry. Tap on it, to edit its time or rate." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -223066,6 +223106,7 @@
       }
     },
     "Target " : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -223545,6 +223586,7 @@
       }
     },
     "Target Glucose covered for 24 hours. You cannot add more rates. Please remove or adjust existing rates to make space." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {

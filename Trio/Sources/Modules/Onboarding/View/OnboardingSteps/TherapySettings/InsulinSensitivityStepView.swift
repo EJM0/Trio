@@ -118,8 +118,8 @@ struct InsulinSensitivityStepView: View {
                                 Text(
                                     "• An ISF of \(isfValue) means 1 U lowers your glucose by \(isfValue)"
                                 )
-                                Text("• A lower number means you're more sensitive to insulin")
-                                Text("• A higher number means you're less sensitive to insulin")
+                                Text("• A lower number means you're less sensitive (more resistant) to insulin")
+                                Text("• A higher number means you're more sensitive (less resistant) to insulin")
                             }
                             .font(.caption)
                             .foregroundColor(.secondary)
