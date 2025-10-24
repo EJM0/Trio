@@ -193,13 +193,19 @@ extension DataTable {
             .popover(isPresented: $showTreatmentTypeFilter, arrowEdge: .top) {
                 VStack(alignment: .leading, spacing: 20) {
                     Button(action: {
-                        selectedTreatmentTypes = ["Bolus", "External Bolus", "SMB", "Temp Basal", "Suspend", "Other"]
+                        if selectedTreatmentTypes.count == 6 {
+                            // Deselect all - keep at least one selected
+                            selectedTreatmentTypes = []
+                        } else {
+                            // Select all
+                            selectedTreatmentTypes = ["Bolus", "External Bolus", "SMB", "Temp Basal", "Suspend", "Other"]
+                        }
                     }) {
                         HStack(spacing: 20) {
                             Image(systemName: selectedTreatmentTypes.count == 6 ? "checkmark.circle.fill" : "circle")
                                 .frame(width: 20)
                                 .foregroundColor(Color.accentColor)
-                            Text("Select All")
+                            Text(selectedTreatmentTypes.count == 6 ? "Deselect All" : "Select All")
                                 .foregroundColor(Color.primary)
                         }.padding(4)
                     }
@@ -254,10 +260,7 @@ extension DataTable {
 
         private func toggleTreatmentType(_ type: String) {
             if selectedTreatmentTypes.contains(type) {
-                // Don't allow removing the last selected type
-                if selectedTreatmentTypes.count > 1 {
-                    selectedTreatmentTypes.remove(type)
-                }
+                selectedTreatmentTypes.remove(type)
             } else {
                 selectedTreatmentTypes.insert(type)
             }
