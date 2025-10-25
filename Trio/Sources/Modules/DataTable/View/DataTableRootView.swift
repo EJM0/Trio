@@ -185,10 +185,14 @@ extension DataTable {
             }) {
                 HStack {
                     Text("Filter")
-                        .foregroundColor(Color.accentColor)
-                    Image(systemName: "line.3.horizontal.decrease.circle")
-                        .foregroundColor(Color.accentColor)
-                }
+                    Image(
+                        systemName: selectedTreatmentTypes.count == 6
+                            ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill"
+                    )
+                    if selectedTreatmentTypes.count < 6 {
+                        Text(verbatim: "(\(selectedTreatmentTypes.count)/6)")
+                    }
+                }.foregroundColor(Color.accentColor)
             }
             .popover(isPresented: $showTreatmentTypeFilter, arrowEdge: .top) {
                 VStack(alignment: .leading, spacing: 20) {
@@ -299,7 +303,7 @@ extension DataTable {
                     Spacer()
                     Text("Time").foregroundStyle(.secondary)
                 }
-                if !pumpEventStored.isEmpty {
+                if !filteredPumpEvents.isEmpty {
                     ForEach(filteredPumpEvents) { item in
                         treatmentView(item)
                     }
