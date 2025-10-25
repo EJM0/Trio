@@ -19,14 +19,7 @@ extension DataTable {
         @State private var showManualGlucose: Bool = false
         @State private var isAmountUnconfirmed: Bool = true
         @State private var showTreatmentTypeFilter = false
-        @State private var selectedTreatmentTypes: Set<String> = [
-            "Bolus",
-            "External Bolus",
-            "SMB",
-            "Temp Basal",
-            "Suspend",
-            "Other"
-        ]
+        @State private var selectedTreatmentTypes: Set<TreatmentType> = Set(TreatmentType.allCases)
         @State private var filterPopoverAnchor: CGRect = .zero
 
         @Environment(\.colorScheme) var colorScheme
@@ -186,30 +179,33 @@ extension DataTable {
                 HStack {
                     Text("Filter")
                     Image(
-                        systemName: selectedTreatmentTypes.count == 6
+                        systemName: selectedTreatmentTypes.count == TreatmentType.allCases.count
                             ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill"
                     )
-                    if selectedTreatmentTypes.count < 6 {
-                        Text(verbatim: "(\(selectedTreatmentTypes.count)/6)")
+                    if selectedTreatmentTypes.count < TreatmentType.allCases.count {
+                        Text(verbatim: "(\(selectedTreatmentTypes.count)/\(TreatmentType.allCases.count))")
                     }
                 }.foregroundColor(Color.accentColor)
             }
             .popover(isPresented: $showTreatmentTypeFilter, arrowEdge: .top) {
                 VStack(alignment: .leading, spacing: 20) {
                     Button(action: {
-                        if selectedTreatmentTypes.count == 6 {
+                        if selectedTreatmentTypes.count == TreatmentType.allCases.count {
                             // Deselect all - keep at least one selected
                             selectedTreatmentTypes = []
                         } else {
                             // Select all
-                            selectedTreatmentTypes = ["Bolus", "External Bolus", "SMB", "Temp Basal", "Suspend", "Other"]
+                            selectedTreatmentTypes = Set(TreatmentType.allCases)
                         }
                     }) {
                         HStack(spacing: 20) {
-                            Image(systemName: selectedTreatmentTypes.count == 6 ? "checkmark.circle.fill" : "circle")
-                                .frame(width: 20)
-                                .foregroundColor(Color.accentColor)
-                            Text(selectedTreatmentTypes.count == 6 ? "Deselect All" : "Select All")
+                            Image(
+                                systemName: selectedTreatmentTypes.count == TreatmentType.allCases.count
+                                    ? "checkmark.circle.fill" : "circle"
+                            )
+                            .frame(width: 20)
+                            .foregroundColor(Color.accentColor)
+                            Text(selectedTreatmentTypes.count == TreatmentType.allCases.count ? "Deselect All" : "Select All")
                                 .foregroundColor(Color.primary)
                         }.padding(4)
                     }
@@ -217,15 +213,18 @@ extension DataTable {
 
                     Divider()
 
-                    ForEach(["Bolus", "External Bolus", "SMB", "Temp Basal", "Suspend", "Other"], id: \.self) { type in
+                    ForEach(TreatmentType.allCases, id: \.rawValue) { treatmentType in
                         Button(action: {
-                            toggleTreatmentType(type)
+                            toggleTreatmentType(treatmentType)
                         }) {
                             HStack(spacing: 20) {
-                                Image(systemName: selectedTreatmentTypes.contains(type) ? "checkmark.circle.fill" : "circle")
-                                    .frame(width: 20)
-                                    .foregroundColor(Color.accentColor)
-                                Text(type)
+                                Image(
+                                    systemName: selectedTreatmentTypes
+                                        .contains(treatmentType) ? "checkmark.circle.fill" : "circle"
+                                )
+                                .frame(width: 20)
+                                .foregroundColor(Color.accentColor)
+                                Text(treatmentType.displayName)
                                     .foregroundColor(Color.primary)
                             }.padding(4)
                         }
@@ -262,7 +261,7 @@ extension DataTable {
             ).buttonStyle(.borderless)
         }
 
-        private func toggleTreatmentType(_ type: String) {
+        private func toggleTreatmentType(_ type: TreatmentType) {
             if selectedTreatmentTypes.contains(type) {
                 selectedTreatmentTypes.remove(type)
             } else {
@@ -280,18 +279,18 @@ extension DataTable {
                 // Then filter by treatment type
                 if let bolus = item.bolus {
                     if bolus.isSMB {
-                        return selectedTreatmentTypes.contains("SMB")
+                        return selectedTreatmentTypes.contains(.smb)
                     } else if bolus.isExternal {
-                        return selectedTreatmentTypes.contains("External Bolus")
+                        return selectedTreatmentTypes.contains(.externalBolus)
                     } else {
-                        return selectedTreatmentTypes.contains("Bolus")
+                        return selectedTreatmentTypes.contains(.bolus)
                     }
                 } else if item.tempBasal != nil {
-                    return selectedTreatmentTypes.contains("Temp Basal")
+                    return selectedTreatmentTypes.contains(.tempBasal)
                 } else if item.type == "PumpSuspend" {
-                    return selectedTreatmentTypes.contains("Suspend")
+                    return selectedTreatmentTypes.contains(.suspend)
                 } else {
-                    return selectedTreatmentTypes.contains("Other")
+                    return selectedTreatmentTypes.contains(.other)
                 }
             }
         }

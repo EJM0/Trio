@@ -107923,6 +107923,9 @@
         }
       }
     },
+    "External Bolus" : {
+
+    },
     "External Insulin" : {
       "comment" : "A manually entered dose of external insulin",
       "localizations" : {
