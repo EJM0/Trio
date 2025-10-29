@@ -86,7 +86,10 @@ struct LiveActivityView: View {
                             switch widgetItem {
                             case .currentGlucose:
                                 VStack {
-                                    LiveActivityBGLabelView(context: context, additionalState: context.state.detailedViewState)
+                                    LiveActivityBGLabelView(
+                                        context: context,
+                                        additionalState: context.state.detailedViewState
+                                    )
 
                                     HStack {
                                         LiveActivityGlucoseDeltaLabelView(
@@ -110,7 +113,10 @@ struct LiveActivityView: View {
                             case .updatedLabel:
                                 LiveActivityUpdatedLabelView(context: context, isDetailedLayout: true, isWatchOS: false)
                             case .totalDailyDose:
-                                LiveActivityTotalDailyDoseView(context: context, additionalState: context.state.detailedViewState)
+                                LiveActivityTotalDailyDoseView(
+                                    context: context,
+                                    additionalState: context.state.detailedViewState
+                                )
                             case .empty:
                                 Text("").frame(width: 50, height: 50)
                             }
