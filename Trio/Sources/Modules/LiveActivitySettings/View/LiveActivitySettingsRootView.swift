@@ -182,13 +182,13 @@ extension LiveActivitySettings {
                                                         VStack(alignment: .leading, spacing: 10) {
                                                             Text("Simple:").bold()
                                                             Text(
-                                                                "Trio's Simple Watch Widget displays current glucose reading, trend arrow, delta and the timestamp of the current reading."
+                                                                "Trio's Simple Watch/Carplay Widget displays current glucose reading, trend arrow, delta and the timestamp of the current reading."
                                                             )
                                                         }
                                                         VStack(alignment: .leading, spacing: 10) {
                                                             Text("Detailed:").bold()
                                                             Text(
-                                                                "The Detailed Watch Screen Widget offers users a glucose chart as well as the current glucose, delta and the timestamp of current reading."
+                                                                "The Detailed Watch/Carplay Screen Widget offers users a glucose chart as well as the current glucose, delta and the timestamp of current reading."
                                                             )
                                                         }
                                                     }
