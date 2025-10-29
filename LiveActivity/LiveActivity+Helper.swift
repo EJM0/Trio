@@ -232,10 +232,9 @@ struct LiveActivityModifiers: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .padding(.all, isWatchOS ? 8 : 14)
+            .padding(.all, isWatchOS ? 10 : 14)
             .frame(minHeight: 0, maxHeight: .infinity)
             .privacySensitive()
-            .foregroundStyle(Color.primary)
             // Semantic BackgroundStyle and Color values work here. They adapt to the given interface style (light mode, dark
             // mode)
             // Semantic UIColors do NOT (as of iOS 17.1.1). Like UIColor.systemBackgroundColor (it does not adapt to changes of
