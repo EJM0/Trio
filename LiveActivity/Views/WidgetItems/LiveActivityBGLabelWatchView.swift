@@ -15,12 +15,14 @@ struct LiveActivityBGLabelWatchView: View {
     var body: some View {
         HStack {
             Text(context.state.bg)
+                .bold()
                 .font(.callout)
                 .foregroundStyle(context.isStale ? .secondary : glucoseColor)
                 .strikethrough(context.isStale, pattern: .solid, color: .red.opacity(0.6))
 
             if let trendArrow = context.state.direction {
                 Text(trendArrow)
+                    .bold()
                     .font(.callout)
                     .foregroundStyle(context.isStale ? .secondary : glucoseColor)
                     .strikethrough(context.isStale, pattern: .solid, color: .red.opacity(0.6))
