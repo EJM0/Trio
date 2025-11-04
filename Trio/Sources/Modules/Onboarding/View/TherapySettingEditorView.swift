@@ -212,6 +212,11 @@ struct TherapySettingEditorView: View {
     }
 
     private func validateTherapySettingItems() {
+        // Store the time value of the currently selected item (if any)
+        let selectedTime = selectedItemID.flatMap { id in
+            items.first(where: { $0.id == id })?.time
+        }
+
         // validates therapy items (i.e. parsed therapy settings into wrapper class)
         var newItems = Array(Set(items)).sorted { $0.time < $1.time }
         if !newItems.isEmpty {
@@ -224,6 +229,11 @@ struct TherapySettingEditorView: View {
 
         // force ALL items to have new UUIDs (to enforce binding update)
         items = newItems.map { TherapySettingItem(copying: $0, newID: true) }
+
+        // Restore selection by finding the item with the same time value
+        if let selectedTime = selectedTime {
+            selectedItemID = items.first(where: { $0.time == selectedTime })?.id
+        }
 
         // validates underlying "raw" therapy setting (i.e. item of type basal, target, isf, carb ratio)
         validateOnDelete?()
