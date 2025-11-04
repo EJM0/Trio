@@ -10037,6 +10037,7 @@
       }
     },
     "%lld h" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -11454,16 +11455,6 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "• An ISF of %1$@ %2$@/U means 1 U lowers your glucose by %3$@ %4$@"
-          }
-        }
-      }
-    },
-    "• An ISF of %@ means 1 U lowers your glucose by %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "• An ISF of %1$@ means 1 U lowers your glucose by %2$@"
           }
         }
       }
@@ -22482,16 +22473,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "43.21 U"
-          }
-        }
-      }
-    },
-    "45 %@ / %@ = %@ %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "45 %1$@ / %2$@ = %3$@ %4$@"
           }
         }
       }
@@ -51619,7 +51600,6 @@
       }
     },
     "Basal profile covers 24 hours. You cannot add more rates. Please remove or adjust existing rates to make space." : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
