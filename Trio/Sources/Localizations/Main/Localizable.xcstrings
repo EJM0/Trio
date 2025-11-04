@@ -10037,7 +10037,6 @@
       }
     },
     "%lld h" : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -227578,6 +227577,9 @@
         }
       }
     },
+    "The Detailed Watch/Carplay Screen Widget offers users a glucose chart as well as the current glucose, delta and the timestamp of current reading." : {
+
+    },
     "The Duration of Insulin Action (DIA) defines how long your insulin continues to lower glucose readings after a dose." : {
       "localizations" : {
         "bg" : {
@@ -251168,6 +251170,9 @@
         }
       }
     },
+    "Trio's Simple Watch/Carplay Widget displays current glucose reading, trend arrow, delta and the timestamp of the current reading." : {
+
+    },
     "Try again in a moment, or configure your Therapy Settings manually instead." : {
       "localizations" : {
         "bg" : {
@@ -261603,6 +261608,9 @@
           }
         }
       }
+    },
+    "Watch/Carplay Widget Style" : {
+
     },
     "We recommend reviewing them carefully — Trio will guide you step-by-step." : {
       "localizations" : {
