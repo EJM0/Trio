@@ -41,9 +41,9 @@ struct TherapySettingEditorView: View {
                         HStack {
                             Image(systemName: "plus.circle.fill")
                             Text("Add")
-                        }.foregroundColor(.accentColor)
+                        }.foregroundColor(cannotAddMoreEntries ? .secondary : .accentColor)
                     }
-                    .disabled(items.count >= 48)
+                    .disabled(cannotAddMoreEntries)
                 }
                 .listRowBackground(Color.chart.opacity(0.65))
                 .padding(.vertical, 10)
@@ -186,6 +186,21 @@ struct TherapySettingEditorView: View {
             .pickerStyle(.wheel)
         }
         .padding(.vertical, 8)
+    }
+
+    /// Check if we can add more entries
+    /// Disabled when: 48 entries OR last entry is at 23:30 (84600 seconds)
+    private var cannotAddMoreEntries: Bool {
+        if items.count >= 48 {
+            return true
+        }
+
+        // Check if last entry is at 23:30 (23.5 hours * 3600 seconds = 84600)
+        if let lastTime = items.last?.time, lastTime >= 84600 {
+            return true
+        }
+
+        return false
     }
 
     private func sortTherapyItems() {
