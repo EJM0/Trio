@@ -124,6 +124,27 @@ extension BasalProfileEditor {
                     ScrollView {
                         LazyVStack {
                             VStack(alignment: .leading, spacing: 0) {
+                                if !state.canAdd {
+                                    VStack {
+                                        Text(
+                                            "Basal profile covers 24 hours. You cannot add more rates. Please remove or adjust existing rates to make space."
+                                        ).bold()
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding()
+                                    .background(Color.tabBar)
+                                    .clipShape(
+                                        .rect(
+                                            topLeadingRadius: 10,
+                                            bottomLeadingRadius: 10,
+                                            bottomTrailingRadius: 10,
+                                            topTrailingRadius: 10
+                                        )
+                                    )
+                                    .padding(.horizontal)
+                                    .padding(.top)
+                                }
+
                                 // Chart visualization
                                 if !state.items.isEmpty {
                                     basalProfileChart
