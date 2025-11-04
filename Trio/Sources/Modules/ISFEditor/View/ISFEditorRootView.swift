@@ -76,42 +76,20 @@ extension ISFEditor {
                             VStack(alignment: .leading, spacing: 0) {
                                 // Chart visualization
                                 if !state.items.isEmpty {
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        VStack(alignment: .leading, spacing: 8) {
-                                            HStack {
-                                                Image(systemName: "drop.fill")
-                                                    .font(.title2)
-                                                    .foregroundStyle(.cyan)
-                                                Text("Insulin Sensitivities")
-                                                    .font(.headline)
-                                                Spacer()
-                                            }
-
-                                            Text(
-                                                "Your insulin sensitivity factor (ISF) indicates how much one unit of insulin will lower your blood glucose. This helps calculate correction boluses."
+                                    isfChart
+                                        .frame(height: 180)
+                                        .padding()
+                                        .background(Color.chart.opacity(0.65))
+                                        .clipShape(
+                                            .rect(
+                                                topLeadingRadius: 10,
+                                                bottomLeadingRadius: 0,
+                                                bottomTrailingRadius: 0,
+                                                topTrailingRadius: 10
                                             )
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                        }
+                                        )
                                         .padding(.horizontal)
                                         .padding(.top)
-
-                                        isfChart
-                                            .frame(height: 180)
-                                            .padding(.horizontal)
-                                            .padding(.bottom)
-                                    }
-                                    .background(Color.chart.opacity(0.65))
-                                    .clipShape(
-                                        .rect(
-                                            topLeadingRadius: 10,
-                                            bottomLeadingRadius: 0,
-                                            bottomTrailingRadius: 0,
-                                            topTrailingRadius: 10
-                                        )
-                                    )
-                                    .padding(.horizontal)
-                                    .padding(.top)
                                 }
 
                                 // ISF list
@@ -128,62 +106,6 @@ extension ISFEditor {
                                     }
                                 )
                                 .padding(.horizontal)
-
-                                // Example calculation based on first ISF
-                                if !state.items.isEmpty {
-                                    Spacer(minLength: 20)
-
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text("Example Calculation")
-                                            .font(.headline)
-                                            .padding(.horizontal)
-
-                                        VStack(alignment: .leading, spacing: 8) {
-                                            let aboveTarget = state.units == .mgdL ? Decimal(40) : 40.asMmolL
-                                            let firstIsfRate: Decimal = state.rateValues[state.items.first?.rateIndex ?? 0]
-                                            let isfValue = state.units == .mgdL ? firstIsfRate : firstIsfRate.asMmolL
-                                            let insulinNeeded = aboveTarget / isfValue
-
-                                            Text(
-                                                "If you are \(numberFormatter.string(from: aboveTarget as NSNumber) ?? "--") \(state.units.rawValue) above target:"
-                                            )
-                                            .font(.subheadline)
-                                            .padding(.horizontal)
-
-                                            Text(
-                                                "\(aboveTarget.description) \(state.units.rawValue) / \(isfValue.description) \(state.units.rawValue)/\(String(localized: "U", comment: "Insulin unit abbreviation")) = \(String(format: "%.1f", Double(insulinNeeded))) \(String(localized: "U", comment: "Insulin unit abbreviation"))"
-                                            )
-                                            .font(.system(.body, design: .monospaced))
-                                            .foregroundColor(.cyan)
-                                            .padding()
-                                            .frame(maxWidth: .infinity, alignment: .center)
-                                            .background(Color.chart.opacity(0.65))
-                                            .cornerRadius(10)
-                                        }
-                                    }
-
-                                    Spacer(minLength: 20)
-
-                                    // Information about ISF
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text("What This Means")
-                                            .font(.headline)
-                                            .padding(.horizontal)
-
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            let isfValue = "\(state.units == .mgdL ? Decimal(50) : 50.asMmolL)"
-                                            Text(
-                                                "• An ISF of \(isfValue) \(state.units.rawValue)/U means 1 U lowers your glucose by \(isfValue) \(state.units.rawValue)"
-                                            )
-                                            Text("• A lower number means you're less sensitive (more resistant) to insulin")
-                                            Text("• A higher number means you're more sensitive (less resistant) to insulin")
-                                        }
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .padding(.horizontal)
-                                    }
-                                    .id(bottomID)
-                                }
                             }
                         }
                     }

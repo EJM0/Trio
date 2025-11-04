@@ -126,42 +126,20 @@ extension BasalProfileEditor {
                             VStack(alignment: .leading, spacing: 0) {
                                 // Chart visualization
                                 if !state.items.isEmpty {
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        VStack(alignment: .leading, spacing: 8) {
-                                            HStack {
-                                                Image(systemName: "chart.xyaxis.line")
-                                                    .font(.title2)
-                                                    .foregroundStyle(.purple)
-                                                Text("Basal Rates")
-                                                    .font(.headline)
-                                                Spacer()
-                                            }
-
-                                            Text(
-                                                "Your basal profile represents the amount of background insulin you need throughout the day. This helps Trio calculate your insulin needs."
+                                    basalProfileChart
+                                        .frame(height: 180)
+                                        .padding()
+                                        .background(Color.chart.opacity(0.65))
+                                        .clipShape(
+                                            .rect(
+                                                topLeadingRadius: 10,
+                                                bottomLeadingRadius: 0,
+                                                bottomTrailingRadius: 0,
+                                                topTrailingRadius: 10
                                             )
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                        }
+                                        )
                                         .padding(.horizontal)
                                         .padding(.top)
-
-                                        basalProfileChart
-                                            .frame(height: 180)
-                                            .padding(.horizontal)
-                                            .padding(.bottom)
-                                    }
-                                    .background(Color.chart.opacity(0.65))
-                                    .clipShape(
-                                        .rect(
-                                            topLeadingRadius: 10,
-                                            bottomLeadingRadius: 0,
-                                            bottomTrailingRadius: 0,
-                                            topTrailingRadius: 10
-                                        )
-                                    )
-                                    .padding(.horizontal)
-                                    .padding(.top)
                                 }
 
                                 // Basal profile list

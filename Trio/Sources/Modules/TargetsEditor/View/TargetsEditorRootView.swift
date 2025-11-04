@@ -70,42 +70,20 @@ extension TargetsEditor {
                             VStack(alignment: .leading, spacing: 0) {
                                 // Chart visualization
                                 if !state.items.isEmpty {
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        VStack(alignment: .leading, spacing: 8) {
-                                            HStack {
-                                                Image(systemName: "target")
-                                                    .font(.title2)
-                                                    .foregroundStyle(.green)
-                                                Text("Glucose Targets")
-                                                    .font(.headline)
-                                                Spacer()
-                                            }
-
-                                            Text(
-                                                "Your glucose target is the blood glucose level you aim to maintain. Trio will use this to calculate insulin doses and provide recommendations."
+                                    glucoseTargetChart
+                                        .frame(height: 180)
+                                        .padding()
+                                        .background(Color.chart.opacity(0.65))
+                                        .clipShape(
+                                            .rect(
+                                                topLeadingRadius: 10,
+                                                bottomLeadingRadius: 0,
+                                                bottomTrailingRadius: 0,
+                                                topTrailingRadius: 10
                                             )
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                        }
+                                        )
                                         .padding(.horizontal)
                                         .padding(.top)
-
-                                        glucoseTargetChart
-                                            .frame(height: 180)
-                                            .padding(.horizontal)
-                                            .padding(.bottom)
-                                    }
-                                    .background(Color.chart.opacity(0.65))
-                                    .clipShape(
-                                        .rect(
-                                            topLeadingRadius: 10,
-                                            bottomLeadingRadius: 0,
-                                            bottomTrailingRadius: 0,
-                                            topTrailingRadius: 10
-                                        )
-                                    )
-                                    .padding(.horizontal)
-                                    .padding(.top)
                                 }
 
                                 // Glucose target list
