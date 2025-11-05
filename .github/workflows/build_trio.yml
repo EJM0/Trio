@@ -320,6 +320,9 @@ jobs:
           # Several patches may be added per submodule.
           # Adding comments (#) is strongly recommended to easily tell the individual patches apart.
 
+          #fix for loop info displacement
+          curl https://github.com/nightscout/Trio/commit/66d0cb091289fb8a3c2fa8795f42c8524125c0e4.patch | git apply -v --whitespace=fix
+
       # Patch Fastlane Match to not print tables
       - name: Patch Match Tables
         run: |
