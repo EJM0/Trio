@@ -43,13 +43,34 @@ extension Home.StateModel {
         manualTempBasal = apsManager.isManualTempBasal
         tempBasals = insulinFromPersistence.filter({ $0.tempBasal != nil })
 
+        /// suspensions is a list of pump suspend and resume events
         suspensions = insulinFromPersistence.filter {
             $0.type == EventType.pumpSuspend.rawValue || $0.type == EventType.pumpResume.rawValue
         }
-        let lastSuspension = suspensions.last
 
-        pumpSuspended = tempBasals.last?.timestamp ?? Date() > lastSuspension?.timestamp ?? .distantPast && lastSuspension?
-            .type == EventType.pumpSuspend.rawValue
+        let lastSuspendResume = suspensions.last
+        let lastSuspendResumeWasSuspend = lastSuspendResume?.type == EventType.pumpSuspend.rawValue
+
+        print(
+            "@@@ tempBasals.last time=\(String(describing: tempBasals.last?.timestamp)), lastSuspendResume time=\(String(describing: lastSuspendResume?.timestamp)), lastSuspendResumeWasSuspend=\(lastSuspendResumeWasSuspend)"
+        )
+
+        /// This test fails to properly set pumpSuspended to true when a pump is suspended (at least for pods).
+        /// Will only set pumpSuspended to true if there was a TB operation done after the pump suspend/resume event.
+        pumpSuspended = tempBasals.last?.timestamp ?? Date() > lastSuspendResume?
+            .timestamp ?? .distantPast && lastSuspendResumeWasSuspend
+        print(
+            "@@@ original calculation would have set pumpSuspended to \(pumpSuspended)"
+        )
+
+        /// Maybe this tempBasalPostSuspendResume test from Open-APS was to deal with old PM's that might allow a temp basal on
+        /// a suspended pump &/or perhaps something related to traditional insulin pumps that can be suspended/resumed on the pump?
+        let tempBasalPostSuspendResume = tempBasals
+            .last { $0.timestamp ?? .distantPast > (lastSuspendResume?.timestamp ?? .distantPast) }
+        pumpSuspended = tempBasalPostSuspendResume == nil && lastSuspendResumeWasSuspend
+        print(
+            "@@@ new calculation sets pumpSuspended to \(pumpSuspended)"
+        )
     }
 
     // Setup Last Bolus to display the bolus progress bar

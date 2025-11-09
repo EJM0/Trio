@@ -4,6 +4,9 @@ import SwiftDate
 import SwiftUI
 import Swinject
 
+private var origPumpSuspendedFromHistory = false
+private var skipScheduledBasalRate = false
+
 struct TimePicker: Identifiable {
     var active: Bool
     let hours: Int16
@@ -162,22 +165,53 @@ extension Home {
             }
         }
 
-        var tempBasalString: String? {
-            guard let lastTempBasal = state.tempBasals.last?.tempBasal, let tempRate = lastTempBasal.rate else {
-                return nil
-            }
-            let rateString = Formatter.decimalFormatterWithTwoFractionDigits.string(from: tempRate as NSNumber) ?? "0"
+        var basalString: String? {
+            var rate: NSNumber = 0
+            var scheduledBasalPrefix = ""
             var manualBasalString = ""
 
-            if let apsManager = state.apsManager, apsManager.isManualTempBasal {
-                manualBasalString = String(
-                    localized:
-                    " - Manual Basal ⚠️",
-                    comment: "Manual Temp basal"
-                )
+            guard let apsManager = state.apsManager else {
+                return nil
             }
 
-            return rateString + String(localized: " U/hr", comment: "Unit per hour with space") + manualBasalString
+            if apsManager.isScheduledBasal == true {
+                guard let scheduledRate = scheduledBasalDeliveryRate(at: Date()) else {
+                    return nil
+                }
+                // scheduledBasalPrefix = "SB "
+                rate = scheduledRate
+            } else {
+                guard let lastTempBasal = state.tempBasals.last?.tempBasal, let tempRate = lastTempBasal.rate else {
+                    return nil
+                }
+                if apsManager.isManualTempBasal {
+                    manualBasalString = String(
+                        localized: " - Manual Basal ⚠️",
+                        comment: "Manual Temp basal"
+                    )
+                }
+                rate = tempRate
+            }
+
+            let rateString = Formatter.decimalFormatterWithTwoFractionDigits.string(from: rate) ?? "0"
+            return scheduledBasalPrefix + rateString + String(localized: " U/hr", comment: "Unit per hour with space") +
+                manualBasalString
+        }
+
+        // Returns the scheduled basal rate for the current time based on the saved basal scheduled.
+        // Would be better if in the future BasalDeliveryStatus could be updated to include this info.
+        func scheduledBasalDeliveryRate(at when: Date) -> NSNumber? {
+            let calendar = Calendar(identifier: .gregorian)
+            // calendar.timeZone = timeZone /// should come from pumpManager in case it's different!
+
+            let hours = calendar.component(.hour, from: when)
+            let minutes = calendar.component(.minute, from: when)
+            let totalMinutes = hours * 60 + minutes
+
+            if let rate = findBasalRateForOffset(for: totalMinutes, in: state.basalProfile) {
+                return NSDecimalNumber(decimal: rate)
+            }
+            return nil
         }
 
         var overrideString: String? {
@@ -467,31 +501,48 @@ extension Home {
                         .font(.callout)
                 } else {
                     HStack {
-                        if state.pumpSuspended {
+                        if state.apsManager?.isScheduledBasal == nil {
+                            /// The pump not currently available (e.g., no pod)
+                            /// display no insulin delivery info rather than "Pump suspended"
+                        } else if origPumpSuspendedFromHistory && state.pumpSuspended {
+                            Text("Pump suspended [History]")
+                                .font(.callout).fontWeight(.bold).fontDesign(.rounded)
+                                .foregroundColor(.loopGray)
+                        } else if !origPumpSuspendedFromHistory && state.apsManager.isSuspended {
                             Text("Pump suspended")
                                 .font(.callout).fontWeight(.bold).fontDesign(.rounded)
                                 .foregroundColor(.loopGray)
-                        } else if let tempBasalString = tempBasalString {
-                            Image(systemName: "drop.circle")
-                                .font(.callout)
-                                .foregroundColor(.insulinTintColor)
-                            if tempBasalString.count > 5 {
-                                Text(tempBasalString)
-                                    .font(.callout).fontWeight(.bold).fontDesign(.rounded)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.85)
-                                    .truncationMode(.tail)
-                                    .allowsTightening(true)
-                            } else {
-                                // Short strings can just display normally
-                                Text(tempBasalString).font(.callout).fontWeight(.bold).fontDesign(.rounded)
-                            }
                         } else {
                             Image(systemName: "drop.circle")
                                 .font(.callout)
                                 .foregroundColor(.insulinTintColor)
-                            Text("No Data")
-                                .font(.callout).fontWeight(.bold).fontDesign(.rounded)
+                            if skipScheduledBasalRate && state.apsManager?.isScheduledBasal == true {
+                                if state.apsManager?.isScheduledBasal == true {
+                                    Text("Scheduled basal")
+                                        .font(.callout).fontWeight(.bold).fontDesign(.rounded)
+                                        .foregroundColor(.loopGray)
+                                }
+                            } else if let basalString = basalString {
+                                // If running a scheduled basal, display basalString in blue instead of black
+                                let color: Color = state.apsManager?.isScheduledBasal == true ? .blue : .black
+                                if basalString.count > 5 {
+                                    Text(basalString)
+                                        .font(.callout).fontWeight(.bold).fontDesign(.rounded)
+                                        .foregroundColor(color)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.85)
+                                        .truncationMode(.tail)
+                                        .allowsTightening(true)
+                                } else {
+                                    // Short strings can just display normally
+                                    Text(basalString)
+                                        .font(.callout).fontWeight(.bold).fontDesign(.rounded)
+                                        .foregroundColor(color)
+                                }
+                            } else {
+                                Text("No Data")
+                                    .font(.callout).fontWeight(.bold).fontDesign(.rounded)
+                            }
                         }
                     }
                 }
