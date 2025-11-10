@@ -14,8 +14,6 @@ import SwiftDate
 import Swinject
 import UserNotifications
 
-var fakePumpUnavailable = false
-
 protocol DeviceDataManager: GlucoseSource {
     var pumpManager: PumpManagerUI? { get set }
     var bluetoothManager: BluetoothStateManager { get }
@@ -417,26 +415,21 @@ extension BaseDeviceDataManager: PumpManagerDelegate {
             bolusTrigger.send(false)
         }
 
-        // New code to set pumpSuspended variable here instead
-        // in Modules/Home/HomeStateModel+Setup/PumpHistorySetup.
-        // Works well with new scheduleBasal state variable.
+        /// The new suspended and scheduledBasal PassthroughSubject var's are set here based on the PM's basalDeliveryState.
+        /// Setting suspended here replaces the pumpSuspended state var that used to be incorrectly set in updateInsulinArray().
 
         switch status.basalDeliveryState {
         case let .active(at):
-            if at == .distantPast || fakePumpUnavailable {
-                print("@@@ scheduledBasal.send(nil)")
+            if at == .distantPast {
                 scheduledBasal.send(nil) // pump is not currently available
             } else {
-                print("@@@ basalDeliveryState active: suspended.send(false) & scheduledBasal.send(true)")
                 suspended.send(false)
                 scheduledBasal.send(true)
             }
         case .suspended:
-            print("@@@ basalDeliveryState suspended: suspended.send(true), scheduledBasal.send(false)")
             suspended.send(true)
             scheduledBasal.send(false)
         default:
-            print("@@@ basalDeliveryState default: suspended.send(false) & scheduledBasal.send(false)")
             suspended.send(false)
             scheduledBasal.send(false)
         }

@@ -4,9 +4,6 @@ import SwiftDate
 import SwiftUI
 import Swinject
 
-private var origPumpSuspendedFromHistory = false
-private var skipScheduledBasalRate = false
-
 struct TimePicker: Identifiable {
     var active: Bool
     let hours: Int16
@@ -167,7 +164,6 @@ extension Home {
 
         var basalString: String? {
             var rate: NSNumber = 0
-            var scheduledBasalPrefix = ""
             var manualBasalString = ""
 
             guard let apsManager = state.apsManager else {
@@ -178,7 +174,6 @@ extension Home {
                 guard let scheduledRate = scheduledBasalDeliveryRate(at: Date()) else {
                     return nil
                 }
-                // scheduledBasalPrefix = "SB "
                 rate = scheduledRate
             } else {
                 guard let lastTempBasal = state.tempBasals.last?.tempBasal, let tempRate = lastTempBasal.rate else {
@@ -194,7 +189,7 @@ extension Home {
             }
 
             let rateString = Formatter.decimalFormatterWithTwoFractionDigits.string(from: rate) ?? "0"
-            return scheduledBasalPrefix + rateString + String(localized: " U/hr", comment: "Unit per hour with space") +
+            return rateString + String(localized: " U/hr", comment: "Unit per hour with space") +
                 manualBasalString
         }
 
@@ -502,13 +497,9 @@ extension Home {
                 } else {
                     HStack {
                         if state.apsManager?.isScheduledBasal == nil {
-                            /// The pump not currently available (e.g., no pod)
+                            /// The pump is not currently available (e.g., no pod) so
                             /// display no insulin delivery info rather than "Pump suspended"
-                        } else if origPumpSuspendedFromHistory && state.pumpSuspended {
-                            Text("Pump suspended [History]")
-                                .font(.callout).fontWeight(.bold).fontDesign(.rounded)
-                                .foregroundColor(.loopGray)
-                        } else if !origPumpSuspendedFromHistory && state.apsManager.isSuspended {
+                        } else if state.apsManager.isSuspended {
                             Text("Pump suspended")
                                 .font(.callout).fontWeight(.bold).fontDesign(.rounded)
                                 .foregroundColor(.loopGray)
@@ -516,23 +507,17 @@ extension Home {
                             Image(systemName: "drop.circle")
                                 .font(.callout)
                                 .foregroundColor(.insulinTintColor)
-                            if skipScheduledBasalRate && state.apsManager?.isScheduledBasal == true {
-                                if state.apsManager?.isScheduledBasal == true {
-                                    Text("Scheduled basal")
-                                        .font(.callout).fontWeight(.bold).fontDesign(.rounded)
-                                        .foregroundColor(.loopGray)
-                                }
-                            } else if let basalString = basalString {
-                                // If running a scheduled basal, display basalString in blue instead of black
-                                let color: Color = state.apsManager?.isScheduledBasal == true ? .blue : .black
+                            if let basalString = self.basalString {
+                                // If running a scheduled basal, display basalString in loopGray instead of black
+                                let color: Color = state.apsManager?.isScheduledBasal == true ? .loopGray : .black
                                 if basalString.count > 5 {
                                     Text(basalString)
                                         .font(.callout).fontWeight(.bold).fontDesign(.rounded)
-                                        .foregroundColor(color)
                                         .lineLimit(1)
                                         .minimumScaleFactor(0.85)
                                         .truncationMode(.tail)
                                         .allowsTightening(true)
+                                        .foregroundColor(color)
                                 } else {
                                     // Short strings can just display normally
                                     Text(basalString)

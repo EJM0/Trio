@@ -188839,9 +188839,6 @@
         }
       }
     },
-    "Pump suspended [History]" : {
-
-    },
     "Pump Suspension" : {
       "localizations" : {
         "bg" : {
@@ -199132,9 +199129,6 @@
           }
         }
       }
-    },
-    "Scheduled basal" : {
-
     },
     "Scheduled Basal Rate" : {
       "localizations" : {
