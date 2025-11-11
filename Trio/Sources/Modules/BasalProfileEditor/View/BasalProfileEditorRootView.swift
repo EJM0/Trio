@@ -118,6 +118,48 @@ extension BasalProfileEditor {
             }
         }
 
+        var fullScheduleWarning: some View {
+            VStack {
+                Text(
+                    "Basal profile covers 24 hours. You cannot add more rates. Please remove or adjust existing rates to make space."
+                ).bold()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .background(Color.tabBar)
+            .clipShape(
+                .rect(
+                    topLeadingRadius: 10,
+                    bottomLeadingRadius: 10,
+                    bottomTrailingRadius: 10,
+                    topTrailingRadius: 10
+                )
+            )
+        }
+
+        var totalBasalRow: some View {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text("Total")
+                        .bold()
+
+                    Spacer()
+
+                    HStack {
+                        Text(rateFormatter.string(from: state.total as NSNumber) ?? "0")
+                        Text("U/day")
+                            .foregroundStyle(Color.secondary)
+                    }
+                    .id(refreshUI)
+                }
+            }
+            .padding()
+            .background(Color.chart.opacity(0.65))
+            .cornerRadius(10)
+            .padding(.horizontal)
+            .id(bottomID)
+        }
+
         var body: some View {
             ScrollViewReader { proxy in
                 VStack(spacing: 0) {
@@ -125,24 +167,8 @@ extension BasalProfileEditor {
                         LazyVStack {
                             VStack(alignment: .leading, spacing: 0) {
                                 if !state.canAdd {
-                                    VStack {
-                                        Text(
-                                            "Basal profile covers 24 hours. You cannot add more rates. Please remove or adjust existing rates to make space."
-                                        ).bold()
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding()
-                                    .background(Color.tabBar)
-                                    .clipShape(
-                                        .rect(
-                                            topLeadingRadius: 10,
-                                            bottomLeadingRadius: 10,
-                                            bottomTrailingRadius: 10,
-                                            topTrailingRadius: 10
-                                        )
-                                    )
-                                    .padding(.horizontal)
-                                    .padding(.top)
+                                    fullScheduleWarning
+                                        .padding()
                                 }
 
                                 // Chart visualization
@@ -178,31 +204,21 @@ extension BasalProfileEditor {
                                 )
                                 .padding(.horizontal)
 
-                                // Total daily basal calculation
                                 if !state.items.isEmpty {
-                                    Spacer(minLength: 20)
-
-                                    VStack(alignment: .leading, spacing: 0) {
-                                        HStack {
-                                            Text("Total")
-                                                .bold()
-
-                                            Spacer()
-
-                                            HStack {
-                                                Text(rateFormatter.string(from: state.total as NSNumber) ?? "0")
-                                                Text("U/day")
-                                                    .foregroundStyle(Color.secondary)
-                                            }
-                                            .id(refreshUI)
-                                        }
-                                    }
-                                    .padding()
-                                    .background(Color.chart.opacity(0.65))
-                                    .cornerRadius(10)
-                                    .padding(.horizontal)
-                                    .id(bottomID)
+                                    totalBasalRow
                                 }
+
+                                HStack {
+                                    Image(systemName: "hand.draw.fill")
+                                        .padding(.leading)
+
+                                    Text("Swipe to delete a single entry. Tap on it, to edit its time or value.")
+                                        .padding(.trailing)
+                                }
+                                .font(.subheadline)
+                                .fontWeight(.light)
+                                .foregroundStyle(.secondary)
+                                .padding()
                             }
                         }
                     }

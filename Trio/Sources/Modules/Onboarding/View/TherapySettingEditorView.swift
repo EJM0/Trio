@@ -16,6 +16,8 @@ struct TherapySettingEditorView: View {
             ScrollView {
                 HStack {
                     Text("Entries").bold()
+                        .padding([.top, .bottom], 10)
+                        .padding(.leading, 20)
                     Spacer()
                     Button {
                         // Prepare and add new entry
@@ -42,11 +44,13 @@ struct TherapySettingEditorView: View {
                             Image(systemName: "plus.circle.fill")
                             Text("Add")
                         }.foregroundColor(cannotAddMoreEntries ? .secondary : .accentColor)
+                            .padding([.top, .bottom], 10)
+                            .padding(.trailing, 20)
                     }
                     .disabled(cannotAddMoreEntries)
                 }
-                .listRowBackground(Color.chart.opacity(0.65))
-                .padding(.vertical, 10)
+                .background(Color.chart.opacity(0.65))
+                .padding(.bottom, -10)
 
                 List {
                     ForEach($items) { $item in
@@ -106,6 +110,19 @@ struct TherapySettingEditorView: View {
                         }
                     }
                     .listRowBackground(Color.chart.opacity(0.65))
+
+                    Rectangle().fill(Color.chart.opacity(0.65)).frame(height: 10)
+                        .clipShape(
+                            .rect(
+                                topLeadingRadius: 0,
+                                bottomLeadingRadius: 10,
+                                bottomTrailingRadius: 10,
+                                topTrailingRadius: 0
+                            )
+                        )
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: -22, leading: 0, bottom: 0, trailing: 0))
+                        .listRowSeparator(.hidden)
                 }
                 .id(bottomID)
                 .listStyle(.plain)

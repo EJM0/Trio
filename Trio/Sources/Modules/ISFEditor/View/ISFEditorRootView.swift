@@ -106,6 +106,18 @@ extension ISFEditor {
                                     }
                                 )
                                 .padding(.horizontal)
+
+                                HStack {
+                                    Image(systemName: "hand.draw.fill")
+                                        .padding(.leading)
+
+                                    Text("Swipe to delete a single entry. Tap on it, to edit its time or rate.")
+                                        .padding(.trailing)
+                                }
+                                .font(.subheadline)
+                                .fontWeight(.light)
+                                .foregroundStyle(.secondary)
+                                .padding()
                             }
                         }
                     }
