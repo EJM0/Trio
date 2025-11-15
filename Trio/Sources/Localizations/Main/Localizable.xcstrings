@@ -221437,6 +221437,7 @@
       }
     },
     "Swipe to delete a single entry. Tap on it, to edit its time or rate." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {

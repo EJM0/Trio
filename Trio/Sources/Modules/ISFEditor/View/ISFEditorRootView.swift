@@ -111,7 +111,7 @@ extension ISFEditor {
                                     Image(systemName: "hand.draw.fill")
                                         .padding(.leading)
 
-                                    Text("Swipe to delete a single entry. Tap on it, to edit its time or rate.")
+                                    Text("Swipe to delete a single entry. Tap on it, to edit its time or value.")
                                         .padding(.trailing)
                                 }
                                 .font(.subheadline)
