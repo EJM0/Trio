@@ -204,7 +204,7 @@ final class BaseAPSManager: APSManager, Injectable {
             }
             .store(in: &lifetime)
 
-        // manage a manual Temp Basal from PumpManager - force loop() after temp basal is cancelled or finishes
+        // manage a manual Temp Basal from PumpManager - force loop() after manual temp basal is cancelled or finishes
         deviceDataManager.manualTempBasal
             .receive(on: processQueue)
             .sink { manualBasal in

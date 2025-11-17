@@ -660,9 +660,9 @@ extension Decimal {
     }
 }
 
-/// XXX Will be moving this utility function to a new file
+/// Moved out from findBasalRate()
 ///
-/// Finds the basal rate for a specific offset in a day using binary search
+/// Finds the basal rate at the specified minute offset using binary search
 /// - Parameters:
 ///   - totalMinutes: minute offset into a 24 hour day
 ///   - profile: Array of basal profile entries sorted by time

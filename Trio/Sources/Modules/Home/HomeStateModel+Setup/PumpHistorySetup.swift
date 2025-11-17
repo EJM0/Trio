@@ -43,7 +43,7 @@ extension Home.StateModel {
         manualTempBasal = apsManager.isManualTempBasal
         tempBasals = insulinFromPersistence.filter { $0.tempBasal != nil }
 
-        /// The suspensions variable is actually is a list of all pump suspend and resume events
+        /// The suspensions variable is the list of all pump suspend and resume events
         suspensions = insulinFromPersistence.filter {
             $0.type == EventType.pumpSuspend.rawValue || $0.type == EventType.pumpResume.rawValue
         }
