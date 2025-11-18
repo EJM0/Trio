@@ -10034,6 +10034,7 @@
       }
     },
     "%lld h" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -136146,6 +136147,7 @@
       }
     },
     "Invalid CGM reading (HIGH)." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -212825,6 +212827,7 @@
       }
     },
     "SMBs and Non-Zero Temp. Basal Rates are disabled." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
