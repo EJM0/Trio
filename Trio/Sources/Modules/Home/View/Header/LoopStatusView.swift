@@ -53,18 +53,6 @@ struct LoopStatusView: View {
                 }
 
                 if let determination = state.determinationsFromPersistence.first {
-//                    if determination.glucose == 400 {
-//                        Text("Invalid CGM reading (HIGH).")
-//                            .bold()
-//                            .padding(.top)
-//                            .foregroundStyle(Color.loopRed)
-//                            .fixedSize(horizontal: false, vertical: true)
-//
-//                        Text("SMBs and Non-Zero Temp. Basal Rates are disabled.")
-//                            .font(.subheadline)
-//                            .fixedSize(horizontal: false, vertical: true)
-//
-//                    } else {
                     Text("Latest Raw Algorithm Output")
                         .bold()
                         .padding(.top)
@@ -95,7 +83,6 @@ struct LoopStatusView: View {
                     .lineLimit(nil)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
-//                    }
                 } else {
                     Text("No recent oref algorithm determination.")
                 }
