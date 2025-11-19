@@ -101,7 +101,6 @@ import Testing
         #expect(remainingEntries?.isEmpty == true, "Should have no entries after deletion")
 
         // Finally verify that it stored a copy
-        // Then verify deletion
         let archivedEntries = try await coreDataStack.fetchEntitiesAsync(
             ofType: DeletedGlucoseStored.self,
             onContext: testContext,
