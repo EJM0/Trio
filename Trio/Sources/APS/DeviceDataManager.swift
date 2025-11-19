@@ -415,9 +415,6 @@ extension BaseDeviceDataManager: PumpManagerDelegate {
             bolusTrigger.send(false)
         }
 
-        /// The new suspended and scheduledBasal PassthroughSubject var's are set here based on the PM's basalDeliveryState.
-        /// Setting suspended here replaces the pumpSuspended state var that used to be incorrectly set in updateInsulinArray().
-
         switch status.basalDeliveryState {
         case let .active(at):
             if at == .distantPast {

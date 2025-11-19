@@ -660,8 +660,6 @@ extension Decimal {
     }
 }
 
-/// Moved out from findBasalRate()
-///
 /// Finds the basal rate at the specified minute offset using binary search
 /// - Parameters:
 ///   - totalMinutes: minute offset into a 24 hour day

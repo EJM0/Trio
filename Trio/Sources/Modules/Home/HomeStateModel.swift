@@ -91,7 +91,7 @@ extension Home {
         var fetchedTDDs: [TDD] = []
         var insulinFromPersistence: [PumpEventStored] = []
         var tempBasals: [PumpEventStored] = []
-        var suspensions: [PumpEventStored] = [] // all of the pump suspend and resume events
+        var suspendAndResumeEvents: [PumpEventStored] = []
         var batteryFromPersistence: [OpenAPS_Battery] = []
         var lastPumpBolus: PumpEventStored?
         var overrides: [OverrideStored] = []

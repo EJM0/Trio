@@ -43,12 +43,9 @@ extension Home.StateModel {
         manualTempBasal = apsManager.isManualTempBasal
         tempBasals = insulinFromPersistence.filter { $0.tempBasal != nil }
 
-        /// The suspensions variable is the list of all pump suspend and resume events
-        suspensions = insulinFromPersistence.filter {
+        suspendAndResumeEvents = insulinFromPersistence.filter {
             $0.type == EventType.pumpSuspend.rawValue || $0.type == EventType.pumpResume.rawValue
         }
-
-        /// Determining if the pump is currently suspended is now handled in DeviceDataManager
     }
 
     // Setup Last Bolus to display the bolus progress bar
