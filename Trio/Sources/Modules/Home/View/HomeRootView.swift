@@ -496,20 +496,16 @@ extension Home {
                         .font(.callout)
                 } else {
                     HStack {
-                        if state.apsManager?.isScheduledBasal == nil {
-                            /// The pump is not currently available (e.g., no pod) so
-                            /// display no insulin delivery info rather than "Pump suspended"
-                        } else if state.apsManager.isSuspended {
-                            Text("Pump suspended")
-                                .font(.callout).fontWeight(.bold).fontDesign(.rounded)
-                                .foregroundColor(.loopGray)
-                        } else {
+                        /// Only display the insulin delivery rate info if the pump is not
+                        /// suspended and is available (e.g., pod is paired & not faulted).
+                        let pumpAvailable = state.apsManager.isScheduledBasal != nil
+                        if !state.apsManager.isSuspended && pumpAvailable {
                             Image(systemName: "drop.circle")
                                 .font(.callout)
                                 .foregroundColor(.insulinTintColor)
                             if let basalString = self.basalString {
-                                // If running a scheduled basal, display basalString in loopGray instead of black
-                                let color: Color = state.apsManager?.isScheduledBasal == true ? .loopGray : .black
+                                /// Adjust opacity when displaying a scheduled basal rate
+                                let opacity = state.apsManager?.isScheduledBasal == true ? 0.6 : 1.0
                                 if basalString.count > 5 {
                                     Text(basalString)
                                         .font(.callout).fontWeight(.bold).fontDesign(.rounded)
@@ -517,12 +513,12 @@ extension Home {
                                         .minimumScaleFactor(0.85)
                                         .truncationMode(.tail)
                                         .allowsTightening(true)
-                                        .foregroundColor(color)
+                                        .opacity(opacity)
                                 } else {
                                     // Short strings can just display normally
                                     Text(basalString)
                                         .font(.callout).fontWeight(.bold).fontDesign(.rounded)
-                                        .foregroundColor(color)
+                                        .opacity(opacity)
                                 }
                             } else {
                                 Text("No Data")
