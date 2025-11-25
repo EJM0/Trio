@@ -567,7 +567,7 @@ extension Home {
 
                 if let schedule = BasalRateSchedule(
                     dailyItems: basalProfile
-                        .map { RepeatingScheduleValue(startTime: TimeInterval($0.minutes), value: Double($0.rate)) }
+                        .map { RepeatingScheduleValue(startTime: TimeInterval($0.minutes * 60), value: Double($0.rate)) }
                 ) {
                     self.pumpInitialSettings.basalSchedule = schedule
                 }
