@@ -40,7 +40,6 @@ extension Home {
         var targetProfiles: [TargetProfile] = []
         var timerDate = Date()
         var closedLoop = false
-        var pumpSuspended = false
         var isLooping = false
         var statusTitle = ""
         var lastLoopDate: Date = .distantPast
@@ -92,7 +91,7 @@ extension Home {
         var fetchedTDDs: [TDD] = []
         var insulinFromPersistence: [PumpEventStored] = []
         var tempBasals: [PumpEventStored] = []
-        var suspensions: [PumpEventStored] = []
+        var suspendAndResumeEvents: [PumpEventStored] = []
         var batteryFromPersistence: [OpenAPS_Battery] = []
         var lastPumpBolus: PumpEventStored?
         var overrides: [OverrideStored] = []
