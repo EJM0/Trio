@@ -996,7 +996,7 @@ extension Home {
                 } else {
                     PumpConfig.PumpSetupView(
                         pumpType: state.setupPumpType,
-                        pumpInitialSettings: PumpConfig.PumpInitialSettings.default,
+                        pumpInitialSettings: state.pumpInitialSettings,
                         bluetoothManager: state.provider.apsManager.bluetoothManager!,
                         completionDelegate: state,
                         setupDelegate: state
