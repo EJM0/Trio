@@ -18,7 +18,7 @@ jobs:
 
   # Set a logic flag if this is the second instance of this day-of-week in this month
   day_in_month:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: Check day in month
     outputs:
       IS_SECOND_IN_MONTH: ${{ steps.date-check.outputs.is_second_instance }}
@@ -46,7 +46,7 @@ jobs:
   # Checks for existence of alive branch; if non-existent creates it
   check_alive_and_permissions:
     needs: check_certs
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: Check alive branch and permissions
     permissions:
       contents: write
@@ -131,7 +131,7 @@ jobs:
   # Performs keepalive to avoid stale fork
   check_latest_from_upstream:
     needs: [check_certs, check_alive_and_permissions]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: Check upstream and keep alive
     outputs:
       NEW_COMMITS: ${{ steps.sync.outputs.has_new_commits }}
@@ -222,7 +222,7 @@ jobs:
   build:
     name: Build
     needs: [check_certs, check_alive_and_permissions, check_latest_from_upstream, day_in_month]
-    runs-on: macos-15
+    runs-on: self-hosted
     permissions:
       contents: write
     if:
