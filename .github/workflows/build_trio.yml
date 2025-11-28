@@ -329,7 +329,7 @@ jobs:
 
       # Install project dependencies
       - name: Install Project Dependencies
-        run: askpass.sh sudo -A bundle install
+        run: bundle install
 
       # Sync the GitHub runner clock with the Windows time server (workaround as suggested in https://github.com/actions/runner/issues/2996)
       - name: Sync clock
