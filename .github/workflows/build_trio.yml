@@ -327,6 +327,12 @@ jobs:
             exit 1
           fi
 
+      - name: Clean Bundle Cache
+        run: |
+          askpass.sh sudo -A bundle clean --force
+          rm -rf .bundle/config
+        continue-on-error: true
+
       # Install project dependencies
       - name: Install Project Dependencies
         run: askpass.sh sudo -A bundle install
