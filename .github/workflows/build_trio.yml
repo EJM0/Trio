@@ -327,20 +327,6 @@ jobs:
             exit 1
           fi
 
-      # Clean bundle cache to avoid stale git references
-      - name: Clean Bundle Cache
-        run: |
-          rm -rf .bundle
-          rm -rf vendor/bundle
-          rm -rf /opt/homebrew/lib/ruby/gems/3.3.0/bundler/gems/fastlane-*
-        continue-on-error: true
-
-      # Install project dependencies (without sudo first to fetch git repos)
-      - name: Install Project Dependencies
-        run: |
-          bundle install
-          askpass.sh sudo -A bundle install
-
       # Install project dependencies
       - name: Install Project Dependencies
         run: askpass.sh sudo -A bundle install
