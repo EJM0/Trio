@@ -38,8 +38,10 @@ struct TrioWatchComplicationEntryView: View {
         switch widgetFamily {
         case .accessoryCircular:
             TrioAccessoryCircularView(entry: entry)
-        case .accessoryCorner:
-            TrioAccessoryCornerView(entry: entry)
+        #if os(watchOS)
+            case .accessoryCorner:
+                TrioAccessoryCornerView(entry: entry)
+        #endif
         default:
             Image("ComplicationIcon")
                 .widgetAccentable()
@@ -85,10 +87,25 @@ struct TrioAccessoryCircularView: View {
         }
         .configurationDisplayName("Trio")
         .description("Displays Trio app icon as complication")
-        .supportedFamilies([
-            .accessoryCorner,
-            .accessoryCircular
-        ])
+        .supportedFamilies(supportedWidgetFamilies)
+    }
+
+    private var supportedWidgetFamilies: [WidgetFamily] {
+        #if os(watchOS)
+            if #available(watchOS 9.0, *) {
+                return [.accessoryCorner, .accessoryCircular]
+            } else {
+                return [.accessoryCircular]
+            }
+        #elseif os(iOS)
+            if #available(iOS 16.0, *) {
+                return [.accessoryCircular]
+            } else {
+                return []
+            }
+        #else
+            return []
+        #endif
     }
 }
 
