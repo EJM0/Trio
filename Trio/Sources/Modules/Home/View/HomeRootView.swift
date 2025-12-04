@@ -108,7 +108,20 @@ extension Home {
 
         func playHaptics(_ haptics: [Haptic]) {
             guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+
+            // Ensure engine is started before playing
+            if engine == nil {
+                prepareHaptics()
+            }
+
             guard let engine else { return }
+
+            // Try to start the engine in case it was stopped
+            do {
+                try engine.start()
+            } catch {
+                // Engine might already be running, which is fine
+            }
 
             var events: [CHHapticEvent] = []
             var currentTime: TimeInterval = 0

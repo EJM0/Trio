@@ -670,8 +670,10 @@ private struct BarcodeScannerPreview: UIViewRepresentable {
         }
 
         func cleanup() {
-            if session.isRunning {
-                session.stopRunning()
+            // Stop session on background thread to avoid blocking UI and Fig errors
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                guard let self = self, self.session.isRunning else { return }
+                self.session.stopRunning()
             }
         }
 
