@@ -12,19 +12,24 @@ extension BarcodeAi {
         @Environment(\.colorScheme) var colorScheme
 
         var body: some View {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    header
-                    scannedProductsSection
-                    scannerSection
-                    lastScanSection
-                    productSection
-                    errorSection
+            GeometryReader { geometry in
+                VStack(spacing: 0) {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 24) {
+                            header
+                            scannedProductsSection
+                            lastScanSection
+                            productSection
+                            errorSection
+                        }
+                        .padding()
+                    }
+                    .scrollIndicators(.hidden)
+                    .scrollContentBackground(.hidden)
+
+                    scannerSection(availableHeight: geometry.size.height)
                 }
-                .padding()
             }
-            .scrollIndicators(.hidden)
-            .scrollContentBackground(.hidden)
             .background(appState.trioBackgroundColor(for: colorScheme))
             .navigationTitle("Barcode AI")
             .navigationBarTitleDisplayMode(.inline)
@@ -45,20 +50,24 @@ extension BarcodeAi {
                     .font(.title)
                     .bold()
 
-                Text("Scan any EAN/UPC code to instantly pull nutrition data from OpenFoodFacts.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Scan EAN/UPC barcodes or use AI image analysis to identify packaged foods.")
+                }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
             }
         }
 
-        @ViewBuilder private var scannerSection: some View {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Scanner")
-                    .font(.headline)
+        @ViewBuilder private func scannerSection(availableHeight: CGFloat) -> some View {
+            let hasContent = !state.scannedProducts.isEmpty || state.scannedBarcode != nil || state.product != nil ||
+                state.errorMessage != nil
+            let minScannerHeight: CGFloat = 200
+            let maxScannerHeight: CGFloat = hasContent ? availableHeight * 0.4 : availableHeight * 0.55
 
+            VStack(alignment: .leading, spacing: 0) {
                 switch state.cameraStatus {
                 case .authorized:
-                    VStack(spacing: 12) {
+                    VStack(spacing: 0) {
                         ZStack {
                             BarcodeScannerPreview(
                                 isRunning: $state.isScanning,
@@ -71,18 +80,19 @@ extension BarcodeAi {
                                     state.setCameraCoordinator(coordinator)
                                 }
                             )
-                            .frame(height: 260)
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 20)
+                                RoundedRectangle(cornerRadius: 20, style: .continuous)
                                     .strokeBorder(.white.opacity(0.45), lineWidth: 1)
                                     .blendMode(.screen)
                             )
+                            .padding(.horizontal)
 
                             // Overlay when analyzing
                             if state.isAnalyzingImage {
                                 Color.black.opacity(0.6)
-                                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                    .padding(.horizontal)
                                     .overlay(
                                         VStack(spacing: 12) {
                                             ProgressView()
@@ -113,6 +123,7 @@ extension BarcodeAi {
                                 }
                             }
                         }
+                        .frame(height: max(minScannerHeight, maxScannerHeight))
 
                         // Single row of action buttons
                         HStack(spacing: 12) {
@@ -152,6 +163,9 @@ extension BarcodeAi {
                             .tint(.insulin)
                             .disabled(state.isAnalyzingImage)
                         }
+                        .padding(.horizontal)
+                        .padding(.vertical, 12)
+                        .padding(.bottom, 8)
                     }
                 case .notDetermined:
                     ProgressView("Requesting camera access…")
@@ -159,6 +173,7 @@ extension BarcodeAi {
                         .padding()
                         .background(.thinMaterial)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .padding(.horizontal)
                 default:
                     VStack(alignment: .leading, spacing: 8) {
                         Label("Enable camera access to start scanning.", systemImage: "lock.shield")
@@ -170,6 +185,7 @@ extension BarcodeAi {
                     .padding()
                     .background(.thinMaterial)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .padding(.horizontal)
                 }
             }
         }
@@ -331,6 +347,7 @@ private struct ScannedProductRow: View {
     @State private var amountText: String = ""
     @State private var isMlInput: Bool = false
     @State private var showQuickSelector: Bool = false
+    @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -390,10 +407,22 @@ private struct ScannedProductRow: View {
                 )
                 .keyboardType(.decimalPad)
                 .textFieldStyle(.roundedBorder)
+                .focused($isTextFieldFocused)
                 .onChange(of: amountText) { newValue in
                     if let amount = Double(newValue.replacingOccurrences(of: ",", with: ".")) {
                         state.updateScannedProductAmount(item, amount: amount, isMlInput: isMlInput)
                     }
+                }
+
+                if isTextFieldFocused {
+                    Button {
+                        isTextFieldFocused = false
+                    } label: {
+                        Image(systemName: "keyboard.chevron.compact.down")
+                            .font(.body)
+                    }
+                    .buttonStyle(.bordered)
+                    .transition(.opacity.combined(with: .scale))
                 }
 
                 Picker("", selection: $isMlInput) {
@@ -408,6 +437,7 @@ private struct ScannedProductRow: View {
                     }
                 }
             }
+            .animation(.easeInOut(duration: 0.2), value: isTextFieldFocused)
 
             // Quick select buttons - shown when tapped
             if showQuickSelector {
