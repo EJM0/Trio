@@ -222,24 +222,20 @@ extension BarcodeAi {
                 return
             }
 
-            // If camera is paused, start it first and wait briefly for the preview to initialize
-            if !isScanning {
-                print("[BarcodeAI] Camera is paused, starting camera first...")
-                isScanning = true
+            // Remember the current scanning state to restore after AI analysis
+            let wasScanningBeforeCapture = isScanning
 
-                // Wait a short moment for the camera to start, then capture
-                Task {
-                    try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                    await MainActor.run {
-                        self.performCapture()
-                    }
-                }
-            } else {
-                performCapture()
+            // If camera session is not running, we need to start it briefly for the capture
+            // The camera preview always runs, but we track scanning state separately
+            if !isScanning {
+                print("[BarcodeAI] Camera scanning is paused, will capture without restarting barcode scanning...")
             }
+
+            // Capture the photo - camera preview is always running
+            performCapture(restoreScanningState: wasScanningBeforeCapture)
         }
 
-        private func performCapture() {
+        private func performCapture(restoreScanningState _: Bool = true) {
             print("[BarcodeAI] performCapture() - calling coordinator.capturePhoto()...")
             if let coordinator = cameraCoordinator {
                 print("[BarcodeAI] Coordinator found, calling capturePhoto()")
@@ -672,6 +668,47 @@ private extension BarcodeAi.OpenFoodFactsClient {
         let imageFrontUrl: String?
         let imageFrontThumbUrl: String?
         let nutriments: NutrimentsData?
+
+        private enum CodingKeys: String, CodingKey {
+            case productName
+            case brands
+            case quantity
+            case productQuantityUnit
+            case servingSize
+            case servingQuantity
+            case servingQuantityUnit
+            case ingredientsText
+            case imageUrl
+            case imageFrontUrl
+            case imageFrontThumbUrl
+            case nutriments
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            productName = try container.decodeIfPresent(String.self, forKey: .productName)
+            brands = try container.decodeIfPresent(String.self, forKey: .brands)
+            quantity = try container.decodeIfPresent(String.self, forKey: .quantity)
+            productQuantityUnit = try container.decodeIfPresent(String.self, forKey: .productQuantityUnit)
+            servingSize = try container.decodeIfPresent(String.self, forKey: .servingSize)
+            servingQuantityUnit = try container.decodeIfPresent(String.self, forKey: .servingQuantityUnit)
+            ingredientsText = try container.decodeIfPresent(String.self, forKey: .ingredientsText)
+            imageUrl = try container.decodeIfPresent(String.self, forKey: .imageUrl)
+            imageFrontUrl = try container.decodeIfPresent(String.self, forKey: .imageFrontUrl)
+            imageFrontThumbUrl = try container.decodeIfPresent(String.self, forKey: .imageFrontThumbUrl)
+            nutriments = try container.decodeIfPresent(NutrimentsData.self, forKey: .nutriments)
+
+            // servingQuantity can be either a Double or a String in the API response
+            if let doubleValue = try? container.decodeIfPresent(Double.self, forKey: .servingQuantity) {
+                servingQuantity = doubleValue
+            } else if let stringValue = try? container.decodeIfPresent(String.self, forKey: .servingQuantity),
+                      let parsed = Double(stringValue.replacingOccurrences(of: ",", with: "."))
+            {
+                servingQuantity = parsed
+            } else {
+                servingQuantity = nil
+            }
+        }
 
         var primaryBrand: String? {
             brands?
