@@ -271,9 +271,10 @@ extension BarcodeAi {
                     }
                     print("[BarcodeAI] API key found, length: \(apiKey.count)")
 
-                    // Prepare image data
-                    print("[BarcodeAI] Converting image to JPEG...")
-                    guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+                    // Prepare image data - resize and compress to reduce tokens
+                    print("[BarcodeAI] Resizing and compressing image...")
+                    let resizedImage = image.resizedForAPI(maxDimension: 1024)
+                    guard let imageData = resizedImage.jpegData(compressionQuality: 0.6) else {
                         print("[BarcodeAI] ERROR: Failed to convert image to JPEG")
                         throw NSError(
                             domain: "BarcodeAI",
@@ -281,7 +282,9 @@ extension BarcodeAi {
                             userInfo: [NSLocalizedDescriptionKey: "Failed to convert image"]
                         )
                     }
-                    print("[BarcodeAI] Image data size: \(imageData.count) bytes")
+                    print(
+                        "[BarcodeAI] Original size: \(image.size), Resized: \(resizedImage.size), Data size: \(imageData.count) bytes"
+                    )
 
                     let base64Image = imageData.base64EncodedString()
                     print("[BarcodeAI] Base64 encoded, length: \(base64Image.count)")
@@ -819,5 +822,24 @@ private extension Optional where Wrapped == String {
             return nil
         }
         return trimmed
+    }
+}
+
+private extension UIImage {
+    /// Resizes the image to fit within a maximum dimension while maintaining aspect ratio.
+    /// This reduces the number of tokens used when sending images to AI APIs.
+    func resizedForAPI(maxDimension: CGFloat) -> UIImage {
+        let currentMax = max(size.width, size.height)
+
+        // If already smaller than maxDimension, return self
+        guard currentMax > maxDimension else { return self }
+
+        let scale = maxDimension / currentMax
+        let newSize = CGSize(width: size.width * scale, height: size.height * scale)
+
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        return renderer.image { _ in
+            draw(in: CGRect(origin: .zero, size: newSize))
+        }
     }
 }

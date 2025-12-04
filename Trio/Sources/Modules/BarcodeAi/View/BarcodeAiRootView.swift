@@ -129,7 +129,7 @@ extension BarcodeAi {
                                 .padding(.vertical, 4)
                             }
                             .buttonStyle(.borderedProminent)
-                            .tint(.loopPink)
+                            .tint(.tabBar)
                             .disabled(state.isAnalyzingImage)
 
                             // Resume/Pause scanning button
