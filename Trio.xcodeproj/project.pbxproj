@@ -15,6 +15,7 @@
 		094D993E2EDDA35B001F2DAD /* BarcodeAiProvider.swift.swift in Sources */ = {isa = PBXBuildFile; fileRef = 094D993D2EDDA34D001F2DAD /* BarcodeAiProvider.swift.swift */; };
 		09ACD7702EE0F1F80020FF70 /* BarcodeAiSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09ACD76F2EE0F1F80020FF70 /* BarcodeAiSettingsView.swift */; };
 		09ACD7722EE0F2000020FF70 /* BarcodeAiSettingsStateModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09ACD7712EE0F2000020FF70 /* BarcodeAiSettingsStateModel.swift */; };
+		09ACD78E2EE1A5F20020FF70 /* OpenBarcodeAIIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09ACD78C2EE1A5F20020FF70 /* OpenBarcodeAIIntent.swift */; };
 		0D9A5E34A899219C5C4CDFAF /* DataTableStateModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9455FA2D92E77A6C4AFED8A3 /* DataTableStateModel.swift */; };
 		0F7A65FBD2CD8D6477ED4539 /* GlucoseNotificationSettingsProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E625985B47742D498CB1681A /* GlucoseNotificationSettingsProvider.swift */; };
 		110AEDE32C5193D200615CC9 /* BolusIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110AEDE02C5193D100615CC9 /* BolusIntent.swift */; };
@@ -851,6 +852,7 @@
 		094D993D2EDDA34D001F2DAD /* BarcodeAiProvider.swift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeAiProvider.swift.swift; sourceTree = "<group>"; };
 		09ACD76F2EE0F1F80020FF70 /* BarcodeAiSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeAiSettingsView.swift; sourceTree = "<group>"; };
 		09ACD7712EE0F2000020FF70 /* BarcodeAiSettingsStateModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeAiSettingsStateModel.swift; sourceTree = "<group>"; };
+		09ACD78C2EE1A5F20020FF70 /* OpenBarcodeAIIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenBarcodeAIIntent.swift; sourceTree = "<group>"; };
 		110AEDE02C5193D100615CC9 /* BolusIntent.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BolusIntent.swift; sourceTree = "<group>"; };
 		110AEDE12C5193D100615CC9 /* BolusIntentRequest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BolusIntentRequest.swift; sourceTree = "<group>"; };
 		110AEDE52C51A0AE00615CC9 /* ShortcutsConfigView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ShortcutsConfigView.swift; sourceTree = "<group>"; };
@@ -1691,6 +1693,14 @@
 				094D99342EDD9934001F2DAD /* BarcodeAiStateModel.swift */,
 			);
 			path = BarcodeAi;
+			sourceTree = "<group>";
+		};
+		09ACD78D2EE1A5F20020FF70 /* BarcodeAI */ = {
+			isa = PBXGroup;
+			children = (
+				09ACD78C2EE1A5F20020FF70 /* OpenBarcodeAIIntent.swift */,
+			);
+			path = BarcodeAI;
 			sourceTree = "<group>";
 		};
 		0A67A70F9438DB6586398458 /* View */ = {
@@ -3118,6 +3128,7 @@
 				CE7CA3442A064973004BE681 /* BaseIntentsRequest.swift */,
 				CE7CA3452A064973004BE681 /* TempPresets */,
 				CE7CA34B2A064973004BE681 /* State */,
+				09ACD78D2EE1A5F20020FF70 /* BarcodeAI */,
 			);
 			path = Shortcuts;
 			sourceTree = "<group>";
@@ -4199,6 +4210,7 @@
 				58645BA52CA2D347008AFCE7 /* ForecastSetup.swift in Sources */,
 				110AEDEE2C51A0AE00615CC9 /* ShortcutsConfigStateModel.swift in Sources */,
 				DD9ECB722CA9A0BA00AA7C45 /* RemoteControlConfigDataFlow.swift in Sources */,
+				09ACD78E2EE1A5F20020FF70 /* OpenBarcodeAIIntent.swift in Sources */,
 				DD1745262C55526F00211FAC /* SMBSettingsRootView.swift in Sources */,
 				3811DE3025C9D49500A708ED /* HomeStateModel.swift in Sources */,
 				38BF021725E7CBBC00579895 /* PumpManagerExtensions.swift in Sources */,
