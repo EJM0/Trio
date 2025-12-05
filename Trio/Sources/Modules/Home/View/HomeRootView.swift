@@ -1196,7 +1196,7 @@ extension Home {
                 )
                 .simultaneousGesture(LongPressGesture().onEnded { _ in
                     didLongPress = true
-                    state.showModal(for: .barcodeAiView)
+                    state.showModal(for: .barcodeScanner)
                     playHaptics(haptics)
                     print("Secret Long Press Action!")
                 })
