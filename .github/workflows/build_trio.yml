@@ -234,7 +234,7 @@ jobs:
       )
     steps:
       - name: Select Xcode version
-        run: "SUDO_ASKPASS=/usr/local/bin/askpass.sh sudo -A xcode-select --switch /Applications/Xcode-13.3.1.app/Contents/Developer"
+        run: "SUDO_ASKPASS=/usr/local/bin/askpass.sh sudo -A xcode-select --switch /Applications/Xcode-26.2.0.app/Contents/Developer"
       
       - name: Checkout Repo for syncing
         if: |
