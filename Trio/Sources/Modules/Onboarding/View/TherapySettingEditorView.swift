@@ -11,6 +11,13 @@ struct TherapySettingEditorView: View {
     @State private var selectedItemID: UUID?
     @Namespace var bottomID
 
+    private var iOS26OrLater: Bool {
+        if #available(iOS 26, *) {
+            return true
+        }
+        return false
+    }
+
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -50,7 +57,7 @@ struct TherapySettingEditorView: View {
                     .disabled(cannotAddMoreEntries)
                 }
                 .background(Color.chart.opacity(0.65))
-                .padding(.bottom, -10)
+                .padding(.bottom, iOS26OrLater ? -8 : -10)
 
                 List {
                     ForEach($items) { $item in
@@ -121,7 +128,7 @@ struct TherapySettingEditorView: View {
                             )
                         )
                         .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: -22, leading: 0, bottom: 0, trailing: 0))
+                        .listRowInsets(EdgeInsets(top: iOS26OrLater ? -26 : -22, leading: 0, bottom: 0, trailing: 0))
                         .listRowSeparator(.hidden)
                 }
                 .id(bottomID)

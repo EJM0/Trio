@@ -1138,7 +1138,71 @@ extension Home {
             }
         }
 
-        @ViewBuilder func tabBar() -> some View {
+        @available(iOS 26, *)
+        @ViewBuilder func tabBarIOS18() -> some View {
+            ZStack(alignment: .bottom) {
+                TabView(selection: $selectedTab) {
+                    let carbsRequiredBadge: String? = {
+                        guard let carbsRequired = state.enactedAndNonEnactedDeterminations.first?.carbsRequired,
+                              state.showCarbsRequiredBadge
+                        else {
+                            return nil
+                        }
+                        let carbsRequiredDecimal = Decimal(carbsRequired)
+                        if carbsRequiredDecimal > state.settingsManager.settings.carbsRequiredThreshold {
+                            let numberAsNSNumber = NSDecimalNumber(decimal: carbsRequiredDecimal)
+                            return (Formatter.decimalFormatterWithTwoFractionDigits.string(from: numberAsNSNumber) ?? "") + " g"
+                        }
+                        return nil
+                    }()
+
+                    Tab("Main", systemImage: "chart.xyaxis.line", value: 0) {
+                        NavigationStack { mainView() }
+                    }
+                    .badge(carbsRequiredBadge.map { Text($0) })
+
+                    Tab("History", systemImage: historySFSymbol, value: 1) {
+                        NavigationStack { DataTable.RootView(resolver: resolver) }
+                    }
+
+                    Tab("Adjustments", systemImage: "slider.horizontal.2.gobackward", value: 2) {
+                        NavigationStack { Adjustments.RootView(resolver: resolver) }
+                    }
+
+                    Tab("Settings", systemImage: "gear", value: 3) {
+                        NavigationStack(path: self.$settingsPath) {
+                            Settings.RootView(resolver: resolver)
+                        }
+                    }
+
+                    Tab(value: 4, role: .search) {
+                        // Content for the action tab (not used as we intercept selection)
+                        Color.clear
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 100))
+                            .foregroundStyle(Color.tabBar)
+                    }
+                }
+                .tint(Color.tabBar)
+                .toolbarBackground(Color.chart, for: .tabBar)
+                .toolbarBackground(.visible, for: .tabBar)
+
+            }.ignoresSafeArea(.keyboard, edges: .bottom).blur(radius: state.waitForSuggestion ? 8 : 0)
+                .onChange(of: selectedTab) { oldValue, newValue in
+                    if newValue == 4 {
+                        state.showModal(for: .treatmentView)
+                        selectedTab = oldValue
+                        return
+                    }
+
+                    if !settingsPath.isEmpty {
+                        settingsPath = NavigationPath()
+                    }
+                }
+        }
+
+        @ViewBuilder func tabBarLegacy() -> some View {
             ZStack(alignment: .bottom) {
                 TabView(selection: $selectedTab) {
                     let carbsRequiredBadge: String? = {
@@ -1192,12 +1256,21 @@ extension Home {
                             .padding(.horizontal, 24)
                     }
                 )
+
             }.ignoresSafeArea(.keyboard, edges: .bottom).blur(radius: state.waitForSuggestion ? 8 : 0)
                 .onChange(of: selectedTab) {
                     if !settingsPath.isEmpty {
                         settingsPath = NavigationPath()
                     }
                 }
+        }
+
+        @ViewBuilder func tabBar() -> some View {
+            if #available(iOS 26, *) {
+                tabBarIOS18()
+            } else {
+                tabBarLegacy()
+            }
         }
 
         var body: some View {
