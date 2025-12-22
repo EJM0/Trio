@@ -1041,9 +1041,8 @@ extension Home {
 
                 if let progress = state.bolusProgress {
                     bolusView(geo: geo, progress)
-                        .padding(.bottom, UIDevice.adjustPadding(min: nil, max: 100))
                 } else {
-                    adjustmentView(geo: geo).padding(.bottom, UIDevice.adjustPadding(min: nil, max: 100))
+                    adjustmentView(geo: geo)
                 }
             }
             .background(appState.trioBackgroundColor(for: colorScheme))
@@ -1179,44 +1178,54 @@ extension Home {
 
             ZStack(alignment: .bottom) {
                 UnionTabView(selection: selectionBinding, tabs: [.main, .history, .plus, .adjustments, .settings]) {
-                    NavigationStack { mainView() }
-                        .badge(carbsRequiredBadge)
-                        .unionTab(HomeTab.main)
+                    NavigationStack {
+                        mainView()
+                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 54, max: 65) ?? 64)
+                    }
+                    .badge(carbsRequiredBadge)
+                    .unionTab(HomeTab.main)
 
-                    NavigationStack { DataTable.RootView(resolver: resolver) }
-                        .unionTab(HomeTab.history)
+                    NavigationStack {
+                        DataTable.RootView(resolver: resolver)
+                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 54, max: 65) ?? 64)
+                    }
+                    .unionTab(HomeTab.history)
 
                     Color.clear
                         .unionTab(HomeTab.plus)
                         .disabled(true)
                         .allowsHitTesting(false)
 
-                    NavigationStack { Adjustments.RootView(resolver: resolver) }
-                        .unionTab(HomeTab.adjustments)
+                    NavigationStack {
+                        Adjustments.RootView(resolver: resolver)
+                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 54, max: 65) ?? 64)
+                    }
+                    .unionTab(HomeTab.adjustments)
 
                     NavigationStack(path: self.$settingsPath) {
                         Settings.RootView(resolver: resolver)
+                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 54, max: 65) ?? 64)
                     }
                     .unionTab(HomeTab.settings)
                 } item: { tab, isSelected in
                     VStack(spacing: 2) {
                         switch tab {
                         case .main:
-                            Image(systemName: "chart.xyaxis.line")
-                            Text("Main").font(.caption2)
+                            Image(systemName: "chart.xyaxis.line").frame(width: 66, height: 66)
+                        // Text("Main").font(.caption2)
                         case .history:
-                            Image(systemName: historySFSymbol)
-                            Text("History").font(.caption2)
+                            Image(systemName: historySFSymbol).frame(width: 66, height: 66)
+                        // Text("History").font(.caption2)
                         case .plus:
                             // Dummy placeholder to keep the space, captures center coordinate
                             Color.clear.frame(width: 44, height: 44)
                                 .anchorPreference(key: TabCenterPreferenceKey.self, value: .center) { $0 }
                         case .adjustments:
-                            Image(systemName: "slider.horizontal.2.gobackward")
-                            Text("Adjustments").font(.caption2)
+                            Image(systemName: "slider.horizontal.2.gobackward").frame(width: 66, height: 66)
+                        // Text("Adjustments").font(.caption2)
                         case .settings:
-                            Image(systemName: "gear")
-                            Text("Settings").font(.caption2)
+                            Image(systemName: "gear").frame(width: 66, height: 66)
+                            // Text("Settings").font(.caption2)
                         }
                     }
                     .foregroundStyle(isSelected ? Color.tabBar : .secondary)
@@ -1260,39 +1269,6 @@ extension Home {
                 }
             }
         }
-    }
-}
-
-extension UIDevice {
-    public enum DeviceSize: CGFloat {
-        case smallDevice = 667 // Height for 4" iPhone SE
-        case largeDevice = 852 // Height for 6.1" iPhone 15 Pro
-    }
-
-    @usableFromInline static func adjustPadding(
-        min: CGFloat? = nil,
-        max: CGFloat? = nil
-    ) -> CGFloat? {
-        if UIScreen.screenHeight > UIDevice.DeviceSize.smallDevice.rawValue {
-            if UIScreen.screenHeight >= UIDevice.DeviceSize.largeDevice.rawValue {
-                return max
-            } else {
-                return min != nil ?
-                    (max != nil ? max! * (UIScreen.screenHeight / UIDevice.DeviceSize.largeDevice.rawValue) : nil) : nil
-            }
-        } else {
-            return min
-        }
-    }
-}
-
-extension UIScreen {
-    static var screenHeight: CGFloat {
-        UIScreen.main.bounds.height
-    }
-
-    static var screenWidth: CGFloat {
-        UIScreen.main.bounds.width
     }
 }
 

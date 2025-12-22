@@ -81,7 +81,14 @@ struct ScreenNavigation<T>: ViewModifier where T: View {
     func body(content: Content) -> some View {
         content.navigationDestination(
             for: Screen.self,
-            destination: { screen in NavigationLazyView(destination(screen).asAny(), screen: screen) }
+            destination: { screen in
+                let view = NavigationLazyView(destination(screen).asAny(), screen: screen)
+                #if canImport(UIKit)
+                    view.safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 54, max: 65) ?? 64)
+                #else
+                    view.safeAreaPadding(.bottom, 64)
+                #endif
+            }
         )
     }
 }
