@@ -129,7 +129,7 @@ struct TherapySettingEditorView: View {
                                 )
                             )
                             .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: iOS26OrLater ? -26 : -22, leading: 0, bottom: 0, trailing: 0))
+                            .listRowInsets(EdgeInsets(top: iOS26OrLater ? -26 : -22, leading: 0, bottom: 0, trailing: 0))
                             .listRowSeparator(.hidden)
                     }
                     .id(bottomID)

@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		041D1E995A6AE92E9289DC49 /* TreatmentsDataFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8D1A7CA8C10C4403D4BBFA7 /* TreatmentsDataFlow.swift */; };
 		0437CE46C12535A56504EC19 /* SnoozeRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5822B15939E719628E9FF7C /* SnoozeRootView.swift */; };
+		096349192EF98C23003C9C36 /* UnionTabView in Frameworks */ = {isa = PBXBuildFile; productRef = 096349182EF98C23003C9C36 /* UnionTabView */; };
 		096F54772EF21D4B00B557C1 /* NutritionEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 096F54762EF21D4B00B557C1 /* NutritionEditorView.swift */; };
 		0977A2262EF1F35C00A1AF88 /* BarcodeScannerStateModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0977A2252EF1F35200A1AF88 /* BarcodeScannerStateModel.swift */; };
 		09A169602EE302EB0026711C /* BarcodeScannerDataFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A1695B2EE302EB0026711C /* BarcodeScannerDataFlow.swift */; };
@@ -1627,6 +1628,7 @@
 				CE95BF612BA7715900DC3DE3 /* MockKitUI.framework in Frameworks */,
 				E0CC2C5C275B9F0F00A7BC71 /* HealthKit.framework in Frameworks */,
 				CE95BF5D2BA770C300DC3DE3 /* LoopKitUI.framework in Frameworks */,
+				096349192EF98C23003C9C36 /* UnionTabView in Frameworks */,
 				3E28F2AB2EB5337F00FB9EEB /* ConnectIQ in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -3844,6 +3846,7 @@
 				3B47C60F2DA0A28F00B0E5EF /* FirebaseCrashlytics */,
 				DD17A0282E3FE0BD008E1BF0 /* SwiftJWT */,
 				3E28F2AA2EB5337F00FB9EEB /* ConnectIQ */,
+				096349182EF98C23003C9C36 /* UnionTabView */,
 			);
 			productName = Trio;
 			productReference = 388E595825AD948C0019842D /* Trio.app */;
@@ -4022,6 +4025,7 @@
 				3B47C60E2DA0A28F00B0E5EF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				DD868FD92E381E1C005D3308 /* XCRemoteSwiftPackageReference "Swift-JWT" */,
 				3E28F2A92EB5337F00FB9EEB /* XCRemoteSwiftPackageReference "connectiq-companion-app-sdk-ios" */,
+				096349172EF98C23003C9C36 /* XCRemoteSwiftPackageReference "union-tab-view" */,
 			);
 			productRefGroup = 388E595925AD948C0019842D /* Products */;
 			projectDirPath = "";
@@ -5478,6 +5482,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		096349172EF98C23003C9C36 /* XCRemoteSwiftPackageReference "union-tab-view" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/unionst/union-tab-view.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.0;
+			};
+		};
 		3811DE0E25C9D37700A708ED /* XCRemoteSwiftPackageReference "Swinject" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Swinject/Swinject";
@@ -5569,6 +5581,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		096349182EF98C23003C9C36 /* UnionTabView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 096349172EF98C23003C9C36 /* XCRemoteSwiftPackageReference "union-tab-view" */;
+			productName = UnionTabView;
+		};
 		3811DE0F25C9D37700A708ED /* Swinject */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 3811DE0E25C9D37700A708ED /* XCRemoteSwiftPackageReference "Swinject" */;

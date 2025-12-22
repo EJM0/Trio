@@ -4,6 +4,22 @@ import SpriteKit
 import SwiftDate
 import SwiftUI
 import Swinject
+import UnionTabView
+
+enum HomeTab: Int, CaseIterable, Hashable {
+    case main = 0
+    case history = 1
+    case adjustments = 2
+    case settings = 3
+    case plus = 4
+}
+
+struct TabCenterPreferenceKey: PreferenceKey {
+    static var defaultValue: Anchor<CGPoint>? = nil
+    static func reduce(value: inout Anchor<CGPoint>?, nextValue: () -> Anchor<CGPoint>?) {
+        value = nextValue() ?? value
+    }
+}
 
 struct Haptic: Hashable {
     var intensity: CGFloat
@@ -48,7 +64,7 @@ extension Home {
         @State var isConfirmStopTempTargetShown = false
         @State var isMenuPresented = false
         @State var showTreatments = false
-        @State var selectedTab: Int = 0
+        @State var selectedTab: HomeTab = .main
         @State var showPumpSelection: Bool = false
         @State var showCGMSelection: Bool = false
         @State var notificationsDisabled = false
@@ -634,7 +650,7 @@ extension Home {
                 }
             }
             .onTapGesture {
-                selectedTab = 2
+                selectedTab = .adjustments
             }
         }
 
@@ -651,7 +667,7 @@ extension Home {
                 }
             }
             .onTapGesture {
-                selectedTab = 2
+                selectedTab = .adjustments
             }
         }
 
@@ -730,7 +746,7 @@ extension Home {
                     // clear color for the icon
                     .foregroundStyle(Color.clear)
             }.onTapGesture {
-                selectedTab = 2
+                selectedTab = .adjustments
             }
         }
 
@@ -1025,9 +1041,9 @@ extension Home {
 
                 if let progress = state.bolusProgress {
                     bolusView(geo: geo, progress)
-                        .padding(.bottom, UIDevice.adjustPadding(min: nil, max: 40))
+                        .padding(.bottom, UIDevice.adjustPadding(min: nil, max: 100))
                 } else {
-                    adjustmentView(geo: geo).padding(.bottom, UIDevice.adjustPadding(min: nil, max: 40))
+                    adjustmentView(geo: geo).padding(.bottom, UIDevice.adjustPadding(min: nil, max: 100))
                 }
             }
             .background(appState.trioBackgroundColor(for: colorScheme))
@@ -1055,7 +1071,6 @@ extension Home {
                 configureView {
                     highlightButtons()
                 }
-                prepareHaptics()
             }
             .navigationTitle("Home")
             .navigationBarHidden(true)
@@ -1138,138 +1153,101 @@ extension Home {
             }
         }
 
-        @available(iOS 26, *)
-        @ViewBuilder func tabBarIOS18() -> some View {
-            ZStack(alignment: .bottom) {
-                TabView(selection: $selectedTab) {
-                    let carbsRequiredBadge: String? = {
-                        guard let carbsRequired = state.enactedAndNonEnactedDeterminations.first?.carbsRequired,
-                              state.showCarbsRequiredBadge
-                        else {
-                            return nil
-                        }
-                        let carbsRequiredDecimal = Decimal(carbsRequired)
-                        if carbsRequiredDecimal > state.settingsManager.settings.carbsRequiredThreshold {
-                            let numberAsNSNumber = NSDecimalNumber(decimal: carbsRequiredDecimal)
-                            return (Formatter.decimalFormatterWithTwoFractionDigits.string(from: numberAsNSNumber) ?? "") + " g"
-                        }
-                        return nil
-                    }()
+        @ViewBuilder func tabBar() -> some View {
+            let carbsRequiredBadge: String? = {
+                guard let carbsRequired = state.enactedAndNonEnactedDeterminations.first?.carbsRequired,
+                      state.showCarbsRequiredBadge
+                else {
+                    return nil
+                }
+                let carbsRequiredDecimal = Decimal(carbsRequired)
+                if carbsRequiredDecimal > state.settingsManager.settings.carbsRequiredThreshold {
+                    let numberAsNSNumber = NSDecimalNumber(decimal: carbsRequiredDecimal)
+                    return (Formatter.decimalFormatterWithTwoFractionDigits.string(from: numberAsNSNumber) ?? "") + " g"
+                }
+                return nil
+            }()
 
-                    Tab("Main", systemImage: "chart.xyaxis.line", value: 0) {
-                        NavigationStack { mainView() }
-                    }
-                    .badge(carbsRequiredBadge.map { Text($0) })
-
-                    Tab("History", systemImage: historySFSymbol, value: 1) {
-                        NavigationStack { DataTable.RootView(resolver: resolver) }
-                    }
-
-                    Tab("Adjustments", systemImage: "slider.horizontal.2.gobackward", value: 2) {
-                        NavigationStack { Adjustments.RootView(resolver: resolver) }
-                    }
-
-                    Tab("Settings", systemImage: "gear", value: 3) {
-                        NavigationStack(path: self.$settingsPath) {
-                            Settings.RootView(resolver: resolver)
-                        }
-                    }
-
-                    Tab(value: 4, role: .search) {
-                        // Content for the action tab (not used as we intercept selection)
-                        Color.clear
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 100))
-                            .foregroundStyle(Color.tabBar)
+            let selectionBinding = Binding<HomeTab>(
+                get: { selectedTab },
+                set: { newValue in
+                    if newValue != .plus {
+                        selectedTab = newValue
                     }
                 }
-                .tint(Color.tabBar)
-                .toolbarBackground(Color.chart, for: .tabBar)
-                .toolbarBackground(.visible, for: .tabBar)
+            )
 
-            }.ignoresSafeArea(.keyboard, edges: .bottom).blur(radius: state.waitForSuggestion ? 8 : 0)
-                .onChange(of: selectedTab) { oldValue, newValue in
-                    if newValue == 4 {
-                        state.showModal(for: .treatmentView)
-                        selectedTab = oldValue
-                        return
-                    }
-
-                    if !settingsPath.isEmpty {
-                        settingsPath = NavigationPath()
-                    }
-                }
-        }
-
-        @ViewBuilder func tabBarLegacy() -> some View {
             ZStack(alignment: .bottom) {
-                TabView(selection: $selectedTab) {
-                    let carbsRequiredBadge: String? = {
-                        guard let carbsRequired = state.enactedAndNonEnactedDeterminations.first?.carbsRequired,
-                              state.showCarbsRequiredBadge
-                        else {
-                            return nil
-                        }
-                        let carbsRequiredDecimal = Decimal(carbsRequired)
-                        if carbsRequiredDecimal > state.settingsManager.settings.carbsRequiredThreshold {
-                            let numberAsNSNumber = NSDecimalNumber(decimal: carbsRequiredDecimal)
-                            return (Formatter.decimalFormatterWithTwoFractionDigits.string(from: numberAsNSNumber) ?? "") + " g"
-                        }
-                        return nil
-                    }()
-
+                UnionTabView(selection: selectionBinding, tabs: [.main, .history, .plus, .adjustments, .settings]) {
                     NavigationStack { mainView() }
-                        .tabItem { Label("Main", systemImage: "chart.xyaxis.line") }
-                        .badge(carbsRequiredBadge).tag(0)
+                        .badge(carbsRequiredBadge)
+                        .unionTab(HomeTab.main)
 
                     NavigationStack { DataTable.RootView(resolver: resolver) }
-                        .tabItem { Label("History", systemImage: historySFSymbol) }.tag(1)
+                        .unionTab(HomeTab.history)
 
-                    Spacer()
+                    Color.clear
+                        .unionTab(HomeTab.plus)
+                        .disabled(true)
+                        .allowsHitTesting(false)
 
                     NavigationStack { Adjustments.RootView(resolver: resolver) }
-                        .tabItem {
-                            Label(
-                                "Adjustments",
-                                systemImage: "slider.horizontal.2.gobackward"
-                            ) }.tag(2)
+                        .unionTab(HomeTab.adjustments)
 
                     NavigationStack(path: self.$settingsPath) {
-                        Settings.RootView(resolver: resolver) }
-                        .tabItem { Label(
-                            "Settings",
-                            systemImage: "gear"
-                        ) }.tag(3)
+                        Settings.RootView(resolver: resolver)
+                    }
+                    .unionTab(HomeTab.settings)
+                } item: { tab, isSelected in
+                    VStack(spacing: 2) {
+                        switch tab {
+                        case .main:
+                            Image(systemName: "chart.xyaxis.line")
+                            Text("Main").font(.caption2)
+                        case .history:
+                            Image(systemName: historySFSymbol)
+                            Text("History").font(.caption2)
+                        case .plus:
+                            // Dummy placeholder to keep the space, captures center coordinate
+                            Color.clear.frame(width: 44, height: 44)
+                                .anchorPreference(key: TabCenterPreferenceKey.self, value: .center) { $0 }
+                        case .adjustments:
+                            Image(systemName: "slider.horizontal.2.gobackward")
+                            Text("Adjustments").font(.caption2)
+                        case .settings:
+                            Image(systemName: "gear")
+                            Text("Settings").font(.caption2)
+                        }
+                    }
+                    .foregroundStyle(isSelected ? Color.tabBar : .secondary)
+                    .allowsHitTesting(tab != .plus)
                 }
                 .tint(Color.tabBar)
-
-                Button(
-                    action: {
-                        state.showModal(for: .treatmentView)
-                    },
-                    label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 40))
-                            .foregroundStyle(Color.tabBar)
-                            .padding(.vertical, 2)
-                            .padding(.horizontal, 24)
-                    }
-                )
-
-            }.ignoresSafeArea(.keyboard, edges: .bottom).blur(radius: state.waitForSuggestion ? 8 : 0)
-                .onChange(of: selectedTab) {
-                    if !settingsPath.isEmpty {
-                        settingsPath = NavigationPath()
+            }
+            .overlayPreferenceValue(TabCenterPreferenceKey.self) { anchor in
+                GeometryReader { proxy in
+                    if let anchor = anchor {
+                        Button {
+                            state.showModal(for: .treatmentView)
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 44))
+                                .foregroundStyle(Color.tabBar)
+                                .background(
+                                    Circle().fill(Color(UIColor.systemBackground))
+                                        .padding(2)
+                                )
+                        }
+                        .position(proxy[anchor])
                     }
                 }
-        }
-
-        @ViewBuilder func tabBar() -> some View {
-            if #available(iOS 26, *) {
-                tabBarIOS18()
-            } else {
-                tabBarLegacy()
+            }
+            .ignoresSafeArea(.keyboard, edges: .bottom)
+            .blur(radius: state.waitForSuggestion ? 8 : 0)
+            .onChange(of: selectedTab) {
+                if !settingsPath.isEmpty {
+                    settingsPath = NavigationPath()
+                }
             }
         }
 
