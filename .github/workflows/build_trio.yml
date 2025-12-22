@@ -279,12 +279,12 @@ jobs:
       #     echo ${{ steps.sync.outputs.has_new_commits }}
       #     echo "NEW_COMMITS=${{ steps.sync.outputs.has_new_commits }}" >> $GITHUB_OUTPUT
 
-      # - name: Checkout Repo for building
-      #   uses: actions/checkout@v4
-      #   with:
-      #     token: ${{ secrets.GH_PAT }}
-      #     submodules: recursive
-      #     ref: ${{ env.TARGET_BRANCH }}
+      - name: Checkout Repo for building
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+          submodules: recursive
+          ref: ${{ env.TARGET_BRANCH }}
 
       # Customize Trio: Use patches or download and apply patches from GitHub
       - name: Customize Trio
