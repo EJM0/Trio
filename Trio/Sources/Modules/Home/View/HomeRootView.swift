@@ -1045,6 +1045,7 @@ extension Home {
                     adjustmentView(geo: geo)
                 }
             }
+            .padding(.bottom, geo.safeAreaInsets.bottom)
             .background(appState.trioBackgroundColor(for: colorScheme))
             .onReceive(
                 resolver.resolve(AlertPermissionsChecker.self)!.$notificationsDisabled,
@@ -1180,14 +1181,16 @@ extension Home {
                 UnionTabView(selection: selectionBinding, tabs: [.main, .history, .plus, .adjustments, .settings]) {
                     NavigationStack {
                         mainView()
-                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 54, max: 65) ?? 64)
+                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 90, max: 100) ?? 90)
+                            .ignoresSafeArea(.container, edges: .bottom)
                     }
                     .badge(carbsRequiredBadge)
                     .unionTab(HomeTab.main)
 
                     NavigationStack {
                         DataTable.RootView(resolver: resolver)
-                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 54, max: 65) ?? 64)
+                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 90, max: 100) ?? 90)
+                            .ignoresSafeArea(.container, edges: .bottom)
                     }
                     .unionTab(HomeTab.history)
 
@@ -1198,13 +1201,15 @@ extension Home {
 
                     NavigationStack {
                         Adjustments.RootView(resolver: resolver)
-                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 54, max: 65) ?? 64)
+                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 90, max: 100) ?? 90)
+                            .ignoresSafeArea(.container, edges: .bottom)
                     }
                     .unionTab(HomeTab.adjustments)
 
                     NavigationStack(path: self.$settingsPath) {
                         Settings.RootView(resolver: resolver)
-                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 54, max: 65) ?? 64)
+                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 90, max: 100) ?? 90)
+                            .ignoresSafeArea(.container, edges: .bottom)
                     }
                     .unionTab(HomeTab.settings)
                 } item: { tab, isSelected in
