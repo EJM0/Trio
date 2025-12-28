@@ -134,6 +134,7 @@ struct TherapySettingEditorView: View {
                     }
                     .id(bottomID)
                     .listStyle(.plain)
+                    .scrollDisabled(true)
                     .scrollContentBackground(.hidden)
                     // 55 for header row, item counts x 45 for every entry row + 230 for a visible picker row
                     .frame(
