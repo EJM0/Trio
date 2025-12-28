@@ -1216,20 +1216,24 @@ extension Home {
                     VStack(spacing: 2) {
                         switch tab {
                         case .main:
-                            Image(systemName: "chart.xyaxis.line").frame(width: 66, height: 66)
+                            Image(systemName: "chart.xyaxis.line")
+                                .font(.system(size: 23))
                         // Text("Main").font(.caption2)
                         case .history:
-                            Image(systemName: historySFSymbol).frame(width: 66, height: 66)
+                            Image(systemName: historySFSymbol)
+                                .font(.system(size: 23))
                         // Text("History").font(.caption2)
                         case .plus:
                             // Dummy placeholder to keep the space, captures center coordinate
                             Color.clear.frame(width: 44, height: 44)
                                 .anchorPreference(key: TabCenterPreferenceKey.self, value: .center) { $0 }
                         case .adjustments:
-                            Image(systemName: "slider.horizontal.2.gobackward").frame(width: 66, height: 66)
+                            Image(systemName: "slider.horizontal.2.gobackward")
+                                .font(.system(size: 23))
                         // Text("Adjustments").font(.caption2)
                         case .settings:
-                            Image(systemName: "gear").frame(width: 66, height: 66)
+                            Image(systemName: "gear")
+                                .font(.system(size: 23))
                             // Text("Settings").font(.caption2)
                         }
                     }
@@ -1247,10 +1251,6 @@ extension Home {
                             Image(systemName: "plus.circle.fill")
                                 .font(.system(size: 44))
                                 .foregroundStyle(Color.tabBar)
-                                .background(
-                                    Circle().fill(Color(UIColor.systemBackground))
-                                        .padding(2)
-                                )
                         }
                         .position(proxy[anchor])
                     }
