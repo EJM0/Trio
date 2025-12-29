@@ -890,7 +890,12 @@ extension Treatments {
                     .font(.headline)
                     .foregroundStyle(Color.white)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .frame(height: 35)
+                    if #available(iOS 26, *) {
+                        .frame(height: 20)
+                    }
+                    else {
+                        .frame(height: 35)
+                    }
                 }
                 .disabled(disableTaskButton)
                 .listRowBackground(treatmentButtonBackground)
