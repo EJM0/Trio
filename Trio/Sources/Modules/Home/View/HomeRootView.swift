@@ -1063,7 +1063,7 @@ extension Home {
         @ViewBuilder func mainView() -> some View {
             GeometryReader { geo in
                 mainViewElements(geo)
-                    .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 90, max: 100) ?? 90)
+                    .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
             }
             .ignoresSafeArea(.keyboard)
             .onChange(of: state.hours) {
@@ -1188,7 +1188,7 @@ extension Home {
 
                     NavigationStack {
                         DataTable.RootView(resolver: resolver)
-                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 80, max: 100) ?? 90)
+                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
                             .ignoresSafeArea(.container, edges: .bottom)
                     }
                     .unionTab(HomeTab.history)
@@ -1200,14 +1200,14 @@ extension Home {
 
                     NavigationStack {
                         Adjustments.RootView(resolver: resolver)
-                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 90, max: 100) ?? 90)
+                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
                             .ignoresSafeArea(.container, edges: .bottom)
                     }
                     .unionTab(HomeTab.adjustments)
 
                     NavigationStack(path: self.$settingsPath) {
                         Settings.RootView(resolver: resolver)
-                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 90, max: 100) ?? 90)
+                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
                             .ignoresSafeArea(.container, edges: .bottom)
                     }
                     .unionTab(HomeTab.settings)
