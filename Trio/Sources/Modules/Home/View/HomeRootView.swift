@@ -1189,7 +1189,7 @@ extension Home {
                     NavigationStack {
                         DataTable.RootView(resolver: resolver)
                             .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
-                            .ignoresSafeArea(.container, edges: .bottom)
+                            .ignoresSafeArea(.keyboard, edges: .bottom)
                     }
                     .unionTab(HomeTab.history)
 
@@ -1201,14 +1201,14 @@ extension Home {
                     NavigationStack {
                         Adjustments.RootView(resolver: resolver)
                             .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
-                            .ignoresSafeArea(.container, edges: .bottom)
+                            .ignoresSafeArea(.keyboard, edges: .bottom)
                     }
                     .unionTab(HomeTab.adjustments)
 
                     NavigationStack(path: self.$settingsPath) {
                         Settings.RootView(resolver: resolver)
                             .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
-                            .ignoresSafeArea(.container, edges: .bottom)
+                            .ignoresSafeArea(.keyboard, edges: .bottom)
                     }
                     .unionTab(HomeTab.settings)
                 } item: { tab, isSelected in
