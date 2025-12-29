@@ -1063,7 +1063,9 @@ extension Home {
         @ViewBuilder func mainView() -> some View {
             GeometryReader { geo in
                 mainViewElements(geo)
+                    .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 90, max: 100) ?? 90)
             }
+            .ignoresSafeArea(.keyboard)
             .onChange(of: state.hours) {
                 highlightButtons()
             }
@@ -1180,15 +1182,13 @@ extension Home {
                 UnionTabView(selection: selectionBinding, tabs: [.main, .history, .plus, .adjustments, .settings]) {
                     NavigationStack {
                         mainView()
-                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 90, max: 100) ?? 90)
-                            .ignoresSafeArea(.container, edges: .bottom)
                     }
                     .badge(carbsRequiredBadge)
                     .unionTab(HomeTab.main)
 
                     NavigationStack {
                         DataTable.RootView(resolver: resolver)
-                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 90, max: 100) ?? 90)
+                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 80, max: 100) ?? 90)
                             .ignoresSafeArea(.container, edges: .bottom)
                     }
                     .unionTab(HomeTab.history)
