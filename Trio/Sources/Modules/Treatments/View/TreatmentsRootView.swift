@@ -75,7 +75,9 @@ extension Treatments {
         private var fractionDigits: Int {
             if state.units == .mmolL {
                 return 1
-            } else { return 0 }
+            } else {
+                return 0
+            }
         }
 
         /// Handles macro input (carb, fat, protein) in a debounced fashion.
@@ -94,7 +96,7 @@ extension Treatments {
 
         @ViewBuilder private func proteinAndFat() -> some View {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack {
                     HStack {
                         Text("Protein")
                         TextFieldWithToolBar(
@@ -121,7 +123,7 @@ extension Treatments {
 
                 Divider().foregroundStyle(.primary).fontWeight(.bold).frame(width: 10)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack {
                     HStack {
                         Text("Fat")
                         TextFieldWithToolBar(
@@ -150,9 +152,9 @@ extension Treatments {
 
         @ViewBuilder var foodSearch: some View {
             // Food Search & Quick Actions
-            if state.settings != nil && state.settings.settings.barcodeScannerLongTapEnabled {
-                Section {
-                    // Combined search bar with action buttons
+            if state.settings != nil && state.settings.settings.barcodeScannerEnabled {
+                // Combined search bar with action buttons
+                VStack(alignment: .leading, spacing: 10) {
                     HStack(spacing: 8) {
                         // Scanner button
                         Button {
@@ -173,6 +175,11 @@ extension Treatments {
                                 .textFieldStyle(.plain)
                                 .autocorrectionDisabled()
                                 .textInputAutocapitalization(.never)
+                                .submitLabel(.search)
+                                .onSubmit {
+                                    showAllSearchResults = false
+                                    performFoodSearch()
+                                }
                                 .toolbar {
                                     if isSearchFocused {
                                         ToolbarItemGroup(placement: .keyboard) {
@@ -192,7 +199,6 @@ extension Treatments {
                                 }
                                 .onChange(of: searchQuery) { _, _ in
                                     showAllSearchResults = false
-                                    performFoodSearch()
                                 }
                             if !searchQuery.isEmpty {
                                 Button {
@@ -232,7 +238,7 @@ extension Treatments {
                         .buttonStyle(.plain)
                     }
 
-                    // Search results
+                    // Search results and Spinner
                     if isSearching {
                         HStack {
                             Spacer()
@@ -245,37 +251,42 @@ extension Treatments {
                             .font(.caption)
                             .foregroundStyle(.red)
                     } else if !searchResults.isEmpty {
-                        let displayResults = showAllSearchResults ? searchResults : Array(searchResults.prefix(5))
-                        ForEach(displayResults) { item in
-                            FoodSearchResultRow(item: item) {
-                                addSearchResultToMeal(item)
-                            }
-                        }
-                        if searchResults.count > 5 {
-                            Button {
-                                withAnimation {
-                                    showAllSearchResults.toggle()
+                        VStack(spacing: 0) {
+                            let displayResults =
+                                showAllSearchResults ? searchResults : Array(searchResults.prefix(5))
+                            ForEach(displayResults) { item in
+                                FoodSearchResultRow(item: item) {
+                                    addSearchResultToMeal(item)
                                 }
-                            } label: {
-                                HStack {
-                                    Text(
-                                        showAllSearchResults ? "Show less" :
-                                            "Show \(searchResults.count - 5) more results"
-                                    )
-                                    .font(.caption.weight(.medium))
-                                    Image(systemName: showAllSearchResults ? "chevron.up" : "chevron.down")
-                                        .font(.caption)
+                                if item.id != displayResults.last?.id {
+                                    Divider().opacity(0.3)
                                 }
-                                .foregroundStyle(.blue)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 6)
                             }
-                            .buttonStyle(.plain)
+
+                            if searchResults.count > 5 {
+                                Button {
+                                    withAnimation {
+                                        showAllSearchResults.toggle()
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(
+                                            showAllSearchResults
+                                                ? "Show less" : "Show \(searchResults.count - 5) more results"
+                                        )
+                                        .font(.caption.weight(.medium))
+                                        Image(systemName: showAllSearchResults ? "chevron.up" : "chevron.down")
+                                            .font(.caption)
+                                    }
+                                    .foregroundStyle(.blue)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
                     }
                 }
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
             }
         }
 
@@ -303,6 +314,11 @@ extension Treatments {
                             .font(.caption)
                             .foregroundStyle(.blue)
                     }
+                }
+                if state.scannedCarbs > 0 {
+                    Text("+ \(Double(truncating: state.scannedCarbs as NSNumber), specifier: "%.1f")g")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
                 }
             }
         }
@@ -354,6 +370,7 @@ extension Treatments {
 
         @ViewBuilder var inputsView: some View {
             VStack {
+                Spacer()
                 carbsTextField()
 
                 Divider()
@@ -365,20 +382,22 @@ extension Treatments {
 
                 // Time
                 HStack {
-                    // Semi-hacky workaround to make sure the List renders the horizontal divider properly between the `Time` and `Note` rows within the Section
-                    HStack {
-                        Image(systemName: "clock")
-                    }
+                    Image(systemName: "clock")
 
                     Spacer()
                     if !pushed {
                         Button {
                             pushed = true
-                        } label: { Text("Now") }.buttonStyle(.borderless).foregroundColor(.secondary)
+                        } label: {
+                            Text("Now")
+                        }.buttonStyle(.borderless).foregroundColor(.secondary)
                             .padding(.trailing, 5)
                     } else {
-                        Button { state.date = state.date.addingTimeInterval(-15.minutes.timeInterval) }
-                        label: { Image(systemName: "minus.circle") }.tint(.blue).buttonStyle(.borderless)
+                        Button {
+                            state.date = state.date.addingTimeInterval(-15.minutes.timeInterval)
+                        } label: {
+                            Image(systemName: "minus.circle")
+                        }.tint(.blue).buttonStyle(.borderless)
 
                         DatePicker(
                             "Time",
@@ -396,8 +415,9 @@ extension Treatments {
                             }
                         Button {
                             state.date = state.date.addingTimeInterval(15.minutes.timeInterval)
-                        }
-                        label: { Image(systemName: "plus.circle") }.tint(.blue).buttonStyle(.borderless)
+                        } label: {
+                            Image(systemName: "plus.circle")
+                        }.tint(.blue).buttonStyle(.borderless)
                     }
                 }
 
@@ -412,12 +432,14 @@ extension Treatments {
                         maxLength: 25
                     )
                 }
+                Spacer()
             }
         }
 
         @ViewBuilder var optionsView: some View {
             VStack {
                 if state.fattyMeals || state.sweetMeals {
+                    Spacer()
                     HStack(spacing: 10) {
                         if state.fattyMeals {
                             Toggle(isOn: $state.useFattyMealCorrectionFactor) {
@@ -453,16 +475,21 @@ extension Treatments {
                     Divider()
                 }
 
+                Spacer()
+
                 HStack {
                     HStack {
                         Text("Recommendation")
-                        Button(action: {
-                            state.showInfo.toggle()
-                        }, label: {
-                            Image(systemName: "info.circle")
-                        })
-                            .foregroundStyle(.blue)
-                            .buttonStyle(PlainButtonStyle())
+                        Button(
+                            action: {
+                                state.showInfo.toggle()
+                            },
+                            label: {
+                                Image(systemName: "info.circle")
+                            }
+                        )
+                        .foregroundStyle(.blue)
+                        .buttonStyle(PlainButtonStyle())
                     }
                     Spacer()
                     Button {
@@ -488,6 +515,7 @@ extension Treatments {
                 }
 
                 Divider()
+                Spacer()
 
                 HStack {
                     Text("Bolus")
@@ -511,12 +539,15 @@ extension Treatments {
                 }
 
                 Divider()
+                Spacer()
 
                 HStack {
                     Text("External Insulin")
                     Spacer()
                     Toggle("", isOn: $state.externalInsulin).toggleStyle(CheckboxToggleStyle())
                 }
+
+                Spacer()
             }
         }
 
@@ -536,8 +567,8 @@ extension Treatments {
                 }
             } label: {
                 HStack {
-                    if state.isBolusInProgress && state.amount > 0 &&
-                        !state.externalInsulin && (state.carbs == 0 || state.fat == 0 || state.protein == 0)
+                    if state.isBolusInProgress && state.amount > 0 && !state.externalInsulin
+                        && (state.carbs == 0 || state.fat == 0 || state.protein == 0)
                     {
                         ProgressView()
                     }
@@ -568,92 +599,35 @@ extension Treatments {
             }
         }
 
-        @available(iOS 26, *)
         @ViewBuilder func listView() -> some View {
-            ScrollView {
-                VStack(spacing: 15) {
-                    VStack(alignment: .leading) {
-                        foodSearch
-                    }
-                    .padding()
-                    .background(Color.chart)
-                    .clipShape(RoundedRectangle(cornerRadius: 15))
-                    .padding(.horizontal)
+            List {
+                Section {
+                    foodSearch
+                }.listRowBackground(Color.chart)
 
+                Section {
                     ForecastChart(state: state)
-                        .padding()
-                        .background(Color.chart)
-                        .clipShape(RoundedRectangle(cornerRadius: 15))
-                        .padding(.horizontal)
+                        .padding(.vertical)
+                }.listRowBackground(Color.chart)
 
-                    VStack(alignment: .leading) {
-                        inputsView
-                    }
-                    .padding()
-                    .background(Color.chart)
-                    .clipShape(RoundedRectangle(cornerRadius: 15))
-                    .padding(.horizontal)
+                Section {
+                    inputsView
+                }.listRowBackground(Color.chart)
 
-                    VStack(alignment: .leading) {
-                        optionsView
-                    }
-                    .padding()
-                    .background(Color.chart)
-                    .clipShape(RoundedRectangle(cornerRadius: 15))
-                    .padding(.horizontal)
+                Section {
+                    optionsView
+                }.listRowBackground(Color.chart)
 
-                    if !bolusWarning.warningMessage.isEmpty {
-                        Text(bolusWarning.warningMessage)
-                            .textCase(nil)
-                            .font(.subheadline)
-                            .foregroundColor(bolusWarning.color)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.bottom, 5)
-                            .padding(.top, 5)
-                    }
-
-                    treatmentButtonCompact()
-                        .padding(.bottom, 20)
-                }
+                treatmentButton
             }
-            .background(appState.trioBackgroundColor(for: colorScheme))
-        }
-
-        @ViewBuilder func legacyListView() -> some View {
-            VStack {
-                List {
-                    Section {
-                        foodSearch
-                    }.listRowBackground(Color.chart)
-
-                    Section {
-                        ForecastChart(state: state)
-                            .padding(.vertical)
-                    }.listRowBackground(Color.chart)
-
-                    Section {
-                        inputsView
-                    }.listRowBackground(Color.chart)
-
-                    Section {
-                        optionsView
-                    }.listRowBackground(Color.chart)
-
-                    treatmentButton
-                }
-                .listSectionSpacing(sectionSpacing)
-            }
+            .listStyle(.insetGrouped)
+            .listSectionSpacing(sectionSpacing)
+            .contentMargins(.top, 0, for: .scrollContent)
         }
 
         var body: some View {
             ZStack(alignment: .center) {
-                if #available(iOS 26, *) {
-                    listView()
-                        .blur(radius: state.isAwaitingDeterminationResult ? 5 : 0)
-                } else {
-                    legacyListView()
-                        .blur(radius: state.isAwaitingDeterminationResult ? 5 : 0)
-                }
+                listView()
 
                 if state.isAwaitingDeterminationResult {
                     CustomProgressView(text: progressText.displayName)
@@ -673,14 +647,17 @@ extension Treatments {
                 }
                 if state.displayPresets {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button(action: {
-                            showPresetSheet = true
-                        }, label: {
-                            HStack {
-                                Text("Presets")
-                                Image(systemName: "plus")
+                        Button(
+                            action: {
+                                showPresetSheet = true
+                            },
+                            label: {
+                                HStack {
+                                    Text("Presets")
+                                    Image(systemName: "plus")
+                                }
                             }
-                        })
+                        )
                     }
                 }
             })
@@ -706,12 +683,16 @@ extension Treatments {
             .sheet(isPresented: $state.showInfo) {
                 PopupView(state: state)
             }
-            .sheet(isPresented: $showPresetSheet, onDismiss: {
-                showPresetSheet = false
-            }) {
+            .sheet(
+                isPresented: $showPresetSheet,
+                onDismiss: {
+                    showPresetSheet = false
+                }
+            ) {
                 MealPresetView(state: state)
             }
-            .alert("Error while processing Treatment", isPresented: $state.showDeterminationFailureAlert) {
+            .alert("Error while processing Treatment", isPresented: $state.showDeterminationFailureAlert)
+            {
                 Button("OK", role: .cancel) {
                     state.hideModal()
                 }
@@ -753,9 +734,8 @@ extension Treatments {
             initialShowList = showList
         }
 
-        /// Performs debounced food search using Open Food Facts API
+        /// Performs food search using Open Food Facts API
         private func performFoodSearch() {
-            searchDebounce?.cancel()
             searchError = nil
 
             let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -765,27 +745,19 @@ extension Treatments {
                 return
             }
 
-            // Show spinner immediately when scheduling a search
+            // Show spinner immediately
             isSearching = true
             searchResults = [] // Clear old results so spinner shows
 
-            // Capture the query value explicitly to ensure correct search term is used
-            let capturedQuery = query
-            searchDebounce = DispatchWorkItem { [self] in
-                Task { @MainActor in
-                    do {
-                        let client = BarcodeScanner.OpenFoodFactsClient()
-                        self.searchResults = try await client.searchProducts(query: capturedQuery)
-                    } catch {
-                        self.searchError = error.localizedDescription
-                        self.searchResults = []
-                    }
-                    self.isSearching = false
+            Task { @MainActor in
+                do {
+                    let client = BarcodeScanner.OpenFoodFactsClient()
+                    self.searchResults = try await client.searchProducts(query: query)
+                } catch {
+                    self.searchError = error.localizedDescription
+                    self.searchResults = []
                 }
-            }
-
-            if let workItem = searchDebounce {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.75, execute: workItem)
+                self.isSearching = false
             }
         }
 
@@ -866,11 +838,13 @@ extension Treatments {
                 return (false, "", .primary)
             }
 
-            let warningMessage = isGlucoseVeryLow ? String(localized: "Glucose is very low.") :
-                isForecastVeryLow ? String(localized: "Glucose forecast is very low.") :
-                ""
+            let warningMessage =
+                isGlucoseVeryLow
+                    ? String(localized: "Glucose is very low.")
+                    : isForecastVeryLow ? String(localized: "Glucose forecast is very low.") : ""
 
-            let warningColor: Color = isGlucoseVeryLow ? .red : colorScheme == .dark ? .orange : .accentColor
+            let warningColor: Color =
+                isGlucoseVeryLow ? .red : colorScheme == .dark ? .orange : .accentColor
 
             let shouldConfirm = state.confirmBolus && (isGlucoseVeryLow || isForecastVeryLow)
 
@@ -894,11 +868,13 @@ extension Treatments {
                     }
                 } label: {
                     HStack {
-                        if state.isBolusInProgress && state.amount > 0 &&
-                            !state
-                            .externalInsulin &&
-                            (
-                                state.carbs == 0 && state.scannedCarbs == 0 || state.fat == 0 && state.scannedFat == 0 || state
+                        if state.isBolusInProgress && state.amount > 0
+                            && !state
+                            .externalInsulin
+                            && (
+                                state.carbs == 0 && state.scannedCarbs == 0
+                                    || state.fat == 0 && state.scannedFat == 0
+                                    || state
                                     .protein == 0 && state.scannedProtein == 0
                             )
                         {
@@ -955,10 +931,15 @@ extension Treatments {
 
             let hasInsulin = state.amount > 0
             let hasCarbs = state.carbs > 0 || state.scannedCarbs > 0
-            let hasFatOrProtein = state.fat > 0 || state.scannedFat > 0 || state.protein > 0 || state.scannedProtein > 0
-            let bolusString = state.externalInsulin ? String(localized: "External Insulin") : String(localized: "Enact Bolus")
+            let hasFatOrProtein =
+                state.fat > 0 || state.scannedFat > 0 || state.protein > 0 || state.scannedProtein > 0
+            let bolusString =
+                state.externalInsulin
+                    ? String(localized: "External Insulin") : String(localized: "Enact Bolus")
 
-            if state.isBolusInProgress && hasInsulin && !state.externalInsulin && (!hasCarbs || !hasFatOrProtein) {
+            if state.isBolusInProgress && hasInsulin && !state.externalInsulin
+                && (!hasCarbs || !hasFatOrProtein)
+            {
                 return Text("Bolus In Progress...")
             }
 
@@ -1003,20 +984,26 @@ extension Treatments {
         }
 
         private var limitExceeded: Bool {
-            pumpBolusLimitExceeded || externalBolusLimitExceeded || carbLimitExceeded || fatLimitExceeded || proteinLimitExceeded
+            pumpBolusLimitExceeded || externalBolusLimitExceeded || carbLimitExceeded || fatLimitExceeded
+                || proteinLimitExceeded
         }
 
         private var disableTaskButton: Bool {
             (
-                state.isBolusInProgress && state
-                    .amount > 0 && !state
-                    .externalInsulin &&
-                    (
-                        state.carbs == 0 && state.scannedCarbs == 0 || state.fat == 0 && state.scannedFat == 0 || state
+                state.isBolusInProgress
+                    && state
+                    .amount > 0
+                    && !state
+                    .externalInsulin
+                    && (
+                        state.carbs == 0 && state.scannedCarbs == 0 || state.fat == 0 && state.scannedFat == 0
+                            || state
                             .protein == 0 && state.scannedProtein == 0
                     )
-            ) || state
-                .addButtonPressed || limitExceeded
+            )
+                || state
+                .addButtonPressed
+                || limitExceeded
         }
     }
 
