@@ -1240,18 +1240,23 @@ extension Home {
                     .allowsHitTesting(tab != .plus)
                 }
                 .tint(Color.tabBar)
-            }
-            .overlayPreferenceValue(TabCenterPreferenceKey.self) { anchor in
-                GeometryReader { proxy in
-                    if let anchor = anchor {
-                        Button {
-                            state.showModal(for: .treatmentView)
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 44))
-                                .foregroundStyle(Color.tabBar)
-                        }
-                        .position(proxy[anchor])
+
+                Button(
+                    action: {
+                        state.showModal(for: .treatmentView)
+                    },
+                    label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 40))
+                            .foregroundStyle(Color.tabBar)
+                            .padding(.vertical, 2)
+                            .padding(.horizontal, 24)
+                    }
+                )
+            }.ignoresSafeArea(.keyboard, edges: .bottom).blur(radius: state.waitForSuggestion ? 8 : 0)
+                .onChange(of: selectedTab) {
+                    if !settingsPath.isEmpty {
+                        settingsPath = NavigationPath()
                     }
                 }
             }

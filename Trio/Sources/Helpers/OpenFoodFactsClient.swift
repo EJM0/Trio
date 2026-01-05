@@ -247,7 +247,7 @@ private extension BarcodeScanner.OpenFoodFactsClient {
             imageUrl = try container.decodeIfPresent(String.self, forKey: .imageUrl)
             imageFrontUrl = try container.decodeIfPresent(String.self, forKey: .imageFrontUrl)
             imageFrontThumbUrl = try container.decodeIfPresent(String.self, forKey: .imageFrontThumbUrl)
-            nutriments = try? container.decode(NutrimentsData.self, forKey: .nutriments)
+            nutriments = try container.decodeIfPresent(NutrimentsData.self, forKey: .nutriments)
 
             // servingQuantity can be either a Double or a String in the API response
             if let doubleValue = try? container.decodeIfPresent(Double.self, forKey: .servingQuantity) {

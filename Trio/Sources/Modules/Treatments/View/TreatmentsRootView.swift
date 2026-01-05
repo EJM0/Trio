@@ -252,8 +252,7 @@ extension Treatments {
                             .foregroundStyle(.red)
                     } else if !searchResults.isEmpty {
                         VStack(spacing: 0) {
-                            let displayResults =
-                                showAllSearchResults ? searchResults : Array(searchResults.prefix(5))
+                            let displayResults = showAllSearchResults ? searchResults : Array(searchResults.prefix(5))
                             ForEach(displayResults) { item in
                                 FoodSearchResultRow(item: item) {
                                     addSearchResultToMeal(item)
@@ -271,8 +270,8 @@ extension Treatments {
                                 } label: {
                                     HStack {
                                         Text(
-                                            showAllSearchResults
-                                                ? "Show less" : "Show \(searchResults.count - 5) more results"
+                                            showAllSearchResults ? "Show less" :
+                                                "Show \(searchResults.count - 5) more results"
                                         )
                                         .font(.caption.weight(.medium))
                                         Image(systemName: showAllSearchResults ? "chevron.up" : "chevron.down")
@@ -314,6 +313,11 @@ extension Treatments {
                             .font(.caption)
                             .foregroundStyle(.blue)
                     }
+                }
+                if state.scannedCarbs > 0 {
+                    Text("+ \(Double(truncating: state.scannedCarbs as NSNumber), specifier: "%.1f")g")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
                 }
             }
         }
@@ -383,16 +387,11 @@ extension Treatments {
                     if !pushed {
                         Button {
                             pushed = true
-                        } label: {
-                            Text("Now")
-                        }.buttonStyle(.borderless).foregroundColor(.secondary)
+                        } label: { Text("Now") }.buttonStyle(.borderless).foregroundColor(.secondary)
                             .padding(.trailing, 5)
                     } else {
-                        Button {
-                            state.date = state.date.addingTimeInterval(-15.minutes.timeInterval)
-                        } label: {
-                            Image(systemName: "minus.circle")
-                        }.tint(.blue).buttonStyle(.borderless)
+                        Button { state.date = state.date.addingTimeInterval(-15.minutes.timeInterval) }
+                        label: { Image(systemName: "minus.circle") }.tint(.blue).buttonStyle(.borderless)
 
                         DatePicker(
                             "Time",
@@ -410,9 +409,8 @@ extension Treatments {
                             }
                         Button {
                             state.date = state.date.addingTimeInterval(15.minutes.timeInterval)
-                        } label: {
-                            Image(systemName: "plus.circle")
-                        }.tint(.blue).buttonStyle(.borderless)
+                        }
+                        label: { Image(systemName: "plus.circle") }.tint(.blue).buttonStyle(.borderless)
                     }
                 }
 
@@ -475,16 +473,13 @@ extension Treatments {
                 HStack {
                     HStack {
                         Text("Recommendation")
-                        Button(
-                            action: {
-                                state.showInfo.toggle()
-                            },
-                            label: {
-                                Image(systemName: "info.circle")
-                            }
-                        )
-                        .foregroundStyle(.blue)
-                        .buttonStyle(PlainButtonStyle())
+                        Button(action: {
+                            state.showInfo.toggle()
+                        }, label: {
+                            Image(systemName: "info.circle")
+                        })
+                            .foregroundStyle(.blue)
+                            .buttonStyle(PlainButtonStyle())
                     }
                     Spacer()
                     Button {
@@ -562,8 +557,8 @@ extension Treatments {
                 }
             } label: {
                 HStack {
-                    if state.isBolusInProgress && state.amount > 0 && !state.externalInsulin
-                        && (state.carbs == 0 || state.fat == 0 || state.protein == 0)
+                    if state.isBolusInProgress && state.amount > 0 &&
+                        !state.externalInsulin && (state.carbs == 0 || state.fat == 0 || state.protein == 0)
                     {
                         ProgressView()
                     }
@@ -618,23 +613,18 @@ extension Treatments {
             .listStyle(.insetGrouped)
             .listSectionSpacing(sectionSpacing)
             .contentMargins(.top, 0, for: .scrollContent)
-            .safeAreaPadding(.bottom, 35)
         }
 
         var body: some View {
             ZStack(alignment: .center) {
-                // Background layer that covers everything
-                appState.trioBackgroundColor(for: colorScheme)
-                    .ignoresSafeArea()
-
                 listView()
 
                 if state.isAwaitingDeterminationResult {
                     CustomProgressView(text: progressText.displayName)
                 }
             }
-            .scrollContentBackground(.hidden)
-            .blur(radius: state.showInfo ? 3 : 0)
+            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme))
+            .blur(radius: state.showInfo || state.isAwaitingDeterminationResult ? 3 : 0)
             .navigationTitle("Treatments")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(content: {
@@ -869,13 +859,11 @@ extension Treatments {
                     }
                 } label: {
                     HStack {
-                        if state.isBolusInProgress && state.amount > 0
-                            && !state
-                            .externalInsulin
-                            && (
-                                state.carbs == 0 && state.scannedCarbs == 0
-                                    || state.fat == 0 && state.scannedFat == 0
-                                    || state
+                        if state.isBolusInProgress && state.amount > 0 &&
+                            !state
+                            .externalInsulin &&
+                            (
+                                state.carbs == 0 && state.scannedCarbs == 0 || state.fat == 0 && state.scannedFat == 0 || state
                                     .protein == 0 && state.scannedProtein == 0
                             )
                         {
@@ -932,11 +920,8 @@ extension Treatments {
 
             let hasInsulin = state.amount > 0
             let hasCarbs = state.carbs > 0 || state.scannedCarbs > 0
-            let hasFatOrProtein =
-                state.fat > 0 || state.scannedFat > 0 || state.protein > 0 || state.scannedProtein > 0
-            let bolusString =
-                state.externalInsulin
-                    ? String(localized: "External Insulin") : String(localized: "Enact Bolus")
+            let hasFatOrProtein = state.fat > 0 || state.scannedFat > 0 || state.protein > 0 || state.scannedProtein > 0
+            let bolusString = state.externalInsulin ? String(localized: "External Insulin") : String(localized: "Enact Bolus")
 
             if state.isBolusInProgress && hasInsulin && !state.externalInsulin
                 && (!hasCarbs || !hasFatOrProtein)
@@ -991,20 +976,15 @@ extension Treatments {
 
         private var disableTaskButton: Bool {
             (
-                state.isBolusInProgress
-                    && state
-                    .amount > 0
-                    && !state
-                    .externalInsulin
-                    && (
-                        state.carbs == 0 && state.scannedCarbs == 0 || state.fat == 0 && state.scannedFat == 0
-                            || state
+                state.isBolusInProgress && state
+                    .amount > 0 && !state
+                    .externalInsulin &&
+                    (
+                        state.carbs == 0 && state.scannedCarbs == 0 || state.fat == 0 && state.scannedFat == 0 || state
                             .protein == 0 && state.scannedProtein == 0
                     )
-            )
-                || state
-                .addButtonPressed
-                || limitExceeded
+            ) || state
+                .addButtonPressed || limitExceeded
         }
     }
 
