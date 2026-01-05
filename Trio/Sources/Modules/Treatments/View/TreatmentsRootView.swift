@@ -314,11 +314,6 @@ extension Treatments {
                             .foregroundStyle(.blue)
                     }
                 }
-                if state.scannedCarbs > 0 {
-                    Text("+ \(Double(truncating: state.scannedCarbs as NSNumber), specifier: "%.1f")g")
-                        .font(.caption)
-                        .foregroundStyle(.blue)
-                }
             }
         }
 
