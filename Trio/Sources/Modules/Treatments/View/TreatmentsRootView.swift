@@ -611,103 +611,106 @@ extension Treatments {
         }
 
         var body: some View {
-            ZStack(alignment: .center) {
-                listView()
+            GeometryReader { _ in
+                ZStack(alignment: .center) {
+                    listView()
 
-                if state.isAwaitingDeterminationResult {
-                    CustomProgressView(text: progressText.displayName)
-                }
-            }
-            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme))
-            .blur(radius: state.showInfo || state.isAwaitingDeterminationResult ? 3 : 0)
-            .navigationTitle("Treatments")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(content: {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        UIApplication.shared.endEditing()
-                        state.hideModal()
-                    } label: {
-                        Text("Close")
+                    if state.isAwaitingDeterminationResult {
+                        CustomProgressView(text: progressText.displayName)
                     }
                 }
-                if state.displayPresets {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(
-                            action: {
-                                showPresetSheet = true
-                            },
-                            label: {
-                                HStack {
-                                    Text("Presets")
-                                    Image(systemName: "plus")
+                .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme))
+                .blur(radius: state.showInfo || state.isAwaitingDeterminationResult ? 3 : 0)
+                .navigationTitle("Treatments")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar(content: {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            UIApplication.shared.endEditing()
+                            state.hideModal()
+                        } label: {
+                            Text("Close")
+                        }
+                    }
+                    if state.displayPresets {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button(
+                                action: {
+                                    showPresetSheet = true
+                                },
+                                label: {
+                                    HStack {
+                                        Text("Presets")
+                                        Image(systemName: "plus")
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
+                    }
+                })
+                .onAppear {
+                    configureView {
+                        state.isActive = true
+                        Task { @MainActor in
+                            state.insulinCalculated = await state.calculateInsulin()
+                        }
+                        // Auto-open scanner if requested
+                        if openWithScanner {
+                            configureAndShowScanner(showList: false)
+                        }
                     }
                 }
-            })
-            .onAppear {
-                configureView {
-                    state.isActive = true
-                    Task { @MainActor in
-                        state.insulinCalculated = await state.calculateInsulin()
-                    }
-                    // Auto-open scanner if requested
-                    if openWithScanner {
-                        configureAndShowScanner(showList: false)
-                    }
-                }
-            }
-            .onDisappear {
-                state.isActive = false
-                state.addButtonPressed = false
+                .onDisappear {
+                    state.isActive = false
+                    state.addButtonPressed = false
 
-                // Cancel all Combine subscriptions and unregister State from broadcaster
-                state.cleanupTreatmentState()
-            }
-            .sheet(isPresented: $state.showInfo) {
-                PopupView(state: state)
-            }
-            .sheet(
-                isPresented: $showPresetSheet,
-                onDismiss: {
-                    showPresetSheet = false
+                    // Cancel all Combine subscriptions and unregister State from broadcaster
+                    state.cleanupTreatmentState()
                 }
-            ) {
-                MealPresetView(state: state)
-            }
-            .alert("Error while processing Treatment", isPresented: $state.showDeterminationFailureAlert)
-            {
-                Button("OK", role: .cancel) {
-                    state.hideModal()
+                .sheet(isPresented: $state.showInfo) {
+                    PopupView(state: state)
                 }
-            } message: {
-                Text("\(state.determinationFailureMessage)")
-            }
-            .sheet(isPresented: $showBarcodeScanner) {
-                NavigationStack {
-                    BarcodeScanner.RootView(
-                        resolver: resolver,
-                        state: scannerState,
-                        showListInitially: initialShowList,
-                        onAddTreatments: { carbs, fat, protein, note in
-                            // Directly merge scanned amounts into Treatments state
-                            Task { @MainActor in
-                                state.addScannedAmounts(carbs: carbs, fat: fat, protein: protein, note: note)
-                                // Force forecasts update and recalc insulin
-                                await state.updateForecasts(force: true)
-                                state.insulinCalculated = await state.calculateInsulin()
-                            }
-                        },
-                        onDismiss: { showBarcodeScanner = false }
-                    )
-                    .environment(appState)
+                .sheet(
+                    isPresented: $showPresetSheet,
+                    onDismiss: {
+                        showPresetSheet = false
+                    }
+                ) {
+                    MealPresetView(state: state)
                 }
-                .onChange(of: scannerState.scannedProducts) {
-                    syncScannedAmounts()
+                .alert("Error while processing Treatment", isPresented: $state.showDeterminationFailureAlert)
+                {
+                    Button("OK", role: .cancel) {
+                        state.hideModal()
+                    }
+                } message: {
+                    Text("\(state.determinationFailureMessage)")
+                }
+                .sheet(isPresented: $showBarcodeScanner) {
+                    NavigationStack {
+                        BarcodeScanner.RootView(
+                            resolver: resolver,
+                            state: scannerState,
+                            showListInitially: initialShowList,
+                            onAddTreatments: { carbs, fat, protein, note in
+                                // Directly merge scanned amounts into Treatments state
+                                Task { @MainActor in
+                                    state.addScannedAmounts(carbs: carbs, fat: fat, protein: protein, note: note)
+                                    // Force forecasts update and recalc insulin
+                                    await state.updateForecasts(force: true)
+                                    state.insulinCalculated = await state.calculateInsulin()
+                                }
+                            },
+                            onDismiss: { showBarcodeScanner = false }
+                        )
+                        .environment(appState)
+                    }
+                    .onChange(of: scannerState.scannedProducts) {
+                        syncScannedAmounts()
+                    }
                 }
             }
+            .ignoresSafeArea(.keyboard, edges: .bottom)
         }
 
         @StateObject private var scannerState = BarcodeScanner.StateModel()
