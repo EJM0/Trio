@@ -1253,12 +1253,6 @@ extension Home {
                             .padding(.horizontal, 24)
                     }
                 )
-            }.ignoresSafeArea(.keyboard, edges: .bottom).blur(radius: state.waitForSuggestion ? 8 : 0)
-                .onChange(of: selectedTab) {
-                    if !settingsPath.isEmpty {
-                        settingsPath = NavigationPath()
-                    }
-                }
             }
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .blur(radius: state.waitForSuggestion ? 8 : 0)
