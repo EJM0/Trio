@@ -57,6 +57,7 @@ extension Home {
 
         @State var settingsPath = NavigationPath()
         @State var isStatusPopupPresented = false
+        @State var ghostTab: HomeTab? = nil
         @State var showCancelAlert = false
         @State var showCancelConfirmDialog = false
         @State var isConfirmStopOverrideShown = false
@@ -1247,10 +1248,17 @@ extension Home {
             }()
 
             let selectionBinding = Binding<HomeTab>(
-                get: { selectedTab },
+
+                get: { ghostTab ?? selectedTab },
                 set: { newValue in
-                    if newValue != .plus {
+                    if newValue == .plus {
+                        ghostTab = .plus
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                            ghostTab = nil
+                        }
+                    } else {
                         selectedTab = newValue
+                        ghostTab = nil
                     }
                 }
             )
@@ -1290,7 +1298,7 @@ extension Home {
                             .ignoresSafeArea(.keyboard, edges: .bottom)
                     }
                     .unionTab(HomeTab.settings)
-                } item: { tab, isSelected in
+                } item: { tab, _ in
                     VStack(spacing: 2) {
                         switch tab {
                         case .main:
@@ -1315,7 +1323,6 @@ extension Home {
                             // Text("Settings").font(.caption2)
                         }
                     }
-                    .foregroundStyle(isSelected ? Color.tabBar : .secondary)
                     .allowsHitTesting(tab != .plus)
                 }
                 .tint(Color.tabBar)
