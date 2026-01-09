@@ -1271,6 +1271,7 @@ extension Home {
                     }
                     .badge(carbsRequiredBadge)
                     .unionTab(HomeTab.main)
+                    .transaction { $0.animation = nil }
 
                     NavigationStack {
                         History.RootView(resolver: resolver)
@@ -1278,11 +1279,13 @@ extension Home {
                             .ignoresSafeArea(.keyboard, edges: .bottom)
                     }
                     .unionTab(HomeTab.history)
+                    .transaction { $0.animation = nil }
 
                     Color.clear
                         .unionTab(HomeTab.plus)
                         .disabled(true)
                         .allowsHitTesting(false)
+                        .transaction { $0.animation = nil }
 
                     NavigationStack {
                         Adjustments.RootView(resolver: resolver)
@@ -1290,6 +1293,7 @@ extension Home {
                             .ignoresSafeArea(.keyboard, edges: .bottom)
                     }
                     .unionTab(HomeTab.adjustments)
+                    .transaction { $0.animation = nil }
 
                     NavigationStack(path: self.$settingsPath) {
                         Settings.RootView(resolver: resolver)
@@ -1297,6 +1301,7 @@ extension Home {
                             .ignoresSafeArea(.keyboard, edges: .bottom)
                     }
                     .unionTab(HomeTab.settings)
+                    .transaction { $0.animation = nil }
                 } item: { tab, _ in
                     VStack(spacing: 2) {
                         switch tab {
