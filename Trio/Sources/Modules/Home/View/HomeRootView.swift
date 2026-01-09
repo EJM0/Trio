@@ -1248,12 +1248,11 @@ extension Home {
             }()
 
             let selectionBinding = Binding<HomeTab>(
-
                 get: { ghostTab ?? selectedTab },
                 set: { newValue in
                     if newValue == .plus {
                         ghostTab = .plus
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                        withAnimation(.spring(response: 0, dampingFraction: 0)) {
                             ghostTab = nil
                         }
                     } else {
