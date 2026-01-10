@@ -170,7 +170,7 @@ struct ChartLegendView: View {
                             definition: Text(
                                 "Shows how much your blood glucose is expected to drop per unit of insulin. This value is calculated by the algorithm and may vary based on Dynamic ISF settings."
                             ),
-                            color: Color.insulin.opacity(0.8),
+                            color: Color.white.opacity(0.8),
                             iconString: "line.diagonal"
                         )
                     }.listRowBackground(Color.gray.opacity(0.1))
