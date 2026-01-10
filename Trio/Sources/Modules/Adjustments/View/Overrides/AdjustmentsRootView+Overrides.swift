@@ -5,6 +5,7 @@ extension Adjustments.RootView {
     @ViewBuilder func overrides() -> some View {
         if state.isOverrideEnabled, state.activeOverrideName.isNotEmpty {
             currentActiveAdjustment
+            stopAdjustmentButton
         }
         if state.overridePresets.isNotEmpty {
             overridePresets
