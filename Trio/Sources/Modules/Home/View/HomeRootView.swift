@@ -1308,10 +1308,12 @@ extension Home {
                         case .main:
                             Image(systemName: "chart.xyaxis.line")
                                 .font(.system(size: 23))
+                                .foregroundStyle(selectedTab == tab ? Color.tabBar : .secondary)
                         // Text("Main").font(.caption2)
                         case .history:
                             Image(systemName: historySFSymbol)
                                 .font(.system(size: 23))
+                                .foregroundStyle(selectedTab == tab ? Color.tabBar : .secondary)
                         // Text("History").font(.caption2)
                         case .plus:
                             // Dummy placeholder to keep the space, captures center coordinate
@@ -1320,10 +1322,12 @@ extension Home {
                         case .adjustments:
                             Image(systemName: "slider.horizontal.2.gobackward")
                                 .font(.system(size: 23))
+                                .foregroundStyle(selectedTab == tab ? Color.tabBar : .secondary)
                         // Text("Adjustments").font(.caption2)
                         case .settings:
                             Image(systemName: "gear")
                                 .font(.system(size: 23))
+                                .foregroundStyle(selectedTab == tab ? Color.tabBar : .secondary)
                             // Text("Settings").font(.caption2)
                         }
                     }
