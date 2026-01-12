@@ -87,6 +87,7 @@ struct ScreenNavigation<T>: ViewModifier where T: View {
                     view
                         .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 90, max: 100) ?? 90)
                         .ignoresSafeArea(.container, edges: .bottom)
+                        .ignoresSafeArea(.keyboard, edges: .bottom)
                 #else
                     view
                         .safeAreaPadding(.bottom, 90)
