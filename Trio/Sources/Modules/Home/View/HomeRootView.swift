@@ -334,7 +334,7 @@ extension Home {
             let percentString = percent == 100 ? "" : "\(percent.formatted(.number)) %"
 
             let unit = state.units
-            var target = (latestOverride.target ?? 100) as Decimal
+            var target = (latestOverride.target ?? 0) as Decimal
             target = unit == .mmolL ? target.asMmolL : target
 
             var targetString =
