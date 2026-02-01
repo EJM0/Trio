@@ -231,16 +231,6 @@ extension BarcodeScanner {
                                     }
                                     .allowsHitTesting(false)
                                 }
-
-                                // Custom Keyboard Toolbar (Overlay when keyboard is visible in List)
-                                if focusedItemID != nil {
-                                    VStack {
-                                        Spacer()
-                                        customKeyboardToolbar
-                                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                                            .zIndex(100)
-                                    }
-                                }
                             }
                             .frame(minHeight: geo.size.height)
                         }
@@ -412,12 +402,6 @@ extension BarcodeScanner {
                         }
                         .listStyle(.plain)
                         .scrollContentBackground(.hidden)
-                        .safeAreaInset(edge: .bottom) {
-                            // Show keyboard dismiss button when numpad is visible
-                            if focusedItemID != nil {
-                                customKeyboardToolbar
-                            }
-                        }
                         if !state.scannedProducts.isEmpty {
                             // "Use in bolus calculator" button removed for live sync
                         }
@@ -462,29 +446,6 @@ extension BarcodeScanner {
                     .background(appState.trioBackgroundColor(for: colorScheme))
                 }
                 .scrollIndicators(.hidden)
-            }
-        }
-
-        private var customKeyboardToolbar: some View {
-            VStack(spacing: 0) {
-                Divider()
-                HStack {
-                    Spacer()
-                    Button {
-                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "keyboard.chevron.compact.down")
-                            Text("Done")
-                        }
-                        .font(.headline)
-                        .foregroundStyle(Color.accentColor)
-                    }
-                    .buttonStyle(BorderlessButtonStyle())
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 12)
-                .background(Color(uiColor: .secondarySystemBackground))
             }
         }
 
