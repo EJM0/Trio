@@ -311,8 +311,11 @@ extension BarcodeScanner {
                         Image(systemName: "camera.fill")
                             .font(.system(size: 50))
                             .foregroundStyle(.secondary)
-                        Label(String(localized: "Enable camera access to start scanning."), systemImage: "lock.shield")
-                            .font(.subheadline)
+                        Label(
+                            String(localized: "Enable camera access to start scanning."),
+                            systemImage: "lock.shield"
+                        )
+                        .font(.subheadline)
                         Button(String(localized: "Open Settings"), action: state.openAppSettings)
                             .buttonStyle(.borderedProminent)
                         Spacer()
@@ -462,9 +465,11 @@ extension BarcodeScanner {
             }
 
             return VStack(alignment: .leading, spacing: 8) {
-                Text("\(state.scannedProducts.count) Item\(state.scannedProducts.count == 1 ? "" : "s") Scanned")
-                    .font(.title2)
-                    .bold()
+                Text(
+                    "\(state.scannedProducts.count) Item\(state.scannedProducts.count == 1 ? "" : "s") Scanned"
+                )
+                .font(.title2)
+                .bold()
 
                 HStack(spacing: 16) {
                     Text("total \(totalCarbs, specifier: "%.1f") g of carbs")
