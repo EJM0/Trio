@@ -3,78 +3,88 @@ import SwiftUI
 // MARK: - Product Details View
 
 extension BarcodeScanner {
-  struct ProductDetailsView: View {
-    let product: FoodItem
+    struct ProductDetailsView: View {
+        let product: FoodItem
 
-    var body: some View {
-      VStack(alignment: .leading, spacing: 16) {
-        HStack(alignment: .top, spacing: 16) {
-          switch product.imageSource {
-          case .url(let url):
-            AsyncImage(url: url) { phase in
-              switch phase {
-              case .success(let image):
-                image
-                  .resizable()
-                  .scaledToFill()
-              case .failure:
-                placeholder
-              default:
-                ProgressView()
-              }
-            }
-            .frame(width: 88, height: 88)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+        var body: some View {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 16) {
+                    switch product.imageSource {
+                    case let .url(url):
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case let .success(image):
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            case .failure:
+                                placeholder
+                            default:
+                                ProgressView()
+                            }
+                        }
+                        .frame(width: 88, height: 88)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
 
-          case .image(let uiImage):
-            Image(uiImage: uiImage)
-              .resizable()
-              .scaledToFill()
-              .frame(width: 88, height: 88)
-              .clipShape(RoundedRectangle(cornerRadius: 16))
+                    case let .image(uiImage):
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 88, height: 88)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
 
-          case .none:
-            placeholder
-              .frame(width: 88, height: 88)
-          }
+                    case .none:
+                        placeholder
+                            .frame(width: 88, height: 88)
+                    }
 
-          VStack(alignment: .leading, spacing: 6) {
-            Text(product.name)
-              .font(.headline)
-            if let brand = product.brand {
-              Text(brand)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(product.name)
+                            .font(.headline)
+                        if let brand = product.brand {
+                            Text(brand)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        if let quantity = product.quantity {
+                            Text(quantity)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                        if let serving = product.servingSize {
+                            Text("Serving: \(serving)")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                }
+
+                NutrimentGrid(nutriments: product.nutriments)
+
+                if let ingredients = product.ingredients {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Ingredients")
+                            .font(.subheadline.weight(.semibold))
+                        Text(ingredients)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
-            if let quantity = product.quantity {
-              Text(quantity)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            }
-            if let serving = product.servingSize {
-              Text("Serving: \(serving)")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            }
-          }
-          Spacer()
+            .padding()
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
         }
 
-        NutrimentGrid(nutriments: product.nutriments)
-
-        if let ingredients = product.ingredients {
-          VStack(alignment: .leading, spacing: 4) {
-            Text("Ingredients")
-              .font(.subheadline.weight(.semibold))
-            Text(ingredients)
-              .font(.footnote)
-              .foregroundStyle(.secondary)
-          }
+        private var placeholder: some View {
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.secondary.opacity(0.2))
+                .overlay(
+                    Image(systemName: "photo")
+                        .foregroundStyle(.secondary)
+                )
         }
-      }
-      .padding()
-      .background(.ultraThinMaterial)
-      .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 
     struct ScannedProductRow: View {
@@ -241,62 +251,63 @@ extension BarcodeScanner {
             .padding(.bottom, 16)
         }
 
-          Picker("", selection: $isMlInput) {
-            Text("g").tag(false)
-            Text("ml").tag(true)
-          }
-          .pickerStyle(.segmented)
-          .frame(width: 100)
-          .onChange(of: isMlInput) { _, newValue in
-            if let amount = Double(amountText.replacingOccurrences(of: ",", with: ".")) {
-              state.updateScannedProductAmount(item, amount: amount, isMlInput: newValue)
+        private func quickSelectMultiplier(_ multiplier: Int) {
+            if let servingQuantity = item.servingQuantity, servingQuantity > 0 {
+                updateAmount(servingQuantity * Double(multiplier))
+            } else {
+                updateAmount(Double(multiplier) * 100)
             }
         }
 
-        if showQuickSelector {
-          VStack(spacing: 8) {
-            HStack(spacing: 8) {
-              firstRowButtons
+        @ViewBuilder private var productImage: some View {
+            switch item.imageSource {
+            case let .image(uiImage):
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 60, height: 60)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            case let .url(url):
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case let .success(image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        placeholder
+                    default:
+                        ProgressView()
+                    }
+                }
+                .frame(width: 60, height: 60)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            case .none:
+                placeholder
+                    .frame(width: 60, height: 60)
             }
-            HStack(spacing: 8) {
-              secondRowButtons
-            }
-          }
-          .transition(.opacity.combined(with: .move(edge: .top)))
         }
-      }
-      .padding()
-      .background(.ultraThinMaterial)
-      .clipShape(RoundedRectangle(cornerRadius: 16))
-      .onTapGesture {
-        withAnimation(.easeInOut(duration: 0.2)) {
-          showQuickSelector.toggle()
+
+        private var placeholder: some View {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.secondary.opacity(0.2))
+                .overlay(
+                    Image(systemName: "photo")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                )
         }
-      }
-      .onAppear {
-        updateFromItem()
-      }
-      .onChange(of: item.amount) { _, _ in
-        updateFromItem()
-      }
-      .onChange(of: item.isMlInput) { _, _ in
-        updateFromItem()
-      }
-      .onChange(of: focusedItemID.wrappedValue) { _, newValue in
-        // Pause scanner and hide scanner view when numpad is opened
-        if newValue == item.id {
-          // handled in parent now
-        }
-      }
     }
 
     struct NutrimentGrid: View {
         let nutriments: FoodItem.Nutriments
 
-    var body: some View {
-      VStack(alignment: .leading, spacing: 8) {
-        Text("Per 100\(nutriments.basis == .per100ml ? "ml" : "g")")
-          .font(.subheadline.weight(.semibold))
+        var body: some View {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Per 100\(nutriments.basis == .per100ml ? "ml" : "g")")
+                    .font(.subheadline.weight(.semibold))
 
                 LazyVGrid(
                     columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 2), spacing: 12
@@ -321,32 +332,31 @@ extension BarcodeScanner {
                 }
             }
         }
-      }
-    }
-  }
-
-  struct NutrimentTile: View {
-    let title: String
-    let value: Double?
-    let unit: String
-
-    var body: some View {
-      VStack(alignment: .leading, spacing: 6) {
-        Text(title)
-          .font(.caption)
-          .foregroundStyle(.secondary)
-        Text(formattedValue)
-          .font(.headline)
-      }
-      .padding()
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .background(Color.secondary.opacity(0.08))
-      .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    private var formattedValue: String {
-      guard let value else { return "—" }
-      return "\(String(format: "%.1f", value)) \(unit)"
+    struct NutrimentTile: View {
+        let title: String
+        let value: Double?
+        let unit: String
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(formattedValue)
+                    .font(.headline)
+            }
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.secondary.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+
+        private var formattedValue: String {
+            guard let value else { return "—" }
+            return "\(String(format: "%.1f", value)) \(unit)"
+        }
     }
-  }
 }
+ 
