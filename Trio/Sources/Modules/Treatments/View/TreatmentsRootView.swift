@@ -591,8 +591,12 @@ extension Treatments {
                 }.listRowBackground(Color.chart)
 
                 Section {
-                    ForecastChart(state: state)
-                        .padding(.vertical)
+                    Group {
+                        ForecastChart(state: state)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .listRowInsets(EdgeInsets())
                 }.listRowBackground(Color.chart)
 
                 Section {
