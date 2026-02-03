@@ -359,4 +359,3 @@ extension BarcodeScanner {
         }
     }
 }
- 

@@ -566,10 +566,12 @@ extension Treatments {
 
                 Section {
                     inputsView
+                        .padding(.vertical, 2)
                 }.listRowBackground(Color.chart)
 
                 Section {
                     optionsView
+                        .padding(.vertical, 2)
                 }.listRowBackground(Color.chart)
 
                 treatmentButton
