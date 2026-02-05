@@ -12,6 +12,16 @@ extension BolusCalculatorConfig {
         @Published var confirmBolusWhenVeryLowGlucose: Bool = false
         @Published var barcodeScannerEnabled: Bool = false
         @Published var barcodeScannerOnlyCarbs: Bool = false
+        @Published var scaleIP: String = ""
+        @Published var calibrationWeight: Decimal = 100
+
+        func tareScale() {
+            provider.scaleManager.tare(ip: scaleIP)
+        }
+
+        func calibrateScale() {
+            provider.scaleManager.calibrate(weight: calibrationWeight, ip: scaleIP)
+        }
 
         override func subscribe() {
             units = settingsManager.settings.units
@@ -22,11 +32,16 @@ extension BolusCalculatorConfig {
             subscribeSetting(\.fattyMealFactor, on: $fattyMealFactor) { fattyMealFactor = $0 }
             subscribeSetting(\.sweetMeals, on: $sweetMeals) { sweetMeals = $0 }
             subscribeSetting(\.sweetMealFactor, on: $sweetMealFactor) { sweetMealFactor = $0 }
-            subscribeSetting(\.confirmBolus, on: $confirmBolusWhenVeryLowGlucose) { confirmBolusWhenVeryLowGlucose = $0 }
+            subscribeSetting(\.confirmBolus, on: $confirmBolusWhenVeryLowGlucose) {
+                confirmBolusWhenVeryLowGlucose = $0
+            }
             subscribeSetting(\.barcodeScannerEnabled, on: $barcodeScannerEnabled) {
-                barcodeScannerEnabled = $0 }
+                barcodeScannerEnabled = $0
+            }
             subscribeSetting(\.barcodeScannerOnlyCarbs, on: $barcodeScannerOnlyCarbs) {
-                barcodeScannerOnlyCarbs = $0 }
+                barcodeScannerOnlyCarbs = $0
+            }
+            subscribeSetting(\.scaleIP, on: $scaleIP) { scaleIP = $0 }
         }
     }
 }

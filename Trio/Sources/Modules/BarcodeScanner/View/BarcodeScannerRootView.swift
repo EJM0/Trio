@@ -189,6 +189,9 @@ extension BarcodeScanner {
                 state.handleAppear()
                 state.showListView = showListInitially
             }
+            .onDisappear {
+                state.stopScaleStream()
+            }
         }
 
         // MARK: - Scanner View Content
@@ -386,6 +389,9 @@ extension BarcodeScanner {
                         .listRowInsets(EdgeInsets(top: 10, leading: 0, bottom: 10, trailing: 0))
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
+                        .onAppear {
+                            state.checkScaleConnection()
+                        }
 
                         if state.isSearching {
                             HStack {
@@ -464,31 +470,36 @@ extension BarcodeScanner {
 
                         Section {
                             ForEach(state.scannedProducts) { item in
-                                ScannedProductRow(item: item, state: state, focusedItemID: $focusedItemID)
-                                    .listRowBackground(Color.clear)
-                                    .listRowSeparator(.hidden)
-                                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
-                                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                        Button(role: .destructive) {
-                                            withAnimation {
-                                                state.removeScannedProduct(item)
-                                            }
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
+                                ScannedProductRow(
+                                    item: item,
+                                    state: state,
+                                    focusedItemID: $focusedItemID,
+                                    isScaleConnected: state.scaleBatteryLevel != nil
+                                )
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        withAnimation {
+                                            state.removeScannedProduct(item)
                                         }
-                                        .tint(.red)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
                                     }
-                                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                                        Button {
-                                            state.editScannedProduct(item)
-                                            isEditingFromList = true
-                                            state.isEditingFromList = true
-                                            showEditorCard = true
-                                        } label: {
-                                            Label("Edit", systemImage: "pencil")
-                                        }
-                                        .tint(.blue)
+                                    .tint(.red)
+                                }
+                                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                    Button {
+                                        state.editScannedProduct(item)
+                                        isEditingFromList = true
+                                        state.isEditingFromList = true
+                                        showEditorCard = true
+                                    } label: {
+                                        Label("Edit", systemImage: "pencil")
                                     }
+                                    .tint(.blue)
+                                }
                             }
                         }
                     }
@@ -550,21 +561,64 @@ extension BarcodeScanner {
                 result += (kcalPer100 * amount) / 100.0
             }
 
-            return VStack(alignment: .leading, spacing: 8) {
-                Text(
-                    "\(state.scannedProducts.count) Item\(state.scannedProducts.count == 1 ? "" : "s") Scanned"
-                )
-                .font(.title2)
-                .bold()
+            return HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(
+                        "\(state.scannedProducts.count) Item\(state.scannedProducts.count == 1 ? "" : "s") Scanned"
+                    )
+                    .font(.title2)
+                    .bold()
 
-                HStack(spacing: 16) {
-                    Text("total \(totalCarbs, specifier: "%.1f") g of carbs")
-                        .foregroundStyle(.blue)
+                    HStack(spacing: 16) {
+                        Text("total \(totalCarbs, specifier: "%.1f") g of carbs")
+                            .foregroundStyle(.blue)
+                    }
+                    .font(.subheadline)
                 }
-                .font(.subheadline)
+
+                Spacer()
+
+                if let battery = state.scaleBatteryLevel {
+                    VStack(alignment: .trailing, spacing: 5) {
+                        HStack(spacing: 4) {
+                            Image(systemName: batteryIcon(for: battery))
+                            Text("\(battery)%")
+                        }
+                        .foregroundStyle(.secondary)
+                        .font(.subheadline)
+
+                        if let weight = state.liveScaleWeight {
+                            Text("\(weight, specifier: "%.1f") g")
+                                .font(.headline)
+                                .monospacedDigit()
+                        }
+
+                        Button {
+                            state.tareScale()
+                        } label: {
+                            Text("Tare")
+                                .font(.subheadline)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.secondary.opacity(0.15))
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
         }
 
         // MARK: - Helper Functions
+
+        private func batteryIcon(for level: Int) -> String {
+            switch level {
+            case 0 ... 20: return "battery.0"
+            case 21 ... 50: return "battery.25"
+            case 51 ... 75: return "battery.50"
+            case 76 ... 95: return "battery.75"
+            default: return "battery.100"
+            }
+        }
     }
 }

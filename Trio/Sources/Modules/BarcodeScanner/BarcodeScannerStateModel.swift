@@ -22,6 +22,9 @@ extension BarcodeScanner {
 
         @Published var scannedLabelBasisAmount: Double = 100.0
 
+        @Published var scaleBatteryLevel: Int?
+        @Published var liveScaleWeight: Double?
+
         // External control
         @Published var showListView = false
         var onAddTreatments: ((Decimal, Decimal, Decimal, String) -> Void)?
@@ -37,6 +40,44 @@ extension BarcodeScanner {
         @Published var isSearching = false
         @Published var searchError: String?
 
+        // MARK: - Scale
+
+        func checkScaleConnection() {
+            // Only fetch if not already connected/streaming
+            if liveScaleWeight == nil {
+                provider.scaleManager.fetchBatteryLevel { [weak self] level in
+                    self?.scaleBatteryLevel = level
+                    if level != nil {
+                        self?.startScaleStream()
+                    }
+                }
+            } else {
+                // Just update battery
+                provider.scaleManager.fetchBatteryLevel { [weak self] level in
+                    self?.scaleBatteryLevel = level
+                }
+            }
+        }
+
+        func startScaleStream() {
+            provider.scaleManager.connectToWebSocket(ip: nil) { [weak self] weight in
+                self?.liveScaleWeight = weight
+            }
+        }
+
+        func stopScaleStream() {
+            provider.scaleManager.disconnectWebSocket()
+            liveScaleWeight = nil
+        }
+
+        func fetchScaleWeight(completion: @escaping (Double) -> Void) {
+            provider.scaleManager.fetchWeight(completion: completion)
+        }
+
+        func tareScale() {
+            provider.scaleManager.tare(ip: nil)
+        }
+
         // MARK: - Private Properties
 
         private let client = OpenFoodFactsClient()
@@ -49,6 +90,7 @@ extension BarcodeScanner {
 
         func handleAppear() {
             refreshCameraStatus()
+            checkScaleConnection()
 
             switch cameraStatus {
             case .notDetermined:
@@ -280,6 +322,7 @@ extension BarcodeScanner {
 
         /// Performs the dismissal of the barcode scanner module
         func performDismissal() {
+            stopScaleStream()
             if let onDismiss = onDismiss {
                 onDismiss()
             } else {
