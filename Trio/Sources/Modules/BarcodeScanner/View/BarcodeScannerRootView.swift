@@ -1,5 +1,7 @@
+import CoreData
 import SwiftUI
 import Swinject
+import UIKit
 
 // MARK: - Root View
 
@@ -12,9 +14,21 @@ extension BarcodeScanner {
     @ObservedObject var state: StateModel
     @State private var isEditingFromList = false
     @State private var showEditorCard = false
+    @State private var selectedListTab: ListTab = .scanned
     @FocusState private var focusedItemID: UUID?
     @FocusState private var isSearchFocused: Bool
     @State private var showAllSearchResults = false
+    @Environment(\.managedObjectContext) var moc
+
+    @FetchRequest(
+      entity: MealPresetStored.entity(),
+      sortDescriptors: [NSSortDescriptor(key: "dish", ascending: true)]
+    ) var presets: FetchedResults<MealPresetStored>
+
+    private var matchingPresets: [MealPresetStored] {
+      if state.searchQuery.isEmpty { return [] }
+      return presets.filter { ($0.dish ?? "").localizedCaseInsensitiveContains(state.searchQuery) }
+    }
 
     init(
       resolver: Resolver,
@@ -46,46 +60,53 @@ extension BarcodeScanner {
       case fiber
     }
 
-    var body: some View {
-      ZStack {
-        if state.showListView {
-          listViewContent
-            .transition(.move(edge: .trailing).combined(with: .opacity))
-        } else {
-          scannerViewContent
-            .transition(.move(edge: .leading).combined(with: .opacity))
-        }
-      }
-      .simultaneousGesture(
-        DragGesture()
-          .onEnded { value in
-            if abs(value.translation.width) > abs(value.translation.height) {
-              // Horizontal Swipe - Switch Views
-              // In List View, require Edge Swipe (from left) to avoid conflict with row actions
-              let isEdgeSwipe = value.startLocation.x < 50
-              // Higher threshold to distinguish from accidental diagonal drags
-              let threshold: CGFloat = 80
+    enum ListTab: String, CaseIterable {
+      case scanner = "Scanner"
+      case scanned = "Meal"
+      case presets = "Presets"
+    }
 
-              if value.translation.width > threshold {
-                // Swipe Right (Back to Scanner)
-                // Only allow if (Scanner Mode) OR (List Mode AND Edge Swipe)
-                if !state.showListView || isEdgeSwipe {
-                  state.showListView = false
-                }
-              } else if value.translation.width < -threshold {
-                // Swipe Left (Go to List)
-                state.showListView = true
-              }
+    var body: some View {
+      VStack(spacing: 0) {
+        if !state.showEditorView || selectedListTab != .scanner {
+          Picker("Mode", selection: $selectedListTab) {
+            ForEach(ListTab.allCases, id: \.self) { tab in
+              Text(LocalizedStringKey(tab.rawValue)).tag(tab)
             }
           }
-      )
-      .animation(.easeInOut(duration: 0.3), value: state.showListView)
+          .pickerStyle(.segmented)
+          .padding()
+        }
+
+        ZStack {
+          switch selectedListTab {
+          case .scanner:
+            scannerViewContent
+          case .scanned:
+            scannedItemsList
+          case .presets:
+            presetListView
+          }
+        }
+      }
       .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
-      .navigationTitle(String(localized: state.showListView ? "Scanned Items" : "Barcode Scanner"))
+      .navigationTitle(LocalizedStringKey(navigationTitle))
+      .onChange(of: state.showListView) {
+        if state.showListView {
+          if selectedListTab == .scanner {
+            selectedListTab = .scanned
+          }
+        } else {
+          selectedListTab = .scanner
+        }
+      }
+      .onChange(of: selectedListTab) {
+        state.showListView = (selectedListTab != .scanner)
+      }
       .navigationBarTitleDisplayMode(.inline)
       .toolbar(content: {
         ToolbarItem(placement: .topBarLeading) {
-          if state.showEditorView {
+          if state.showEditorView && selectedListTab == .scanner {
             Button(
               action: {
                 state.cancelEditing()
@@ -107,43 +128,6 @@ extension BarcodeScanner {
               label: {
                 Text(String(localized: "Close"))
                   .fixedSize(horizontal: true, vertical: false)
-              }
-            )
-            .buttonStyle(BorderlessButtonStyle())
-          }
-        }
-        ToolbarItem(placement: .topBarTrailing) {
-          // Hide the item list button while editing nutrition details
-          if state.showListView {
-            Button(
-              action: {
-                state.showListView = false
-              },
-              label: {
-                Image(systemName: "barcode.viewfinder")
-                  .font(.body)
-              }
-            )
-          } else if !state.showEditorView {
-            Button(
-              action: {
-                state.showListView = true
-              },
-              label: {
-                HStack {
-                  ZStack(alignment: .topTrailing) {
-                    Image(systemName: "list.bullet")
-                      .font(.body)
-                    if !state.scannedProducts.isEmpty {
-                      Text("\(state.scannedProducts.count)")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.white)
-                        .padding(4)
-                        .background(Circle().fill(Color.red))
-                        .offset(x: 8, y: -8)
-                    }
-                  }
-                }
               }
             )
             .buttonStyle(BorderlessButtonStyle())
@@ -188,6 +172,12 @@ extension BarcodeScanner {
         configureView()
         state.handleAppear()
         state.showListView = showListInitially
+        // Sync tab state with showListInitially
+        if showListInitially {
+          selectedListTab = .scanned
+        } else {
+          selectedListTab = .scanner
+        }
       }
     }
 
@@ -361,7 +351,43 @@ extension BarcodeScanner {
 
     // MARK: - List View Content
 
-    private var listViewContent: some View {
+    private var navigationTitle: String {
+      "Barcode Scanner"
+    }
+
+    private var presetListView: some View {
+      PresetListView(
+        scannerState: state,
+        onSelect: { preset in
+          var imageSource: BarcodeScanner.FoodItem.ImageSource = .none
+          if let data = preset.imageData, let img = UIImage(data: data) {
+            imageSource = .image(img)
+          }
+
+          let item = BarcodeScanner.FoodItem(
+            id: UUID(),
+            name: preset.dish ?? "Unknown",
+            imageSource: imageSource,
+            nutriments: .init(
+              basis: .per100g,
+              carbohydratesPer100g: Double(truncating: preset.carbs ?? 0),
+              sugarsPer100g: nil,
+              fatPer100g: Double(truncating: preset.fat ?? 0),
+              proteinPer100g: Double(truncating: preset.protein ?? 0),
+              fiberPer100g: nil
+            ),
+            amount: 100
+          )
+          withAnimation {
+            state.scannedProducts.append(item)
+            selectedListTab = .scanned
+          }
+        },
+        shouldDismissOnSelect: false
+      )
+    }
+
+    private var scannedItemsList: some View {
       ZStack(alignment: .leading) {
         List {
           // Search Section
@@ -384,8 +410,100 @@ extension BarcodeScanner {
             )
             .padding(.horizontal)
             .listRowInsets(EdgeInsets(top: 10, leading: 0, bottom: 10, trailing: 0))
+
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
+
+            if !state.searchQuery.isEmpty {
+              let results = matchingPresets
+              ForEach(results) { preset in
+                Button {
+                  withAnimation {
+                    var imageSource: BarcodeScanner.FoodItem.ImageSource = .none
+                    if let data = preset.imageData, let image = UIImage(data: data) {
+                      imageSource = .image(image)
+                    }
+
+                    let item = BarcodeScanner.FoodItem(
+                      barcode: nil,
+                      name: preset.dish ?? "Preset",
+                      brand: "Preset",
+                      imageSource: imageSource,
+                      servingQuantity: 100,
+                      servingQuantityUnit: "g",
+                      nutriments: .init(
+                        basis: .per100g,
+                        carbohydratesPer100g: (preset.carbs as NSDecimalNumber?)?.doubleValue,
+                        fatPer100g: (preset.fat as NSDecimalNumber?)?.doubleValue,
+                        proteinPer100g: (preset.protein as NSDecimalNumber?)?.doubleValue
+                      ),
+                      amount: 100,
+                      isManualEntry: true
+                    )
+                    state.scannedProducts.append(item)
+                    state.searchQuery = ""
+                    state.searchResults = []
+                    isSearchFocused = false
+                  }
+                } label: {
+                  HStack(spacing: 12) {
+                    if let data = preset.imageData, let uiImage = UIImage(data: data) {
+                      Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 44, height: 44)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    } else {
+                      Image(systemName: "fork.knife")
+                        .font(.title2)
+                        .frame(width: 44, height: 44)
+                        .background(Color.gray.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .foregroundStyle(.secondary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                      Text(preset.dish ?? "Unknown")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                      HStack {
+                        Text("Preset")
+                          .font(.caption2)
+                          .padding(.horizontal, 4)
+                          .padding(.vertical, 2)
+                          .background(Color.blue.opacity(0.1))
+                          .foregroundStyle(.blue)
+                          .cornerRadius(4)
+
+                        if let c = preset.carbs {
+                          Text(String(format: "%.0fg carbs", (c as NSDecimalNumber).doubleValue))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        }
+                      }
+                    }
+                    Spacer()
+                    Image(systemName: "plus.circle.fill")
+                      .foregroundStyle(.blue)
+                      .font(.title3)
+                  }
+                  .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+              }
+
+              if !results.isEmpty && (!state.searchResults.isEmpty || state.isSearching) {
+                Divider()
+                  .padding(.horizontal)
+                  .listRowBackground(Color.clear)
+                  .listRowSeparator(.hidden)
+              }
+            }
 
             if state.isSearching {
               HStack {

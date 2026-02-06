@@ -10,6 +10,7 @@ public extension MealPresetStored {
     @NSManaged var dish: String?
     @NSManaged var fat: NSDecimalNumber?
     @NSManaged var protein: NSDecimalNumber?
+    @NSManaged var imageData: Data?
 }
 
 extension MealPresetStored: Identifiable {}
