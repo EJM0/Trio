@@ -43,7 +43,7 @@ extension BarcodeScanner {
 
         let id: UUID
         let barcode: String?
-        let name: String
+        var name: String
         let brand: String?
         let quantity: String?
         let servingSize: String?
