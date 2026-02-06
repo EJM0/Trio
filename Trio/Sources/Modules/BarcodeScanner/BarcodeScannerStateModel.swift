@@ -40,34 +40,81 @@ extension BarcodeScanner {
         @Published var isSearching = false
         @Published var searchError: String?
 
+        // Scale polling
+        private var scaleCheckTimer: Timer?
+
         // MARK: - Scale
 
+        func startScalePolling() {
+            // Cancel any existing timer
+            scaleCheckTimer?.invalidate()
+
+            // Check immediately
+            checkScaleConnectionOnce()
+
+            // Then check every 1 second
+            scaleCheckTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) {
+                [weak self] _ in
+                self?.checkScaleConnectionOnce()
+            }
+        }
+
+        func stopScalePolling() {
+            scaleCheckTimer?.invalidate()
+            scaleCheckTimer = nil
+        }
+
+        private func checkScaleConnectionOnce() {
+            // Skip if already connected
+            guard liveScaleWeight == nil else { return }
+
+            provider.scaleManager.fetchBatteryLevel { [weak self] level in
+                guard let self = self else { return }
+                self.scaleBatteryLevel = level
+                if level != nil {
+                    // Scale detected! Stop polling and start WebSocket
+                    self.stopScalePolling()
+                    self.startScaleStream()
+                }
+            }
+        }
+
         func checkScaleConnection() {
+            print(
+                "DEBUG: checkScaleConnection called, liveScaleWeight: \(liveScaleWeight?.description ?? "nil")"
+            )
             // Only fetch if not already connected/streaming
             if liveScaleWeight == nil {
                 provider.scaleManager.fetchBatteryLevel { [weak self] level in
+                    print("DEBUG: Battery level response: \(level?.description ?? "nil")")
                     self?.scaleBatteryLevel = level
                     if level != nil {
+                        print("DEBUG: Starting scale stream...")
                         self?.startScaleStream()
                     }
                 }
             } else {
                 // Just update battery
                 provider.scaleManager.fetchBatteryLevel { [weak self] level in
+                    print("DEBUG: Battery level update: \(level?.description ?? "nil")")
                     self?.scaleBatteryLevel = level
                 }
             }
         }
 
         func startScaleStream() {
+            print("DEBUG: connectToWebSocket called")
             provider.scaleManager.connectToWebSocket(ip: nil) { [weak self] weight in
+                print("DEBUG: Received weight from WebSocket: \(weight)")
                 self?.liveScaleWeight = weight
             }
         }
 
         func stopScaleStream() {
+            stopScalePolling()
             provider.scaleManager.disconnectWebSocket()
             liveScaleWeight = nil
+            scaleBatteryLevel = nil
         }
 
         func fetchScaleWeight(completion: @escaping (Double) -> Void) {
@@ -90,7 +137,7 @@ extension BarcodeScanner {
 
         func handleAppear() {
             refreshCameraStatus()
-            checkScaleConnection()
+            startScalePolling()
 
             switch cameraStatus {
             case .notDetermined:

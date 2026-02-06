@@ -389,9 +389,6 @@ extension BarcodeScanner {
                         .listRowInsets(EdgeInsets(top: 10, leading: 0, bottom: 10, trailing: 0))
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
-                        .onAppear {
-                            state.checkScaleConnection()
-                        }
 
                         if state.isSearching {
                             HStack {
@@ -474,7 +471,7 @@ extension BarcodeScanner {
                                     item: item,
                                     state: state,
                                     focusedItemID: $focusedItemID,
-                                    isScaleConnected: state.scaleBatteryLevel != nil
+                                    isScaleConnected: state.liveScaleWeight != nil
                                 )
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
@@ -561,7 +558,7 @@ extension BarcodeScanner {
                 result += (kcalPer100 * amount) / 100.0
             }
 
-            return HStack(alignment: .top) {
+            return HStack {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(
                         "\(state.scannedProducts.count) Item\(state.scannedProducts.count == 1 ? "" : "s") Scanned"
@@ -578,47 +575,38 @@ extension BarcodeScanner {
 
                 Spacer()
 
-                if let battery = state.scaleBatteryLevel {
-                    VStack(alignment: .trailing, spacing: 5) {
-                        HStack(spacing: 4) {
-                            Image(systemName: batteryIcon(for: battery))
-                            Text("\(battery)%")
-                        }
-                        .foregroundStyle(.secondary)
-                        .font(.subheadline)
+                // Scale controls on the right - only if WebSocket connected and receiving data
+                if let liveWeight = state.liveScaleWeight {
+                    VStack(alignment: .trailing, spacing: 4) {
+                        // Live weight display
+                        Text(String(format: "%.1f g", liveWeight))
+                            .font(.system(.body, design: .monospaced).weight(.semibold))
+                            .foregroundColor(.accentColor)
 
-                        if let weight = state.liveScaleWeight {
-                            Text("\(weight, specifier: "%.1f") g")
-                                .font(.headline)
-                                .monospacedDigit()
-                        }
+                        HStack(spacing: 8) {
+                            Button {
+                                state.tareScale()
+                            } label: {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 18, height: 18)
+                                    .foregroundColor(.accentColor)
+                            }
+                            .buttonStyle(.plain)
 
-                        Button {
-                            state.tareScale()
-                        } label: {
-                            Text("Tare")
-                                .font(.subheadline)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color.secondary.opacity(0.15))
-                                .clipShape(Capsule())
+                            if let battery = state.scaleBatteryLevel {
+                                Text("\(battery)%")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
-                        .buttonStyle(.plain)
                     }
+                    .frame(minWidth: 60)
                 }
             }
         }
 
         // MARK: - Helper Functions
-
-        private func batteryIcon(for level: Int) -> String {
-            switch level {
-            case 0 ... 20: return "battery.0"
-            case 21 ... 50: return "battery.25"
-            case 51 ... 75: return "battery.50"
-            case 76 ... 95: return "battery.75"
-            default: return "battery.100"
-            }
-        }
     }
 }

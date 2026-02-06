@@ -159,16 +159,18 @@ extension BarcodeScanner {
                                 state.updateScannedProductAmount(item, amount: amount, isMlInput: newValue)
                             }
 
+                            // Show scale button if connected
                             if isScaleConnected {
                                 Button {
                                     state.fetchScaleWeight { weight in
-                                        updateAmount(weight)
+                                        let validWeight = max(0, weight)
+                                        updateAmount(validWeight)
                                     }
                                 } label: {
-                                    Image(systemName: "arrow.down.circle")
+                                    Image(systemName: "arrow.down.circle.fill")
                                         .resizable()
                                         .aspectRatio(contentMode: .fit)
-                                        .frame(width: 22, height: 22)
+                                        .frame(width: 24, height: 24)
                                         .foregroundColor(.accentColor)
                                 }
                                 .buttonStyle(.plain)
