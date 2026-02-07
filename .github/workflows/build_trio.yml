@@ -16,7 +16,7 @@ env:
 jobs:
   # use a single runner for these sequential steps
   check_status:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: Check status to decide whether to build
     permissions:
       contents: write
@@ -26,19 +26,18 @@ jobs:
 
     # Check GH_PAT, sync repository, check day in month
     steps:
-
       - name: Access
         id: workflow-permission
         run: |
           # Validate Access Token
-          
+
           # Ensure that gh exit codes are handled when output is piped.
           set -o pipefail
-          
+
           # Define patterns to validate the access token (GH_PAT) and distinguish between classic and fine-grained tokens.
           GH_PAT_CLASSIC_PATTERN='^ghp_[a-zA-Z0-9]{36}$'
           GH_PAT_FINE_GRAINED_PATTERN='^github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59}$'
-          
+
           # Validate Access Token (GH_PAT)
           if [ -z "$GH_PAT" ]; then
             failed=true
@@ -80,7 +79,7 @@ jobs:
               echo "has_permission=true" >> $GITHUB_OUTPUT
             fi
           fi
-          
+
           # Exit unsuccessfully if secret validation failed.
           if [ $failed ]; then
             exit 2
@@ -152,20 +151,20 @@ jobs:
   # creates new certs if the repository variable ENABLE_NUKE_CERTS == 'true'
   # only run if a build is planned
   check_certs:
-      needs: [check_status]
-      name: Check certificates
-      uses: ./.github/workflows/create_certs.yml
-      secrets: inherit
-      if: |
-        github.event_name == 'workflow_dispatch' ||
-          (vars.SCHEDULED_BUILD != 'false' && needs.check_status.outputs.IS_SECOND_IN_MONTH == 'true') ||
-          (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' )
+    needs: [check_status]
+    name: Check certificates
+    uses: ./.github/workflows/create_certs.yml
+    secrets: inherit
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+        (vars.SCHEDULED_BUILD != 'false' && needs.check_status.outputs.IS_SECOND_IN_MONTH == 'true') ||
+        (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' )
 
   # Builds Trio
   build:
     name: Build
     needs: [check_certs, check_status]
-    runs-on: macos-15
+    runs-on: self-hosted
     permissions:
       contents: write
     if:
@@ -175,8 +174,8 @@ jobs:
         (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' )
     steps:
       - name: Select Xcode version
-        run: "sudo xcode-select --switch /Applications/Xcode_16.4.app/Contents/Developer"
-      
+        run: "SUDO_ASKPASS=/usr/local/bin/askpass.sh sudo -A xcode-select --switch /Applications/Xcode-26.2.0.app/Contents/Developer"
+
       - name: Checkout Repo for building
         uses: actions/checkout@v4
         with:
@@ -219,7 +218,7 @@ jobs:
         run: |
           TABLE_PRINTER_PATH=$(ruby -e 'puts Gem::Specification.find_by_name("fastlane").gem_dir')/match/lib/match/table_printer.rb
           if [ -f "$TABLE_PRINTER_PATH" ]; then
-            sed -i "" "/puts(Terminal::Table.new(params))/d" "$TABLE_PRINTER_PATH"
+            SUDO_ASKPASS=/usr/local/bin/askpass.sh sudo -A sed -i "" "/puts(Terminal::Table.new(params))/d" "$TABLE_PRINTER_PATH"
           else
             echo "table_printer.rb not found"
             exit 1
@@ -231,7 +230,7 @@ jobs:
 
       # Sync the GitHub runner clock with the Windows time server (workaround as suggested in https://github.com/actions/runner/issues/2996)
       - name: Sync clock
-        run: sudo sntp -sS time.windows.com
+        run: SUDO_ASKPASS=/usr/local/bin/askpass.sh sudo -A sntp -sS time.windows.com
 
       # Build signed Trio IPA file
       - name: Fastlane Build & Archive

@@ -714,6 +714,9 @@ extension Treatments {
         state.isActive = false
         state.addButtonPressed = false
 
+        // Stop scale connection
+        scannerState.stopScaleStream()
+
         // Cancel all Combine subscriptions and unregister State from broadcaster
         state.cleanupTreatmentState()
       }

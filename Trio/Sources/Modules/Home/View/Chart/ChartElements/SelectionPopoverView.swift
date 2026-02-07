@@ -38,7 +38,7 @@ struct SelectionPopoverView: ChartContent {
             .annotation(
                 position: .top,
                 alignment: .center,
-                overflowResolution: .init(x: .fit(to: .chart), y: .disabled)
+                overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .plot))
             ) {
                 selectionPopover
             }
@@ -93,6 +93,16 @@ struct SelectionPopoverView: ChartContent {
                         + Text(String(localized: " g", comment: "gram of carbs"))
                 }
                 .foregroundStyle(Color.orange).font(.body)
+            }
+
+            if let selectedIOBValue, let isf = selectedIOBValue.insulinSensitivity {
+                HStack {
+                    Image(systemName: "arrow.up.arrow.down").frame(width: 15)
+                    Text(Formatter.integerFormatter.string(from: isf) ?? "")
+                        .bold()
+                        + Text(String(localized: " ISF", comment: "Insulin Sensitivity Factor"))
+                }
+                .foregroundStyle(Color.white).font(.body)
             }
         }
         .padding(.horizontal)

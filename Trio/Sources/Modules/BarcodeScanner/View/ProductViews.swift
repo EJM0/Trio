@@ -91,6 +91,7 @@ extension BarcodeScanner {
         let item: FoodItem
         var state: StateModel
         var focusedItemID: FocusState<UUID?>.Binding
+        var isScaleConnected: Bool
 
         @State private var amount: Double = 0
         @State private var isMlInput: Bool = false
@@ -156,6 +157,23 @@ extension BarcodeScanner {
                             .frame(width: 85)
                             .onChange(of: isMlInput) { _, newValue in
                                 state.updateScannedProductAmount(item, amount: amount, isMlInput: newValue)
+                            }
+
+                            // Show scale button if connected
+                            if isScaleConnected {
+                                Button {
+                                    state.fetchScaleWeight { weight in
+                                        let validWeight = max(0, weight)
+                                        updateAmount(validWeight)
+                                    }
+                                } label: {
+                                    Image(systemName: "arrow.down.circle.fill")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 24, height: 24)
+                                        .foregroundColor(.accentColor)
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
                     }

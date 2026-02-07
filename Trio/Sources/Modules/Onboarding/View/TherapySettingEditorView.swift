@@ -11,6 +11,13 @@ struct TherapySettingEditorView: View {
     @State private var selectedItemID: UUID?
     @Namespace var bottomID
 
+    private var iOS26OrLater: Bool {
+        if #available(iOS 26, *) {
+            return true
+        }
+        return false
+    }
+
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -50,7 +57,7 @@ struct TherapySettingEditorView: View {
                     .disabled(cannotAddMoreEntries)
                 }
                 .background(Color.chart.opacity(0.65))
-                .padding(.bottom, -10)
+                .padding(.bottom, -8)
 
                 List {
                     ForEach($items) { $item in
@@ -121,14 +128,18 @@ struct TherapySettingEditorView: View {
                             )
                         )
                         .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: -22, leading: 0, bottom: 0, trailing: 0))
+                        .listRowInsets(EdgeInsets(top: iOS26OrLater ? -26 : -22, leading: 0, bottom: 0, trailing: 0))
                         .listRowSeparator(.hidden)
                 }
                 .id(bottomID)
                 .listStyle(.plain)
+                .scrollDisabled(true)
                 .scrollContentBackground(.hidden)
                 // 55 for header row, item counts x 45 for every entry row + 230 for a visible picker row
-                .frame(height: 55 + CGFloat(items.count) * 45 + (items.contains(where: { $0.id == selectedItemID }) ? 230 : 0))
+                .frame(
+                    height: 55 + CGFloat(items.count) * 45 +
+                        (items.contains(where: { $0.id == selectedItemID }) ? 230 : 0)
+                )
                 .onAppear {
                     // ensure picker is closed when view appears
                     selectedItemID = nil

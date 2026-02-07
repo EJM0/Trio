@@ -4,4 +4,6 @@ enum BarcodeScanner {
 }
 
 /// Provider protocol for BarcodeScanner module
-protocol BarcodeScannerProvider: Provider {}
+protocol BarcodeScannerProvider: Provider {
+    var scaleManager: ScaleManager { get }
+}

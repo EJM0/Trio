@@ -1,8 +1,31 @@
 import CoreData
+import CoreHaptics
 import SpriteKit
 import SwiftDate
 import SwiftUI
 import Swinject
+import UnionTabView
+
+enum HomeTab: Int, CaseIterable, Hashable {
+    case main = 0
+    case history = 1
+    case adjustments = 2
+    case settings = 3
+    case plus = 4
+}
+
+struct TabCenterPreferenceKey: PreferenceKey {
+    static var defaultValue: Anchor<CGPoint>? = nil
+    static func reduce(value: inout Anchor<CGPoint>?, nextValue: () -> Anchor<CGPoint>?) {
+        value = nextValue() ?? value
+    }
+}
+
+struct Haptic: Hashable {
+    var intensity: CGFloat
+    var sharpness: CGFloat
+    var interval: CGFloat
+}
 
 struct TimePicker: Identifiable {
     var active: Bool
@@ -15,14 +38,26 @@ extension Home {
         let resolver: Resolver
         let safeAreaSize: CGFloat = 0.08
 
+        // Explicit initializer so this view can be constructed from other files/modules.
+        init(resolver: Resolver) {
+            self.resolver = resolver
+        }
+
         @Environment(\.managedObjectContext) var moc
         @Environment(\.colorScheme) var colorScheme
         @Environment(AppState.self) var appState
+
+        @State private var engine: CHHapticEngine?
+        private var haptics: [Haptic] = [
+            Haptic(intensity: 0.5, sharpness: 0.5, interval: 0.0),
+            Haptic(intensity: 0.7, sharpness: 0.2, interval: 0.3)
+        ]
 
         @State var state = StateModel()
 
         @State var settingsPath = NavigationPath()
         @State var isStatusPopupPresented = false
+        @State var ghostTab: HomeTab? = nil
         @State var showCancelAlert = false
         @State var showCancelConfirmDialog = false
         @State var isConfirmStopOverrideShown = false
@@ -30,7 +65,7 @@ extension Home {
         @State var isConfirmStopTempTargetShown = false
         @State var isMenuPresented = false
         @State var showTreatments = false
-        @State var selectedTab: Int = 0
+        @State var selectedTab: HomeTab = .main
         @State var showPumpSelection: Bool = false
         @State var showCGMSelection: Bool = false
         @State var notificationsDisabled = false
@@ -41,20 +76,25 @@ extension Home {
             TimePicker(active: false, hours: 24)
         ]
 
-        @FetchRequest(fetchRequest: OverrideStored.fetch(
-            NSPredicate.lastActiveOverride,
-            ascending: false,
-            fetchLimit: 1
-        )) var latestOverride: FetchedResults<OverrideStored>
+        @FetchRequest(
+            fetchRequest: OverrideStored.fetch(
+                NSPredicate.lastActiveOverride,
+                ascending: false,
+                fetchLimit: 1
+            )
+        ) var latestOverride: FetchedResults<OverrideStored>
 
-        @FetchRequest(fetchRequest: TempTargetStored.fetch(
-            NSPredicate.lastActiveTempTarget,
-            ascending: false,
-            fetchLimit: 1
-        )) var latestTempTarget: FetchedResults<TempTargetStored>
+        @FetchRequest(
+            fetchRequest: TempTargetStored.fetch(
+                NSPredicate.lastActiveTempTarget,
+                ascending: false,
+                fetchLimit: 1
+            )
+        ) var latestTempTarget: FetchedResults<TempTargetStored>
 
         var bolusProgressFormatter: NumberFormatter {
-            let fractionDigits: Int = switch state.settingsManager.preferences.bolusIncrement {
+            let fractionDigits: Int =
+                switch state.settingsManager.preferences.bolusIncrement {
             case 0.1: 1
             case 0.025: 3
             default: 2
@@ -66,7 +106,8 @@ extension Home {
             formatter.maximumFractionDigits = fractionDigits
             formatter.minimumFractionDigits = fractionDigits
             formatter.allowsFloats = true
-            formatter.roundingIncrement = Double(state.settingsManager.preferences.bolusIncrement) as NSNumber
+            formatter.roundingIncrement =
+                Double(state.settingsManager.preferences.bolusIncrement) as NSNumber
             return formatter
         }
 
@@ -75,7 +116,9 @@ extension Home {
             formatter.numberStyle = .decimal
             if state.units == .mmolL {
                 formatter.maximumFractionDigits = 1
-            } else { formatter.maximumFractionDigits = 0 }
+            } else {
+                formatter.maximumFractionDigits = 0
+            }
             return formatter
         }
 
@@ -84,6 +127,67 @@ extension Home {
                 return "book.pages"
             } else {
                 return "book"
+            }
+        }
+
+        func playHaptics(_ haptics: [Haptic]) {
+            guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+
+            // Ensure engine is started before playing
+            if engine == nil {
+                prepareHaptics()
+            }
+
+            guard let engine else { return }
+
+            // Try to start the engine in case it was stopped
+            do {
+                try engine.start()
+            } catch {
+                // Engine might already be running, which is fine
+            }
+
+            var events: [CHHapticEvent] = []
+            var currentTime: TimeInterval = 0
+
+            for h in haptics {
+                currentTime += TimeInterval(h.interval)
+
+                let event = CHHapticEvent(
+                    eventType: .hapticTransient,
+                    parameters: [
+                        .init(parameterID: .hapticIntensity, value: Float(h.intensity)),
+                        .init(parameterID: .hapticSharpness, value: Float(h.sharpness))
+                    ],
+                    relativeTime: currentTime
+                )
+
+                events.append(event)
+            }
+
+            do {
+                let pattern = try CHHapticPattern(events: events, parameters: [])
+                let player = try engine.makePlayer(with: pattern)
+                try player.start(atTime: CHHapticTimeImmediate)
+            } catch {
+                print("Haptic error: \(error.localizedDescription)")
+            }
+        }
+
+        func prepareHaptics() {
+            guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+
+            do {
+                engine = try CHHapticEngine()
+                try engine?.start()
+            } catch {
+                print("Engine start error: \(error.localizedDescription)")
+            }
+
+            engine?.resetHandler = { [weak engine] in
+                do { try engine?.start() } catch {
+                    print("Engine restart failed: \(error)")
+                }
             }
         }
 
@@ -182,7 +286,9 @@ extension Home {
                 }
                 rate = scheduledRate
             } else {
-                guard let lastTempBasal = state.tempBasals.last?.tempBasal, let tempRate = lastTempBasal.rate else {
+                guard let lastTempBasal = state.tempBasals.last?.tempBasal,
+                      let tempRate = lastTempBasal.rate
+                else {
                     return nil
                 }
                 if apsManager.isManualTempBasal {
@@ -195,8 +301,8 @@ extension Home {
             }
 
             let rateString = Formatter.decimalFormatterWithThreeFractionDigits.string(from: rate) ?? "0"
-            return rateString + String(localized: " U/hr", comment: "Unit per hour with space") +
-                manualBasalString
+            return rateString + String(localized: " U/hr", comment: "Unit per hour with space")
+                + manualBasalString
         }
 
         // Returns the scheduled basal rate for the current time based on the saved basal scheduled.
@@ -228,11 +334,15 @@ extension Home {
             let percentString = percent == 100 ? "" : "\(percent.formatted(.number)) %"
 
             let unit = state.units
-            var target = (latestOverride.target ?? 100) as Decimal
+            var target = (latestOverride.target ?? 0) as Decimal
             target = unit == .mmolL ? target.asMmolL : target
 
-            var targetString = target == 0 ? "" : (fetchedTargetFormatter.string(from: target as NSNumber) ?? "") + " " + unit
-                .rawValue
+            var targetString =
+                target == 0
+                    ? ""
+                    : (fetchedTargetFormatter.string(from: target as NSNumber) ?? "") + " "
+                    + unit
+                    .rawValue
             if tempTargetString != nil {
                 targetString = ""
             }
@@ -241,7 +351,9 @@ extension Home {
             let addedMinutes = Int(truncating: duration)
             let date = latestOverride.date ?? Date()
             let newDuration = max(
-                Decimal(Date().distance(to: date.addingTimeInterval(addedMinutes.minutes.timeInterval)).minutes),
+                Decimal(
+                    Date().distance(to: date.addingTimeInterval(addedMinutes.minutes.timeInterval)).minutes
+                ),
                 0
             )
             let indefinite = latestOverride.indefinite
@@ -262,35 +374,45 @@ extension Home {
                 }
             }
 
-            let smbScheduleString = latestOverride
-                .smbIsScheduledOff && ((latestOverride.start?.stringValue ?? "") != (latestOverride.end?.stringValue ?? ""))
-                ? " \(formatTimeRange(start: latestOverride.start?.stringValue, end: latestOverride.end?.stringValue))"
-                : ""
+            let smbScheduleString =
+                latestOverride
+                    .smbIsScheduledOff
+                    && ((latestOverride.start?.stringValue ?? "") != (latestOverride.end?.stringValue ?? ""))
+                    ? " \(formatTimeRange(start: latestOverride.start?.stringValue, end: latestOverride.end?.stringValue))"
+                    : ""
 
-            let smbToggleString = latestOverride.smbIsOff || latestOverride
-                .smbIsScheduledOff ? String(localized: "SMBs Off\(smbScheduleString)") : ""
+            let smbToggleString =
+                latestOverride.smbIsOff
+                    || latestOverride
+                    .smbIsScheduledOff
+                    ? String(localized: "SMBs Off\(smbScheduleString)") : ""
 
             var smbMinuteString: String = ""
             var uamMinuteString: String = ""
 
-            if !latestOverride.smbIsOff || !latestOverride.smbIsScheduledOff {
+            if !latestOverride.smbIsOff, latestOverride.advancedSettings {
                 if let smbMinutes = latestOverride.smbMinutes,
                    smbMinutes.decimalValue != settingsManager.preferences.maxSMBBasalMinutes
                 {
-                    smbMinuteString = "SMB\u{00A0}\(smbMinutes)\u{00A0}" +
-                        String(localized: "m", comment: "Abbreviation for Minutes")
+                    smbMinuteString =
+                        "SMB\u{00A0}\(smbMinutes)\u{00A0}"
+                            + String(localized: "m", comment: "Abbreviation for Minutes")
                 }
 
                 if let uamMinutes = latestOverride.uamMinutes,
                    uamMinutes.decimalValue != settingsManager.preferences.maxUAMSMBBasalMinutes
                 {
-                    uamMinuteString = "UAM\u{00A0}\(uamMinutes)\u{00A0}" +
-                        String(localized: "m", comment: "Abbreviation for Minutes")
+                    uamMinuteString =
+                        "UAM\u{00A0}\(uamMinutes)\u{00A0}"
+                            + String(localized: "m", comment: "Abbreviation for Minutes")
                 }
             }
 
-            let components = [durationString, percentString, targetString, smbToggleString, smbMinuteString, uamMinuteString]
-                .filter { !$0.isEmpty }
+            let components = [
+                durationString, percentString, targetString, smbToggleString, smbMinuteString,
+                uamMinuteString
+            ]
+            .filter { !$0.isEmpty }
             return components.isEmpty ? nil : components.joined(separator: ", ")
         }
 
@@ -302,29 +424,37 @@ extension Home {
             let addedMinutes = Int(truncating: duration ?? 0)
             let date = latestTempTarget.date ?? Date()
             let newDuration = max(
-                Decimal(Date().distance(to: date.addingTimeInterval(addedMinutes.minutes.timeInterval)).minutes),
+                Decimal(
+                    Date().distance(to: date.addingTimeInterval(addedMinutes.minutes.timeInterval)).minutes
+                ),
                 0
             )
             var durationString = ""
             var percentageString = ""
             var target = (latestTempTarget.target ?? 100) as Decimal
             // Use TempTargetCalculations to get effective HBT (handles both custom and auto-adjusted standard TT)
-            let effectiveHBT = TempTargetCalculations.computeEffectiveHBT(
-                tempTargetHalfBasalTarget: latestTempTarget.halfBasalTarget?.decimalValue,
-                settingHalfBasalTarget: state.settingHalfBasalTarget,
-                target: target,
-                autosensMax: state.autosensMax
-            ) ?? state.settingHalfBasalTarget
+            let effectiveHBT =
+                TempTargetCalculations.computeEffectiveHBT(
+                    tempTargetHalfBasalTarget: latestTempTarget.halfBasalTarget?.decimalValue,
+                    settingHalfBasalTarget: state.settingHalfBasalTarget,
+                    target: target,
+                    autosensMax: state.autosensMax
+                ) ?? state.settingHalfBasalTarget
             var showPercentage = false
-            if target > 100, state.isExerciseModeActive || state.highTTraisesSens { showPercentage = true }
+            if target > 100, state.isExerciseModeActive || state.highTTraisesSens {
+                showPercentage = true
+            }
             if target < 100, state.lowTTlowersSens, state.autosensMax > 1 { showPercentage = true }
             if showPercentage {
                 percentageString =
                     " \(Int(TempTargetCalculations.computeAdjustedPercentage(halfBasalTarget: effectiveHBT, target: target, autosensMax: state.autosensMax)))%"
             }
             target = state.units == .mmolL ? target.asMmolL : target
-            let targetString = target == 0 ? "" : (fetchedTargetFormatter.string(from: target as NSNumber) ?? "") + " " +
-                state.units.rawValue + percentageString
+            let targetString =
+                target == 0
+                    ? ""
+                    : (fetchedTargetFormatter.string(from: target as NSNumber) ?? "") + " "
+                    + state.units.rawValue + percentageString
 
             if newDuration >= 1 {
                 durationString =
@@ -355,8 +485,7 @@ extension Home {
                         Group {
                             if button.active {
                                 Text(
-                                    button.hours.description + "\u{00A0}" +
-                                        String(localized: "h", comment: "h")
+                                    button.hours.description + "\u{00A0}" + String(localized: "h", comment: "h")
                                 )
                             } else {
                                 Text(button.hours.description)
@@ -368,9 +497,12 @@ extension Home {
                         .padding(.horizontal, 10)
                         .foregroundColor(
                             button
-                                .active ? (colorScheme == .dark ? Color.bgDarkerDarkBlue : Color.white) : buttonColor
+                                .active
+                                ? (colorScheme == .dark ? Color.bgDarkerDarkBlue : Color.white) : buttonColor
                         )
-                        .background(button.active ? buttonColor.opacity(colorScheme == .dark ? 1 : 0.8) : Color.clear)
+                        .background(
+                            button.active ? buttonColor.opacity(colorScheme == .dark ? 1 : 0.8) : Color.clear
+                        )
                         .clipShape(Capsule())
                         .overlay(
                             Capsule()
@@ -468,10 +600,12 @@ extension Home {
                             .font(.callout)
                             .fontWeight(.bold)
 
-                        Text(state.units == .mgdL ? eventualGlucose.description : eventualGlucose.formattedAsMmolL)
-                            .font(.callout)
-                            .fontWeight(.bold)
-                            .fontDesign(.rounded)
+                        Text(
+                            state.units == .mgdL ? eventualGlucose.description : eventualGlucose.formattedAsMmolL
+                        )
+                        .font(.callout)
+                        .fontWeight(.bold)
+                        .fontDesign(.rounded)
                     }
                     // aligns the evBG icon exactly with the first pixel of loop status icon
                     .padding(.leading, 12)
@@ -496,8 +630,8 @@ extension Home {
                         (
                             Formatter.decimalFormatterWithTwoFractionDigits
                                 .string(from: state.currentIOB as NSNumber) ?? "0"
-                        ) +
-                            String(localized: " U", comment: "Insulin unit")
+                        )
+                            + String(localized: " U", comment: "Insulin unit")
                     )
                     .font(.callout).fontWeight(.bold).fontDesign(.rounded)
                 }
@@ -509,12 +643,9 @@ extension Home {
                         .font(.callout)
                         .foregroundColor(.loopYellow)
                     Text(
-                        (
-                            Formatter.decimalFormatterWithTwoFractionDigits.string(
-                                from: NSNumber(value: state.enactedAndNonEnactedDeterminations.first?.cob ?? 0)
-                            ) ?? "0"
-                        ) +
-                            String(localized: " g", comment: "gram of carbs")
+                        (Formatter.decimalFormatterWithTwoFractionDigits.string(
+                            from: NSNumber(value: state.enactedAndNonEnactedDeterminations.first?.cob ?? 0)
+                        ) ?? "0") + String(localized: " g", comment: "gram of carbs")
                     )
                     .font(.callout).fontWeight(.bold).fontDesign(.rounded)
                 }
@@ -579,7 +710,7 @@ extension Home {
                 }
             }
             .onTapGesture {
-                selectedTab = 2
+                selectedTab = .adjustments
             }
         }
 
@@ -596,7 +727,7 @@ extension Home {
                 }
             }
             .onTapGesture {
-                selectedTab = 2
+                selectedTab = .adjustments
             }
         }
 
@@ -675,32 +806,33 @@ extension Home {
                     // clear color for the icon
                     .foregroundStyle(Color.clear)
             }.onTapGesture {
-                selectedTab = 2
+                selectedTab = .adjustments
             }
         }
 
         @ViewBuilder func adjustmentView(geo: GeometryProxy) -> some View {
-//            let background = colorScheme == .dark ? Material.ultraThinMaterial.opacity(0.5) : Color.black.opacity(0.2)
+            //            let background = colorScheme == .dark ? Material.ultraThinMaterial.opacity(0.5) : Color.black.opacity(0.2)
 
             ZStack {
                 /// rectangle as background
                 RoundedRectangle(cornerRadius: 15)
                     .fill(
-                        (overrideString != nil || tempTargetString != nil) ?
-                            (
-                                colorScheme == .dark ?
-                                    Color(red: 0.03921568627, green: 0.133333333, blue: 0.2156862745) :
-                                    Color.insulin.opacity(0.1)
+                        (overrideString != nil || tempTargetString != nil)
+                            ? (
+                                colorScheme == .dark
+                                    ? Color(red: 0.03921568627, green: 0.133333333, blue: 0.2156862745)
+                                    : Color.insulin.opacity(0.1)
                             ) : Color.clear // Use clear and add the Material in the background
                     )
                     .background(colorScheme == .dark ? Color.chart.opacity(0.25) : Color.black.opacity(0.075))
                     .clipShape(RoundedRectangle(cornerRadius: 15))
                     .frame(height: geo.size.height * 0.08)
                     .shadow(
-                        color: (overrideString != nil || tempTargetString != nil) ?
-                            (
-                                colorScheme == .dark ? Color(red: 0.02745098039, green: 0.1098039216, blue: 0.1411764706) :
-                                    Color.black.opacity(0.33)
+                        color: (overrideString != nil || tempTargetString != nil)
+                            ? (
+                                colorScheme == .dark
+                                    ? Color(red: 0.02745098039, green: 0.1098039216, blue: 0.1411764706)
+                                    : Color.black.opacity(0.33)
                             ) : Color.clear,
                         radius: 3
                     )
@@ -778,17 +910,19 @@ extension Home {
                     .frame(height: 6)
                     .foregroundColor(.clear)
                     .background(
-                        LinearGradient(colors: [
-                            Color(red: 0.7215686275, green: 0.3411764706, blue: 1),
-                            Color(red: 0.6235294118, green: 0.4235294118, blue: 0.9803921569),
-                            Color(red: 0.4862745098, green: 0.5450980392, blue: 0.9529411765),
-                            Color(red: 0.3411764706, green: 0.6666666667, blue: 0.9254901961),
-                            Color(red: 0.262745098, green: 0.7333333333, blue: 0.9137254902)
-                        ], startPoint: .leading, endPoint: .trailing)
-                            .mask(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 15)
-                                    .frame(width: geo.size.width * CGFloat(progress))
-                            }
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.7215686275, green: 0.3411764706, blue: 1),
+                                Color(red: 0.6235294118, green: 0.4235294118, blue: 0.9803921569),
+                                Color(red: 0.4862745098, green: 0.5450980392, blue: 0.9529411765),
+                                Color(red: 0.3411764706, green: 0.6666666667, blue: 0.9254901961),
+                                Color(red: 0.262745098, green: 0.7333333333, blue: 0.9137254902)
+                            ], startPoint: .leading, endPoint: .trailing
+                        )
+                        .mask(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 15)
+                                .frame(width: geo.size.width * CGFloat(progress))
+                        }
                     )
             }
         }
@@ -801,23 +935,31 @@ extension Home {
                 let bolusFraction = progress * (bolusTotal as Decimal)
                 let bolusString =
                     (bolusProgressFormatter.string(from: bolusFraction as NSNumber) ?? "0")
-                        + String(localized: " of ", comment: "Bolus string partial message: 'x U of y U' in home view") +
-                        (Formatter.decimalFormatterWithThreeFractionDigits.string(from: bolusTotal as NSNumber) ?? "0")
+                        + String(
+                            localized: " of ", comment: "Bolus string partial message: 'x U of y U' in home view"
+                        )
+                        + (
+                            Formatter.decimalFormatterWithThreeFractionDigits.string(from: bolusTotal as NSNumber)
+                                ?? "0"
+                        )
                         + String(localized: " U", comment: "Insulin unit")
 
                 ZStack {
                     /// rectangle as background
                     RoundedRectangle(cornerRadius: 15)
                         .fill(
-                            colorScheme == .dark ? Color(red: 0.03921568627, green: 0.133333333, blue: 0.2156862745) : Color
+                            colorScheme == .dark
+                                ? Color(red: 0.03921568627, green: 0.133333333, blue: 0.2156862745)
+                                : Color
                                 .insulin
                                 .opacity(0.2)
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 15))
                         .frame(height: geo.size.height * 0.08)
                         .shadow(
-                            color: colorScheme == .dark ? Color(red: 0.02745098039, green: 0.1098039216, blue: 0.1411764706) :
-                                Color.black.opacity(0.33),
+                            color: colorScheme == .dark
+                                ? Color(red: 0.02745098039, green: 0.1098039216, blue: 0.1411764706)
+                                : Color.black.opacity(0.33),
                             radius: 3
                         )
 
@@ -874,8 +1016,9 @@ extension Home {
                     .frame(height: geo.size.height * safeAreaSize)
                     .coordinateSpace(name: "alertSafetyNotificationsView")
                     .shadow(
-                        color: colorScheme == .dark ? Color(red: 0.02745098039, green: 0.1098039216, blue: 0.1411764706) :
-                            Color.black.opacity(0.33),
+                        color: colorScheme == .dark
+                            ? Color(red: 0.02745098039, green: 0.1098039216, blue: 0.1411764706)
+                            : Color.black.opacity(0.33),
                         radius: 3
                     )
                 HStack {
@@ -934,7 +1077,9 @@ extension Home {
                     if notificationsDisabled {
                         alertSafetyNotificationsView(geo: geo)
                     }
-                    if let badgeImage = state.pumpStatusBadgeImage, let badgeColor = state.pumpStatusBadgeColor {
+                    if let badgeImage = state.pumpStatusBadgeImage,
+                       let badgeColor = state.pumpStatusBadgeColor
+                    {
                         pumpTimezoneView(badgeImage, badgeColor)
                             .padding(.horizontal, 20)
                     }
@@ -970,11 +1115,11 @@ extension Home {
 
                 if let progress = state.bolusProgress {
                     bolusView(geo: geo, progress)
-                        .padding(.bottom, UIDevice.adjustPadding(min: nil, max: 40))
                 } else {
-                    adjustmentView(geo: geo).padding(.bottom, UIDevice.adjustPadding(min: nil, max: 40))
+                    adjustmentView(geo: geo)
                 }
             }
+            .padding(.bottom, geo.safeAreaInsets.bottom)
             .background(appState.trioBackgroundColor(for: colorScheme))
             .onReceive(
                 resolver.resolve(AlertPermissionsChecker.self)!.$notificationsDisabled,
@@ -992,7 +1137,9 @@ extension Home {
         @ViewBuilder func mainView() -> some View {
             GeometryReader { geo in
                 mainViewElements(geo)
+                    .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
             }
+            .ignoresSafeArea(.keyboard)
             .onChange(of: state.hours) {
                 highlightButtons()
             }
@@ -1003,7 +1150,6 @@ extension Home {
             }
             .navigationTitle("Home")
             .navigationBarHidden(true)
-            .ignoresSafeArea(.keyboard)
             .blur(radius: state.isLoopStatusPresented ? 3 : 0)
             .sheet(isPresented: $state.isLoopStatusPresented) {
                 LoopStatusView(state: state)
@@ -1018,7 +1164,9 @@ extension Home {
                 Button("Omnipod DASH") { state.addPump(.omnipodBLE) }
                 Button("Dana(RS/-i)") { state.addPump(.dana) }
                 Button("Pump Simulator") { state.addPump(.simulator) }
-            } message: { Text("Select Pump Model") }
+            } message: {
+                Text("Select Pump Model")
+            }
             .sheet(isPresented: $state.shouldDisplayPumpSetupSheet) {
                 if let pumpManager = state.provider.apsManager.pumpManager {
                     PumpConfig.PumpSettingsView(
@@ -1083,65 +1231,136 @@ extension Home {
         }
 
         @ViewBuilder func tabBar() -> some View {
+            let carbsRequiredBadge: String? = {
+                guard let carbsRequired = state.enactedAndNonEnactedDeterminations.first?.carbsRequired,
+                      state.showCarbsRequiredBadge
+                else {
+                    return nil
+                }
+                let carbsRequiredDecimal = Decimal(carbsRequired)
+                if carbsRequiredDecimal > state.settingsManager.settings.carbsRequiredThreshold {
+                    let numberAsNSNumber = NSDecimalNumber(decimal: carbsRequiredDecimal)
+                    return
+                        (Formatter.decimalFormatterWithTwoFractionDigits.string(from: numberAsNSNumber) ?? "")
+                            + " g"
+                }
+                return nil
+            }()
+
+            let selectionBinding = Binding<HomeTab>(
+                get: { ghostTab ?? selectedTab },
+                set: { newValue in
+                    if newValue == .plus {
+                        ghostTab = .plus
+                        withAnimation(.spring(response: 0, dampingFraction: 0)) {
+                            ghostTab = nil
+                        }
+                    } else {
+                        selectedTab = newValue
+                        ghostTab = nil
+                    }
+                }
+            )
+
             ZStack(alignment: .bottom) {
-                TabView(selection: $selectedTab) {
-                    let carbsRequiredBadge: String? = {
-                        guard let carbsRequired = state.enactedAndNonEnactedDeterminations.first?.carbsRequired,
-                              state.showCarbsRequiredBadge
-                        else {
-                            return nil
-                        }
-                        let carbsRequiredDecimal = Decimal(carbsRequired)
-                        if carbsRequiredDecimal > state.settingsManager.settings.carbsRequiredThreshold {
-                            let numberAsNSNumber = NSDecimalNumber(decimal: carbsRequiredDecimal)
-                            return (Formatter.decimalFormatterWithTwoFractionDigits.string(from: numberAsNSNumber) ?? "") + " g"
-                        }
-                        return nil
-                    }()
+                UnionTabView(
+                    selection: selectionBinding, tabs: [.main, .history, .plus, .adjustments, .settings]
+                ) {
+                    NavigationStack {
+                        mainView()
+                    }
+                    .badge(carbsRequiredBadge)
+                    .unionTab(HomeTab.main)
+                    .transaction { $0.animation = nil }
 
-                    NavigationStack { mainView() }
-                        .tabItem { Label("Main", systemImage: "chart.xyaxis.line") }
-                        .badge(carbsRequiredBadge).tag(0)
+                    NavigationStack {
+                        History.RootView(resolver: resolver)
+                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
+                            .ignoresSafeArea(.keyboard, edges: .bottom)
+                    }
+                    .unionTab(HomeTab.history)
+                    .transaction { $0.animation = nil }
 
-                    NavigationStack { History.RootView(resolver: resolver) }
-                        .tabItem { Label("History", systemImage: historySFSymbol) }.tag(1)
+                    Color.clear
+                        .unionTab(HomeTab.plus)
+                        .disabled(true)
+                        .allowsHitTesting(false)
+                        .transaction { $0.animation = nil }
 
-                    Spacer()
-
-                    NavigationStack { Adjustments.RootView(resolver: resolver) }
-                        .tabItem {
-                            Label(
-                                "Adjustments",
-                                systemImage: "slider.horizontal.2.gobackward"
-                            ) }.tag(2)
+                    NavigationStack {
+                        Adjustments.RootView(resolver: resolver)
+                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
+                            .ignoresSafeArea(.keyboard, edges: .bottom)
+                    }
+                    .unionTab(HomeTab.adjustments)
+                    .transaction { $0.animation = nil }
 
                     NavigationStack(path: self.$settingsPath) {
-                        Settings.RootView(resolver: resolver) }
-                        .tabItem { Label(
-                            "Settings",
-                            systemImage: "gear"
-                        ) }.tag(3)
+                        Settings.RootView(resolver: resolver)
+                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
+                            .ignoresSafeArea(.keyboard, edges: .bottom)
+                    }
+                    .unionTab(HomeTab.settings)
+                    .transaction { $0.animation = nil }
+                } item: { tab, _ in
+                    VStack(spacing: 2) {
+                        switch tab {
+                        case .main:
+                            Image(systemName: "chart.xyaxis.line")
+                                .font(.system(size: 23))
+                                .foregroundStyle(selectedTab == tab ? Color.tabBar : .secondary)
+                        // Text("Main").font(.caption2)
+                        case .history:
+                            Image(systemName: historySFSymbol)
+                                .font(.system(size: 23))
+                                .foregroundStyle(selectedTab == tab ? Color.tabBar : .secondary)
+                        // Text("History").font(.caption2)
+                        case .plus:
+                            // Dummy placeholder to keep the space, captures center coordinate
+                            Color.clear.frame(width: 44, height: 44)
+                                .anchorPreference(key: TabCenterPreferenceKey.self, value: .center) { $0 }
+                        case .adjustments:
+                            Image(systemName: "slider.horizontal.2.gobackward")
+                                .font(.system(size: 23))
+                                .foregroundStyle(selectedTab == tab ? Color.tabBar : .secondary)
+                        // Text("Adjustments").font(.caption2)
+                        case .settings:
+                            Image(systemName: "gear")
+                                .font(.system(size: 23))
+                                .foregroundStyle(selectedTab == tab ? Color.tabBar : .secondary)
+                            // Text("Settings").font(.caption2)
+                        }
+                    }
+                    .allowsHitTesting(tab != .plus)
                 }
                 .tint(Color.tabBar)
-
-                Button(
-                    action: {
-                        state.showModal(for: .treatmentView)
-                    },
-                    label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 40))
-                            .foregroundStyle(Color.tabBar)
-                            .padding(.vertical, 2)
-                            .padding(.horizontal, 24)
-                    }
-                )
-            }.ignoresSafeArea(.keyboard, edges: .bottom).blur(radius: state.waitForSuggestion ? 8 : 0)
-                .onChange(of: selectedTab) {
-                    if !settingsPath.isEmpty {
-                        settingsPath = NavigationPath()
+                .overlayPreferenceValue(TabCenterPreferenceKey.self) { anchor in
+                    GeometryReader { proxy in
+                        if let anchor = anchor {
+                            Button(
+                                action: {
+                                    state.showModal(for: .treatmentView)
+                                },
+                                label: {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 40))
+                                        .foregroundStyle(Color.tabBar)
+                                        .padding(.vertical, 2)
+                                        .padding(.horizontal, 24)
+                                }
+                            )
+                            .position(proxy[anchor])
+                        }
                     }
                 }
+            }
+            .ignoresSafeArea(.keyboard, edges: .bottom)
+            .blur(radius: state.waitForSuggestion ? 8 : 0)
+            .onChange(of: selectedTab) {
+                if !settingsPath.isEmpty {
+                    settingsPath = NavigationPath()
+                }
+            }
         }
 
         var body: some View {
@@ -1149,43 +1368,12 @@ extension Home {
                 tabBar()
 
                 if state.waitForSuggestion {
-                    CustomProgressView(text: String(localized: "Updating IOB...", comment: "Progress text when updating IOB"))
+                    CustomProgressView(
+                        text: String(localized: "Updating IOB...", comment: "Progress text when updating IOB")
+                    )
                 }
             }
         }
-    }
-}
-
-extension UIDevice {
-    public enum DeviceSize: CGFloat {
-        case smallDevice = 667 // Height for 4" iPhone SE
-        case largeDevice = 852 // Height for 6.1" iPhone 15 Pro
-    }
-
-    @usableFromInline static func adjustPadding(
-        min: CGFloat? = nil,
-        max: CGFloat? = nil
-    ) -> CGFloat? {
-        if UIScreen.screenHeight > UIDevice.DeviceSize.smallDevice.rawValue {
-            if UIScreen.screenHeight >= UIDevice.DeviceSize.largeDevice.rawValue {
-                return max
-            } else {
-                return min != nil ?
-                    (max != nil ? max! * (UIScreen.screenHeight / UIDevice.DeviceSize.largeDevice.rawValue) : nil) : nil
-            }
-        } else {
-            return min
-        }
-    }
-}
-
-extension UIScreen {
-    static var screenHeight: CGFloat {
-        UIScreen.main.bounds.height
-    }
-
-    static var screenWidth: CGFloat {
-        UIScreen.main.bounds.width
     }
 }
 
@@ -1211,7 +1399,8 @@ func formatHrMin(_ durationInMinutes: Int) -> String {
     case let (h, 0):
         return "\(h)\u{00A0}" + String(localized: "h", comment: "h")
     default:
-        return hours.description + "\u{00A0}" + String(localized: "h", comment: "h") + "\u{00A0}" + minutes
+        return hours.description + "\u{00A0}" + String(localized: "h", comment: "h") + "\u{00A0}"
+            + minutes
             .description + "\u{00A0}" + String(localized: "m", comment: "Abbreviation for Minutes")
     }
 }
@@ -1232,13 +1421,19 @@ func formatTimeRange(start: String?, end: String?) -> String {
         formatter.dateFormat = "HH"
 
         if let startHour = Int(start), let endHour = Int(end) {
-            let startDate = Calendar.current.date(bySettingHour: startHour, minute: 0, second: 0, of: Date()) ?? Date()
-            let endDate = Calendar.current.date(bySettingHour: endHour, minute: 0, second: 0, of: Date()) ?? Date()
+            let startDate =
+                Calendar.current.date(bySettingHour: startHour, minute: 0, second: 0, of: Date()) ?? Date()
+            let endDate =
+                Calendar.current.date(bySettingHour: endHour, minute: 0, second: 0, of: Date()) ?? Date()
 
             // Customize the format to "2p" or "2a"
             formatter.dateFormat = "ha"
-            let startFormatted = formatter.string(from: startDate).lowercased().replacingOccurrences(of: "m", with: "")
-            let endFormatted = formatter.string(from: endDate).lowercased().replacingOccurrences(of: "m", with: "")
+            let startFormatted = formatter.string(from: startDate).lowercased().replacingOccurrences(
+                of: "m", with: ""
+            )
+            let endFormatted = formatter.string(from: endDate).lowercased().replacingOccurrences(
+                of: "m", with: ""
+            )
 
             return "\(startFormatted)-\(endFormatted)"
         } else {

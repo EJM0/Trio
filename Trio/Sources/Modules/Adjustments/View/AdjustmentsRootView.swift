@@ -66,18 +66,6 @@ extension Adjustments {
                     .background(appState.trioBackgroundColor(for: colorScheme))
                 }
                 .listSectionSpacing(10)
-                .safeAreaInset(
-                    edge: .bottom,
-                    spacing: shouldDisplayStickyOverrideStopButton || shouldDisplayStickyTempTargetStopButton ? 30 : 0
-                ) {
-                    if shouldDisplayStickyOverrideStopButton, state.selectedTab == .overrides {
-                        stickyStopOverrideButton
-                    } else if shouldDisplayStickyTempTargetStopButton, state.selectedTab == .tempTargets {
-                        stickyStopTempTargetButton
-                    } else {
-                        EmptyView()
-                    }
-                }
                 .scrollContentBackground(.hidden)
                 .background(appState.trioBackgroundColor(for: colorScheme))
                 .onAppear(perform: configureView)
@@ -245,6 +233,41 @@ extension Adjustments {
                     }
                 }
                 .listRowBackground(Color.loopGreen.opacity(0.8))
+            }
+        }
+
+        @ViewBuilder var stopAdjustmentButton: some View {
+            switch state.selectedTab {
+            case .overrides:
+                Section {
+                    Button(action: {
+                        showCancelOverrideConfirmDialog = true
+                    }, label: {
+                        Text("Stop Override")
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.red)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    })
+                        .buttonStyle(.plain)
+                }
+                .listRowBackground(Color.clear)
+            case .tempTargets:
+                Section {
+                    Button(action: {
+                        showCancelTempTargetConfirmDialog = true
+                    }, label: {
+                        Text("Stop Temp Target")
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.red)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    })
+                        .buttonStyle(.plain)
+                }
+                .listRowBackground(Color.clear)
             }
         }
 

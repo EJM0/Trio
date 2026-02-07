@@ -37,11 +37,28 @@ extension MainChartView {
                     axis: "IOB",
                     color: Color.darkerBlue
                 )
+
+                // ISF selection point
+                let isfValue = selectedIOBValue.insulinSensitivity?.doubleValue ?? 0
+                PointMark(
+                    x: .value("Time", selectedIOBValue.deliverAt ?? Date.now, unit: .minute),
+                    y: .value("ISF", isfValue)
+                )
+                .symbolSize(CGSize(width: 10, height: 10))
+                .foregroundStyle(Color.white.opacity(0.8))
+
+                PointMark(
+                    x: .value("Time", selectedIOBValue.deliverAt ?? Date.now, unit: .minute),
+                    y: .value("ISF", isfValue)
+                )
+                .symbolSize(CGSize(width: 4, height: 4))
+                .foregroundStyle(Color.primary)
             }
         }
         .chartForegroundStyleScale([
             "COB": Color.orange,
-            "IOB": Color.darkerBlue
+            "IOB": Color.darkerBlue,
+            "ISF": Color.white
         ])
         .chartLegend(.hidden)
         .frame(minHeight: geo.size.height * 0.12)
@@ -56,9 +73,15 @@ extension MainChartView {
     func combinedYDomain() -> ClosedRange<Double> {
         let iobMin = scaleIobAmountForChart(state.minValueIobChart)
         let iobMax = scaleIobAmountForChart(state.maxValueIobChart)
-        let minValue = min(state.minValueCobChart, iobMin)
-        let maxValue = max(state.maxValueCobChart, iobMax)
-        return Double(minValue) ... Double(maxValue)
+
+        // Calculate ISF min/max from determinations
+        let isfValues = state.enactedAndNonEnactedDeterminations.compactMap { $0.insulinSensitivity?.doubleValue }
+        let isfMin = isfValues.min() ?? 0
+        let isfMax = isfValues.max() ?? 0
+
+        let minValue = min(Double(state.minValueCobChart), Double(iobMin), isfMin)
+        let maxValue = max(Double(state.maxValueCobChart), Double(iobMax), isfMax)
+        return minValue ... maxValue
     }
 
     private func drawSelectedInnerPoint(xValue: Date, yValue: Double, axis: String) -> some ChartContent {
@@ -137,6 +160,14 @@ extension MainChartView {
             LineMark(x: .value("Time", date), y: .value("Amount", amountIOB))
                 .foregroundStyle(by: .value("Type", "IOB"))
                 .position(by: .value("Axis", "IOB"))
+
+            // MARK: - ISF line (no fill)
+
+            let isfValue = item.insulinSensitivity?.doubleValue ?? 0
+
+            LineMark(x: .value("Time", date), y: .value("ISF", isfValue))
+                .foregroundStyle(by: .value("Type", "ISF"))
+                .lineStyle(StrokeStyle(lineWidth: 1))
         }
     }
 }

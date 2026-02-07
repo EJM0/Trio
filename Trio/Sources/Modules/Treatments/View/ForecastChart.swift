@@ -43,10 +43,29 @@ struct ForecastChart: View {
         // Use combined carbs (user entered + scanned) so chart reflects scanned items immediately
         let displayedCarbs = isBackdated ? 0 : (state.carbs + state.scannedCarbs)
 
+        let totalCarbs = displayedCarbs + Decimal(state.cob)
+        let totalInsulin = state.amount + state.iob
+
         return HStack {
             HStack {
+                Image(systemName: "syringe.fill")
+                Text(
+                    "\(Formatter.bolusFormatter.string(from: totalInsulin as NSNumber) ?? totalInsulin.description) "
+                ) + Text(String(localized: "U", comment: "Insulin unit"))
+            }
+            .font(.footnote)
+            .foregroundStyle(.blue)
+            .padding(8)
+            .background {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.blue.opacity(0.2))
+            }
+
+            Spacer()
+
+            HStack {
                 Image(systemName: "fork.knife")
-                Text("\(Double(truncating: displayedCarbs as NSNumber), specifier: "%.1f") g")
+                Text("\(Double(truncating: totalCarbs as NSNumber), specifier: "%.1f") g")
             }
             .font(.footnote)
             .foregroundStyle(.orange)
@@ -54,23 +73,6 @@ struct ForecastChart: View {
             .background {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(Color.orange.opacity(0.2))
-            }
-
-            Spacer()
-
-            HStack {
-                Image(systemName: "syringe.fill")
-                Text(
-                    "\(Formatter.bolusFormatter.string(from: state.amount as NSNumber) ?? state.amount.description) "
-                ) + Text(String(localized: "U", comment: "Insulin unit"))
-            }
-
-            .font(.footnote)
-            .foregroundStyle(.blue)
-            .padding(8)
-            .background {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.blue.opacity(0.2))
             }
 
             Spacer()
