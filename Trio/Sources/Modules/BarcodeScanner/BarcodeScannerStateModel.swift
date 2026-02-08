@@ -134,12 +134,13 @@ extension BarcodeScanner {
             print("DEBUG: Lost connection to scale. Switching back to polling.")
             self.startScalePolling()
           }
-        })
+        }
+      )
     }
 
     func stopScaleStream() {
       stopScalePolling()
-      provider.scaleManager.disconnectWebSocket()
+      provider?.scaleManager.disconnectWebSocket()
       liveScaleWeight = nil
       scaleBatteryLevel = nil
     }
