@@ -685,7 +685,7 @@ extension Treatments {
                     CustomProgressView(text: progressText.displayName)
                 }
             }
-            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme))
+            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .blur(radius: state.showInfo || state.isAwaitingDeterminationResult ? 3 : 0)
             .navigationTitle("Treatments")
             .navigationBarTitleDisplayMode(.inline)
