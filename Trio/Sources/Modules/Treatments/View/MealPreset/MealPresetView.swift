@@ -1,6 +1,7 @@
 import CoreData
 import Foundation
 import SwiftUI
+import UIKit
 
 struct MealPresetView: View {
     @Bindable var state: Treatments.StateModel
@@ -571,7 +572,27 @@ struct PresetListView: View {
         preset.amount = scannerState.editingAmount
 
         if case let .image(img) = item.imageSource {
-            preset.imageData = img.jpegData(compressionQuality: 0.8)
+            // Resize image to max 512px dimension to save space
+            let maxDimension: CGFloat = 512
+            var finalImage = img
+            
+            if img.size.width > maxDimension || img.size.height > maxDimension {
+                let aspectRatio = img.size.width / img.size.height
+                var newSize: CGSize
+                if img.size.width > img.size.height {
+                    newSize = CGSize(width: maxDimension, height: maxDimension / aspectRatio)
+                } else {
+                    newSize = CGSize(width: maxDimension * aspectRatio, height: maxDimension)
+                }
+                
+                let renderer = UIGraphicsImageRenderer(size: newSize)
+                finalImage = renderer.image { _ in
+                    img.draw(in: CGRect(origin: .zero, size: newSize))
+                }
+            }
+            
+            // Compress with lower quality (0.5 instead of 0.8)
+            preset.imageData = finalImage.jpegData(compressionQuality: 0.5)
         } else {
             preset.imageData = nil
         }
