@@ -268,14 +268,15 @@ extension BarcodeScanner {
                         name: preset.dish ?? "Unknown",
                         imageSource: imageSource,
                         nutriments: .init(
-                            basis: .per100g,
+                            basis: preset.isMl ? .per100ml : .per100g,
                             carbohydratesPer100g: Double(truncating: preset.carbs ?? 0),
                             sugarsPer100g: nil,
                             fatPer100g: Double(truncating: preset.fat ?? 0),
                             proteinPer100g: Double(truncating: preset.protein ?? 0),
                             fiberPer100g: nil
                         ),
-                        amount: 100
+                        amount: preset.amount,
+                        isMlInput: preset.isMl
                     )
                     withAnimation {
                         state.scannedProducts.append(item)
@@ -328,15 +329,16 @@ extension BarcodeScanner {
                                             name: preset.dish ?? "Preset",
                                             brand: "Preset",
                                             imageSource: imageSource,
-                                            servingQuantity: 100,
-                                            servingQuantityUnit: "g",
+                                            servingQuantity: preset.amount,
+                                            servingQuantityUnit: preset.isMl ? "ml" : "g",
                                             nutriments: .init(
-                                                basis: .per100g,
+                                                basis: preset.isMl ? .per100ml : .per100g,
                                                 carbohydratesPer100g: (preset.carbs as NSDecimalNumber?)?.doubleValue,
                                                 fatPer100g: (preset.fat as NSDecimalNumber?)?.doubleValue,
                                                 proteinPer100g: (preset.protein as NSDecimalNumber?)?.doubleValue
                                             ),
-                                            amount: 100,
+                                            amount: preset.amount,
+                                            isMlInput: preset.isMl,
                                             isManualEntry: true
                                         )
                                         state.scannedProducts.append(item)
@@ -659,15 +661,16 @@ extension BarcodeScanner {
                                             name: preset.dish ?? "Preset",
                                             brand: "Preset",
                                             imageSource: imageSource,
-                                            servingQuantity: 100,
-                                            servingQuantityUnit: "g",
+                                            servingQuantity: preset.amount,
+                                            servingQuantityUnit: preset.isMl ? "ml" : "g",
                                             nutriments: .init(
-                                                basis: .per100g,
+                                                basis: preset.isMl ? .per100ml : .per100g,
                                                 carbohydratesPer100g: (preset.carbs as NSDecimalNumber?)?.doubleValue,
                                                 fatPer100g: (preset.fat as NSDecimalNumber?)?.doubleValue,
                                                 proteinPer100g: (preset.protein as NSDecimalNumber?)?.doubleValue
                                             ),
-                                            amount: 100,
+                                            amount: preset.amount,
+                                            isMlInput: preset.isMl,
                                             isManualEntry: true
                                         )
                                         state.scannedProducts.append(item)
