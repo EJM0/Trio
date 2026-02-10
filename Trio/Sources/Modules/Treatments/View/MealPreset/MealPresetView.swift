@@ -525,6 +525,7 @@ struct PresetListView: View {
         )
         scannerState.currentScannedItem = newItem
         scannerState.editingAmount = 100
+        scannerState.editingIsMl = false
         showEditor = true
     }
 
@@ -552,7 +553,8 @@ struct PresetListView: View {
             amount: 100
         )
         scannerState.currentScannedItem = item
-        scannerState.editingAmount = 100
+        scannerState.editingAmount = preset.amount
+        scannerState.editingIsMl = preset.isMl
         showEditor = true
     }
 
@@ -564,6 +566,9 @@ struct PresetListView: View {
         preset.carbs = NSDecimalNumber(value: item.nutriments.carbohydratesPer100g ?? 0)
         preset.fat = NSDecimalNumber(value: item.nutriments.fatPer100g ?? 0)
         preset.protein = NSDecimalNumber(value: item.nutriments.proteinPer100g ?? 0)
+
+        preset.isMl = scannerState.editingIsMl
+        preset.amount = scannerState.editingAmount
 
         if case let .image(img) = item.imageSource {
             preset.imageData = img.jpegData(compressionQuality: 0.8)
