@@ -229,16 +229,16 @@ extension Treatments {
                     name: preset.dish ?? "Preset",
                     brand: "Preset",
                     imageSource: imageSource,
-                    servingQuantity: 100,
-                    servingQuantityUnit: "g",
+                    servingQuantity: preset.amount,
+                    servingQuantityUnit: preset.isMl ? "ml" : "g",
                     nutriments: .init(
-                      basis: .per100g,
+                      basis: preset.isMl ? .per100ml : .per100g,
                       carbohydratesPer100g: (preset.carbs as NSDecimalNumber?)?.doubleValue,
                       fatPer100g: (preset.fat as NSDecimalNumber?)?.doubleValue,
                       proteinPer100g: (preset.protein as NSDecimalNumber?)?.doubleValue
                     ),
-                    amount: 100,
-                    isManualEntry: true
+                    amount: preset.amount,
+                    isMlInput: preset.isMl,
                   )
                   addSearchResultToMeal(item)
                 }

@@ -144,7 +144,7 @@ extension BarcodeScanner {
                                 Spacer()
                             }
 
-                            Text("Nutrition (per 100g)")
+                            Text(state.editingIsMl ? "Nutrition (per 100ml)" : "Nutrition (per 100g)")
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(.secondary)
                                 .padding(.top, 8)
