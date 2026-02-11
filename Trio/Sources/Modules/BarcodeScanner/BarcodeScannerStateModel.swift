@@ -2,6 +2,7 @@ import AVFoundation
 import Foundation
 import Observation
 import SwiftUI
+import UIKit
 
 // MARK: - StateModel
 
@@ -196,7 +197,8 @@ extension BarcodeScanner {
             self.showTemporaryError(
               String(
                 localized: "Camera permissions were denied. Enable them in Settings to continue."
-              )
+              ),
+              resumeScanning: false
             )
           }
         }
@@ -260,11 +262,14 @@ extension BarcodeScanner {
           self.currentScannedItem = fetchedProduct
           self.lastScanWasSuccessful = true
           self.isFetchingProduct = false
+          self.triggerSuccessHaptic()
         } catch {
           guard !Task.isCancelled else { return }
           self.currentScannedItem = nil
           self.lastScanWasSuccessful = false
           self.isFetchingProduct = false
+          self.lastScannedBarcode = nil
+          self.lastScanTime = nil
           self.showTemporaryError(
             (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
           )
@@ -273,15 +278,32 @@ extension BarcodeScanner {
     }
 
     /// Shows a transient error message that auto-clears after a short delay
-    private func showTemporaryError(_ message: String, duration: TimeInterval = 3) {
+    private func showTemporaryError(
+      _ message: String,
+      duration: TimeInterval = 3,
+      resumeScanning: Bool = true
+    ) {
       errorMessage = message
       Task { @MainActor in
         try? await Task.sleep(for: .seconds(duration))
         // Only clear if no new error was set in the meantime
         if self.errorMessage == message {
           self.errorMessage = nil
+          if resumeScanning,
+             self.cameraStatus == .authorized,
+             self.currentScannedItem == nil,
+             !self.isFetchingProduct
+          {
+            self.isScanning = true
+          }
         }
       }
+    }
+
+    private func triggerSuccessHaptic() {
+      let generator = UINotificationFeedbackGenerator()
+      generator.prepare()
+      generator.notificationOccurred(.success)
     }
 
     // MARK: - Product Management
