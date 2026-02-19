@@ -72,18 +72,14 @@ struct MealPresetView: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(
-                        action: {
-                            showAddNewPresetSheet.toggle()
-                            resetValues()
-                        },
-                        label: {
-                            HStack {
-                                Text("New Preset")
-                                Image(systemName: "plus")
-                            }
+                    Button(action: {
+                        showAddNewPresetSheet.toggle()
+                    }, label: {
+                        HStack {
+                            Text("New Preset")
+                            Image(systemName: "plus")
                         }
-                    )
+                    })
                 }
             })
             .sheet(isPresented: $showAddNewPresetSheet) {
@@ -571,11 +567,18 @@ struct PresetListView: View {
         preset.isMl = scannerState.editingIsMl
         preset.amount = scannerState.editingAmount
 
+        preset.isMl = scannerState.editingIsMl
+        preset.amount = scannerState.editingAmount
+
         if case let .image(img) = item.imageSource {
             // Resize image to max 512px dimension to save space
             let maxDimension: CGFloat = 512
             var finalImage = img
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> feature/mealmanager
             if img.size.width > maxDimension || img.size.height > maxDimension {
                 let aspectRatio = img.size.width / img.size.height
                 var newSize: CGSize
@@ -584,13 +587,21 @@ struct PresetListView: View {
                 } else {
                     newSize = CGSize(width: maxDimension * aspectRatio, height: maxDimension)
                 }
+<<<<<<< HEAD
                 
+=======
+
+>>>>>>> feature/mealmanager
                 let renderer = UIGraphicsImageRenderer(size: newSize)
                 finalImage = renderer.image { _ in
                     img.draw(in: CGRect(origin: .zero, size: newSize))
                 }
             }
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> feature/mealmanager
             // Compress with lower quality (0.5 instead of 0.8)
             preset.imageData = finalImage.jpegData(compressionQuality: 0.5)
         } else {

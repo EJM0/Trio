@@ -25,6 +25,7 @@ extension Treatments {
         @State private var calculatorDetent = PresentationDetent.large
         @State private var pushed: Bool = false
         @State private var debounce: DispatchWorkItem?
+        @State private var showFatProteinOrderBanner = false
 
         // Food search state
         @State private var showAllSearchResults = false
@@ -429,6 +430,24 @@ extension Treatments {
 
                 if state.useFPUconversion {
                     proteinAndFat()
+                    
+                    if showFatProteinOrderBanner {
+                        HStack {
+                            Image(systemName: "arrow.left.arrow.right")
+                            Text("The order of Fat and Protein inputs has changed.").font(.callout)
+                            Spacer()
+                            Button {
+                                PropertyPersistentFlags.shared.hasSeenFatProteinOrderChange = true
+                                withAnimation { showFatProteinOrderBanner = false }
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .listRowBackground(Color.orange.opacity(0.75))
+                        .transition(.opacity)
+                    }
+
                     Divider()
                 }
 
@@ -704,6 +723,9 @@ extension Treatments {
                     state.isActive = true
                     Task { @MainActor in
                         state.insulinCalculated = await state.calculateInsulin()
+                    }
+                    if PropertyPersistentFlags.shared.hasSeenFatProteinOrderChange != true {
+                        showFatProteinOrderBanner = true
                     }
                     // Auto-open scanner if requested
                     if openWithScanner {
