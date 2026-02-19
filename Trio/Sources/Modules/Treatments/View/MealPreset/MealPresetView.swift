@@ -67,24 +67,19 @@ struct MealPresetView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
                         dismiss()
-                        resetValues()
                     } label: {
                         Text("Close")
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(
-                        action: {
-                            showAddNewPresetSheet.toggle()
-                            resetValues()
-                        },
-                        label: {
-                            HStack {
-                                Text("New Preset")
-                                Image(systemName: "plus")
-                            }
+                    Button(action: {
+                        showAddNewPresetSheet.toggle()
+                    }, label: {
+                        HStack {
+                            Text("New Preset")
+                            Image(systemName: "plus")
                         }
-                    )
+                    })
                 }
             })
             .sheet(isPresented: $showAddNewPresetSheet) {
@@ -97,7 +92,7 @@ struct MealPresetView: View {
                     onSave: savePreset,
                     onCancel: {
                         showAddNewPresetSheet.toggle()
-                        resetValues()
+                        resetNewPresetForm()
                     }
                 )
             }
@@ -273,12 +268,15 @@ struct MealPresetView: View {
     }
 
     private func resetValues() {
+        state.selection = nil
+        state.summation.removeAll()
+    }
+
+    private func resetNewPresetForm() {
         dish = ""
         presetCarbs = 0
         presetFat = 0
         presetProtein = 0
-        state.selection = nil
-        state.summation.removeAll()
     }
 
     private var minusButton: some View {
@@ -358,7 +356,6 @@ struct MealPresetView: View {
                 guard moc.hasChanges else { return }
                 try moc.save()
                 showAddNewPresetSheet.toggle()
-                resetValues()
             } catch let error as NSError {
                 debugPrint(
                     "\(DebuggingIdentifiers.failed) Failed to save Meal Preset with error: \(error.userInfo)"
@@ -575,7 +572,7 @@ struct PresetListView: View {
             // Resize image to max 512px dimension to save space
             let maxDimension: CGFloat = 512
             var finalImage = img
-            
+
             if img.size.width > maxDimension || img.size.height > maxDimension {
                 let aspectRatio = img.size.width / img.size.height
                 var newSize: CGSize
@@ -584,13 +581,13 @@ struct PresetListView: View {
                 } else {
                     newSize = CGSize(width: maxDimension * aspectRatio, height: maxDimension)
                 }
-                
+
                 let renderer = UIGraphicsImageRenderer(size: newSize)
                 finalImage = renderer.image { _ in
                     img.draw(in: CGRect(origin: .zero, size: newSize))
                 }
             }
-            
+
             // Compress with lower quality (0.5 instead of 0.8)
             preset.imageData = finalImage.jpegData(compressionQuality: 0.5)
         } else {
