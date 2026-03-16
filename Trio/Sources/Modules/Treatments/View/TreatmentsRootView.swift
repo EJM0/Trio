@@ -430,7 +430,7 @@ extension Treatments {
 
                 if state.useFPUconversion {
                     proteinAndFat()
-                    
+
                     if showFatProteinOrderBanner {
                         HStack {
                             Image(systemName: "arrow.left.arrow.right")
