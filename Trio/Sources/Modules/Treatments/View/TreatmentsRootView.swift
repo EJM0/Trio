@@ -25,6 +25,7 @@ extension Treatments {
         @State private var calculatorDetent = PresentationDetent.large
         @State private var pushed: Bool = false
         @State private var debounce: DispatchWorkItem?
+        @State private var showFatProteinOrderBanner = false
 
         // Food search state
         @State private var showAllSearchResults = false
@@ -249,6 +250,23 @@ extension Treatments {
                             }
                         }
                     }
+                }
+
+                Divider().foregroundStyle(.primary).fontWeight(.bold).frame(width: 10)
+
+                HStack {
+                    Text("Protein")
+                    TextFieldWithToolBar(
+                        text: $state.protein,
+                        placeholder: "0",
+                        keyboardType: .numberPad,
+                        numberFormatter: mealFormatter,
+                        showArrows: true,
+                        previousTextField: { focusedField = previousField(from: .protein) },
+                        nextTextField: { focusedField = nextField(from: .protein) },
+                        unitsText: String(localized: "g", comment: "Units for carbs")
+                    )
+                    .focused($focusedField, equals: .protein)
                 }
             }
         }
