@@ -251,23 +251,6 @@ extension Treatments {
                         }
                     }
                 }
-
-                Divider().foregroundStyle(.primary).fontWeight(.bold).frame(width: 10)
-
-                HStack {
-                    Text("Protein")
-                    TextFieldWithToolBar(
-                        text: $state.protein,
-                        placeholder: "0",
-                        keyboardType: .numberPad,
-                        numberFormatter: mealFormatter,
-                        showArrows: true,
-                        previousTextField: { focusedField = previousField(from: .protein) },
-                        nextTextField: { focusedField = nextField(from: .protein) },
-                        unitsText: String(localized: "g", comment: "Units for carbs")
-                    )
-                    .focused($focusedField, equals: .protein)
-                }
             }
         }
 
@@ -601,17 +584,15 @@ extension Treatments {
 
         var body: some View {
             ZStack(alignment: .center) {
-                appState.trioBackgroundColor(for: colorScheme)
-                    .ignoresSafeArea()
-
                 listView()
+                    .blur(radius: state.showInfo || state.isAwaitingDeterminationResult ? 3 : 0)
 
                 if state.isAwaitingDeterminationResult {
                     CustomProgressView(text: progressText.displayName)
                 }
             }
+            .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .scrollContentBackground(.hidden)
-            .blur(radius: state.showInfo || state.isAwaitingDeterminationResult ? 3 : 0)
             .navigationTitle("Treatments")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(content: {
