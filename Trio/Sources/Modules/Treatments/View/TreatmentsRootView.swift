@@ -699,13 +699,12 @@ extension Treatments {
         var body: some View {
             ZStack(alignment: .center) {
                 listView()
-
+                .blur(radius: state.showInfo || state.isAwaitingDeterminationResult ? 3 : 0)
                 if state.isAwaitingDeterminationResult {
                     CustomProgressView(text: progressText.displayName)
                 }
             }
             .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
-            .blur(radius: state.showInfo || state.isAwaitingDeterminationResult ? 3 : 0)
             .navigationTitle("Treatments")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(content: {
