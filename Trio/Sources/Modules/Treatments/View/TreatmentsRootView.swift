@@ -679,7 +679,6 @@ extension Treatments {
 
                 Section {
                     ForecastChart(state: state)
-                        .padding(.vertical)
                 }.listRowBackground(Color.chart)
 
                 Section {
