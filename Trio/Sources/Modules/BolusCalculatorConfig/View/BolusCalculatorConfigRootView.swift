@@ -105,7 +105,9 @@ extension BolusCalculatorConfig {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Default: OFF").bold()
                         Text("Default Percent: 70%").bold()
-                        Text("Do not enable this feature until you have optimized your CR (carb ratio) setting.").bold()
+                        Text(
+                            "Do not enable this feature until you have optimized your CR (carb ratio) setting."
+                        ).bold()
                         Text(
                             "Enabling this setting adds a \"Reduced Bolus\" option to the bolus calculator. Once this feature is enabled, a percentage setting will appear for you to select."
                         )
@@ -141,7 +143,9 @@ extension BolusCalculatorConfig {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Default: OFF").bold()
                         Text("Default Percent: 100%").bold()
-                        Text("Do not enable this feature until you have optimized your CR (carb ratio) setting.").bold()
+                        Text(
+                            "Do not enable this feature until you have optimized your CR (carb ratio) setting."
+                        ).bold()
                         Text(
                             "Enabling this setting adds a \"Super Bolus\" option to the bolus calculator. Once this feature is enabled, a percentage setting will appear for you to select."
                         )
@@ -244,6 +248,32 @@ extension BolusCalculatorConfig {
                         )
                     }
                 )
+
+                Section(
+                    header: Text("Connected Scale"),
+                    content: {
+                        NavigationLink(
+                            destination: ScaleSettingsView(state: state),
+                            label: {
+                                HStack {
+                                    Text("Connect")
+                                    Spacer()
+                                    ZStack {
+                                        if !state.scaleIP.isEmpty {
+                                            Image(systemName: "network")
+                                            Image(systemName: "checkmark.circle.fill").foregroundColor(.green).font(
+                                                .caption2
+                                            )
+                                            .offset(x: 9, y: 6)
+                                        } else {
+                                            Image(systemName: "network.slash")
+                                        }
+                                    }
+                                }
+                            }
+                        )
+                    }
+                ).listRowBackground(Color.chart)
             }
             .listSectionSpacing(sectionSpacing)
             .sheet(isPresented: $shouldDisplayHint) {

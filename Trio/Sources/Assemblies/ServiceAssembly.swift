@@ -17,9 +17,12 @@ final class ServiceAssembly: Assembly {
         container.register(CalendarManager.self) { r in BaseCalendarManager(resolver: r) }
         container.register(HKHealthStore.self) { _ in HKHealthStore() }
         container.register(HealthKitManager.self) { r in BaseHealthKitManager(resolver: r) }
-        container.register(UserNotificationsManager.self) { r in BaseUserNotificationsManager(resolver: r) }
+        container.register(UserNotificationsManager.self) { r in
+            BaseUserNotificationsManager(resolver: r)
+        }
         container.register(WatchManager.self) { r in BaseWatchManager(resolver: r) }
-        container.register(BolusCalculationManager.self) { r in BaseBolusCalculationManager(resolver: r) }
+        container.register(BolusCalculationManager.self) { r in BaseBolusCalculationManager(resolver: r)
+        }
         container.register(GarminManager.self) { r in BaseGarminManager(resolver: r) }
         container.register(ContactImageManager.self) { r in BaseContactImageManager(resolver: r) }
         container.register(AlertPermissionsChecker.self) { r in AlertPermissionsChecker(resolver: r) }
@@ -29,5 +32,6 @@ final class ServiceAssembly: Assembly {
             }
         }
         container.register(IOBService.self) { r in BaseIOBService(resolver: r) }
+        container.register(ScaleManager.self) { r in BaseScaleManager(resolver: r) }
     }
 }

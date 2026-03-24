@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - Nutrition Editor View
 
@@ -9,8 +10,14 @@ extension BarcodeScanner {
         @Binding var isEditingFromList: Bool
         var onDismissList: () -> Void
 
+        var customSaveButtonTitle: String? = nil
+        var onSave: (() -> Void)? = nil
+
         @Environment(AppState.self) var appState
         @Environment(\.colorScheme) var colorScheme
+
+        @State private var shouldPresentPhotoPicker = false
+        @State private var shouldPresentCamera = false
 
         var body: some View {
             VStack(spacing: 0) {
@@ -19,39 +26,110 @@ extension BarcodeScanner {
                         if let product = state.currentScannedItem {
                             // Product header
                             HStack(alignment: .top, spacing: 12) {
-                                switch product.imageSource {
-                                case let .url(url):
-                                    AsyncImage(url: url) { phase in
-                                        switch phase {
-                                        case let .success(image):
-                                            image
-                                                .resizable()
-                                                .scaledToFill()
-                                        case .failure:
-                                            productPlaceholder
-                                        default:
-                                            ProgressView()
+                                if onSave != nil {
+                                    // Custom editable image for presets
+                                    Menu {
+                                        Button {
+                                            shouldPresentCamera = true
+                                        } label: {
+                                            Label("Take Picture", systemImage: "camera")
                                         }
+                                        Button {
+                                            shouldPresentPhotoPicker = true
+                                        } label: {
+                                            Label("Choose Photo", systemImage: "photo.on.rectangle")
+                                        }
+                                        if case .image = product.imageSource {
+                                            Button(role: .destructive) {
+                                                state.currentScannedItem?.imageSource = .none
+                                            } label: {
+                                                Label("Remove Photo", systemImage: "trash")
+                                            }
+                                        }
+                                    } label: {
+                                        ZStack {
+                                            switch product.imageSource {
+                                            case let .url(url):
+                                                AsyncImage(url: url) { phase in
+                                                    if let image = phase.image {
+                                                        image.resizable().scaledToFill()
+                                                    } else {
+                                                        productPlaceholder
+                                                    }
+                                                }
+                                            case let .image(uiImage):
+                                                Image(uiImage: uiImage)
+                                                    .resizable()
+                                                    .scaledToFill()
+                                            case .none:
+                                                productPlaceholder
+                                            }
+                                        }
+                                        .frame(width: 70, height: 70)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(Color.blue, lineWidth: 2)
+                                                .opacity(0.3)
+                                        )
+                                        .overlay(
+                                            Image(systemName: "pencil.circle.fill")
+                                                .foregroundStyle(.white, .blue)
+                                                .frame(
+                                                    maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing
+                                                )
+                                                .offset(x: 6, y: 6)
+                                        )
                                     }
-                                    .frame(width: 70, height: 70)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                                case let .image(uiImage):
-                                    Image(uiImage: uiImage)
-                                        .resizable()
-                                        .scaledToFill()
+                                } else {
+                                    // Read-only image for scanned products
+                                    switch product.imageSource {
+                                    case let .url(url):
+                                        AsyncImage(url: url) { phase in
+                                            switch phase {
+                                            case let .success(image):
+                                                image
+                                                    .resizable()
+                                                    .scaledToFill()
+                                            case .failure:
+                                                productPlaceholder
+                                            default:
+                                                ProgressView()
+                                            }
+                                        }
                                         .frame(width: 70, height: 70)
                                         .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                                case .none:
-                                    productPlaceholder
-                                        .frame(width: 70, height: 70)
+                                    case let .image(uiImage):
+                                        Image(uiImage: uiImage)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 70, height: 70)
+                                            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                                    case .none:
+                                        productPlaceholder
+                                            .frame(width: 70, height: 70)
+                                    }
                                 }
 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(product.name)
+                                    if onSave != nil {
+                                        TextField(
+                                            "Product Name",
+                                            text: Binding(
+                                                get: { state.currentScannedItem?.name ?? "" },
+                                                set: { state.currentScannedItem?.name = $0 }
+                                            )
+                                        )
                                         .font(.headline)
-                                        .lineLimit(2)
+                                        .textFieldStyle(.roundedBorder)
+                                    } else {
+                                        Text(product.name)
+                                            .font(.headline)
+                                            .lineLimit(2)
+                                    }
+
                                     if let brand = product.brand {
                                         Text(brand)
                                             .font(.subheadline)
@@ -66,7 +144,7 @@ extension BarcodeScanner {
                                 Spacer()
                             }
 
-                            Text("Nutrition (per 100g)")
+                            Text(state.editingIsMl ? "Nutrition (per 100ml)" : "Nutrition (per 100g)")
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(.secondary)
                                 .padding(.top, 8)
@@ -130,18 +208,25 @@ extension BarcodeScanner {
                     // Add & Continue button
                     Button {
                         dismissKeyboard()
-                        if state.currentScannedItem != nil {
-                            state.addProductToList()
-                        }
+                        if let onSave = onSave {
+                            onSave()
+                        } else {
+                            if state.currentScannedItem != nil {
+                                state.addProductToList()
+                            }
 
-                        if isEditingFromList {
-                            isEditingFromList = false
-                            onDismissList()
+                            if isEditingFromList {
+                                isEditingFromList = false
+                                onDismissList()
+                            }
                         }
                     } label: {
                         Label(
-                            state.isEditingFromList
-                                ? String(localized: "Update") : String(localized: "Add to List"),
+                            customSaveButtonTitle
+                                ?? (
+                                    state.isEditingFromList
+                                        ? String(localized: "Update") : String(localized: "Add to List")
+                                ),
                             systemImage: "plus.circle.fill"
                         )
                         .font(.subheadline.weight(.semibold))
@@ -180,6 +265,41 @@ extension BarcodeScanner {
                 } else {
                     state.isKeyboardVisible = false
                 }
+            }
+            .sheet(isPresented: $shouldPresentPhotoPicker) {
+                PhotoPicker(
+                    image: Binding(
+                        get: {
+                            if case let .image(img) = state.currentScannedItem?.imageSource {
+                                return img
+                            }
+                            return nil
+                        },
+                        set: { (newImage: UIImage?) in
+                            if let img = newImage {
+                                state.currentScannedItem?.imageSource = .image(img)
+                            }
+                        }
+                    )
+                )
+            }
+            .fullScreenCover(isPresented: $shouldPresentCamera) {
+                CameraView(
+                    image: Binding(
+                        get: {
+                            if case let .image(img) = state.currentScannedItem?.imageSource {
+                                return img
+                            }
+                            return nil
+                        },
+                        set: { (newImage: UIImage?) in
+                            if let img = newImage {
+                                state.currentScannedItem?.imageSource = .image(img)
+                            }
+                        }
+                    )
+                )
+                .ignoresSafeArea()
             }
         }
 

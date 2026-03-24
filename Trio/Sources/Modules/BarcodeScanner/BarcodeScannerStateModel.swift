@@ -2,11 +2,16 @@ import AVFoundation
 import Foundation
 import Observation
 import SwiftUI
+import UIKit
 
 // MARK: - StateModel
 
 extension BarcodeScanner {
     final class StateModel: BaseStateModel<Provider> {
+        deinit {
+            stopScaleStream()
+        }
+
         // MARK: - Properties
 
         @Published var cameraStatus: AVAuthorizationStatus = AVCaptureDevice.authorizationStatus(
@@ -21,6 +26,9 @@ extension BarcodeScanner {
         @Published var isEditingFromList: Bool = false
 
         @Published var scannedLabelBasisAmount: Double = 100.0
+
+        @Published var scaleBatteryLevel: Int?
+        @Published var liveScaleWeight: Double?
 
         // External control
         @Published var showListView = false
@@ -37,6 +45,115 @@ extension BarcodeScanner {
         @Published var isSearching = false
         @Published var searchError: String?
 
+        // Scale polling
+        private var scaleCheckTimer: Timer?
+        private var isCheckingScaleConnection = false
+
+        // MARK: - Scale
+
+        func startScalePolling() {
+            // Cancel any existing timer
+            scaleCheckTimer?.invalidate()
+
+            // Check immediately
+            checkScaleConnectionOnce()
+
+            // Then check every 1 second
+            scaleCheckTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) {
+                [weak self] _ in
+                self?.checkScaleConnectionOnce()
+            }
+        }
+
+        func stopScalePolling() {
+            scaleCheckTimer?.invalidate()
+            scaleCheckTimer = nil
+        }
+
+        private func checkScaleConnectionOnce() {
+            // Skip if already connected or checking
+            guard liveScaleWeight == nil, !isCheckingScaleConnection else { return }
+
+            isCheckingScaleConnection = true
+            provider.scaleManager.fetchBatteryLevel { [weak self] level in
+                guard let self = self else { return }
+                self.isCheckingScaleConnection = false
+                self.scaleBatteryLevel = level
+                if level != nil {
+                    // Scale detected! Stop polling and start WebSocket
+                    self.stopScalePolling()
+                    self.startScaleStream()
+                }
+            }
+        }
+
+        func checkScaleConnection() {
+            print(
+                "DEBUG: checkScaleConnection called, liveScaleWeight: \(liveScaleWeight?.description ?? "nil")"
+            )
+            // Only fetch if not already connected/streaming
+            if liveScaleWeight == nil {
+                provider.scaleManager.fetchBatteryLevel { [weak self] level in
+                    print("DEBUG: Battery level response: \(level?.description ?? "nil")")
+                    self?.scaleBatteryLevel = level
+                    if level != nil {
+                        print("DEBUG: Starting scale stream...")
+                        self?.startScaleStream()
+                    }
+                }
+            } else {
+                // Just update battery
+                provider.scaleManager.fetchBatteryLevel { [weak self] level in
+                    print("DEBUG: Battery level update: \(level?.description ?? "nil")")
+                    self?.scaleBatteryLevel = level
+                }
+            }
+        }
+
+        func startScaleStream() {
+            print("DEBUG: connectToWebSocket called")
+            provider.scaleManager.connectToWebSocket(
+                ip: nil,
+                onMessage: { [weak self] weight in
+                    print("DEBUG: Received weight from WebSocket: \(weight)")
+                    self?.liveScaleWeight = weight
+                },
+                onConnectionChange: { [weak self] isConnected in
+                    guard let self = self else { return }
+                    print("DEBUG: Connection changed: \(isConnected)")
+                    if isConnected {
+                        // Set initial weight to 0.0 if nil so UI shows "Connected" state
+                        // while waiting for first reading
+                        if self.liveScaleWeight == nil {
+                            self.liveScaleWeight = 0.0
+                        }
+                    } else {
+                        self.liveScaleWeight = nil
+                        // Ensure clean state in manager
+                        self.provider.scaleManager.disconnectWebSocket()
+                        // If connection lost, go back to polling
+                        print("DEBUG: Lost connection to scale. Switching back to polling.")
+                        self.startScalePolling()
+                    }
+                }
+            )
+        }
+
+        func stopScaleStream() {
+            stopScalePolling()
+            provider?.scaleManager.disconnectWebSocket()
+            liveScaleWeight = nil
+            scaleBatteryLevel = nil
+        }
+
+        func fetchScaleWeight(completion: @escaping (Double) -> Void) {
+            provider.scaleManager.fetchWeight(completion: completion)
+        }
+
+        func tareScale() {
+            provider.scaleManager.tare(ip: nil)
+        }
+
         // MARK: - Private Properties
 
         private let client = OpenFoodFactsClient()
@@ -49,6 +166,7 @@ extension BarcodeScanner {
 
         func handleAppear() {
             refreshCameraStatus()
+            startScalePolling()
 
             switch cameraStatus {
             case .notDetermined:
@@ -79,7 +197,8 @@ extension BarcodeScanner {
                         self.showTemporaryError(
                             String(
                                 localized: "Camera permissions were denied. Enable them in Settings to continue."
-                            )
+                            ),
+                            resumeScanning: false
                         )
                     }
                 }
@@ -143,11 +262,14 @@ extension BarcodeScanner {
                     self.currentScannedItem = fetchedProduct
                     self.lastScanWasSuccessful = true
                     self.isFetchingProduct = false
+                    self.triggerSuccessHaptic()
                 } catch {
                     guard !Task.isCancelled else { return }
                     self.currentScannedItem = nil
                     self.lastScanWasSuccessful = false
                     self.isFetchingProduct = false
+                    self.lastScannedBarcode = nil
+                    self.lastScanTime = nil
                     self.showTemporaryError(
                         (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                     )
@@ -156,15 +278,32 @@ extension BarcodeScanner {
         }
 
         /// Shows a transient error message that auto-clears after a short delay
-        private func showTemporaryError(_ message: String, duration: TimeInterval = 3) {
+        private func showTemporaryError(
+            _ message: String,
+            duration: TimeInterval = 3,
+            resumeScanning: Bool = true
+        ) {
             errorMessage = message
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(duration))
                 // Only clear if no new error was set in the meantime
                 if self.errorMessage == message {
                     self.errorMessage = nil
+                    if resumeScanning,
+                       self.cameraStatus == .authorized,
+                       self.currentScannedItem == nil,
+                       !self.isFetchingProduct
+                    {
+                        self.isScanning = true
+                    }
                 }
             }
+        }
+
+        private func triggerSuccessHaptic() {
+            let generator = UINotificationFeedbackGenerator()
+            generator.prepare()
+            generator.notificationOccurred(.success)
         }
 
         // MARK: - Product Management
@@ -280,6 +419,7 @@ extension BarcodeScanner {
 
         /// Performs the dismissal of the barcode scanner module
         func performDismissal() {
+            stopScaleStream()
             if let onDismiss = onDismiss {
                 onDismiss()
             } else {

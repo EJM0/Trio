@@ -1,5 +1,7 @@
+import CoreData
 import SwiftUI
 import Swinject
+import UIKit
 
 // MARK: - Root View
 
@@ -12,9 +14,21 @@ extension BarcodeScanner {
         @ObservedObject var state: StateModel
         @State private var isEditingFromList = false
         @State private var showEditorCard = false
+        @State private var selectedListTab: ListTab = .scanned
         @FocusState private var focusedItemID: UUID?
         @FocusState private var isSearchFocused: Bool
         @State private var showAllSearchResults = false
+        @Environment(\.managedObjectContext) var moc
+
+        @FetchRequest(
+            entity: MealPresetStored.entity(),
+            sortDescriptors: [NSSortDescriptor(key: "dish", ascending: true)]
+        ) var presets: FetchedResults<MealPresetStored>
+
+        private var matchingPresets: [MealPresetStored] {
+            if state.searchQuery.isEmpty { return [] }
+            return presets.filter { ($0.dish ?? "").localizedCaseInsensitiveContains(state.searchQuery) }
+        }
 
         init(
             resolver: Resolver,
@@ -46,46 +60,53 @@ extension BarcodeScanner {
             case fiber
         }
 
-        var body: some View {
-            ZStack {
-                if state.showListView {
-                    listViewContent
-                        .transition(.move(edge: .trailing).combined(with: .opacity))
-                } else {
-                    scannerViewContent
-                        .transition(.move(edge: .leading).combined(with: .opacity))
-                }
-            }
-            .simultaneousGesture(
-                DragGesture()
-                    .onEnded { value in
-                        if abs(value.translation.width) > abs(value.translation.height) {
-                            // Horizontal Swipe - Switch Views
-                            // In List View, require Edge Swipe (from left) to avoid conflict with row actions
-                            let isEdgeSwipe = value.startLocation.x < 50
-                            // Higher threshold to distinguish from accidental diagonal drags
-                            let threshold: CGFloat = 80
+        enum ListTab: String, CaseIterable {
+            case scanner = "Scanner"
+            case scanned = "Meal"
+            case presets = "Presets"
+        }
 
-                            if value.translation.width > threshold {
-                                // Swipe Right (Back to Scanner)
-                                // Only allow if (Scanner Mode) OR (List Mode AND Edge Swipe)
-                                if !state.showListView || isEdgeSwipe {
-                                    state.showListView = false
-                                }
-                            } else if value.translation.width < -threshold {
-                                // Swipe Left (Go to List)
-                                state.showListView = true
-                            }
+        var body: some View {
+            VStack(spacing: 0) {
+                if !state.showEditorView || selectedListTab != .scanner {
+                    Picker("Mode", selection: $selectedListTab) {
+                        ForEach(ListTab.allCases, id: \.self) { tab in
+                            Text(LocalizedStringKey(tab.rawValue)).tag(tab)
                         }
                     }
-            )
-            .animation(.easeInOut(duration: 0.3), value: state.showListView)
+                    .pickerStyle(.segmented)
+                    .padding()
+                }
+
+                ZStack {
+                    switch selectedListTab {
+                    case .scanner:
+                        scannerViewContent
+                    case .scanned:
+                        scannedItemsList
+                    case .presets:
+                        presetListView
+                    }
+                }
+            }
             .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
-            .navigationTitle(String(localized: state.showListView ? "Scanned Items" : "Barcode Scanner"))
+            .navigationTitle(LocalizedStringKey(navigationTitle))
+            .onChange(of: state.showListView) {
+                if state.showListView {
+                    if selectedListTab == .scanner {
+                        selectedListTab = .scanned
+                    }
+                } else {
+                    selectedListTab = .scanner
+                }
+            }
+            .onChange(of: selectedListTab) {
+                state.showListView = (selectedListTab != .scanner)
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(content: {
                 ToolbarItem(placement: .topBarLeading) {
-                    if state.showEditorView {
+                    if state.showEditorView && selectedListTab == .scanner {
                         Button(
                             action: {
                                 state.cancelEditing()
@@ -107,43 +128,6 @@ extension BarcodeScanner {
                             label: {
                                 Text(String(localized: "Close"))
                                     .fixedSize(horizontal: true, vertical: false)
-                            }
-                        )
-                        .buttonStyle(BorderlessButtonStyle())
-                    }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    // Hide the item list button while editing nutrition details
-                    if state.showListView {
-                        Button(
-                            action: {
-                                state.showListView = false
-                            },
-                            label: {
-                                Image(systemName: "barcode.viewfinder")
-                                    .font(.body)
-                            }
-                        )
-                    } else if !state.showEditorView {
-                        Button(
-                            action: {
-                                state.showListView = true
-                            },
-                            label: {
-                                HStack {
-                                    ZStack(alignment: .topTrailing) {
-                                        Image(systemName: "list.bullet")
-                                            .font(.body)
-                                        if !state.scannedProducts.isEmpty {
-                                            Text("\(state.scannedProducts.count)")
-                                                .font(.caption2.weight(.bold))
-                                                .foregroundStyle(.white)
-                                                .padding(4)
-                                                .background(Circle().fill(Color.red))
-                                                .offset(x: 8, y: -8)
-                                        }
-                                    }
-                                }
                             }
                         )
                         .buttonStyle(BorderlessButtonStyle())
@@ -188,6 +172,12 @@ extension BarcodeScanner {
                 configureView()
                 state.handleAppear()
                 state.showListView = showListInitially
+                // Sync tab state with showListInitially
+                if showListInitially {
+                    selectedListTab = .scanned
+                } else {
+                    selectedListTab = .scanner
+                }
             }
         }
 
@@ -195,29 +185,20 @@ extension BarcodeScanner {
 
         private var scannerViewContent: some View {
             Group {
-                if state.showEditorView {
-                    // Show full editor view when product/nutrition data is available
+                if state.isFetchingProduct {
+                    loadingView
+                } else if state.showEditorView {
                     NutritionEditorView(
                         state: state,
                         isEditingFromList: $isEditingFromList,
-                        onDismissList: { state.showListView = true }
+                        onDismissList: {}
                     )
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
                 } else {
                     GeometryReader { geo in
                         ScrollView {
                             ZStack {
-                                if state.isFetchingProduct {
-                                    // Loading state
-                                    loadingView
-                                        .transition(.opacity)
-                                } else {
-                                    // Scanner view
-                                    fullScreenCameraView
-                                        .transition(.move(edge: .leading).combined(with: .opacity))
-                                }
+                                fullScreenCameraView
 
-                                // Error overlay (always visible if there's an error)
                                 if let message = state.errorMessage {
                                     VStack {
                                         Spacer()
@@ -265,6 +246,284 @@ extension BarcodeScanner {
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+
+        // MARK: - List View Content
+
+        private var navigationTitle: String {
+            "Barcode Scanner"
+        }
+
+        private var presetListView: some View {
+            PresetListView(
+                scannerState: state,
+                onSelect: { preset in
+                    var imageSource: BarcodeScanner.FoodItem.ImageSource = .none
+                    if let data = preset.imageData, let img = UIImage(data: data) {
+                        imageSource = .image(img)
+                    }
+
+                    let item = BarcodeScanner.FoodItem(
+                        id: UUID(),
+                        name: preset.dish ?? "Unknown",
+                        imageSource: imageSource,
+                        nutriments: .init(
+                            basis: preset.isMl ? .per100ml : .per100g,
+                            carbohydratesPer100g: Double(truncating: preset.carbs ?? 0),
+                            sugarsPer100g: nil,
+                            fatPer100g: Double(truncating: preset.fat ?? 0),
+                            proteinPer100g: Double(truncating: preset.protein ?? 0),
+                            fiberPer100g: nil
+                        ),
+                        amount: preset.amount,
+                        isMlInput: preset.isMl
+                    )
+                    withAnimation {
+                        state.scannedProducts.append(item)
+                        selectedListTab = .scanned
+                    }
+                },
+                shouldDismissOnSelect: false
+            )
+        }
+
+        private var scannedItemsList: some View {
+            ZStack(alignment: .leading) {
+                List {
+                    // Search Section
+                    Section {
+                        BarcodeScanner.ProductSearchField(
+                            searchText: $state.searchQuery,
+                            isFocused: $isSearchFocused,
+                            onSubmit: {
+                                showAllSearchResults = false
+                                state.performFoodSearch()
+                            },
+                            onClear: {
+                                state.searchQuery = ""
+                                state.searchResults = []
+                                showAllSearchResults = false
+                            },
+                            onChange: {
+                                showAllSearchResults = false
+                            }
+                        )
+                        .padding(.horizontal)
+                        .listRowInsets(EdgeInsets(top: 10, leading: 0, bottom: 10, trailing: 0))
+
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+
+                        if !state.searchQuery.isEmpty {
+                            let results = matchingPresets
+                            ForEach(results) { preset in
+                                Button {
+                                    withAnimation {
+                                        var imageSource: BarcodeScanner.FoodItem.ImageSource = .none
+                                        if let data = preset.imageData, let image = UIImage(data: data) {
+                                            imageSource = .image(image)
+                                        }
+
+                                        let item = BarcodeScanner.FoodItem(
+                                            barcode: nil,
+                                            name: preset.dish ?? "Preset",
+                                            brand: "Preset",
+                                            imageSource: imageSource,
+                                            servingQuantity: preset.amount,
+                                            servingQuantityUnit: preset.isMl ? "ml" : "g",
+                                            nutriments: .init(
+                                                basis: preset.isMl ? .per100ml : .per100g,
+                                                carbohydratesPer100g: (preset.carbs as NSDecimalNumber?)?.doubleValue,
+                                                fatPer100g: (preset.fat as NSDecimalNumber?)?.doubleValue,
+                                                proteinPer100g: (preset.protein as NSDecimalNumber?)?.doubleValue
+                                            ),
+                                            amount: preset.amount,
+                                            isMlInput: preset.isMl,
+                                            isManualEntry: true
+                                        )
+                                        state.scannedProducts.append(item)
+                                        state.searchQuery = ""
+                                        state.searchResults = []
+                                        isSearchFocused = false
+                                    }
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        if let data = preset.imageData, let uiImage = UIImage(data: data) {
+                                            Image(uiImage: uiImage)
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: 44, height: 44)
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        } else {
+                                            Image(systemName: "fork.knife")
+                                                .font(.title2)
+                                                .frame(width: 44, height: 44)
+                                                .background(Color.gray.opacity(0.1))
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                                .foregroundStyle(.secondary)
+                                        }
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(preset.dish ?? "Unknown")
+                                                .font(.subheadline.weight(.medium))
+                                                .foregroundStyle(.primary)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                                            HStack {
+                                                Text("Preset")
+                                                    .font(.caption2)
+                                                    .padding(.horizontal, 4)
+                                                    .padding(.vertical, 2)
+                                                    .background(Color.blue.opacity(0.1))
+                                                    .foregroundStyle(.blue)
+                                                    .cornerRadius(4)
+
+                                                if let c = preset.carbs {
+                                                    Text(String(format: "%.0fg carbs", (c as NSDecimalNumber).doubleValue))
+                                                        .font(.caption)
+                                                        .foregroundStyle(.secondary)
+                                                }
+                                            }
+                                        }
+                                        Spacer()
+                                        Image(systemName: "plus.circle.fill")
+                                            .foregroundStyle(.blue)
+                                            .font(.title3)
+                                    }
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                            }
+
+                            if !results.isEmpty && (!state.searchResults.isEmpty || state.isSearching) {
+                                Divider()
+                                    .padding(.horizontal)
+                                    .listRowBackground(Color.clear)
+                                    .listRowSeparator(.hidden)
+                            }
+                        }
+
+                        if state.isSearching {
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                    .scaleEffect(1.5)
+                                Spacer()
+                            }
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                        } else if let error = state.searchError {
+                            Text(error)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                        } else if !state.searchResults.isEmpty {
+                            let displayResults =
+                                showAllSearchResults ? state.searchResults : Array(state.searchResults.prefix(5))
+                            ForEach(displayResults) { item in
+                                BarcodeScanner.FoodSearchResultRow(item: item) {
+                                    withAnimation {
+                                        var mutableItem = item
+                                        mutableItem.amount = item.servingQuantity ?? 100
+                                        state.scannedProducts.append(mutableItem)
+                                        state.searchQuery = ""
+                                        state.searchResults = []
+                                        isSearchFocused = false
+                                    }
+                                }
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                            }
+
+                            if state.searchResults.count > 5 {
+                                Button {
+                                    withAnimation {
+                                        showAllSearchResults.toggle()
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(
+                                            showAllSearchResults
+                                                ? "Show less" : "Show \(state.searchResults.count - 5) more results"
+                                        )
+                                        .font(.caption.weight(.medium))
+                                        Image(systemName: showAllSearchResults ? "chevron.up" : "chevron.down")
+                                            .font(.caption)
+                                    }
+                                    .foregroundStyle(.blue)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                                }
+                                .buttonStyle(.plain)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                            }
+                        }
+                    }
+
+                    if state.scannedProducts.isEmpty, state.searchResults.isEmpty, !state.isSearching {
+                        emptyListView
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets())
+                    }
+
+                    if !state.scannedProducts.isEmpty {
+                        Section {
+                            listHeader
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 8, trailing: 16))
+                        }
+                        Section {
+                            ForEach(state.scannedProducts) { item in
+                                ScannedProductRow(
+                                    item: item,
+                                    state: state,
+                                    focusedItemID: $focusedItemID,
+                                    isScaleConnected: state.liveScaleWeight != nil
+                                )
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        withAnimation {
+                                            state.removeScannedProduct(item)
+                                        }
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                    .tint(.red)
+                                }
+                                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                    Button {
+                                        state.editScannedProduct(item)
+                                        isEditingFromList = true
+                                        state.isEditingFromList = true
+                                        showEditorCard = true
+                                    } label: {
+                                        Label("Edit", systemImage: "pencil")
+                                    }
+                                    .tint(.blue)
+                                }
+                            }
+                        }
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+
+                Color.clear
+                    .contentShape(Rectangle())
+                    .frame(width: 30)
+                    .frame(maxHeight: .infinity)
+            }
         }
 
         // MARK: - Full Screen Camera View
@@ -359,152 +618,6 @@ extension BarcodeScanner {
             .padding(.bottom, 16)
         }
 
-        // MARK: - List View Content
-
-        private var listViewContent: some View {
-            ZStack(alignment: .leading) {
-                List {
-                    // Search Section
-                    Section {
-                        BarcodeScanner.ProductSearchField(
-                            searchText: $state.searchQuery,
-                            isFocused: $isSearchFocused,
-                            onSubmit: {
-                                showAllSearchResults = false
-                                state.performFoodSearch()
-                            },
-                            onClear: {
-                                state.searchQuery = ""
-                                state.searchResults = []
-                                showAllSearchResults = false
-                            },
-                            onChange: {
-                                showAllSearchResults = false
-                            }
-                        )
-                        .padding(.horizontal)
-                        .listRowInsets(EdgeInsets(top: 10, leading: 0, bottom: 10, trailing: 0))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-
-                        if state.isSearching {
-                            HStack {
-                                Spacer()
-                                ProgressView()
-                                    .padding(.vertical, 8)
-                                Spacer()
-                            }
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                        } else if let error = state.searchError {
-                            Text(error)
-                                .font(.caption)
-                                .foregroundStyle(.red)
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                        } else if !state.searchResults.isEmpty {
-                            let displayResults =
-                                showAllSearchResults ? state.searchResults : Array(state.searchResults.prefix(5))
-                            ForEach(displayResults) { item in
-                                BarcodeScanner.FoodSearchResultRow(item: item) {
-                                    withAnimation {
-                                        var mutableItem = item
-                                        mutableItem.amount = item.servingQuantity ?? 100
-                                        state.scannedProducts.append(mutableItem)
-                                        state.searchQuery = ""
-                                        state.searchResults = []
-                                        isSearchFocused = false
-                                    }
-                                }
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                            }
-
-                            if state.searchResults.count > 5 {
-                                Button {
-                                    withAnimation {
-                                        showAllSearchResults.toggle()
-                                    }
-                                } label: {
-                                    HStack {
-                                        Text(
-                                            showAllSearchResults
-                                                ? "Show less" : "Show \(state.searchResults.count - 5) more results"
-                                        )
-                                        .font(.caption.weight(.medium))
-                                        Image(systemName: showAllSearchResults ? "chevron.up" : "chevron.down")
-                                            .font(.caption)
-                                    }
-                                    .foregroundStyle(.blue)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 8)
-                                }
-                                .buttonStyle(.plain)
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                            }
-                        }
-                    }
-
-                    if state.scannedProducts.isEmpty, state.searchResults.isEmpty, !state.isSearching {
-                        emptyListView
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets())
-                    }
-
-                    if !state.scannedProducts.isEmpty {
-                        Section {
-                            listHeader
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                                .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 8, trailing: 16))
-                        }
-
-                        Section {
-                            ForEach(state.scannedProducts) { item in
-                                ScannedProductRow(item: item, state: state, focusedItemID: $focusedItemID)
-                                    .listRowBackground(Color.clear)
-                                    .listRowSeparator(.hidden)
-                                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
-                                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                        Button(role: .destructive) {
-                                            withAnimation {
-                                                state.removeScannedProduct(item)
-                                            }
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
-                                        .tint(.red)
-                                    }
-                                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                                        Button {
-                                            state.editScannedProduct(item)
-                                            isEditingFromList = true
-                                            state.isEditingFromList = true
-                                            showEditorCard = true
-                                        } label: {
-                                            Label("Edit", systemImage: "pencil")
-                                        }
-                                        .tint(.blue)
-                                    }
-                            }
-                        }
-                    }
-                }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-
-                // Edge Swipe Overlay: Invisible touch zone on the left edge
-                // Captures swipes to go back to scanner, preventing conflict with list row swipes
-                Color.clear
-                    .contentShape(Rectangle())
-                    .frame(width: 30)
-                    .frame(maxHeight: .infinity)
-            }
-        }
-
         private var emptyListView: some View {
             VStack(spacing: 20) {
                 Spacer()
@@ -550,18 +663,52 @@ extension BarcodeScanner {
                 result += (kcalPer100 * amount) / 100.0
             }
 
-            return VStack(alignment: .leading, spacing: 8) {
-                Text(
-                    "\(state.scannedProducts.count) Item\(state.scannedProducts.count == 1 ? "" : "s") Scanned"
-                )
-                .font(.title2)
-                .bold()
+            return HStack {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(
+                        "\(state.scannedProducts.count) Item\(state.scannedProducts.count == 1 ? "" : "s") Scanned"
+                    )
+                    .font(.title2)
+                    .bold()
 
-                HStack(spacing: 16) {
-                    Text("total \(totalCarbs, specifier: "%.1f") g of carbs")
-                        .foregroundStyle(.blue)
+                    HStack(spacing: 16) {
+                        Text("total \(totalCarbs, specifier: "%.1f") g of carbs")
+                            .foregroundStyle(.blue)
+                    }
+                    .font(.subheadline)
                 }
-                .font(.subheadline)
+
+                Spacer()
+
+                // Scale controls on the right - only if WebSocket connected and receiving data
+                if let liveWeight = state.liveScaleWeight {
+                    VStack(alignment: .trailing, spacing: 4) {
+                        // Live weight display
+                        Text(String(format: "%.1f g", liveWeight))
+                            .font(.system(.body, design: .monospaced).weight(.semibold))
+                            .foregroundColor(.accentColor)
+
+                        HStack(spacing: 8) {
+                            Button {
+                                state.tareScale()
+                            } label: {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 18, height: 18)
+                                    .foregroundColor(.accentColor)
+                            }
+                            .buttonStyle(.plain)
+
+                            if let battery = state.scaleBatteryLevel {
+                                Text("\(battery)%")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .frame(minWidth: 60)
+                }
             }
         }
 

@@ -73,6 +73,7 @@ struct TrioSettings: JSON, Equatable {
     var timeInRangeType: TimeInRangeType = .timeInTightRange
     var barcodeScannerEnabled: Bool = false
     var barcodeScannerOnlyCarbs: Bool = false
+    var scaleIP: String = ""
 }
 
 extension TrioSettings: Decodable {
@@ -97,7 +98,8 @@ extension TrioSettings: Decodable {
             settings.isDownloadEnabled = isDownloadEnabled
         }
 
-        if let useLocalGlucoseSource = try? container.decode(Bool.self, forKey: .useLocalGlucoseSource) {
+        if let useLocalGlucoseSource = try? container.decode(Bool.self, forKey: .useLocalGlucoseSource)
+        {
             settings.useLocalGlucoseSource = useLocalGlucoseSource
         }
 
@@ -125,11 +127,15 @@ extension TrioSettings: Decodable {
             settings.useCalendar = useCalendar
         }
 
-        if let displayCalendarIOBandCOB = try? container.decode(Bool.self, forKey: .displayCalendarIOBandCOB) {
+        if let displayCalendarIOBandCOB = try? container.decode(
+            Bool.self, forKey: .displayCalendarIOBandCOB
+        )
+        {
             settings.displayCalendarIOBandCOB = displayCalendarIOBandCOB
         }
 
-        if let displayCalendarEmojis = try? container.decode(Bool.self, forKey: .displayCalendarEmojis) {
+        if let displayCalendarEmojis = try? container.decode(Bool.self, forKey: .displayCalendarEmojis)
+        {
             settings.displayCalendarEmojis = displayCalendarEmojis
         }
 
@@ -145,7 +151,10 @@ extension TrioSettings: Decodable {
             settings.useFPUconversion = useFPUconversion
         }
 
-        if let individualAdjustmentFactor = try? container.decode(Decimal.self, forKey: .individualAdjustmentFactor) {
+        if let individualAdjustmentFactor = try? container.decode(
+            Decimal.self, forKey: .individualAdjustmentFactor
+        )
+        {
             settings.individualAdjustmentFactor = individualAdjustmentFactor
         }
 
@@ -189,7 +198,10 @@ extension TrioSettings: Decodable {
             settings.notificationsCarb = notificationsCarb
         }
 
-        if let notificationsAlgorithm = try? container.decode(Bool.self, forKey: .notificationsAlgorithm) {
+        if let notificationsAlgorithm = try? container.decode(
+            Bool.self, forKey: .notificationsAlgorithm
+        )
+        {
             settings.notificationsAlgorithm = notificationsAlgorithm
         }
 
@@ -215,11 +227,17 @@ extension TrioSettings: Decodable {
             settings.highGlucose = highGlucose
         }
 
-        if let carbsRequiredThreshold = try? container.decode(Decimal.self, forKey: .carbsRequiredThreshold) {
+        if let carbsRequiredThreshold = try? container.decode(
+            Decimal.self, forKey: .carbsRequiredThreshold
+        )
+        {
             settings.carbsRequiredThreshold = carbsRequiredThreshold
         }
 
-        if let showCarbsRequiredBadge = try? container.decode(Bool.self, forKey: .showCarbsRequiredBadge) {
+        if let showCarbsRequiredBadge = try? container.decode(
+            Bool.self, forKey: .showCarbsRequiredBadge
+        )
+        {
             settings.showCarbsRequiredBadge = showCarbsRequiredBadge
         }
 
@@ -235,7 +253,10 @@ extension TrioSettings: Decodable {
             settings.high = high
         }
 
-        if let glucoseColorScheme = try? container.decode(GlucoseColorScheme.self, forKey: .glucoseColorScheme) {
+        if let glucoseColorScheme = try? container.decode(
+            GlucoseColorScheme.self, forKey: .glucoseColorScheme
+        )
+        {
             settings.glucoseColorScheme = glucoseColorScheme
         }
 
@@ -251,15 +272,17 @@ extension TrioSettings: Decodable {
             settings.rulerMarks = rulerMarks
         }
 
-        if let bolusDisplayThreshold = try? container.decode(BolusDisplayThreshold.self, forKey: .bolusDisplayThreshold) {
-            settings.bolusDisplayThreshold = bolusDisplayThreshold
-        }
-
-        if let forecastDisplayType = try? container.decode(ForecastDisplayType.self, forKey: .forecastDisplayType) {
+        if let forecastDisplayType = try? container.decode(
+            ForecastDisplayType.self, forKey: .forecastDisplayType
+        )
+        {
             settings.forecastDisplayType = forecastDisplayType
         }
 
-        if let eA1cDisplayUnit = try? container.decode(EstimatedA1cDisplayUnit.self, forKey: .eA1cDisplayUnit) {
+        if let eA1cDisplayUnit = try? container.decode(
+            EstimatedA1cDisplayUnit.self, forKey: .eA1cDisplayUnit
+        )
+        {
             settings.eA1cDisplayUnit = eA1cDisplayUnit
         }
 
@@ -307,12 +330,20 @@ extension TrioSettings: Decodable {
             settings.timeInRangeType = timeInRangeType
         }
 
-        if let barcodeScannerEnabled = try? container.decode(Bool.self, forKey: .barcodeScannerEnabled) {
+        if let barcodeScannerEnabled = try? container.decode(Bool.self, forKey: .barcodeScannerEnabled)
+        {
             settings.barcodeScannerEnabled = barcodeScannerEnabled
         }
 
-        if let barcodeScannerOnlyCarbs = try? container.decode(Bool.self, forKey: .barcodeScannerOnlyCarbs) {
+        if let barcodeScannerOnlyCarbs = try? container.decode(
+            Bool.self, forKey: .barcodeScannerOnlyCarbs
+        )
+        {
             settings.barcodeScannerOnlyCarbs = barcodeScannerOnlyCarbs
+        }
+
+        if let scaleIP = try? container.decode(String.self, forKey: .scaleIP) {
+            settings.scaleIP = scaleIP
         }
 
         self = settings

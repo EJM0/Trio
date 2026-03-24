@@ -18,7 +18,7 @@ extension Treatments {
         let resolver: Resolver
         var openWithScanner: Bool = false
 
-        @StateObject var state = StateModel()
+        @State var state = StateModel()
 
         @State private var showPresetSheet = false
         @State private var autofocus: Bool = true
@@ -38,6 +38,18 @@ extension Treatments {
 
         @Environment(\.colorScheme) var colorScheme
         @Environment(AppState.self) var appState
+
+        @FetchRequest(
+            entity: MealPresetStored.entity(),
+            sortDescriptors: [NSSortDescriptor(key: "dish", ascending: true)]
+        ) var presets: FetchedResults<MealPresetStored>
+
+        private var matchingPresets: [MealPresetStored] {
+            if scannerState.searchQuery.isEmpty { return [] }
+            return presets.filter {
+                ($0.dish ?? "").localizedCaseInsensitiveContains(scannerState.searchQuery)
+            }
+        }
 
         private var formatter: NumberFormatter {
             let formatter = NumberFormatter()
@@ -203,6 +215,88 @@ extension Treatments {
                     }
 
                     // Search results and Spinner
+                    if !scannerState.searchQuery.isEmpty {
+                        let results = matchingPresets
+                        ForEach(results) { preset in
+                            Button {
+                                withAnimation {
+                                    var imageSource: BarcodeScanner.FoodItem.ImageSource = .none
+                                    if let data = preset.imageData, let image = UIImage(data: data) {
+                                        imageSource = .image(image)
+                                    }
+
+                                    let item = BarcodeScanner.FoodItem(
+                                        barcode: nil,
+                                        name: preset.dish ?? "Preset",
+                                        brand: "Preset",
+                                        imageSource: imageSource,
+                                        servingQuantity: preset.amount,
+                                        servingQuantityUnit: preset.isMl ? "ml" : "g",
+                                        nutriments: .init(
+                                            basis: preset.isMl ? .per100ml : .per100g,
+                                            carbohydratesPer100g: (preset.carbs as NSDecimalNumber?)?.doubleValue,
+                                            fatPer100g: (preset.fat as NSDecimalNumber?)?.doubleValue,
+                                            proteinPer100g: (preset.protein as NSDecimalNumber?)?.doubleValue
+                                        ),
+                                        amount: preset.amount,
+                                        isMlInput: preset.isMl,
+                                        isManualEntry: true
+                                    )
+                                    addSearchResultToMeal(item)
+                                }
+                            } label: {
+                                HStack(spacing: 12) {
+                                    if let data = preset.imageData, let uiImage = UIImage(data: data) {
+                                        Image(uiImage: uiImage)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 44, height: 44)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    } else {
+                                        Image(systemName: "fork.knife")
+                                            .font(.title2)
+                                            .frame(width: 44, height: 44)
+                                            .background(Color.gray.opacity(0.1))
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                            .foregroundStyle(.secondary)
+                                    }
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(preset.dish ?? "Unknown")
+                                            .font(.subheadline.weight(.medium))
+                                            .foregroundStyle(.primary)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                                        HStack {
+                                            Text("Preset")
+                                                .font(.caption2)
+                                                .padding(.horizontal, 4)
+                                                .padding(.vertical, 2)
+                                                .background(Color.blue.opacity(0.1))
+                                                .foregroundStyle(.blue)
+                                                .cornerRadius(4)
+
+                                            if let c = preset.carbs {
+                                                Text(String(format: "%.0fg carbs", (c as NSDecimalNumber).doubleValue))
+                                                    .font(.caption)
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                        }
+                                    }
+                                    Spacer()
+                                    Image(systemName: "plus.circle.fill")
+                                        .foregroundStyle(.blue)
+                                        .font(.title3)
+                                }
+                                .padding(.vertical, 4)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+
+                            Divider().opacity(0.3)
+                        }
+                    }
+
                     if scannerState.isSearching {
                         HStack {
                             Spacer()
@@ -216,8 +310,10 @@ extension Treatments {
                             .foregroundStyle(.red)
                     } else if !scannerState.searchResults.isEmpty {
                         VStack(spacing: 0) {
-                            let displayResults = showAllSearchResults ? scannerState
-                                .searchResults : Array(scannerState.searchResults.prefix(5))
+                            let displayResults =
+                                showAllSearchResults
+                                    ? scannerState
+                                    .searchResults : Array(scannerState.searchResults.prefix(5))
                             ForEach(displayResults) { item in
                                 BarcodeScanner.FoodSearchResultRow(item: item) {
                                     addSearchResultToMeal(item)
@@ -235,8 +331,8 @@ extension Treatments {
                                 } label: {
                                     HStack {
                                         Text(
-                                            showAllSearchResults ? "Show less" :
-                                                "Show \(scannerState.searchResults.count - 5) more results"
+                                            showAllSearchResults
+                                                ? "Show less" : "Show \(scannerState.searchResults.count - 5) more results"
                                         )
                                         .font(.caption.weight(.medium))
                                         Image(systemName: showAllSearchResults ? "chevron.up" : "chevron.down")
@@ -258,26 +354,24 @@ extension Treatments {
             HStack {
                 Text("Carbs")
                 Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    TextFieldWithToolBar(
-                        text: $state.carbs,
-                        placeholder: "0",
-                        keyboardType: .numberPad,
-                        numberFormatter: mealFormatter,
-                        showArrows: true,
-                        previousTextField: { focusedField = previousField(from: .carbs) },
-                        nextTextField: { focusedField = nextField(from: .carbs) },
-                        unitsText: String(localized: "g", comment: "Units for carbs")
-                    )
-                    .focused($focusedField, equals: .carbs)
-                    .onChange(of: state.carbs) {
-                        handleDebouncedInput()
-                    }
-                    if state.scannedCarbs > 0 {
-                        Text("+ \(Double(truncating: state.scannedCarbs as NSNumber), specifier: "%.1f")g")
-                            .font(.caption)
-                            .foregroundStyle(.blue)
-                    }
+                TextFieldWithToolBar(
+                    text: $state.carbs,
+                    placeholder: "0",
+                    keyboardType: .numberPad,
+                    numberFormatter: mealFormatter,
+                    showArrows: true,
+                    previousTextField: { focusedField = previousField(from: .carbs) },
+                    nextTextField: { focusedField = nextField(from: .carbs) },
+                    unitsText: String(localized: "g", comment: "Units for carbs")
+                )
+                .focused($focusedField, equals: .carbs)
+                .onChange(of: state.carbs) {
+                    handleDebouncedInput()
+                }
+                if state.scannedCarbs > 0 {
+                    Text("+ \(Double(truncating: state.scannedCarbs as NSNumber), specifier: "%.1f")g")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
                 }
             }
         }
@@ -336,6 +430,24 @@ extension Treatments {
 
                 if state.useFPUconversion {
                     proteinAndFat()
+
+                    if showFatProteinOrderBanner {
+                        HStack {
+                            Image(systemName: "arrow.left.arrow.right")
+                            Text("The order of Fat and Protein inputs has changed.").font(.callout)
+                            Spacer()
+                            Button {
+                                PropertyPersistentFlags.shared.hasSeenFatProteinOrderChange = true
+                                withAnimation { showFatProteinOrderBanner = false }
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .listRowBackground(Color.orange.opacity(0.75))
+                        .transition(.opacity)
+                    }
+
                     Divider()
                 }
 
@@ -347,11 +459,16 @@ extension Treatments {
                     if !pushed {
                         Button {
                             pushed = true
-                        } label: { Text("Now") }.buttonStyle(.borderless).foregroundColor(.secondary)
+                        } label: {
+                            Text("Now")
+                        }.buttonStyle(.borderless).foregroundColor(.secondary)
                             .padding(.trailing, 5)
                     } else {
-                        Button { state.date = state.date.addingTimeInterval(-15.minutes.timeInterval) }
-                        label: { Image(systemName: "minus.circle") }.tint(.blue).buttonStyle(.borderless)
+                        Button {
+                            state.date = state.date.addingTimeInterval(-15.minutes.timeInterval)
+                        } label: {
+                            Image(systemName: "minus.circle")
+                        }.tint(.blue).buttonStyle(.borderless)
 
                         DatePicker(
                             "Time",
@@ -369,8 +486,9 @@ extension Treatments {
                             }
                         Button {
                             state.date = state.date.addingTimeInterval(15.minutes.timeInterval)
-                        }
-                        label: { Image(systemName: "plus.circle") }.tint(.blue).buttonStyle(.borderless)
+                        } label: {
+                            Image(systemName: "plus.circle")
+                        }.tint(.blue).buttonStyle(.borderless)
                     }
                 }
 
@@ -434,13 +552,16 @@ extension Treatments {
                 HStack {
                     HStack {
                         Text("Recommendation")
-                        Button(action: {
-                            state.showInfo.toggle()
-                        }, label: {
-                            Image(systemName: "info.circle")
-                        })
-                            .foregroundStyle(.blue)
-                            .buttonStyle(PlainButtonStyle())
+                        Button(
+                            action: {
+                                state.showInfo.toggle()
+                            },
+                            label: {
+                                Image(systemName: "info.circle")
+                            }
+                        )
+                        .foregroundStyle(.blue)
+                        .buttonStyle(PlainButtonStyle())
                     }
                     Spacer()
                     Button {
@@ -518,8 +639,8 @@ extension Treatments {
                 }
             } label: {
                 HStack {
-                    if state.isBolusInProgress && state.amount > 0 &&
-                        !state.externalInsulin && (state.carbs == 0 || state.fat == 0 || state.protein == 0)
+                    if state.isBolusInProgress && state.amount > 0 && !state.externalInsulin
+                        && (state.carbs == 0 || state.fat == 0 || state.protein == 0)
                     {
                         ProgressView()
                     }
@@ -557,22 +678,15 @@ extension Treatments {
                 }.listRowBackground(Color.chart)
 
                 Section {
-                    Group {
-                        ForecastChart(state: state)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 12)
-                    .listRowInsets(EdgeInsets())
+                    ForecastChart(state: state)
                 }.listRowBackground(Color.chart)
 
                 Section {
                     inputsView
-                        .padding(.vertical, 2)
                 }.listRowBackground(Color.chart)
 
                 Section {
                     optionsView
-                        .padding(.vertical, 2)
                 }.listRowBackground(Color.chart)
 
                 treatmentButton
@@ -585,38 +699,20 @@ extension Treatments {
         var body: some View {
             ZStack(alignment: .center) {
                 listView()
-                    .blur(radius: state.showInfo || state.isAwaitingDeterminationResult ? 3 : 0)
-
+                .blur(radius: state.showInfo || state.isAwaitingDeterminationResult ? 3 : 0)
                 if state.isAwaitingDeterminationResult {
                     CustomProgressView(text: progressText.displayName)
                 }
             }
-            .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
-            .scrollContentBackground(.hidden)
+            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .navigationTitle("Treatments")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(content: {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        UIApplication.shared.endEditing()
                         state.hideModal()
                     } label: {
                         Text("Close")
-                    }
-                }
-                if state.displayPresets {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(
-                            action: {
-                                showPresetSheet = true
-                            },
-                            label: {
-                                HStack {
-                                    Text("Presets")
-                                    Image(systemName: "plus")
-                                }
-                            }
-                        )
                     }
                 }
             })
@@ -625,6 +721,9 @@ extension Treatments {
                     state.isActive = true
                     Task { @MainActor in
                         state.insulinCalculated = await state.calculateInsulin()
+                    }
+                    if PropertyPersistentFlags.shared.hasSeenFatProteinOrderChange != true {
+                        showFatProteinOrderBanner = true
                     }
                     // Auto-open scanner if requested
                     if openWithScanner {
@@ -635,6 +734,9 @@ extension Treatments {
             .onDisappear {
                 state.isActive = false
                 state.addButtonPressed = false
+
+                // Stop scale connection
+                scannerState.stopScaleStream()
 
                 // Cancel all Combine subscriptions and unregister State from broadcaster
                 state.cleanupTreatmentState()
@@ -648,7 +750,11 @@ extension Treatments {
                     showPresetSheet = false
                 }
             ) {
-                MealPresetView(state: state)
+                PresetListView(scannerState: scannerState) { preset in
+                    state.carbs += preset.carbs?.decimalValue ?? 0
+                    state.fat += preset.fat?.decimalValue ?? 0
+                    state.protein += preset.protein?.decimalValue ?? 0
+                }
             }
             .alert("Error while processing Treatment", isPresented: $state.showDeterminationFailureAlert)
             {
@@ -800,11 +906,13 @@ extension Treatments {
                     }
                 } label: {
                     HStack {
-                        if state.isBolusInProgress && state.amount > 0 &&
-                            !state
-                            .externalInsulin &&
-                            (
-                                state.carbs == 0 && state.scannedCarbs == 0 || state.fat == 0 && state.scannedFat == 0 || state
+                        if state.isBolusInProgress && state.amount > 0
+                            && !state
+                            .externalInsulin
+                            && (
+                                state.carbs == 0 && state.scannedCarbs == 0
+                                    || state.fat == 0 && state.scannedFat == 0
+                                    || state
                                     .protein == 0 && state.scannedProtein == 0
                             )
                         {
@@ -815,7 +923,7 @@ extension Treatments {
                     .font(.headline)
                     .foregroundStyle(Color.white)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .frame(height: 20)
+                    .frame(height: 35)
                 }
                 .disabled(disableTaskButton)
                 .listRowBackground(treatmentButtonBackground)
@@ -861,8 +969,11 @@ extension Treatments {
 
             let hasInsulin = state.amount > 0
             let hasCarbs = state.carbs > 0 || state.scannedCarbs > 0
-            let hasFatOrProtein = state.fat > 0 || state.scannedFat > 0 || state.protein > 0 || state.scannedProtein > 0
-            let bolusString = state.externalInsulin ? String(localized: "External Insulin") : String(localized: "Enact Bolus")
+            let hasFatOrProtein =
+                state.fat > 0 || state.scannedFat > 0 || state.protein > 0 || state.scannedProtein > 0
+            let bolusString =
+                state.externalInsulin
+                    ? String(localized: "External Insulin") : String(localized: "Enact Bolus")
 
             if state.isBolusInProgress && hasInsulin && !state.externalInsulin
                 && (!hasCarbs || !hasFatOrProtein)
@@ -917,15 +1028,20 @@ extension Treatments {
 
         private var disableTaskButton: Bool {
             (
-                state.isBolusInProgress && state
-                    .amount > 0 && !state
-                    .externalInsulin &&
-                    (
-                        state.carbs == 0 && state.scannedCarbs == 0 || state.fat == 0 && state.scannedFat == 0 || state
+                state.isBolusInProgress
+                    && state
+                    .amount > 0
+                    && !state
+                    .externalInsulin
+                    && (
+                        state.carbs == 0 && state.scannedCarbs == 0 || state.fat == 0 && state.scannedFat == 0
+                            || state
                             .protein == 0 && state.scannedProtein == 0
                     )
-            ) || state
-                .addButtonPressed || limitExceeded
+            )
+                || state
+                .addButtonPressed
+                || limitExceeded
         }
     }
 

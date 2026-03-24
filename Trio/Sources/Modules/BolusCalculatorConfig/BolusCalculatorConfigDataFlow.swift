@@ -2,4 +2,6 @@ enum BolusCalculatorConfig {
     enum Config {}
 }
 
-protocol BolusCalculatorConfigProvider {}
+protocol BolusCalculatorConfigProvider {
+    var scaleManager: ScaleManager { get }
+}

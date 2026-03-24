@@ -7254,6 +7254,12 @@
         }
       }
     },
+    "%.1f g" : {
+
+    },
+    "%.1fg carbs/100g" : {
+
+    },
     "%@" : {
       "comment" : "Info message\nunits",
       "localizations" : {
@@ -8854,6 +8860,7 @@
       }
     },
     "%@ g" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -9929,6 +9936,9 @@
         }
       }
     },
+    "%@g carbs" : {
+
+    },
     "%1$@ for %2$@" : {
       "comment" : "Summary string for temporary basal rate configuration page",
       "extractionState" : "manual",
@@ -10646,6 +10656,16 @@
         }
       }
     },
+    "%lld Item%@ Scanned" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld Item%2$@ Scanned"
+          }
+        }
+      }
+    },
     "%lld min" : {
       "localizations" : {
         "bg" : {
@@ -10999,6 +11019,9 @@
           }
         }
       }
+    },
+    "%lldx" : {
+
     },
     "•" : {
       "localizations" : {
@@ -18449,6 +18472,9 @@
           }
         }
       }
+    },
+    "+ %.1fg" : {
+
     },
     "+6" : {
       "localizations" : {
@@ -31364,6 +31390,9 @@
         }
       }
     },
+    "Add to List" : {
+
+    },
     "Add to Treatments" : {
       "localizations" : {
         "bg" : {
@@ -42552,6 +42581,9 @@
         }
       }
     },
+    "Amount you're eating" : {
+
+    },
     "Amplitude:" : {
       "localizations" : {
         "bg" : {
@@ -52220,6 +52252,9 @@
         }
       }
     },
+    "Barcode AI Scanner" : {
+
+    },
     "Basal Insulin and Sensitivity ratio" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -60275,6 +60310,15 @@
         }
       }
     },
+    "Camera access is required to scan barcodes." : {
+
+    },
+    "Camera is not available on this device." : {
+
+    },
+    "Camera permissions were denied. Enable them in Settings to continue." : {
+
+    },
     "Can't find the default Nightscout Profile." : {
       "comment" : "Import ErrorImport Error",
       "extractionState" : "manual",
@@ -67554,6 +67598,9 @@
           }
         }
       }
+    },
+    "Choose Photo" : {
+
     },
     "Choose to display eA1c and GMI in percent or mmol/mol." : {
       "localizations" : {
@@ -94816,6 +94863,9 @@
         }
       }
     },
+    "Do not allow logging of FTUs" : {
+
+    },
     "Do not enable this feature until you have optimized your CR (carb ratio) setting." : {
       "localizations" : {
         "bg" : {
@@ -98036,6 +98086,9 @@
         }
       }
     },
+    "Edit Item" : {
+
+    },
     "Edit Meal" : {
       "comment" : "Bolus View Meal Edit Meal Button",
       "localizations" : {
@@ -98272,6 +98325,9 @@
           }
         }
       }
+    },
+    "Edit Preset" : {
+
     },
     "Edit settings json" : {
       "extractionState" : "manual",
@@ -99246,6 +99302,12 @@
           }
         }
       }
+    },
+    "Enable Barcode Scanner" : {
+
+    },
+    "Enable camera access to start scanning." : {
+
     },
     "Enable device connectivity" : {
       "localizations" : {
@@ -102478,6 +102540,9 @@
           }
         }
       }
+    },
+    "Enables you to scann barcodes and get nutritional data direcltly in the app." : {
+
     },
     "Enabling Adjust Basal replaces the standard Autosens Ratio calculation with its own Autosens Ratio calculated as such:" : {
       "localizations" : {
@@ -105939,6 +106004,9 @@
           }
         }
       }
+    },
+    "Energy (kcal)" : {
+
     },
     "Enter Meal Preset Name" : {
       "extractionState" : "manual",
@@ -111634,6 +111702,9 @@
         }
       }
     },
+    "Failed to configure camera: %@" : {
+
+    },
     "Failed to create a new object in %@ from %@." : {
       "localizations" : {
         "bg" : {
@@ -114898,6 +114969,9 @@
         }
       }
     },
+    "Fiber" : {
+
+    },
     "Filter" : {
       "localizations" : {
         "bg" : {
@@ -116681,6 +116755,9 @@
           }
         }
       }
+    },
+    "For users who only want to log carbs via the barcode scanner and not FTUs (Fats, Proteins, and Fibers)." : {
+
     },
     "For write data to Apple Health you must give permissions in Settings > Health > Data Access" : {
       "comment" : "Show when have not permissions for writing to Health",
@@ -137770,6 +137847,9 @@
           }
         }
       }
+    },
+    "Ingredients" : {
+
     },
     "Insert Cannula" : {
       "extractionState" : "manual",
@@ -165955,6 +166035,9 @@
         }
       }
     },
+    "ml" : {
+
+    },
     "mmol/L" : {
       "comment" : "The short unit display string for millimoles of glucose per liter",
       "localizations" : {
@@ -170630,6 +170713,9 @@
         }
       }
     },
+    "No items scanned yet" : {
+
+    },
     "No Libre Transmitter Selected" : {
       "comment" : "No Libre Transmitter Selected",
       "extractionState" : "manual",
@@ -175091,6 +175177,9 @@
         }
       }
     },
+    "Note: Enable this if FTUs are causing issues for you." : {
+
+    },
     "Note: If enabled, the smoothed values you see in Trio may differ from what is shown in your CGM app." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -175563,6 +175652,9 @@
           }
         }
       }
+    },
+    "Note: Nutritional data can be slightly inaccurate as producers might change the recipes over time of specific products. It's recomended to check the nutrional data on first scan. Also if wrong data is seen maybe supporting the openfoodfacs project via correcting the nutritional data in thier app is a option." : {
+
     },
     "Note: Once a new calendar event is created, the previous event will be deleted." : {
       "localizations" : {
@@ -178435,6 +178527,9 @@
         }
       }
     },
+    "Nutrition (per 100g)" : {
+
+    },
     "ø" : {
       "localizations" : {
         "bg" : {
@@ -180216,6 +180311,9 @@
         }
       }
     },
+    "Only allow Carbs from Barcode Scanner" : {
+
+    },
     "Only Autotune Basal Insulin" : {
       "comment" : "Autotune config",
       "extractionState" : "manual",
@@ -180695,6 +180793,9 @@
           }
         }
       }
+    },
+    "Open Barcode Scanner" : {
+
     },
     "Open iOS Settings" : {
       "comment" : "Manage Permissions in Settings button text",
@@ -181669,6 +181770,9 @@
           }
         }
       }
+    },
+    "Opens Trio's Barcode scanner for scanning processed food" : {
+
     },
     "Oref Algorithm" : {
       "localizations" : {
@@ -185788,6 +185892,12 @@
         }
       }
     },
+    "Pause" : {
+
+    },
+    "Per 100%@" : {
+
+    },
     "Percent" : {
       "localizations" : {
         "bg" : {
@@ -188917,6 +189027,12 @@
         }
       }
     },
+    "Portion" : {
+
+    },
+    "Portions" : {
+
+    },
     "Prediction Type" : {
       "localizations" : {
         "bg" : {
@@ -190703,6 +190819,9 @@
           }
         }
       }
+    },
+    "Product Name" : {
+
     },
     "profile" : {
       "localizations" : {
@@ -199175,6 +199294,9 @@
         }
       }
     },
+    "Remove Photo" : {
+
+    },
     "Remove Widget" : {
       "localizations" : {
         "bg" : {
@@ -199529,6 +199651,9 @@
           }
         }
       }
+    },
+    "Requesting camera access…" : {
+
     },
     "Reservoir is empty" : {
       "localizations" : {
@@ -203869,6 +203994,15 @@
         }
       }
     },
+    "Scan" : {
+
+    },
+    "Scan barcodes or search to add items." : {
+
+    },
+    "Scan Qr-Codes to enter carbs" : {
+
+    },
     "Schedule" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -204842,6 +204976,9 @@
           }
         }
       }
+    },
+    "Search foods..." : {
+
     },
     "Search Results" : {
       "localizations" : {
@@ -209673,6 +209810,9 @@
         }
       }
     },
+    "Serving: %@" : {
+
+    },
     "Set a custom time for peak insulin effect." : {
       "comment" : "Mini Hint for Insulin Peak Time",
       "localizations" : {
@@ -213873,6 +214013,9 @@
           }
         }
       }
+    },
+    "Show less" : {
+
     },
     "Show live activity" : {
       "comment" : "Notification option",
@@ -221044,6 +221187,9 @@
         }
       }
     },
+    "Start Scanning" : {
+
+    },
     "Start Temp Target" : {
       "localizations" : {
         "bg" : {
@@ -224980,6 +225126,9 @@
         }
       }
     },
+    "Sugars" : {
+
+    },
     "Suggested at" : {
       "comment" : "Headline in suggested pop up (at: at what time)",
       "extractionState" : "manual",
@@ -227836,6 +227985,9 @@
           }
         }
       }
+    },
+    "Take Picture" : {
+
     },
     "Tap a percentile or tap and hold a bar to reveal more details. Swipe to scroll through time." : {
       "localizations" : {
@@ -248522,6 +248674,9 @@
         }
       }
     },
+    "To add more then one food item scan again and optionally edit or remove specific info of the item in the listview." : {
+
+    },
     "To calculate the maximum SMB allowed based on this setting, use the following formula:" : {
       "localizations" : {
         "bg" : {
@@ -250662,6 +250817,9 @@
           }
         }
       }
+    },
+    "total %.1f g of carbs" : {
+
     },
     "Total Daily Dose" : {
       "localizations" : {
@@ -259467,6 +259625,12 @@
         }
       }
     },
+    "Unable to reach OpenFoodFacts. Please try again." : {
+
+    },
+    "Unable to read barcodes on this device." : {
+
+    },
     "Unable to Save" : {
       "localizations" : {
         "bg" : {
@@ -259837,6 +260001,9 @@
         }
       }
     },
+    "Unable to use the back camera." : {
+
+    },
     "unit" : {
       "localizations" : {
         "bg" : {
@@ -259954,6 +260121,9 @@
           }
         }
       }
+    },
+    "Unit" : {
+
     },
     "Unit override" : {
       "extractionState" : "manual",
@@ -260559,6 +260729,9 @@
         }
       }
     },
+    "Unknown product" : {
+
+    },
     "Unsuspend If No Temp" : {
       "comment" : "Unsuspend If No Temp",
       "localizations" : {
@@ -260795,6 +260968,9 @@
           }
         }
       }
+    },
+    "Update" : {
+
     },
     "Update Available" : {
       "comment" : "Title for update available alert",
@@ -268351,6 +268527,9 @@
           }
         }
       }
+    },
+    "We couldn’t find this barcode in OpenFoodFacts. Maybe add the product to OpenFoodFacts via the App." : {
+
     },
     "We recommend reviewing them carefully — Trio will guide you step-by-step." : {
       "localizations" : {
