@@ -195,11 +195,10 @@ enum SettingItems {
                 "Max Meal Absorption Time",
                 "Max Fat",
                 "Max Protein",
-                "Display and Allow Fat and Protein Entries",
+                "Enable Fat and Protein Entries",
                 "Fat and Protein Delay",
-                "Maximum Duration (hours)",
-                "Spread Interval (minutes)",
-                "Fat and Protein Factor",
+                "Spread Interval",
+                "Fat and Protein Percentage",
                 "FPU"
             ],
             path: ["Features", "Meal Settings"]
@@ -230,6 +229,7 @@ enum SettingItems {
                 "Show Carbs Required Badge",
                 "Carbs Required Threshold",
                 "Forecast Display Type",
+                "Bolus Display Threshold",
                 "Cone",
                 "Lines",
                 "Dark Mode",
