@@ -699,7 +699,7 @@ extension Treatments {
         var body: some View {
             ZStack(alignment: .center) {
                 listView()
-                .blur(radius: state.showInfo || state.isAwaitingDeterminationResult ? 3 : 0)
+                    .blur(radius: state.showInfo || state.isAwaitingDeterminationResult ? 3 : 0)
                 if state.isAwaitingDeterminationResult {
                     CustomProgressView(text: progressText.displayName)
                 }

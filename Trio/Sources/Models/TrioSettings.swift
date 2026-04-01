@@ -272,6 +272,13 @@ extension TrioSettings: Decodable {
             settings.rulerMarks = rulerMarks
         }
 
+        if let bolusDisplayThreshold = try? container.decode(
+            BolusDisplayThreshold.self, forKey: .bolusDisplayThreshold
+        )
+        {
+            settings.bolusDisplayThreshold = bolusDisplayThreshold
+        }
+
         if let forecastDisplayType = try? container.decode(
             ForecastDisplayType.self, forKey: .forecastDisplayType
         )
