@@ -7,6 +7,24 @@ struct InsulinView: ChartContent {
     let insulinData: [PumpEventStored]
     let units: GlucoseUnits
     let bolusDisplayThreshold: BolusDisplayThreshold
+    let bolusDisplayThresholdMultiplier: Decimal
+
+    private var smbAverageThreshold: Decimal? {
+        let smbAmounts = insulinData.compactMap { insulin -> Decimal? in
+            guard insulin.bolus?.isSMB == true, let amount = insulin.bolus?.amount as Decimal? else {
+                return nil
+            }
+            return amount
+        }
+
+        guard !smbAmounts.isEmpty else {
+            return nil
+        }
+
+        let total = smbAmounts.reduce(Decimal.zero, +)
+        let average = total / Decimal(smbAmounts.count)
+        return average * bolusDisplayThresholdMultiplier
+    }
 
     var body: some ChartContent {
         drawBoluses()
@@ -33,13 +51,25 @@ struct InsulinView: ChartContent {
                     Image(systemName: "arrowtriangle.down.fill").font(.system(size: size)).foregroundStyle(Color.insulin)
                 }
                 .annotation(position: .top) {
-                    if amount as Decimal >= bolusDisplayThreshold.rawValue {
+                    if shouldDisplayLabel(for: amount as Decimal) {
                         Text(Formatter.bolusFormatter.string(from: amount) ?? "")
                             .font(.caption2)
                             .foregroundStyle(Color.primary)
                     }
                 }
             }
+        }
+    }
+
+    private func shouldDisplayLabel(for amount: Decimal) -> Bool {
+        switch bolusDisplayThreshold {
+        case .aboveAverageSMBFactor:
+            guard let smbAverageThreshold else {
+                return true
+            }
+            return amount > smbAverageThreshold
+        default:
+            return amount >= bolusDisplayThreshold.rawValue
         }
     }
 }

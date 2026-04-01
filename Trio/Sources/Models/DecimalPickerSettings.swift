@@ -97,6 +97,13 @@ struct DecimalPickerSettings {
         max: 1,
         type: PickerSetting.PickerSettingType.insulinUnit
     )
+    var bolusDisplayThresholdMultiplier = PickerSetting(
+        value: 1.3,
+        step: 0.05,
+        min: 0.5,
+        max: 3,
+        type: PickerSetting.PickerSettingType.multiplier
+    )
     var insulinPeakTime = PickerSetting(value: 75, step: 1, min: 35, max: 120, type: PickerSetting.PickerSettingType.minute)
     var carbsReqThreshold = PickerSetting(value: 1.0, step: 0.1, min: 0, max: 10, type: PickerSetting.PickerSettingType.gram)
     var noisyCGMTargetMultiplier = PickerSetting(
@@ -155,6 +162,7 @@ struct PickerSetting {
     enum PickerSettingType {
         case glucose
         case factor
+        case multiplier
         case gram
         case insulinUnit
         case insulinUnitPerHour

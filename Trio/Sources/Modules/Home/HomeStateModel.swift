@@ -78,6 +78,7 @@ extension Home {
         var displayYgridLines: Bool = false
         var thresholdLines: Bool = false
         var bolusDisplayThreshold: BolusDisplayThreshold = .allUnits
+        var bolusDisplayThresholdMultiplier: Decimal = 1.3
         var hours: Int16 = 6
         var totalBolus: Decimal = 0
         var isLoopStatusPresented: Bool = false
@@ -412,6 +413,7 @@ extension Home {
             displayXgridLines = settingsManager.settings.xGridLines
             displayYgridLines = settingsManager.settings.yGridLines
             bolusDisplayThreshold = settingsManager.settings.bolusDisplayThreshold
+            bolusDisplayThresholdMultiplier = settingsManager.settings.bolusDisplayThresholdMultiplier
             thresholdLines = settingsManager.settings.rulerMarks
             showCarbsRequiredBadge = settingsManager.settings.showCarbsRequiredBadge
             forecastDisplayType = settingsManager.settings.forecastDisplayType
@@ -677,6 +679,7 @@ extension Home.StateModel:
         displayYgridLines = settingsManager.settings.yGridLines
         thresholdLines = settingsManager.settings.rulerMarks
         bolusDisplayThreshold = settingsManager.settings.bolusDisplayThreshold
+        bolusDisplayThresholdMultiplier = settingsManager.settings.bolusDisplayThresholdMultiplier
         showCarbsRequiredBadge = settingsManager.settings.showCarbsRequiredBadge
         forecastDisplayType = settingsManager.settings.forecastDisplayType
         cgmAvailable = (fetchGlucoseManager.cgmGlucoseSourceType != CGMType.none)

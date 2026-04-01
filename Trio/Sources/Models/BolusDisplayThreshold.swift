@@ -2,6 +2,7 @@ import Foundation
 
 enum BolusDisplayThreshold: Decimal, JSON, CaseIterable, Identifiable, Codable, Hashable {
     public var id: Decimal { rawValue }
+    case aboveAverageSMBFactor = -1
     case oneUnit = 1
     case halfUnit = 0.5
     case pointOneUnit = 0.1
@@ -9,6 +10,8 @@ enum BolusDisplayThreshold: Decimal, JSON, CaseIterable, Identifiable, Codable, 
 
     var displayName: String {
         switch self {
+        case .aboveAverageSMBFactor:
+            return String(localized: "Above avg SMB x factor")
         case .oneUnit:
             return String(localized: "1 U and over")
         case .halfUnit:

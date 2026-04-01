@@ -39,6 +39,22 @@ extension UserInterfaceSettings {
             return formatter
         }
 
+        private var insulinFormatter: NumberFormatter {
+            let formatter = NumberFormatter()
+            formatter.numberStyle = .decimal
+            formatter.minimumFractionDigits = 0
+            formatter.maximumFractionDigits = 2
+            return formatter
+        }
+
+        private var factorFormatter: NumberFormatter {
+            let formatter = NumberFormatter()
+            formatter.numberStyle = .decimal
+            formatter.minimumFractionDigits = 0
+            formatter.maximumFractionDigits = 2
+            return formatter
+        }
+
         var body: some View {
             List {
                 Section(
@@ -404,6 +420,9 @@ extension UserInterfaceSettings {
                                                 Text(
                                                     "This setting controls which bolus amount labels are shown on Trio’s main chart. Boluses appear as blue upside-down triangles, with a number showing the amount. Depending on the option you choose, only boluses at or above that amount will show a label. For example, if you choose ‘0.5 U and over’, only boluses of 0.5 U or more will show a label."
                                                 )
+                                                Text(
+                                                    "If you choose ‘Above avg SMB x factor’, Trio calculates the average SMB bolus from recent history, multiplies it by your chosen factor, and only shows labels for boluses above that value."
+                                                )
                                             }
                                         )
                                     shouldDisplayHint.toggle()
@@ -415,6 +434,71 @@ extension UserInterfaceSettings {
                                 }
                             ).buttonStyle(BorderlessButtonStyle())
                         }.padding(.top)
+
+                        if state.bolusDisplayThreshold == .aboveAverageSMBFactor {
+                            Divider().padding(.vertical, 8)
+                            Picker(
+                                selection: $state.bolusDisplayThresholdMultiplier,
+                                label: Text("Bolus Display Threshold Factor")
+                            ) {
+                                ForEach(
+                                    PickerSettingsProvider.shared.generatePickerValues(
+                                        from: PickerSettingsProvider.shared.settings.bolusDisplayThresholdMultiplier,
+                                        units: state.units
+                                    ),
+                                    id: \.self
+                                ) { value in
+                                    Text("x \(value)").tag(value)
+                                }
+                            }
+
+                            HStack(alignment: .center) {
+                                Text(
+                                    "Multiply the average SMB bolus by this factor to set the label cutoff."
+                                )
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                                .lineLimit(nil)
+                                Spacer()
+                                Button(
+                                    action: {
+                                        hintLabel = String(localized: "Bolus Display Threshold Factor")
+                                        selectedVerboseHint =
+                                            AnyView(
+                                                VStack(alignment: .leading, spacing: 10) {
+                                                    Text(
+                                                        "Trio multiplies the current average SMB bolus by this factor and only shows bolus labels above that cutoff."
+                                                    )
+                                                    Text(
+                                                        "Example: if the average SMB is 0.4 U and the factor is 1.3, the current cutoff is 0.52 U."
+                                                    )
+                                                }
+                                            )
+                                        shouldDisplayHint.toggle()
+                                    },
+                                    label: {
+                                        HStack {
+                                            Image(systemName: "questionmark.circle")
+                                        }
+                                    }
+                                ).buttonStyle(BorderlessButtonStyle())
+                            }.padding(.top)
+
+                            Divider().padding(.vertical, 8)
+
+                            HStack {
+                                Text("Current Cutoff")
+                                Spacer()
+                                Text(currentBolusCutoffText)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.trailing)
+                            }
+
+                            Text("Based on SMB boluses from the last 24 hours.")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                                .padding(.top, 4)
+                        }
                     }.padding(.bottom)
                 }.listRowBackground(Color.chart)
 
@@ -574,9 +658,25 @@ extension UserInterfaceSettings {
             }
             .scrollContentBackground(.hidden)
             .background(appState.trioBackgroundColor(for: colorScheme))
-            .onAppear(perform: configureView)
+            .onAppear {
+                configureView()
+                state.updateAverageSMBBolus()
+            }
             .navigationBarTitle("User Interface")
             .navigationBarTitleDisplayMode(.automatic)
+        }
+
+        private var currentBolusCutoffText: String {
+            guard let average = state.averageSMBBolus, let cutoff = state.currentBolusDisplayCutoff else {
+                return String(localized: "Not enough SMB data")
+            }
+
+            let averageText = insulinFormatter.string(from: NSDecimalNumber(decimal: average)) ?? average.description
+            let factorText = factorFormatter.string(from: NSDecimalNumber(decimal: state.bolusDisplayThresholdMultiplier))
+                ?? state.bolusDisplayThresholdMultiplier.description
+            let cutoffText = insulinFormatter.string(from: NSDecimalNumber(decimal: cutoff)) ?? cutoff.description
+
+            return "\(cutoffText) U = \(averageText) U x \(factorText)"
         }
     }
 }

@@ -151,6 +151,8 @@ struct SettingInputSection<VerboseHint: View>: View {
             return pickerSettingsProvider.settings.smbInterval
         case "bolusIncrement":
             return pickerSettingsProvider.settings.bolusIncrement
+        case "bolusDisplayThresholdMultiplier":
+            return pickerSettingsProvider.settings.bolusDisplayThresholdMultiplier
         case "insulinPeakTime":
             return pickerSettingsProvider.settings.insulinPeakTime
         case "carbsReqThreshold":
@@ -218,6 +220,8 @@ struct SettingInputSection<VerboseHint: View>: View {
             return Text("\(displayValue.description) \(units.rawValue)")
         case .factor:
             return Text("\(decimalValue * 100) \(String(localized: "%", comment: "Percentage symbol"))")
+        case .multiplier:
+            return Text("x \(decimalValue)")
         case .insulinUnit:
             return Text("\(decimalValue) \(String(localized: "U", comment: "Insulin unit abbreviation"))")
         case .insulinUnitPerHour:

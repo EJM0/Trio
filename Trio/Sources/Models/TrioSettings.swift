@@ -54,6 +54,7 @@ struct TrioSettings: JSON, Equatable {
     var yGridLines: Bool = true
     var rulerMarks: Bool = true
     var bolusDisplayThreshold: BolusDisplayThreshold = .allUnits
+    var bolusDisplayThresholdMultiplier: Decimal = 1.3
     var forecastDisplayType: ForecastDisplayType = .cone
     var maxCarbs: Decimal = 250
     var maxFat: Decimal = 250
@@ -277,6 +278,13 @@ extension TrioSettings: Decodable {
         )
         {
             settings.bolusDisplayThreshold = bolusDisplayThreshold
+        }
+
+        if let bolusDisplayThresholdMultiplier = try? container.decode(
+            Decimal.self, forKey: .bolusDisplayThresholdMultiplier
+        )
+        {
+            settings.bolusDisplayThresholdMultiplier = bolusDisplayThresholdMultiplier
         }
 
         if let forecastDisplayType = try? container.decode(
