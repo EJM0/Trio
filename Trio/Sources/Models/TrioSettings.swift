@@ -412,6 +412,8 @@ extension TrioSettings: Decodable {
 
         if let scaleIP = try? container.decode(String.self, forKey: .scaleIP) {
             settings.scaleIP = scaleIP
+        }
+
         if let garminWatchface = try? container.decode(GarminWatchface.self, forKey: .garminWatchface) {
             settings.garminWatchface = garminWatchface
         }
