@@ -12,8 +12,15 @@ extension BolusCalculatorConfig {
         @Published var confirmBolusWhenVeryLowGlucose: Bool = false
         @Published var barcodeScannerEnabled: Bool = false
         @Published var barcodeScannerOnlyCarbs: Bool = false
+        @Published var openFoodFactsUsername: String = ""
+        @Published var openFoodFactsPassword: String = ""
+        @Published var isOpenFoodFactsLoginSuccessful: Bool = false
+        @Published var isOpenFoodFactsLoginInProgress: Bool = false
+        @Published var openFoodFactsLoginError: String?
         @Published var scaleIP: String = ""
         @Published var calibrationWeight: Decimal = 100
+
+        private let openFoodFactsClient = BarcodeScanner.OpenFoodFactsClient()
 
         func tareScale() {
             provider.scaleManager.tare(ip: scaleIP)
@@ -21,6 +28,35 @@ extension BolusCalculatorConfig {
 
         func calibrateScale() {
             provider.scaleManager.calibrate(weight: calibrationWeight, ip: scaleIP)
+        }
+
+        func loginToOpenFoodFacts() {
+            let trimmedUsername = openFoodFactsUsername.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedUsername.isEmpty, !openFoodFactsPassword.isEmpty else {
+                isOpenFoodFactsLoginSuccessful = false
+                openFoodFactsLoginError = String(localized: "Please enter username and password.")
+                return
+            }
+
+            isOpenFoodFactsLoginInProgress = true
+            openFoodFactsLoginError = nil
+
+            Task { @MainActor in
+                await openFoodFactsClient.setCredentials(username: trimmedUsername, password: openFoodFactsPassword)
+
+                do {
+                    let loginSuccessful = try await openFoodFactsClient.login()
+                    isOpenFoodFactsLoginSuccessful = loginSuccessful
+                    if !loginSuccessful {
+                        openFoodFactsLoginError = String(localized: "Login failed. Check username/password.")
+                    }
+                } catch {
+                    isOpenFoodFactsLoginSuccessful = false
+                    openFoodFactsLoginError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                }
+
+                isOpenFoodFactsLoginInProgress = false
+            }
         }
 
         override func subscribe() {
@@ -41,7 +77,21 @@ extension BolusCalculatorConfig {
             subscribeSetting(\.barcodeScannerOnlyCarbs, on: $barcodeScannerOnlyCarbs) {
                 barcodeScannerOnlyCarbs = $0
             }
+            subscribeSetting(\.openFoodFactsUsername, on: $openFoodFactsUsername) {
+                openFoodFactsUsername = $0
+            }
+            subscribeSetting(\.openFoodFactsPassword, on: $openFoodFactsPassword) {
+                openFoodFactsPassword = $0
+            }
             subscribeSetting(\.scaleIP, on: $scaleIP) { scaleIP = $0 }
+
+            Task { @MainActor in
+                await self.openFoodFactsClient.setCredentials(
+                    username: self.openFoodFactsUsername,
+                    password: self.openFoodFactsPassword
+                )
+                self.isOpenFoodFactsLoginSuccessful = await self.openFoodFactsClient.hasValidSessionCookie()
+            }
         }
     }
 }

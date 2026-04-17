@@ -78,6 +78,8 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var timeInRangeType: TimeInRangeType = .timeInTightRange
     var barcodeScannerEnabled: Bool = false
     var barcodeScannerOnlyCarbs: Bool = false
+    var openFoodFactsUsername: String = ""
+    var openFoodFactsPassword: String = ""
     var scaleIP: String = ""
 
     /// Selected Garmin watchface (Trio or SwissAlpine)
@@ -408,6 +410,18 @@ extension TrioSettings: Decodable {
         )
         {
             settings.barcodeScannerOnlyCarbs = barcodeScannerOnlyCarbs
+        }
+
+        if let openFoodFactsUsername = try? container.decode(
+            String.self, forKey: .openFoodFactsUsername
+        ) {
+            settings.openFoodFactsUsername = openFoodFactsUsername
+        }
+
+        if let openFoodFactsPassword = try? container.decode(
+            String.self, forKey: .openFoodFactsPassword
+        ) {
+            settings.openFoodFactsPassword = openFoodFactsPassword
         }
 
         if let scaleIP = try? container.decode(String.self, forKey: .scaleIP) {
