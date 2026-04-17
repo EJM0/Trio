@@ -233,6 +233,74 @@ extension BarcodeScanner {
             }
         }
 
+        /// Uploads changed nutriments for an existing product to OpenFoodFacts.
+        /// Only changed fields are sent to avoid overwriting existing unrelated values.
+        func uploadNutritionCorrection(
+            for item: FoodItem,
+            comparedTo originalNutriments: FoodItem.Nutriments
+        ) async throws -> Bool {
+            guard let barcode = item.barcode?.trimmingCharacters(in: .whitespacesAndNewlines), !barcode.isEmpty else {
+                return false
+            }
+
+            let changedParams = changedNutrimentParameters(
+                current: item.nutriments,
+                original: originalNutriments
+            )
+            guard !changedParams.isEmpty else {
+                return false
+            }
+
+            guard let writeURL = URL(string: "https://world.openfoodfacts.org/cgi/product_jqm2.pl") else {
+                throw OpenFoodFactsError.invalidResponse
+            }
+
+            var params: [String: String] = [
+                "code": barcode,
+                "nutrition_data": "on",
+                "nutrition_data_per": item.nutriments.basis == .per100ml ? "100ml" : "100g"
+            ]
+
+            if let credentials = await Self.authStore.credentialsIfAvailable {
+                params["user_id"] = credentials.username
+                params["password"] = credentials.password
+            }
+
+            changedParams.forEach { key, value in
+                params[key] = value
+            }
+
+            var request = URLRequest(url: writeURL)
+            request.httpMethod = "POST"
+            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            request = try await applySessionCookie(to: request)
+            request.httpBody = Self.makeFormURLEncodedBody(params)
+
+            let (data, response) = try await performRequestWithReauthentication(request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  200 ..< 300 ~= httpResponse.statusCode
+            else {
+                throw OpenFoodFactsError.invalidResponse
+            }
+
+            guard let jsonObject = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                return false
+            }
+
+            if let status = jsonObject["status"] as? Int {
+                return status == 1
+            }
+
+            if let result = jsonObject["result"] as? [String: Any],
+               let status = result["status"] as? Int
+            {
+                return status == 1
+            }
+
+            return false
+        }
+
         private func applySessionCookie(to request: URLRequest) async throws -> URLRequest {
             var authorizedRequest = request
 
@@ -277,6 +345,45 @@ extension BarcodeScanner {
 
             let retryRequest = try await applySessionCookie(to: request)
             return try await URLSession.shared.data(for: retryRequest)
+        }
+
+        private func changedNutrimentParameters(
+            current: FoodItem.Nutriments,
+            original: FoodItem.Nutriments,
+            epsilon: Double = 0.0001
+        ) -> [String: String] {
+            var params: [String: String] = [:]
+
+            func putIfChanged(_ currentValue: Double?, _ originalValue: Double?, fieldName: String) {
+                let lhs = currentValue ?? 0
+                let rhs = originalValue ?? 0
+                guard abs(lhs - rhs) > epsilon else {
+                    return
+                }
+
+                params["nutriment_\(fieldName)"] = String(lhs)
+                params["nutriment_\(fieldName)_unit"] = "g"
+            }
+
+            putIfChanged(current.carbohydratesPer100g, original.carbohydratesPer100g, fieldName: "carbohydrates")
+            putIfChanged(current.fatPer100g, original.fatPer100g, fieldName: "fat")
+            putIfChanged(current.proteinPer100g, original.proteinPer100g, fieldName: "proteins")
+
+            return params
+        }
+
+        private static func makeFormURLEncodedBody(_ params: [String: String]) -> Data? {
+            let body = params
+                .map { key, value in
+                    "\(urlEncode(key))=\(urlEncode(value))"
+                }
+                .joined(separator: "&")
+
+            return body.data(using: .utf8)
+        }
+
+        private static func urlEncode(_ value: String) -> String {
+            value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? value
         }
     }
 }

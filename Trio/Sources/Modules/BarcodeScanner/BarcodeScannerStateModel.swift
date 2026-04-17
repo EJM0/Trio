@@ -44,10 +44,13 @@ extension BarcodeScanner {
         @Published var searchResults: [FoodItem] = []
         @Published var isSearching = false
         @Published var searchError: String?
+        @Published var isUploadingNutritionCorrection = false
+        @Published var nutritionUploadStatusMessage: String?
 
         // Scale polling
         private var scaleCheckTimer: Timer?
         private var isCheckingScaleConnection = false
+        private var originalScannedNutriments: FoodItem.Nutriments?
 
         // MARK: - Scale
 
@@ -261,6 +264,7 @@ extension BarcodeScanner {
                 do {
                     var fetchedProduct = try await client.fetchProduct(barcode: barcode)
                     self.setupEditingAmount(for: fetchedProduct)
+                    self.originalScannedNutriments = fetchedProduct.nutriments
 
                     // Pre-fill amount in the item for display, though editingAmount controls input
                     fetchedProduct.amount = self.editingAmount
@@ -329,6 +333,8 @@ extension BarcodeScanner {
         func editScannedProduct(_ item: FoodItem) {
             // Set as current item for editing
             currentScannedItem = item
+            originalScannedNutriments = item.nutriments
+            nutritionUploadStatusMessage = nil
 
             // Set up editing state
             editingAmount = item.amount
@@ -344,6 +350,7 @@ extension BarcodeScanner {
             value: Double?
         ) {
             currentScannedItem?.nutriments[keyPath: keyPath] = value
+            nutritionUploadStatusMessage = nil
         }
 
         /// Adds the currently displayed product (with edited nutriments) to the list
@@ -401,9 +408,11 @@ extension BarcodeScanner {
         /// Clears the currently displayed product from the overlay
         func clearScannedProduct() {
             currentScannedItem = nil
+            originalScannedNutriments = nil
             lastScannedBarcode = nil
             lastScanWasSuccessful = false
             errorMessage = nil
+            nutritionUploadStatusMessage = nil
             isScanning = true
         }
 
@@ -416,12 +425,82 @@ extension BarcodeScanner {
         func cancelEditing() {
             // Clear all editing state (product was not added to list yet)
             currentScannedItem = nil
+            originalScannedNutriments = nil
             lastScannedBarcode = nil
             lastScanWasSuccessful = false
             errorMessage = nil
             editingAmount = 0
             editingIsMl = false
+            nutritionUploadStatusMessage = nil
             isScanning = true
+        }
+
+        var hasOpenFoodFactsCredentialsConfigured: Bool {
+            let username = settingsManager.settings.openFoodFactsUsername.trimmingCharacters(in: .whitespacesAndNewlines)
+            let password = settingsManager.settings.openFoodFactsPassword
+            return !username.isEmpty && !password.isEmpty
+        }
+
+        var isCurrentItemMealPreset: Bool {
+            currentScannedItem?.isManualEntry == true
+        }
+
+        var isCurrentItemScannedObject: Bool {
+            guard let item = currentScannedItem else {
+                return false
+            }
+
+            let hasBarcode = !(item.barcode?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            return hasBarcode
+        }
+
+        var hasNutrimentAdjustmentsFromOriginal: Bool {
+            guard let current = currentScannedItem?.nutriments,
+                  let original = originalScannedNutriments
+            else {
+                return false
+            }
+
+            let epsilon = 0.0001
+            let carbsChanged = abs((current.carbohydratesPer100g ?? 0) - (original.carbohydratesPer100g ?? 0)) > epsilon
+            let fatChanged = abs((current.fatPer100g ?? 0) - (original.fatPer100g ?? 0)) > epsilon
+            let proteinChanged = abs((current.proteinPer100g ?? 0) - (original.proteinPer100g ?? 0)) > epsilon
+            return carbsChanged || fatChanged || proteinChanged
+        }
+
+        var shouldShowOpenFoodFactsUploadButton: Bool {
+            isCurrentItemScannedObject
+                && hasNutrimentAdjustmentsFromOriginal
+                && hasOpenFoodFactsCredentialsConfigured
+        }
+
+        @MainActor func uploadCurrentItemNutritionCorrection() async {
+            guard let currentItem = currentScannedItem,
+                  let original = originalScannedNutriments,
+                  shouldShowOpenFoodFactsUploadButton,
+                  !isUploadingNutritionCorrection
+            else {
+                return
+            }
+
+            isUploadingNutritionCorrection = true
+            nutritionUploadStatusMessage = nil
+
+            defer {
+                isUploadingNutritionCorrection = false
+            }
+
+            do {
+                let success = try await client.uploadNutritionCorrection(for: currentItem, comparedTo: original)
+                if success {
+                    originalScannedNutriments = currentItem.nutriments
+                    nutritionUploadStatusMessage = String(localized: "Uploaded to OpenFoodFacts")
+                } else {
+                    nutritionUploadStatusMessage = String(localized: "Upload to OpenFoodFacts failed")
+                }
+            } catch {
+                nutritionUploadStatusMessage = error.localizedDescription
+            }
         }
 
         /// Performs the dismissal of the barcode scanner module

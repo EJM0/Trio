@@ -205,6 +205,30 @@ extension BarcodeScanner {
 
                 // Action buttons at bottom
                 VStack(spacing: 12) {
+                    if state.shouldShowOpenFoodFactsUploadButton {
+                        Button {
+                            dismissKeyboard()
+                            Task {
+                                await state.uploadCurrentItemNutritionCorrection()
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                if state.isUploadingNutritionCorrection {
+                                    ProgressView()
+                                        .progressViewStyle(.circular)
+                                        .tint(.white)
+                                }
+                                Text(String(localized: "Upload to OpenFoodFactsDB"))
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.insulin)
+                        .disabled(state.isUploadingNutritionCorrection)
+                    }
+
                     // Add & Continue button
                     Button {
                         dismissKeyboard()
@@ -222,11 +246,7 @@ extension BarcodeScanner {
                         }
                     } label: {
                         Label(
-                            customSaveButtonTitle
-                                ?? (
-                                    state.isEditingFromList
-                                        ? String(localized: "Update") : String(localized: "Add to List")
-                                ),
+                            primaryActionTitle,
                             systemImage: "plus.circle.fill"
                         )
                         .font(.subheadline.weight(.semibold))
@@ -251,6 +271,13 @@ extension BarcodeScanner {
                             .padding(.vertical, 12)
                     }
                     .buttonStyle(.bordered)
+
+                    if let status = state.nutritionUploadStatusMessage, !status.isEmpty {
+                        Text(status)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 16)
@@ -387,6 +414,20 @@ extension BarcodeScanner {
             UIApplication.shared.sendAction(
                 #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil
             )
+        }
+
+        private var primaryActionTitle: String {
+            if let customSaveButtonTitle {
+                return customSaveButtonTitle
+            }
+
+            if state.isCurrentItemMealPreset {
+                return String(localized: "Update Preset")
+            }
+
+            return state.isEditingFromList
+                ? String(localized: "Update")
+                : String(localized: "Add to List")
         }
     }
 }
