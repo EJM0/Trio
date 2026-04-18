@@ -193,7 +193,7 @@ extension BarcodeScanner {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .background(.ultraThinMaterial)
+            .background(Color.chart)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .onAppear {
                 updateFromItem()

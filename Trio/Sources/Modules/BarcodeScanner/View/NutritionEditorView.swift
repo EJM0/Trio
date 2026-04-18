@@ -9,6 +9,7 @@ extension BarcodeScanner {
         @FocusState private var focusedField: RootView.NutritionField?
         @Binding var isEditingFromList: Bool
         var onDismissList: () -> Void
+        @State private var keyboardIsVisible = false
 
         var customSaveButtonTitle: String? = nil
         var onSave: (() -> Void)? = nil
@@ -203,38 +204,48 @@ extension BarcodeScanner {
                 .scrollDismissesKeyboard(.interactively)
                 .scrollIndicators(.hidden)
 
-                // Action buttons at bottom
-                VStack(spacing: 12) {
-                    if state.shouldShowOpenFoodFactsUploadButton {
+                if !keyboardIsVisible {
+                    // Action buttons at bottom
+                    VStack(spacing: 12) {
+                        if state.shouldShowOpenFoodFactsUploadButton {
+                            Menu {
+                                Button {
+                                    dismissKeyboard()
+                                    Task {
+                                        await state.uploadCurrentItemNutritionCorrection()
+                                    }
+                                } label: {
+                                    Text(String(localized: "tap to confirm"))
+                                }
+                            } label: {
+                                HStack(spacing: 8) {
+                                    if state.isUploadingNutritionCorrection {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                    } else {
+                                        Image(systemName: "square.and.arrow.up")
+                                    }
+
+                                    Text(String(localized: "Update OpenFoodFactsDB"))
+                                }
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(Color(red: 128.0 / 255.0, green: 140.0 / 255.0, blue: 235.0 / 255.0))
+                            .disabled(state.isUploadingNutritionCorrection || !state.shouldShowOpenFoodFactsUploadButton)
+
+                            if let message = state.nutritionUploadStatusMessage, !message.isEmpty {
+                                Text(message)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        // Add & Continue button
                         Button {
                             dismissKeyboard()
-                            Task {
-                                await state.uploadCurrentItemNutritionCorrection()
-                            }
-                        } label: {
-                            HStack(spacing: 8) {
-                                if state.isUploadingNutritionCorrection {
-                                    ProgressView()
-                                        .progressViewStyle(.circular)
-                                        .tint(.white)
-                                }
-                                Text(String(localized: "Upload to OpenFoodFactsDB"))
-                                    .font(.subheadline.weight(.semibold))
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.insulin)
-                        .disabled(state.isUploadingNutritionCorrection)
-                    }
-
-                    // Add & Continue button
-                    Button {
-                        dismissKeyboard()
-                        if let onSave = onSave {
-                            onSave()
-                        } else {
                             if state.currentScannedItem != nil {
                                 state.addProductToList()
                             }
@@ -243,54 +254,61 @@ extension BarcodeScanner {
                                 isEditingFromList = false
                                 onDismissList()
                             }
-                        }
-                    } label: {
-                        Label(
-                            primaryActionTitle,
-                            systemImage: "plus.circle.fill"
-                        )
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.insulin)
-
-                    Button {
-                        dismissKeyboard()
-                        state.cancelEditing()
-
-                        if isEditingFromList {
-                            isEditingFromList = false
-                            onDismissList()
-                        }
-                    } label: {
-                        Text("Cancel")
-                            .font(.subheadline.weight(.medium))
+                        } label: {
+                            Label(
+                                state.isEditingFromList
+                                    ? String(localized: "Update") : String(localized: "Add to List"),
+                                systemImage: "plus.circle.fill"
+                            )
+                            .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                    }
-                    .buttonStyle(.bordered)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.insulin)
 
-                    if let status = state.nutritionUploadStatusMessage, !status.isEmpty {
-                        Text(status)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
+                        Button {
+                            dismissKeyboard()
+                            state.cancelEditing()
+
+                            if isEditingFromList {
+                                isEditingFromList = false
+                                onDismissList()
+                            }
+                        } label: {
+                            Text("Cancel")
+                                .font(.subheadline.weight(.medium))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.bordered)
                     }
+                    .padding(.horizontal)
+                    .padding(.bottom, 16)
+                    .padding(.top, 8)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 16)
-                .padding(.top, 8)
             }
             .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
+            .animation(.easeInOut(duration: 0.2), value: keyboardIsVisible)
+            .onReceive(Foundation.NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                keyboardIsVisible = true
+                state.isKeyboardVisible = true
+                state.isScanning = false
+            }
+            .onReceive(Foundation.NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                keyboardIsVisible = false
+                state.isKeyboardVisible = false
+            }
             .onChange(of: focusedField) { _, newValue in
                 // Pause scanner and hide scanner view when numpad is opened
                 if newValue != nil {
                     state.isScanning = false
                     state.isKeyboardVisible = true
+                    keyboardIsVisible = true
                 } else {
                     state.isKeyboardVisible = false
+                    keyboardIsVisible = false
                 }
             }
             .sheet(isPresented: $shouldPresentPhotoPicker) {
