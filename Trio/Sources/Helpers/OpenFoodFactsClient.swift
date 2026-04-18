@@ -177,9 +177,15 @@ extension BarcodeScanner {
             request = try await applySessionCookie(to: request)
 
             let (data, response) = try await performRequestWithReauthentication(request)
-            guard let httpResponse = response as? HTTPURLResponse,
-                  200 ..< 300 ~= httpResponse.statusCode
-            else {
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw OpenFoodFactsError.invalidResponse
+            }
+
+            if httpResponse.statusCode == 503 {
+                throw OpenFoodFactsError.searchRateLimited
+            }
+
+            guard 200 ..< 300 ~= httpResponse.statusCode else {
                 throw OpenFoodFactsError.invalidResponse
             }
 
@@ -394,6 +400,7 @@ extension BarcodeScanner {
     enum OpenFoodFactsError: LocalizedError {
         case invalidResponse
         case productNotFound
+        case searchRateLimited
 
         var errorDescription: String? {
             switch self {
@@ -403,6 +410,11 @@ extension BarcodeScanner {
                 String(
                     localized:
                     "We couldn’t find this barcode in OpenFoodFacts. Maybe add the product to OpenFoodFacts via the App."
+                )
+            case .searchRateLimited:
+                String(
+                    localized:
+                    "Try logging in with your OpenFoodFacts account to reduce rate limits."
                 )
             }
         }
