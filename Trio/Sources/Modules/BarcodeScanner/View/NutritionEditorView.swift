@@ -246,23 +246,23 @@ extension BarcodeScanner {
                         // Add & Continue button
                         Button {
                             dismissKeyboard()
-                            if state.currentScannedItem != nil {
-                                state.addProductToList()
-                            }
+                            if let onSave {
+                                onSave()
+                            } else {
+                                if state.currentScannedItem != nil {
+                                    state.addProductToList()
+                                }
 
-                            if isEditingFromList {
-                                isEditingFromList = false
-                                onDismissList()
+                                if isEditingFromList {
+                                    isEditingFromList = false
+                                    onDismissList()
+                                }
                             }
                         } label: {
-                            Label(
-                                state.isEditingFromList
-                                    ? String(localized: "Update") : String(localized: "Add to List"),
-                                systemImage: "plus.circle.fill"
-                            )
-                            .font(.subheadline.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
+                            Label(primaryActionTitle, systemImage: "plus.circle.fill")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.insulin)
@@ -291,6 +291,26 @@ extension BarcodeScanner {
             }
             .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .animation(.easeInOut(duration: 0.2), value: keyboardIsVisible)
+            .onAppear {
+                // Preset editor can be opened without a scanner result; ensure we have an editable shell item.
+                if onSave != nil, state.currentScannedItem == nil {
+                    state.currentScannedItem = FoodItem(
+                        id: UUID(),
+                        name: "",
+                        nutriments: .init(
+                            basis: .per100g,
+                            carbohydratesPer100g: 0,
+                            sugarsPer100g: 0,
+                            fatPer100g: 0,
+                            proteinPer100g: 0,
+                            fiberPer100g: 0
+                        ),
+                        amount: 100
+                    )
+                    state.editingAmount = 100
+                    state.editingIsMl = false
+                }
+            }
             .onReceive(Foundation.NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
                 keyboardIsVisible = true
                 state.isKeyboardVisible = true
