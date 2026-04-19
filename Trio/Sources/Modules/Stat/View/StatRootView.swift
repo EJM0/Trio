@@ -50,7 +50,7 @@ extension Stat {
                     .padding()
                 }
             }
-            .background(appState.trioBackgroundColor(for: colorScheme))
+            .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .onAppear(perform: configureView)
             .navigationBarTitleDisplayMode(.inline)
             .navigationTitle("Statistics")

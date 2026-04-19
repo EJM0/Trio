@@ -1356,6 +1356,7 @@ extension Home {
                     }
                 }
             }
+            .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .blur(radius: state.waitForSuggestion ? 8 : 0)
             .onChange(of: selectedTab) {

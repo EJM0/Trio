@@ -107,7 +107,7 @@ extension History {
                     CustomProgressView(text: progressText.displayName)
                 }
             })
-                .background(appState.trioBackgroundColor(for: colorScheme))
+                .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
                 .onAppear(perform: configureView)
                 .onDisappear {
                     state.carbEntryDeleted = false

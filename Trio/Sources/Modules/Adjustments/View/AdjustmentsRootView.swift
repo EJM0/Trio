@@ -159,7 +159,7 @@ extension Adjustments {
                 } message: {
                     Text("Stop the Temp Target \"\(state.currentActiveTempTarget?.name ?? "")\"?")
                 }
-            }).background(appState.trioBackgroundColor(for: colorScheme))
+            }).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
         }
 
         var defaultText: some View {
