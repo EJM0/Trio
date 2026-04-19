@@ -3,6 +3,7 @@ import CoreData
 import LoopKitUI
 import SwiftUI
 import Swinject
+import UIKit
 
 extension Treatments {
     struct RootView: BaseView {
@@ -36,6 +37,7 @@ extension Treatments {
         @State private var isLoadingMoreTreatmentSearchResults = false
         @State private var currentTreatmentSearchPage = 1
         @FocusState private var isSearchFocused: Bool
+        @State private var isKeyboardVisible = false
 
         private let foodSearchClient = BarcodeScanner.OpenFoodFactsClient()
         private let treatmentSearchPageSize = 4
@@ -714,6 +716,14 @@ extension Treatments {
                     foodSearch
                 }.listRowBackground(Color.chart)
 
+                if !bolusWarning.warningMessage.isEmpty {
+                    Text(bolusWarning.warningMessage)
+                        .textCase(nil)
+                        .font(.subheadline)
+                        .foregroundColor(bolusWarning.color)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+
                 Section {
                     ForecastChart(state: state)
                 }.listRowBackground(Color.chart)
@@ -725,8 +735,6 @@ extension Treatments {
                 Section {
                     optionsView
                 }.listRowBackground(Color.chart)
-
-                treatmentButton
             }
             .listStyle(.insetGrouped)
             .listSectionSpacing(sectionSpacing)
@@ -753,6 +761,17 @@ extension Treatments {
                     }
                 }
             })
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if !isKeyboardVisible {
+                    treatmentButtonCompact()
+                }
+            }
+            .onReceive(Foundation.NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                isKeyboardVisible = true
+            }
+            .onReceive(Foundation.NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                isKeyboardVisible = false
+            }
             .onAppear {
                 configureView {
                     state.isActive = true
@@ -1061,15 +1080,6 @@ extension Treatments {
                     ) {
                         state.invokeTreatmentsTask()
                     }
-                }
-            } header: {
-                if !bolusWarning.warningMessage.isEmpty {
-                    Text(bolusWarning.warningMessage)
-                        .textCase(nil)
-                        .font(.subheadline)
-                        .foregroundColor(bolusWarning.color)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, -22)
                 }
             }
         }
