@@ -125,6 +125,39 @@ extension Treatments {
             HStack {
                 VStack {
                     HStack {
+                        Text("Fat")
+                        TextFieldWithToolBar(
+                            text: $state.fat,
+                            placeholder: "0",
+                            keyboardType: .numberPad,
+                            numberFormatter: mealFormatter,
+                            showArrows: true,
+                            previousTextField: { focusedField = previousField(from: .fat) },
+                            nextTextField: { focusedField = nextField(from: .fat) },
+                            unitsText: String(localized: "g", comment: "Units for carbs")
+                        )
+                        .focused($focusedField, equals: .fat)
+                        .onChange(of: state.fat) {
+                            handleDebouncedInput()
+                        }
+                        .padding(
+                            .trailing,
+                            state.scannedFat > 0 && !state.settings.settings.barcodeScannerOnlyCarbs
+                                ? scannedDeltaOverlayWidth : 0
+                        )
+                        .overlay(alignment: .trailing) {
+                            if state.scannedFat > 0, !state.settings.settings.barcodeScannerOnlyCarbs {
+                                scannedNutrientDeltaText(value: state.scannedFat)
+                                    .allowsHitTesting(false)
+                            }
+                        }
+                    }
+                }
+
+                Divider().foregroundStyle(.primary).fontWeight(.bold).frame(width: 10)
+
+                VStack {
+                    HStack {
                         Text("Protein")
                             .fixedSize(horizontal: true, vertical: false)
                         TextFieldWithToolBar(
@@ -149,39 +182,6 @@ extension Treatments {
                         .overlay(alignment: .trailing) {
                             if state.scannedProtein > 0, !state.settings.settings.barcodeScannerOnlyCarbs {
                                 scannedNutrientDeltaText(value: state.scannedProtein)
-                                    .allowsHitTesting(false)
-                            }
-                        }
-                    }
-                }
-
-                Divider().foregroundStyle(.primary).fontWeight(.bold).frame(width: 10)
-
-                VStack {
-                    HStack {
-                        Text("Fat")
-                        TextFieldWithToolBar(
-                            text: $state.fat,
-                            placeholder: "0",
-                            keyboardType: .numberPad,
-                            numberFormatter: mealFormatter,
-                            showArrows: true,
-                            previousTextField: { focusedField = previousField(from: .fat) },
-                            nextTextField: { focusedField = nextField(from: .fat) },
-                            unitsText: String(localized: "g", comment: "Units for carbs")
-                        )
-                        .focused($focusedField, equals: .fat)
-                        .onChange(of: state.fat) {
-                            handleDebouncedInput()
-                        }
-                        .padding(
-                            .trailing,
-                            state.scannedFat > 0 && !state.settings.settings.barcodeScannerOnlyCarbs
-                                ? scannedDeltaOverlayWidth : 0
-                        )
-                        .overlay(alignment: .trailing) {
-                            if state.scannedFat > 0, !state.settings.settings.barcodeScannerOnlyCarbs {
-                                scannedNutrientDeltaText(value: state.scannedFat)
                                     .allowsHitTesting(false)
                             }
                         }
