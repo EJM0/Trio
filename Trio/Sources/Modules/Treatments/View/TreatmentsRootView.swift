@@ -764,6 +764,7 @@ extension Treatments {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if !isKeyboardVisible {
                     treatmentButtonCompact()
+                        .ignoresSafeArea(.container, edges: .bottom)
                 }
             }
             .onReceive(Foundation.NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
