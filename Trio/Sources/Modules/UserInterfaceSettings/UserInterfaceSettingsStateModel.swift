@@ -32,7 +32,13 @@ extension UserInterfaceSettings {
             subscribeSetting(
                 \.bolusDisplayThresholdMultiplier,
                 on: $bolusDisplayThresholdMultiplier
-            ) { bolusDisplayThresholdMultiplier = $0 }
+            ) {
+                let sanitizedMultiplier = sanitizedBolusDisplayThresholdMultiplier(from: $0)
+                bolusDisplayThresholdMultiplier = sanitizedMultiplier
+                if sanitizedMultiplier != $0 {
+                    settingsManager.settings.bolusDisplayThresholdMultiplier = sanitizedMultiplier
+                }
+            }
 
             subscribeSetting(\.forecastDisplayType, on: $forecastDisplayType) { forecastDisplayType = $0 }
 
@@ -77,24 +83,37 @@ extension UserInterfaceSettings {
         }
 
         private func fetchAverageSMBBolus() async throws -> Decimal? {
-            let request = PumpEventStored.fetchRequest()
-            request.predicate = NSPredicate(
-                format: "timestamp >= %@ AND bolus != nil AND bolus.isSMB == YES",
-                Date(timeIntervalSinceNow: -24 * 60 * 60) as NSDate
-            )
-            request.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: true)]
+            try await pumpHistoryFetchContext.perform {
+                let request = PumpEventStored.fetchRequest()
+                request.predicate = NSPredicate(
+                    format: "timestamp >= %@ AND bolus != nil AND bolus.isSMB == YES",
+                    Date(timeIntervalSinceNow: -24 * 60 * 60) as NSDate
+                )
+                request.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: true)]
 
-            let results = try await pumpHistoryFetchContext.perform {
-                try self.pumpHistoryFetchContext.fetch(request)
+                let results = try self.pumpHistoryFetchContext.fetch(request)
+                let amounts = results.compactMap { $0.bolus?.amount as Decimal? }
+                guard !amounts.isEmpty else {
+                    return nil
+                }
+
+                let total = amounts.reduce(Decimal.zero, +)
+                return total / Decimal(amounts.count)
+            }
+        }
+
+        private func sanitizedBolusDisplayThresholdMultiplier(from value: Decimal) -> Decimal {
+            let setting = PickerSettingsProvider.shared.settings.bolusDisplayThresholdMultiplier
+            let pickerValues = PickerSettingsProvider.shared.generatePickerValues(from: setting, units: units)
+            guard !pickerValues.isEmpty else {
+                return value.clamp(to: setting)
             }
 
-            let amounts = results.compactMap { $0.bolus?.amount as Decimal? }
-            guard !amounts.isEmpty else {
-                return nil
-            }
-
-            let total = amounts.reduce(Decimal.zero, +)
-            return total / Decimal(amounts.count)
+            let clampedValue = value.clamp(to: setting)
+            return pickerValues.min {
+                abs(NSDecimalNumber(decimal: $0 - clampedValue).doubleValue)
+                    < abs(NSDecimalNumber(decimal: $1 - clampedValue).doubleValue)
+            } ?? clampedValue
         }
     }
 }
