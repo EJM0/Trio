@@ -504,6 +504,13 @@ extension Treatments {
                             .padding(.trailing, 5)
                     } else {
                         Button {
+                            pushed = false
+                            state.date = Date()
+                        } label: {
+                            Text("Reset")
+                        }.buttonStyle(.borderless).foregroundColor(.secondary)
+                            .padding(.trailing, 5)
+                        Button {
                             state.date = state.date.addingTimeInterval(-15.minutes.timeInterval)
                         } label: {
                             Image(systemName: "minus.circle")
