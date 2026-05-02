@@ -475,85 +475,85 @@
       "localizations" : {
         "da" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Kalender bruges til at oprette en ny glucose begivenheder."
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "BZ-Werte werden im Kalender als temporärer Termin erstellt."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Calendar is used to create new glucose events."
+            "value" : "Calendar is used to create a new glucose events."
           }
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Le calendrier est utilisé pour créer un nouvel événement de glycémie."
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Il calendario è usato per creare nuovi eventi di glicemia."
           }
         },
         "nb" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Kalender brukes til å opprette nye blodsukker-oppføringer."
           }
         },
         "nl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Agenda wordt gebruikt om nieuwe glucose gebeurtenissen aan te maken."
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Календарь используется для создания новых событий о глюкозе."
           }
         },
         "sk" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Kalendár slúži na vytvorenie novej udalosti s glukózou."
           }
         },
         "sv" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Kalendern används för att skapa kalenderhändelser för glukosvärden."
           }
         },
         "tr" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Takvim, yeni bir glikoz olayı oluşturmak için kullanılır."
           }
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Для створення нових подій глюкози використовується календар."
           }
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Lịch \nCalendar được sử dụng để tạo ra một sự kiện glucose mới."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "日历用于创建一个新的葡萄糖事件。"
           }
         }

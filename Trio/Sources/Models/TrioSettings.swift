@@ -81,6 +81,7 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var openFoodFactsUsername: String = ""
     var openFoodFactsPassword: String = ""
     var scaleIP: String = ""
+    var requireAdjustmentsConfirmation: Bool = false
 
     /// Selected Garmin watchface (Trio or SwissAlpine)
     var garminWatchface: GarminWatchface = .trio
@@ -426,6 +427,10 @@ extension TrioSettings: Decodable {
 
         if let scaleIP = try? container.decode(String.self, forKey: .scaleIP) {
             settings.scaleIP = scaleIP
+        }
+
+        if let requireAdjustmentsConfirmation = try? container.decode(Bool.self, forKey: .requireAdjustmentsConfirmation) {
+            settings.requireAdjustmentsConfirmation = requireAdjustmentsConfirmation
         }
 
         if let garminWatchface = try? container.decode(GarminWatchface.self, forKey: .garminWatchface) {
