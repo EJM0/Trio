@@ -43,7 +43,7 @@ extension ConfigEditor {
                     .navigationBarTitleDisplayMode(.automatic)
                     .padding()
             }
-            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme))
+            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
         }
     }
 }

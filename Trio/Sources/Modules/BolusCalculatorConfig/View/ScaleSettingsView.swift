@@ -65,7 +65,7 @@ struct ScaleSettingsView: View {
         .navigationTitle("Scale Settings")
         .navigationBarTitleDisplayMode(.automatic)
         .scrollContentBackground(.hidden)
-        .background(appState.trioBackgroundColor(for: colorScheme))
+        .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
         .onAppear {
             calibrationWeightString = formatter.string(from: state.calibrationWeight as NSNumber) ?? ""
         }

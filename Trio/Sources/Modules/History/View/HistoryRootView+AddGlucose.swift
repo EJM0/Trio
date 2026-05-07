@@ -55,7 +55,7 @@ extension History.RootView {
                             .manualGlucose > limitHigh ? Color(.systemGray4) : Color(.systemBlue)
                     )
                     .tint(.white)
-                }.scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme))
+                }.scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             }
             .onAppear(perform: configureView)
             .navigationTitle("Add Glucose")

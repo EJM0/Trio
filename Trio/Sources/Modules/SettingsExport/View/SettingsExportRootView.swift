@@ -131,7 +131,7 @@ extension SettingsExport {
                 )
             }
             .listSectionSpacing(sectionSpacing)
-            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme))
+            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .onAppear(perform: configureView)
             .navigationTitle("Export Settings")
             .navigationBarTitleDisplayMode(.automatic)

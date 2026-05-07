@@ -147,7 +147,7 @@ extension CGMSettings {
                         }
                     )
                 }
-                .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme))
+                .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
                 .onAppear(perform: configureView)
                 .navigationTitle("CGM")
                 .navigationBarTitleDisplayMode(.automatic)

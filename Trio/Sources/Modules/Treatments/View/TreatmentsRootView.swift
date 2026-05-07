@@ -686,54 +686,6 @@ extension Treatments {
             }
         }
 
-        func treatmentButtonCompact() -> some View {
-            var treatmentButtonBackground = Color(.systemBlue)
-            if limitExceeded {
-                treatmentButtonBackground = Color(.systemRed)
-            } else if disableTaskButton {
-                treatmentButtonBackground = Color(.systemGray)
-            }
-
-            return Button {
-                if bolusWarning.shouldConfirm {
-                    showConfirmDialogForBolusing = true
-                } else {
-                    state.invokeTreatmentsTask()
-                }
-            } label: {
-                HStack {
-                    if state.isBolusInProgress && state.amount > 0 && !state.externalInsulin
-                        && (state.carbs == 0 || state.fat == 0 || state.protein == 0)
-                    {
-                        ProgressView()
-                    }
-                    taskButtonLabel
-                }
-                .font(.headline)
-                .foregroundStyle(Color.white)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .frame(height: 50)
-                .background(treatmentButtonBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 15))
-            }
-            .disabled(disableTaskButton)
-            .shadow(radius: 3)
-            .padding(.horizontal)
-            .confirmationDialog(
-                bolusWarning.warningMessage + " Bolus \(state.amount.description) U?",
-                isPresented: $showConfirmDialogForBolusing,
-                titleVisibility: .visible
-            ) {
-                Button("Cancel", role: .cancel) {}
-                Button(
-                    bolusWarning.warningMessage.isEmpty ? "Enact Bolus" : "Ignore Warning and Enact Bolus",
-                    role: bolusWarning.warningMessage.isEmpty ? nil : .destructive
-                ) {
-                    state.invokeTreatmentsTask()
-                }
-            }
-        }
-
         @ViewBuilder func listView() -> some View {
             List {
                 Section {
@@ -796,6 +748,7 @@ extension Treatments {
             .onReceive(Foundation.NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
                 isKeyboardVisible = false
             }
+            .ignoresSafeArea(.keyboard)
             .onAppear {
                 configureView {
                     state.isActive = true

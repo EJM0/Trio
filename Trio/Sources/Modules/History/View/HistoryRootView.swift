@@ -79,7 +79,6 @@ extension History {
                             case .adjustments: adjustmentsList
                             }
                         }.scrollContentBackground(.hidden)
-                            .background(appState.trioBackgroundColor(for: colorScheme))
                     }.blur(radius: state.waitForSuggestion ? 8 : 0)
 
                     // Show custom progress view
@@ -88,7 +87,7 @@ extension History {
                         CustomProgressView(text: progressText.displayName)
                     }
                 })
-                    .background(appState.trioBackgroundColor(for: colorScheme))
+                    .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
                     .onAppear(perform: configureView)
                     .onDisappear {
                         state.carbEntryDeleted = false

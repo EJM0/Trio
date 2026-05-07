@@ -188,7 +188,7 @@ struct CarbEntryEditorView: View {
                 stickyButton
             }
             .scrollContentBackground(.hidden)
-            .background(appState.trioBackgroundColor(for: colorScheme))
+            .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .navigationTitle("Edit Meal")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

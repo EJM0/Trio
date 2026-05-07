@@ -220,7 +220,7 @@ extension UnitsLimitsSettings {
                     sheetTitle: String(localized: "Help", comment: "Help sheet title")
                 )
             }
-            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme))
+            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .onAppear(perform: configureView)
             .navigationTitle("Units and Limits")
             .navigationBarTitleDisplayMode(.automatic)

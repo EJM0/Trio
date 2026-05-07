@@ -124,7 +124,7 @@ struct LoopStatusView: View {
         .onPreferenceChange(ContentSizeKey.self) { newSize in
             sheetContentHeight = newSize.height
         }
-        .background(appState.trioBackgroundColor(for: colorScheme))
+        .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
         .scrollContentBackground(.hidden)
     }
 

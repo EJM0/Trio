@@ -64,11 +64,10 @@ extension Adjustments {
                         case .tempTargets: tempTargets() }
                     }
                     .scrollContentBackground(.hidden)
-                    .background(appState.trioBackgroundColor(for: colorScheme))
                 }
                 .listSectionSpacing(10)
                 .scrollContentBackground(.hidden)
-                .background(appState.trioBackgroundColor(for: colorScheme))
+                .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
                 .onAppear(perform: configureView)
                 .navigationBarTitle("Adjustments")
                 .navigationBarTitleDisplayMode(.large)

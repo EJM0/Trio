@@ -31,7 +31,7 @@ struct AddOverrideForm: View {
             .padding(.top, 30)
             .ignoresSafeArea(edges: .top)
             .scrollContentBackground(.hidden)
-            .background(appState.trioBackgroundColor(for: colorScheme))
+            .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .navigationTitle("Add Override")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

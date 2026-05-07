@@ -124,7 +124,7 @@ extension ISFEditor {
 
                     saveButton
                 }
-                .background(appState.trioBackgroundColor(for: colorScheme))
+                .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
                 .onAppear(perform: configureView)
                 .navigationTitle("Insulin Sensitivities")
                 .navigationBarTitleDisplayMode(.automatic)

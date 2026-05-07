@@ -225,7 +225,7 @@ extension BasalProfileEditor {
 
                     saveButton
                 }
-                .background(appState.trioBackgroundColor(for: colorScheme))
+                .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
                 .alert(isPresented: $state.showAlert) {
                     Alert(
                         title: Text("Unable to Save"),

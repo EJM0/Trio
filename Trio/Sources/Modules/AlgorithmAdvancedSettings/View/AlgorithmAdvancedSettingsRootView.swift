@@ -402,7 +402,7 @@ extension AlgorithmAdvancedSettings {
                 )
             }
             .scrollContentBackground(.hidden)
-            .background(appState.trioBackgroundColor(for: colorScheme))
+            .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .onAppear(perform: configureView)
             .navigationTitle("Additionals")
             .navigationBarTitleDisplayMode(.automatic)

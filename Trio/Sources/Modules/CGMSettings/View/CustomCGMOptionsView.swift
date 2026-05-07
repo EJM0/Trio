@@ -104,7 +104,7 @@ extension CGMSettings {
                     stickyDeleteButton
                 }
                 .scrollContentBackground(.hidden)
-                .background(appState.trioBackgroundColor(for: colorScheme))
+                .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
                 .confirmationDialog("Delete CGM", isPresented: $shouldDisplayDeletionConfirmation) {
                     Button(role: .destructive) {
                         deleteCGM()

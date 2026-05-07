@@ -82,7 +82,7 @@ extension AppDiagnostics {
                 }.listRowBackground(Color.clear)
             }
             .listSectionSpacing(sectionSpacing)
-            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme))
+            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .onAppear(perform: configureView)
             .navigationBarTitle("App Diagnostics")
             .navigationBarTitleDisplayMode(.automatic)

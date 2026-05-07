@@ -106,32 +106,14 @@ extension BarcodeScanner {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(content: {
                 ToolbarItem(placement: .topBarLeading) {
-                    if state.showEditorView && selectedListTab == .scanner {
-                        Button(
-                            action: {
-                                state.cancelEditing()
-                            },
-                            label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "chevron.left")
-                                    Text(String(localized: "Back"))
-                                        .fixedSize(horizontal: true, vertical: false)
-                                }
-                            }
-                        )
-                        .buttonStyle(BorderlessButtonStyle())
-                    } else {
-                        Button(
-                            action: {
-                                state.performDismissal()
-                            },
-                            label: {
-                                Text(String(localized: "Close"))
-                                    .fixedSize(horizontal: true, vertical: false)
-                            }
-                        )
-                        .buttonStyle(BorderlessButtonStyle())
-                    }
+                    Button(
+                        action: {
+                            state.performDismissal()
+                        },
+                        label: {
+                            Text("Close")
+                        }
+                    )
                 }
             })
             .sheet(isPresented: $showEditorCard) {
