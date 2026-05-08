@@ -425,7 +425,7 @@ struct PresetListView: View {
                             }
                         }
                         .padding(12)
-                        .background(.ultraThinMaterial)
+                        .background(Color.chart)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
                     .buttonStyle(.plain)
@@ -457,6 +457,7 @@ struct PresetListView: View {
             // onDelete removed from here as it is now in swipeActions
         }
         .listStyle(.plain)
+        .padding(.top, 8)
         // .navigationTitle not needed as it's handled by parent view
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

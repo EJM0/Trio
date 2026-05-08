@@ -180,7 +180,6 @@ extension BarcodeScanner {
 
                     Spacer()
                 }
-                .padding()
                 .contentShape(Rectangle())
                 .onTapGesture {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
@@ -193,8 +192,6 @@ extension BarcodeScanner {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .background(Color.chart)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
             .onAppear {
                 updateFromItem()
             }
