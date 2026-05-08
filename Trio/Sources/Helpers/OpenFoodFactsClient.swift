@@ -20,6 +20,7 @@ extension BarcodeScanner {
                 return false
             }
 
+            // Requests new session cookie from OpenFoodFacts and stores it in the auth store for future requests
             let loginURL = URL(string: "https://world.openfoodfacts.org/cgi/session.pl")!
             var request = URLRequest(url: loginURL)
             request.httpMethod = "POST"
@@ -60,6 +61,12 @@ extension BarcodeScanner {
             return false
         }
 
+        /// Fetches a product from Open Food Facts using its barcode.
+        ///
+        /// - Parameter barcode: The barcode identifier of the product to retrieve.
+        /// - Returns: A `FoodItem` mapped from the Open Food Facts product response.
+        /// - Throws: `OpenFoodFactsError.productNotFound` if no product matches the barcode,
+        ///   or `OpenFoodFactsError.invalidResponse` when the response is invalid.
         func fetchProduct(barcode: String) async throws -> FoodItem {
             guard
                 let url =
@@ -73,6 +80,7 @@ extension BarcodeScanner {
 
             var request = URLRequest(url: url)
             request.setValue("application/json", forHTTPHeaderField: "Accept")
+            // if creds are not set method returns unchanged request input
             request = try await applySessionCookie(to: request)
 
             let (data, response) = try await performRequestWithReauthentication(request)
@@ -96,48 +104,7 @@ extension BarcodeScanner {
                 throw OpenFoodFactsError.invalidResponse
             }
 
-            // Decide preferred portion unit for user input
-            let servingUnit =
-                productData.servingQuantityUnit?.lowercased()
-                    ?? productData.productQuantityUnit?.lowercased()
-            let servingSize = productData.servingQuantity ?? productData.productQuantity
-            let isMlQuantityUnit: Bool = {
-                if let unit = servingUnit {
-                    if unit.contains("ml") || unit.contains("l") || unit.contains("fl oz") {
-                        return true
-                    }
-                    return false
-                }
-                return productData.nutriments?.basis == .per100ml
-            }()
-
-            var imageSource: FoodItem.ImageSource = .none
-            if let url = productData.imageURL {
-                imageSource = .url(url)
-            }
-
-            return FoodItem(
-                barcode: apiResponse.code,
-                name: productData.productName?.trimmingCharacters(in: .whitespacesAndNewlines)
-                    .nonEmpty ?? String(localized: "Unknown product"),
-                brand: productData.primaryBrand,
-                quantity: productData.quantity,
-                servingSize: productData.servingSize,
-                ingredients: productData.ingredientsText,
-                imageSource: imageSource,
-                defaultPortionIsMl: isMlQuantityUnit,
-                servingQuantity: productData.servingQuantity,
-                servingQuantityUnit: productData.servingQuantityUnit,
-                nutriments: .init(
-                    basis: productData.nutriments?.basis ?? .per100g,
-                    energyKcalPer100g: productData.nutriments?.energyKcal100g,
-                    carbohydratesPer100g: productData.nutriments?.carbohydrates100g,
-                    sugarsPer100g: productData.nutriments?.sugars100g,
-                    fatPer100g: productData.nutriments?.fat100g,
-                    proteinPer100g: productData.nutriments?.proteins100g,
-                    fiberPer100g: productData.nutriments?.fiber100g
-                )
-            )
+            return makeFoodItem(from: productData, barcodeOverride: apiResponse.code)
         }
 
         /// Search products by name/text query
@@ -194,48 +161,8 @@ extension BarcodeScanner {
 
             let searchResponse = try decoder.decode(SearchAPIResponse.self, from: data)
 
-            return searchResponse.products.compactMap { productData -> FoodItem? in
-                let servingUnit =
-                    productData.servingQuantityUnit?.lowercased()
-                        ?? productData.productQuantityUnit?
-                        .lowercased()
-                let isMlQuantityUnit: Bool = {
-                    if let unit = servingUnit {
-                        if unit.contains("ml") || unit.contains("l") || unit.contains("fl oz") {
-                            return true
-                        }
-                        return false
-                    }
-                    return productData.nutriments?.basis == .per100ml
-                }()
-
-                var imageSource: FoodItem.ImageSource = .none
-                if let url = productData.imageURL {
-                    imageSource = .url(url)
-                }
-
-                return FoodItem(
-                    barcode: productData.code,
-                    name: productData.productName?.trimmingCharacters(in: .whitespacesAndNewlines)
-                        .nonEmpty ?? String(localized: "Unknown product"),
-                    brand: productData.primaryBrand,
-                    quantity: productData.quantity,
-                    servingSize: productData.servingSize,
-                    ingredients: productData.ingredientsText,
-                    imageSource: imageSource,
-                    defaultPortionIsMl: isMlQuantityUnit,
-                    servingQuantity: productData.servingQuantity,
-                    servingQuantityUnit: productData.servingQuantityUnit,
-                    nutriments: .init(
-                        basis: productData.nutriments?.basis ?? .per100g,
-                        energyKcalPer100g: productData.nutriments?.energyKcal100g,
-                        carbohydratesPer100g: productData.nutriments?.carbohydrates100g,
-                        sugarsPer100g: productData.nutriments?.sugars100g,
-                        fatPer100g: productData.nutriments?.fat100g,
-                        proteinPer100g: productData.nutriments?.proteins100g,
-                        fiberPer100g: productData.nutriments?.fiber100g
-                    )
-                )
+            return searchResponse.products.map { productData in
+                makeFoodItem(from: productData)
             }
         }
 
@@ -351,6 +278,33 @@ extension BarcodeScanner {
 
             let retryRequest = try await applySessionCookie(to: request)
             return try await URLSession.shared.data(for: retryRequest)
+        }
+
+        private func makeFoodItem(from productData: ProductData, barcodeOverride: String? = nil) -> FoodItem {
+            let imageSource = productData.imageURL.map(FoodItem.ImageSource.url) ?? .none
+
+            return FoodItem(
+                barcode: barcodeOverride ?? productData.code,
+                name: productData.productName?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    .nonEmpty ?? String(localized: "Unknown product"),
+                brand: productData.primaryBrand,
+                quantity: productData.quantity,
+                servingSize: productData.servingSize,
+                ingredients: productData.ingredientsText,
+                imageSource: imageSource,
+                defaultPortionIsMl: productData.defaultPortionIsMl,
+                servingQuantity: productData.servingQuantity,
+                servingQuantityUnit: productData.servingQuantityUnit,
+                nutriments: .init(
+                    basis: productData.nutriments?.basis ?? .per100g,
+                    energyKcalPer100g: productData.nutriments?.energyKcal100g,
+                    carbohydratesPer100g: productData.nutriments?.carbohydrates100g,
+                    sugarsPer100g: productData.nutriments?.sugars100g,
+                    fatPer100g: productData.nutriments?.fat100g,
+                    proteinPer100g: productData.nutriments?.proteins100g,
+                    fiberPer100g: productData.nutriments?.fiber100g
+                )
+            )
         }
 
         private func changedNutrimentParameters(
@@ -487,31 +441,8 @@ private extension BarcodeScanner.OpenFoodFactsClient {
             imageFrontThumbUrl = try container.decodeIfPresent(String.self, forKey: .imageFrontThumbUrl)
             nutriments = try container.decodeIfPresent(NutrimentsData.self, forKey: .nutriments)
 
-            // servingQuantity can be either a Double or a String in the API response
-            if let doubleValue = try? container.decodeIfPresent(Double.self, forKey: .servingQuantity) {
-                servingQuantity = doubleValue
-            } else if let stringValue = try? container.decodeIfPresent(
-                String.self, forKey: .servingQuantity
-            ),
-                let parsed = Double(stringValue.replacingOccurrences(of: ",", with: "."))
-            {
-                servingQuantity = parsed
-            } else {
-                servingQuantity = nil
-            }
-
-            // Handle productQuantity (can be Double or String)
-            if let doubleValue = try? container.decodeIfPresent(Double.self, forKey: .productQuantity) {
-                productQuantity = doubleValue
-            } else if let stringValue = try? container.decodeIfPresent(
-                String.self, forKey: .productQuantity
-            ),
-                let parsed = Double(stringValue.replacingOccurrences(of: ",", with: "."))
-            {
-                productQuantity = parsed
-            } else {
-                productQuantity = nil
-            }
+            servingQuantity = try container.decodeFlexibleDoubleIfPresent(forKey: .servingQuantity)
+            productQuantity = try container.decodeFlexibleDoubleIfPresent(forKey: .productQuantity)
         }
 
         var primaryBrand: String? {
@@ -519,6 +450,14 @@ private extension BarcodeScanner.OpenFoodFactsClient {
                 .split(separator: ",")
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .first
+        }
+
+        var defaultPortionIsMl: Bool {
+            let servingUnit = servingQuantityUnit?.lowercased() ?? productQuantityUnit?.lowercased()
+            if let unit = servingUnit {
+                return unit.contains("ml") || unit.contains("l") || unit.contains("fl oz")
+            }
+            return nutriments?.basis == .per100ml
         }
 
         var imageURL: URL? {
@@ -613,7 +552,20 @@ private extension BarcodeScanner.OpenFoodFactsClient {
     }
 }
 
-// MARK: - String Extension
+// MARK: - Decoding Helpers
+
+private extension KeyedDecodingContainer {
+    /// Versucht, einen Wert erst als Double und dann als String (mit Komma-Konvertierung) zu decodieren.
+    func decodeFlexibleDoubleIfPresent(forKey key: Key) throws -> Double? {
+        if let doubleValue = try? decodeIfPresent(Double.self, forKey: key) {
+            return doubleValue
+        }
+        if let stringValue = try? decodeIfPresent(String.self, forKey: key) {
+            return Double(stringValue.replacingOccurrences(of: ",", with: "."))
+        }
+        return nil
+    }
+}
 
 private extension Optional where Wrapped == String {
     var nonEmpty: String? {
@@ -626,7 +578,7 @@ private extension Optional where Wrapped == String {
 }
 
 private actor OpenFoodFactsAuthStore {
-    private let defaults = UserDefaults.standard
+    private let keychain = BaseKeychain()
     private let usernameKey = "openFoodFactsUsername"
     private let passwordKey = "openFoodFactsPassword"
     private let cookieNameKey = "openFoodFactsSessionCookieName"
@@ -637,16 +589,18 @@ private actor OpenFoodFactsAuthStore {
     private var sessionCookie: SessionCookie?
 
     init() {
-        let username = defaults.string(forKey: usernameKey) ?? ""
-        let password = defaults.string(forKey: passwordKey) ?? ""
-        if !username.isEmpty, !password.isEmpty {
+        if let username = keychainValue(forKey: usernameKey),
+           let password = keychainValue(forKey: passwordKey),
+           !username.isEmpty,
+           !password.isEmpty
+        {
             credentialsIfAvailable = Credentials(username: username, password: password)
         }
 
-        if let cookieName = defaults.string(forKey: cookieNameKey),
-           let cookieValue = defaults.string(forKey: cookieValueKey)
+        if let cookieName = keychainValue(forKey: cookieNameKey),
+           let cookieValue = keychainValue(forKey: cookieValueKey)
         {
-            let cookieExpiry = defaults.object(forKey: cookieExpiryKey) as? Date
+            let cookieExpiry = storedCookieExpiry()
             sessionCookie = SessionCookie(name: cookieName, value: cookieValue, expiresAt: cookieExpiry)
         }
     }
@@ -659,8 +613,7 @@ private actor OpenFoodFactsAuthStore {
         let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedUsername.isEmpty || password.isEmpty {
             credentialsIfAvailable = nil
-            defaults.removeObject(forKey: usernameKey)
-            defaults.removeObject(forKey: passwordKey)
+            removeKeychainCredentials()
             clearStoredSessionCookie()
             clearOpenFoodFactsCookiesFromStorage()
             return
@@ -675,19 +628,18 @@ private actor OpenFoodFactsAuthStore {
 
         let credentials = Credentials(username: trimmedUsername, password: password)
         credentialsIfAvailable = credentials
-        defaults.set(credentials.username, forKey: usernameKey)
-        defaults.set(credentials.password, forKey: passwordKey)
+        storeCredentialsInKeychain(credentials)
     }
 
     func storeSessionCookie(_ cookie: HTTPCookie) {
         let storedCookie = SessionCookie(name: cookie.name, value: cookie.value, expiresAt: cookie.expiresDate)
         sessionCookie = storedCookie
-        defaults.set(storedCookie.name, forKey: cookieNameKey)
-        defaults.set(storedCookie.value, forKey: cookieValueKey)
+        _ = keychain.setValue(storedCookie.name, forKey: cookieNameKey)
+        _ = keychain.setValue(storedCookie.value, forKey: cookieValueKey)
         if let expiresAt = storedCookie.expiresAt {
-            defaults.set(expiresAt, forKey: cookieExpiryKey)
+            storeCookieExpiry(expiresAt)
         } else {
-            defaults.removeObject(forKey: cookieExpiryKey)
+            _ = keychain.removeObject(forKey: cookieExpiryKey)
         }
     }
 
@@ -708,11 +660,39 @@ private actor OpenFoodFactsAuthStore {
         return "\(sessionCookie.name)=\(sessionCookie.value)"
     }
 
+    private func keychainValue(forKey key: String) -> String? {
+        keychain.getValue(String.self, forKey: key)
+    }
+
+    private func storeCredentialsInKeychain(_ credentials: Credentials) {
+        _ = keychain.setValue(credentials.username, forKey: usernameKey)
+        _ = keychain.setValue(credentials.password, forKey: passwordKey)
+    }
+
+    private func removeKeychainCredentials() {
+        _ = keychain.removeObject(forKey: usernameKey)
+        _ = keychain.removeObject(forKey: passwordKey)
+    }
+
     private func clearStoredSessionCookie() {
         sessionCookie = nil
-        defaults.removeObject(forKey: cookieNameKey)
-        defaults.removeObject(forKey: cookieValueKey)
-        defaults.removeObject(forKey: cookieExpiryKey)
+        _ = keychain.removeObject(forKey: cookieNameKey)
+        _ = keychain.removeObject(forKey: cookieValueKey)
+        _ = keychain.removeObject(forKey: cookieExpiryKey)
+    }
+
+    private func storeCookieExpiry(_ date: Date) {
+        let timestamp = date.timeIntervalSince1970
+        _ = keychain.setValue(String(timestamp), forKey: cookieExpiryKey)
+    }
+
+    private func storedCookieExpiry() -> Date? {
+        guard let timestampString = keychainValue(forKey: cookieExpiryKey),
+              let timestamp = TimeInterval(timestampString)
+        else {
+            return nil
+        }
+        return Date(timeIntervalSince1970: timestamp)
     }
 
     private func clearOpenFoodFactsCookiesFromStorage() {
