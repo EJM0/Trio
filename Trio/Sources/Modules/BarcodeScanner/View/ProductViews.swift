@@ -261,7 +261,6 @@ extension BarcodeScanner {
                 .buttonStyle(.plain)
             }
             .padding(.horizontal)
-            .padding(.bottom, 16)
         }
 
         private func quickSelectMultiplier(_ multiplier: Int) {
