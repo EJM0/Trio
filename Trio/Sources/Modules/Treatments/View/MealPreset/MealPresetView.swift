@@ -425,10 +425,24 @@ struct PresetListView: View {
                             }
                         }
                         .padding(12)
-                        .background(Color.chart)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            deletePreset(preset)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        .tint(.red)
+
+                        Button {
+                            startEditPreset(preset)
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                        .tint(.blue)
+                    }
 
                     // Edit button outside the main tap area, but visually aligned if needed
                     // For now, removing the separate edit button from the row visual flow
@@ -436,8 +450,7 @@ struct PresetListView: View {
                     // But to match the list style, we keep the edit button separate or integrated.
                     // Based on "ScannedProductRow", it seems the action happens on the row itself.
                 }
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
+                .listRowBackground(Color.chart)
                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button(role: .destructive) {
@@ -456,8 +469,11 @@ struct PresetListView: View {
             }
             // onDelete removed from here as it is now in swipeActions
         }
-        .listStyle(.plain)
-        .padding(.top, 8)
+        .listStyle(.insetGrouped)
+        .listRowSpacing(10)
+        .scrollContentBackground(.hidden)
+        .contentMargins(.top, 0, for: .scrollContent)
+        .padding(.top, 15)
         // .navigationTitle not needed as it's handled by parent view
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

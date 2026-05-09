@@ -85,7 +85,7 @@ extension BarcodeScanner {
                     case .scanner:
                         scannerViewContent
                     case .scanned:
-                        scannedItemsList
+                        mainListView
                     case .presets:
                         presetListView
                     }
@@ -271,7 +271,7 @@ extension BarcodeScanner {
             )
         }
 
-        private var scannedItemsList: some View {
+        private var mainListView: some View {
             ZStack(alignment: .leading) {
                 List {
                     // Search Section
@@ -296,6 +296,7 @@ extension BarcodeScanner {
                         )
                         .listRowInsets(EdgeInsets(top: 20, leading: 0, bottom: 10, trailing: 0))
 
+                        // Search
                         if !state.searchQuery.isEmpty {
                             let results = matchingPresets
                             ForEach(results) { preset in
