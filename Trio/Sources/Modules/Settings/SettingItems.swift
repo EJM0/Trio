@@ -215,13 +215,17 @@ enum SettingItems {
                 "Reduced Bolus Factor",
                 "Enable Super Bolus",
                 "Super Bolus Factor",
-                "Very Low Glucose Warning"
+                "Very Low Glucose Warning",
+                "Enable Barcode Scanner",
+                "Barcode Scanner",
+                "Only Allow Carbs"
             ],
             scrollTargetLabels: [
                 "Enable Reduced Bolus Factor": "Enable Reduced Bolus Option",
                 "Reduced Bolus Factor": "Enable Reduced Bolus Option",
                 "Enable Super Bolus": "Enable Super Bolus Option",
-                "Super Bolus Factor": "Enable Super Bolus Option"
+                "Super Bolus Factor": "Enable Super Bolus Option",
+                "Barcode Scanner": "Enable Barcode Scanner"
             ],
             path: ["Features", "Bolus Calculator"]
         ),

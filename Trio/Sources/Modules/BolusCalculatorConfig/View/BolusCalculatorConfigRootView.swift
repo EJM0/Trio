@@ -343,6 +343,10 @@ extension BolusCalculatorConfig {
                     .padding(.vertical, 4)
                 }
                 .listRowBackground(Color.chart)
+                .settingsSearchTarget(label: String(localized: "barcode scanner"))
+                .settingsSearchTarget(label: String(localized: "Enable Barcode Scanner"))
+                .settingsSearchTarget(label: String(localized: "Only Allow Carbs"))
+                .settingsSearchTarget(label: String(localized: "OpenFoodFacts Login"))
 
                 Section(
                     header: Text("Connected Scale"),
