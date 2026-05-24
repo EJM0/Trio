@@ -33,5 +33,6 @@ final class ServiceAssembly: Assembly {
         }
         container.register(IOBService.self) { r in BaseIOBService(resolver: r) }
         container.register(ScaleManager.self) { r in BaseScaleManager(resolver: r) }
+        container.register(BolusSafetyValidator.self) { r in BaseBolusSafetyValidator(resolver: r) }
     }
 }

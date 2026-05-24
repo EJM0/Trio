@@ -56,6 +56,7 @@ extension Home {
         @State var state = StateModel()
 
         @State var settingsPath = NavigationPath()
+        @State var settingsSearchHighlight = SettingsSearchHighlight()
         @State var isStatusPopupPresented = false
         @State var ghostTab: HomeTab? = nil
         @State var showCancelAlert = false
@@ -1276,6 +1277,7 @@ extension Home {
 
                     NavigationStack(path: self.$settingsPath) {
                         Settings.RootView(resolver: resolver)
+                            .environment(settingsSearchHighlight)
                             .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
                             .ignoresSafeArea(.keyboard, edges: .bottom)
                     }
