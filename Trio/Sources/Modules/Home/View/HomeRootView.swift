@@ -1277,10 +1277,10 @@ extension Home {
 
                     NavigationStack(path: self.$settingsPath) {
                         Settings.RootView(resolver: resolver)
-                            .environment(settingsSearchHighlight)
                             .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
                             .ignoresSafeArea(.keyboard, edges: .bottom)
                     }
+                    .environment(settingsSearchHighlight)
                     .unionTab(HomeTab.settings)
                     .transaction { $0.animation = nil }
                 } item: { tab, _ in
