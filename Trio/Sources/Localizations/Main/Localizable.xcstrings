@@ -54485,6 +54485,9 @@
     "Barcode AI Scanner" : {
 
     },
+    "barcode scanner" : {
+
+    },
     "Barcode Scanner" : {
 
     },
@@ -191131,10 +191134,10 @@
     "Opens Trio's Barcode scanner for scanning processed food" : {
 
     },
-    "Optional: Add your OpenFoodFacts login in the sub-options below to reduce rate limits for anonymous requests and to upload corrections for wrong nutritional values directly to the OpenFoodFacts database." : {
+    "Opt out" : {
 
     },
-    "Opt out" : {
+    "Optional: Add your OpenFoodFacts login in the sub-options below to reduce rate limits for anonymous requests and to upload corrections for wrong nutritional values directly to the OpenFoodFacts database." : {
 
     },
     "Oref Algorithm" : {
@@ -210175,6 +210178,9 @@
         }
       }
     },
+    "Reset" : {
+
+    },
     "Reset and retry send" : {
 
     },
@@ -214741,6 +214747,12 @@
           }
         }
       }
+    },
+    "Scan barcodes or search to add items." : {
+
+    },
+    "Scan QR codes to enter carbs." : {
+
     },
     "Schedule " : {
       "extractionState" : "manual",
