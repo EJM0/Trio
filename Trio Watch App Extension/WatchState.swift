@@ -87,6 +87,12 @@ import WatchConnectivity
 
     /// Configures the WatchConnectivity session if supported on the device
     private func setupSession() {
+        #if DEBUG
+            if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
+                return
+            }
+        #endif
+
         if WCSession.isSupported() {
             let session = WCSession.default
             session.delegate = self

@@ -3,7 +3,11 @@ import SwiftUI
 import WatchKit
 
 struct TrioMainWatchView: View {
-    @State private var state = WatchState()
+    @State private var state: WatchState
+
+    init(state: WatchState = WatchState()) {
+        _state = State(initialValue: state)
+    }
 
     // misc
     @State private var currentPage: Int = 0
@@ -21,6 +25,11 @@ struct TrioMainWatchView: View {
     @State private var selectedTreatment: TreatmentOption?
 
     var isWatchStateDated: Bool {
+        #if DEBUG
+            if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
+                return false
+            }
+        #endif
         // If `lastWatchStateUpdate` is nil, treat as "dated"
         guard let lastUpdateTimestamp = state.lastWatchStateUpdate else {
             return true
@@ -32,6 +41,11 @@ struct TrioMainWatchView: View {
     }
 
     var isSessionUnreachable: Bool {
+        #if DEBUG
+            if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
+                return false
+            }
+        #endif
         guard let session = state.session else {
             return true // No session at all => unreachable
         }
@@ -62,6 +76,12 @@ struct TrioMainWatchView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             TabView(selection: $currentPage) {
+                CombinedGlucoseChartview(
+                    state: state,
+                    rotationDegrees: rotationDegrees,
+                    isWatchStateDated: isWatchStateDated || isSessionUnreachable
+                )
+                .tag(0)
                 // Page 1: Current glucose trend in "BG bobble"
                 ZStack {
                     GlucoseTrendView(
@@ -85,7 +105,7 @@ struct TrioMainWatchView: View {
                                     7 // Font .body == 14, so half of default size for the SF Symbol image
                             )
                     }
-                }.tag(0)
+                }.tag(1)
 
                 // Page 2: Glucose chart
                 GlucoseChartView(
@@ -93,7 +113,7 @@ struct TrioMainWatchView: View {
                     minYAxisValue: state.minYAxisValue,
                     maxYAxisValue: state.maxYAxisValue
                 )
-                .tag(1)
+                .tag(2)
             }
             .onAppear {
                 /// Hard reset variables when main view appears
@@ -268,5 +288,21 @@ struct TrioMainWatchView: View {
 }
 
 #Preview {
-    TrioMainWatchView()
+    let mockState = WatchState()
+    mockState.currentGlucose = "135"
+    mockState.currentGlucoseColorString = "#4CD964" // Green
+    mockState.trend = "Flat"
+    mockState.delta = "+3"
+    mockState.iob = "1.2 U"
+    mockState.cob = "15 g"
+    mockState.lastLoopTime = "2 m"
+    mockState.lastWatchStateUpdate = Date().timeIntervalSince1970
+    mockState.glucoseValues = [
+        (Date().addingTimeInterval(-7200), 120, Color.green),
+        (Date().addingTimeInterval(-5400), 125, Color.green),
+        (Date().addingTimeInterval(-3600), 130, Color.green),
+        (Date().addingTimeInterval(-1800), 132, Color.green),
+        (Date(), 135, Color.green)
+    ]
+    return TrioMainWatchView(state: mockState)
 }
