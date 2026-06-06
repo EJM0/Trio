@@ -11,29 +11,36 @@ struct CombinedGlucoseChartview: View {
         VStack(alignment: .center, spacing: -16) {
             // Top row: truly centered circle with texts on each side
             ZStack {
-                // Circle dead center
-                MinimizedGlucoseTrendView(
-                    state: state,
-                    rotationDegrees: rotationDegrees,
-                    isWatchStateDated: isWatchStateDated
-                )
-                .scaleEffect(0.45, anchor: .center)
-                .frame(width: 45, height: 45)
+                let textPadding: CGFloat = 8
 
-                // Texts pinned to left and right edges
-                HStack {
-                    Text(state.lastLoopTime ?? "--")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.leading, 4)
+MinimizedGlucoseTrendView(
+    state: state,
+    rotationDegrees: rotationDegrees,
+    isWatchStateDated: isWatchStateDated
+)
+.scaleEffect(0.45, anchor: .center)
+.frame(width: 45, height: 45) // Das ist die feste Basisgröße
+.overlay {
+    // Dieser HStack ist JETZT schon exakt so breit wie der Kreis (45pt)!
+    HStack {
+        Text(state.lastLoopTime ?? "--")
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.secondary)
+            // Schiebt den Text nach links aus dem Kreis heraus
+            .offset(x: -textPadding) 
+            .frame(maxWidth: .infinity, alignment: .trailing)
 
-                    Spacer()
+        Text(isWatchStateDated ? "--" : (state.delta ?? "--"))
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.secondary)
+            // Schiebt den Text nach rechts aus dem Kreis heraus
+            .offset(x: textPadding) 
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    // Verhindert, dass der HStack die Texte innerhalb der 45pt zusammenstaucht
+    .fixedSize(horizontal: false, vertical: true) 
+}
 
-                    Text(isWatchStateDated ? "--" : (state.delta ?? "--"))
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.trailing, 4)
-                }
             }
             .frame(height: 45)
 
