@@ -8,15 +8,10 @@ struct CombinedGlucoseChartview: View {
     let isWatchStateDated: Bool
 
     var body: some View {
-        VStack(alignment: .center, spacing: 0) {
-            // Top row: [ 7m ] [ circle ] [ -5 ] centered on watch face
-            HStack(alignment: .center, spacing: 8) {
-                Spacer()
-
-                Text(state.lastLoopTime ?? "--")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.secondary)
-
+        VStack(alignment: .center, spacing: -16) {
+            // Top row: truly centered circle with texts on each side
+            ZStack {
+                // Circle dead center
                 MinimizedGlucoseTrendView(
                     state: state,
                     rotationDegrees: rotationDegrees,
@@ -25,14 +20,24 @@ struct CombinedGlucoseChartview: View {
                 .scaleEffect(0.45, anchor: .center)
                 .frame(width: 45, height: 45)
 
-                Text(isWatchStateDated ? "--" : (state.delta ?? "--"))
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                // Texts pinned to left and right edges
+                HStack {
+                    Text(state.lastLoopTime ?? "--")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 4)
 
-                Spacer()
+                    Spacer()
+
+                    Text(isWatchStateDated ? "--" : (state.delta ?? "--"))
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.trailing, 4)
+                }
             }
+            .frame(height: 45)
 
-            // Bottom: chart full width
+            // Chart overlaps upward into circle via negative spacing
             MinimizedGlucoseChartView(
                 glucoseValues: state.glucoseValues,
                 minYAxisValue: state.minYAxisValue,
