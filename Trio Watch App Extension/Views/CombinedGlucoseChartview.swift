@@ -8,39 +8,53 @@ struct CombinedGlucoseChartview: View {
     let isWatchStateDated: Bool
 
     var body: some View {
-        HStack(alignment: .center, spacing: 4) {
-            // Left column: Pill and Time/Delta
-            VStack(alignment: .center, spacing: 2) {
-                MinimizedGlucoseTrendView(
-                    state: state,
-                    rotationDegrees: rotationDegrees,
-                    isWatchStateDated: isWatchStateDated
-                )
-                .scaleEffect(0.55, anchor: .center)
-                .frame(width: 55, height: 55) // Allocate scaled-down space so it fits cleanly
+        VStack(alignment: .center, spacing: -16) {
+            // Top row: truly centered circle with texts on each side
+            ZStack {
+                let textPadding: CGFloat = 8
 
-                VStack(alignment: .center, spacing: -2) {
-                    Text(state.lastLoopTime ?? "--")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.secondary)
+MinimizedGlucoseTrendView(
+    state: state,
+    rotationDegrees: rotationDegrees,
+    isWatchStateDated: isWatchStateDated
+)
+.scaleEffect(0.45, anchor: .center)
+.frame(width: 45, height: 45) // Das ist die feste Basisgröße
+.overlay {
+    // Dieser HStack ist JETZT schon exakt so breit wie der Kreis (45pt)!
+    HStack {
+        Text(state.lastLoopTime ?? "--")
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.secondary)
+            // Schiebt den Text nach links aus dem Kreis heraus
+            .offset(x: -textPadding) 
+            .frame(maxWidth: .infinity, alignment: .trailing)
 
-                    if let delta = state.delta {
-                        Text(isWatchStateDated ? "--" : delta)
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                    }
-                }
+        Text(isWatchStateDated ? "--" : (state.delta ?? "--"))
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.secondary)
+            // Schiebt den Text nach rechts aus dem Kreis heraus
+            .offset(x: textPadding) 
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    // Verhindert, dass der HStack die Texte innerhalb der 45pt zusammenstaucht
+    .fixedSize(horizontal: false, vertical: true) 
+}
+
             }
-            .padding(.leading, 2)
-            .padding(.trailing, 2)
+            .frame(height: 45)
 
-            // Right column: Chart
+            // Chart overlaps upward into circle via negative spacing
             MinimizedGlucoseChartView(
                 glucoseValues: state.glucoseValues,
                 minYAxisValue: state.minYAxisValue,
                 maxYAxisValue: state.maxYAxisValue
             )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .offset(y: -20)
+        .padding(.bottom, -20)
     }
 }
 
@@ -49,12 +63,6 @@ struct MinimizedGlucoseTrendView: View {
     let rotationDegrees: Double
     let isWatchStateDated: Bool
 
-    /// Determines the status color based on the time elapsed since the last loop
-    /// - Parameter timeString: The time string representing minutes since last loop (format: "X min")
-    /// - Returns: A color indicating the status:
-    ///   - Green: <= 5 minutes
-    ///   - Yellow: 5-10 minutes
-    ///   - Red: > 10 minutes or invalid time
     private func statusColor(for timeString: String?) -> Color {
         guard let timeString = timeString,
               timeString != "--",
@@ -62,11 +70,9 @@ struct MinimizedGlucoseTrendView: View {
         else {
             return Color.secondary
         }
-
         guard !isWatchStateDated else {
             return Color.secondary
         }
-
         switch minutes {
         case ...5:
             return Color.loopGreen
@@ -81,64 +87,33 @@ struct MinimizedGlucoseTrendView: View {
 
     var circleSize: CGFloat {
         switch state.deviceType {
-        case .watch40mm:
-            return 82
-        case .watch41mm,
-             .watch42mm:
-            return 86
-        case .watch44mm:
-            return 96
-        case .unknown,
-             .watch45mm:
-            return 103
-        case .watch49mm:
-            return 105
+        case .watch40mm: return 82
+        case .watch41mm, .watch42mm: return 86
+        case .watch44mm: return 96
+        case .unknown, .watch45mm: return 103
+        case .watch49mm: return 105
         }
     }
 
     var lineWidth: CGFloat {
         switch state.deviceType {
-        case .watch40mm,
-             .watch41mm,
-             .watch42mm,
-             .watch44mm:
-            return 1
-        case .unknown,
-             .watch45mm:
-            return 1.5
-        case .watch49mm:
-            return 1.5
+        case .watch40mm, .watch41mm, .watch42mm, .watch44mm: return 1
+        case .unknown, .watch45mm, .watch49mm: return 1.5
         }
     }
 
     var shadowRadius: CGFloat {
         switch state.deviceType {
-        case .watch40mm,
-             .watch41mm,
-             .watch42mm:
-            return 8
-        case .watch44mm:
-            return 9
-        case .unknown,
-             .watch45mm:
-            return 12
-        case .watch49mm:
-            return 12
+        case .watch40mm, .watch41mm, .watch42mm: return 8
+        case .watch44mm: return 9
+        case .unknown, .watch45mm, .watch49mm: return 12
         }
     }
 
     var currentGlucoseFontSize: Font {
         switch state.deviceType {
-        case .watch40mm,
-             .watch41mm,
-             .watch42mm,
-             .watch44mm:
-            return .title2
-        case .unknown,
-             .watch45mm:
-            return .title
-        case .watch49mm:
-            return .title
+        case .watch40mm, .watch41mm, .watch42mm, .watch44mm: return .title2
+        case .unknown, .watch45mm, .watch49mm: return .title
         }
     }
 
@@ -161,12 +136,17 @@ struct MinimizedGlucoseTrendView: View {
 
                 VStack(alignment: .center, spacing: 0) {
                     Text(isWatchStateDated ? "--" : state.currentGlucose)
-                        .fontWeight(.semibold)
+                        .fontWeight(.bold)
                         .font(currentGlucoseFontSize)
-                        .foregroundStyle(isWatchStateDated ? Color.secondary : state.currentGlucoseColorString.toColor())
+                        .foregroundStyle(
+                            isWatchStateDated
+                                ? Color.secondary
+                                : state.currentGlucoseColorString.toColor()
+                        )
                 }
             }
-        }.frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -188,7 +168,6 @@ struct MinimizedGlucoseChartView: View {
         }
     }
 
-    // TODO: should we only change the x axis here like we do in the main chart instead of filtering the values?
     private var filteredValues: [(date: Date, glucose: Double, color: Color)] {
         let cutoffDate = Date().addingTimeInterval(-Double(timeWindow.rawValue) * 3600)
         return glucoseValues.filter { $0.date > cutoffDate }
@@ -221,9 +200,8 @@ struct MinimizedGlucoseChartView: View {
                 .chartYAxisLabel("\(timeWindow.rawValue) h", alignment: .topLeading)
                 .chartYAxis {
                     AxisMarks(position: .trailing) { value in
-                        AxisGridLine(stroke: .init(lineWidth: 0.65, dash: [2, 3]))
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.65, dash: [2, 3]))
                             .foregroundStyle(Color.white.opacity(0.25))
-
                         AxisValueLabel {
                             if let glucose = value.as(Double.self) {
                                 Text("\(Int(glucose))")
@@ -231,9 +209,7 @@ struct MinimizedGlucoseChartView: View {
                         }
                     }
                 }
-                .chartYScale(
-                    domain: minYAxisValue ... maxYAxisValue
-                )
+                .chartYScale(domain: minYAxisValue ... maxYAxisValue)
                 .chartPlotStyle { plotContent in
                     plotContent
                         .background(
