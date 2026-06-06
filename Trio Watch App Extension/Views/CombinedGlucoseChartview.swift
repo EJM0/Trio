@@ -8,29 +8,31 @@ struct CombinedGlucoseChartview: View {
     let isWatchStateDated: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .center, spacing: 4) {
+        VStack(alignment: .center, spacing: 0) {
+            // Top row: [ 7m ] [ circle ] [ -5 ] centered on watch face
+            HStack(alignment: .center, spacing: 8) {
+                Spacer()
+
                 Text(state.lastLoopTime ?? "--")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
-                    .frame(minWidth: 24, alignment: .trailing)
 
                 MinimizedGlucoseTrendView(
                     state: state,
                     rotationDegrees: rotationDegrees,
                     isWatchStateDated: isWatchStateDated
                 )
-                .scaleEffect(0.55, anchor: .center)
-                .frame(width: 55, height: 55)
+                .scaleEffect(0.45, anchor: .center)
+                .frame(width: 45, height: 45)
 
-                if let delta = state.delta {
-                    Text(isWatchStateDated ? "--" : delta)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(minWidth: 24, alignment: .leading)
-                }
+                Text(isWatchStateDated ? "--" : (state.delta ?? "--"))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+
+                Spacer()
             }
 
+            // Bottom: chart full width
             MinimizedGlucoseChartView(
                 glucoseValues: state.glucoseValues,
                 minYAxisValue: state.minYAxisValue,
@@ -39,8 +41,8 @@ struct CombinedGlucoseChartview: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .offset(y: -8)
-        .padding(.bottom, -8)
+        .offset(y: -20)
+        .padding(.bottom, -20)
     }
 }
 
@@ -122,7 +124,7 @@ struct MinimizedGlucoseTrendView: View {
 
                 VStack(alignment: .center, spacing: 0) {
                     Text(isWatchStateDated ? "--" : state.currentGlucose)
-                        .fontWeight(.semibold)
+                        .fontWeight(.bold)
                         .font(currentGlucoseFontSize)
                         .foregroundStyle(
                             isWatchStateDated
