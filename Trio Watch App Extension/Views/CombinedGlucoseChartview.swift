@@ -2,44 +2,84 @@ import Charts
 import Foundation
 import SwiftUI
 
-struct CombinedGlucoseChartview: View {
+struct CombinedGlucoseChartView: View {
     let state: WatchState
     let rotationDegrees: Double
     let isWatchStateDated: Bool
 
     var body: some View {
-        HStack(alignment: .center, spacing: 4) {
-            // Left column: Pill and Time/Delta
-            VStack(alignment: .center, spacing: 2) {
-                MinimizedGlucoseTrendView(
-                    state: state,
-                    rotationDegrees: rotationDegrees,
-                    isWatchStateDated: isWatchStateDated
-                )
-                .scaleEffect(0.55, anchor: .center)
-                .frame(width: 55, height: 55) // Allocate scaled-down space so it fits cleanly
-
-                VStack(alignment: .center, spacing: -2) {
-                    Text(state.lastLoopTime ?? "--")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.secondary)
-
-                    if let delta = state.delta {
-                        Text(isWatchStateDated ? "--" : delta)
-                            .font(.system(size: 11, weight: .semibold))
+        VStack(alignment: .center, spacing: 4) {
+            // Top row: full-width complications (IOB left, time center, COB right)
+            HStack {
+                // Left complication (e.g. IOB)
+                if let iob = state.iob {
+                    VStack(spacing: 0) {
+                        Image(systemName: "syringe.fill")
+                            .font(.system(size: 10))
                             .foregroundStyle(.secondary)
+                        Text(iob)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.primary)
+                    }
+                }
+
+                Spacer()
+
+                // Center: current time
+                Text(state.currentTime ?? "--")
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                // Right complication (e.g. COB)
+                if let cob = state.cob {
+                    VStack(spacing: 0) {
+                        Image(systemName: "fork.knife")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                        Text(cob)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.primary)
                     }
                 }
             }
-            .padding(.leading, 2)
-            .padding(.trailing, 2)
+            .padding(.horizontal, 6)
 
-            // Right column: Chart
-            MinimizedGlucoseChartView(
-                glucoseValues: state.glucoseValues,
-                minYAxisValue: state.minYAxisValue,
-                maxYAxisValue: state.maxYAxisValue
-            )
+            // Middle row: Glucose pill left + Chart right
+            HStack(alignment: .center, spacing: 4) {
+                // Left: Glucose circle + loop time + delta
+                VStack(alignment: .center, spacing: 2) {
+                    MinimizedGlucoseTrendView(
+                        state: state,
+                        rotationDegrees: rotationDegrees,
+                        isWatchStateDated: isWatchStateDated
+                    )
+                    .scaleEffect(0.55, anchor: .center)
+                    .frame(width: 55, height: 55)
+
+                    VStack(alignment: .center, spacing: -2) {
+                        Text(state.lastLoopTime ?? "--")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.secondary)
+
+                        if let delta = state.delta {
+                            Text(isWatchStateDated ? "--" : delta)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .padding(.leading, 2)
+                .padding(.trailing, 2)
+
+                // Right: Chart fills remaining width
+                MinimizedGlucoseChartView(
+                    glucoseValues: state.glucoseValues,
+                    minYAxisValue: state.minYAxisValue,
+                    maxYAxisValue: state.maxYAxisValue
+                )
+            }
         }
     }
 }
@@ -49,12 +89,6 @@ struct MinimizedGlucoseTrendView: View {
     let rotationDegrees: Double
     let isWatchStateDated: Bool
 
-    /// Determines the status color based on the time elapsed since the last loop
-    /// - Parameter timeString: The time string representing minutes since last loop (format: "X min")
-    /// - Returns: A color indicating the status:
-    ///   - Green: <= 5 minutes
-    ///   - Yellow: 5-10 minutes
-    ///   - Red: > 10 minutes or invalid time
     private func statusColor(for timeString: String?) -> Color {
         guard let timeString = timeString,
               timeString != "--",
@@ -81,64 +115,33 @@ struct MinimizedGlucoseTrendView: View {
 
     var circleSize: CGFloat {
         switch state.deviceType {
-        case .watch40mm:
-            return 82
-        case .watch41mm,
-             .watch42mm:
-            return 86
-        case .watch44mm:
-            return 96
-        case .unknown,
-             .watch45mm:
-            return 103
-        case .watch49mm:
-            return 105
+        case .watch40mm: return 82
+        case .watch41mm, .watch42mm: return 86
+        case .watch44mm: return 96
+        case .unknown, .watch45mm: return 103
+        case .watch49mm: return 105
         }
     }
 
     var lineWidth: CGFloat {
         switch state.deviceType {
-        case .watch40mm,
-             .watch41mm,
-             .watch42mm,
-             .watch44mm:
-            return 1
-        case .unknown,
-             .watch45mm:
-            return 1.5
-        case .watch49mm:
-            return 1.5
+        case .watch40mm, .watch41mm, .watch42mm, .watch44mm: return 1
+        case .unknown, .watch45mm, .watch49mm: return 1.5
         }
     }
 
     var shadowRadius: CGFloat {
         switch state.deviceType {
-        case .watch40mm,
-             .watch41mm,
-             .watch42mm:
-            return 8
-        case .watch44mm:
-            return 9
-        case .unknown,
-             .watch45mm:
-            return 12
-        case .watch49mm:
-            return 12
+        case .watch40mm, .watch41mm, .watch42mm: return 8
+        case .watch44mm: return 9
+        case .unknown, .watch45mm, .watch49mm: return 12
         }
     }
 
     var currentGlucoseFontSize: Font {
         switch state.deviceType {
-        case .watch40mm,
-             .watch41mm,
-             .watch42mm,
-             .watch44mm:
-            return .title2
-        case .unknown,
-             .watch45mm:
-            return .title
-        case .watch49mm:
-            return .title
+        case .watch40mm, .watch41mm, .watch42mm, .watch44mm: return .title2
+        case .unknown, .watch45mm, .watch49mm: return .title
         }
     }
 
@@ -188,7 +191,6 @@ struct MinimizedGlucoseChartView: View {
         }
     }
 
-    // TODO: should we only change the x axis here like we do in the main chart instead of filtering the values?
     private var filteredValues: [(date: Date, glucose: Double, color: Color)] {
         let cutoffDate = Date().addingTimeInterval(-Double(timeWindow.rawValue) * 3600)
         return glucoseValues.filter { $0.date > cutoffDate }
@@ -231,9 +233,7 @@ struct MinimizedGlucoseChartView: View {
                         }
                     }
                 }
-                .chartYScale(
-                    domain: minYAxisValue ... maxYAxisValue
-                )
+                .chartYScale(domain: minYAxisValue ... maxYAxisValue)
                 .chartPlotStyle { plotContent in
                     plotContent
                         .background(
