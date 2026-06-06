@@ -8,11 +8,16 @@ struct CombinedGlucoseChartview: View {
     let isWatchStateDated: Bool
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 4) {
-            // Left: circle at top, time/delta below
-            VStack(alignment: .center, spacing: 2) {
-                Spacer()
+        VStack(alignment: .leading, spacing: 0) {
+            // Top row: 1m | circle | -4
+            HStack(alignment: .center, spacing: 4) {
+                // Left: loop time
+                Text(state.lastLoopTime ?? "--")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(minWidth: 24, alignment: .trailing)
 
+                // Center: glucose circle
                 MinimizedGlucoseTrendView(
                     state: state,
                     rotationDegrees: rotationDegrees,
@@ -21,22 +26,16 @@ struct CombinedGlucoseChartview: View {
                 .scaleEffect(0.55, anchor: .center)
                 .frame(width: 55, height: 55)
 
-                VStack(alignment: .center, spacing: -2) {
-                    Text(state.lastLoopTime ?? "--")
+                // Right: delta
+                if let delta = state.delta {
+                    Text(isWatchStateDated ? "--" : delta)
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.secondary)
-
-                    if let delta = state.delta {
-                        Text(isWatchStateDated ? "--" : delta)
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                    }
+                        .frame(minWidth: 24, alignment: .leading)
                 }
             }
-            .padding(.leading, 2)
-            .padding(.trailing, 2)
 
-            // Right: chart fills remaining space
+            // Bottom: chart fills full width
             MinimizedGlucoseChartView(
                 glucoseValues: state.glucoseValues,
                 minYAxisValue: state.minYAxisValue,
@@ -205,6 +204,21 @@ struct MinimizedGlucoseChartView: View {
                         .background(
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(Color.clear)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .padding(.bottom)
+            }
+        }
+        .scenePadding()
+        .onTapGesture {
+            withAnimation {
+                timeWindow = timeWindow.next
+            }
+        }
+    }
+}
+
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
