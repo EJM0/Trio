@@ -81,6 +81,8 @@ struct TrioMainWatchView: View {
                     rotationDegrees: rotationDegrees,
                     isWatchStateDated: isWatchStateDated || isSessionUnreachable
                 )
+                .offset(y: -12)          // slides the whole view up, tucking circle under the toolbar time
+                .padding(.bottom, -12)   // compensates so chart bottom doesn't get clipped
                 .tag(0)
                 // Page 1: Current glucose trend in "BG bobble"
                 ZStack {
