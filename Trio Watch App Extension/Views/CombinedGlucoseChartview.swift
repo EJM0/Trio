@@ -9,15 +9,12 @@ struct CombinedGlucoseChartview: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Top row: 1m | circle | -4
             HStack(alignment: .center, spacing: 4) {
-                // Left: loop time
                 Text(state.lastLoopTime ?? "--")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .frame(minWidth: 24, alignment: .trailing)
 
-                // Center: glucose circle
                 MinimizedGlucoseTrendView(
                     state: state,
                     rotationDegrees: rotationDegrees,
@@ -26,7 +23,6 @@ struct CombinedGlucoseChartview: View {
                 .scaleEffect(0.55, anchor: .center)
                 .frame(width: 55, height: 55)
 
-                // Right: delta
                 if let delta = state.delta {
                     Text(isWatchStateDated ? "--" : delta)
                         .font(.system(size: 11, weight: .semibold))
@@ -35,7 +31,6 @@ struct CombinedGlucoseChartview: View {
                 }
             }
 
-            // Bottom: chart fills full width
             MinimizedGlucoseChartView(
                 glucoseValues: state.glucoseValues,
                 minYAxisValue: state.minYAxisValue,
@@ -61,11 +56,9 @@ struct MinimizedGlucoseTrendView: View {
         else {
             return Color.secondary
         }
-
         guard !isWatchStateDated else {
             return Color.secondary
         }
-
         switch minutes {
         case ...5:
             return Color.loopGreen
@@ -131,10 +124,15 @@ struct MinimizedGlucoseTrendView: View {
                     Text(isWatchStateDated ? "--" : state.currentGlucose)
                         .fontWeight(.semibold)
                         .font(currentGlucoseFontSize)
-                        .foregroundStyle(isWatchStateDated ? Color.secondary : state.currentGlucoseColorString.toColor())
+                        .foregroundStyle(
+                            isWatchStateDated
+                                ? Color.secondary
+                                : state.currentGlucoseColorString.toColor()
+                        )
                 }
             }
-        }.frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -188,9 +186,8 @@ struct MinimizedGlucoseChartView: View {
                 .chartYAxisLabel("\(timeWindow.rawValue) h", alignment: .topLeading)
                 .chartYAxis {
                     AxisMarks(position: .trailing) { value in
-                        AxisGridLine(stroke: .init(lineWidth: 0.65, dash: [2, 3]))
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.65, dash: [2, 3]))
                             .foregroundStyle(Color.white.opacity(0.25))
-
                         AxisValueLabel {
                             if let glucose = value.as(Double.self) {
                                 Text("\(Int(glucose))")
@@ -204,21 +201,6 @@ struct MinimizedGlucoseChartView: View {
                         .background(
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(Color.clear)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .padding(.bottom)
-            }
-        }
-        .scenePadding()
-        .onTapGesture {
-            withAnimation {
-                timeWindow = timeWindow.next
-            }
-        }
-    }
-}
-
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
