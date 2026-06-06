@@ -9,52 +9,44 @@ struct CombinedGlucoseChartview: View {
 
     var body: some View {
         VStack(alignment: .center, spacing: -16) {
-            // Top row: truly centered circle with texts on each side
+            // Top row: circle perfectly centered, texts sit directly beside it
             ZStack {
-                let textPadding: CGFloat = 8
+                MinimizedGlucoseTrendView(
+                    state: state,
+                    rotationDegrees: rotationDegrees,
+                    isWatchStateDated: isWatchStateDated
+                )
+                .scaleEffect(state.deviceType.minimizedScale, anchor: .center)
+                .frame(width: 45, height: 45)
 
-MinimizedGlucoseTrendView(
-    state: state,
-    rotationDegrees: rotationDegrees,
-    isWatchStateDated: isWatchStateDated
-)
-.scaleEffect(0.45, anchor: .center)
-.frame(width: 45, height: 45) // Das ist die feste Basisgröße
-.overlay {
-    // Dieser HStack ist JETZT schon exakt so breit wie der Kreis (45pt)!
-    HStack {
-        Text(state.lastLoopTime ?? "--")
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(.secondary)
-            // Schiebt den Text nach links aus dem Kreis heraus
-            .offset(x: -textPadding) 
-            .frame(maxWidth: .infinity, alignment: .trailing)
+                HStack(spacing: 0) {
+                    Text(isWatchStateDated ? "--" : (state.lastLoopTime ?? "--"))
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .frame(width: 50, alignment: .trailing)
 
-        Text(isWatchStateDated ? "--" : (state.delta ?? "--"))
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(.secondary)
-            // Schiebt den Text nach rechts aus dem Kreis heraus
-            .offset(x: textPadding) 
-            .frame(maxWidth: .infinity, alignment: .leading)
-    }
-    // Verhindert, dass der HStack die Texte innerhalb der 45pt zusammenstaucht
-    .fixedSize(horizontal: false, vertical: true) 
-}
+                    Spacer().frame(width: state.deviceType.minimizedCircleSpacerWidth)
 
+                    Text(isWatchStateDated ? "--" : (state.delta ?? "--"))
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .frame(width: 50, alignment: .leading)
+                        .offset(x: -3)
+                }
             }
             .frame(height: 45)
 
             // Chart overlaps upward into circle via negative spacing
             MinimizedGlucoseChartView(
-                glucoseValues: state.glucoseValues,
-                minYAxisValue: state.minYAxisValue,
-                maxYAxisValue: state.maxYAxisValue
+                glucoseValues: state.glucoseValues
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.top, 5)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .offset(y: -20)
-        .padding(.bottom, -20)
+        .offset(y: -25)
     }
 }
 
@@ -85,46 +77,14 @@ struct MinimizedGlucoseTrendView: View {
         }
     }
 
-    var circleSize: CGFloat {
-        switch state.deviceType {
-        case .watch40mm: return 82
-        case .watch41mm, .watch42mm: return 86
-        case .watch44mm: return 96
-        case .unknown, .watch45mm: return 103
-        case .watch49mm: return 105
-        }
-    }
-
-    var lineWidth: CGFloat {
-        switch state.deviceType {
-        case .watch40mm, .watch41mm, .watch42mm, .watch44mm: return 1
-        case .unknown, .watch45mm, .watch49mm: return 1.5
-        }
-    }
-
-    var shadowRadius: CGFloat {
-        switch state.deviceType {
-        case .watch40mm, .watch41mm, .watch42mm: return 8
-        case .watch44mm: return 9
-        case .unknown, .watch45mm, .watch49mm: return 12
-        }
-    }
-
-    var currentGlucoseFontSize: Font {
-        switch state.deviceType {
-        case .watch40mm, .watch41mm, .watch42mm, .watch44mm: return .title2
-        case .unknown, .watch45mm, .watch49mm: return .title
-        }
-    }
-
     var body: some View {
         VStack {
             ZStack {
                 Circle()
-                    .stroke(statusColor(for: state.lastLoopTime), lineWidth: lineWidth)
-                    .frame(width: circleSize, height: circleSize)
+                    .stroke(statusColor(for: state.lastLoopTime), lineWidth: state.deviceType.lineWidth)
+                    .frame(width: state.deviceType.circleSize, height: state.deviceType.circleSize)
                     .background(Circle().fill(Color.bgDarkBlue))
-                    .shadow(color: statusColor(for: state.lastLoopTime), radius: shadowRadius)
+                    .shadow(color: statusColor(for: state.lastLoopTime), radius: state.deviceType.shadowRadius)
 
                 TrendShape(
                     isWatchStateDated: isWatchStateDated,
@@ -137,7 +97,7 @@ struct MinimizedGlucoseTrendView: View {
                 VStack(alignment: .center, spacing: 0) {
                     Text(isWatchStateDated ? "--" : state.currentGlucose)
                         .fontWeight(.bold)
-                        .font(currentGlucoseFontSize)
+                        .font(state.deviceType.currentGlucoseFontSize)
                         .foregroundStyle(
                             isWatchStateDated
                                 ? Color.secondary
@@ -152,8 +112,6 @@ struct MinimizedGlucoseTrendView: View {
 
 struct MinimizedGlucoseChartView: View {
     let glucoseValues: [(date: Date, glucose: Double, color: Color)]
-    let minYAxisValue: Decimal
-    let maxYAxisValue: Decimal
     @State private var timeWindow: TimeWindow = .threeHours
 
     enum TimeWindow: Int {
@@ -180,6 +138,60 @@ struct MinimizedGlucoseChartView: View {
         }
     }
 
+    private var yAxisBounds: (min: Double, max: Double)? {
+        guard let minValue = filteredValues.map(\.glucose).min(),
+              let maxValue = filteredValues.map(\.glucose).max()
+        else {
+            return nil
+        }
+
+        return (minValue, maxValue)
+    }
+
+    private var yAxisDomain: ClosedRange<Double> {
+        guard let bounds = yAxisBounds else {
+            return 0 ... 1
+        }
+
+        guard bounds.min != bounds.max else {
+            return (bounds.min - 1) ... (bounds.max + 1)
+        }
+
+        return bounds.min ... bounds.max
+    }
+
+    private var yAxisValues: [Double] {
+        guard let bounds = yAxisBounds else {
+            return []
+        }
+
+        guard bounds.min != bounds.max else {
+            return [bounds.min]
+        }
+
+        let middle = roundedUpMiddle(for: bounds)
+        return [bounds.min, middle, bounds.max].reduce(into: [Double]()) { values, value in
+            guard !values.contains(where: { abs($0 - value) < 0.0001 }) else {
+                return
+            }
+            values.append(value)
+        }
+    }
+
+    private func roundedUpMiddle(for bounds: (min: Double, max: Double)) -> Double {
+        let step = bounds.max < 40 ? 0.1 : 1
+        let middle = (bounds.min + bounds.max) / 2
+        return ceil(middle / step) * step
+    }
+
+    private func formattedYAxisLabel(for glucose: Double) -> String {
+        if glucose < 40 {
+            return String(format: "%.1f", glucose)
+        }
+
+        return "\(Int(glucose))"
+    }
+
     var body: some View {
         VStack(spacing: 8) {
             if filteredValues.isEmpty {
@@ -187,6 +199,17 @@ struct MinimizedGlucoseChartView: View {
                 Text("Check phone and CGM connectivity.").font(.caption)
             } else {
                 Chart {
+                    ForEach(yAxisValues, id: \.self) { glucose in
+                        RuleMark(y: .value("Y Axis", glucose))
+                            .foregroundStyle(Color.white.opacity(0.25))
+                            .lineStyle(StrokeStyle(lineWidth: 0.65, dash: [2, 3]))
+                            .annotation(position: .overlay, alignment: .trailing, spacing: 0) {
+                                Text(formattedYAxisLabel(for: glucose))
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                    }
+
                     ForEach(filteredValues, id: \.date) { reading in
                         PointMark(
                             x: .value("Time", reading.date),
@@ -198,18 +221,8 @@ struct MinimizedGlucoseChartView: View {
                 }
                 .chartXAxis(.hidden)
                 .chartYAxisLabel("\(timeWindow.rawValue) h", alignment: .topLeading)
-                .chartYAxis {
-                    AxisMarks(position: .trailing) { value in
-                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.65, dash: [2, 3]))
-                            .foregroundStyle(Color.white.opacity(0.25))
-                        AxisValueLabel {
-                            if let glucose = value.as(Double.self) {
-                                Text("\(Int(glucose))")
-                            }
-                        }
-                    }
-                }
-                .chartYScale(domain: minYAxisValue ... maxYAxisValue)
+                .chartYAxis(.hidden)
+                .chartYScale(domain: yAxisDomain)
                 .chartPlotStyle { plotContent in
                     plotContent
                         .background(
@@ -228,4 +241,37 @@ struct MinimizedGlucoseChartView: View {
             }
         }
     }
+}
+
+#Preview("CombinedGlucoseChartview") {
+    let mockState = WatchState()
+    mockState.currentGlucose = "135"
+    mockState.currentGlucoseColorString = "#4CD964"
+    mockState.trend = "Flat"
+    mockState.delta = "+4"
+    mockState.lastLoopTime = "3 m"
+    mockState.lastWatchStateUpdate = Date().timeIntervalSince1970
+    mockState.glucoseValues = [
+        (Date().addingTimeInterval(-7200), 110, Color.green),
+        (Date().addingTimeInterval(-5400), 118, Color.green),
+        (Date().addingTimeInterval(-3600), 124, Color.green),
+        (Date().addingTimeInterval(-1800), 130, Color.green),
+        (Date().addingTimeInterval(-900), 133, Color.green),
+        (Date(), 135, Color.green)
+    ]
+
+    return CombinedGlucoseChartview(
+        state: mockState,
+        rotationDegrees: 0,
+        isWatchStateDated: false
+    )
+    .frame(width: 176, height: 215)
+    .background(
+        LinearGradient(
+            gradient: Gradient(colors: [Color.bgDarkBlue, Color.bgDarkerDarkBlue]),
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 44))
 }

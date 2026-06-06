@@ -123,7 +123,9 @@ struct TrioMainWatchView: View {
             }
             .background(trioBackgroundColor)
             .tabViewStyle(.verticalPage)
-            .digitalCrownRotation($currentPage.doubleBinding(), from: 0, through: 1, by: 1)
+            #if !targetEnvironment(simulator)
+                .digitalCrownRotation($currentPage.doubleBinding(), from: 0, through: 1, by: 1)
+            #endif
             .onChange(of: state.trend) { _, newTrend in
                 withAnimation {
                     updateRotation(for: newTrend)
