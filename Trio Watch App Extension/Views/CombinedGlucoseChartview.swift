@@ -42,7 +42,7 @@ struct CombinedGlucoseChartview: View {
                 glucoseValues: state.glucoseValues
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(top:5)
+            .padding(.top, 5)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .offset(y: -15)
@@ -192,7 +192,7 @@ struct MinimizedGlucoseChartView: View {
             .chartXAxis(.hidden)
             .chartYAxisLabel("\(timeWindow.rawValue) h", alignment: .topLeading)
             .chartYAxis {
-                AxisMarks(values: yAxisValues, position: .trailing) { value in
+                AxisMarks(position: .trailing, values: yAxisValues) { value in
                     AxisGridLine(stroke: .init(lineWidth: 0.65, dash: [2, 3]))
                         .foregroundStyle(Color.white.opacity(0.25))
 
