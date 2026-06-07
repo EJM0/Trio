@@ -33,17 +33,16 @@ struct CombinedGlucoseChartview: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .frame(width: 50, alignment: .leading)
-                        .offset(x: -3)
+                        .offset(x: -8)
                 }
             }
             .frame(height: 45)
 
-            // Chart overlaps upward into circle via negative spacing
+            // Chart fills ALL remaining space with no padding eating into it
             MinimizedGlucoseChartView(
                 glucoseValues: state.glucoseValues
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.top, 5)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .offset(y: -25)
@@ -144,36 +143,23 @@ struct MinimizedGlucoseChartView: View {
         else {
             return nil
         }
-
         return (minValue, maxValue)
     }
 
     private var yAxisDomain: ClosedRange<Double> {
-        guard let bounds = yAxisBounds else {
-            return 0 ... 1
-        }
-
+        guard let bounds = yAxisBounds else { return 0 ... 1 }
         guard bounds.min != bounds.max else {
             return (bounds.min - 1) ... (bounds.max + 1)
         }
-
         return bounds.min ... bounds.max
     }
 
     private var yAxisValues: [Double] {
-        guard let bounds = yAxisBounds else {
-            return []
-        }
-
-        guard bounds.min != bounds.max else {
-            return [bounds.min]
-        }
-
+        guard let bounds = yAxisBounds else { return [] }
+        guard bounds.min != bounds.max else { return [bounds.min] }
         let middle = roundedUpMiddle(for: bounds)
         return [bounds.min, middle, bounds.max].reduce(into: [Double]()) { values, value in
-            guard !values.contains(where: { abs($0 - value) < 0.0001 }) else {
-                return
-            }
+            guard !values.contains(where: { abs($0 - value) < 0.0001 }) else { return }
             values.append(value)
         }
     }
@@ -185,59 +171,49 @@ struct MinimizedGlucoseChartView: View {
     }
 
     private func formattedYAxisLabel(for glucose: Double) -> String {
-        if glucose < 40 {
-            return String(format: "%.1f", glucose)
-        }
-
-        return "\(Int(glucose))"
+        glucose < 40 ? String(format: "%.1f", glucose) : "\(Int(glucose))"
     }
 
     var body: some View {
-        VStack(spacing: 8) {
-            if filteredValues.isEmpty {
+        if filteredValues.isEmpty {
+            VStack {
                 Text("No glucose readings.").font(.headline)
                 Text("Check phone and CGM connectivity.").font(.caption)
-            } else {
-                Chart {
-                    ForEach(yAxisValues, id: \.self) { glucose in
-                        RuleMark(y: .value("Y Axis", glucose))
-                            .foregroundStyle(Color.white.opacity(0.25))
-                            .lineStyle(StrokeStyle(lineWidth: 0.65, dash: [2, 3]))
-                            .annotation(position: .overlay, alignment: .trailing, spacing: 0) {
-                                Text(formattedYAxisLabel(for: glucose))
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                    }
-
-                    ForEach(filteredValues, id: \.date) { reading in
-                        PointMark(
-                            x: .value("Time", reading.date),
-                            y: .value("Glucose", reading.glucose)
-                        )
-                        .foregroundStyle(reading.color)
-                        .symbolSize(glucosePointSize)
-                    }
-                }
-                .chartXAxis(.hidden)
-                .chartYAxisLabel("\(timeWindow.rawValue) h", alignment: .topLeading)
-                .chartYAxis(.hidden)
-                .chartYScale(domain: yAxisDomain)
-                .chartPlotStyle { plotContent in
-                    plotContent
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.clear)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .padding(.bottom)
             }
-        }
-        .scenePadding()
-        .onTapGesture {
-            withAnimation {
-                timeWindow = timeWindow.next
+        } else {
+            Chart {
+                ForEach(yAxisValues, id: \.self) { glucose in
+                    RuleMark(y: .value("Y Axis", glucose))
+                        .foregroundStyle(Color.white.opacity(0.25))
+                        .lineStyle(StrokeStyle(lineWidth: 0.65, dash: [2, 3]))
+                        .annotation(position: .overlay, alignment: .trailing, spacing: 0) {
+                            Text(formattedYAxisLabel(for: glucose))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                }
+
+                ForEach(filteredValues, id: \.date) { reading in
+                    PointMark(
+                        x: .value("Time", reading.date),
+                        y: .value("Glucose", reading.glucose)
+                    )
+                    .foregroundStyle(reading.color)
+                    .symbolSize(glucosePointSize)
+                }
+            }
+            .chartXAxis(.hidden)
+            .chartYAxisLabel("\(timeWindow.rawValue) h", alignment: .topLeading)
+            .chartYAxis(.hidden)
+            .chartYScale(domain: yAxisDomain)
+            .chartPlotStyle { plotContent in
+                plotContent
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .onTapGesture {
+                withAnimation {
+                    timeWindow = timeWindow.next
+                }
             }
         }
     }
@@ -259,7 +235,6 @@ struct MinimizedGlucoseChartView: View {
         (Date().addingTimeInterval(-900), 133, Color.green),
         (Date(), 135, Color.green)
     ]
-
     return CombinedGlucoseChartview(
         state: mockState,
         rotationDegrees: 0,
