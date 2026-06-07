@@ -26,26 +26,25 @@ struct CombinedGlucoseChartview: View {
                         .lineLimit(1)
                         .frame(width: 50, alignment: .trailing)
 
-                    Spacer().frame(width: state.deviceType.minimizedCircleSpacerWidth)
+                    Spacer().frame(width: state.deviceType.minimizedCircleSpacerWidth+5)
 
                     Text(isWatchStateDated ? "--" : (state.delta ?? "--"))
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .frame(width: 50, alignment: .leading)
-                        .offset(x: -8)
                 }
+                .offset(x:5)
             }
             .frame(height: 45)
 
-            // Chart fills ALL remaining space with no padding eating into it
             MinimizedGlucoseChartView(
                 glucoseValues: state.glucoseValues
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .offset(y: -25)
+        .offset(y: -20)
     }
 }
 
@@ -146,12 +145,11 @@ struct MinimizedGlucoseChartView: View {
         return (minValue, maxValue)
     }
 
+    // Add padding above and below so dots are never clipped
     private var yAxisDomain: ClosedRange<Double> {
         guard let bounds = yAxisBounds else { return 0 ... 1 }
-        guard bounds.min != bounds.max else {
-            return (bounds.min - 1) ... (bounds.max + 1)
-        }
-        return bounds.min ... bounds.max
+        let padding = max((bounds.max - bounds.min) * 0.20, 10)
+        return (bounds.min - padding) ... (bounds.max + padding)
     }
 
     private var yAxisValues: [Double] {
@@ -206,10 +204,7 @@ struct MinimizedGlucoseChartView: View {
             .chartYAxisLabel("\(timeWindow.rawValue) h", alignment: .topLeading)
             .chartYAxis(.hidden)
             .chartYScale(domain: yAxisDomain)
-            .chartPlotStyle { plotContent in
-                plotContent
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
+            // No clipShape — prevents dots being cut at edges
             .onTapGesture {
                 withAnimation {
                     timeWindow = timeWindow.next
