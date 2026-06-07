@@ -721,6 +721,7 @@ extension Treatments {
             ZStack(alignment: .center) {
                 listView()
                     .blur(radius: state.showInfo || state.isAwaitingDeterminationResult ? 3 : 0)
+                    .safeAreaPadding(.bottom, 50)
                 if state.isAwaitingDeterminationResult {
                     CustomProgressView(text: progressText.displayName)
                 }
@@ -748,7 +749,6 @@ extension Treatments {
             .onReceive(Foundation.NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
                 isKeyboardVisible = false
             }
-            .ignoresSafeArea(.keyboard)
             .onAppear {
                 configureView {
                     state.isActive = true
