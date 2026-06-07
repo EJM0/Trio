@@ -377,7 +377,7 @@ enum DeterminationGenerator {
             temp: nil,
             bg: currentGlucose,
             reservoir: nil,
-            isf: adjustedSensitivity,
+            isf: adjustedSensitivity.jsRounded(),
             timestamp: currentTime,
             tdd: nil,
             current_target: adjustedGlucoseTargets.targetGlucose,
