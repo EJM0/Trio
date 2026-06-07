@@ -34,7 +34,6 @@ struct CombinedGlucoseChartview: View {
                         .lineLimit(1)
                         .frame(width: 50, alignment: .leading)
                 }
-                .offset(x:2)
             }
             .frame(height: 45)
 
@@ -42,7 +41,7 @@ struct CombinedGlucoseChartview: View {
                 glucoseValues: state.glucoseValues
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.top, 5)
+            .padding(.top, 10)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .offset(y: -15)
