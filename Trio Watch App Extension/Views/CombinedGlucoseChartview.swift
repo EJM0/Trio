@@ -26,7 +26,7 @@ struct CombinedGlucoseChartview: View {
                         .lineLimit(1)
                         .frame(width: 50, alignment: .trailing)
 
-                    Spacer().frame(width: state.deviceType.minimizedCircleSpacerWidth+5)
+                    Spacer().frame(width: state.deviceType.minimizedCircleSpacerWidth+2)
 
                     Text(isWatchStateDated ? "--" : (state.delta ?? "--"))
                         .font(.system(size: 11, weight: .semibold))
@@ -34,7 +34,7 @@ struct CombinedGlucoseChartview: View {
                         .lineLimit(1)
                         .frame(width: 50, alignment: .leading)
                 }
-                .offset(x:5)
+                .offset(x:2)
             }
             .frame(height: 45)
 
@@ -42,9 +42,10 @@ struct CombinedGlucoseChartview: View {
                 glucoseValues: state.glucoseValues
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .spacer(top:5)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .offset(y: -20)
+        .offset(y: -15)
     }
 }
 
