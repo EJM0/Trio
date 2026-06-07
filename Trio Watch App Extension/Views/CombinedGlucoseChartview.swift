@@ -42,7 +42,7 @@ struct CombinedGlucoseChartview: View {
                 glucoseValues: state.glucoseValues
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .spacer(top:5)
+            .padding(top:5)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .offset(y: -15)
@@ -146,7 +146,6 @@ struct MinimizedGlucoseChartView: View {
         return (minValue, maxValue)
     }
 
-    // Add padding above and below so dots are never clipped
     private var yAxisDomain: ClosedRange<Double> {
         guard let bounds = yAxisBounds else { return 0 ... 1 }
         let padding = max((bounds.max - bounds.min) * 0.20, 10)
@@ -181,17 +180,6 @@ struct MinimizedGlucoseChartView: View {
             }
         } else {
             Chart {
-                ForEach(yAxisValues, id: \.self) { glucose in
-                    RuleMark(y: .value("Y Axis", glucose))
-                        .foregroundStyle(Color.white.opacity(0.25))
-                        .lineStyle(StrokeStyle(lineWidth: 0.65, dash: [2, 3]))
-                        .annotation(position: .overlay, alignment: .trailing, spacing: 0) {
-                            Text(formattedYAxisLabel(for: glucose))
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                }
-
                 ForEach(filteredValues, id: \.date) { reading in
                     PointMark(
                         x: .value("Time", reading.date),
@@ -203,7 +191,20 @@ struct MinimizedGlucoseChartView: View {
             }
             .chartXAxis(.hidden)
             .chartYAxisLabel("\(timeWindow.rawValue) h", alignment: .topLeading)
-            .chartYAxis(.hidden)
+            .chartYAxis {
+                AxisMarks(values: yAxisValues, position: .trailing) { value in
+                    AxisGridLine(stroke: .init(lineWidth: 0.65, dash: [2, 3]))
+                        .foregroundStyle(Color.white.opacity(0.25))
+
+                    AxisValueLabel {
+                        if let glucose = value.as(Double.self) {
+                            Text(formattedYAxisLabel(for: glucose))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
             .chartYScale(domain: yAxisDomain)
             // No clipShape — prevents dots being cut at edges
             .onTapGesture {
