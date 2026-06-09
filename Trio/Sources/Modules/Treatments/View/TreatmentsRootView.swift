@@ -725,6 +725,10 @@ extension Treatments {
                 if state.isAwaitingDeterminationResult {
                     CustomProgressView(text: progressText.displayName)
                 }
+                if !isKeyboardVisible {
+                    treatmentButton
+                        .frame(maxHeight: .infinity, alignment: .bottom)
+                }
             }
             .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .navigationTitle("Treatments")
@@ -738,12 +742,6 @@ extension Treatments {
                     }
                 }
             })
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !isKeyboardVisible {
-                    treatmentButton
-                        .ignoresSafeArea(.keyboard)
-                }
-            }
             .onReceive(Foundation.NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
                 isKeyboardVisible = true
             }

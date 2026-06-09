@@ -26,7 +26,7 @@ struct CombinedGlucoseChartview: View {
                         .lineLimit(1)
                         .frame(width: 50, alignment: .trailing)
 
-                    Spacer().frame(width: state.deviceType.minimizedCircleSpacerWidth+2)
+                    Spacer().frame(width: state.deviceType.minimizedCircleSpacerWidth + 2)
 
                     Text(isWatchStateDated ? "--" : (state.delta ?? "--"))
                         .font(.system(size: 11, weight: .semibold))
