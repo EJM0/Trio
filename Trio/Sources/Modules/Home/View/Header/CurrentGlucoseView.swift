@@ -49,33 +49,34 @@ struct CurrentGlucoseView: View {
                 VStack(alignment: .center) {
                     HStack {
                         if let glucoseValue = glucose.last?.glucose {
-                            let displayGlucose = units == .mgdL ? Decimal(glucoseValue).description : Decimal(glucoseValue)
-                                .formattedAsMmolL
+                            let displayGlucose = units == .mgdL ? Decimal(glucoseValue)
+                                .description : Decimal(glucoseValue).formattedAsMmolL
 
-                            var glucoseDisplayColor = Color.primary
-
-                            // TODO: workaround for now: set low value to 55, to have dynamic color shades between 55 and user-set low (approx. 70); same for high glucose
                             let hardCodedLow = Decimal(55)
                             let hardCodedHigh = Decimal(220)
                             let isDynamicColorScheme = glucoseColorScheme == .dynamicColor
 
-                            if Decimal(glucoseValue) <= lowGlucose || Decimal(glucoseValue) >= highGlucose {
-                                glucoseDisplayColor = Trio.getDynamicGlucoseColor(
-                                    glucoseValue: Decimal(glucoseValue),
-                                    highGlucoseColorValue: isDynamicColorScheme ? hardCodedHigh : highGlucose,
-                                    lowGlucoseColorValue: isDynamicColorScheme ? hardCodedLow : lowGlucose,
-                                    targetGlucose: currentGlucoseTarget,
-                                    glucoseColorScheme: glucoseColorScheme
-                                )
-                            }
+                            let glucoseDisplayColor: Color = {
+                                if Decimal(glucoseValue) <= lowGlucose || Decimal(glucoseValue) >= highGlucose {
+                                    return Trio.getDynamicGlucoseColor(
+                                        glucoseValue: Decimal(glucoseValue),
+                                        highGlucoseColorValue: isDynamicColorScheme ? hardCodedHigh : highGlucose,
+                                        lowGlucoseColorValue: isDynamicColorScheme ? hardCodedLow : lowGlucose,
+                                        targetGlucose: currentGlucoseTarget,
+                                        glucoseColorScheme: glucoseColorScheme
+                                    )
+                                }
+                                return .primary
+                            }()
 
-                            return Text(
-                                glucoseValue == 400 ? "HIGH" : displayGlucose
-                            )
-                            .font(.system(size: 40, weight: .bold, design: .rounded))
-                            .foregroundStyle(glucoseDisplayColor)
+                            Text(glucoseValue == 400 ? "HIGH" : displayGlucose)
+                                .font(.system(size: 40, weight: .bold, design: .rounded))
+                                .foregroundStyle(glucoseDisplayColor)
+                                .contentTransition(.numericText())
+                                .animation(.spring(duration: 0.4, bounce: 0.3), value: displayGlucose)
+
                         } else {
-                            return Text("--")
+                            Text("--")
                                 .font(.system(size: 40, weight: .bold, design: .rounded))
                                 .foregroundStyle(.secondary)
                         }
@@ -176,7 +177,6 @@ struct TrendShape: View {
                     CircleShape(gradient: gradient)
                     TriangleShape(color: color)
                 }.shadow(color: Color.black.opacity(colorScheme == .dark ? 0.75 : 0.33), radius: colorScheme == .dark ? 5 : 3)
-                CircleShape(gradient: gradient)
             }
         }
     }
