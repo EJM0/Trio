@@ -728,6 +728,7 @@ extension Treatments {
                 if !isKeyboardVisible {
                     treatmentButton
                         .frame(maxHeight: .infinity, alignment: .bottom)
+                        .ignoresSafeArea(.keyboard)
                 }
             }
             .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())

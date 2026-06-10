@@ -1315,7 +1315,6 @@ extension Home {
                     }
                     .allowsHitTesting(tab != .plus)
                 }
-                // .tint(Color.tabBar)
                 .overlayPreferenceValue(TabCenterPreferenceKey.self) { anchor in
                     GeometryReader { proxy in
                         if let anchor = anchor {
@@ -1354,6 +1353,7 @@ extension Home {
                     )
                 }
             }
+            .tint(Color.tabBar)
         }
     }
 }
