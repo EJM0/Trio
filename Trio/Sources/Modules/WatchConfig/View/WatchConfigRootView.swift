@@ -19,7 +19,7 @@ extension WatchConfig {
                     }
                 ).listRowBackground(Color.chart)
             }
-            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme))
+            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .onAppear(perform: configureView)
             .navigationTitle("Watch")
             .navigationBarTitleDisplayMode(.automatic)

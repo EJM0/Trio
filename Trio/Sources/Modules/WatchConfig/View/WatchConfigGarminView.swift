@@ -179,7 +179,7 @@ struct WatchConfigGarminView: View {
         .navigationTitle("Garmin Devices")
         .navigationBarTitleDisplayMode(.automatic)
         .scrollContentBackground(.hidden)
-        .background(appState.trioBackgroundColor(for: colorScheme))
+        .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
         .sheet(isPresented: $shouldDisplayHint) {
             SettingInputHintView(
                 hintDetent: $hintDetent,

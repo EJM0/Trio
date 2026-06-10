@@ -60,7 +60,7 @@ struct MealPresetView: View {
                 addPresetToTreatmentsButton
             }
             .scrollContentBackground(.hidden)
-            .background(appState.trioBackgroundColor(for: colorScheme))
+            .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .navigationTitle("Meal Presets")
             .navigationBarTitleDisplayMode(.automatic)
             .toolbar(content: {

@@ -198,7 +198,7 @@ struct WatchConfigGarminAppConfigView: View {
         }
         .listSectionSpacing(sectionSpacing)
         .scrollContentBackground(.hidden)
-        .background(appState.trioBackgroundColor(for: colorScheme))
+        .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
 
         // MARK: - Help Sheets
 

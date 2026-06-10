@@ -126,7 +126,7 @@ extension NightscoutConfig {
             }
             .navigationBarTitle("Nightscout")
             .navigationBarTitleDisplayMode(.automatic)
-            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme))
+            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .onAppear(perform: configureView)
         }
     }

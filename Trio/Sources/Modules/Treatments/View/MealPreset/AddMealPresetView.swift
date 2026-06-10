@@ -52,7 +52,7 @@ struct AddMealPresetView: View {
                 savePresetButton
             }
             .scrollContentBackground(.hidden)
-            .background(appState.trioBackgroundColor(for: colorScheme))
+            .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .navigationTitle("Add Meal Preset")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(content: {

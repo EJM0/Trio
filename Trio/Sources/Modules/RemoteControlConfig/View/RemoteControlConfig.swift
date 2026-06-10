@@ -97,7 +97,7 @@ extension RemoteControlConfig {
                     sheetTitle: String(localized: "Help", comment: "Help sheet title")
                 )
             }
-            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme))
+            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .onAppear(perform: configureView)
             .navigationTitle("Remote Control")
             .navigationBarTitleDisplayMode(.automatic)

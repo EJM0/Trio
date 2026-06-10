@@ -85,6 +85,6 @@ struct NightscoutConnectView: View {
         .navigationTitle("Connect")
         .navigationBarTitleDisplayMode(.automatic)
         .scrollContentBackground(.hidden)
-        .background(appState.trioBackgroundColor(for: colorScheme))
+        .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
     }
 }

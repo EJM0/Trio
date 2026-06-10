@@ -1099,7 +1099,7 @@ extension Home {
                 }
             }
             .padding(.bottom, geo.safeAreaInsets.bottom)
-            .background(appState.trioBackgroundColor(for: colorScheme))
+            .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .onReceive(
                 resolver.resolve(AlertPermissionsChecker.self)!.$notificationsDisabled,
                 perform: {

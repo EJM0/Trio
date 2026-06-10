@@ -104,7 +104,7 @@ struct TidepoolStartView: BaseView {
                 sheetTitle: String(localized: "Help", comment: "Help sheet title")
             )
         }
-        .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme))
+        .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
         .navigationTitle("Tidepool")
         .navigationBarTitleDisplayMode(.automatic)
         .onAppear(perform: configureView)
