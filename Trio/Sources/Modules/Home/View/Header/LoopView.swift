@@ -38,9 +38,10 @@ struct LoopView: View {
                     ProgressView()
                 }
             }
-            if isLooping {
-                Text("looping")
-            } else if manualTempBasal {
+            // if isLooping {
+            //    Text("looping")
+            // } else
+            if manualTempBasal {
                 Text("Manual")
             } else if determination.first?
                 .deliverAt !=

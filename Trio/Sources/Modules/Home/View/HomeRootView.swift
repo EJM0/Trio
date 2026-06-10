@@ -237,7 +237,8 @@ extension Home {
                 cgmAvailable: state.cgmAvailable,
                 currentGlucoseTarget: state.currentGlucoseTarget,
                 glucoseColorScheme: state.glucoseColorScheme,
-                glucose: state.latestTwoGlucoseValues
+                glucose: state.latestTwoGlucoseValues,
+                isLooping: state.isLooping
             ).scaleEffect(0.9)
                 .onTapGesture {
                     if !state.cgmAvailable {

@@ -11,6 +11,7 @@ struct CurrentGlucoseView: View {
     var currentGlucoseTarget: Decimal
     let glucoseColorScheme: GlucoseColorScheme
     let glucose: [GlucoseStored] // This contains the last two glucose values, no matter if its manual or a cgm reading
+    let isLooping: Bool
     @State private var rotationDegrees: Double = 0.0
     @State private var angularGradient = AngularGradient(colors: [
         Color(red: 0.7215686275, green: 0.3411764706, blue: 1),
@@ -43,7 +44,7 @@ struct CurrentGlucoseView: View {
 
         if cgmAvailable {
             ZStack {
-                TrendShape(gradient: angularGradient, color: triangleColor)
+                TrendShape(gradient: angularGradient, color: triangleColor, isLooping: isLooping)
                     .rotationEffect(.degrees(rotationDegrees))
 
                 VStack(alignment: .center) {
@@ -169,12 +170,13 @@ struct TrendShape: View {
 
     let gradient: AngularGradient
     let color: Color
+    let isLooping: Bool
 
     var body: some View {
         HStack(alignment: .center) {
             ZStack {
                 Group {
-                    CircleShape(gradient: gradient)
+                    CircleShape(gradient: gradient, isLooping: isLooping)
                     TriangleShape(color: color)
                 }.shadow(color: Color.black.opacity(colorScheme == .dark ? 0.75 : 0.33), radius: colorScheme == .dark ? 5 : 3)
             }
@@ -183,15 +185,40 @@ struct TrendShape: View {
 }
 
 struct CircleShape: View {
-    @Environment(\.colorScheme) var colorScheme
-
     let gradient: AngularGradient
+    let isLooping: Bool
+
+    @State private var isAnimating: Bool = false
 
     var body: some View {
-        Circle()
-            .stroke(gradient, lineWidth: 6)
-            .background(Circle().fill(Color.chart))
-            .frame(width: 130, height: 130)
+        ZStack {
+            Circle()
+                .fill(Color.chart)
+                .frame(width: 130, height: 130)
+
+            Circle()
+                .trim(from: 0.0, to: isLooping ? 0.75 : 1.0)
+                .stroke(gradient, style: StrokeStyle(lineWidth: isLooping ? 8 : 6, lineCap: .round))
+                .frame(width: 130, height: 130)
+                .rotationEffect(.degrees(isAnimating ? 360 : 0))
+                .animation(
+                    isAnimating
+                        ? .linear(duration: 1.333).repeatForever(autoreverses: false)
+                        : .spring(response: 0.8, dampingFraction: 0.85),
+                    value: isAnimating
+                )
+                // Separate animation just for the trim open/close
+                .animation(
+                    .spring(response: 0.9, dampingFraction: 0.75),
+                    value: isLooping
+                )
+        }
+        .onAppear {
+            isAnimating = isLooping
+        }
+        .onChange(of: isLooping) {
+            isAnimating = isLooping
+        }
     }
 }
 
