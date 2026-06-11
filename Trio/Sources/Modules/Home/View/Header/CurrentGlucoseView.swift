@@ -185,42 +185,65 @@ struct TrendShape: View {
 }
 
 struct CircleShape: View {
-    let gradient: AngularGradient
-    let isLooping: Bool
+   let gradient: AngularGradient
+   let isLooping: Bool
 
-    @State private var isAnimating: Bool = false
+   @State private var isAnimating: Bool = false
+   @State private var animatingTask: Task<Void, Never>? = nil
+   @State private var loopingStartTime: Date? = nil
 
-    var body: some View {
-        ZStack {
-            Circle()
-                .fill(Color.chart)
-                .frame(width: 130, height: 130)
+   var body: some View {
+       ZStack {
+           Circle()
+               .fill(Color.chart)
+               .frame(width: 130, height: 130)
 
-            Circle()
-                .trim(from: 0.0, to: isLooping ? 0.75 : 1.0)
-                .stroke(gradient, style: StrokeStyle(lineWidth: isLooping ? 8 : 6, lineCap: .round))
-                .frame(width: 130, height: 130)
-                .rotationEffect(.degrees(isAnimating ? 360 : 0))
-                .animation(
-                    isAnimating
-                        ? .linear(duration: 1.333).repeatForever(autoreverses: false)
-                        : .spring(response: 0.8, dampingFraction: 0.85),
-                    value: isAnimating
-                )
-                // Separate animation just for the trim open/close
-                .animation(
-                    .spring(response: 0.9, dampingFraction: 0.75),
-                    value: isLooping
-                )
-        }
-        .onAppear {
-            isAnimating = isLooping
-        }
-        .onChange(of: isLooping) {
-            isAnimating = isLooping
-        }
-    }
+           Circle()
+               .trim(from: 0.0, to: isAnimating ? 0.75 : 1.0)
+               .stroke(gradient, style: StrokeStyle(lineWidth: isAnimating ? 8 : 6, lineCap: .round))
+               .frame(width: 130, height: 130)
+               .rotationEffect(.degrees(isAnimating ? 360 : 0))
+               .animation(
+                   isAnimating
+                       ? .linear(duration: 1.333).repeatForever(autoreverses: false)
+                       : .spring(response: 0.8, dampingFraction: 0.85),
+                   value: isAnimating
+               )
+               .animation(
+                   .spring(response: 0.9, dampingFraction: 0.75),
+                   value: isAnimating
+               )
+       }
+       .onAppear {
+           updateAnimating(isLooping)
+       }
+       .onChange(of: isLooping) {
+           updateAnimating(isLooping)
+       }
+   }
+
+   private func updateAnimating(_ newValue: Bool) {
+       if newValue {
+           animatingTask?.cancel()
+           animatingTask = nil
+           loopingStartTime = Date()
+           isAnimating = true
+       } else {
+           let elapsed = Date().timeIntervalSince(loopingStartTime ?? Date())
+           let remaining = max(0, 1.5 - elapsed)
+
+           animatingTask?.cancel()
+           animatingTask = Task {
+               if remaining > 0 {
+                   try? await Task.sleep(for: .seconds(remaining))
+               }
+               guard !Task.isCancelled else { return }
+               await MainActor.run { isAnimating = false }
+           }
+       }
+   }
 }
+
 
 struct TriangleShape: View {
     let color: Color
