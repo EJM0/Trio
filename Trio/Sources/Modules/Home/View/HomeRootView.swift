@@ -1211,6 +1211,7 @@ extension Home {
                             setupDelegate: state,
                             pluginCGMManager: self.state.pluginCGMManager
                         )
+                        .ignoresSafeArea()
                     }
                 }
             }

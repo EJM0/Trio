@@ -92,40 +92,32 @@ struct CarbEntryEditorView: View {
     }
 
     var stickyButton: some View {
-        ZStack {
-            Rectangle()
-                .frame(width: UIScreen.main.bounds.width, height: 65)
-                .foregroundStyle(colorScheme == .dark ? Color.bgDarkerDarkBlue : Color.white)
-                .background(.thinMaterial)
-                .opacity(0.8)
-                .clipShape(Rectangle())
+        Button(
+            action: {
+                guard let entryToEdit = entryToEdit else { return }
 
-            Button(
-                action: {
-                    guard let entryToEdit = entryToEdit else { return }
-
-                    state.updateEntry(
-                        entryToEdit,
-                        newCarbs: editedCarbs,
-                        newFat: editedFat,
-                        newProtein: editedProtein,
-                        newNote: editedNote,
-                        newDate: editedDate
-                    )
-                    dismiss()
-                }, label: {
-                    buttonLabel
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding(10)
-                }
-            )
-            .frame(width: UIScreen.main.bounds.width * 0.9, height: 40, alignment: .center)
-            .disabled(isButtonDisabled)
-            .background(buttonBackgroundColor)
-            .tint(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-        }
+                state.updateEntry(
+                    entryToEdit,
+                    newCarbs: editedCarbs,
+                    newFat: editedFat,
+                    newProtein: editedProtein,
+                    newNote: editedNote,
+                    newDate: editedDate
+                )
+                dismiss()
+            }, label: {
+                buttonLabel
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(10)
+            }
+        )
+        .font(.headline)
+        .foregroundStyle(Color.white)
+        .frame(width: UIScreen.main.bounds.width * 0.9, alignment: .center)
+        .frame(height: 50)
+        .background(buttonBackgroundColor)
+        .clipShape(RoundedRectangle(cornerRadius: 15))
     }
 
     var body: some View {
