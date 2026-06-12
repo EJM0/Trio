@@ -1251,6 +1251,7 @@ extension Home {
                     NavigationStack {
                         mainView()
                     }
+                    .tint(Color.tabBar)
                     .badge(carbsRequiredBadge)
                     .unionTab(HomeTab.main)
                     .transaction { $0.animation = nil }
@@ -1260,6 +1261,7 @@ extension Home {
                             .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
                             .ignoresSafeArea(.keyboard, edges: .bottom)
                     }
+                    .tint(Color.tabBar)
                     .unionTab(HomeTab.history)
                     .transaction { $0.animation = nil }
 
@@ -1274,6 +1276,7 @@ extension Home {
                             .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
                             .ignoresSafeArea(.keyboard, edges: .bottom)
                     }
+                    .tint(Color.tabBar)
                     .unionTab(HomeTab.adjustments)
                     .transaction { $0.animation = nil }
 
@@ -1282,6 +1285,7 @@ extension Home {
                             .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
                             .ignoresSafeArea(.keyboard, edges: .bottom)
                     }
+                    .tint(Color.tabBar)
                     .environment(settingsSearchHighlight)
                     .unionTab(HomeTab.settings)
                     .transaction { $0.animation = nil }
@@ -1347,6 +1351,7 @@ extension Home {
         var body: some View {
             ZStack(alignment: .center) {
                 tabBar()
+                    .tint(nil)
 
                 if state.waitForSuggestion {
                     CustomProgressView(
@@ -1354,7 +1359,6 @@ extension Home {
                     )
                 }
             }
-            .tint(Color.tabBar)
         }
     }
 }

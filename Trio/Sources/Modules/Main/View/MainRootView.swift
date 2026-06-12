@@ -18,7 +18,7 @@ extension Main {
                 .sheet(item: $state.secondaryModal) { wrapper in
                     wrapper.view
                 }
-
+                .tint(Color.tabBar)
                 .onAppear(perform: configureView)
                 .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
         }

@@ -34,9 +34,9 @@ struct LoopView: View {
         HStack(alignment: .center) {
             ZStack {
                 Image(systemName: (!closedLoop || manualTempBasal) ? "circle.and.line.horizontal" : "circle")
-                if isLooping {
-                    ProgressView()
-                }
+                // if isLooping {
+                //    ProgressView()
+                // }
             }
             // if isLooping {
             //    Text("looping")
