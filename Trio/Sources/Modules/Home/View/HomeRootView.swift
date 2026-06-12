@@ -1157,6 +1157,7 @@ extension Home {
                         completionDelegate: state,
                         setupDelegate: state
                     )
+                    .ignoresSafeArea()
                 } else {
                     PumpConfig.PumpSetupView(
                         pumpType: state.setupPumpType,
@@ -1165,6 +1166,7 @@ extension Home {
                         completionDelegate: state,
                         setupDelegate: state
                     )
+                    .ignoresSafeArea()
                 }
             }
             // CGM RELATED
@@ -1186,6 +1188,7 @@ extension Home {
                         cgmCurrent: state.cgmCurrent,
                         deleteCGM: state.deleteCGM
                     )
+                    .ignoresSafeArea()
                 case .plugin:
                     if let fetchGlucoseManager = state.fetchGlucoseManager,
                        let cgmManager = fetchGlucoseManager.cgmManager,
@@ -1198,6 +1201,7 @@ extension Home {
                             unit: state.settingsManager.settings.units,
                             completionDelegate: state
                         )
+                        .ignoresSafeArea()
                     } else {
                         CGMSettings.CGMSetupView(
                             CGMType: state.cgmCurrent,
