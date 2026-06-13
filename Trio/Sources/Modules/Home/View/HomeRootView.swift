@@ -66,7 +66,8 @@ extension Home {
         @State var isConfirmStopTempTargetShown = false
         @State var isMenuPresented = false
         @State var showTreatments = false
-        @State var selectedTab: HomeTab = .main
+        @State var selectedTab: Int = 0
+        @State var lastSelectedTab: Int = 0
         @State var showPumpSelection: Bool = false
         @State var showCGMSelection: Bool = false
         @State var notificationsDisabled = false
@@ -76,6 +77,7 @@ extension Home {
             TimePicker(active: false, hours: 12),
             TimePicker(active: false, hours: 24)
         ]
+        @State private var tabBarHeight: CGFloat = 83
 
         @FetchRequest(
             fetchRequest: OverrideStored.fetch(
@@ -189,6 +191,20 @@ extension Home {
                 do { try engine?.start() } catch {
                     print("Engine restart failed: \(error)")
                 }
+            }
+        }
+
+        private func updateTabBarHeight() {
+            DispatchQueue.main.async {
+                guard let scene = UIApplication.shared.connectedScenes
+                    .compactMap({ $0 as? UIWindowScene })
+                    .first(where: { $0.activationState == .foregroundActive }),
+                    let window = scene.keyWindow,
+                    let tabBar = window.rootViewController?.view
+                    .subviews.compactMap({ $0 as? UITabBar }).first
+                else { return }
+                // Store the actual tab bar height so tabBarHeight / 2 = vertical center
+                tabBarHeight = tabBar.frame.height
             }
         }
 
@@ -713,7 +729,7 @@ extension Home {
                 }
             }
             .onTapGesture {
-                selectedTab = .adjustments
+                selectedTab = 2
             }
         }
 
@@ -730,7 +746,7 @@ extension Home {
                 }
             }
             .onTapGesture {
-                selectedTab = .adjustments
+                selectedTab = 2
             }
         }
 
@@ -809,7 +825,7 @@ extension Home {
                     // clear color for the icon
                     .foregroundStyle(Color.clear)
             }.onTapGesture {
-                selectedTab = .adjustments
+                selectedTab = 2
             }
         }
 
@@ -1221,136 +1237,73 @@ extension Home {
             let carbsRequiredBadge: String? = {
                 guard let carbsRequired = state.enactedAndNonEnactedDeterminations.first?.carbsRequired,
                       state.showCarbsRequiredBadge
-                else {
-                    return nil
-                }
+                else { return nil }
                 let carbsRequiredDecimal = Decimal(carbsRequired)
                 if carbsRequiredDecimal > state.settingsManager.settings.carbsRequiredThreshold {
                     let numberAsNSNumber = NSDecimalNumber(decimal: carbsRequiredDecimal)
-                    return
-                        (Formatter.decimalFormatterWithTwoFractionDigits.string(from: numberAsNSNumber) ?? "")
-                            + " g"
+                    return (Formatter.decimalFormatterWithTwoFractionDigits.string(from: numberAsNSNumber) ?? "") + " g"
                 }
                 return nil
             }()
 
-            let selectionBinding = Binding<HomeTab>(
-                get: { ghostTab ?? selectedTab },
-                set: { newValue in
-                    if newValue == .plus {
-                        ghostTab = .plus
-                        withAnimation(.spring(response: 0, dampingFraction: 0)) {
-                            ghostTab = nil
-                        }
-                    } else {
-                        selectedTab = newValue
-                        ghostTab = nil
-                    }
-                }
-            )
-
-            ZStack(alignment: .bottom) {
-                UnionTabView(
-                    selection: selectionBinding, tabs: [.main, .history, .plus, .adjustments, .settings]
-                ) {
-                    NavigationStack {
-                        mainView()
-                    }
-                    .tint(Color.tabBar)
+            TabView(selection: $selectedTab) {
+                NavigationStack { mainView() }
                     .badge(carbsRequiredBadge)
-                    .unionTab(HomeTab.main)
-                    .transaction { $0.animation = nil }
+                    .tag(0)
+                    .tabItem { Image(systemName: "chart.xyaxis.line") }
 
-                    NavigationStack {
-                        History.RootView(resolver: resolver)
-                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
-                            .ignoresSafeArea(.keyboard, edges: .bottom)
-                    }
-                    .tint(Color.tabBar)
-                    .unionTab(HomeTab.history)
-                    .transaction { $0.animation = nil }
+                NavigationStack { History.RootView(resolver: resolver) }
+                    .tag(1)
+                    .tabItem { Image(systemName: historySFSymbol) }
 
-                    Color.clear
-                        .unionTab(HomeTab.plus)
-                        .disabled(true)
-                        .allowsHitTesting(false)
-                        .transaction { $0.animation = nil }
+                // Empty placeholder — no tabItem image at all = no icon, no white circle
+                Color.clear
+                    .tag(99)
+                    .tabItem { Text("") }
+                    .allowsHitTesting(false)
+                    .disabled(true)
 
-                    NavigationStack {
-                        Adjustments.RootView(resolver: resolver)
-                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
-                            .ignoresSafeArea(.keyboard, edges: .bottom)
-                    }
-                    .tint(Color.tabBar)
-                    .unionTab(HomeTab.adjustments)
-                    .transaction { $0.animation = nil }
+                NavigationStack { Adjustments.RootView(resolver: resolver) }
+                    .tag(2)
+                    .tabItem { Image(systemName: "slider.horizontal.2.gobackward") }
 
-                    NavigationStack(path: self.$settingsPath) {
-                        Settings.RootView(resolver: resolver)
-                            .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
-                            .ignoresSafeArea(.keyboard, edges: .bottom)
-                    }
-                    .tint(Color.tabBar)
-                    .environment(settingsSearchHighlight)
-                    .unionTab(HomeTab.settings)
-                    .transaction { $0.animation = nil }
-                } item: { tab, _ in
-                    VStack(spacing: 2) {
-                        switch tab {
-                        case .main:
-                            Image(systemName: "chart.xyaxis.line")
-                                .font(.system(size: 23))
-                                .foregroundStyle(selectedTab == tab ? Color.tabBar : .secondary)
-                        // Text("Main").font(.caption2)
-                        case .history:
-                            Image(systemName: historySFSymbol)
-                                .font(.system(size: 23))
-                                .foregroundStyle(selectedTab == tab ? Color.tabBar : .secondary)
-                        // Text("History").font(.caption2)
-                        case .plus:
-                            // Dummy placeholder to keep the space, captures center coordinate
-                            Color.clear.frame(width: 44, height: 44)
-                                .anchorPreference(key: TabCenterPreferenceKey.self, value: .center) { $0 }
-                        case .adjustments:
-                            Image(systemName: "slider.horizontal.2.gobackward")
-                                .font(.system(size: 23))
-                                .foregroundStyle(selectedTab == tab ? Color.tabBar : .secondary)
-                        // Text("Adjustments").font(.caption2)
-                        case .settings:
-                            Image(systemName: "gear")
-                                .font(.system(size: 23))
-                                .foregroundStyle(selectedTab == tab ? Color.tabBar : .secondary)
-                            // Text("Settings").font(.caption2)
-                        }
-                    }
-                    .allowsHitTesting(tab != .plus)
+                NavigationStack(path: self.$settingsPath) {
+                    Settings.RootView(resolver: resolver)
                 }
-                .overlayPreferenceValue(TabCenterPreferenceKey.self) { anchor in
-                    GeometryReader { proxy in
-                        if let anchor = anchor {
-                            Button(
-                                action: {
-                                    state.showModal(for: .treatmentView)
-                                },
-                                label: {
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 40))
-                                        .foregroundStyle(Color.tabBar)
-                                        .padding(.vertical, 2)
-                                        .padding(.horizontal, 24)
-                                }
-                            )
-                            .position(proxy[anchor])
-                        }
-                    }
-                }
+                .environment(settingsSearchHighlight)
+                .tag(3)
+                .tabItem { Image(systemName: "gear") }
             }
+            .tint(Color.tabBar)
             .ignoresSafeArea(.keyboard, edges: .bottom)
+            .blur(radius: state.waitForSuggestion ? 8 : 0)
             .onChange(of: selectedTab) {
-                if !settingsPath.isEmpty {
-                    settingsPath = NavigationPath()
+                if selectedTab == 99 {
+                    selectedTab = lastSelectedTab
+                    state.showModal(for: .treatmentView)
+                } else {
+                    lastSelectedTab = selectedTab
+                    if !settingsPath.isEmpty {
+                        settingsPath = NavigationPath()
+                    }
                 }
             }
+            .overlay(alignment: .bottom) {
+                GeometryReader { proxy in
+                    Button(action: { state.showModal(for: .treatmentView) }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 40))
+                            .foregroundStyle(Color.tabBar)
+                    }
+                    .position(
+                        x: proxy.size.width / 2,
+                        y: proxy.size.height - tabBarHeight / 1.6
+                    )
+                }
+                .ignoresSafeArea()
+            }
+            .onAppear { updateTabBarHeight() }
+            .onChange(of: tabBarHeight) { updateTabBarHeight() }
         }
 
         var body: some View {
