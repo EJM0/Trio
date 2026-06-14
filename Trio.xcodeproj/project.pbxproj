@@ -23,7 +23,6 @@
 		09A26C3F2F3424E1006B3BB6 /* ScaleSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A26C3E2F3424E1006B3BB6 /* ScaleSettingsView.swift */; };
 		09D758522F31671B00F9055E /* ProductSearchField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09D758512F31671B00F9055E /* ProductSearchField.swift */; };
 		09D758532F31671B00F9055E /* FoodSearchResultRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09D758502F31671B00F9055E /* FoodSearchResultRow.swift */; };
-		09D758A82F31712700F9055E /* UnionTabView in Frameworks */ = {isa = PBXBuildFile; productRef = 096349182EF98C23003C9C36 /* UnionTabView */; };
 		09EE33D92F3692B9008EEBA5 /* PhotoPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09EE33D82F3692B9008EEBA5 /* PhotoPicker.swift */; };
 		09F000722F01D6E800835F6D /* OpenFoodFactsClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09F000712F01D6E800835F6D /* OpenFoodFactsClient.swift */; };
 		09FBA78E2F3407210028BB52 /* ScaleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09FBA78C2F3407210028BB52 /* ScaleManager.swift */; };
@@ -331,8 +330,6 @@
 		3BEF6AB32D97316F0076089D /* MealTotalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BEF6AB22D97316A0076089D /* MealTotalTests.swift */; };
 		3BF424C72DF4805A0017CFD9 /* AutosensError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BF424C62DF480550017CFD9 /* AutosensError.swift */; };
 		3BF92F3A2D86F1AA006B545A /* iob-error-log.json in Resources */ = {isa = PBXBuildFile; fileRef = 3BF92F392D86F1AA006B545A /* iob-error-log.json */; };
-		B015AFE32E500000000D7351 /* BolusSafetyValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015AFE12E500000000D7351 /* BolusSafetyValidator.swift */; };
-		3BF85FE32E427312000D7351 /* IOBService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BF85FE12E427312000D7351 /* IOBService.swift */; };
 		3E28F2AB2EB5337F00FB9EEB /* ConnectIQ in Frameworks */ = {isa = PBXBuildFile; productRef = 3E28F2AA2EB5337F00FB9EEB /* ConnectIQ */; };
 		3E54EF2C2E476DA40006F54D /* MedtrumKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3E54EF2B2E476DA40006F54D /* MedtrumKit.framework */; };
 		3E54EF2D2E476DA40006F54D /* MedtrumKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3E54EF2B2E476DA40006F54D /* MedtrumKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -724,8 +721,6 @@
 		DD6F63CC2D27F615007D94CF /* TreatmentMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD6F63CB2D27F606007D94CF /* TreatmentMenuView.swift */; };
 		DD73FA0F2D74F58E00D19D1E /* BackgroundTask+Helper.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD73FA0E2D74F57300D19D1E /* BackgroundTask+Helper.swift */; };
 		DD758EDE2ECC656500EF5D54 /* DetermineBasalSmbMicroBolusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD758EDD2ECC656500EF5D54 /* DetermineBasalSmbMicroBolusTests.swift */; };
-		DD8262CB2D289297009F6F62 /* BolusConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD8262CA2D289297009F6F62 /* BolusConfirmationView.swift */; };
-		DD82D4B82DCAB2BA00BAFC77 /* PropertyPersistentFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD82D4B72DCAB2BA00BAFC77 /* PropertyPersistentFlags.swift */; };
 		DD7E1E300000000000000002 /* TelemetryClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7E1E300000000000000001 /* TelemetryClient.swift */; };
 		DD7E1E300000000000000004 /* TelemetryPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7E1E300000000000000003 /* TelemetryPreviewView.swift */; };
 		DD7E1E300000000000000006 /* TelemetryPrivacyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7E1E300000000000000005 /* TelemetryPrivacyView.swift */; };
@@ -1293,8 +1288,6 @@
 		3BF424C62DF480550017CFD9 /* AutosensError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutosensError.swift; sourceTree = "<group>"; };
 		3BF768BD6264FF7D71D66767 /* NightscoutConfigProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NightscoutConfigProvider.swift; sourceTree = "<group>"; };
 		3BF92F392D86F1AA006B545A /* iob-error-log.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "iob-error-log.json"; sourceTree = "<group>"; };
-		B015AFE12E500000000D7351 /* BolusSafetyValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BolusSafetyValidator.swift; sourceTree = "<group>"; };
-		3BF85FE12E427312000D7351 /* IOBService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOBService.swift; sourceTree = "<group>"; };
 		3E54EF2B2E476DA40006F54D /* MedtrumKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = MedtrumKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		3E62C7812F54CC1600433237 /* BolusDisplayThreshold.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BolusDisplayThreshold.swift; sourceTree = "<group>"; };
 		3F60E97100041040446F44E7 /* PumpConfigStateModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PumpConfigStateModel.swift; sourceTree = "<group>"; };
@@ -1472,7 +1465,6 @@
 		BDA25EE52D260D5800035F34 /* WatchState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchState.swift; sourceTree = "<group>"; };
 		BDA25EFC2D261BF200035F34 /* WatchState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchState.swift; sourceTree = "<group>"; };
 		BDA25F1B2D26BD0300035F34 /* TrendShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrendShape.swift; sourceTree = "<group>"; };
-		0916BE0A2FD2DDB9003D2285 /* CombinedGlucoseChartview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CombinedGlucoseChartview.swift; sourceTree = "<group>"; };
 		BDA25F1D2D26D5D800035F34 /* GlucoseChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseChartView.swift; sourceTree = "<group>"; };
 		BDA25F1F2D26D5FB00035F34 /* CarbsInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarbsInputView.swift; sourceTree = "<group>"; };
 		BDA25F212D26D62200035F34 /* BolusInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BolusInputView.swift; sourceTree = "<group>"; };
@@ -1837,7 +1829,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				09D758A82F31712700F9055E /* UnionTabView in Frameworks */,
 				CE95BF632BA771BE00DC3DE3 /* LoopTestingKit.framework in Frameworks */,
 				3B4BA7722D8DBD690069D5B8 /* G7SensorKitUI.framework in Frameworks */,
 				3B4BA7742D8DBD690069D5B8 /* LibreTransmitter.framework in Frameworks */,
@@ -3990,17 +3981,6 @@
 			path = StartupGuide;
 			sourceTree = "<group>";
 		};
-		DD9E6DA02D59A11200514CEC /* Meal */ = {
-			isa = PBXGroup;
-			children = (
-				3BBB76A92E01C7070040977D /* MealCob.swift */,
-				DD9E6DA42D5A66B500514CEC /* MealGenerator.swift */,
-				DD9E6DA12D59A12200514CEC /* MealHistory.swift */,
-				DD9E6DA62D5A694900514CEC /* MealTotal.swift */,
-			);
-			path = Meal;
-			sourceTree = "<group>";
-		};
 		DD7E1E30000000000000000A /* Telemetry */ = {
 			isa = PBXGroup;
 			children = (
@@ -4029,6 +4009,17 @@
 				DD7E1E300000000000000007 /* TelemetryMigrationSheetView.swift */,
 			);
 			path = View;
+			sourceTree = "<group>";
+		};
+		DD9E6DA02D59A11200514CEC /* Meal */ = {
+			isa = PBXGroup;
+			children = (
+				3BBB76A92E01C7070040977D /* MealCob.swift */,
+				DD9E6DA42D5A66B500514CEC /* MealGenerator.swift */,
+				DD9E6DA12D59A12200514CEC /* MealHistory.swift */,
+				DD9E6DA62D5A694900514CEC /* MealTotal.swift */,
+			);
+			path = Meal;
 			sourceTree = "<group>";
 		};
 		DD9ECB662CA99EFE00AA7C45 /* RemoteControl */ = {
@@ -4407,7 +4398,6 @@
 				3B47C60F2DA0A28F00B0E5EF /* FirebaseCrashlytics */,
 				DD17A0282E3FE0BD008E1BF0 /* SwiftJWT */,
 				3E28F2AA2EB5337F00FB9EEB /* ConnectIQ */,
-				096349182EF98C23003C9C36 /* UnionTabView */,
 			);
 			productName = Trio;
 			productReference = 388E595825AD948C0019842D /* Trio.app */;
@@ -4586,7 +4576,6 @@
 				3B47C60E2DA0A28F00B0E5EF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				DD868FD92E381E1C005D3308 /* XCRemoteSwiftPackageReference "Swift-JWT" */,
 				3E28F2A92EB5337F00FB9EEB /* XCRemoteSwiftPackageReference "connectiq-companion-app-sdk-ios" */,
-				096349172EF98C23003C9C36 /* XCRemoteSwiftPackageReference "union-tab-view" */,
 			);
 			productRefGroup = 388E595925AD948C0019842D /* Products */;
 			projectDirPath = "";
@@ -6169,14 +6158,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		096349172EF98C23003C9C36 /* XCRemoteSwiftPackageReference "union-tab-view" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/unionst/union-tab-view.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.2.0;
-			};
-		};
 		3811DE0E25C9D37700A708ED /* XCRemoteSwiftPackageReference "Swinject" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Swinject/Swinject";
@@ -6268,11 +6249,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		096349182EF98C23003C9C36 /* UnionTabView */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 096349172EF98C23003C9C36 /* XCRemoteSwiftPackageReference "union-tab-view" */;
-			productName = UnionTabView;
-		};
 		3811DE0F25C9D37700A708ED /* Swinject */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 3811DE0E25C9D37700A708ED /* XCRemoteSwiftPackageReference "Swinject" */;
