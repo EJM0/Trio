@@ -1115,7 +1115,7 @@ extension Home {
                     adjustmentView(geo: geo)
                 }
             }
-            // .padding(.bottom, geo.safeAreaInsets.bottom)
+            .background(appState.trioBackgroundColor(for: colorScheme))
             .onReceive(
                 resolver.resolve(AlertPermissionsChecker.self)!.$notificationsDisabled,
                 perform: {
@@ -1132,12 +1132,7 @@ extension Home {
         @ViewBuilder func mainView() -> some View {
             GeometryReader { geo in
                 mainViewElements(geo)
-                    .padding(.bottom, tabBarHeight - 70)
-                //    .safeAreaPadding(.bottom, tabBarHeight)
-                // .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
             }
-            .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
-            .ignoresSafeArea(.keyboard)
             .onChange(of: state.hours) {
                 highlightButtons()
             }
