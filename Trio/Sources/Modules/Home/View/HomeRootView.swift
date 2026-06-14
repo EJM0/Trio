@@ -1133,7 +1133,8 @@ extension Home {
         @ViewBuilder func mainView() -> some View {
             GeometryReader { geo in
                 mainViewElements(geo)
-                    .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
+                    .safeAreaPadding(.bottom, tabBarHeight)
+                // .safeAreaPadding(.bottom, UIDevice.adjustPadding(min: 70, max: 80) ?? 70)
             }
             .ignoresSafeArea(.keyboard)
             .onChange(of: state.hours) {
@@ -1250,7 +1251,7 @@ extension Home {
                     .tag(0)
                     .tabItem { Image(systemName: "chart.xyaxis.line") }
 
-                NavigationStack { History.RootView(resolver: resolver) }
+                NavigationStack { History.RootView(resolver: resolver).edgesIgnoringSafeArea(.bottom) }
                     .tag(1)
                     .tabItem { Image(systemName: historySFSymbol) }
 
@@ -1261,12 +1262,12 @@ extension Home {
                     .allowsHitTesting(false)
                     .disabled(true)
 
-                NavigationStack { Adjustments.RootView(resolver: resolver) }
+                NavigationStack { Adjustments.RootView(resolver: resolver).edgesIgnoringSafeArea(.bottom) }
                     .tag(2)
                     .tabItem { Image(systemName: "slider.horizontal.2.gobackward") }
 
                 NavigationStack(path: self.$settingsPath) {
-                    Settings.RootView(resolver: resolver)
+                    Settings.RootView(resolver: resolver).edgesIgnoringSafeArea(.bottom)
                 }
                 .environment(settingsSearchHighlight)
                 .tag(3)
