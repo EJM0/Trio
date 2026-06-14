@@ -1,4 +1,4 @@
- // !$*UTF8*$!
+// !$*UTF8*$!
 {
 	archiveVersion = 1;
 	classes = {
@@ -13,6 +13,7 @@
 		0961457D2F0BEEDE003E06D3 /* NutritionTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0961457C2F0BEEDE003E06D3 /* NutritionTextField.swift */; };
 		096F54772EF21D4B00B557C1 /* NutritionEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 096F54762EF21D4B00B557C1 /* NutritionEditorView.swift */; };
 		0977A2262EF1F35C00A1AF88 /* BarcodeScannerStateModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0977A2252EF1F35200A1AF88 /* BarcodeScannerStateModel.swift */; };
+		0989316E2FDF27180005E7C8 /* liqglass.icon in Resources */ = {isa = PBXBuildFile; fileRef = 0989316D2FDF27180005E7C8 /* liqglass.icon */; };
 		09A169602EE302EB0026711C /* BarcodeScannerDataFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A1695B2EE302EB0026711C /* BarcodeScannerDataFlow.swift */; };
 		09A169642EE302EB0026711C /* BarcodeScannerProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A1695C2EE302EB0026711C /* BarcodeScannerProvider.swift */; };
 		09A169652EE302EB0026711C /* BarcodeScannerRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A169582EE302EB0026711C /* BarcodeScannerRootView.swift */; };
@@ -976,6 +977,7 @@
 		0961457C2F0BEEDE003E06D3 /* NutritionTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionTextField.swift; sourceTree = "<group>"; };
 		096F54762EF21D4B00B557C1 /* NutritionEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionEditorView.swift; sourceTree = "<group>"; };
 		0977A2252EF1F35200A1AF88 /* BarcodeScannerStateModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerStateModel.swift; sourceTree = "<group>"; };
+		0989316D2FDF27180005E7C8 /* liqglass.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = liqglass.icon; sourceTree = "<group>"; };
 		09A169582EE302EB0026711C /* BarcodeScannerRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerRootView.swift; sourceTree = "<group>"; };
 		09A1695B2EE302EB0026711C /* BarcodeScannerDataFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerDataFlow.swift; sourceTree = "<group>"; };
 		09A1695C2EE302EB0026711C /* BarcodeScannerProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerProvider.swift; sourceTree = "<group>"; };
@@ -1676,8 +1678,6 @@
 		DD6F63CB2D27F606007D94CF /* TreatmentMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentMenuView.swift; sourceTree = "<group>"; };
 		DD73FA0E2D74F57300D19D1E /* BackgroundTask+Helper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BackgroundTask+Helper.swift"; sourceTree = "<group>"; };
 		DD758EDD2ECC656500EF5D54 /* DetermineBasalSmbMicroBolusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetermineBasalSmbMicroBolusTests.swift; sourceTree = "<group>"; };
-		DD8262CA2D289297009F6F62 /* BolusConfirmationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BolusConfirmationView.swift; sourceTree = "<group>"; };
-		DD82D4B72DCAB2BA00BAFC77 /* PropertyPersistentFlags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyPersistentFlags.swift; sourceTree = "<group>"; };
 		DD7E1E300000000000000001 /* TelemetryClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryClient.swift; sourceTree = "<group>"; };
 		DD7E1E300000000000000003 /* TelemetryPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryPreviewView.swift; sourceTree = "<group>"; };
 		DD7E1E300000000000000005 /* TelemetryPrivacyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryPrivacyView.swift; sourceTree = "<group>"; };
@@ -2440,6 +2440,7 @@
 				388E596425AD948E0019842D /* Info.plist */,
 				8A91342B2D63D9A2007F8874 /* InfoPlist.xcstrings */,
 				19DA487F29CD2B8400EEA1E7 /* Assets.xcassets */,
+				0989316D2FDF27180005E7C8 /* liqglass.icon */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -3098,22 +3099,6 @@
 				3BD6CE252DC24CFD00FA0472 /* pumphistory-24h-zoned.json */,
 			);
 			path = JSONImporterData;
-			sourceTree = "<group>";
-		};
-		B015AFE22E500000000D7351 /* BolusSafety */ = {
-			isa = PBXGroup;
-			children = (
-				B015AFE12E500000000D7351 /* BolusSafetyValidator.swift */,
-			);
-			path = BolusSafety;
-			sourceTree = "<group>";
-		};
-		3BF85FE22E427312000D7351 /* IOB */ = {
-			isa = PBXGroup;
-			children = (
-				3BF85FE12E427312000D7351 /* IOBService.swift */,
-			);
-			path = IOB;
 			sourceTree = "<group>";
 		};
 		4E8C7B59F8065047ECE20965 /* View */ = {
@@ -4602,6 +4587,7 @@
 				38DF178D27733E6800B3528F /* snow.sks in Resources */,
 				388E597225AD9CF10019842D /* json in Resources */,
 				38DF178E27733E6800B3528F /* Assets.xcassets in Resources */,
+				0989316E2FDF27180005E7C8 /* liqglass.icon in Resources */,
 				19DA48E829CD339B00EEA1E7 /* Assets.xcassets in Resources */,
 				8A91342A2D63D9A1007F8874 /* Localizable.xcstrings in Resources */,
 				388E596F25AD96040019842D /* javascript in Resources */,
@@ -5697,7 +5683,7 @@
 			buildSettings = {
 				APP_DISPLAY_NAME = "$(APP_DISPLAY_NAME)";
 				APP_GROUP_ID = "$(TRIO_APP_GROUP_ID)";
-				ASSETCATALOG_COMPILER_APPICON_NAME = "$(APP_ICON)";
+				ASSETCATALOG_COMPILER_APPICON_NAME = liqglass;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				BUNDLE_IDENTIFIER = "$(BUNDLE_IDENTIFIER)";
@@ -5743,7 +5729,7 @@
 			buildSettings = {
 				APP_DISPLAY_NAME = "$(APP_DISPLAY_NAME)";
 				APP_GROUP_ID = "$(TRIO_APP_GROUP_ID)";
-				ASSETCATALOG_COMPILER_APPICON_NAME = "$(APP_ICON)";
+				ASSETCATALOG_COMPILER_APPICON_NAME = liqglass;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				BUNDLE_IDENTIFIER = "$(BUNDLE_IDENTIFIER)";
