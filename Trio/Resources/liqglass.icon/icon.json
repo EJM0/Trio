@@ -9,16 +9,36 @@
     {
       "layers" : [
         {
-          "blend-mode" : "normal",
-          "glass" : true,
           "hidden" : false,
-          "image-name" : "clovers.svg",
-          "name" : "clovers",
+          "image-name" : "c1.svg",
+          "name" : "c1",
           "position" : {
             "scale" : 1,
             "translation-in-points" : [
-              -10.151539362740209,
-              -15.606995731254983
+              108.59061046773274,
+              -190.29113222753125
+            ]
+          }
+        },
+        {
+          "image-name" : "c2.svg",
+          "name" : "c2",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              -187.14799999999997,
+              20.355945097242625
+            ]
+          }
+        },
+        {
+          "image-name" : "c3.svg",
+          "name" : "c3",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              151.02946063725983,
+              198.88025198237688
             ]
           }
         }
