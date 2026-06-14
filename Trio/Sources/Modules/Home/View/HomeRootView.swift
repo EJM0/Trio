@@ -4,7 +4,6 @@ import SpriteKit
 import SwiftDate
 import SwiftUI
 import Swinject
-import UnionTabView
 
 enum HomeTab: Int, CaseIterable, Hashable {
     case main = 0
@@ -1247,7 +1246,7 @@ extension Home {
                     .tag(0)
                     .tabItem { Image(systemName: "chart.xyaxis.line") }
 
-                NavigationStack { History.RootView(resolver: resolver).edgesIgnoringSafeArea(.bottom) }
+                NavigationStack { History.RootView(resolver: resolver) }
                     .tag(1)
                     .tabItem { Image(systemName: historySFSymbol) }
 
@@ -1258,12 +1257,12 @@ extension Home {
                     .allowsHitTesting(false)
                     .disabled(true)
 
-                NavigationStack { Adjustments.RootView(resolver: resolver).edgesIgnoringSafeArea(.bottom) }
+                NavigationStack { Adjustments.RootView(resolver: resolver) }
                     .tag(2)
                     .tabItem { Image(systemName: "slider.horizontal.2.gobackward") }
 
                 NavigationStack(path: self.$settingsPath) {
-                    Settings.RootView(resolver: resolver).edgesIgnoringSafeArea(.bottom)
+                    Settings.RootView(resolver: resolver)
                 }
                 .environment(settingsSearchHighlight)
                 .tag(3)
