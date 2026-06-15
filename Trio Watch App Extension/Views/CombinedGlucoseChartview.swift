@@ -115,11 +115,15 @@ struct MinimizedGlucoseChartView: View {
     enum TimeWindow: Int {
         case threeHours = 3
         case sixHours = 6
+        case twelveHours = 12
+        case twentyFourHours = 24
 
         var next: TimeWindow {
             switch self {
             case .threeHours: return .sixHours
-            case .sixHours: return .threeHours
+            case .sixHours: return .twelveHours
+            case .twelveHours: return .twentyFourHours
+            case .twentyFourHours: return .threeHours
             }
         }
     }
@@ -133,6 +137,8 @@ struct MinimizedGlucoseChartView: View {
         switch timeWindow {
         case .threeHours: return 18
         case .sixHours: return 14
+        case .twelveHours: return 10
+        case .twentyFourHours: return 6
         }
     }
 
