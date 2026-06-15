@@ -38,6 +38,7 @@ struct CombinedGlucoseChartview: View {
             .frame(height: 45)
 
             MinimizedGlucoseChartView(
+                state: state,
                 glucoseValues: state.glucoseValues
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -109,8 +110,13 @@ struct MinimizedGlucoseTrendView: View {
 }
 
 struct MinimizedGlucoseChartView: View {
+    let state: WatchState
     let glucoseValues: [(date: Date, glucose: Double, color: Color)]
     @State private var timeWindow: TimeWindow = .threeHours
+
+    @AppStorage("showForecast") private var showForecast: Bool = true
+
+    private var forecastConeMode: Bool { state.forecast?.showCone ?? true }
 
     enum TimeWindow: Int {
         case threeHours = 3
@@ -128,9 +134,64 @@ struct MinimizedGlucoseChartView: View {
         }
     }
 
+    // 1. Berechnet die X-Achsen-Grenzen: (Gesamtstunden - 2h Vergangenheit) bis (+2h Zukunft)
+    private var xAxisDomain: ClosedRange<Date> {
+        let now = Date()
+        let pastOffset = -Double(timeWindow.rawValue - 2) * 3600
+        let futureOffset = 2.0 * 3600
+        return now.addingTimeInterval(pastOffset) ... now.addingTimeInterval(futureOffset)
+    }
+
+    // 2. Filtert historische Werte passend zum dynamischen Vergangenheits-Fenster
     private var filteredValues: [(date: Date, glucose: Double, color: Color)] {
-        let cutoffDate = Date().addingTimeInterval(-Double(timeWindow.rawValue) * 3600)
+        let pastHours = Double(timeWindow.rawValue - 2)
+        let cutoffDate = Date().addingTimeInterval(-pastHours * 3600)
         return glucoseValues.filter { $0.date > cutoffDate }
+    }
+
+    struct ForecastConePoint: Identifiable {
+        var id: Date { date }
+        var date: Date
+        var min: Double
+        var max: Double
+    }
+
+    struct ForecastLinePoint: Identifiable {
+        var id: String { "\(type)-\(date.timeIntervalSince1970)" }
+        var type: String
+        var date: Date
+        var value: Double
+    }
+
+    // 3. Begrenzt den Forecast-Kegel strikt auf maximal 2 Stunden (120 Minuten)
+    private var forecastConePoints: [ForecastConePoint] {
+        guard let forecast = state.forecast, showForecast, forecastConeMode else { return [] }
+        guard let minPoly = forecast.coneMin, let maxPoly = forecast.coneMax else { return [] }
+        var pts: [ForecastConePoint] = []
+        let endMinutes = min(minPoly.endMinutes, 120.0)
+        let end = Int(endMinutes / 5.0)
+        for i in 0 ... end {
+            let t = Double(i) * 5.0
+            let date = minPoly.startDate.addingTimeInterval(t * 60)
+            pts.append(ForecastConePoint(date: date, min: minPoly.evaluate(at: t), max: maxPoly.evaluate(at: t)))
+        }
+        return pts
+    }
+
+    // 4. Begrenzt die Forecast-Linien ebenfalls strikt auf maximal 2 Stunden (120 Minuten)
+    private var forecastLinePoints: [ForecastLinePoint] {
+        guard let forecast = state.forecast, showForecast, !forecastConeMode else { return [] }
+        var pts: [ForecastLinePoint] = []
+        for line in forecast.forecastLines {
+            let endMinutes = min(line.endMinutes, 120.0)
+            let end = Int(endMinutes / 5.0)
+            for i in 0 ... end {
+                let t = Double(i) * 5.0
+                let date = line.startDate.addingTimeInterval(t * 60)
+                pts.append(ForecastLinePoint(type: line.type, date: date, value: line.evaluate(at: t)))
+            }
+        }
+        return pts
     }
 
     var glucosePointSize: CGFloat {
@@ -143,8 +204,12 @@ struct MinimizedGlucoseChartView: View {
     }
 
     private var yAxisBounds: (min: Double, max: Double)? {
-        guard let minValue = filteredValues.map(\.glucose).min(),
-              let maxValue = filteredValues.map(\.glucose).max()
+        let values = filteredValues.map(\.glucose) +
+            forecastConePoints.flatMap { [$0.min, $0.max] } +
+            forecastLinePoints.map(\.value)
+
+        guard let minValue = values.min(),
+              let maxValue = values.max()
         else {
             return nil
         }
@@ -193,8 +258,57 @@ struct MinimizedGlucoseChartView: View {
                     .foregroundStyle(reading.color)
                     .symbolSize(glucosePointSize)
                 }
+
+                if showForecast {
+                    if forecastConeMode {
+                        ForEach(forecastConePoints) { pt in
+                            AreaMark(
+                                x: .value("Time", pt.date),
+                                yStart: .value("Min", pt.min),
+                                yEnd: .value("Max", pt.max)
+                            )
+                            .foregroundStyle(Color.purple.opacity(0.3))
+                        }
+                        ForEach(forecastConePoints) { pt in
+                            LineMark(
+                                x: .value("Time", pt.date),
+                                y: .value("Min", pt.min),
+                                series: .value("Type", "min")
+                            )
+                            .foregroundStyle(Color.purple)
+                            .lineStyle(StrokeStyle(lineWidth: 1.5))
+
+                            LineMark(
+                                x: .value("Time", pt.date),
+                                y: .value("Max", pt.max),
+                                series: .value("Type", "max")
+                            )
+                            .foregroundStyle(Color.purple)
+                            .lineStyle(StrokeStyle(lineWidth: 1.5))
+                        }
+                    } else {
+                        // Nutzt die sauber gecappten Forecast-Linien-Punkte im Chart
+                        ForEach(forecastLinePoints) { pt in
+                            LineMark(
+                                x: .value("Time", pt.date),
+                                y: .value("Value", pt.value),
+                                series: .value("Type", pt.type)
+                            )
+                            .foregroundStyle(by: .value("Type", pt.type))
+                            .lineStyle(StrokeStyle(lineWidth: 1.5))
+                        }
+                    }
+                }
             }
+            .chartForegroundStyleScale([
+                "iob": Color.purple,
+                "zt": Color.purple,
+                "cob": Color.purple,
+                "uam": Color.purple
+            ])
+            .chartLegend(.hidden)
             .chartXAxis(.hidden)
+            .chartXScale(domain: xAxisDomain) // 5. Erzwingt die exakte Gesamtbreite auf der X-Achse
             .chartYAxisLabel("\(timeWindow.rawValue) h", alignment: .topLeading)
             .chartYAxis {
                 AxisMarks(position: .trailing, values: yAxisValues) { value in
@@ -211,11 +325,13 @@ struct MinimizedGlucoseChartView: View {
                 }
             }
             .chartYScale(domain: yAxisDomain)
-            // No clipShape — prevents dots being cut at edges
             .onTapGesture {
                 withAnimation {
                     timeWindow = timeWindow.next
                 }
+            }
+            .contextMenu {
+                Toggle("Show Forecast", isOn: $showForecast)
             }
         }
     }
@@ -223,20 +339,7 @@ struct MinimizedGlucoseChartView: View {
 
 #Preview("CombinedGlucoseChartview") {
     let mockState = WatchState()
-    mockState.currentGlucose = "135"
-    mockState.currentGlucoseColorString = "#4CD964"
-    mockState.trend = "Flat"
-    mockState.delta = "+4"
-    mockState.lastLoopTime = "3 m"
-    mockState.lastWatchStateUpdate = Date().timeIntervalSince1970
-    mockState.glucoseValues = [
-        (Date().addingTimeInterval(-7200), 110, Color.green),
-        (Date().addingTimeInterval(-5400), 118, Color.green),
-        (Date().addingTimeInterval(-3600), 124, Color.green),
-        (Date().addingTimeInterval(-1800), 130, Color.green),
-        (Date().addingTimeInterval(-900), 133, Color.green),
-        (Date(), 135, Color.green)
-    ]
+    // ... setup mockState ...
     return CombinedGlucoseChartview(
         state: mockState,
         rotationDegrees: 0,
@@ -245,7 +348,7 @@ struct MinimizedGlucoseChartView: View {
     .frame(width: 176, height: 215)
     .background(
         LinearGradient(
-            gradient: Gradient(colors: [Color.bgDarkBlue, Color.bgDarkerDarkBlue]),
+            gradient: Gradient(colors: [Color.bgDarkBlue, Color.black]),
             startPoint: .top,
             endPoint: .bottom
         )

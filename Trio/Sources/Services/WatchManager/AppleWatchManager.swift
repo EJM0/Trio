@@ -202,7 +202,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             let tempTargetPresetObjects: [TempTargetStored] = try await CoreDataStack.shared
                 .getNSManagedObject(with: tempTargetPresetIds, context: backgroundContext)
 
-            return await backgroundContext.perform {
+            var watchState = await backgroundContext.perform {
                 var watchState = WatchState(date: Date())
 
                 // Set lastLoopDate
@@ -361,6 +361,10 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
                 return watchState
             }
+
+            // Append forecast data (non-fatal: missing forecast is acceptable).
+            watchState.forecast = try? await fetchForecastData(units: units)
+            return watchState
         } catch {
             debug(
                 .watchManager,
@@ -433,7 +437,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     // MARK: - Send to Watch
 
     func watchStateToDictionary(from state: WatchState) -> [String: Any] {
-        [
+        var dict: [String: Any] = [
             WatchMessageKeys.date: state.date.timeIntervalSince1970,
             WatchMessageKeys.currentGlucose: state.currentGlucose ?? "--",
             WatchMessageKeys.currentGlucoseColorString: state.currentGlucoseColorString ?? "#ffffff",
@@ -471,6 +475,14 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             WatchMessageKeys.confirmBolusFaster: state.confirmBolusFaster,
             WatchMessageKeys.units: state.units.rawValue
         ]
+
+        if settingsManager.settings.showForecastOnAppleWatch, let forecastData = state.forecast,
+           let encodedForecast = encodeForecast(forecastData, showCone: settingsManager.settings.appleWatchForecastConeMode)
+        {
+            dict[WatchMessageKeys.forecast] = encodedForecast
+        }
+
+        return dict
     }
 
     /// Sends the state of type WatchState to the connected Watch

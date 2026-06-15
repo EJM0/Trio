@@ -27,6 +27,7 @@ import WatchConnectivity
     var lastLoopTime: String? = "--"
     var overridePresets: [OverridePresetWatch] = []
     var tempTargetPresets: [TempTargetPresetWatch] = []
+    var forecast: WatchForecastData?
 
     /// treatments inputs
     /// used to store carbs for combined meal-bolus-treatments
@@ -563,6 +564,18 @@ import WatchConnectivity
         if let confirmBolusFaster = message[WatchMessageKeys.confirmBolusFaster] {
             if let booleanValue = confirmBolusFaster as? Bool {
                 self.confirmBolusFaster = booleanValue
+            }
+        }
+
+        if let forecastDict = message["forecast"] as? [String: Any],
+           let jsonData = try? JSONSerialization.data(withJSONObject: forecastDict)
+        {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .secondsSince1970
+            if let forecast = try? decoder.decode(WatchForecastData.self, from: jsonData) {
+                self.forecast = forecast
+            } else {
+                print("Failed to decode forecast data")
             }
         }
     }

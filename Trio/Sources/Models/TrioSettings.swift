@@ -64,6 +64,8 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var maxFat: Decimal = 250
     var maxProtein: Decimal = 250
     var confirmBolusFaster: Bool = false
+    var showForecastOnAppleWatch: Bool = true
+    var appleWatchForecastConeMode: Bool = true
     var overrideFactor: Decimal = 0.8
     var fattyMeals: Bool = false
     var fattyMealFactor: Decimal = 0.7
@@ -372,6 +374,14 @@ extension TrioSettings: Decodable {
 
         if let confirmBolusFaster = try? container.decode(Bool.self, forKey: .confirmBolusFaster) {
             settings.confirmBolusFaster = confirmBolusFaster
+        }
+
+        if let showForecastOnAppleWatch = try? container.decode(Bool.self, forKey: .showForecastOnAppleWatch) {
+            settings.showForecastOnAppleWatch = showForecastOnAppleWatch
+        }
+
+        if let appleWatchForecastConeMode = try? container.decode(Bool.self, forKey: .appleWatchForecastConeMode) {
+            settings.appleWatchForecastConeMode = appleWatchForecastConeMode
         }
 
         if let displayPresets = try? container.decode(Bool.self, forKey: .displayPresets) {

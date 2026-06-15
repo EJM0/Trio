@@ -43,6 +43,48 @@ struct WatchConfigAppleWatchView: BaseView {
                 headerText: String(localized: "Apple Watch Configuration")
             )
 
+            SettingInputSection(
+                decimalValue: $decimalPlaceholder,
+                booleanValue: $state.showForecastOnAppleWatch,
+                shouldDisplayHint: $shouldDisplayHint,
+                selectedVerboseHint: Binding(
+                    get: { selectedVerboseHint },
+                    set: {
+                        selectedVerboseHint = $0.map { AnyView($0) }
+                        hintLabel = String(localized: "Show Forecast on Watch")
+                    }
+                ),
+                units: state.units,
+                type: .boolean,
+                label: String(localized: "Show Forecast on Watch"),
+                miniHint: String(localized: "Display the forecast cone or lines on the Apple Watch charts."),
+                verboseHint: Text("When enabled, the Apple Watch will receive and display the glucose forecast data."),
+                headerText: String(localized: "Forecast")
+            )
+
+            if state.showForecastOnAppleWatch {
+                SettingInputSection(
+                    decimalValue: $decimalPlaceholder,
+                    booleanValue: $state.appleWatchForecastConeMode,
+                    shouldDisplayHint: $shouldDisplayHint,
+                    selectedVerboseHint: Binding(
+                        get: { selectedVerboseHint },
+                        set: {
+                            selectedVerboseHint = $0.map { AnyView($0) }
+                            hintLabel = String(localized: "Forecast Display Type")
+                        }
+                    ),
+                    units: state.units,
+                    type: .boolean,
+                    label: String(localized: "Use Cone Mode for Forecast"),
+                    miniHint: String(localized: "Toggle between displaying a Cone or Lines for the forecast."),
+                    verboseHint: Text(
+                        "When enabled, the Apple Watch will display a cone for the forecast. When disabled, it will display individual lines."
+                    ),
+                    headerText: nil
+                )
+            }
+
             Section(
                 header: Text("Contact Image"),
                 content: {

@@ -9,6 +9,8 @@ extension WatchConfig {
         @Published var units: GlucoseUnits = .mgdL
         @Published var devices: [IQDevice] = []
         @Published var confirmBolusFaster = false
+        @Published var showForecastOnAppleWatch = true
+        @Published var appleWatchForecastConeMode = true
 
         /// Garmin watch settings containing all watch-related configuration
         @Published var garminSettings = GarminWatchSettings()
@@ -22,6 +24,8 @@ extension WatchConfig {
             // Subscribe to the entire garminSettings struct from TrioSettings
             subscribeSetting(\.garminSettings, on: $garminSettings) { garminSettings = $0 }
             subscribeSetting(\.confirmBolusFaster, on: $confirmBolusFaster) { confirmBolusFaster = $0 }
+            subscribeSetting(\.showForecastOnAppleWatch, on: $showForecastOnAppleWatch) { showForecastOnAppleWatch = $0 }
+            subscribeSetting(\.appleWatchForecastConeMode, on: $appleWatchForecastConeMode) { appleWatchForecastConeMode = $0 }
 
             devices = garmin.devices
         }
