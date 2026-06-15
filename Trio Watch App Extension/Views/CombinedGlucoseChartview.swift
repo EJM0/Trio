@@ -267,7 +267,7 @@ struct MinimizedGlucoseChartView: View {
                                 yStart: .value("Min", pt.min),
                                 yEnd: .value("Max", pt.max)
                             )
-                            .foregroundStyle(Color.purple.opacity(0.3))
+                            .foregroundStyle(Color.insulin.opacity(0.3))
                         }
                         ForEach(forecastConePoints) { pt in
                             LineMark(
@@ -275,7 +275,7 @@ struct MinimizedGlucoseChartView: View {
                                 y: .value("Min", pt.min),
                                 series: .value("Type", "min")
                             )
-                            .foregroundStyle(Color.purple)
+                            .foregroundStyle(Color.insulin)
                             .lineStyle(StrokeStyle(lineWidth: 1.5))
 
                             LineMark(
@@ -283,7 +283,7 @@ struct MinimizedGlucoseChartView: View {
                                 y: .value("Max", pt.max),
                                 series: .value("Type", "max")
                             )
-                            .foregroundStyle(Color.purple)
+                            .foregroundStyle(Color.insulin)
                             .lineStyle(StrokeStyle(lineWidth: 1.5))
                         }
                     } else {
@@ -301,10 +301,10 @@ struct MinimizedGlucoseChartView: View {
                 }
             }
             .chartForegroundStyleScale([
-                "iob": Color.purple,
-                "zt": Color.purple,
-                "cob": Color.purple,
-                "uam": Color.purple
+                "iob": Color.insulin,
+                "zt": Color.ZT,
+                "cob": Color.loopYellow,
+                "uam": Color.UAM
             ])
             .chartLegend(.hidden)
             .chartXAxis(.hidden)
