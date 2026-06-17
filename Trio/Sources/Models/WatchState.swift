@@ -18,11 +18,19 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var tempTargetPresets: [TempTargetPresetWatch] = []
     var forecast: WatchForecastData?
 
+    /// treatments inputs
+    /// used to store carbs for combined meal-bolus-treatments
+    var carbsAmount: Int = 0
+    var fatAmount: Int = 0
+    var proteinAmount: Int = 0
+    var bolusAmount: Double = 0.0
+    var confirmationProgress: Double = 0.0
+
     // Safety limits
-    var maxBolus: Decimal = 10.0
-    var maxCarbs: Decimal = 250.0
-    var maxFat: Decimal = 250.0
-    var maxProtein: Decimal = 250.0
+    var maxBolus: Decimal = 10
+    var maxCarbs: Decimal = 250
+    var maxFat: Decimal = 250
+    var maxProtein: Decimal = 250
 
     // Pump specific dosing increment
     var bolusIncrement: Decimal = 0.05

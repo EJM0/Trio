@@ -24,6 +24,8 @@
 		09A26C3F2F3424E1006B3BB6 /* ScaleSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A26C3E2F3424E1006B3BB6 /* ScaleSettingsView.swift */; };
 		09D758522F31671B00F9055E /* ProductSearchField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09D758512F31671B00F9055E /* ProductSearchField.swift */; };
 		09D758532F31671B00F9055E /* FoodSearchResultRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09D758502F31671B00F9055E /* FoodSearchResultRow.swift */; };
+		09E54B932FE2D18B0029BDC0 /* WatchForecastData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09E54B922FE2D18B0029BDC0 /* WatchForecastData.swift */; };
+		09E54B952FE2D19D0029BDC0 /* BaseWatchManager+Forecast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09E54B942FE2D19D0029BDC0 /* BaseWatchManager+Forecast.swift */; };
 		09EE33D92F3692B9008EEBA5 /* PhotoPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09EE33D82F3692B9008EEBA5 /* PhotoPicker.swift */; };
 		09F000722F01D6E800835F6D /* OpenFoodFactsClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09F000712F01D6E800835F6D /* OpenFoodFactsClient.swift */; };
 		09FBA78E2F3407210028BB52 /* ScaleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09FBA78C2F3407210028BB52 /* ScaleManager.swift */; };
@@ -988,6 +990,8 @@
 		09A26C3E2F3424E1006B3BB6 /* ScaleSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScaleSettingsView.swift; sourceTree = "<group>"; };
 		09D758502F31671B00F9055E /* FoodSearchResultRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodSearchResultRow.swift; sourceTree = "<group>"; };
 		09D758512F31671B00F9055E /* ProductSearchField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductSearchField.swift; sourceTree = "<group>"; };
+		09E54B922FE2D18B0029BDC0 /* WatchForecastData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchForecastData.swift; sourceTree = "<group>"; };
+		09E54B942FE2D19D0029BDC0 /* BaseWatchManager+Forecast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BaseWatchManager+Forecast.swift"; sourceTree = "<group>"; };
 		09EE33D82F3692B9008EEBA5 /* PhotoPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPicker.swift; sourceTree = "<group>"; };
 		09F000712F01D6E800835F6D /* OpenFoodFactsClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenFoodFactsClient.swift; sourceTree = "<group>"; };
 		09FBA78C2F3407210028BB52 /* ScaleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScaleManager.swift; sourceTree = "<group>"; };
@@ -2878,6 +2882,8 @@
 			children = (
 				BDA25EE32D260CCF00035F34 /* AppleWatchManager.swift */,
 				CE94597D29E9E1EE0047C9C6 /* GarminManager.swift */,
+				09E54B942FE2D19D0029BDC0 /* BaseWatchManager+Forecast.swift */,
+				09E54B922FE2D18B0029BDC0 /* WatchForecastData.swift */,
 			);
 			path = WatchManager;
 			sourceTree = "<group>";
@@ -4747,6 +4753,7 @@
 				38E4453C274E411700EC9A94 /* Disk+Codable.swift in Sources */,
 				58D08B322C8DF88900AA37D3 /* DummyCharts.swift in Sources */,
 				19E1F7EF29D08EBA005C8D20 /* IconConfigRootWiew.swift in Sources */,
+				09E54B932FE2D18B0029BDC0 /* WatchForecastData.swift in Sources */,
 				1967DFC229D053D300759F30 /* IconImage.swift in Sources */,
 				382C134B25F14E3700715CE1 /* BGTargets.swift in Sources */,
 				38AEE75725F0F18E0013F05B /* CarbsStorage.swift in Sources */,
@@ -5194,6 +5201,7 @@
 				C29835B02E2AA3F30068C5BB /* NightscoutUploadStepView.swift in Sources */,
 				58D08B3A2C8DFECD00AA37D3 /* TempTargets.swift in Sources */,
 				38E98A2325F52C9300C0CED0 /* Signpost.swift in Sources */,
+				09E54B952FE2D19D0029BDC0 /* BaseWatchManager+Forecast.swift in Sources */,
 				3B5CD1EC2D4912A600CE213C /* OpenAPSSwift.swift in Sources */,
 				3B5CD1ED2D4912A600CE213C /* JSONBridge.swift in Sources */,
 				CE7CA3542A064973004BE681 /* TempPresetsIntentRequest.swift in Sources */,
