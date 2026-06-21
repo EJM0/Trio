@@ -303,7 +303,7 @@ struct MinimizedGlucoseChartView: View {
             .chartForegroundStyleScale([
                 "iob": Color.insulin,
                 "zt": Color.ZT,
-                "cob": Color.loopYellow,
+                "cob": Color.darkOrange,
                 "uam": Color.UAM
             ])
             .chartLegend(.hidden)
