@@ -5,7 +5,7 @@ extension Adjustments.RootView {
     @ViewBuilder func tempTargets() -> some View {
         if state.isTempTargetEnabled, state.activeTempTargetName.isNotEmpty {
             currentActiveAdjustment
-            stopAdjustmentButton
+            // stopAdjustmentButton
         }
         if state.scheduledTempTargets.isNotEmpty {
             scheduledTempTargets

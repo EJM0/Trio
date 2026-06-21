@@ -64,6 +64,13 @@ extension Adjustments {
                         case .tempTargets: tempTargets() }
                     }
                     .scrollContentBackground(.hidden)
+                    .safeAreaInset(edge: .bottom) {
+                        if state.selectedTab == .overrides, shouldDisplayStickyOverrideStopButton {
+                            stickyStopOverrideButton
+                        } else if state.selectedTab == .tempTargets, shouldDisplayStickyTempTargetStopButton {
+                            stickyStopTempTargetButton
+                        }
+                    }
                 }
                 .listSectionSpacing(10)
                 .scrollContentBackground(.hidden)
