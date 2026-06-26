@@ -32,6 +32,7 @@ extension BarcodeScanner {
 
         // External control
         @Published var showListView = false
+        @Published var isTorchOn = false
         var onAddTreatments: ((Decimal, Decimal, Decimal, String) -> Void)?
         var onDismiss: (() -> Void)?
 

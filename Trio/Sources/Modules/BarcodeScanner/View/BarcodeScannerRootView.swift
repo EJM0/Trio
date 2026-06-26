@@ -1,7 +1,23 @@
+import CodeScanner
 import CoreData
 import SwiftUI
 import Swinject
 import UIKit
+
+private func localizedScanFailureMessage(for error: ScanError) -> String {
+    switch error {
+    case .badInput:
+        return String(localized: "The camera could not be accessed.")
+    case .badOutput:
+        return String(localized: "This device can't read barcodes with the camera.")
+    case .permissionDenied:
+        return String(
+            localized: "Camera permissions were denied. Enable them in Settings to continue."
+        )
+    case let .initError(underlying):
+        return (underlying as? LocalizedError)?.errorDescription ?? underlying.localizedDescription
+    }
+}
 
 // MARK: - Root View
 
@@ -66,6 +82,27 @@ extension BarcodeScanner {
             case presets = "Presets"
         }
 
+        private var torchToggleButton: some View {
+            Button {
+                state.isTorchOn.toggle()
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: state.isTorchOn ? "flashlight.on.fill" : "flashlight.off.fill")
+                        .font(.title2)
+                    Text(String(localized: "Flash"))
+                        .font(.headline)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.blue)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 8)
+            .safeAreaPadding(.bottom, 8)
+            .accessibilityLabel(String(localized: "Flash"))
+        }
+
         var body: some View {
             VStack(spacing: 0) {
                 if !state.showEditorView || selectedListTab != .scanner {
@@ -93,17 +130,28 @@ extension BarcodeScanner {
             }
             .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .navigationTitle(LocalizedStringKey(navigationTitle))
-            .onChange(of: state.showListView) {
-                if state.showListView {
+            .onChange(of: state.showListView) { _, newValue in
+                if newValue {
                     if selectedListTab == .scanner {
                         selectedListTab = .scanned
                     }
+                    // Reset torch when list view is shown (scanner hides)
+                    state.isTorchOn = false
                 } else {
                     selectedListTab = .scanner
                 }
             }
-            .onChange(of: selectedListTab) {
-                state.showListView = (selectedListTab != .scanner)
+            .onChange(of: selectedListTab) { _, newValue in
+                state.showListView = (newValue != .scanner)
+
+                // Reset torch when switching to any tab other than scanner
+                if newValue != .scanner {
+                    state.isTorchOn = false
+                }
+            }
+            .onDisappear {
+                // Ensure the torch state resets if the entire RootView is dismissed
+                state.isTorchOn = false
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(content: {
@@ -169,20 +217,29 @@ extension BarcodeScanner {
 
         private var scannerViewContent: some View {
             Group {
-                if state.isFetchingProduct {
-                    loadingView
-                } else if state.showEditorView {
+                if state.showEditorView {
+                    // Show full editor view when product/nutrition data is available
                     NutritionEditorView(
                         state: state,
                         isEditingFromList: $isEditingFromList,
-                        onDismissList: {}
+                        onDismissList: { state.showListView = true }
                     )
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
                 } else {
                     GeometryReader { geo in
                         ScrollView {
                             ZStack {
-                                fullScreenCameraView
+                                if state.isFetchingProduct {
+                                    // Loading state
+                                    loadingView
+                                        .transition(.opacity)
+                                } else {
+                                    // Scanner view
+                                    fullScreenCameraView
+                                        .transition(.move(edge: .leading).combined(with: .opacity))
+                                }
 
+                                // Error overlay (always visible if there's an error)
                                 if let message = state.errorMessage {
                                     VStack {
                                         Spacer()
@@ -194,7 +251,6 @@ extension BarcodeScanner {
                                             .background(.ultraThinMaterial)
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
                                             .padding(.horizontal)
-                                            .padding(.bottom, 100)
                                     }
                                     .allowsHitTesting(false)
                                 }
@@ -211,6 +267,72 @@ extension BarcodeScanner {
                     state.isScanning = false
                 } else {
                     state.isKeyboardVisible = false
+                }
+            }
+        }
+
+        // MARK: - Full Screen Camera View
+
+        private var fullScreenCameraView: some View {
+            VStack {
+                ZStack {
+                    switch state.cameraStatus {
+                    case .authorized:
+                        CodeScannerView(
+                            codeTypes: [.ean13, .ean8, .upce, .code128, .code39],
+                            scanMode: .continuous,
+                            requiresPhotoOutput: false,
+                            isTorchOn: state.isTorchOn,
+                            isPaused: !state.isScanning,
+                            completion: { result in
+                                switch result {
+                                case let .success(scan):
+                                    state.didDetect(barcode: scan.string)
+                                case let .failure(error):
+                                    state.reportScannerIssue(localizedScanFailureMessage(for: error))
+                                }
+                            }
+                        )
+
+                    case .notDetermined:
+                        VStack {
+                            Spacer()
+                            ProgressView(String(localized: "Requesting camera access…"))
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black)
+
+                    default:
+                        VStack(spacing: 16) {
+                            Spacer()
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 50))
+                                .foregroundStyle(.secondary)
+                            Label(
+                                String(localized: "Enable camera access to start scanning."),
+                                systemImage: "lock.shield"
+                            )
+                            .font(.subheadline)
+                            Button(String(localized: "Open Settings"), action: state.openAppSettings)
+                                .buttonStyle(.borderedProminent)
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black.opacity(0.9))
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .strokeBorder(.white.opacity(0.3), lineWidth: 1)
+                )
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                if state.cameraStatus == .authorized {
+                    torchToggleButton
                 }
             }
         }
@@ -503,98 +625,6 @@ extension BarcodeScanner {
             }
         }
 
-        private var fullScreenCameraView: some View {
-            ZStack {
-                switch state.cameraStatus {
-                case .authorized:
-                    ZStack {
-                        ScannerPreviewView(
-                            isRunning: Binding(
-                                get: { state.isScanning },
-                                set: { state.isScanning = $0 }
-                            ),
-                            onDetected: { state.didDetect(barcode: $0) },
-                            onFailure: state.reportScannerIssue
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .strokeBorder(.white.opacity(0.3), lineWidth: 1)
-                        )
-                        .padding(.horizontal)
-                        .padding(.top, 8)
-                        .padding(.bottom, 8)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                        // Action buttons at bottom
-                        // VStack {
-                        //    Spacer()
-                        //    cameraActionButtons
-                        // }
-                    }
-
-                case .notDetermined:
-                    VStack {
-                        Spacer()
-                        ProgressView(String(localized: "Requesting camera access…"))
-                        Spacer()
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.black)
-
-                default:
-                    VStack(spacing: 16) {
-                        Spacer()
-                        Image(systemName: "camera.fill")
-                            .font(.system(size: 50))
-                            .foregroundStyle(.secondary)
-                        Label(
-                            String(localized: "Enable camera access to start scanning."),
-                            systemImage: "lock.shield"
-                        )
-                        .font(.subheadline)
-                        Button(String(localized: "Open Settings"), action: state.openAppSettings)
-                            .buttonStyle(.borderedProminent)
-                        Spacer()
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.black.opacity(0.9))
-                }
-            }
-        }
-
-        // MARK: - Camera Action Buttons
-
-        private var cameraActionButtons: some View {
-            HStack(spacing: 12) {
-                // Pause/Scan button intentionally disabled.
-                // Button {
-                //     if state.isScanning {
-                //         state.isScanning = false
-                //     } else {
-                //         state.scanAgain(resetResults: false)
-                //     }
-                // } label: {
-                //     HStack(spacing: 6) {
-                //         Image(systemName: state.isScanning ? "pause.fill" : "barcode.viewfinder")
-                //         Text(state.isScanning ? "Pause" : "Scan")
-                //     }
-                //     .font(.subheadline.weight(.semibold))
-                //     .frame(maxWidth: .infinity)
-                //     .padding(.vertical, 12)
-                // }
-                // .buttonStyle(.borderedProminent)
-                // .tint(state.isScanning ? .orange : .insulin)
-
-                if !state.scannedProducts.isEmpty {
-                    // "Calculator" button removed as per request for live updates
-                }
-            }
-            .padding(.horizontal)
-            .padding(.top, 12)
-            .padding(.bottom, 16)
-        }
-
         private var emptyListView: some View {
             VStack(spacing: 20) {
                 Spacer()
@@ -682,7 +712,5 @@ extension BarcodeScanner {
                 }
             }
         }
-
-        // MARK: - Helper Functions
     }
 }
