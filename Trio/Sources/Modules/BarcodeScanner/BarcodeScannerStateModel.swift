@@ -381,8 +381,12 @@ extension BarcodeScanner {
             // Clear the editor and resume scanning
             clearScannedProduct()
 
-            // Automatically switch to list view after adding
-            showListView = true
+            // MARK: - FIX: Defer the expensive tab switch to the next runloop iteration
+
+            // This prevents the UI from hanging when transitioning from scanner to list view
+            DispatchQueue.main.async {
+                self.showListView = true
+            }
         }
 
         /// Sets up editing state when a product is loaded
