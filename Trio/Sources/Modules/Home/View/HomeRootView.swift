@@ -253,6 +253,7 @@ extension Home {
                 currentGlucoseTarget: state.currentGlucoseTarget,
                 glucoseColorScheme: state.glucoseColorScheme,
                 glucose: state.latestTwoGlucoseValues,
+                isLooping: state.isLooping,
                 cgmProgress: state.cgmProgressHighlight,
                 cgmStatus: state.cgmDisplayState,
                 cgmSensorExpiresAt: state.cgmSensorExpiresAt,
