@@ -324,132 +324,95 @@ extension UIApplication {
     }
 }
 
-public struct TextFieldWithToolBarString: UIViewRepresentable {
+public struct TextFieldWithToolBarString: View {
     @Binding var text: String
     var placeholder: String
-    var textAlignment: NSTextAlignment = .right
-    var keyboardType: UIKeyboardType = .default
-    var autocapitalizationType: UITextAutocapitalizationType = .none
-    var autocorrectionType: UITextAutocorrectionType = .no
-    var shouldBecomeFirstResponder: Bool = false
-    var maxLength: Int? = nil
-    var isDismissible: Bool = true
+    var textAlignment: TextAlignment
+    var keyboardType: UIKeyboardType
+    var autocapitalizationType: UITextAutocapitalizationType
+    var autocorrectionType: UITextAutocorrectionType
+    var shouldBecomeFirstResponder: Bool
+    var maxLength: Int?
+    var isDismissible: Bool
 
-    public func makeUIView(context: Context) -> UITextField {
-        let textField = UITextField()
-        context.coordinator.textField = textField
-        textField.inputAccessoryView = isDismissible ? createToolbar(for: textField, context: context) : nil
-        textField.addTarget(context.coordinator, action: #selector(Coordinator.editingDidBegin), for: .editingDidBegin)
-        textField.delegate = context.coordinator
-        textField.text = text
-        textField.placeholder = placeholder
-        textField.textAlignment = textAlignment
-        textField.keyboardType = keyboardType
-        textField.autocapitalizationType = autocapitalizationType
-        textField.autocorrectionType = autocorrectionType
-        textField.adjustsFontSizeToFitWidth = true
-        return textField
+    @FocusState private var isFocused: Bool
+
+    public init(
+        text: Binding<String>,
+        placeholder: String,
+        textAlignment: TextAlignment = .trailing,
+        keyboardType: UIKeyboardType = .default,
+        autocapitalizationType: UITextAutocapitalizationType = .none,
+        autocorrectionType: UITextAutocorrectionType = .no,
+        shouldBecomeFirstResponder: Bool = false,
+        maxLength: Int? = nil,
+        isDismissible: Bool = true
+    ) {
+        _text = text
+        self.placeholder = placeholder
+        self.textAlignment = textAlignment
+        self.keyboardType = keyboardType
+        self.autocapitalizationType = autocapitalizationType
+        self.autocorrectionType = autocorrectionType
+        self.shouldBecomeFirstResponder = shouldBecomeFirstResponder
+        self.maxLength = maxLength
+        self.isDismissible = isDismissible
     }
 
-    /// Creates and configures a toolbar for the text field with clear and dismiss buttons.
-    /// - Parameters:
-    ///   - textField: The text field for which the toolbar is being created.
-    ///   - context: The SwiftUI context that contains the coordinator for handling button actions.
-    /// - Returns: A configured UIToolbar with clear and dismiss buttons.
-    private func createToolbar(for textField: UITextField, context: Context) -> UIToolbar {
-        let toolbar = UIToolbar(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 50))
-        let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        let doneButton = UIBarButtonItem(
-            image: UIImage(systemName: "keyboard.chevron.compact.down"),
-            style: .done,
-            target: textField,
-            action: #selector(UITextField.resignFirstResponder)
-        )
-        let clearButton = UIBarButtonItem(
-            image: UIImage(systemName: "trash"),
-            style: .plain,
-            target: context.coordinator,
-            action: #selector(Coordinator.clearText)
-        )
+    public var body: some View {
+        TextField(placeholder, text: $text)
+            .focused($isFocused)
+            .multilineTextAlignment(textAlignment)
+            .keyboardType(keyboardType)
+            .autocorrectionDisabled(autocorrectionType == .no)
+            .textInputAutocapitalization(textInputAutocapitalization)
+            .toolbar {
+                if isFocused {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Button {
+                            text = ""
+                        } label: {
+                            Image(systemName: "trash")
+                        }
 
-        toolbar.items = [clearButton, flexibleSpace, doneButton]
-        toolbar.sizeToFit()
-        return toolbar
-    }
+                        Spacer()
 
-    public func updateUIView(_ textField: UITextField, context: Context) {
-        if textField.text != text {
-            textField.text = text
-        }
-
-        textField.textAlignment = textAlignment
-        textField.keyboardType = keyboardType
-        textField.autocapitalizationType = autocapitalizationType
-        textField.autocorrectionType = autocorrectionType
-
-        if shouldBecomeFirstResponder, !context.coordinator.didBecomeFirstResponder {
-            if textField.window != nil, textField.becomeFirstResponder() {
-                context.coordinator.didBecomeFirstResponder = true
+                        if isDismissible {
+                            Button {
+                                isFocused = false
+                            } label: {
+                                Image(systemName: "keyboard.chevron.compact.down")
+                            }
+                        }
+                    }
+                }
             }
-        } else if !shouldBecomeFirstResponder, context.coordinator.didBecomeFirstResponder {
-            context.coordinator.didBecomeFirstResponder = false
-        }
-    }
-
-    public func makeCoordinator() -> Coordinator {
-        Coordinator(self, maxLength: maxLength)
-    }
-
-    public final class Coordinator: NSObject {
-        var parent: TextFieldWithToolBarString
-        var textField: UITextField?
-        let maxLength: Int?
-        var didBecomeFirstResponder = false
-
-        init(_ parent: TextFieldWithToolBarString, maxLength: Int?) {
-            self.parent = parent
-            self.maxLength = maxLength
-        }
-
-        @objc fileprivate func clearText() {
-            parent.text = ""
-            textField?.text = ""
-        }
-
-        @objc fileprivate func editingDidBegin(_ textField: UITextField) {
-            DispatchQueue.main.async {
-                textField.moveCursorToEnd()
+            .onChange(of: text) { _, newValue in
+                // Enforce maxLength if set
+                if let maxLength, newValue.count > maxLength {
+                    text = String(newValue.prefix(maxLength))
+                }
             }
-        }
+            .onAppear {
+                if shouldBecomeFirstResponder {
+                    isFocused = true
+                }
+            }
     }
-}
 
-extension TextFieldWithToolBarString.Coordinator: UITextFieldDelegate {
-    public func textField(
-        _ textField: UITextField,
-        shouldChangeCharactersIn range: NSRange,
-        replacementString string: String
-    ) -> Bool {
-        guard let currentText = textField.text as NSString? else {
-            return false
+    /// Maps UIKit autocapitalization type to SwiftUI's TextInputAutocapitalization.
+    private var textInputAutocapitalization: TextInputAutocapitalization {
+        switch autocapitalizationType {
+        case .allCharacters:
+            return .characters
+        case .words:
+            return .words
+        case .sentences:
+            return .sentences
+        case .none:
+            return .never
+        @unknown default:
+            return .never
         }
-
-        // Calculate the new text length
-        let newLength = currentText.length + string.count - range.length
-
-        // If there's a maxLength, ensure the new length is within the limit
-        if let maxLength = parent.maxLength, newLength > maxLength {
-            return false
-        }
-
-        // Attempt to replace characters in range with the replacement string
-        let newText = currentText.replacingCharacters(in: range, with: string)
-
-        // Update the binding text state
-        DispatchQueue.main.async {
-            self.parent.text = newText
-        }
-
-        return true
     }
 }
