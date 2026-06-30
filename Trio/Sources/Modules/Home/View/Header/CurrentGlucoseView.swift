@@ -12,7 +12,6 @@ struct CurrentGlucoseView: View {
     var currentGlucoseTarget: Decimal
     let glucoseColorScheme: GlucoseColorScheme
     let glucose: [GlucoseStored] // This contains the last two glucose values, no matter if its manual or a cgm reading
-    let isLooping: Bool
 
     /// Drives the outer ring.
     var cgmProgress: DeviceLifecycleProgress?
@@ -74,7 +73,7 @@ struct CurrentGlucoseView: View {
                 // Bobble renders at 0.9 to leave breathing room for the right
                 // panel + pump view siblings; the compact and empty-state
                 // branches above and below already fit at 1.0.
-                bobbleAndTag(triangleColor: triangleColor, isLooping: isLooping)
+                bobbleAndTag(triangleColor: triangleColor)
                     .scaleEffect(0.9)
             }
         } else {
@@ -91,7 +90,7 @@ struct CurrentGlucoseView: View {
         }
     }
 
-    @ViewBuilder private func bobbleAndTag(triangleColor: Color, isLooping: Bool) -> some View {
+    @ViewBuilder private func bobbleAndTag(triangleColor: Color) -> some View {
         ZStack {
             if let progress = cgmProgress, shouldShowArc {
                 SensorLifecycleArcView(
@@ -100,7 +99,7 @@ struct CurrentGlucoseView: View {
                 )
             }
 
-            TrendShape(gradient: angularGradient, color: triangleColor, isLooping: isLooping, showArrow: true)
+            TrendShape(gradient: angularGradient, color: triangleColor, showArrow: true)
                 .rotationEffect(.degrees(rotationDegrees))
 
             VStack(alignment: .center) {
@@ -327,81 +326,33 @@ struct TrendShape: View {
 
     let gradient: AngularGradient
     let color: Color
-    let isLooping: Bool
     var showArrow: Bool = true
 
     var body: some View {
         HStack(alignment: .center) {
             ZStack {
                 Group {
-                    CircleShape(gradient: gradient, isLooping: isLooping)
+                    CircleShape(gradient: gradient)
                     if showArrow {
                         TriangleShape(color: color)
                     }
                 }.shadow(color: Color.black.opacity(colorScheme == .dark ? 0.75 : 0.33), radius: colorScheme == .dark ? 5 : 3)
-                CircleShape(gradient: gradient, isLooping: isLooping)
+                CircleShape(gradient: gradient)
             }
         }
     }
 }
 
 struct CircleShape: View {
-    let gradient: AngularGradient
-    let isLooping: Bool
+    @Environment(\.colorScheme) var colorScheme
 
-    @State private var isAnimating: Bool = false
-    @State private var animatingTask: Task<Void, Never>? = nil
-    @State private var loopingStartTime: Date? = nil
+    let gradient: AngularGradient
 
     var body: some View {
-        ZStack {
-            Circle()
-                .fill(Color.chart)
-                .frame(width: 130, height: 130)
-
-            Circle()
-                .trim(from: 0.0, to: isAnimating ? 0.75 : 1.0)
-                .stroke(gradient, style: StrokeStyle(lineWidth: isAnimating ? 8 : 6, lineCap: .round))
-                .frame(width: 130, height: 130)
-                .rotationEffect(.degrees(isAnimating ? 360 : 0))
-                .animation(
-                    isAnimating
-                        ? .linear(duration: 1.333).repeatForever(autoreverses: false)
-                        : .spring(response: 0.8, dampingFraction: 0.85),
-                    value: isAnimating
-                )
-                .animation(
-                    .spring(response: 0.9, dampingFraction: 0.75),
-                    value: isAnimating
-                )
-        }
-        .onAppear {
-            updateAnimating(isLooping)
-        }
-        .onChange(of: isLooping) {
-            updateAnimating(isLooping)
-        }
-    }
-
-    private func updateAnimating(_ newValue: Bool) {
-        if newValue {
-            animatingTask?.cancel()
-            animatingTask = nil
-            loopingStartTime = Date()
-            isAnimating = true
-        } else {
-            let elapsed = Date().timeIntervalSince(loopingStartTime ?? Date())
-            let remaining = max(0, 1.5 - elapsed)
-
-            animatingTask?.cancel()
-            animatingTask = Task {
-                if remaining > 0 {
-                    try? await Task.sleep(for: .seconds(remaining))
-                }
-                guard !Task.isCancelled else { return }
-                await MainActor.run { isAnimating = false }
-            }
-        }
+        Circle()
+            .stroke(gradient, lineWidth: 6)
+            .background(Circle().fill(Color.chart))
+            .frame(width: 130, height: 130)
     }
 }
 
@@ -416,3 +367,4 @@ struct TriangleShape: View {
             .offset(x: 85)
     }
 }
+ 
