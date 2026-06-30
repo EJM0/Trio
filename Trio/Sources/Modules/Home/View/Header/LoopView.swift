@@ -18,36 +18,24 @@ struct LoopView: View {
 
     let determination: [OrefDetermination]
 
-    private let rect = CGRect(x: 0, y: 0, width: 18, height: 18)
-
     var body: some View {
-        loopStatusWithMinutes
-            .padding(.vertical, 5)
-            .padding(.horizontal, 10)
-            .overlay(
-                Capsule()
-                    .stroke(color.opacity(0.4), lineWidth: 2)
-            )
+        CapsuleSpinnerView(isLooping: isLooping, color: color) { isSpinnerAnimating in
+            loopStatusContent(isAnimating: isSpinnerAnimating)
+        }
     }
 
-    private var loopStatusWithMinutes: some View {
+    private func loopStatusContent(isAnimating: Bool) -> some View {
         HStack(alignment: .center) {
             ZStack {
                 Image(systemName: (!closedLoop || manualTempBasal) ? "circle.and.line.horizontal" : "circle")
-                // if isLooping {
-                //    ProgressView()
-                // }
+                    .symbolEffect(.pulse, options: .repeating, isActive: isAnimating)
             }
-            // if isLooping {
-            //    Text("looping")
-            // } else
-            if manualTempBasal {
+            if isAnimating {
+                // Exclude from localization; the term 'looping' is an idiom in the DIY loop jargon. IYKYK
+                Text(verbatim: "looping")
+            } else if manualTempBasal {
                 Text("Manual")
-            } else if determination.first?
-                .deliverAt !=
-                nil
-            {
-                // previously the .timestamp property was used here because this only gets updated when the reportenacted function in the aps manager gets called
+            } else if determination.first?.deliverAt != nil {
                 Text(timeString)
             } else {
                 Text("--")
@@ -67,9 +55,7 @@ struct LoopView: View {
     }
 
     private var color: Color {
-        guard determination.first?.timestamp != nil
-        else {
-            // previously the .timestamp property was used here because this only gets updated when the reportenacted function in the aps manager gets called
+        guard determination.first?.timestamp != nil else {
             return .secondary
         }
         guard manualTempBasal == false else {

@@ -367,4 +367,3 @@ struct TriangleShape: View {
             .offset(x: 85)
     }
 }
- 
