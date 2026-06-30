@@ -47,14 +47,20 @@ struct CapsuleSpinnerView<Content: View>: View {
                 .background(
                     GeometryReader { geo in
                         Color.clear
-                            .onAppear {
-                                contentSize = geo.size
-                                updatePerimeter(size: geo.size)
-                            }
+                            .onAppear { contentSize = geo.size }
                             .onChange(of: geo.size) { _, newSize in
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    contentSize = newSize
-                                    updatePerimeter(size: newSize)
+                                // Cancel previous queue if frame is fluctuating rapidly
+                                resizeTask?.cancel()
+
+                                resizeTask = Task {
+                                    try? await Task.sleep(for: .seconds(0.1))
+                                    guard !Task.isCancelled else { return }
+
+                                    await MainActor.run {
+                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                            contentSize = newSize
+                                        }
+                                    }
                                 }
                             }
                     }

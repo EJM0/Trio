@@ -5,13 +5,13 @@ struct CoreAnimationSpinnerBorder: UIViewRepresentable {
     let color: UIColor
     let isSpinning: Bool
 
-    func makeUIView(context: Context) -> UICapsuleSpinnerView {
+    func makeUIView(context _: Context) -> UICapsuleSpinnerView {
         let view = UICapsuleSpinnerView()
         view.updateColor(color)
         return view
     }
 
-    func updateUIView(_ uiView: UICapsuleSpinnerView, context: Context) {
+    func updateUIView(_ uiView: UICapsuleSpinnerView, context _: Context) {
         uiView.updateColor(color)
         uiView.setSpinning(isSpinning)
     }
@@ -43,7 +43,7 @@ final class UICapsuleSpinnerView: UIView {
 
     override func willMove(toWindow newWindow: UIWindow?) {
         super.willMove(toWindow: newWindow)
-        
+
         if newWindow != nil {
             // App is preparing to display the view: register for foreground notification
             // Using fully-qualified Foundation namespace to prevent Trio shadow protocol conflicts
@@ -79,7 +79,7 @@ final class UICapsuleSpinnerView: UIView {
     func setSpinning(_ spinning: Bool) {
         guard isSpinning != spinning else { return }
         isSpinning = spinning
-        
+
         if spinning {
             startSpinning()
         } else {
@@ -90,14 +90,14 @@ final class UICapsuleSpinnerView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         shapeLayer.frame = bounds
-        
+
         let rect = bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2)
         let radius = min(rect.width, rect.height) / 2
         shapeLayer.path = UIBezierPath(roundedRect: rect, cornerRadius: radius).cgPath
-        
+
         let perimeter = 2 * (rect.width - 2 * radius) + 2 * (rect.height - 2 * radius) + 2 * .pi * radius
         shapeLayer.lineDashPattern = [(perimeter * 0.7) as NSNumber, (perimeter * 0.3) as NSNumber]
-        
+
         if isSpinning {
             startSpinning()
         }
@@ -106,7 +106,7 @@ final class UICapsuleSpinnerView: UIView {
     private func startSpinning() {
         // Clear any orphaned or frozen animations before attaching a clean one
         shapeLayer.removeAnimation(forKey: "spin")
-        
+
         let rect = bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2)
         let radius = min(rect.width, rect.height) / 2
         let perimeter = 2 * (rect.width - 2 * radius) + 2 * (rect.height - 2 * radius) + 2 * .pi * radius
@@ -117,7 +117,7 @@ final class UICapsuleSpinnerView: UIView {
         animation.duration = 1.333
         animation.repeatCount = .infinity
         animation.timingFunction = CAMediaTimingFunction(name: .linear)
-        
+
         shapeLayer.add(animation, forKey: "spin")
     }
 
