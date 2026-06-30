@@ -5,13 +5,13 @@ struct CoreAnimationSpinnerBorder: UIViewRepresentable {
     let color: UIColor
     let isSpinning: Bool
 
-    func makeUIView(context _: Context) -> UICapsuleSpinnerView {
+    func makeUIView(context: Context) -> UICapsuleSpinnerView {
         let view = UICapsuleSpinnerView()
         view.updateColor(color)
         return view
     }
 
-    func updateUIView(_ uiView: UICapsuleSpinnerView, context _: Context) {
+    func updateUIView(_ uiView: UICapsuleSpinnerView, context: Context) {
         uiView.updateColor(color)
         uiView.setSpinning(isSpinning)
     }
@@ -39,6 +39,39 @@ final class UICapsuleSpinnerView: UIView {
         layer.addSublayer(shapeLayer)
     }
 
+    // MARK: - Lifecycle & Notification Registration
+
+    override func willMove(toWindow newWindow: UIWindow?) {
+        super.willMove(toWindow: newWindow)
+        
+        if newWindow != nil {
+            // App is preparing to display the view: register for foreground notification
+            // Using fully-qualified Foundation namespace to prevent Trio shadow protocol conflicts
+            Foundation.NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(handleDidBecomeActive),
+                name: UIApplication.didBecomeActiveNotification,
+                object: nil
+            )
+        } else {
+            // View is being removed: clean up the observer to prevent leaks
+            Foundation.NotificationCenter.default.removeObserver(
+                self,
+                name: UIApplication.didBecomeActiveNotification,
+                object: nil
+            )
+        }
+    }
+
+    @objc private func handleDidBecomeActive() {
+        // If the state dictates it should be spinning, re-apply the killed CA Animation
+        if isSpinning {
+            startSpinning()
+        }
+    }
+
+    // MARK: - Configuration & Animation Management
+
     func updateColor(_ color: UIColor) {
         shapeLayer.strokeColor = color.withAlphaComponent(0.4).cgColor
     }
@@ -46,7 +79,7 @@ final class UICapsuleSpinnerView: UIView {
     func setSpinning(_ spinning: Bool) {
         guard isSpinning != spinning else { return }
         isSpinning = spinning
-
+        
         if spinning {
             startSpinning()
         } else {
@@ -57,24 +90,23 @@ final class UICapsuleSpinnerView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         shapeLayer.frame = bounds
-
+        
         let rect = bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2)
         let radius = min(rect.width, rect.height) / 2
         shapeLayer.path = UIBezierPath(roundedRect: rect, cornerRadius: radius).cgPath
-
-        // Perimeter calculation for a capsule shape
+        
         let perimeter = 2 * (rect.width - 2 * radius) + 2 * (rect.height - 2 * radius) + 2 * .pi * radius
         shapeLayer.lineDashPattern = [(perimeter * 0.7) as NSNumber, (perimeter * 0.3) as NSNumber]
-
-        // If it was already spinning, refresh the animation to match new dimensions
+        
         if isSpinning {
             startSpinning()
         }
     }
 
     private func startSpinning() {
+        // Clear any orphaned or frozen animations before attaching a clean one
         shapeLayer.removeAnimation(forKey: "spin")
-
+        
         let rect = bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2)
         let radius = min(rect.width, rect.height) / 2
         let perimeter = 2 * (rect.width - 2 * radius) + 2 * (rect.height - 2 * radius) + 2 * .pi * radius
@@ -85,7 +117,7 @@ final class UICapsuleSpinnerView: UIView {
         animation.duration = 1.333
         animation.repeatCount = .infinity
         animation.timingFunction = CAMediaTimingFunction(name: .linear)
-
+        
         shapeLayer.add(animation, forKey: "spin")
     }
 
