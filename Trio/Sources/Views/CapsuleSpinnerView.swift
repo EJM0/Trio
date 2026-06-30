@@ -49,18 +49,9 @@ struct CapsuleSpinnerView<Content: View>: View {
                         Color.clear
                             .onAppear { contentSize = geo.size }
                             .onChange(of: geo.size) { _, newSize in
-                                // Cancel previous queue if frame is fluctuating rapidly
-                                resizeTask?.cancel()
-
-                                resizeTask = Task {
-                                    try? await Task.sleep(for: .seconds(0.1))
-                                    guard !Task.isCancelled else { return }
-
-                                    await MainActor.run {
-                                        withAnimation(.easeInOut(duration: 0.2)) {
-                                            contentSize = newSize
-                                        }
-                                    }
+                                // Resizes immediately without any asynchronous delay
+                                withAnimation(.easeInOut(duration: 0.1)) {
+                                    contentSize = newSize
                                 }
                             }
                     }
