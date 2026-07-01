@@ -1,16 +1,17 @@
 import SwiftUI
 
-/// A reusable off-main-thread animated spinner capsule component that overlays any content.
 struct CapsuleSpinnerView<Content: View>: View {
     let isLooping: Bool
     let color: Color
     let minAnimationDuration: TimeInterval
     let content: (Bool) -> Content
 
-    @State private var showSpinner: Bool = false
+    private let crossfadeDuration: TimeInterval = 0.2
+
+    @State private var showSpinner: Bool = false // drives opacity crossfade
+    @State private var isSpinning: Bool = false // drives actual CA rotation
     @State private var contentSize: CGSize = .zero
     @State private var stopAnimationTask: Task<Void, Never>? = nil
-    @State private var resizeTask: Task<Void, Never>? = nil // <--- Debounce task tracker
     @State private var animationStartTime: Date? = nil
 
     init(
@@ -39,7 +40,6 @@ struct CapsuleSpinnerView<Content: View>: View {
 
     var body: some View {
         ZStack {
-            // INVISIBLE MEASUREMENT LAYER
             content(showSpinner)
                 .padding(.vertical, 5)
                 .padding(.horizontal, 10)
@@ -49,7 +49,6 @@ struct CapsuleSpinnerView<Content: View>: View {
                         Color.clear
                             .onAppear { contentSize = geo.size }
                             .onChange(of: geo.size) { _, newSize in
-                                // Resizes immediately without any asynchronous delay
                                 withAnimation(.easeInOut(duration: 0.1)) {
                                     contentSize = newSize
                                 }
@@ -57,7 +56,6 @@ struct CapsuleSpinnerView<Content: View>: View {
                     }
                 )
 
-            // VISIBLE ANIMATED LAYER
             content(showSpinner)
                 .padding(.vertical, 5)
                 .padding(.horizontal, 10)
@@ -67,16 +65,16 @@ struct CapsuleSpinnerView<Content: View>: View {
                 )
                 .overlay(
                     ZStack {
-                        // 1. HARDWARE-ACCELERATED SPINNING CAPSULE LAYER
-                        CoreAnimationSpinnerBorder(color: UIColor(color), isSpinning: showSpinner)
+                        // Keeps physically rotating as long as `isSpinning` is true,
+                        // regardless of whether it's visible yet.
+                        CoreAnimationSpinnerBorder(color: UIColor(color), isSpinning: isSpinning)
                             .opacity(showSpinner ? 1 : 0)
 
-                        // 2. STATIC CAPSULE LAYER
                         Capsule()
-                            .stroke(color.opacity(0.4), lineWidth: 2)
+                            .stroke(color.opacity(0.4), lineWidth: isSpinning ? 2.5 : 2)
                             .opacity(showSpinner ? 0 : 1)
                     }
-                    .animation(.easeInOut(duration: 0.3), value: showSpinner)
+                    .animation(.easeInOut(duration: crossfadeDuration), value: showSpinner)
                 )
         }
         .onAppear {
@@ -92,6 +90,7 @@ struct CapsuleSpinnerView<Content: View>: View {
 
         if newValue {
             animationStartTime = Date()
+            isSpinning = true
             showSpinner = true
         } else {
             stopAnimationTask = Task {
@@ -103,8 +102,18 @@ struct CapsuleSpinnerView<Content: View>: View {
                 }
                 guard !Task.isCancelled else { return }
 
+                // Start the crossfade — spinner is still rotating underneath.
                 await MainActor.run {
                     showSpinner = false
+                }
+
+                // Wait for the fade to finish covering it before actually
+                // halting the rotation, so the stop is never visible.
+                try? await Task.sleep(for: .seconds(crossfadeDuration + 0.3))
+                guard !Task.isCancelled else { return }
+
+                await MainActor.run {
+                    isSpinning = false
                 }
             }
         }
