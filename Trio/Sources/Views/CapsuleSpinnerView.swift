@@ -1,62 +1,71 @@
 import SwiftUI
 
+/// A reusable animated spinner capsule component that overlays any content
 struct CapsuleSpinnerView<Content: View>: View {
+    @Environment(\.colorScheme) var colorScheme
+
     let isLooping: Bool
     let color: Color
-    let minAnimationDuration: TimeInterval
     let content: (Bool) -> Content
 
-    private let crossfadeDuration: TimeInterval = 0.2
-
-    @State private var showSpinner: Bool = false // drives opacity crossfade
-    @State private var isSpinning: Bool = false // drives actual CA rotation
+    @State private var isAnimating: Bool = false
+    @State private var dashPhase: CGFloat = 0.0
+    @State private var perimeter: CGFloat = 200
     @State private var contentSize: CGSize = .zero
+    @State private var startAnimationTask: Task<Void, Never>? = nil
     @State private var stopAnimationTask: Task<Void, Never>? = nil
-    @State private var animationStartTime: Date? = nil
 
+    // OPTION 1: Initializer WITH the animating argument
     init(
         isLooping: Bool,
         color: Color,
-        minAnimationDuration: TimeInterval = 2,
         @ViewBuilder content: @escaping (Bool) -> Content
     ) {
         self.isLooping = isLooping
         self.color = color
-        self.minAnimationDuration = minAnimationDuration
         self.content = content
     }
 
+    // OPTION 2: Initializer WITHOUT the animating argument
     init(
         isLooping: Bool,
         color: Color,
-        minAnimationDuration: TimeInterval = 2,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.isLooping = isLooping
         self.color = color
-        self.minAnimationDuration = minAnimationDuration
         self.content = { _ in content() }
     }
 
     var body: some View {
         ZStack {
-            content(showSpinner)
+            // INVISIBLE MEASUREMENT LAYER
+            content(isAnimating)
                 .padding(.vertical, 5)
                 .padding(.horizontal, 10)
                 .hidden()
                 .background(
                     GeometryReader { geo in
                         Color.clear
-                            .onAppear { contentSize = geo.size }
+                            .onAppear {
+                                contentSize = geo.size
+                                updatePerimeter(size: geo.size)
+                                // If it was supposed to loop initially, trigger it now that we know the size
+                                if isLooping {
+                                    updateAnimating(true)
+                                }
+                            }
                             .onChange(of: geo.size) { _, newSize in
-                                withAnimation(.easeInOut(duration: 0.1)) {
+                                withAnimation(.easeInOut(duration: 0.2)) {
                                     contentSize = newSize
+                                    updatePerimeter(size: newSize)
                                 }
                             }
                     }
                 )
 
-            content(showSpinner)
+            // VISIBLE ANIMATED LAYER
+            content(isAnimating)
                 .padding(.vertical, 5)
                 .padding(.horizontal, 10)
                 .frame(
@@ -64,17 +73,26 @@ struct CapsuleSpinnerView<Content: View>: View {
                     height: contentSize.height == 0 ? nil : contentSize.height
                 )
                 .overlay(
-                    ZStack {
-                        // Keeps physically rotating as long as `isSpinning` is true,
-                        // regardless of whether it's visible yet.
-                        CoreAnimationSpinnerBorder(color: UIColor(color), isSpinning: isSpinning)
-                            .opacity(showSpinner ? 1 : 0)
-
-                        Capsule()
-                            .stroke(color.opacity(0.4), lineWidth: isSpinning ? 2.5 : 2)
-                            .opacity(showSpinner ? 0 : 1)
+                    Group {
+                        if isAnimating {
+                            Capsule()
+                                .stroke(color.opacity(0.4), style: StrokeStyle(
+                                    lineWidth: 2.5,
+                                    lineCap: .round,
+                                    dash: [perimeter * 0.7, perimeter * 0.3],
+                                    dashPhase: dashPhase
+                                ))
+                                .transition(.opacity)
+                        } else {
+                            Capsule()
+                                .stroke(color.opacity(0.4), style: StrokeStyle(
+                                    lineWidth: 2,
+                                    lineCap: .round,
+                                    dash: [perimeter + 10, 0]
+                                ))
+                                .transition(.opacity)
+                        }
                     }
-                    .animation(.easeInOut(duration: crossfadeDuration), value: showSpinner)
                 )
         }
         .onAppear {
@@ -85,37 +103,55 @@ struct CapsuleSpinnerView<Content: View>: View {
         }
     }
 
-    private func updateAnimating(_ newValue: Bool) {
-        stopAnimationTask?.cancel()
+    private func updatePerimeter(size: CGSize) {
+        let w = size.width
+        let h = size.height
 
-        if newValue {
-            animationStartTime = Date()
-            isSpinning = true
-            showSpinner = true
+        if w >= h {
+            perimeter = (2 * (w - h) + .pi * h).rounded()
         } else {
-            stopAnimationTask = Task {
-                let elapsed = Date().timeIntervalSince(animationStartTime ?? Date())
-                let remainingTime = max(0, minAnimationDuration - elapsed)
+            perimeter = (2 * (h - w) + .pi * w).rounded()
+        }
+    }
 
-                if remainingTime > 0 {
-                    try? await Task.sleep(for: .seconds(remainingTime))
+    private func updateAnimating(_ newValue: Bool) {
+        if newValue {
+            stopAnimationTask?.cancel()
+            startAnimationTask?.cancel()
+
+            startAnimationTask = Task { @MainActor in
+                // 1. Fade in the spinning capsule layout structure
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    isAnimating = true
                 }
+
+                // 2. Wait exactly for the fade transaction to finish mounting the new capsule
+                try? await Task.sleep(for: .seconds(0.3))
                 guard !Task.isCancelled else { return }
 
-                // Start the crossfade — spinner is still rotating underneath.
-                await MainActor.run {
-                    showSpinner = false
+                // 3. Reset layout matrix positions instantly without animation hooks
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    self.dashPhase = 0.0
                 }
 
-                // Wait for the fade to finish covering it before actually
-                // halting the rotation, so the stop is never visible.
-                try? await Task.sleep(for: .seconds(crossfadeDuration + 0.3))
+                // 4. Fire continuous hardware loop safely
+                withAnimation(.linear(duration: 1.333).repeatForever(autoreverses: false)) {
+                    self.dashPhase = -self.perimeter
+                }
+            }
+        } else {
+            stopAnimationTask?.cancel()
+            stopAnimationTask = Task { @MainActor in
+                try? await Task.sleep(for: .seconds(2.0))
                 guard !Task.isCancelled else { return }
 
-                await MainActor.run {
-                    isSpinning = false
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    isAnimating = false
                 }
             }
         }
     }
 }
+ 
