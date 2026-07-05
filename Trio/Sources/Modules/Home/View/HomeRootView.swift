@@ -604,6 +604,8 @@ extension Home {
                     manualTempBasal: state.manualTempBasal,
                     determination: state.determinationsFromPersistence
                 )
+                .fixedSize(horizontal: true, vertical: false) // report true single-line width, no wrap
+                .frame(width: 80, alignment: .trailing) // pin trailing edge; overflow extends left
                 .onTapGesture {
                     state.isLoopStatusPresented = true
                 }
@@ -629,7 +631,7 @@ extension Home {
                         .fontDesign(.rounded)
                     }
                     // aligns the evBG icon exactly with the first pixel of loop status icon
-                    .padding(.leading, 12)
+                    .padding(.leading, 14)
                 } else {
                     HStack {
                         Image(systemName: "arrow.right.circle")
@@ -637,8 +639,12 @@ extension Home {
                         Text("--")
                             .font(.callout).fontWeight(.bold).fontDesign(.rounded)
                     }
+                    .padding(.leading, 12)
                 }
             }
+            // Freezes the panel's reported width so eventualBG's leading position
+            // never shifts when LoopView's content changes length.
+            .frame(width: 80, alignment: .leading)
         }
 
         @ViewBuilder func mealPanel(_: GeometryProxy) -> some View {
