@@ -841,7 +841,7 @@ extension Home {
                         (overrideString != nil || tempTargetString != nil)
                             ? (
                                 colorScheme == .dark
-                                    ? Color(red: 0.03921568627, green: 0.133333333, blue: 0.2156862745)
+                                    ? Color(red: 0.024, green: 0.086, blue: 0.141)
                                     : Color.insulin.opacity(0.1)
                             ) : Color.clear // Use clear and add the Material in the background
                     )
@@ -852,7 +852,7 @@ extension Home {
                         color: (overrideString != nil || tempTargetString != nil)
                             ? (
                                 colorScheme == .dark
-                                    ? Color(red: 0.02745098039, green: 0.1098039216, blue: 0.1411764706)
+                                    ? Color(red: 0.09, green: 0.18, blue: 0.212)
                                     : Color.black.opacity(0.33)
                             ) : Color.clear,
                         radius: 3
@@ -947,7 +947,7 @@ extension Home {
                     RoundedRectangle(cornerRadius: 15)
                         .fill(
                             colorScheme == .dark
-                                ? Color(red: 0.03921568627, green: 0.133333333, blue: 0.2156862745)
+                                ? Color(red: 0.024, green: 0.086, blue: 0.141)
                                 : Color
                                 .insulin
                                 .opacity(0.2)
