@@ -91,6 +91,9 @@ extension Notification.Name {
             _ = resolver.resolve(LiveActivityManager.self)!
         }
         _ = resolver.resolve(IOBService.self)!
+        _ = resolver.resolve(GlucoseAlertCoordinator.self)!
+        _ = resolver.resolve(NotLoopingMonitor.self)!
+        _ = DeviceAlertsStore.shared
     }
 
     init() {

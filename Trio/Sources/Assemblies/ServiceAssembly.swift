@@ -20,6 +20,13 @@ final class ServiceAssembly: Assembly {
         container.register(UserNotificationsManager.self) { r in
             BaseUserNotificationsManager(resolver: r)
         }
+        container.register(TrioAlertManager.self) { r in BaseTrioAlertManager(resolver: r) }
+            .inObjectScope(.container)
+        container.register(GlucoseAlertCoordinator.self) { r in GlucoseAlertCoordinator(resolver: r) }
+            .inObjectScope(.container)
+        container.register(NotLoopingMonitor.self) { r in NotLoopingMonitor(resolver: r) }
+            .inObjectScope(.container)
+        container.register(UserNotificationsManager.self) { r in BaseUserNotificationsManager(resolver: r) }
         container.register(WatchManager.self) { r in BaseWatchManager(resolver: r) }
         container.register(BolusCalculationManager.self) { r in BaseBolusCalculationManager(resolver: r)
         }

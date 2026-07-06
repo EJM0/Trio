@@ -15,6 +15,12 @@ enum BolusShortcutLimit: String, JSON, CaseIterable, Identifiable {
     }
 }
 
+// Hinzugefügt, um den Fehler "Cannot find type in scope" und die Protokoll-Konformität zu lösen
+enum GlucoseNotificationsOption: String, Codable, Equatable, CaseIterable {
+    case enabled
+    case disabled
+}
+
 struct TrioSettings: JSON, Equatable, Encodable {
     var units: GlucoseUnits = .mgdL
     var closedLoop: Bool = false
@@ -30,14 +36,6 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var displayCalendarIOBandCOB: Bool = false
     var displayCalendarEmojis: Bool = false
     var glucoseBadge: Bool = false
-    var notificationsPump: Bool = true
-    var notificationsCgm: Bool = true
-    var notificationsCarb: Bool = true
-    var notificationsAlgorithm: Bool = true
-    var glucoseNotificationsOption: GlucoseNotificationsOption = .onlyAlarmLimits
-    var addSourceInfoToGlucoseNotifications: Bool = false
-    var lowGlucose: Decimal = 72
-    var highGlucose: Decimal = 270
     var carbsRequiredThreshold: Decimal = 10
     var showCarbsRequiredBadge: Bool = true
     var useFPUconversion: Bool = false
@@ -86,6 +84,17 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var requireAdjustmentsConfirmation: Bool = false
     var useSwiftOref: Bool = false
 
+    // MARK: - Fehlende Eigenschaften im Haupt-Struct ergänzt
+
+    var notificationsPump: Bool = false
+    var notificationsCgm: Bool = false
+    var notificationsCarb: Bool = false
+    var notificationsAlgorithm: Bool = false
+    var glucoseNotificationsOption: GlucoseNotificationsOption = .enabled
+    var addSourceInfoToGlucoseNotifications: Bool = false
+    var lowGlucose: Decimal = 70
+    var highGlucose: Decimal = 180
+
     /// Selected Garmin watchface (Trio or SwissAlpine)
     var garminWatchface: GarminWatchface = .trio
     var garminDatafield: GarminDatafield = .none
@@ -124,6 +133,8 @@ extension TrioSettings: Decodable {
     /// Custom decoder to handle incomplete JSON and provide default values for missing fields
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        // Wir erstellen eine lokale, veränderbare Kopie ohne die Restriktionen des Haupt-Structs während des Inits
         var settings = TrioSettings()
 
         if let units = try? container.decode(GlucoseUnits.self, forKey: .units) {

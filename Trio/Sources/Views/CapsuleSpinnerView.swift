@@ -189,4 +189,3 @@ struct CapsuleSpinnerView<Content: View>: View {
         }
     }
 }
- 
