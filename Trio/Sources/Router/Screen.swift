@@ -32,6 +32,7 @@ enum Screen: Identifiable, Hashable {
     case watch
     case userInterfaceSettings
     case bolusCalculatorConfig
+    case quickBolusConfig
     case dynamicISF
     case calibrations
     case shortcutsConfig
@@ -53,6 +54,7 @@ enum Screen: Identifiable, Hashable {
     case unitsAndLimits
     case appDiagnostics
     case settingsExport
+    case treatmentsSettings
 
     var id: Int { String(reflecting: self).hashValue }
 }
@@ -135,6 +137,8 @@ extension Screen {
             UserInterfaceSettings.RootView(resolver: resolver)
         case .bolusCalculatorConfig:
             BolusCalculatorConfig.RootView(resolver: resolver)
+        case .quickBolusConfig:
+            QuickPickBolusesConfig.RootView(resolver: resolver)
         case .dynamicISF:
             DynamicSettings.RootView(resolver: resolver)
         case .calibrations:
@@ -177,6 +181,8 @@ extension Screen {
             AppDiagnostics.RootView(resolver: resolver)
         case .settingsExport:
             SettingsExport.RootView(resolver: resolver)
+        case .treatmentsSettings:
+            TreatmentsSettingsView(resolver: resolver, state: Settings.StateModel())
         }
     }
 

@@ -67,6 +67,8 @@ extension Home {
         @State var showTreatments = false
         @State var selectedTab: Int = 0
         @State var lastSelectedTab: Int = 0
+        @State var showQuickBolusPicker = false
+        @State var showQuickBolusNoHistory = false
         @State var showPumpSelection: Bool = false
         @State var showCGMSelection: Bool = false
         @State var showSnoozeSheet: Bool = false
@@ -1297,11 +1299,33 @@ extension Home {
             }
             .overlay(alignment: .bottom) {
                 GeometryReader { proxy in
-                    Button(action: { state.showModal(for: .treatmentView) }) {
+                    Button {
+                        state.showModal(for: .treatmentView)
+                    } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 40))
                             .foregroundStyle(Color.tabBar)
                     }
+                    .simultaneousGesture(
+                        LongPressGesture(minimumDuration: 0.5)
+                            .onEnded { _ in
+                                guard state.enableQuickBolus else { return }
+
+                                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+
+                                Task {
+                                    await state.loadQuickBolusSuggestions()
+
+                                    await MainActor.run {
+                                        if state.quickBolusHistory.isEmpty {
+                                            showQuickBolusNoHistory = true
+                                        } else {
+                                            showQuickBolusPicker = true
+                                        }
+                                    }
+                                }
+                            }
+                    )
                     .position(
                         x: proxy.size.width / 2,
                         y: proxy.size.height - tabBarHeight / 1.6
@@ -1323,6 +1347,24 @@ extension Home {
                         text: String(localized: "Updating IOB...", comment: "Progress text when updating IOB")
                     )
                 }
+            }
+            .sheet(isPresented: $showQuickBolusPicker) {
+                QuickPickBolusesView(
+                    suggestions: state.quickBolusHistory,
+                    onEnact: { amount in await state.enactQuickBolus(amount: amount) },
+                    isPresented: $showQuickBolusPicker
+                )
+            }
+            .alert(
+                String(localized: "No bolus history yet", comment: "Alert title when no quick-pick boluses history exists"),
+                isPresented: $showQuickBolusNoHistory
+            ) {
+                Button(String(localized: "OK"), role: .cancel) {}
+            } message: {
+                Text(String(
+                    localized: "Quick-Pick Boluses learns from your manual boluses over time. Once you've delivered a few boluses, it will suggest amounts based on what you typically enact at this time of day.",
+                    comment: "Alert body explaining that quick-pick boluses history is empty"
+                ))
             }
         }
     }

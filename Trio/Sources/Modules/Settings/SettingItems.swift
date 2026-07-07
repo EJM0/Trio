@@ -227,7 +227,13 @@ enum SettingItems {
                 "Super Bolus Factor": "Enable Super Bolus Option",
                 "Barcode Scanner": "Enable Barcode Scanner"
             ],
-            path: ["Features", "Bolus Calculator"]
+            path: ["Features", "Treatments", "Bolus Calculator"]
+        ),
+        SettingItem(
+            title: "Quick-Pick Boluses",
+            view: .quickBolusConfig,
+            searchContents: ["Enable Quick-Pick Boluses"],
+            path: ["Features", "Treatments", "Quick-Pick Boluses"]
         ),
         SettingItem(
             title: "Meal Settings",
@@ -251,7 +257,7 @@ enum SettingItems {
                 "Fat and Protein Percentage": "Enable Fat and Protein Entries",
                 "FPU": "Enable Fat and Protein Entries"
             ],
-            path: ["Features", "Meal Settings"]
+            path: ["Features", "Treatments", "Meal Settings"]
         ),
         SettingItem(
             title: "Shortcuts",
