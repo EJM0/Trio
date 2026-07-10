@@ -228167,6 +228167,9 @@
     "Slide to confirm your selected amount. Face ID or Touch ID is always required before the bolus is enacted." : {
       "comment" : "Verbose hint for enable quick-pick boluses toggle, part 2"
     },
+    "Slide to Enact Bolus" : {
+      "comment" : "Slide to confirm label for quick-pick boluses"
+    },
     "Slope" : {
       "comment" : "v",
       "localizations" : {
