@@ -26,7 +26,14 @@ struct SnoozeAlertsSheetView: View {
                             ))
                                 .font(.headline)
                         }
-                    }.listRowBackground(Color.chart)
+                        Button {
+                            endSnooze()
+                        } label: {
+                            Text("End Snooze")
+                                .foregroundColor(.red)
+                        }
+                    }
+                    .listRowBackground(Color.chart)
                 }
                 Section(footer: Text(
                     "Pick a duration to mute every Trio alarm. Critical alerts (e.g. occlusion, urgent low) still pierce the snooze."
@@ -68,6 +75,14 @@ struct SnoozeAlertsSheetView: View {
             await trioAlertManager?.applySnooze(for: duration)
             snoozeUntilDate = Date().addingTimeInterval(duration)
             isPresented = false
+        }
+    }
+
+    private func endSnooze() {
+        let trioAlertManager = resolver.resolve(TrioAlertManager.self)
+        Task { @MainActor in
+            await trioAlertManager?.applySnooze(for: 0)
+            snoozeUntilDate = Date().addingTimeInterval(0)
         }
     }
 }

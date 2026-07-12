@@ -1163,6 +1163,7 @@ extension Home {
             }
             .sheet(isPresented: $showSnoozeSheet) {
                 SnoozeAlertsSheetView(resolver: resolver, isPresented: $showSnoozeSheet)
+                    .ignoresSafeArea()
             }
             // PUMP RELATED
             .confirmationDialog("Pump Model", isPresented: $showPumpSelection) {
