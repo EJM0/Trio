@@ -950,6 +950,8 @@ extension Home {
                                 ?? "0"
                         )
                         + String(localized: " U", comment: "Insulin unit")
+                let bolusLabel = state
+                    .bolusStatus == .inProgress ? String(localized: "Bolusing") : String(localized: "Initiating…")
 
                 ZStack {
                     /// rectangle as background
@@ -978,7 +980,7 @@ extension Home {
                         Spacer()
 
                         VStack {
-                            Text("Bolusing")
+                            Text(bolusLabel)
                                 .font(.subheadline)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             Text(bolusString)
@@ -988,12 +990,16 @@ extension Home {
 
                         Spacer()
 
-                        Button {
-                            state.showProgressView()
-                            state.cancelBolus()
-                        } label: {
-                            Image(systemName: "xmark.app")
-                                .font(.system(size: 25))
+                        if state.bolusStatus == .inProgress {
+                            Button {
+                                state.showProgressView()
+                                state.cancelBolus()
+                            } label: {
+                                Image(systemName: "xmark.app")
+                                    .font(.system(size: 25))
+                            }
+                        } else if state.bolusStatus == .initiating {
+                            ProgressView()
                         }
                     }.padding(.horizontal, 10)
                         .padding(.trailing, 8)
