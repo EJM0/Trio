@@ -218,7 +218,7 @@ struct LiveActivityChartView: View {
         let colorMap: [String: Color] = [
             "iob": Color(red: 0.118, green: 0.588, blue: 0.988),
             "cob": Color.orange,
-            "uam": Color(red: 0.820, green: 0.169, blue: 0.969),
+            "uam": Color(red: 0.780, green: 0.741, blue: 0.427),
             "zt": Color(red: 0.443, green: 0.380, blue: 0.937)
         ]
 
