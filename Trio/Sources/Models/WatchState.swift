@@ -16,25 +16,24 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var lastLoopTime: String?
     var overridePresets: [OverridePresetWatch] = []
     var tempTargetPresets: [TempTargetPresetWatch] = []
-    var forecast: WatchForecastData?
-
-    /// treatments inputs
-    /// used to store carbs for combined meal-bolus-treatments
-    var carbsAmount: Int = 0
-    var fatAmount: Int = 0
-    var proteinAmount: Int = 0
-    var bolusAmount: Double = 0.0
-    var confirmationProgress: Double = 0.0
 
     // Safety limits
-    var maxBolus: Decimal = 10
-    var maxCarbs: Decimal = 250
-    var maxFat: Decimal = 250
-    var maxProtein: Decimal = 250
+    var maxBolus: Decimal = 10.0
+    var maxCarbs: Decimal = 250.0
+    var maxFat: Decimal = 250.0
+    var maxProtein: Decimal = 250.0
 
     // Pump specific dosing increment
     var bolusIncrement: Decimal = 0.05
     var confirmBolusFaster: Bool = false
+
+    // Forecast options
+    var showForecast: Bool = false
+    var isForecastCone: Bool = false
+    var forecastStartDate: Date? = nil
+    var forecastConeMin: [Double] = []
+    var forecastConeMax: [Double] = []
+    var forecastLines: [String: [Double]] = [:] // "iob" / "cob" / "uam" / "zt" -> values
 
     static func == (lhs: WatchState, rhs: WatchState) -> Bool {
         lhs.date == rhs.date &&
@@ -53,7 +52,6 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
             lhs.lastLoopTime == rhs.lastLoopTime &&
             lhs.overridePresets == rhs.overridePresets &&
             lhs.tempTargetPresets == rhs.tempTargetPresets &&
-            lhs.forecast == rhs.forecast &&
             lhs.maxBolus == rhs.maxBolus &&
             lhs.maxCarbs == rhs.maxCarbs &&
             lhs.maxFat == rhs.maxFat &&
@@ -80,7 +78,6 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(lastLoopTime)
         hasher.combine(overridePresets)
         hasher.combine(tempTargetPresets)
-        hasher.combine(forecast)
         hasher.combine(maxBolus)
         hasher.combine(maxCarbs)
         hasher.combine(maxFat)

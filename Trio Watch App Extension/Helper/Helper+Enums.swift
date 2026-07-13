@@ -145,33 +145,3 @@ extension WatchSize {
         circleSize * minimizedScale + 8 // 4 pt gap on each side
     }
 }
-
-// MARK: - Forecast
-
-struct WatchForecastPolynomial: Codable, Equatable, Hashable {
-    var type: String
-    var coefficients: [Double]
-    var startDate: Date
-    var endMinutes: Double
-    var pointCount: Int
-
-    func evaluate(at minutesFromStart: Double) -> Double {
-        coefficients.enumerated().reduce(0.0) { acc, pair in
-            acc + pair.element * pow(minutesFromStart, Double(pair.offset))
-        }
-    }
-
-    func evaluate(at date: Date) -> Double {
-        let t = date.timeIntervalSince(startDate) / 60.0
-        return evaluate(at: t)
-    }
-}
-
-struct WatchForecastData: Codable, Equatable, Hashable {
-    var forecastLines: [WatchForecastPolynomial]
-    var coneMin: WatchForecastPolynomial?
-    var coneMax: WatchForecastPolynomial?
-    var showCone: Bool
-
-    var isEmpty: Bool { forecastLines.isEmpty && coneMin == nil }
-}

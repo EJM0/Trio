@@ -94,14 +94,18 @@ struct MinimizedGlucoseTrendView: View {
                 .shadow(color: Color.black.opacity(0.5), radius: 5)
 
                 VStack(alignment: .center, spacing: 0) {
-                    Text(isWatchStateDated ? "--" : state.currentGlucose)
-                        .fontWeight(.bold)
-                        .font(state.deviceType.currentGlucoseFontSize)
-                        .foregroundStyle(
-                            isWatchStateDated
-                                ? Color.secondary
-                                : state.currentGlucoseColorString.toColor()
-                        )
+                    if state.showSyncingAnimation {
+                        Image(systemName: "iphone.radiowaves.left.and.right")
+                    } else {
+                        Text(isWatchStateDated ? "--" : state.currentGlucose)
+                            .fontWeight(.bold)
+                            .font(state.deviceType.currentGlucoseFontSize)
+                            .foregroundStyle(
+                                isWatchStateDated
+                                    ? Color.secondary
+                                    : state.currentGlucoseColorString.toColor()
+                            )
+                    }
                 }
             }
         }
@@ -113,10 +117,6 @@ struct MinimizedGlucoseChartView: View {
     let state: WatchState
     let glucoseValues: [(date: Date, glucose: Double, color: Color)]
     @State private var timeWindow: TimeWindow = .threeHours
-
-    @AppStorage("showForecast") private var showForecast: Bool = true
-
-    private var forecastConeMode: Bool { state.forecast?.showCone ?? true }
 
     enum TimeWindow: Int {
         case threeHours = 3
@@ -134,15 +134,34 @@ struct MinimizedGlucoseChartView: View {
         }
     }
 
-    // 1. Berechnet die X-Achsen-Grenzen: (Gesamtstunden - 2h Vergangenheit) bis (+2h Zukunft)
     private var xAxisDomain: ClosedRange<Date> {
         let now = Date()
         let pastOffset = -Double(timeWindow.rawValue - 2) * 3600
-        let futureOffset = 2.0 * 3600
-        return now.addingTimeInterval(pastOffset) ... now.addingTimeInterval(futureOffset)
+        let startDate = now.addingTimeInterval(pastOffset)
+
+        // By default, the chart ends at "now" if no forecast is active
+        var endDate = now
+
+        if state.showForecast {
+            if state.isForecastCone {
+                if let lastConePoint = forecastConePoints.last {
+                    endDate = lastConePoint.date
+                } else {
+                    endDate = now.addingTimeInterval(2 * 3600) // Fallback if data is missing
+                }
+            } else {
+                if let maxLineDate = forecastLinePoints.map(\.date).max() {
+                    endDate = maxLineDate
+                } else {
+                    endDate = now.addingTimeInterval(2 * 3600) // Fallback if data is missing
+                }
+            }
+        }
+
+        // Prevents an invalid range interval if the calculated end date is in the past
+        return startDate ... max(now, endDate)
     }
 
-    // 2. Filtert historische Werte passend zum dynamischen Vergangenheits-Fenster
     private var filteredValues: [(date: Date, glucose: Double, color: Color)] {
         let pastHours = Double(timeWindow.rawValue - 2)
         let cutoffDate = Date().addingTimeInterval(-pastHours * 3600)
@@ -163,32 +182,36 @@ struct MinimizedGlucoseChartView: View {
         var value: Double
     }
 
-    // 3. Begrenzt den Forecast-Kegel strikt auf maximal 2 Stunden (120 Minuten)
     private var forecastConePoints: [ForecastConePoint] {
-        guard let forecast = state.forecast, showForecast, forecastConeMode else { return [] }
-        guard let minPoly = forecast.coneMin, let maxPoly = forecast.coneMax else { return [] }
+        guard state.showForecast, state.isForecastCone, let anchorDate = state.forecastStartDate else { return [] }
+
+        let minForecast = state.forecastConeMin
+        let maxForecast = state.forecastConeMax
+        let count = min(minForecast.count, maxForecast.count)
+
         var pts: [ForecastConePoint] = []
-        let endMinutes = min(minPoly.endMinutes, 120.0)
-        let end = Int(endMinutes / 5.0)
-        for i in 0 ... end {
-            let t = Double(i) * 5.0
-            let date = minPoly.startDate.addingTimeInterval(t * 60)
-            pts.append(ForecastConePoint(date: date, min: minPoly.evaluate(at: t), max: maxPoly.evaluate(at: t)))
+        for i in 0 ..< count {
+            let date = anchorDate.addingTimeInterval(TimeInterval(i * 300))
+            let yMin = minForecast[i]
+            let yMax = maxForecast[i]
+
+            if yMin == yMax {
+                pts.append(ForecastConePoint(date: date, min: yMin - 1, max: yMax + 1))
+            } else {
+                pts.append(ForecastConePoint(date: date, min: yMin, max: yMax))
+            }
         }
         return pts
     }
 
-    // 4. Begrenzt die Forecast-Linien ebenfalls strikt auf maximal 2 Stunden (120 Minuten)
     private var forecastLinePoints: [ForecastLinePoint] {
-        guard let forecast = state.forecast, showForecast, !forecastConeMode else { return [] }
+        guard state.showForecast, !state.isForecastCone, let anchorDate = state.forecastStartDate else { return [] }
+
         var pts: [ForecastLinePoint] = []
-        for line in forecast.forecastLines {
-            let endMinutes = min(line.endMinutes, 120.0)
-            let end = Int(endMinutes / 5.0)
-            for i in 0 ... end {
-                let t = Double(i) * 5.0
-                let date = line.startDate.addingTimeInterval(t * 60)
-                pts.append(ForecastLinePoint(type: line.type, date: date, value: line.evaluate(at: t)))
+        for (type, values) in state.forecastLines {
+            for i in 0 ..< values.count {
+                let date = anchorDate.addingTimeInterval(TimeInterval(i * 300))
+                pts.append(ForecastLinePoint(type: type, date: date, value: values[i]))
             }
         }
         return pts
@@ -259,8 +282,9 @@ struct MinimizedGlucoseChartView: View {
                     .symbolSize(glucosePointSize)
                 }
 
-                if showForecast {
-                    if forecastConeMode {
+                if state.showForecast {
+                    if state.isForecastCone {
+                        // Only the fill area of the cone — no border lines for min/max.
                         ForEach(forecastConePoints) { pt in
                             AreaMark(
                                 x: .value("Time", pt.date),
@@ -269,25 +293,8 @@ struct MinimizedGlucoseChartView: View {
                             )
                             .foregroundStyle(Color.insulin.opacity(0.3))
                         }
-                        ForEach(forecastConePoints) { pt in
-                            LineMark(
-                                x: .value("Time", pt.date),
-                                y: .value("Min", pt.min),
-                                series: .value("Type", "min")
-                            )
-                            .foregroundStyle(Color.insulin)
-                            .lineStyle(StrokeStyle(lineWidth: 1.5))
-
-                            LineMark(
-                                x: .value("Time", pt.date),
-                                y: .value("Max", pt.max),
-                                series: .value("Type", "max")
-                            )
-                            .foregroundStyle(Color.insulin)
-                            .lineStyle(StrokeStyle(lineWidth: 1.5))
-                        }
                     } else {
-                        // Nutzt die sauber gecappten Forecast-Linien-Punkte im Chart
+                        // Uses the cleanly capped forecast line points in the chart
                         ForEach(forecastLinePoints) { pt in
                             LineMark(
                                 x: .value("Time", pt.date),
@@ -303,12 +310,12 @@ struct MinimizedGlucoseChartView: View {
             .chartForegroundStyleScale([
                 "iob": Color.insulin,
                 "zt": Color.ZT,
-                "cob": Color.darkOrange,
+                "cob": Color.loopYellow,
                 "uam": Color.UAM
             ])
             .chartLegend(.hidden)
             .chartXAxis(.hidden)
-            .chartXScale(domain: xAxisDomain) // 5. Erzwingt die exakte Gesamtbreite auf der X-Achse
+            .chartXScale(domain: xAxisDomain)
             .chartYAxisLabel("\(timeWindow.rawValue) h", alignment: .topLeading)
             .chartYAxis {
                 AxisMarks(position: .trailing, values: yAxisValues) { value in
@@ -329,9 +336,6 @@ struct MinimizedGlucoseChartView: View {
                 withAnimation {
                     timeWindow = timeWindow.next
                 }
-            }
-            .contextMenu {
-                Toggle("Show Forecast", isOn: $showForecast)
             }
         }
     }

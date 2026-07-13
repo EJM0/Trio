@@ -27,7 +27,6 @@ import WatchConnectivity
     var lastLoopTime: String? = "--"
     var overridePresets: [OverridePresetWatch] = []
     var tempTargetPresets: [TempTargetPresetWatch] = []
-    var forecast: WatchForecastData?
 
     /// treatments inputs
     /// used to store carbs for combined meal-bolus-treatments
@@ -46,6 +45,14 @@ import WatchConnectivity
     // Pump specific dosing increment
     var bolusIncrement: Decimal = 0.05
     var confirmBolusFaster: Bool = false
+
+    // Forecast options
+    var showForecast: Bool = false
+    var isForecastCone: Bool = false
+    var forecastStartDate: Date?
+    var forecastConeMin: [Double] = []
+    var forecastConeMax: [Double] = []
+    var forecastLines: [String: [Double]] = [:] // "iob" / "cob" / "uam" / "zt" -> values
 
     // Acknowlegement handling
     var showCommsAnimation: Bool = false
@@ -88,12 +95,6 @@ import WatchConnectivity
 
     /// Configures the WatchConnectivity session if supported on the device
     private func setupSession() {
-        #if DEBUG
-            if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
-                return
-            }
-        #endif
-
         if WCSession.isSupported() {
             let session = WCSession.default
             session.delegate = self
@@ -567,16 +568,21 @@ import WatchConnectivity
             }
         }
 
-        if let forecastDict = message["forecast"] as? [String: Any],
-           let jsonData = try? JSONSerialization.data(withJSONObject: forecastDict)
-        {
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .secondsSince1970
-            if let forecast = try? decoder.decode(WatchForecastData.self, from: jsonData) {
-                self.forecast = forecast
-            } else {
-                print("Failed to decode forecast data")
+        if let showForecast = message[WatchMessageKeys.showForecastWatch] as? Bool {
+            self.showForecast = showForecast
+        }
+
+        if let isForecastCone = message[WatchMessageKeys.isForecastCone] as? Bool {
+            self.isForecastCone = isForecastCone
+        }
+
+        if let forecastPayload = message[WatchMessageKeys.forecastData] as? [String: Any] {
+            if let startTimestamp = forecastPayload[WatchMessageKeys.forecastStartDate] as? TimeInterval {
+                forecastStartDate = Date(timeIntervalSince1970: startTimestamp)
             }
+            forecastConeMin = forecastPayload[WatchMessageKeys.forecastConeMin] as? [Double] ?? []
+            forecastConeMax = forecastPayload[WatchMessageKeys.forecastConeMax] as? [Double] ?? []
+            forecastLines = forecastPayload[WatchMessageKeys.forecastLines] as? [String: [Double]] ?? [:]
         }
     }
 }
