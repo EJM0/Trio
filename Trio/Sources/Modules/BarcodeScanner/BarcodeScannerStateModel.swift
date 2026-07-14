@@ -378,11 +378,17 @@ extension BarcodeScanner {
                 scannedProducts.append(item)
             }
 
+            // Turn off torch *before* clearing the scanned item. clearScannedProduct() clears
+            // currentScannedItem synchronously, which flips showEditorView to false and briefly
+            // re-mounts the live camera view (with whatever isTorchOn was) for one runloop tick,
+            // before the deferred showListView flip below switches the tab away and resets it.
+            // That gap is what causes the visible torch flash.
+            isTorchOn = false
+
             // Clear the editor and resume scanning
             clearScannedProduct()
 
             // MARK: - FIX: Defer the expensive tab switch to the next runloop iteration
-
             // This prevents the UI from hanging when transitioning from scanner to list view
             DispatchQueue.main.async {
                 self.showListView = true
