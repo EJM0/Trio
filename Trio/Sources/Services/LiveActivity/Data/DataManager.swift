@@ -76,7 +76,7 @@ extension LiveActivityManager {
                     let values = forecast.forecastValuesArray.prefix(24).map { Int($0.value) }
                     guard !values.isEmpty else { continue }
                     // iob is hidden when cob or uam are active (matches phone app behavior)
-                    //if forecast.type == "iob", hasCarbs { continue }
+                    // if forecast.type == "iob", hasCarbs { continue }
                     allForecastValues.append(Array(values))
                     if let type = forecast.type {
                         forecastLines.append((type: type, values: Array(values)))

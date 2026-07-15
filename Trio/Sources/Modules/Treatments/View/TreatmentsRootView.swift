@@ -1006,8 +1006,7 @@ extension Treatments {
         }
 
         var treatmentButton: some View {
-            let shouldDisplayBolusProgress = state.bolusStatus != .noBolus && state.amount > 0 &&
-                !state.externalInsulin && (state.carbs == 0 || state.fat == 0 || state.protein == 0)
+            let shouldDisplayBolusProgress = bolusInProgressForEntry
 
             var treatmentButtonBackground = Color(.systemBlue)
             if limitExceeded {
@@ -1204,17 +1203,14 @@ extension Treatments {
                 || proteinLimitExceeded
         }
 
+        private var bolusInProgressForEntry: Bool {
+            (state.bolusProgress != nil || state.bolusStatus == .initiating) &&
+                state.amount > 0 && !state.externalInsulin &&
+                (state.carbs == 0 || state.fat == 0 || state.protein == 0)
+        }
+
         private var disableTaskButton: Bool {
-            (
-                state.bolusStatus != .noBolus && state
-                    .amount > 0 && !state
-                    .externalInsulin &&
-                    (
-                        state.carbs == 0 && state.scannedCarbs == 0 || state.fat == 0 && state.scannedFat == 0
-                            || state.protein == 0 && state.scannedProtein == 0
-                    )
-            ) || state
-                .addButtonPressed || limitExceeded
+            bolusInProgressForEntry || state.addButtonPressed || limitExceeded
         }
     }
 

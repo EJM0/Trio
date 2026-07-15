@@ -389,6 +389,7 @@ extension BarcodeScanner {
             clearScannedProduct()
 
             // MARK: - FIX: Defer the expensive tab switch to the next runloop iteration
+
             // This prevents the UI from hanging when transitioning from scanner to list view
             DispatchQueue.main.async {
                 self.showListView = true
