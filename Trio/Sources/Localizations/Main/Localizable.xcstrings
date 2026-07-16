@@ -28377,8 +28377,6 @@
         }
       }
     },
-    "Above avg SMB x factor" : {
-    },
     "above" : {
       "comment" : "A comparison operator.",
       "localizations" : {
@@ -28503,6 +28501,9 @@
           }
         }
       }
+    },
+    "Above avg SMB x factor" : {
+
     },
     "Acknowledge all alerts" : {
       "localizations" : {
@@ -294947,8 +294948,6 @@
         }
       }
     },
-    "Try logging in with your OpenFoodFacts account to reduce rate limits." : {
-    },
     "Try again." : {
       "comment" : "Error message displayed when a bolus cancellation fails.",
       "localizations" : {
@@ -295073,6 +295072,9 @@
           }
         }
       }
+    },
+    "Try logging in with your OpenFoodFacts account to reduce rate limits." : {
+
     },
     "Turn this setting on to give basal adjustments more agility. Keep this setting off if your basal needs are not highly variable." : {
       "localizations" : {

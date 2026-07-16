@@ -1204,6 +1204,7 @@ extension Treatments {
         }
 
         private var bolusInProgressForEntry: Bool {
+            // .initiating covers pumps that take a few seconds before reporting progress
             (state.bolusProgress != nil || state.bolusStatus == .initiating) &&
                 state.amount > 0 && !state.externalInsulin
         }
