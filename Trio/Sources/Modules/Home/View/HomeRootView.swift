@@ -5,27 +5,6 @@ import SwiftDate
 import SwiftUI
 import Swinject
 
-enum HomeTab: Int, CaseIterable, Hashable {
-    case main = 0
-    case history = 1
-    case adjustments = 2
-    case settings = 3
-    case plus = 4
-}
-
-struct TabCenterPreferenceKey: PreferenceKey {
-    static var defaultValue: Anchor<CGPoint>? = nil
-    static func reduce(value: inout Anchor<CGPoint>?, nextValue: () -> Anchor<CGPoint>?) {
-        value = nextValue() ?? value
-    }
-}
-
-struct Haptic: Hashable {
-    var intensity: CGFloat
-    var sharpness: CGFloat
-    var interval: CGFloat
-}
-
 struct TimePicker: Identifiable {
     var active: Bool
     let hours: Int16
@@ -46,18 +25,11 @@ extension Home {
         @Environment(\.colorScheme) var colorScheme
         @Environment(AppState.self) var appState
 
-        @State private var engine: CHHapticEngine?
-        private var haptics: [Haptic] = [
-            Haptic(intensity: 0.5, sharpness: 0.5, interval: 0.0),
-            Haptic(intensity: 0.7, sharpness: 0.2, interval: 0.3)
-        ]
-
         @State var state = StateModel()
 
         @State var settingsPath = NavigationPath()
         @State var settingsSearchHighlight = SettingsSearchHighlight()
         @State var isStatusPopupPresented = false
-        @State var ghostTab: HomeTab? = nil
         @State var showCancelAlert = false
         @State var showCancelConfirmDialog = false
         @State var isConfirmStopOverrideShown = false
@@ -132,67 +104,6 @@ extension Home {
                 return "book.pages"
             } else {
                 return "book"
-            }
-        }
-
-        func playHaptics(_ haptics: [Haptic]) {
-            guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
-
-            // Ensure engine is started before playing
-            if engine == nil {
-                prepareHaptics()
-            }
-
-            guard let engine else { return }
-
-            // Try to start the engine in case it was stopped
-            do {
-                try engine.start()
-            } catch {
-                // Engine might already be running, which is fine
-            }
-
-            var events: [CHHapticEvent] = []
-            var currentTime: TimeInterval = 0
-
-            for h in haptics {
-                currentTime += TimeInterval(h.interval)
-
-                let event = CHHapticEvent(
-                    eventType: .hapticTransient,
-                    parameters: [
-                        .init(parameterID: .hapticIntensity, value: Float(h.intensity)),
-                        .init(parameterID: .hapticSharpness, value: Float(h.sharpness))
-                    ],
-                    relativeTime: currentTime
-                )
-
-                events.append(event)
-            }
-
-            do {
-                let pattern = try CHHapticPattern(events: events, parameters: [])
-                let player = try engine.makePlayer(with: pattern)
-                try player.start(atTime: CHHapticTimeImmediate)
-            } catch {
-                print("Haptic error: \(error.localizedDescription)")
-            }
-        }
-
-        func prepareHaptics() {
-            guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
-
-            do {
-                engine = try CHHapticEngine()
-                try engine?.start()
-            } catch {
-                print("Engine start error: \(error.localizedDescription)")
-            }
-
-            engine?.resetHandler = { [weak engine] in
-                do { try engine?.start() } catch {
-                    print("Engine restart failed: \(error)")
-                }
             }
         }
 
