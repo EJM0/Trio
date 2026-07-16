@@ -83,7 +83,6 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var openFoodFactsPassword: String = ""
     var scaleIP: String = ""
     var requireAdjustmentsConfirmation: Bool = false
-    var useJavascriptOref: Bool = false
 
     // MARK: - Fehlende Eigenschaften im Haupt-Struct ergänzt
 
@@ -458,10 +457,6 @@ extension TrioSettings: Decodable {
 
         if let requireAdjustmentsConfirmation = try? container.decode(Bool.self, forKey: .requireAdjustmentsConfirmation) {
             settings.requireAdjustmentsConfirmation = requireAdjustmentsConfirmation
-        }
-
-        if let useJavascriptOref = try? container.decode(Bool.self, forKey: .useJavascriptOref) {
-            settings.useJavascriptOref = useJavascriptOref
         }
 
         if let garminWatchface = try? container.decode(GarminWatchface.self, forKey: .garminWatchface) {
