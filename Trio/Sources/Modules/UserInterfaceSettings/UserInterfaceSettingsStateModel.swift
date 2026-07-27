@@ -13,11 +13,12 @@ extension UserInterfaceSettings {
         @Published var forecastDisplayType: ForecastDisplayType = .cone
         @Published var showCarbsRequiredBadge: Bool = true
         @Published var carbsRequiredThreshold: Decimal = 0
-        @Published var glucoseColorScheme: GlucoseColorScheme = .staticColor
+        @Published var glucoseColorScheme: GlucoseColorScheme = .dynamicColor
         @Published var eA1cDisplayUnit: EstimatedA1cDisplayUnit = .percent
         @Published var timeInRangeType: TimeInRangeType = .timeInTightRange
         @Published var averageSMBBolus: Decimal?
         @Published var requireAdjustmentsConfirmation: Bool = false
+        @Published var currentGlucoseTarget: Decimal = 100
 
         var units: GlucoseUnits = .mgdL
         private let pumpHistoryFetchContext = CoreDataStack.shared.newTaskContext()
@@ -64,6 +65,15 @@ extension UserInterfaceSettings {
                 requireAdjustmentsConfirmation = $0 }
 
             updateAverageSMBBolus()
+            Task { await getCurrentGlucoseTarget() }
+        }
+
+        /// Resolves the glucose target active right now from the BG target schedule.
+        func getCurrentGlucoseTarget() async {
+            let bgTargets = await provider.getBGTargets()
+            if let target = bgTargets.currentTarget() {
+                await MainActor.run { currentGlucoseTarget = target }
+            }
         }
 
         var currentBolusDisplayCutoff: Decimal? {
