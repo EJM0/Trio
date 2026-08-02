@@ -55,6 +55,24 @@ enum WatchMessageKeys {
     // Notification Actions
     static let snoozeDuration = "snoozeDuration"
 
+    // Peripherals (pump + CGM device info)
+    /// Sub-dictionary wrapping every peripheral field, mirroring `forecastData`.
+    /// Rides along with every watch state push, and is also sent on its own when
+    /// a peripheral change has to reach a watch that is out of range.
+    static let peripheralData = "peripheralData"
+    static let peripheralsUpdatedAt = "peripheralsUpdatedAt"
+    static let pumpName = "pumpName"
+    static let pumpReservoir = "pumpReservoir"
+    static let pumpBatteryPercent = "pumpBatteryPercent"
+    static let pumpExpiresAt = "pumpExpiresAt"
+    static let pumpActivatedAt = "pumpActivatedAt"
+    static let pumpStatusMessage = "pumpStatusMessage"
+    static let cgmName = "cgmName"
+    static let cgmSensorExpiresAt = "cgmSensorExpiresAt"
+    static let cgmProgressPercent = "cgmProgressPercent"
+    static let cgmProgressState = "cgmProgressState"
+    static let cgmStatusMessage = "cgmStatusMessage"
+
     // Forecast
     static let showForecastWatch = "showForecastWatch"
     static let isForecastCone = "isForecastCone"

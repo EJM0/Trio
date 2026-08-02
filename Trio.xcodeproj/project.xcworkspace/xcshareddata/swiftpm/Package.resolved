@@ -1,5 +1,5 @@
 {
-  "originHash" : "b271d5de8862534ec5ccf9ccfd7ce226afa7ed4c799b7066ccbe2281782402a1",
+  "originHash" : "6306276a2d95afeb7a535d1d6076711fbcf408a37c344526ff71d26410d391d8",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -44,6 +44,15 @@
       "state" : {
         "revision" : "f40325520344a966523b214394aa350132a6af68",
         "version" : "1.0.203"
+      }
+    },
+    {
+      "identity" : "codescanner",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/twostraws/CodeScanner",
+      "state" : {
+        "revision" : "5e886430238944c7200fc9e10dbf2d9550dba865",
+        "version" : "2.5.2"
       }
     },
     {
@@ -260,15 +269,6 @@
       "state" : {
         "revision" : "6190d0cefff3013e77ed567e6b074f324e5c5bf5",
         "version" : "6.3.1"
-      }
-    },
-    {
-      "identity" : "swiftmessages",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/SwiftKickMobile/SwiftMessages",
-      "state" : {
-        "revision" : "62e12e138fc3eedf88c7553dd5d98712aa119f40",
-        "version" : "9.0.9"
       }
     },
     {

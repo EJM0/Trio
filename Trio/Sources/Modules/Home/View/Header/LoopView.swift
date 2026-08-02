@@ -30,10 +30,7 @@ struct LoopView: View {
                 Image(systemName: (!closedLoop || manualTempBasal) ? "circle.and.line.horizontal" : "circle")
                     .symbolEffect(.pulse, options: .repeating, isActive: isAnimating)
             }
-            if isAnimating {
-                // Exclude from localization; the term 'looping' is an idiom in the DIY loop jargon. IYKYK
-                Text(verbatim: "looping")
-            } else if manualTempBasal {
+            if manualTempBasal {
                 Text("Manual")
             } else if determination.first?
                 .deliverAt !=

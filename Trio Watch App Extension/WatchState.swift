@@ -46,6 +46,28 @@ import WatchConnectivity
     var bolusIncrement: Decimal = 0.05
     var confirmBolusFaster: Bool = false
 
+    // Peripherals (pump + CGM device info shown on the Devices page)
+    var peripheralsUpdatedAt: Date?
+    var pumpName: String?
+    /// Raw reservoir units. `0xDEAD_BEEF` is the phone's "50+ U" sentinel for
+    /// pumps that only report "above threshold" (Omnipod).
+    var pumpReservoir: Decimal?
+    /// `nil` for patch pumps, which report no battery at all.
+    var pumpBatteryPercent: Int?
+    var pumpExpiresAt: Date?
+    var pumpActivatedAt: Date?
+    var pumpStatusMessage: String?
+    var cgmName: String?
+    var cgmSensorExpiresAt: Date?
+    var cgmProgressPercent: Double?
+    /// `DeviceLifecycleProgressState` raw value; drives the sensor ring color.
+    var cgmProgressState: String?
+    var cgmStatusMessage: String?
+
+    /// True once a peripheral payload has been applied, so the Devices page can
+    /// tell "still loading" apart from "phone says there is nothing to show".
+    var hasReceivedPeripheralData: Bool = false
+
     // Forecast options
     var showForecast: Bool = false
     var isForecastCone: Bool = false
@@ -221,11 +243,31 @@ import WatchConnectivity
             return
         }
 
+        if handlePeripheralPayload(message) { return }
+
         handleIncomingWatchStatePayload(message)
     }
 
     func session(_: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        if handlePeripheralPayload(userInfo) { return }
+
         handleIncomingWatchStatePayload(userInfo)
+    }
+
+    /// Standalone peripheral payload — sent on its own when a peripheral change
+    /// has to reach the watch outside a routine push, a removed pump above all.
+    /// Applied immediately rather than through `scheduleUIUpdate`'s debounce,
+    /// since it is a one-shot message and not part of the streaming state.
+    /// - Returns: `true` when the dictionary was a peripheral payload and has
+    ///   been consumed.
+    private func handlePeripheralPayload(_ dictionary: [String: Any]) -> Bool {
+        guard let payload = dictionary[WatchMessageKeys.peripheralData] as? [String: Any] else { return false }
+
+        Task { await WatchLogger.shared.log("⌚️ Received standalone peripheral data") }
+        DispatchQueue.main.async {
+            self.processPeripheralData(payload)
+        }
+        return true
     }
 
     /// Shared path for watch-state payloads from either delegate method.
@@ -584,5 +626,54 @@ import WatchConnectivity
             forecastConeMax = forecastPayload[WatchMessageKeys.forecastConeMax] as? [Double] ?? []
             forecastLines = forecastPayload[WatchMessageKeys.forecastLines] as? [String: [Double]] ?? [:]
         }
+
+        if let peripheralPayload = message[WatchMessageKeys.peripheralData] as? [String: Any] {
+            processPeripheralData(peripheralPayload)
+        }
+    }
+
+    /// Applies a peripheral payload, whether it arrived nested inside a routine
+    /// watch state push or as a standalone peripheral message.
+    ///
+    /// Every field clears explicitly when its key is absent: the phone omits
+    /// keys it has no value for, so a removed pod or sensor must not leave the
+    /// last known reading on screen.
+    func processPeripheralData(_ payload: [String: Any]) {
+        if let timestamp = payload[WatchMessageKeys.peripheralsUpdatedAt] as? TimeInterval {
+            peripheralsUpdatedAt = Date(timeIntervalSince1970: timestamp)
+        } else {
+            peripheralsUpdatedAt = Date()
+        }
+
+        pumpName = payload[WatchMessageKeys.pumpName] as? String
+        pumpReservoir = (payload[WatchMessageKeys.pumpReservoir] as? NSNumber)?.decimalValue
+        pumpBatteryPercent = (payload[WatchMessageKeys.pumpBatteryPercent] as? NSNumber)?.intValue
+
+        if let timestamp = payload[WatchMessageKeys.pumpExpiresAt] as? TimeInterval {
+            pumpExpiresAt = Date(timeIntervalSince1970: timestamp)
+        } else {
+            pumpExpiresAt = nil
+        }
+
+        if let timestamp = payload[WatchMessageKeys.pumpActivatedAt] as? TimeInterval {
+            pumpActivatedAt = Date(timeIntervalSince1970: timestamp)
+        } else {
+            pumpActivatedAt = nil
+        }
+
+        pumpStatusMessage = payload[WatchMessageKeys.pumpStatusMessage] as? String
+        cgmName = payload[WatchMessageKeys.cgmName] as? String
+
+        if let timestamp = payload[WatchMessageKeys.cgmSensorExpiresAt] as? TimeInterval {
+            cgmSensorExpiresAt = Date(timeIntervalSince1970: timestamp)
+        } else {
+            cgmSensorExpiresAt = nil
+        }
+
+        cgmProgressPercent = (payload[WatchMessageKeys.cgmProgressPercent] as? NSNumber)?.doubleValue
+        cgmProgressState = payload[WatchMessageKeys.cgmProgressState] as? String
+        cgmStatusMessage = payload[WatchMessageKeys.cgmStatusMessage] as? String
+
+        hasReceivedPeripheralData = true
     }
 }
