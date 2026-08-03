@@ -87,6 +87,13 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
             lhs.bolusIncrement == rhs.bolusIncrement &&
             lhs.confirmBolusFaster == rhs.confirmBolusFaster
 
+        let forecastIsEqual = lhs.showForecast == rhs.showForecast &&
+            lhs.isForecastCone == rhs.isForecastCone &&
+            lhs.forecastStartDate == rhs.forecastStartDate &&
+            lhs.forecastConeMin == rhs.forecastConeMin &&
+            lhs.forecastConeMax == rhs.forecastConeMax &&
+            lhs.forecastLines == rhs.forecastLines
+
         let pumpIsEqual = lhs.pumpName == rhs.pumpName &&
             lhs.pumpReservoir == rhs.pumpReservoir &&
             lhs.pumpBatteryPercent == rhs.pumpBatteryPercent &&
@@ -100,8 +107,10 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
             lhs.cgmProgressState == rhs.cgmProgressState &&
             lhs.cgmStatusMessage == rhs.cgmStatusMessage
 
-        return glucoseIsEqual && treatmentsAreEqual && limitsAreEqual && pumpIsEqual && cgmIsEqual
+        return glucoseIsEqual && treatmentsAreEqual && limitsAreEqual && forecastIsEqual && pumpIsEqual &&
+            cgmIsEqual
     }
+
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(date)

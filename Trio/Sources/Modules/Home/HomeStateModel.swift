@@ -921,9 +921,11 @@ extension Home {
         private func setupGlucoseTargets() async {
             let bgTargets = await provider.getBGTargets()
             let targetProfiles = processFetchedTargets(bgTargets, startMarker: startMarker)
+            let currentTarget = bgTargets.currentTarget()
             await MainActor.run {
                 self.bgTargets = bgTargets
                 self.targetProfiles = targetProfiles
+                if let currentTarget { self.currentGlucoseTarget = currentTarget }
             }
         }
 
@@ -933,12 +935,6 @@ extension Home {
                 await MainActor.run {
                     self.reservoir = reservoir
                 }
-            }
-        }
-
-        private func getCurrentGlucoseTarget() async {
-            if let target = bgTargets.currentTarget() {
-                await MainActor.run { currentGlucoseTarget = target }
             }
         }
     }
@@ -967,7 +963,6 @@ extension Home.StateModel:
         lowGlucose = settingsManager.settings.low
         highGlucose = settingsManager.settings.high
         Task {
-            await getCurrentGlucoseTarget()
             await setupGlucoseTargets()
         }
         eA1cDisplayUnit = settingsManager.settings.eA1cDisplayUnit
