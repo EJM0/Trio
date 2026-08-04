@@ -95,8 +95,9 @@ jobs:
 
       # This syncs any target branch to upstream branch of the same name
       - name: Sync upstream changes
-        if: | # do not run the upstream sync action on the upstream repository
+        if: | # do not run the upstream sync action on the upstream repository, or when updates are skipped
           steps.workflow-permission.outputs.has_permission == 'true' &&
+          vars.SKIP_UPDATE != 'true' &&
           vars.SCHEDULED_SYNC != 'false' && github.repository_owner != 'nightscout'
         id: sync
         uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.2
@@ -111,20 +112,34 @@ jobs:
       - name: New commits found
         if: |
           steps.workflow-permission.outputs.has_permission == 'true' &&
+          vars.SKIP_UPDATE != 'true' &&
           vars.SCHEDULED_SYNC != 'false' && steps.sync.outputs.has_new_commits == 'true'
         run: echo "New commits were found to sync."
 
       - name: No new commits
         if: |
           steps.workflow-permission.outputs.has_permission == 'true' &&
+          vars.SKIP_UPDATE != 'true' &&
           vars.SCHEDULED_SYNC != 'false' && steps.sync.outputs.has_new_commits == 'false'
         run: echo "There were no new commits."
 
       - name: Show value of 'has_new_commits'
-        if: steps.workflow-permission.outputs.has_permission == 'true' && vars.SCHEDULED_SYNC != 'false'
+        if: |
+          steps.workflow-permission.outputs.has_permission == 'true' &&
+          vars.SKIP_UPDATE != 'true' && vars.SCHEDULED_SYNC != 'false'
         run: |
           echo ${{ steps.sync.outputs.has_new_commits }}
           echo "NEW_COMMITS=${{ steps.sync.outputs.has_new_commits }}" >> $GITHUB_OUTPUT
+
+      # Report that syncing with upstream was intentionally disabled
+      - name: Show update skipped message
+        if: vars.SKIP_UPDATE == 'true'
+        run: |
+          echo "### :fast_forward: Update Skipped :no_entry_sign:" >> $GITHUB_STEP_SUMMARY
+          echo "The repository variable <code>SKIP_UPDATE</code> is set to <code>true</code>." >> $GITHUB_STEP_SUMMARY
+          echo "Synchronizing your fork of <code>Trio</code> with the upstream repository \
+              <code>${{ env.UPSTREAM_REPO }}</code> was skipped." >> $GITHUB_STEP_SUMMARY
+          echo "Unset or change that variable to re-enable automatic updates." >> $GITHUB_STEP_SUMMARY
 
       - name: Show scheduled build configuration message
         if: steps.workflow-permission.outputs.has_permission != 'true'
