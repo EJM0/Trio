@@ -111,7 +111,6 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
             cgmIsEqual
     }
 
-
     func hash(into hasher: inout Hasher) {
         hasher.combine(date)
         hasher.combine(currentGlucose)
