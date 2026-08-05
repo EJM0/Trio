@@ -14,12 +14,14 @@ extension Settings {
         @Injected() var fetchCgmManager: FetchGlucoseManager!
         @Injected() private var storage: FileStorage!
         @Injected() var overrideStorage: OverrideStorage!
+        @Injected() var userNotificationsManager: UserNotificationsManager!
 
         @Published var units: GlucoseUnits = .mgdL
         @Published var dosingMode: DosingMode = .open
         @Published var debugOptions = false
         @Published var serviceUIType: ServiceUI.Type?
         @Published var setupTidepool = false
+        @Published var useCriticalAlerts = false
 
         private(set) var buildNumber = ""
         private(set) var versionNumber = ""
@@ -31,6 +33,7 @@ extension Settings {
 
             subscribeSetting(\.debugOptions, on: $debugOptions) { debugOptions = $0 }
             subscribeSetting(\.dosingMode, on: $dosingMode) { dosingMode = $0 }
+            subscribeSetting(\.useCriticalAlerts, on: $useCriticalAlerts) { useCriticalAlerts = $0 }
             broadcaster.register(SettingsObserver.self, observer: self)
 
             buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
@@ -60,6 +63,13 @@ extension Settings {
 
         func hideSettingsModal() {
             hideModal()
+        }
+
+        /// Re-requests notification authorization, now including `.criticalAlert`. iOS only
+        /// prompts the user for options it hasn't already asked about, so this is safe to call
+        /// repeatedly — it's a no-op once the user has answered the critical alerts prompt.
+        func requestCriticalAlertsPermission() {
+            userNotificationsManager.requestNotificationPermissions { _ in }
         }
 
         // Commenting this out for now, as not needed and possibly dangerous for users to be able to nuke their pump pairing informations via the debug menu
