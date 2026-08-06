@@ -455,7 +455,7 @@ extension TrioSettings: Decodable {
         if let scaleIP = try? container.decode(String.self, forKey: .scaleIP) {
             settings.scaleIP = scaleIP
         }
-        
+
         if let homeStatsPanelFace = try? container.decode(HomeStatsPanelFace.self, forKey: .homeStatsPanelFace) {
             settings.homeStatsPanelFace = homeStatsPanelFace
         }

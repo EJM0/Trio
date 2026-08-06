@@ -1,5 +1,4 @@
 import CoreData
-import CoreHaptics
 import SpriteKit
 import SwiftDate
 import SwiftUI
@@ -40,21 +39,17 @@ extension Home {
         @State var isForcingLoop = false
         @State var notificationsDisabled = false
 
-        @FetchRequest(
-            fetchRequest: OverrideStored.fetch(
-                NSPredicate.lastActiveOverride,
-                ascending: false,
-                fetchLimit: 1
-            )
-        ) var latestOverride: FetchedResults<OverrideStored>
+        @FetchRequest(fetchRequest: OverrideStored.fetch(
+            NSPredicate.lastActiveOverride,
+            ascending: false,
+            fetchLimit: 1
+        )) var latestOverride: FetchedResults<OverrideStored>
 
-        @FetchRequest(
-            fetchRequest: TempTargetStored.fetch(
-                NSPredicate.lastActiveTempTarget,
-                ascending: false,
-                fetchLimit: 1
-            )
-        ) var latestTempTarget: FetchedResults<TempTargetStored>
+        @FetchRequest(fetchRequest: TempTargetStored.fetch(
+            NSPredicate.lastActiveTempTarget,
+            ascending: false,
+            fetchLimit: 1
+        )) var latestTempTarget: FetchedResults<TempTargetStored>
 
         var historySFSymbol: String {
             if #available(iOS 17.0, *) {
@@ -135,8 +130,6 @@ extension Home {
             // viewport-sized content: rubber-bands for the pull-down, never scrolls
             ScrollView(.vertical, showsIndicators: false) {
                 dashboardContent(geo)
-                    .padding(.top, isForcingLoop ? HomeLayout.refreshIndicatorHeight : 0)
-                    .animation(.easeInOut(duration: 0.25), value: isForcingLoop)
                     .background(
                         GeometryReader { g in
                             Color.clear.preference(
@@ -243,9 +236,7 @@ extension Home {
                 Button("Dana(RS/-i)") { state.addPump(.dana) }
                 Button("Medtrum Nano") { state.addPump(.medtrum) }
                 Button("Pump Simulator") { state.addPump(.simulator) }
-            } message: {
-                Text("Select Pump Model")
-            }
+            } message: { Text("Select Pump Model") }
             .sheet(isPresented: $state.shouldDisplayPumpSetupSheet) {
                 if let pumpManager = state.provider.apsManager.pumpManager {
                     PumpConfig.PumpSettingsView(
@@ -254,7 +245,6 @@ extension Home {
                         completionDelegate: state,
                         setupDelegate: state
                     )
-                    .ignoresSafeArea()
                 } else {
                     PumpConfig.PumpSetupView(
                         pumpType: state.setupPumpType,
@@ -263,7 +253,6 @@ extension Home {
                         completionDelegate: state,
                         setupDelegate: state
                     )
-                    .ignoresSafeArea()
                 }
             }
             // CGM RELATED
@@ -285,7 +274,6 @@ extension Home {
                         cgmCurrent: state.cgmCurrent,
                         deleteCGM: state.deleteCGM
                     )
-                    .ignoresSafeArea()
                 case .plugin:
                     if let fetchGlucoseManager = state.fetchGlucoseManager,
                        let cgmManager = fetchGlucoseManager.cgmManager,
@@ -298,7 +286,6 @@ extension Home {
                             unit: state.settingsManager.settings.units,
                             completionDelegate: state
                         )
-                        .ignoresSafeArea()
                     } else {
                         CGMSettings.CGMSetupView(
                             CGMType: state.cgmCurrent,
@@ -308,7 +295,6 @@ extension Home {
                             setupDelegate: state,
                             pluginCGMManager: self.state.pluginCGMManager
                         )
-                        .ignoresSafeArea()
                     }
                 }
             }
@@ -494,21 +480,14 @@ extension Home {
                         settingsPath = NavigationPath()
                     }
                 }
-                .ignoresSafeArea()
-            }
-            .onAppear { updateTabBarHeight() }
-            .onChange(of: tabBarHeight) { updateTabBarHeight() }
         }
 
         var body: some View {
             ZStack(alignment: .center) {
                 tabBar()
-                    .tint(nil)
 
                 if state.waitForSuggestion {
-                    CustomProgressView(
-                        text: String(localized: "Updating IOB...", comment: "Progress text when updating IOB")
-                    )
+                    CustomProgressView(text: String(localized: "Updating IOB...", comment: "Progress text when updating IOB"))
                 }
             }
             .sheet(isPresented: $showQuickBolusPicker) {
@@ -555,8 +534,7 @@ func formatHrMin(_ durationInMinutes: Int) -> String {
     case let (h, 0):
         return "\(h)\u{00A0}" + String(localized: "h", comment: "h")
     default:
-        return hours.description + "\u{00A0}" + String(localized: "h", comment: "h") + "\u{00A0}"
-            + minutes
+        return hours.description + "\u{00A0}" + String(localized: "h", comment: "h") + "\u{00A0}" + minutes
             .description + "\u{00A0}" + String(localized: "m", comment: "Abbreviation for Minutes")
     }
 }
@@ -577,19 +555,13 @@ func formatTimeRange(start: String?, end: String?) -> String {
         formatter.dateFormat = "HH"
 
         if let startHour = Int(start), let endHour = Int(end) {
-            let startDate =
-                Calendar.current.date(bySettingHour: startHour, minute: 0, second: 0, of: Date()) ?? Date()
-            let endDate =
-                Calendar.current.date(bySettingHour: endHour, minute: 0, second: 0, of: Date()) ?? Date()
+            let startDate = Calendar.current.date(bySettingHour: startHour, minute: 0, second: 0, of: Date()) ?? Date()
+            let endDate = Calendar.current.date(bySettingHour: endHour, minute: 0, second: 0, of: Date()) ?? Date()
 
             // Customize the format to "2p" or "2a"
             formatter.dateFormat = "ha"
-            let startFormatted = formatter.string(from: startDate).lowercased().replacingOccurrences(
-                of: "m", with: ""
-            )
-            let endFormatted = formatter.string(from: endDate).lowercased().replacingOccurrences(
-                of: "m", with: ""
-            )
+            let startFormatted = formatter.string(from: startDate).lowercased().replacingOccurrences(of: "m", with: "")
+            let endFormatted = formatter.string(from: endDate).lowercased().replacingOccurrences(of: "m", with: "")
 
             return "\(startFormatted)-\(endFormatted)"
         } else {
