@@ -31,7 +31,7 @@ struct AddGlucoseAlertSheet: View {
                     }.listRowBackground(Color.chart)
                 }
             }
-            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme))
+            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .navigationTitle("Add Alarm")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -110,7 +110,7 @@ extension GlucoseAlerts {
                 )
             }
             .scrollContentBackground(.hidden)
-            .background(appState.trioBackgroundColor(for: colorScheme))
+            .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .navigationTitle("Glucose Alarms")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
