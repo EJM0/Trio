@@ -33,7 +33,7 @@ extension Home {
         @State var showSnoozeSheet: Bool = false
         @State var showManualGlucose: Bool = false
         // Pull-down-to-force-loop (see HomeRootView+Refresh.swift)
-        @State var pullState = HomePullState()
+        @State var pullOffset: CGFloat = 0
         @State var isRefreshArmed = false
         @State var isForcingLoop = false
         @State var notificationsDisabled = false
@@ -108,17 +108,21 @@ extension Home {
         @ViewBuilder func mainViewElements(_ geo: GeometryProxy) -> some View {
             // viewport-sized content: rubber-bands for the pull-down, never scrolls
             ScrollView(.vertical, showsIndicators: false) {
-                // no-op on iOS 18+, where the scroll geometry reader below is the source
                 dashboardContent(geo)
-                    .modifier(HomeLegacyPullOffsetWriter())
+                    .background(
+                        GeometryReader { g in
+                            Color.clear.preference(
+                                key: HomePullOffsetKey.self,
+                                value: g.frame(in: .named("homeScroll")).minY
+                            )
+                        }
+                    )
             }
             .coordinateSpace(name: "homeScroll")
             .scrollBounceBehavior(.always, axes: [.vertical])
             .modifier(HomePullOffsetReader(onChange: handlePullChange))
             .onPreferenceChange(HomePullOffsetKey.self) { handlePullChange($0) }
-            .overlay(alignment: .top) {
-                PullToRefreshIndicator(pullState: pullState, isForcingLoop: isForcingLoop)
-            }
+            .overlay(alignment: .top) { pullToRefreshIndicator }
             // safe-area anchor: the tab bar can never cover the bottom controls
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 bottomControls()
