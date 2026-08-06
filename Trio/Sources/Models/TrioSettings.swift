@@ -82,6 +82,7 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var openFoodFactsUsername: String = ""
     var openFoodFactsPassword: String = ""
     var scaleIP: String = ""
+    var homeStatsPanelFace: HomeStatsPanelFace = .timeInRange
     var requireAdjustmentsConfirmation: Bool = false
 
     // MARK: - Fehlende Eigenschaften im Haupt-Struct ergänzt
@@ -453,6 +454,10 @@ extension TrioSettings: Decodable {
 
         if let scaleIP = try? container.decode(String.self, forKey: .scaleIP) {
             settings.scaleIP = scaleIP
+        }
+        
+        if let homeStatsPanelFace = try? container.decode(HomeStatsPanelFace.self, forKey: .homeStatsPanelFace) {
+            settings.homeStatsPanelFace = homeStatsPanelFace
         }
 
         if let requireAdjustmentsConfirmation = try? container.decode(Bool.self, forKey: .requireAdjustmentsConfirmation) {

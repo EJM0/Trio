@@ -8,9 +8,12 @@ struct InsulinView: ChartContent {
     let units: GlucoseUnits
     let bolusDisplayThreshold: BolusDisplayThreshold
     let bolusDisplayThresholdMultiplier: Decimal
+    /// Source for the SMB average. Kept separate from `insulinData`, which only holds the
+    /// visible window: the label threshold must not shift while panning or zooming.
+    var smbAverageData: [PumpEventStored] = []
 
     private var smbAverageThreshold: Decimal? {
-        let smbAmounts = insulinData.compactMap { insulin -> Decimal? in
+        let smbAmounts = smbAverageData.compactMap { insulin -> Decimal? in
             guard insulin.bolus?.isSMB == true, let amount = insulin.bolus?.amount as Decimal? else {
                 return nil
             }

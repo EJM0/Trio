@@ -17,6 +17,7 @@ extension UserInterfaceSettings {
         @Published var eA1cDisplayUnit: EstimatedA1cDisplayUnit = .percent
         @Published var timeInRangeType: TimeInRangeType = .timeInTightRange
         @Published var averageSMBBolus: Decimal?
+        @Published var homeStatsPanelFace: HomeStatsPanelFace = .timeInRange
         @Published var requireAdjustmentsConfirmation: Bool = false
         @Published var currentGlucoseTarget: Decimal = 100
 
@@ -60,6 +61,7 @@ extension UserInterfaceSettings {
             subscribeSetting(\.eA1cDisplayUnit, on: $eA1cDisplayUnit) { eA1cDisplayUnit = $0 }
 
             subscribeSetting(\.timeInRangeType, on: $timeInRangeType) { timeInRangeType = $0 }
+            subscribeSetting(\.homeStatsPanelFace, on: $homeStatsPanelFace) { homeStatsPanelFace = $0 }
 
             subscribeSetting(\.requireAdjustmentsConfirmation, on: $requireAdjustmentsConfirmation) {
                 requireAdjustmentsConfirmation = $0 }
