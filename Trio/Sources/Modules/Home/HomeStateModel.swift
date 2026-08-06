@@ -94,9 +94,11 @@ extension Home {
         var selectedTab: Int = 0
         var waitForSuggestion: Bool = false
         var glucoseFromPersistence: [GlucoseStored] = []
-        /// Sustained highs and lows found in `glucoseFromPersistence`. Derived from that same
-        /// 72 h window on every glucose update, so the markers age out with their readings.
+        /// Sustained highs and lows to mark on the chart, refreshed on every glucose update.
         var glucoseEpisodes: [GlucoseEpisode] = []
+        /// Finds them, and keeps them in Core Data across updates and relaunches until they
+        /// age out of the chart's 72 h history.
+        @ObservationIgnored let episodeStore = GlucoseEpisodeStore()
         var latestTwoGlucoseValues: [GlucoseStored] = []
         var carbsFromPersistence: [CarbEntryStored] = []
         var fpusFromPersistence: [CarbEntryStored] = []

@@ -145,6 +145,11 @@ enum MainChartHelper {
         /// The duration label is dropped once the marker covers less than this fraction of
         /// the visible window, where the text would be wider than the bar it labels.
         static let episodeLabelMinimumWindowFraction: Double = 0.06
+        /// How far behind the settled mark `GlucoseEpisodeStore` re-scans on each update.
+        /// Covers the routine CGM backfill (a transmitter reconnecting hands over the last
+        /// couple of hours at once), so those readings still reshape the episode they belong
+        /// to; anything older is caught by the store's full-rescan fallback.
+        static let episodeRescanOverlap: TimeInterval = 6 * 3600
 
         static let bolusSize: CGFloat = 5
         static let bolusScale: CGFloat = 1.8

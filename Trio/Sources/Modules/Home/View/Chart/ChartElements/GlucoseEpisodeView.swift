@@ -5,10 +5,12 @@ import SwiftUI
 /// Brackets over sustained glucose excursions: a capped bar spanning the episode, carrying how
 /// long it ran in `hh:mm`.
 ///
-/// Highs are marked in the empty band above the data, lows in the band below it — the padding
-/// `MainChartView.paddedGlucoseYDomain` adds beyond the axis bounds — so the markers never sit
-/// on top of the glucose curve. Only episodes past `Config.episodeMinimumDuration` are drawn;
-/// shorter excursions are already legible from the curve itself.
+/// Both highs and lows are marked in the same empty band above the data — the padding
+/// `MainChartView.paddedGlucoseYDomain` adds beyond the upper axis bound — so the markers never
+/// sit on top of the glucose curve and every episode reads off one shared baseline. The two kinds
+/// never overlap in time, so a single lane is unambiguous; color carries which is which. Only
+/// episodes past `Config.episodeMinimumDuration` are drawn; shorter excursions are already
+/// legible from the curve itself.
 struct GlucoseEpisodeView: ChartContent {
     let episodes: [GlucoseEpisode]
     let units: GlucoseUnits
@@ -16,9 +18,11 @@ struct GlucoseEpisodeView: ChartContent {
     let lowGlucose: Decimal
     let currentGlucoseTarget: Decimal
     let glucoseColorScheme: GlucoseColorScheme
-    /// Axis bounds in mg/dL. The lanes hang in the padding beyond them.
-    let minYAxisValue: Decimal
+    /// Upper axis bound in mg/dL. The lane hangs in the padding beyond it.
     let maxYAxisValue: Decimal
+    /// Leading edge of the chart's history. Stored episodes keep the start they were measured
+    /// at, which can predate it, so the bar is drawn from here instead.
+    let historyStart: Date
     /// Length of the visible x-window, used to decide whether a marker is wide enough on
     /// screen to carry its label.
     let visibleSeconds: TimeInterval
@@ -39,14 +43,18 @@ struct GlucoseEpisodeView: ChartContent {
     }
 
     @ChartContentBuilder private func marks(for episode: GlucoseEpisode) -> some ChartContent {
-        let lane = laneValue(for: episode.type)
+        let lane = laneValue
         let capInset = capHalfHeight
         let color = color(for: episode.type)
         let end = episode.displayEnd(asOf: now)
+        // An excursion that began before the chart's history is drawn from that edge: the
+        // readings behind it are gone, and the label — which reports the whole length either
+        // way — then centres between the edge and the end.
+        let start = max(episode.start, historyStart)
 
         // The span itself.
         RuleMark(
-            xStart: .value("Start", episode.start, unit: .second),
+            xStart: .value("Start", start, unit: .second),
             xEnd: .value("End", end, unit: .second),
             y: .value("Episode", lane)
         )
@@ -54,6 +62,10 @@ struct GlucoseEpisodeView: ChartContent {
         .lineStyle(.init(lineWidth: 4, lineCap: .round))
         .annotation(
             position: .overlay,
+            // Centred on the bar as drawn — so for an excursion that started before the window,
+            // that is the midpoint between the clipped edge and the end, not the midpoint of
+            // the length the label reports. The label keeps travelling with the shrinking
+            // remnant instead of sitting where readings no longer exist.
             alignment: .center,
             spacing: 0,
             overflowResolution: .init(x: .fit(to: .chart), y: .disabled)
@@ -83,6 +95,9 @@ struct GlucoseEpisodeView: ChartContent {
          } */
     }
 
+    /// The label rides the remembered length, not the drawn span, so an excursion keeps its
+    /// marker legible while it is being pushed out of the window rather than losing it to the
+    /// width gate the moment the bar starts shrinking.
     @ViewBuilder private func durationLabel(for episode: GlucoseEpisode) -> some View {
         let fraction = visibleSeconds > 0 ? episode.elapsed(asOf: now) / visibleSeconds : 0
         if fraction >= MainChartHelper.Config.episodeLabelMinimumWindowFraction {
@@ -102,10 +117,11 @@ struct GlucoseEpisodeView: ChartContent {
         }
     }
 
-    /// Centre of the marker lane, in the chart's display units. 12 mg/dL past the axis bound
-    /// keeps the bar and both caps inside the 25 mg/dL padding of the plotted domain.
-    private func laneValue(for type: GlucoseEpisode.EpisodeType) -> Decimal {
-        let mgdl = type == .high ? maxYAxisValue + 12 : minYAxisValue - 12
+    /// Centre of the marker lane, in the chart's display units. 12 mg/dL past the upper axis
+    /// bound keeps the bar and both caps inside the 25 mg/dL padding of the plotted domain.
+    /// Lows share the lane with highs so all episode markers line up at the top of the chart.
+    private var laneValue: Decimal {
+        let mgdl = maxYAxisValue + 12
         return units == .mgdL ? mgdl : mgdl.asMmolL
     }
 

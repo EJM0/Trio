@@ -448,6 +448,11 @@ extension Notification.Name {
             .batchDeleteOlderThan(OverrideStored.self, dateKey: "date", days: 3, isPresetKey: "isPreset")
         async let overrideRunDeletion: () = coreDataStack
             .batchDeleteOlderThan(OverrideRunStored.self, dateKey: "startDate", days: 3)
+        // Matches the chart's 72 h history: an episode is worth keeping only while its end is
+        // still on screen. `GlucoseEpisodeStore` evicts on the same rule as it updates; this
+        // catches whatever is left behind when the chart is never opened.
+        async let glucoseEpisodeDeletion: () = coreDataStack
+            .batchDeleteOlderThan(GlucoseEpisodeStored.self, dateKey: "end", days: 3)
 
         // Await each task to ensure they are all completed
         try await glucoseDeletion
@@ -462,6 +467,7 @@ extension Notification.Name {
         try await forecastValueDeletion
         try await overrideDeletion
         try await overrideRunDeletion
+        try await glucoseEpisodeDeletion
     }
 
     private func handleURL(_ url: URL) {

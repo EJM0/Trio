@@ -2,12 +2,11 @@ import Foundation
 
 /// A sustained glucose excursion: a period spent above the high threshold or below the low one.
 ///
-/// Episodes are derived from the same 72 h glucose window the chart draws from
-/// (`Home.StateModel.glucoseEpisodes`, recomputed whenever the glucose controller publishes),
-/// so they are stored and evicted exactly like the readings that produce them — an episode
-/// whose readings have aged out of the window cannot outlive them.
-struct GlucoseEpisode: Identifiable, Equatable {
-    enum EpisodeType: String {
+/// Episodes are detected once, as the readings arrive, and then kept by `GlucoseEpisodeStore`
+/// until their end leaves the chart's 72 h history — see there for why they are held rather
+/// than re-derived from the window on every update.
+struct GlucoseEpisode: Identifiable, Equatable, Sendable {
+    enum EpisodeType: String, Sendable {
         case high
         case low
     }
@@ -22,8 +21,8 @@ struct GlucoseEpisode: Identifiable, Equatable {
     /// length; `nil` while it is still running.
     let duration: TimeInterval?
 
-    /// Stable across recomputation — the list is rebuilt from scratch on every new reading,
-    /// and Charts should keep the identity of marks it has already laid out.
+    /// Stable for the life of the episode, so Charts keeps the identity of marks it has
+    /// already laid out.
     var id: String { "\(type.rawValue)-\(start.timeIntervalSince1970)" }
 
     var isOngoing: Bool { end == nil }
@@ -71,7 +70,7 @@ extension GlucoseEpisode {
     ///   - highThreshold: Above this (mg/dL) a reading counts as high.
     ///   - now: Reference point for deciding whether a trailing episode is still running.
     static func detect(
-        in readings: [GlucoseReading],
+        in readings: some Collection<GlucoseReading>,
         lowThreshold: Decimal,
         highThreshold: Decimal,
         now: Date = Date()

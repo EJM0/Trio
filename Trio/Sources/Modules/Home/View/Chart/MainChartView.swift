@@ -1021,8 +1021,8 @@ extension MainChartCanvas {
                     lowGlucose: state.lowGlucose,
                     currentGlucoseTarget: state.currentGlucoseTarget,
                     glucoseColorScheme: state.glucoseColorScheme,
-                    minYAxisValue: state.minYAxisValue,
                     maxYAxisValue: state.maxYAxisValue,
+                    historyStart: state.startMarker,
                     visibleSeconds: visibleSeconds
                 )
             }

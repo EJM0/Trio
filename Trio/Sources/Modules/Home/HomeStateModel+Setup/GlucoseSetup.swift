@@ -25,24 +25,23 @@ extension Home.StateModel {
         updateGlucoseEpisodes()
     }
 
-    /// Rebuilds the sustained-excursion markers from the fetched window.
+    /// Folds the fetched window into the sustained-excursion markers.
     ///
-    /// The episodes are a pure function of the readings and the current thresholds, so they
-    /// are derived here rather than persisted: a single pass over the 72 h window costs
-    /// nothing next to the fetch that precedes it, and it makes the markers structurally
-    /// incapable of disagreeing with the curve they annotate — including after a threshold
-    /// change or a backfill, where stored episodes would have to be found and rewritten.
-    /// Eviction comes from the same place the readings' does: the controller's 72 h predicate.
+    /// The scan itself lives in `episodeStore`, which persists the episodes it has already
+    /// found and only looks at what has arrived since — see `GlucoseEpisodeStore` for why they
+    /// are stored rather than re-derived (an excursion that predates the window's leading edge
+    /// would otherwise lose its start, and its length, reading by reading) and for how a
+    /// threshold change forces the whole window to be scanned again.
     @MainActor func updateGlucoseEpisodes() {
         let readings = glucoseFromPersistence.compactMap { entry -> GlucoseReading? in
             guard let date = entry.date else { return nil }
             return GlucoseReading(value: Int(entry.glucose), date: date)
         }
-        glucoseEpisodes = GlucoseEpisode.detect(
-            in: readings,
-            lowThreshold: lowGlucose,
-            highThreshold: highGlucose
-        )
+        let low = lowGlucose
+        let high = highGlucose
+        Task { @MainActor in
+            glucoseEpisodes = await episodeStore.update(with: readings, lowThreshold: low, highThreshold: high)
+        }
     }
 
     /// Called from `MainChartView` on `.onChange(of: units)` to recompute the glucose-derived chart state.

@@ -69,6 +69,17 @@
         <attribute name="value" optional="YES" attributeType="Integer 32" defaultValueString="0.0" usesScalarValueType="YES"/>
         <relationship name="forecast" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Forecast" inverseName="forecastValues" inverseEntity="Forecast"/>
     </entity>
+    <entity name="GlucoseEpisodeStored" representedClassName="GlucoseEpisodeStored" syncable="YES">
+        <attribute name="duration" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="end" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="highThreshold" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="lowThreshold" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="start" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="type" optional="YES" attributeType="String"/>
+        <fetchIndex name="byEnd">
+            <fetchIndexElement property="end" type="Binary" order="ascending"/>
+        </fetchIndex>
+    </entity>
     <entity name="GlucoseStored" representedClassName="GlucoseStored" syncable="YES">
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="direction" optional="YES" attributeType="String"/>
