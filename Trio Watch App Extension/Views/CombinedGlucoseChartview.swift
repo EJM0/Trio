@@ -116,23 +116,10 @@ struct MinimizedGlucoseTrendView: View {
 struct MinimizedGlucoseChartView: View {
     let state: WatchState
     let glucoseValues: [(date: Date, glucose: Double, color: Color)]
-    @State private var timeWindow: TimeWindow = .threeHours
+    /// This chart's own zoom, kept across launches — see `WatchChartTimeWindow`.
+    @AppStorage(WatchChartTimeWindow.combinedStorageKey) private var timeWindow: WatchChartTimeWindow = .threeHours
 
-    enum TimeWindow: Int {
-        case threeHours = 3
-        case sixHours = 6
-        case twelveHours = 12
-        case twentyFourHours = 24
-
-        var next: TimeWindow {
-            switch self {
-            case .threeHours: return .sixHours
-            case .sixHours: return .twelveHours
-            case .twelveHours: return .twentyFourHours
-            case .twentyFourHours: return .threeHours
-            }
-        }
-    }
+    typealias TimeWindow = WatchChartTimeWindow
 
     private var xAxisDomain: ClosedRange<Date> {
         let now = Date()

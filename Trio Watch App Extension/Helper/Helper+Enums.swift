@@ -32,6 +32,33 @@ enum AcknowledgmentCode: String, Codable {
     case genericFailure = "failure"
 }
 
+/// Zoom levels the glucose charts cycle through when tapped.
+///
+/// The full-screen `GlucoseChartView` and the chart folded into `CombinedGlucoseChartview` each
+/// keep their own zoom, under their own key, because the two are read differently — the small
+/// chart is a glance, the full one is for scrolling back through the day. Both survive the app
+/// being backgrounded or relaunched.
+enum WatchChartTimeWindow: Int, CaseIterable {
+    case threeHours = 3
+    case sixHours = 6
+    case twelveHours = 12
+    case twentyFourHours = 24
+
+    /// `@AppStorage` keys. The stored value is the window in hours, so it stays readable and
+    /// keeps meaning if the cases are ever extended.
+    static let fullScreenStorageKey = "watchChartTimeWindow.fullScreen"
+    static let combinedStorageKey = "watchChartTimeWindow.combined"
+
+    var next: WatchChartTimeWindow {
+        switch self {
+        case .threeHours: return .sixHours
+        case .sixHours: return .twelveHours
+        case .twelveHours: return .twentyFourHours
+        case .twentyFourHours: return .threeHours
+        }
+    }
+}
+
 enum WatchSize {
     case watch40mm
     case watch41mm
