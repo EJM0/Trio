@@ -35,6 +35,7 @@ struct MainChartView: View {
     var glucoseColorScheme: GlucoseColorScheme
     var displayXgridLines: Bool
     var displayYgridLines: Bool
+    var showGlucoseEpisodes: Bool
     var thresholdLines: Bool
     var state: Home.StateModel
 
@@ -116,6 +117,7 @@ struct MainChartView: View {
                 glucoseColorScheme: glucoseColorScheme,
                 displayXgridLines: displayXgridLines,
                 displayYgridLines: displayYgridLines,
+                showGlucoseEpisodes: showGlucoseEpisodes,
                 thresholdLines: thresholdLines,
                 visibleSeconds: visibleSeconds,
                 windowStart: renderWindowStart,
@@ -851,6 +853,7 @@ struct MainChartCanvas: View {
     var glucoseColorScheme: GlucoseColorScheme
     var displayXgridLines: Bool
     var displayYgridLines: Bool
+    var showGlucoseEpisodes: Bool
     var thresholdLines: Bool
     var visibleSeconds: TimeInterval
     /// Rendered slice of the domain; all panes share this x-scale.
@@ -906,6 +909,16 @@ struct MainChartCanvas: View {
         state.fpusFromPersistence.filter { entry in
             guard let date = entry.date else { return false }
             return date >= windowStart && date <= windowEnd
+        }
+    }
+
+    /// Excursion markers overlapping the render window. Unlike the point series these are
+    /// spans, so an episode that starts before the window — or is still running past its
+    /// trailing edge — has to be kept.
+    var windowedEpisodes: [GlucoseEpisode] {
+        let now = Date()
+        return state.glucoseEpisodes.filter { episode in
+            episode.start <= windowEnd && episode.displayEnd(asOf: now) >= windowStart
         }
     }
 
@@ -999,6 +1012,20 @@ extension MainChartCanvas {
                 forecastDisplayType: state.forecastDisplayType,
                 lastDeterminationDate: state.determinationsFromPersistence.first?.deliverAt ?? .distantPast
             )
+
+            if showGlucoseEpisodes {
+                GlucoseEpisodeView(
+                    episodes: windowedEpisodes,
+                    units: state.units,
+                    highGlucose: state.highGlucose,
+                    lowGlucose: state.lowGlucose,
+                    currentGlucoseTarget: state.currentGlucoseTarget,
+                    glucoseColorScheme: state.glucoseColorScheme,
+                    minYAxisValue: state.minYAxisValue,
+                    maxYAxisValue: state.maxYAxisValue,
+                    visibleSeconds: visibleSeconds
+                )
+            }
         }
         .frame(width: canvasWidth, height: mainHeight)
         .chartXScale(domain: windowStart ... windowEnd)
@@ -1030,6 +1057,7 @@ extension MainChartCanvas: Equatable {
             lhs.glucoseColorScheme == rhs.glucoseColorScheme &&
             lhs.displayXgridLines == rhs.displayXgridLines &&
             lhs.displayYgridLines == rhs.displayYgridLines &&
+            lhs.showGlucoseEpisodes == rhs.showGlucoseEpisodes &&
             lhs.thresholdLines == rhs.thresholdLines &&
             lhs.visibleSeconds == rhs.visibleSeconds &&
             lhs.windowStart == rhs.windowStart &&

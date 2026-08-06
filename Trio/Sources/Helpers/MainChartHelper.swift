@@ -126,6 +126,26 @@ enum MainChartHelper {
         /// Without this, every drag briefly triggered inspect on touch-down — and each
         /// selection change re-lays the canvas, stalling the pan as it starts.
         static let inspectHoldDelay: TimeInterval = 0.15
+
+        // MARK: Glucose excursion markers (`GlucoseEpisode`)
+
+        /// Consecutive in-range readings needed to close an excursion. At the 5-minute CGM
+        /// cadence this is ~25 min: the 3-5 readings a brief dip back into range produces
+        /// never end the episode, so a marker spans the whole event.
+        static let episodeRecoveryReadings = 4
+        /// Alternative close condition for sparse data — an in-range run this long counts as
+        /// recovered even if it holds fewer readings than the count above.
+        static let episodeRecoveryDuration: TimeInterval = 30 * 60
+        /// Longest data gap an episode is carried across. Shorter gaps are bridged (the scan
+        /// just continues with the next reading); a longer one ends the episode at the last
+        /// reading before it, because nothing is known about the glucose in between.
+        static let episodeMaxGap: TimeInterval = 90 * 60
+        /// Excursions shorter than this are not worth marking — the chart already shows them.
+        static let episodeMinimumDuration: TimeInterval = 60 * 60
+        /// The duration label is dropped once the marker covers less than this fraction of
+        /// the visible window, where the text would be wider than the bar it labels.
+        static let episodeLabelMinimumWindowFraction: Double = 0.06
+
         static let bolusSize: CGFloat = 5
         static let bolusScale: CGFloat = 1.8
         static let carbsSize: CGFloat = 5

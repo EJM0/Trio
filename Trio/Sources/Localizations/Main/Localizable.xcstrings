@@ -123032,6 +123032,9 @@
         }
       }
     },
+    "Episode" : {
+
+    },
     "Error" : {
       "comment" : "Error title",
       "localizations" : {
@@ -245157,6 +245160,9 @@
           }
         }
       }
+    },
+    "Show Glucose Episodes" : {
+
     },
     "Show glucose on the app badge" : {
       "comment" : "Glucose badge",

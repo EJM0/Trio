@@ -7,6 +7,7 @@ extension UserInterfaceSettings {
         @Published var high: Decimal = 180
         @Published var xGridLines = false
         @Published var yGridLines: Bool = false
+        @Published var showGlucoseEpisodes: Bool = true
         @Published var rulerMarks: Bool = true
         @Published var bolusDisplayThreshold: BolusDisplayThreshold = .allUnits
         @Published var bolusDisplayThresholdMultiplier: Decimal = 1.3
@@ -30,6 +31,7 @@ extension UserInterfaceSettings {
 
             subscribeSetting(\.xGridLines, on: $xGridLines) { xGridLines = $0 }
             subscribeSetting(\.yGridLines, on: $yGridLines) { yGridLines = $0 }
+            subscribeSetting(\.showGlucoseEpisodes, on: $showGlucoseEpisodes) { showGlucoseEpisodes = $0 }
             subscribeSetting(\.rulerMarks, on: $rulerMarks) { rulerMarks = $0 }
             subscribeSetting(\.bolusDisplayThreshold, on: $bolusDisplayThreshold) { bolusDisplayThreshold = $0 }
             subscribeSetting(

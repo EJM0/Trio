@@ -25,6 +25,11 @@ final class SettingsExportTests: XCTestCase {
         XCTAssertEqual(expectedHeader.components(separatedBy: ",").count, 5, "CSV header should have 5 columns")
     }
 
+    func testGlucoseEpisodesSettingDefaultsToEnabled() {
+        let settings = TrioSettings()
+        XCTAssertTrue(settings.showGlucoseEpisodes, "Glucose episodes should be enabled by default")
+    }
+
     func testExportErrorTypes() {
         // Test that our export error types are properly defined
         let documentError = Settings.StateModel.ExportError.documentsDirectoryNotFound

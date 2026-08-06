@@ -50,6 +50,7 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var glucoseColorScheme: GlucoseColorScheme = .dynamicColor
     var xGridLines: Bool = true
     var yGridLines: Bool = true
+    var showGlucoseEpisodes: Bool = true
     var hideInsulinBadge: Bool = false
     var allowDilution: Bool = false
     var insulinConcentration: Decimal = 1
@@ -322,6 +323,10 @@ extension TrioSettings: Decodable {
 
         if let yGridLines = try? container.decode(Bool.self, forKey: .yGridLines) {
             settings.yGridLines = yGridLines
+        }
+
+        if let showGlucoseEpisodes = try? container.decode(Bool.self, forKey: .showGlucoseEpisodes) {
+            settings.showGlucoseEpisodes = showGlucoseEpisodes
         }
 
         if let showCobIobChart = try? container.decode(Bool.self, forKey: .showCobIobChart) {

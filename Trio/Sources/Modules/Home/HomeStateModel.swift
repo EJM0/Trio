@@ -82,6 +82,7 @@ extension Home {
         var eA1cDisplayUnit: EstimatedA1cDisplayUnit = .percent
         var displayXgridLines: Bool = false
         var displayYgridLines: Bool = false
+        var showGlucoseEpisodes: Bool = true
         var thresholdLines: Bool = false
         var bolusDisplayThreshold: BolusDisplayThreshold = .allUnits
         var bolusDisplayThresholdMultiplier: Decimal = 1.3
@@ -93,6 +94,9 @@ extension Home {
         var selectedTab: Int = 0
         var waitForSuggestion: Bool = false
         var glucoseFromPersistence: [GlucoseStored] = []
+        /// Sustained highs and lows found in `glucoseFromPersistence`. Derived from that same
+        /// 72 h window on every glucose update, so the markers age out with their readings.
+        var glucoseEpisodes: [GlucoseEpisode] = []
         var latestTwoGlucoseValues: [GlucoseStored] = []
         var carbsFromPersistence: [CarbEntryStored] = []
         var fpusFromPersistence: [CarbEntryStored] = []
@@ -669,6 +673,7 @@ extension Home {
             eA1cDisplayUnit = settingsManager.settings.eA1cDisplayUnit
             displayXgridLines = settingsManager.settings.xGridLines
             displayYgridLines = settingsManager.settings.yGridLines
+            showGlucoseEpisodes = settingsManager.settings.showGlucoseEpisodes
             bolusDisplayThreshold = settingsManager.settings.bolusDisplayThreshold
             bolusDisplayThresholdMultiplier = settingsManager.settings.bolusDisplayThresholdMultiplier
             // the insulin fetch may have run before the setting was loaded
@@ -988,11 +993,14 @@ extension Home.StateModel:
         glucoseColorScheme = settingsManager.settings.glucoseColorScheme
         displayXgridLines = settingsManager.settings.xGridLines
         displayYgridLines = settingsManager.settings.yGridLines
+        showGlucoseEpisodes = settingsManager.settings.showGlucoseEpisodes
         thresholdLines = settingsManager.settings.rulerMarks
         bolusDisplayThreshold = settingsManager.settings.bolusDisplayThreshold
         bolusDisplayThresholdMultiplier = settingsManager.settings.bolusDisplayThresholdMultiplier
         Task { @MainActor in
             updateSMBBolusDisplayCutoff()
+            // The thresholds above define what counts as an excursion.
+            updateGlucoseEpisodes()
         }
         showCarbsRequiredBadge = settingsManager.settings.showCarbsRequiredBadge
         enableQuickBolus = settingsManager.settings.enableQuickBolus

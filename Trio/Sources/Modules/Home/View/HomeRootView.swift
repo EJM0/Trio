@@ -75,6 +75,7 @@ extension Home {
                     glucoseColorScheme: state.glucoseColorScheme,
                     displayXgridLines: state.displayXgridLines,
                     displayYgridLines: state.displayYgridLines,
+                    showGlucoseEpisodes: state.showGlucoseEpisodes,
                     thresholdLines: state.thresholdLines,
                     state: state
                 )
