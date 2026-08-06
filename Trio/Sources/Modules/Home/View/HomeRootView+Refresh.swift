@@ -9,6 +9,34 @@ struct HomePullOffsetKey: PreferenceKey {
     }
 }
 
+/// Pull distance, held outside the root view's `@State` on purpose. Every frame of a pull —
+/// and of the spring-back — writes this value; as root-view state each write re-rendered the
+/// whole dashboard (chart included), and the resulting main-thread load made the release
+/// visibly stick before the scroll view returned. Only `PullToRefreshIndicator` reads it, so
+/// only that subtree re-renders now.
+@Observable final class HomePullState {
+    var offset: CGFloat = 0
+}
+
+/// Applies the iOS 17 preference-based offset source. On iOS 18+ the scroll geometry reader
+/// below supplies the value instead, so the two never both write per frame.
+struct HomeLegacyPullOffsetWriter: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content
+        } else {
+            content.background(
+                GeometryReader { g in
+                    Color.clear.preference(
+                        key: HomePullOffsetKey.self,
+                        value: g.frame(in: .named("homeScroll")).minY
+                    )
+                }
+            )
+        }
+    }
+}
+
 /// Streams the pull-down distance from the scroll geometry on iOS 18+.
 struct HomePullOffsetReader: ViewModifier {
     let onChange: (CGFloat) -> Void
@@ -28,10 +56,17 @@ struct HomePullOffsetReader: ViewModifier {
 
 // MARK: - Pull-down-to-force-loop
 
-extension Home.RootView {
+/// Own view rather than a `@ViewBuilder` on the root view: a builder property is inlined
+/// into the root's body, so reading the pull offset there would re-render the dashboard on
+/// every frame — the very thing `HomePullState` exists to avoid.
+struct PullToRefreshIndicator: View {
+    let pullState: HomePullState
+    let isForcingLoop: Bool
+
     /// Only ever visible while pulled: the running loop is shown by the loop icon
     /// spinner, so pulling down again mid-loop just peeks at that status.
-    @ViewBuilder var pullToRefreshIndicator: some View {
+    var body: some View {
+        let pullOffset = pullState.offset
         if pullOffset > 4 {
             let progress = min(pullOffset / HomeLayout.refreshTriggerDistance, 1)
             HStack(spacing: 8) {
@@ -51,16 +86,20 @@ extension Home.RootView {
             .frame(maxWidth: .infinity)
         }
     }
+}
 
+extension Home.RootView {
     /// Arms once per pull at the threshold; re-arms after the pull settles.
     func handlePullChange(_ offset: CGFloat) {
-        pullOffset = offset
+        // Overscrolling upward is not a pull; clamping keeps the indicator from reacting.
+        let pull = max(0, offset)
+        pullState.offset = pull
         guard !isForcingLoop else { return }
-        if offset >= HomeLayout.refreshTriggerDistance, !isRefreshArmed {
+        if pull >= HomeLayout.refreshTriggerDistance, !isRefreshArmed {
             isRefreshArmed = true
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             forceLoop()
-        } else if offset <= 1, isRefreshArmed {
+        } else if pull <= 1, isRefreshArmed {
             isRefreshArmed = false
         }
     }

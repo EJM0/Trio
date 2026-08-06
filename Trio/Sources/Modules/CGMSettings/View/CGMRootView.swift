@@ -154,47 +154,52 @@ extension CGMSettings {
                 .navigationBarTitleDisplayMode(.automatic)
                 .navigationBarItems(leading: displayClose ? Button("Close", action: state.hideModal) : nil)
                 .sheet(isPresented: $state.shouldDisplayCGMSetupSheet) {
-                    switch state.cgmCurrent.type {
-                    case .enlite,
-                         .nightscout,
-                         .none,
-                         .simulator,
-                         .xdrip:
+                    // matches the CGM sheet presented from Home: the hosted LoopKit
+                    // controllers lay out their own bottom bars
+                    Group {
+                        switch state.cgmCurrent.type {
+                        case .enlite,
+                             .nightscout,
+                             .none,
+                             .simulator,
+                             .xdrip:
 
-                        CustomCGMOptionsView(
-                            resolver: self.resolver,
-                            state: state,
-                            cgmCurrent: state.cgmCurrent,
-                            deleteCGM: state.deleteCGM
-                        )
-
-                    case .plugin:
-                        if let fetchGlucoseManager = state.fetchGlucoseManager,
-                           let cgmManager = fetchGlucoseManager.cgmManager,
-                           state.cgmCurrent.type == fetchGlucoseManager.cgmGlucoseSourceType,
-                           state.cgmCurrent.id == fetchGlucoseManager.cgmGlucosePluginId
-                        {
-                            CGMSettingsView(
-                                cgmManager: cgmManager,
-                                bluetoothManager: state.provider.apsManager.bluetoothManager!,
-                                unit: state.settingsManager.settings.units,
-                                completionDelegate: state
+                            CustomCGMOptionsView(
+                                resolver: self.resolver,
+                                state: state,
+                                cgmCurrent: state.cgmCurrent,
+                                deleteCGM: state.deleteCGM
                             )
-                        } else {
-                            CGMSetupView(
-                                CGMType: state.cgmCurrent,
-                                bluetoothManager: state.provider.apsManager.bluetoothManager!,
-                                unit: state.settingsManager.settings.units,
-                                completionDelegate: state,
-                                setupDelegate: state,
-                                pluginCGMManager: self.state.pluginCGMManager
-                            ).onDisappear {
-                                if state.fetchGlucoseManager.cgmGlucoseSourceType == .none {
-                                    state.cgmCurrent = cgmDefaultModel
+
+                        case .plugin:
+                            if let fetchGlucoseManager = state.fetchGlucoseManager,
+                               let cgmManager = fetchGlucoseManager.cgmManager,
+                               state.cgmCurrent.type == fetchGlucoseManager.cgmGlucoseSourceType,
+                               state.cgmCurrent.id == fetchGlucoseManager.cgmGlucosePluginId
+                            {
+                                CGMSettingsView(
+                                    cgmManager: cgmManager,
+                                    bluetoothManager: state.provider.apsManager.bluetoothManager!,
+                                    unit: state.settingsManager.settings.units,
+                                    completionDelegate: state
+                                )
+                            } else {
+                                CGMSetupView(
+                                    CGMType: state.cgmCurrent,
+                                    bluetoothManager: state.provider.apsManager.bluetoothManager!,
+                                    unit: state.settingsManager.settings.units,
+                                    completionDelegate: state,
+                                    setupDelegate: state,
+                                    pluginCGMManager: self.state.pluginCGMManager
+                                ).onDisappear {
+                                    if state.fetchGlucoseManager.cgmGlucoseSourceType == .none {
+                                        state.cgmCurrent = cgmDefaultModel
+                                    }
                                 }
                             }
                         }
                     }
+                    .ignoresSafeArea(.container, edges: .bottom)
                 }
                 .sheet(isPresented: $shouldDisplayHint) {
                     SettingInputHintView(

@@ -33,7 +33,7 @@ extension Home {
         @State var showSnoozeSheet: Bool = false
         @State var showManualGlucose: Bool = false
         // Pull-down-to-force-loop (see HomeRootView+Refresh.swift)
-        @State var pullOffset: CGFloat = 0
+        @State var pullState = HomePullState()
         @State var isRefreshArmed = false
         @State var isForcingLoop = false
         @State var notificationsDisabled = false
@@ -107,21 +107,17 @@ extension Home {
         @ViewBuilder func mainViewElements(_ geo: GeometryProxy) -> some View {
             // viewport-sized content: rubber-bands for the pull-down, never scrolls
             ScrollView(.vertical, showsIndicators: false) {
+                // no-op on iOS 18+, where the scroll geometry reader below is the source
                 dashboardContent(geo)
-                    .background(
-                        GeometryReader { g in
-                            Color.clear.preference(
-                                key: HomePullOffsetKey.self,
-                                value: g.frame(in: .named("homeScroll")).minY
-                            )
-                        }
-                    )
+                    .modifier(HomeLegacyPullOffsetWriter())
             }
             .coordinateSpace(name: "homeScroll")
             .scrollBounceBehavior(.always, axes: [.vertical])
             .modifier(HomePullOffsetReader(onChange: handlePullChange))
             .onPreferenceChange(HomePullOffsetKey.self) { handlePullChange($0) }
-            .overlay(alignment: .top) { pullToRefreshIndicator }
+            .overlay(alignment: .top) {
+                PullToRefreshIndicator(pullState: pullState, isForcingLoop: isForcingLoop)
+            }
             // safe-area anchor: the tab bar can never cover the bottom controls
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 bottomControls()
@@ -211,22 +207,27 @@ extension Home {
                 Button("Pump Simulator") { state.addPump(.simulator) }
             } message: { Text("Select Pump Model") }
             .sheet(isPresented: $state.shouldDisplayPumpSetupSheet) {
-                if let pumpManager = state.provider.apsManager.pumpManager {
-                    PumpConfig.PumpSettingsView(
-                        pumpManager: pumpManager,
-                        bluetoothManager: state.provider.apsManager.bluetoothManager!,
-                        completionDelegate: state,
-                        setupDelegate: state
-                    )
-                } else {
-                    PumpConfig.PumpSetupView(
-                        pumpType: state.setupPumpType,
-                        pumpInitialSettings: state.pumpInitialSettings,
-                        bluetoothManager: state.provider.apsManager.bluetoothManager!,
-                        completionDelegate: state,
-                        setupDelegate: state
-                    )
+                // the hosted LoopKit controllers lay out their own bottom bars; leaving the
+                // container inset in place strands them above the home indicator
+                Group {
+                    if let pumpManager = state.provider.apsManager.pumpManager {
+                        PumpConfig.PumpSettingsView(
+                            pumpManager: pumpManager,
+                            bluetoothManager: state.provider.apsManager.bluetoothManager!,
+                            completionDelegate: state,
+                            setupDelegate: state
+                        )
+                    } else {
+                        PumpConfig.PumpSetupView(
+                            pumpType: state.setupPumpType,
+                            pumpInitialSettings: state.pumpInitialSettings,
+                            bluetoothManager: state.provider.apsManager.bluetoothManager!,
+                            completionDelegate: state,
+                            setupDelegate: state
+                        )
+                    }
                 }
+                .ignoresSafeArea(.container, edges: .bottom)
             }
             // CGM RELATED
             .confirmationDialog("CGM Model", isPresented: $showCGMSelection) {
@@ -235,41 +236,44 @@ extension Home {
                 Text("Select CGM Model")
             }
             .sheet(isPresented: $state.shouldDisplayCGMSetupSheet) {
-                switch state.cgmCurrent.type {
-                case .enlite,
-                     .nightscout,
-                     .none,
-                     .simulator,
-                     .xdrip:
-                    CGMSettings.CustomCGMOptionsView(
-                        resolver: self.resolver,
-                        state: state.cgmStateModel,
-                        cgmCurrent: state.cgmCurrent,
-                        deleteCGM: state.deleteCGM
-                    )
-                case .plugin:
-                    if let fetchGlucoseManager = state.fetchGlucoseManager,
-                       let cgmManager = fetchGlucoseManager.cgmManager,
-                       state.cgmCurrent.type == fetchGlucoseManager.cgmGlucoseSourceType,
-                       state.cgmCurrent.id == fetchGlucoseManager.cgmGlucosePluginId
-                    {
-                        CGMSettings.CGMSettingsView(
-                            cgmManager: cgmManager,
-                            bluetoothManager: state.provider.apsManager.bluetoothManager!,
-                            unit: state.settingsManager.settings.units,
-                            completionDelegate: state
+                Group {
+                    switch state.cgmCurrent.type {
+                    case .enlite,
+                         .nightscout,
+                         .none,
+                         .simulator,
+                         .xdrip:
+                        CGMSettings.CustomCGMOptionsView(
+                            resolver: self.resolver,
+                            state: state.cgmStateModel,
+                            cgmCurrent: state.cgmCurrent,
+                            deleteCGM: state.deleteCGM
                         )
-                    } else {
-                        CGMSettings.CGMSetupView(
-                            CGMType: state.cgmCurrent,
-                            bluetoothManager: state.provider.apsManager.bluetoothManager!,
-                            unit: state.settingsManager.settings.units,
-                            completionDelegate: state,
-                            setupDelegate: state,
-                            pluginCGMManager: self.state.pluginCGMManager
-                        )
+                    case .plugin:
+                        if let fetchGlucoseManager = state.fetchGlucoseManager,
+                           let cgmManager = fetchGlucoseManager.cgmManager,
+                           state.cgmCurrent.type == fetchGlucoseManager.cgmGlucoseSourceType,
+                           state.cgmCurrent.id == fetchGlucoseManager.cgmGlucosePluginId
+                        {
+                            CGMSettings.CGMSettingsView(
+                                cgmManager: cgmManager,
+                                bluetoothManager: state.provider.apsManager.bluetoothManager!,
+                                unit: state.settingsManager.settings.units,
+                                completionDelegate: state
+                            )
+                        } else {
+                            CGMSettings.CGMSetupView(
+                                CGMType: state.cgmCurrent,
+                                bluetoothManager: state.provider.apsManager.bluetoothManager!,
+                                unit: state.settingsManager.settings.units,
+                                completionDelegate: state,
+                                setupDelegate: state,
+                                pluginCGMManager: self.state.pluginCGMManager
+                            )
+                        }
                     }
                 }
+                .ignoresSafeArea(.container, edges: .bottom)
             }
         }
 

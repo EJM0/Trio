@@ -10,16 +10,35 @@ import SwiftUI
 struct TreatmentTriangleSymbol: ChartSymbolShape {
     let pointsDown: Bool
 
+    /// Corner radius as a fraction of the symbol's smaller dimension. Small enough that the
+    /// apex still reads as a point at the sizes these markers are drawn at.
+    private var cornerFraction: CGFloat { 0.11 }
+
     func path(in rect: CGRect) -> Path {
+        let corners: [CGPoint] = pointsDown
+            ? [
+                CGPoint(x: rect.minX, y: rect.minY),
+                CGPoint(x: rect.maxX, y: rect.minY),
+                CGPoint(x: rect.midX, y: rect.maxY)
+            ]
+            : [
+                CGPoint(x: rect.minX, y: rect.maxY),
+                CGPoint(x: rect.maxX, y: rect.maxY),
+                CGPoint(x: rect.midX, y: rect.minY)
+            ]
+
+        let radius = min(rect.width, rect.height) * cornerFraction
         var path = Path()
-        if pointsDown {
-            path.move(to: CGPoint(x: rect.minX, y: rect.minY))
-            path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-            path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
-        } else {
-            path.move(to: CGPoint(x: rect.minX, y: rect.maxY))
-            path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-            path.addLine(to: CGPoint(x: rect.midX, y: rect.minY))
+        // Begin midway along the closing edge so the first arc has a straight run-up into
+        // the first corner, the same as every other corner gets.
+        let last = corners[corners.count - 1]
+        path.move(to: CGPoint(x: (last.x + corners[0].x) / 2, y: (last.y + corners[0].y) / 2))
+        for index in corners.indices {
+            path.addArc(
+                tangent1End: corners[index],
+                tangent2End: corners[(index + 1) % corners.count],
+                radius: radius
+            )
         }
         path.closeSubpath()
         return path

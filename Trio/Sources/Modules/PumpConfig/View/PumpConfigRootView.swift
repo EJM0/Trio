@@ -44,7 +44,6 @@ extension PumpConfig {
                                     .frame(maxWidth: .infinity, minHeight: 50, alignment: .center)
                                     .font(.title2)
                                 }.padding()
-                                Spacer()
                             } else {
                                 VStack {
                                     Button {
@@ -86,22 +85,27 @@ extension PumpConfig {
                 .navigationBarTitleDisplayMode(.automatic)
                 .navigationBarItems(leading: displayClose ? Button("Close", action: state.hideModal) : nil)
                 .sheet(isPresented: $state.setupPump) {
-                    if let pumpManager = state.provider.apsManager.pumpManager {
-                        PumpSettingsView(
-                            pumpManager: pumpManager,
-                            bluetoothManager: state.provider.apsManager.bluetoothManager!,
-                            completionDelegate: state,
-                            setupDelegate: state
-                        )
-                    } else {
-                        PumpSetupView(
-                            pumpType: state.setupPumpType,
-                            pumpInitialSettings: state.initialSettings,
-                            bluetoothManager: state.provider.apsManager.bluetoothManager!,
-                            completionDelegate: state,
-                            setupDelegate: state
-                        )
+                    // matches the pump sheet presented from Home: the hosted LoopKit
+                    // controllers lay out their own bottom bars
+                    Group {
+                        if let pumpManager = state.provider.apsManager.pumpManager {
+                            PumpSettingsView(
+                                pumpManager: pumpManager,
+                                bluetoothManager: state.provider.apsManager.bluetoothManager!,
+                                completionDelegate: state,
+                                setupDelegate: state
+                            )
+                        } else {
+                            PumpSetupView(
+                                pumpType: state.setupPumpType,
+                                pumpInitialSettings: state.initialSettings,
+                                bluetoothManager: state.provider.apsManager.bluetoothManager!,
+                                completionDelegate: state,
+                                setupDelegate: state
+                            )
+                        }
                     }
+                    .ignoresSafeArea(.container, edges: .bottom)
                 }
                 .sheet(isPresented: $shouldDisplayHint) {
                     SettingInputHintView(
