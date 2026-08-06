@@ -2,6 +2,17 @@ import Charts
 import Foundation
 import SwiftUI
 
+/// The COB/IOB pane's plot rect within its own frame. This pane carries the stack's hour
+/// labels, so its plot is shorter than the pane — the shell's selection overlay needs the
+/// real rect to place its dots on the lines instead of below them.
+struct CobIobPlotFrameKey: PreferenceKey {
+    static let defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        let next = nextValue()
+        if next != .zero { value = next }
+    }
+}
+
 extension MainChartCanvas {
     var cobIobChart: some View {
         Chart {
@@ -14,6 +25,14 @@ extension MainChartCanvas {
         .chartXAxis { basalChartXAxis }
         .chartYAxis { cobIobChartYAxis }
         .chartYScale(domain: combinedYDomain())
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                Color.clear.preference(
+                    key: CobIobPlotFrameKey.self,
+                    value: proxy.plotFrame.map { geo[$0] } ?? .zero
+                )
+            }
+        }
     }
 
     func combinedYDomain() -> ClosedRange<Double> {
@@ -22,8 +41,16 @@ extension MainChartCanvas {
             maxCob: state.maxValueCobChart,
             minIob: state.minValueIobChart,
             maxIob: state.maxValueIobChart,
-            isfValues: MainChartHelper.isfValues(from: state.enactedAndNonEnactedDeterminations)
+            minIsf: state.minValueIsfChart,
+            maxIsf: state.maxValueIsfChart
         )
+    }
+
+    /// Plot every determination at normal zoom, every 2nd from 12 h and every 3rd from 18 h.
+    var determinationStride: Int {
+        if visibleSeconds >= 18 * 3600 { return 3 }
+        if visibleSeconds >= 12 * 3600 { return 2 }
+        return 1
     }
 
     func drawCOBIOBChart() -> some ChartContent {
@@ -44,7 +71,15 @@ extension MainChartCanvas {
             return true
         }
 
-        return ForEach(filteredDeterminations) { item in
+        // Each determination emits five marks (COB line + area, IOB line + area, ISF line),
+        // so this pane dominates the canvas re-layout. Zoomed out, neighbouring 5-minute
+        // determinations are sub-pixel apart, so thinning them is invisible but cuts the
+        // mark count by half or two thirds. Determinations arrive newest-first, so striding
+        // by index always keeps the most recent one.
+        let plotted = determinationStride == 1 ? filteredDeterminations :
+            filteredDeterminations.enumerated().compactMap { $0.offset % determinationStride == 0 ? $0.element : nil }
+
+        return ForEach(plotted) { item in
 
             // MARK: - COB line and area mark
 
@@ -53,20 +88,32 @@ extension MainChartCanvas {
 
             // Fixed styles + explicit series identity replace foregroundStyle(by:)/
             // position(by:), which dragged every mark through scale resolution.
+            // `.unstacked` is required: dropping position(by:) let the default stacking
+            // pile the IOB area on top of the COB area instead of on the baseline.
             LineMark(x: .value("Time", date), y: .value("Value", amountCOB), series: .value("Series", "COB"))
                 .foregroundStyle(Color.orange)
-            AreaMark(x: .value("Time", date), y: .value("Value", amountCOB), series: .value("Series", "COB"))
-                .foregroundStyle(Color.orange)
-                .opacity(0.2)
+            AreaMark(
+                x: .value("Time", date),
+                y: .value("Value", amountCOB),
+                series: .value("Series", "COB"),
+                stacking: .unstacked
+            )
+            .foregroundStyle(Color.orange)
+            .opacity(0.2)
 
             // MARK: - IOB line and area mark
 
             let rawAmount = item.iob?.doubleValue ?? 0
             let amountIOB: Double = MainChartHelper.scaledIobAmount(rawAmount)
 
-            AreaMark(x: .value("Time", date), y: .value("Amount", amountIOB), series: .value("Series", "IOB"))
-                .foregroundStyle(Color.darkerBlue)
-                .opacity(0.2)
+            AreaMark(
+                x: .value("Time", date),
+                y: .value("Amount", amountIOB),
+                series: .value("Series", "IOB"),
+                stacking: .unstacked
+            )
+            .foregroundStyle(Color.darkerBlue)
+            .opacity(0.2)
             LineMark(x: .value("Time", date), y: .value("Amount", amountIOB), series: .value("Series", "IOB"))
                 .foregroundStyle(Color.darkerBlue)
 

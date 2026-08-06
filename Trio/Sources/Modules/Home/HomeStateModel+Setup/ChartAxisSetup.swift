@@ -65,4 +65,18 @@ extension Home.StateModel {
             maxValueIobChart = 5
         }
     }
+
+    /// Recomputes the ISF bounds from the fetched determination objects. ISF is drawn on the
+    /// shared COB/IOB axis, so these feed the same y-domain.
+    @MainActor func yAxisChartDataIsfChart(determinations: [OrefDetermination]) {
+        let isfMapped = determinations.compactMap { $0.insulinSensitivity?.decimalValue }
+
+        if let minIsf = isfMapped.min(), let maxIsf = isfMapped.max() {
+            minValueIsfChart = minIsf
+            maxValueIsfChart = maxIsf
+        } else {
+            minValueIsfChart = 0
+            maxValueIsfChart = 0
+        }
+    }
 }

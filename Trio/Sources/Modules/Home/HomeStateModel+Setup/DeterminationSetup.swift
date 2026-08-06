@@ -62,5 +62,6 @@ extension Home.StateModel {
         enactedAndNonEnactedDeterminations = objects
         yAxisChartDataCobChart(determinations: objects)
         yAxisChartDataIobChart(determinations: objects)
+        yAxisChartDataIsfChart(determinations: objects)
     }
 }

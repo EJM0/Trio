@@ -34,10 +34,11 @@ struct CarbView: ChartContent {
                     x: .value("Time", carbDate, unit: .second),
                     y: .value("Value", yPosition)
                 )
-                .symbol {
-                    Image(systemName: "arrowtriangle.down.fill").font(.system(size: size)).foregroundStyle(Color.orange)
-                        .rotationEffect(.degrees(180))
-                }
+                // Same path-based symbol as the bolus markers, mirrored: carbs sit below the
+                // glucose curve and point up at it.
+                .symbol(TreatmentTriangleSymbol(pointsDown: false))
+                .symbolSize(CGSize(width: size, height: size))
+                .foregroundStyle(Color.orange)
                 .annotation(position: .bottom) {
                     Text(Formatter.integerFormatter.string(from: carbAmount as NSNumber)!).font(.caption2)
                         .foregroundStyle(Color.primary)

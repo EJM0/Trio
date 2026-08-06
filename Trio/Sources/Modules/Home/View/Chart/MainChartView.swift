@@ -102,6 +102,9 @@ struct MainChartView: View {
     /// Auto-pans the chart while a scrubbing finger rests in the viewport's edge zones.
     @State private var edgePanTask: Task<Void, Never>?
 
+    /// Plot rect of the COB/IOB pane within its own frame, published by the canvas.
+    @State private var cobIobPlotFrame: CGRect = .zero
+
     var body: some View {
         ZStack(alignment: .topLeading) {
             MainChartCanvas(
@@ -161,10 +164,13 @@ struct MainChartView: View {
             alignment: .topLeading
         )
         .clipped()
+        .onPreferenceChange(CobIobPlotFrameKey.self) { cobIobPlotFrame = $0 }
         .contentShape(Rectangle())
         .simultaneousGesture(panAndInspectGesture)
         .simultaneousGesture(magnifyGesture)
         .simultaneousGesture(TapGesture(count: 2).onEnded { cycleZoomPreset() })
+        // Overlaid after the gestures so its tap wins over the pan/inspect recognizer.
+        .overlay(alignment: .bottomTrailing) { scrollToNowButton }
         .onDisappear {
             momentumTask?.cancel()
             inspectHoldTask?.cancel()
@@ -317,11 +323,51 @@ extension MainChartView {
             maxCob: state.maxValueCobChart,
             minIob: state.minValueIobChart,
             maxIob: state.maxValueIobChart,
-            isfValues: MainChartHelper.isfValues(from: state.enactedAndNonEnactedDeterminations)
+            minIsf: state.minValueIsfChart,
+            maxIsf: state.maxValueIsfChart
         )
         let span = domain.upperBound - domain.lowerBound
         let fraction = span == 0 ? 0.5 : (value - domain.lowerBound) / span
-        return basalHeight + mainHeight + cobIobHeight * CGFloat(1 - min(max(fraction, 0), 1))
+        // This pane's chart reserves room for the stack's hour labels, so its plot is
+        // shorter than the pane; mapping over the full height drops the dots below the
+        // lines. Fall back to the pane height until the canvas publishes the plot rect.
+        let plotTop = cobIobPlotFrame == .zero ? 0 : cobIobPlotFrame.minY
+        let plotHeight = cobIobPlotFrame == .zero ? cobIobHeight : cobIobPlotFrame.height
+        return basalHeight + mainHeight + plotTop + plotHeight * CGFloat(1 - min(max(fraction, 0), 1))
+    }
+
+    /// True while the visible window sits entirely in the past, i.e. "now" is off to the
+    /// right. Drives both the trailing fade and the return-to-now button.
+    private var isScrolledBack: Bool {
+        Date.now.timeIntervalSince(scrollPosition.addingTimeInterval(visibleSeconds)) > 0
+    }
+
+    /// Jumps back to the trailing edge. Only offered while scrolled into the past, so it
+    /// never covers the chart during normal use.
+    @ViewBuilder private var scrollToNowButton: some View {
+        if isScrolledBack {
+            Button {
+                // `onChange(of: scrollPosition)` re-anchors the render window for us.
+                withAnimation(.easeOut(duration: 0.25)) {
+                    scrollToTrailingEdge()
+                }
+            } label: {
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .frame(width: 32, height: 32)
+                    .background(Circle().fill(.ultraThinMaterial))
+                    .overlay(Circle().strokeBorder(Color.primary.opacity(0.12), lineWidth: 1))
+            }
+            .contentShape(Circle())
+            // Stacked directly above the chart's info button, which `HomeRootView` overlays
+            // on this same box: 32pt tall, sitting 16pt off the bottom (6pt padding + 10pt
+            // offset) at a 16pt trailing inset. Keep these in sync with `chartInfoButton`.
+            .padding(.trailing, 16)
+            .padding(.bottom, 56)
+            .accessibilityLabel("Jump to now")
+            .transition(.opacity)
+        }
     }
 
     /// Dark fade pinned to the trailing edge whenever "now" is scrolled off-screen.
@@ -332,7 +378,7 @@ extension MainChartView {
         let trailingEdge = scrollPosition.addingTimeInterval(visibleSeconds)
         let secondsBehindNow = Date.now.timeIntervalSince(trailingEdge)
         let color: Color = (colorScheme == .dark ? Color.bgDarkerDarkBlue : Color.black.opacity(0.25))
-        if secondsBehindNow > 0 {
+        if isScrolledBack {
             let strength = min(1.0, secondsBehindNow / 1800)
             LinearGradient(
                 colors: [color.opacity(0), color.opacity(0.8 * strength)],
@@ -361,6 +407,9 @@ extension MainChartView {
                     glucoseColorScheme: glucoseColorScheme
                 )
                 let glucoseY = glucoseYPosition(for: selectedGlucose)
+                // `selectedCOBValue` / `selectedIOBValue` are the same lookup, and every
+                // access rescans the determinations. Resolve it once per frame.
+                let selectedDetermination = selectedCOBValue
 
                 // Vertical indicator through all three panes.
                 Rectangle()
@@ -377,8 +426,8 @@ extension MainChartView {
                     .position(x: x, y: glucoseY)
 
                 // Selected COB / (scaled) IOB dots on the bottom pane.
-                if let selectedCOBValue {
-                    let y = cobIobYPosition(forChartValue: Double(selectedCOBValue.cob))
+                if let selectedDetermination {
+                    let y = cobIobYPosition(forChartValue: Double(selectedDetermination.cob))
                     Circle().fill(Color.orange.opacity(0.8))
                         .frame(width: 15, height: 15)
                         .position(x: x, y: y)
@@ -386,8 +435,8 @@ extension MainChartView {
                         .frame(width: 6, height: 6)
                         .position(x: x, y: y)
                 }
-                if let selectedIOBValue {
-                    let scaled = MainChartHelper.scaledIobAmount(selectedIOBValue.iob?.doubleValue ?? 0)
+                if let selectedDetermination {
+                    let scaled = MainChartHelper.scaledIobAmount(selectedDetermination.iob?.doubleValue ?? 0)
                     let y = cobIobYPosition(forChartValue: scaled)
                     Circle().fill(Color.darkerBlue.opacity(0.8))
                         .frame(width: 15, height: 15)
@@ -398,7 +447,7 @@ extension MainChartView {
                 }
 
                 // Selected ISF dot, drawn on the shared COB/IOB axis.
-                if let isf = selectedIOBValue?.insulinSensitivity?.doubleValue {
+                if let isf = selectedDetermination?.insulinSensitivity?.doubleValue {
                     let y = cobIobYPosition(forChartValue: isf)
                     Circle().fill(Color.white.opacity(0.8))
                         .frame(width: 15, height: 15)
@@ -413,8 +462,8 @@ extension MainChartView {
                     Color.clear.frame(height: basalHeight + 4)
                     SelectionPopoverView(
                         selectedGlucose: selectedGlucose,
-                        selectedIOBValue: selectedIOBValue,
-                        selectedCOBValue: selectedCOBValue,
+                        selectedIOBValue: selectedDetermination,
+                        selectedCOBValue: selectedDetermination,
                         units: units,
                         highGlucose: highGlucose,
                         lowGlucose: lowGlucose,
@@ -929,8 +978,7 @@ extension MainChartCanvas {
                 insulinData: insulin,
                 units: state.units,
                 bolusDisplayThreshold: state.bolusDisplayThreshold,
-                bolusDisplayThresholdMultiplier: state.bolusDisplayThresholdMultiplier,
-                smbAverageData: state.insulinFromPersistence
+                smbBolusDisplayCutoff: state.smbBolusDisplayCutoff
             )
 
             CarbView(

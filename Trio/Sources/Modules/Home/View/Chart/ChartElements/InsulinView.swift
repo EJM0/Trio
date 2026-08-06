@@ -7,27 +7,9 @@ struct InsulinView: ChartContent {
     let insulinData: [PumpEventStored]
     let units: GlucoseUnits
     let bolusDisplayThreshold: BolusDisplayThreshold
-    let bolusDisplayThresholdMultiplier: Decimal
-    /// Source for the SMB average. Kept separate from `insulinData`, which only holds the
-    /// visible window: the label threshold must not shift while panning or zooming.
-    var smbAverageData: [PumpEventStored] = []
-
-    private var smbAverageThreshold: Decimal? {
-        let smbAmounts = smbAverageData.compactMap { insulin -> Decimal? in
-            guard insulin.bolus?.isSMB == true, let amount = insulin.bolus?.amount as Decimal? else {
-                return nil
-            }
-            return amount
-        }
-
-        guard !smbAmounts.isEmpty else {
-            return nil
-        }
-
-        let total = smbAmounts.reduce(Decimal.zero, +)
-        let average = total / Decimal(smbAmounts.count)
-        return average * bolusDisplayThresholdMultiplier
-    }
+    /// Average SMB × multiplier, pre-computed by the state model whenever pump history or the
+    /// setting changes. `nil` means no cutoff applies, so every label shows.
+    let smbBolusDisplayCutoff: Decimal?
 
     var body: some ChartContent {
         drawBoluses()
@@ -46,31 +28,41 @@ struct InsulinView: ChartContent {
                     .bolusOffset(units: units)
                 let size = (MainChartHelper.Config.bolusSize + CGFloat(truncating: amount) * MainChartHelper.Config.bolusScale)
 
-                PointMark(
+                let mark = PointMark(
                     x: .value("Time", bolusDate, unit: .second),
                     y: .value("Value", yPosition)
                 )
-                .symbol {
-                    Image(systemName: "arrowtriangle.down.fill").font(.system(size: size)).foregroundStyle(Color.insulin)
-                }
-                .annotation(position: .top) {
-                    if shouldDisplayLabel(for: amount as Decimal) {
+                .symbol(TreatmentTriangleSymbol(pointsDown: true))
+                // `size` was an SF Symbol point size; as a bounding box it keeps the same
+                // amount-driven growth the Image had.
+                .symbolSize(CGSize(width: size, height: size))
+                .foregroundStyle(Color.insulin)
+
+                // The annotation is attached only when the label actually shows. Attaching
+                // it unconditionally with empty content still builds an annotation container
+                // per bolus — with SMBs every few minutes that is hundreds of them per
+                // canvas re-layout, most of them drawing nothing.
+                if shouldDisplayLabel(for: amount as Decimal) {
+                    mark.annotation(position: .top) {
                         Text(Formatter.bolusFormatter.string(from: amount) ?? "")
                             .font(.caption2)
                             .foregroundStyle(Color.primary)
                     }
+                } else {
+                    mark
                 }
             }
         }
     }
 
+    /// Pure comparison — no scanning, no Core Data access beyond the mark's own amount.
     private func shouldDisplayLabel(for amount: Decimal) -> Bool {
         switch bolusDisplayThreshold {
         case .aboveAverageSMBFactor:
-            guard let smbAverageThreshold else {
+            guard let smbBolusDisplayCutoff else {
                 return true
             }
-            return amount > smbAverageThreshold
+            return amount > smbBolusDisplayCutoff
         default:
             return amount >= bolusDisplayThreshold.rawValue
         }

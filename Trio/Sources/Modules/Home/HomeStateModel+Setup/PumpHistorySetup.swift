@@ -31,6 +31,32 @@ extension Home.StateModel {
         suspendAndResumeEvents = objects.filter {
             $0.type == EventType.pumpSuspend.rawValue || $0.type == EventType.pumpResume.rawValue
         }
+        updateSMBBolusDisplayCutoff()
+    }
+
+    /// Recomputes the bolus-label cutoff for `.aboveAverageSMBFactor`. Called when a new pump
+    /// event arrives (so a new SMB shifts the average) and when the setting changes — never
+    /// from the chart, which only compares each bolus against the cached result.
+    @MainActor func updateSMBBolusDisplayCutoff() {
+        guard bolusDisplayThreshold == .aboveAverageSMBFactor else {
+            smbBolusDisplayCutoff = nil
+            return
+        }
+
+        let smbAmounts = insulinFromPersistence.compactMap { insulin -> Decimal? in
+            guard insulin.bolus?.isSMB == true, let amount = insulin.bolus?.amount as Decimal? else {
+                return nil
+            }
+            return amount
+        }
+
+        guard !smbAmounts.isEmpty else {
+            smbBolusDisplayCutoff = nil
+            return
+        }
+
+        let average = smbAmounts.reduce(Decimal.zero, +) / Decimal(smbAmounts.count)
+        smbBolusDisplayCutoff = average * bolusDisplayThresholdMultiplier
     }
 
     // MARK: - Last Bolus

@@ -3,6 +3,31 @@ import CoreData
 import Foundation
 import SwiftUI
 
+/// Shared triangle for the treatment markers: boluses point down at the glucose curve from
+/// above, carb entries point up at it from below. A `ChartSymbolShape` is rasterized as a
+/// path, unlike `.symbol { Image(...) }`, which instantiates a SwiftUI view per data point —
+/// the dominant cost of these series when SMBs land every few minutes.
+struct TreatmentTriangleSymbol: ChartSymbolShape {
+    let pointsDown: Bool
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        if pointsDown {
+            path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+            path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+        } else {
+            path.move(to: CGPoint(x: rect.minX, y: rect.maxY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+            path.addLine(to: CGPoint(x: rect.midX, y: rect.minY))
+        }
+        path.closeSubpath()
+        return path
+    }
+
+    var perceptualUnitRect: CGRect { CGRect(x: 0, y: 0, width: 1, height: 1) }
+}
+
 enum MainChartHelper {
     // Calculates the glucose value thats the nearest to parameter 'time'
     /// -Returns: A NSManagedObject of GlucoseStored
@@ -57,7 +82,10 @@ enum MainChartHelper {
         /// forecast-anchored framing at 6 h and wider is unchanged; below it, `now` stays on-screen).
         static let followForecastPeekFraction: CGFloat = 0.55
         /// Render window extends this many visible-windows beyond each visible edge.
-        static let renderWindowPadFactor = 1.5
+        /// With `renderWindowMarginFactor` at 0.5, this is what sets how far you can pan
+        /// before the window re-anchors and the whole canvas re-lays: 3.0 buys ~2.5
+        /// visible-windows of panning per re-layout (1.5 bought exactly one).
+        static let renderWindowPadFactor = 3.0
         /// Re-anchor when the visible edge gets within this fraction of a
         /// visible-window of the render window's edge.
         static let renderWindowMarginFactor = 0.5
@@ -106,22 +134,16 @@ enum MainChartHelper {
         maxCob: Decimal,
         minIob: Decimal,
         maxIob: Decimal,
-        isfValues: [Double] = []
+        minIsf: Decimal = 0,
+        maxIsf: Decimal = 0
     ) -> ClosedRange<Double> {
         let iobMin = scaledIobAmount(minIob)
         let iobMax = scaledIobAmount(maxIob)
-        var minValue = Double(min(minCob, iobMin))
-        var maxValue = Double(max(maxCob, iobMax))
-        if let isfMin = isfValues.min(), let isfMax = isfValues.max() {
-            minValue = min(minValue, isfMin)
-            maxValue = max(maxValue, isfMax)
-        }
-        return minValue ... maxValue
-    }
-
-    /// ISF values plotted on the COB/IOB axis, in the order the determinations arrive.
-    static func isfValues(from determinations: [OrefDetermination]) -> [Double] {
-        determinations.compactMap { $0.insulinSensitivity?.doubleValue }
+        // ISF bounds arrive pre-computed (0...0 when there is no ISF data); folding them in
+        // must stay O(1) because the selection overlay calls this on every scrub frame.
+        let minValue = min(min(minCob, iobMin), minIsf)
+        let maxValue = max(max(maxCob, iobMax), maxIsf)
+        return Double(minValue) ... Double(maxValue)
     }
 
     static func bolusOffset(units: GlucoseUnits) -> Decimal {

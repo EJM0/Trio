@@ -32,7 +32,6 @@ extension Home {
         @State var showCGMSelection: Bool = false
         @State var showSnoozeSheet: Bool = false
         @State var showManualGlucose: Bool = false
-        @State var alarmsSnoozeUntil: Date = .distantPast
         // Pull-down-to-force-loop (see HomeRootView+Refresh.swift)
         @State var pullOffset: CGFloat = 0
         @State var isRefreshArmed = false
@@ -86,27 +85,6 @@ extension Home {
                 chartInfoButton
                     .offset(x: 0, y: -10)
             }
-            .overlay(alignment: .topTrailing) {
-                // borderless capsule (not a control); centered in the basal
-                // pane band so it clears the y-axis labels on every device size
-                if let rate = currentBasalRateLabel {
-                    Text(rate)
-                        .font(.system(size: 14, weight: .semibold))
-                        .fontDesign(.rounded)
-                        .foregroundStyle(Color.insulin)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Capsule().fill(.ultraThinMaterial))
-                        .frame(height: chartHeight * 0.10)
-                        .padding(.trailing, 16)
-                }
-            }
-        }
-
-        private var currentBasalRateLabel: String? {
-            guard let rate = state.tempBasals.last?.tempBasal?.rate else { return nil }
-            let value = Formatter.decimalFormatterWithTwoFractionDigits.string(from: rate) ?? "\(rate)"
-            return value + String(localized: " U/hr", comment: "Unit per hour with space")
         }
 
         @ViewBuilder private var chartInfoButton: some View {
@@ -122,7 +100,7 @@ extension Home {
             }
             .contentShape(Circle())
             .padding(.bottom, 6)
-            // same trailing inset as the alarm bell in the meal row
+            // same trailing inset as the meal row
             .padding(.trailing, 16)
         }
 
@@ -206,11 +184,6 @@ extension Home {
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .onAppear {
                 configureView()
-                refreshAlarmsSnooze()
-            }
-            // UserDefaults changes don't invalidate views; refresh on sheet dismissal
-            .onChange(of: showSnoozeSheet) {
-                if !showSnoozeSheet { refreshAlarmsSnooze() }
             }
             .navigationTitle("Home")
             .navigationBarHidden(true)

@@ -1547,7 +1547,6 @@
     },
     " - Manual Basal ⚠️" : {
       "comment" : "Manual Temp basal",
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -20994,6 +20993,16 @@
         }
       }
     },
+    "⌀ %@ · GMI %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "⌀ %1$@ · GMI %2$@"
+          }
+        }
+      }
+    },
     "⚠️ Safety Notifications are OFF" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -34198,6 +34207,9 @@
           }
         }
       }
+    },
+    "Add Treatment" : {
+
     },
     "Add Variant" : {
       "localizations" : {
@@ -56098,6 +56110,7 @@
       }
     },
     "Axis" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -77405,6 +77418,12 @@
           }
         }
       }
+    },
+    "Choose what the statistics panel on the home screen displays." : {
+
+    },
+    "Choose what the statistics panel on the home screen shows by default. Tapping the panel always opens the full statistics view.\n\nTime in Range: today's time in range percentage with a glucose distribution bar.\n\nDistribution Bar Only: just the glucose distribution bar, without the percentage.\n\nToday's Averages: today's average glucose and GMI (Glucose Management Index)." : {
+
     },
     "Choose whether or not to display one or both X- and Y-Axis grid lines." : {
       "localizations" : {
@@ -109663,6 +109682,9 @@
           }
         }
       }
+    },
+    "Distribution Bar Only" : {
+      "comment" : "Home stats panel face option"
     },
     "Do not allow logging of FTUs." : {
 
@@ -150145,6 +150167,9 @@
         }
       }
     },
+    "Home Statistics Panel" : {
+
+    },
     "Home View Button Panel " : {
       "comment" : "UI/UX option",
       "extractionState" : "manual",
@@ -164647,6 +164672,9 @@
         }
       }
     },
+    "Jump to now" : {
+
+    },
     "Just be aware: if you force quit the app before finishing onboarding, your progress will not be saved." : {
       "localizations" : {
         "bg" : {
@@ -176988,7 +177016,6 @@
       }
     },
     "Main" : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -183786,7 +183813,6 @@
       }
     },
     "MaxIOB: 0 U" : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -193889,7 +193915,6 @@
       }
     },
     "No Data" : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -282307,7 +282332,7 @@
       }
     },
     "Time in Range" : {
-      "comment" : "Stats banner subtitle"
+      "comment" : "Home stats panel face option\nStats banner subtitle"
     },
     "Time in Range Type" : {
       "localizations" : {
@@ -285917,6 +285942,9 @@
         }
       }
     },
+    "today" : {
+      "comment" : "Stats banner scope"
+    },
     "Today" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -286047,6 +286075,12 @@
           }
         }
       }
+    },
+    "Today's average" : {
+      "comment" : "Stats banner subtitle"
+    },
+    "Today's Averages" : {
+      "comment" : "Home stats panel face option"
     },
     "Tomorrow" : {
       "localizations" : {

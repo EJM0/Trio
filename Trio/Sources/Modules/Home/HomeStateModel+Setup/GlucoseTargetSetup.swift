@@ -7,10 +7,10 @@ extension Home.StateModel {
      - Parameters:
         - rawTargets: The raw glucose target data containing offset and glucose values.
         - startMarker: The reference date to start the target profiles from.
-     - Returns: An array of `TargetProfile` objects, each representing a glucose target range starting from the day of the startMarker and ending two days later.
+     - Returns: An array of `TargetProfile` objects, each representing a glucose target range starting from the day of the startMarker and covering every day the chart domain can touch.
 
      The function:
-     - Converts glucose targets into profiles covering three consecutive days (day of startMarker, day after startMarker and day after that).
+     - Converts glucose targets into profiles covering the whole chart domain, from the day of the startMarker through the day after the endMarker.
      - Calculates start and end times for each target based on the offsets provided.
      - Handles conversions between mg/dL and mmol/L as per user settings.
      - Ensures targets span across midnight to avoid data cutoff.
@@ -29,9 +29,15 @@ extension Home.StateModel {
         // Base date is the start of the day for the startMarker
         let baseDate = Calendar.current.startOfDay(for: startMarker)
 
-        // Process each target three times
-        for index in 0 ..< (targets.count * 3) {
-            // Calculate the day offset (0 for today, 1 for tomorrow, 2 for day after)
+        // Cover every day the chart domain can reach, rather than a fixed three: the history
+        // window (`chartHistorySeconds`) already runs three days back, so three days from
+        // `baseDate` stopped at midnight before today and left today with no target line.
+        // The extra day past `endMarker` keeps the forecast's trailing edge covered.
+        let coverageEnd = max(endMarker, Date()).addingTimeInterval(TimeInterval(hours: 24))
+        let dayCount = max(1, Int(ceil(coverageEnd.timeIntervalSince(baseDate) / (24 * 60 * 60))))
+
+        for index in 0 ..< (targets.count * dayCount) {
+            // Calculate the day offset (0 for the startMarker's day, 1 for the next, ...)
             let dayOffset = index / targets.count
             let targetIndex = index % targets.count
 

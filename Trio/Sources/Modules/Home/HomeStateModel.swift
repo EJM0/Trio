@@ -142,6 +142,18 @@ extension Home {
         var minValueIobChart: Decimal = 0
         var maxValueIobChart: Decimal = 5
 
+        // ISF shares the COB/IOB axis. Buffered like the bounds above so neither the chart
+        // nor the selection overlay ever walks the determinations (and faults Core Data)
+        // while rendering; 0...0 means "no ISF data" and leaves the domain untouched.
+        var minValueIsfChart: Decimal = 0
+        var maxValueIsfChart: Decimal = 0
+
+        /// Bolus amount a label must exceed in `.aboveAverageSMBFactor` mode (average SMB ×
+        /// multiplier). `nil` means "no cutoff" — either another threshold mode is active or
+        /// there are no SMBs to average. Recomputed only when pump history or the setting
+        /// changes, never while drawing.
+        var smbBolusDisplayCutoff: Decimal?
+
         let viewContext = CoreDataStack.shared.persistentContainer.viewContext
 
         // MARK: - NSFetchedResultsControllers
@@ -659,6 +671,8 @@ extension Home {
             displayYgridLines = settingsManager.settings.yGridLines
             bolusDisplayThreshold = settingsManager.settings.bolusDisplayThreshold
             bolusDisplayThresholdMultiplier = settingsManager.settings.bolusDisplayThresholdMultiplier
+            // the insulin fetch may have run before the setting was loaded
+            updateSMBBolusDisplayCutoff()
             thresholdLines = settingsManager.settings.rulerMarks
             showCarbsRequiredBadge = settingsManager.settings.showCarbsRequiredBadge
             enableQuickBolus = settingsManager.settings.enableQuickBolus
@@ -977,6 +991,9 @@ extension Home.StateModel:
         thresholdLines = settingsManager.settings.rulerMarks
         bolusDisplayThreshold = settingsManager.settings.bolusDisplayThreshold
         bolusDisplayThresholdMultiplier = settingsManager.settings.bolusDisplayThresholdMultiplier
+        Task { @MainActor in
+            updateSMBBolusDisplayCutoff()
+        }
         showCarbsRequiredBadge = settingsManager.settings.showCarbsRequiredBadge
         enableQuickBolus = settingsManager.settings.enableQuickBolus
         forecastDisplayType = settingsManager.settings.forecastDisplayType
