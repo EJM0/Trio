@@ -86,6 +86,10 @@ struct ForecastView: ChartContent {
                     y: .value("Value", displayValue)
                 )
                 .foregroundStyle(by: .value("Predictions", forecast.type ?? ""))
+                // Forecast values land every 5 min; linear interpolation turns that into a
+                // visibly angular line. `.monotone` rounds it without overshooting, so the
+                // curve never implies a predicted peak or dip that isn't in the data.
+                .interpolationMethod(.monotone)
             }
         }
     }

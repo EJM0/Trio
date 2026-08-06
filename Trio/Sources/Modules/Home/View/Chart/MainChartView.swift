@@ -354,7 +354,7 @@ extension MainChartView {
             } label: {
                 Image(systemName: "arrow.right")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.secondary)
                     .frame(width: 32, height: 32)
                     .background(Circle().fill(.ultraThinMaterial))
                     .overlay(Circle().strokeBorder(Color.primary.opacity(0.12), lineWidth: 1))
