@@ -106,6 +106,10 @@ struct MainChartView: View {
     /// Plot rect of the COB/IOB pane within its own frame, published by the canvas.
     @State private var cobIobPlotFrame: CGRect = .zero
 
+    /// Measured width of the pinned y-axis label column, published by `StaticYAxisChart`.
+    /// Drives `trailingOverscan`, so the domain edge clears the labels exactly.
+    @State private var labelGutterWidth: CGFloat = 0
+
     var body: some View {
         ZStack(alignment: .topLeading) {
             MainChartCanvas(
@@ -151,7 +155,7 @@ struct MainChartView: View {
                 .equatable()
                 .frame(height: mainHeight)
                 // Keep the axis labels off the screen edge.
-                .padding(.trailing, 4)
+                .padding(.trailing, MainChartHelper.Config.yAxisLabelInset)
                 Color.clear.frame(height: cobIobHeight)
             }
             .frame(width: viewportWidth, height: stackHeight, alignment: .topLeading)
@@ -167,6 +171,19 @@ struct MainChartView: View {
         )
         .clipped()
         .onPreferenceChange(CobIobPlotFrameKey.self) { cobIobPlotFrame = $0 }
+        .onPreferenceChange(YAxisLabelGutterKey.self) { width in
+            let isFirstMeasurement = labelGutterWidth == 0
+            guard width > 0, abs(width - labelGutterWidth) > 0.5 else { return }
+            labelGutterWidth = width
+            // `onAppear` has already anchored using the fallback by the time this lands.
+            // Re-anchor once so the forecast sits flush immediately instead of after the
+            // next glucose tick; later changes just take effect on the next re-anchor, so
+            // a mid-session measurement can never yank a chart the user has panned.
+            if isFirstMeasurement {
+                scrollToTrailingEdge()
+                updateRenderWindow()
+            }
+        }
         .contentShape(Rectangle())
         .simultaneousGesture(panAndInspectGesture)
         .simultaneousGesture(magnifyGesture)
@@ -190,8 +207,18 @@ struct MainChartView: View {
             updateRenderWindow()
         }
         .onChange(of: state.enactedAndNonEnactedDeterminations.first?.deliverAt) {
+            // The forward offset is anchored to this determination, so a new loop moves the
+            // domain's trailing edge even when the forecast is the same length as before.
+            state.updateStartEndMarkers()
             scrollToTrailingEdge()
             updateRenderWindow()
+        }
+        .onChange(of: state.forecastDisplayType) {
+            // Cone and lines have different horizons — the band stops at the shortest curve,
+            // the lines run to the longest — so switching resizes the domain.
+            state.updateStartEndMarkers()
+            scrollToTrailingEdge()
+            updateRenderWindow(force: true)
         }
         .onChange(of: units) {
             // TODO: - Refactor this to only update the Y Axis Scale
@@ -498,7 +525,18 @@ extension MainChartView {
     }
 
     /// Keeps domain-edge content clear of the pinned y-axis labels.
-    private var trailingOverscan: TimeInterval { visibleSeconds * 0.05 }
+    ///
+    /// Converted from points to chart-time at the viewport's current scale, so the clearance
+    /// is exactly as wide as the labels at every zoom level and on every device. Since
+    /// `endMarker` now ends exactly at the forecast, this is the gap the last forecast point
+    /// sits flush against. Falls back to the fraction until the first measurement arrives.
+    private var trailingOverscan: TimeInterval {
+        let measured = labelGutterWidth + MainChartHelper.Config.yAxisLabelInset
+        let gutterPoints = labelGutterWidth > 0
+            ? measured
+            : viewportWidth * MainChartHelper.Config.labelGutterFraction
+        return TimeInterval(gutterPoints / viewportWidth) * visibleSeconds
+    }
 
     /// Double-tap cycles the zoom presets, trailing edge anchored.
     private func cycleZoomPreset() {
@@ -803,6 +841,20 @@ extension MainChartView {
 /// container inherited the canvas's layout width and drew the trailing labels thousands of
 /// points off-screen; with the container pinned to the viewport (see the load-bearing frame
 /// at the call site), the pattern works as it always did.
+/// Width the pinned y-axis labels occupy at the trailing edge of the glucose pane.
+///
+/// Measured rather than assumed: the labels are an overlay floating over a full-width plot,
+/// so nothing in the layout reserves room for them, and their width moves with the glucose
+/// unit ("300" vs "16,7"), the locale's decimal separator, and the user's Dynamic Type size.
+/// Any hardcoded guess is wrong for someone.
+struct YAxisLabelGutterKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        let next = nextValue()
+        if next > 0 { value = next }
+    }
+}
+
 struct StaticYAxisChart: View {
     let yDomain: ClosedRange<Decimal>
     let units: GlucoseUnits
@@ -822,6 +874,15 @@ struct StaticYAxisChart: View {
         .chartXAxis(.hidden)
         .chartYAxis { mainChartYAxis }
         .chartLegend(.hidden)
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                // Everything to the right of the plot is label column.
+                Color.clear.preference(
+                    key: YAxisLabelGutterKey.self,
+                    value: proxy.plotFrame.map { geo.size.width - geo[$0].maxX } ?? 0
+                )
+            }
+        }
     }
 
     private var mainChartYAxis: some AxisContent {
@@ -1010,7 +1071,8 @@ extension MainChartCanvas {
                 units: state.units,
                 maxValue: state.maxYAxisValue,
                 forecastDisplayType: state.forecastDisplayType,
-                lastDeterminationDate: state.determinationsFromPersistence.first?.deliverAt ?? .distantPast
+                lastDeterminationDate: state.determinationsFromPersistence.first?.deliverAt ?? .distantPast,
+                chartEndDate: state.endMarker
             )
 
             if showGlucoseEpisodes {

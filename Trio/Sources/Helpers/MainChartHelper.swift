@@ -127,6 +127,32 @@ enum MainChartHelper {
         /// selection change re-lays the canvas, stalling the pan as it starts.
         static let inspectHoldDelay: TimeInterval = 0.15
 
+        // MARK: Forecast offset (how far past `now` the chart's domain extends)
+
+        /// Spacing between consecutive forecast points, as oref emits them.
+        static let forecastPointInterval: TimeInterval = 5 * 60
+        /// Floor on how far ahead the domain reaches, used when there is no forecast to
+        /// measure — a fresh install, a failed loop, or the gap before the first determination
+        /// lands. Without it the domain would end at `now` and the current-time rule would sit
+        /// on the edge.
+        static let minForecastHorizon: TimeInterval = 1 * 3600
+        /// Ceiling on how far ahead the domain reaches. oref's horizon can run well past the
+        /// point where the prediction says anything useful; beyond this the curve is clipped
+        /// rather than stretching the domain (and squeezing history) to accommodate it.
+        static let maxForecastHorizon: TimeInterval = 3 * 3600
+        /// Gap between the pinned y-axis labels and the screen edge.
+        static let yAxisLabelInset: CGFloat = 4
+        /// Fallback gutter, as a fraction of the viewport, used only for the frame or two
+        /// before `YAxisLabelGutterKey` reports the labels' real width. The measured value
+        /// replaces it immediately; this just keeps the first layout from starting flush
+        /// against the labels and visibly settling.
+        ///
+        /// The clearance itself is a *pixel* width, not a duration — the labels are the same
+        /// size at every zoom, so a fixed duration would swallow a big slice of the screen
+        /// pinched in to 1 h and shrink to nothing at 24 h. It is also the only padding past
+        /// the last forecast point, which is what makes that point sit flush to the labels.
+        static let labelGutterFraction: CGFloat = 0.05
+
         // MARK: Glucose excursion markers (`GlucoseEpisode`)
 
         /// Consecutive in-range readings needed to close an excursion. At the 5-minute CGM

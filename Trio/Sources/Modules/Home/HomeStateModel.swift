@@ -137,6 +137,10 @@ extension Home {
         var minForecast: [Int] = []
         var maxForecast: [Int] = []
         var minCount: Int = 12 // count of Forecasts drawn in 5 min distances, i.e. 12 means a min of 1 hour
+        /// Highest `index` across every stored forecast curve — the horizon of the longest
+        /// prediction, in 5-minute steps. Sets how far right the chart reaches in `.lines`
+        /// mode, where whole curves are drawn rather than the shortest-curve band.
+        var maxForecastIndex: Int = 0
         var forecastDisplayType: ForecastDisplayType = .cone
 
         var minYAxisValue: Decimal = 39

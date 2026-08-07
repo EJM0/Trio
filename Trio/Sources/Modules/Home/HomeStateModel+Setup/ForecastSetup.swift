@@ -43,6 +43,9 @@ extension Home.StateModel {
 
         var allForecastValues = [[Int]]()
         var preprocessedData = [(id: UUID, forecast: Forecast, forecastValue: ForecastValue)]()
+        // Tracked off the stored `index` rather than array positions: it is what
+        // `ForecastView` maps to a date, so the domain and the ink agree.
+        var highestForecastIndex = 0
 
         // Prefetch all Forecasts with their forecastValues into viewContext in a single IN-query
         // to avoid N+1 individual SELECTs when materializing via existingObject below.
@@ -66,6 +69,11 @@ extension Home.StateModel {
                 let forecastValueInts = values.map { Int($0.value) }
                 allForecastValues.append(forecastValueInts)
 
+                highestForecastIndex = max(
+                    highestForecastIndex,
+                    values.map { Int($0.index) }.max() ?? 0
+                )
+
                 // Add data for further processing
                 preprocessedData.append(contentsOf: values.map {
                     (id: data.id, forecast: forecast, forecastValue: $0)
@@ -75,10 +83,15 @@ extension Home.StateModel {
 
         // Update UI-relevant data
         self.preprocessedData = preprocessedData
+        maxForecastIndex = highestForecastIndex
 
         guard !allForecastValues.isEmpty else {
             minForecast = []
             maxForecast = []
+            // The chart's forward offset is derived from these arrays, so an empty
+            // forecast has to collapse it back to the floor rather than leave the
+            // domain stretched to the previous prediction's horizon.
+            updateStartEndMarkers()
             return
         }
 
@@ -106,5 +119,9 @@ extension Home.StateModel {
 
         minForecast = minResult
         maxForecast = maxResult
+
+        // Re-derive the domain now that the forecast horizon is known; `endMarker` is a
+        // function of these arrays.
+        updateStartEndMarkers()
     }
 }
