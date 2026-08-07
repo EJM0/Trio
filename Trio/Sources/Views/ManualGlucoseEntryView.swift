@@ -63,7 +63,7 @@ struct ManualGlucoseEntryView: View {
                         amount < limitLow || amount > limitHigh ? Color(.systemGray4) : Color(.systemBlue)
                     )
                     .tint(.white)
-                }.scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme))
+                }.scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             }
             .navigationTitle("Add Glucose")
             .navigationBarTitleDisplayMode(.inline)
