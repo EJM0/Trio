@@ -583,12 +583,12 @@ extension Treatments {
                             .toggleStyle(RadioButtonToggleStyle())
                             .font(.footnote)
                             .onChange(of: state.useFattyMealCorrectionFactor) {
-                                Task {
-                                    state.insulinCalculated = await state.calculateInsulin()
-                                    if state.useFattyMealCorrectionFactor {
-                                        state.useSuperBolus = false
-                                    }
+                                // Clear the mutually exclusive option first so the recalculation
+                                // below sees a consistent pair of flags.
+                                if state.useFattyMealCorrectionFactor {
+                                    state.useSuperBolus = false
                                 }
+                                state.recalculateForBolusOptionChange()
                             }
                         }
                         if state.sweetMeals {
@@ -598,12 +598,10 @@ extension Treatments {
                             .toggleStyle(RadioButtonToggleStyle())
                             .font(.footnote)
                             .onChange(of: state.useSuperBolus) {
-                                Task {
-                                    state.insulinCalculated = await state.calculateInsulin()
-                                    if state.useSuperBolus {
-                                        state.useFattyMealCorrectionFactor = false
-                                    }
+                                if state.useSuperBolus {
+                                    state.useFattyMealCorrectionFactor = false
                                 }
+                                state.recalculateForBolusOptionChange()
                             }
                         }
                     }

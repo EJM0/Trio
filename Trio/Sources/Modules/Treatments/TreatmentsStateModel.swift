@@ -220,6 +220,7 @@ extension Treatments {
         /// In-flight work started by this instance; cancelled in `cleanupTreatmentState()`.
         @ObservationIgnored private var setupTask: Task<Void, Never>?
         @ObservationIgnored private var determinationUpdateTask: Task<Void, Never>?
+        @ObservationIgnored private var bolusOptionTask: Task<Void, Never>?
 
         func cleanupTreatmentState() {
             guard !hasCleanedUp else { return }
@@ -237,6 +238,7 @@ extension Treatments {
             // Cancel in-flight work — the setup task awaits a full oref simulation.
             setupTask?.cancel()
             determinationUpdateTask?.cancel()
+            bolusOptionTask?.cancel()
 
             broadcaster?.unregister(DeterminationObserver.self, observer: self)
             broadcaster?.unregister(BolusFailureObserver.self, observer: self)
@@ -486,6 +488,31 @@ extension Treatments {
             }
 
             return apsManager.roundBolus(amount: result.insulinCalculated)
+        }
+
+        /// Recomputes the recommendation after a Reduced/Super Bolus toggle changed.
+        ///
+        /// Two things this handles that a bare `calculateInsulin()` call does not:
+        /// - If the user had already accepted the previous recommendation (the Bolus field still holds
+        ///   exactly that value), the entered amount follows the new recommendation instead of going
+        ///   stale. Accepting first and toggling second is the common order when no carbs are entered.
+        /// - Toggling one option clears the other, which fires a second change. Cancelling the in-flight
+        ///   run makes the last (flag-consistent) calculation the one that publishes, so the two
+        ///   concurrent CoreData round-trips can't finish out of order.
+        @MainActor func recalculateForBolusOptionChange() {
+            bolusOptionTask?.cancel()
+            bolusOptionTask = Task { @MainActor in
+                let previousRecommendation = insulinCalculated
+                let hasAcceptedRecommendation = amount > 0 && amount == previousRecommendation
+
+                let newRecommendation = await calculateInsulin()
+                guard !Task.isCancelled else { return }
+
+                insulinCalculated = newRecommendation
+                if hasAcceptedRecommendation {
+                    amount = newRecommendation
+                }
+            }
         }
 
         // MARK: - Button tasks
