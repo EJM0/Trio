@@ -212,8 +212,8 @@ extension Home {
                 Button("Pump Simulator") { state.addPump(.simulator) }
             } message: { Text("Select Pump Model") }
             .sheet(isPresented: $state.shouldDisplayPumpSetupSheet) {
-                // the hosted LoopKit controllers lay out their own bottom bars; leaving the
-                // container inset in place strands them above the home indicator
+                // the hosted LoopKit controllers lay out their own bottom bars and keyboard
+                // handling; leaving either inset in place strands them above the home indicator
                 Group {
                     if let pumpManager = state.provider.apsManager.pumpManager {
                         PumpConfig.PumpSettingsView(
@@ -233,6 +233,7 @@ extension Home {
                     }
                 }
                 .ignoresSafeArea(.container, edges: .bottom)
+                .ignoresSafeArea(.keyboard, edges: .bottom)
             }
             // CGM RELATED
             .confirmationDialog("CGM Model", isPresented: $showCGMSelection) {
@@ -279,6 +280,7 @@ extension Home {
                     }
                 }
                 .ignoresSafeArea(.container, edges: .bottom)
+                .ignoresSafeArea(.keyboard, edges: .bottom)
             }
         }
 
