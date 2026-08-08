@@ -86,7 +86,7 @@ extension PumpConfig {
                 .navigationBarItems(leading: displayClose ? Button("Close", action: state.hideModal) : nil)
                 .sheet(isPresented: $state.setupPump) {
                     // matches the pump sheet presented from Home: the hosted LoopKit
-                    // controllers lay out their own bottom bars
+                    // controllers lay out their own bottom bars and keyboard handling
                     Group {
                         if let pumpManager = state.provider.apsManager.pumpManager {
                             PumpSettingsView(
@@ -106,6 +106,7 @@ extension PumpConfig {
                         }
                     }
                     .ignoresSafeArea(.container, edges: .bottom)
+                    .ignoresSafeArea(.keyboard, edges: .bottom)
                 }
                 .sheet(isPresented: $shouldDisplayHint) {
                     SettingInputHintView(

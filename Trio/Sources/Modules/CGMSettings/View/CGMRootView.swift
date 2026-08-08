@@ -155,7 +155,7 @@ extension CGMSettings {
                 .navigationBarItems(leading: displayClose ? Button("Close", action: state.hideModal) : nil)
                 .sheet(isPresented: $state.shouldDisplayCGMSetupSheet) {
                     // matches the CGM sheet presented from Home: the hosted LoopKit
-                    // controllers lay out their own bottom bars
+                    // controllers lay out their own bottom bars and keyboard handling
                     Group {
                         switch state.cgmCurrent.type {
                         case .enlite,
@@ -200,6 +200,7 @@ extension CGMSettings {
                         }
                     }
                     .ignoresSafeArea(.container, edges: .bottom)
+                    .ignoresSafeArea(.keyboard, edges: .bottom)
                 }
                 .sheet(isPresented: $shouldDisplayHint) {
                     SettingInputHintView(
