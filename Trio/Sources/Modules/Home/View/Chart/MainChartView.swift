@@ -187,7 +187,9 @@ struct MainChartView: View {
         .contentShape(Rectangle())
         .simultaneousGesture(panAndInspectGesture)
         .simultaneousGesture(magnifyGesture)
-        .simultaneousGesture(TapGesture(count: 2).onEnded { cycleZoomPreset() })
+        .simultaneousGesture(
+            SpatialTapGesture(count: 2).onEnded { value in cycleZoomPreset(atViewportX: value.location.x) }
+        )
         // Overlaid after the gestures so its tap wins over the pan/inspect recognizer.
         .overlay(alignment: .bottomTrailing) { scrollToNowButton }
         .onDisappear {
@@ -530,16 +532,18 @@ extension MainChartView {
         return TimeInterval(gutterPoints / viewportWidth) * visibleSeconds
     }
 
-    /// Double-tap cycles the zoom presets, trailing edge anchored.
-    private func cycleZoomPreset() {
+    /// Double-tap cycles the zoom presets, anchored under the tap: the date the user
+    /// tapped stays at the same screen position, exactly like a pinch centroid.
+    private func cycleZoomPreset(atViewportX x: CGFloat) {
         let presets = MainChartHelper.Config.zoomPresets
         let next = presets.first(where: { $0 > visibleSeconds + 1 }) ?? presets[0]
-        let trailing = scrollPosition.addingTimeInterval(visibleSeconds)
+        let fraction = min(max(x / viewportWidth, 0), 1)
+        let anchorDate = scrollPosition.addingTimeInterval(visibleSeconds * TimeInterval(fraction))
         momentumTask?.cancel()
         // Snap, like pinch commits: animating the zoom animates canvasWidth,
         // which re-lays the canvas every animation frame.
         visibleSeconds = next
-        scrollPosition = clampedLeadingEdge(trailing.addingTimeInterval(-next))
+        scrollPosition = clampedLeadingEdge(anchorDate.addingTimeInterval(-next * TimeInterval(fraction)))
         updateRenderWindow(force: true)
     }
 
