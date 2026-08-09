@@ -32,9 +32,11 @@ extension Home.StateModel {
         // Cover every day the chart domain can reach, rather than a fixed three: the history
         // window (`chartHistorySeconds`) already runs three days back, so three days from
         // `baseDate` stopped at midnight before today and left today with no target line.
-        // The extra day past `endMarker` keeps the forecast's trailing edge covered.
+        // The extra day past `endMarker` keeps the forecast's trailing edge covered, and
+        // clamping to `Date()` keeps coverage through today if `endMarker` is stale.
+        // cf. https://github.com/nightscout/Trio/issues/1383
         let coverageEnd = max(endMarker, Date()).addingTimeInterval(TimeInterval(hours: 24))
-        let dayCount = max(1, Int(ceil(coverageEnd.timeIntervalSince(baseDate) / (24 * 60 * 60))))
+        let dayCount = max(3, Int(ceil(coverageEnd.timeIntervalSince(baseDate) / (24 * 60 * 60))))
 
         for index in 0 ..< (targets.count * dayCount) {
             // Calculate the day offset (0 for the startMarker's day, 1 for the next, ...)

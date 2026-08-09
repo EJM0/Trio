@@ -84,7 +84,7 @@ extension Home {
             .frame(height: chartHeight)
             .overlay(alignment: .bottomTrailing) {
                 chartInfoButton
-                    .offset(x: 0, y: -10)
+                    .offset(x: 0, y: -18)
             }
         }
 
@@ -92,13 +92,18 @@ extension Home {
             Button {
                 state.isLegendPresented.toggle()
             } label: {
+                // styled to match the alarm bell pill in the meal row
                 Image(systemName: "info")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                    .font(.callout)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
                     .frame(width: 32, height: 32)
-                    .background(Circle().fill(.ultraThinMaterial))
-                    .overlay(Circle().strokeBorder(Color.primary.opacity(0.12), lineWidth: 1))
+                    .overlay(
+                        Circle()
+                            .stroke(Color.primary.opacity(0.4), lineWidth: 2)
+                    )
             }
+            .buttonStyle(.plain)
             .contentShape(Circle())
             .padding(.bottom, 6)
             // same trailing inset as the meal row
