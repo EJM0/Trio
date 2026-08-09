@@ -49,6 +49,37 @@ struct GlassPanelBackground: ViewModifier {
     }
 }
 
+/// Circular control overlaid on the glucose chart. The legend/info button and the
+/// return-to-now button are the same component so they stack as one visual family;
+/// only the glyph and the action differ.
+struct ChartOverlayButton: View {
+    let systemImage: String
+    let action: () -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var isLight: Bool { colorScheme == .light }
+
+    /// The light chart background washes the button out, so there the glyph is spelled out
+    /// 10% darker than `.secondary` (~60% ink) and the rim gets the same uplift. Dark mode
+    /// keeps the untouched `.secondary` glyph and 0.12 rim.
+    private var glyphStyle: AnyShapeStyle {
+        isLight ? AnyShapeStyle(Color.primary.opacity(0.66)) : AnyShapeStyle(HierarchicalShapeStyle.secondary)
+    }
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(glyphStyle)
+                .frame(width: 32, height: 32)
+                .background(Circle().fill(.ultraThinMaterial))
+                .overlay(Circle().strokeBorder(Color.primary.opacity(isLight ? 0.132 : 0.12), lineWidth: 1))
+        }
+        .contentShape(Circle())
+    }
+}
+
 extension View {
     func glassPanel(
         tint: Color? = nil,

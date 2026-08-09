@@ -375,20 +375,12 @@ extension MainChartView {
     /// never covers the chart during normal use.
     @ViewBuilder private var scrollToNowButton: some View {
         if isScrolledBack {
-            Button {
+            ChartOverlayButton(systemImage: "arrow.right") {
                 // `onChange(of: scrollPosition)` re-anchors the render window for us.
                 withAnimation(.easeOut(duration: 0.25)) {
                     scrollToTrailingEdge()
                 }
-            } label: {
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 32, height: 32)
-                    .background(Circle().fill(.ultraThinMaterial))
-                    .overlay(Circle().strokeBorder(Color.primary.opacity(0.12), lineWidth: 1))
             }
-            .contentShape(Circle())
             // Stacked directly above the chart's info button, which `HomeRootView` overlays
             // on this same box: 32pt tall, sitting 16pt off the bottom (6pt padding + 10pt
             // offset) at a 16pt trailing inset. Keep these in sync with `chartInfoButton`.
