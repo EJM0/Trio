@@ -222,6 +222,8 @@ extension Home {
                             completionDelegate: state,
                             setupDelegate: state
                         )
+                        .ignoresSafeArea(.keyboard, edges: .bottom)
+                        .ignoresSafeArea(.all, edges: .bottom)
                     } else {
                         PumpConfig.PumpSetupView(
                             pumpType: state.setupPumpType,
@@ -230,10 +232,10 @@ extension Home {
                             completionDelegate: state,
                             setupDelegate: state
                         )
+                        .ignoresSafeArea(.keyboard, edges: .bottom)
+                        .ignoresSafeArea(.all, edges: .bottom)
                     }
                 }
-                .ignoresSafeArea(.container, edges: .bottom)
-                .ignoresSafeArea(.keyboard, edges: .bottom)
             }
             // CGM RELATED
             .confirmationDialog("CGM Model", isPresented: $showCGMSelection) {
@@ -267,6 +269,8 @@ extension Home {
                                 unit: state.settingsManager.settings.units,
                                 completionDelegate: state
                             )
+                            .ignoresSafeArea(.keyboard, edges: .bottom)
+                            .ignoresSafeArea(.all, edges: .bottom)
                         } else {
                             CGMSettings.CGMSetupView(
                                 CGMType: state.cgmCurrent,
@@ -276,11 +280,11 @@ extension Home {
                                 setupDelegate: state,
                                 pluginCGMManager: self.state.pluginCGMManager
                             )
+                            .ignoresSafeArea(.keyboard, edges: .bottom)
+                            .ignoresSafeArea(.all, edges: .bottom)
                         }
                     }
                 }
-                .ignoresSafeArea(.container, edges: .bottom)
-                .ignoresSafeArea(.keyboard, edges: .bottom)
             }
         }
 

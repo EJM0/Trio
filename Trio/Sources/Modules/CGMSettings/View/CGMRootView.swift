@@ -199,8 +199,8 @@ extension CGMSettings {
                             }
                         }
                     }
-                    .ignoresSafeArea(.container, edges: .bottom)
                     .ignoresSafeArea(.keyboard, edges: .bottom)
+                    .ignoresSafeArea(.all, edges: .bottom)
                 }
                 .sheet(isPresented: $shouldDisplayHint) {
                     SettingInputHintView(
