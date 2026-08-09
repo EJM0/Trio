@@ -168,7 +168,9 @@ struct MainChartView: View {
         .onPreferenceChange(CobIobPlotFrameKey.self) { cobIobPlotFrame = $0 }
         .simultaneousGesture(panAndInspectGesture)
         .simultaneousGesture(magnifyGesture)
-        .simultaneousGesture(TapGesture(count: 2).onEnded { cycleZoomPreset() })
+        .simultaneousGesture(
+            SpatialTapGesture(count: 2).onEnded { value in cycleZoomPreset(atViewportX: value.location.x) }
+        )
         .onDisappear {
             momentumTask?.cancel()
             inspectHoldTask?.cancel()
@@ -450,16 +452,18 @@ extension MainChartView {
     /// Keeps domain-edge content clear of the pinned y-axis labels.
     private var trailingOverscan: TimeInterval { visibleSeconds * 0.05 }
 
-    /// Double-tap cycles the zoom presets, trailing edge anchored.
-    private func cycleZoomPreset() {
+    /// Double-tap cycles the zoom presets, anchored under the tap: the date the user
+    /// tapped stays at the same screen position, exactly like a pinch centroid.
+    private func cycleZoomPreset(atViewportX x: CGFloat) {
         let presets = MainChartHelper.Config.zoomPresets
         let next = presets.first(where: { $0 > visibleSeconds + 1 }) ?? presets[0]
-        let trailing = scrollPosition.addingTimeInterval(visibleSeconds)
+        let fraction = min(max(x / viewportWidth, 0), 1)
+        let anchorDate = scrollPosition.addingTimeInterval(visibleSeconds * TimeInterval(fraction))
         momentumTask?.cancel()
         // Snap, like pinch commits: animating the zoom animates canvasWidth,
         // which re-lays the canvas every animation frame.
         visibleSeconds = next
-        scrollPosition = clampedLeadingEdge(trailing.addingTimeInterval(-next))
+        scrollPosition = clampedLeadingEdge(anchorDate.addingTimeInterval(-next * TimeInterval(fraction)))
         updateRenderWindow(force: true)
     }
 
