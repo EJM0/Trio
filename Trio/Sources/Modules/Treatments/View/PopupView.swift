@@ -317,7 +317,9 @@ struct PopupView: View {
 
         // Determine COB and carbs to display based on backdating status
         let displayedCOB = isBackdated ? (state.simulatedDetermination?.cob ?? Decimal(state.cob)) : Decimal(state.cob)
-        let displayedCarbs = isBackdated ? 0 : state.carbs
+        // Scanned carbs are carbs — the calculation uses the combined amount, so the breakdown must too
+        let enteredCarbs = state.carbs + state.scannedCarbs
+        let displayedCarbs = isBackdated ? 0 : enteredCarbs
 
         let hasExceededMaxCOB: Bool = displayedCOB + displayedCarbs > state.maxCOB
         return Group {
@@ -386,7 +388,7 @@ struct PopupView: View {
             .multilineTextAlignment(.center)
 
             if isBackdated {
-                Text("Backdated carbs (\(Int(state.carbs)) g) included in COB calculation")
+                Text("Backdated carbs (\(Int(enteredCarbs)) g) included in COB calculation")
                     .font(.caption)
                     .foregroundStyle(.orange)
                     .padding(.top, 4)
@@ -830,7 +832,7 @@ struct PopupView: View {
             } else if state.currentBG < 54 {
                 Text("Glucose is very low.")
                     .warningStyle(.red)
-            } else if state.minPredBG < 54 {
+            } else if state.minPredBGWithoutEnteredBolus < 54 {
                 Text("Glucose forecast is very low.")
                     .warningStyle(warningColor)
             } else if state.factoredInsulin > state.maxBolus, state.maxBolus <= iobAvailable {

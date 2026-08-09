@@ -127,12 +127,17 @@ extension Treatments {
         }
 
         /// Handles macro input (carb, fat, protein) in a debounced fashion.
-        func handleDebouncedInput() {
+        ///
+        /// The Bolus field uses this too, with `followingAcceptedRecommendation: false`: its edits
+        /// change the forecast the chart draws, but must not rewrite the amount being typed.
+        func handleDebouncedInput(followingAcceptedRecommendation: Bool = true) {
             debounce?.cancel()
             debounce = DispatchWorkItem { [self] in
-                Task {
-                    await state.updateForecasts()
-                    state.insulinCalculated = await state.calculateInsulin()
+                Task { @MainActor in
+                    state.refreshInsulinRecommendation(
+                        updatingForecasts: true,
+                        followsAcceptedAmount: followingAcceptedRecommendation
+                    )
                 }
             }
             if let debounce = debounce {
@@ -161,12 +166,11 @@ extension Treatments {
                         }
                         .padding(
                             .trailing,
-                            state.scannedFat > 0 && !state.settings.settings.barcodeScannerOnlyCarbs
-                                ? scannedDeltaOverlayWidth : 0
+                            state.effectiveScannedFat > 0 ? scannedDeltaOverlayWidth : 0
                         )
                         .overlay(alignment: .trailing) {
-                            if state.scannedFat > 0, !state.settings.settings.barcodeScannerOnlyCarbs {
-                                scannedNutrientDeltaText(value: state.scannedFat)
+                            if state.effectiveScannedFat > 0 {
+                                scannedNutrientDeltaText(value: state.effectiveScannedFat)
                                     .allowsHitTesting(false)
                             }
                         }
@@ -195,12 +199,11 @@ extension Treatments {
                         }
                         .padding(
                             .trailing,
-                            state.scannedProtein > 0 && !state.settings.settings.barcodeScannerOnlyCarbs
-                                ? scannedDeltaOverlayWidth : 0
+                            state.effectiveScannedProtein > 0 ? scannedDeltaOverlayWidth : 0
                         )
                         .overlay(alignment: .trailing) {
-                            if state.scannedProtein > 0, !state.settings.settings.barcodeScannerOnlyCarbs {
-                                scannedNutrientDeltaText(value: state.scannedProtein)
+                            if state.effectiveScannedProtein > 0 {
+                                scannedNutrientDeltaText(value: state.effectiveScannedProtein)
                                     .allowsHitTesting(false)
                             }
                         }
@@ -540,12 +543,10 @@ extension Treatments {
                         ).controlSize(.mini)
                             .labelsHidden()
                             .onChange(of: state.date) { _, _ in
-                                // Trigger simulation when date changes to update forecasts for backdated carbs
-                                Task {
-                                    // `updateForecasts()` does update the `simulatedDetermination` of type `Determination?` var on the main thread, so I can use this to pass its cob value into the bolus calc manager
-                                    await state.updateForecasts()
-                                    state.insulinCalculated = await state.calculateInsulin()
-                                }
+                                // Trigger simulation when date changes to update forecasts for backdated carbs.
+                                // `updateForecasts()` updates the `simulatedDetermination` of type `Determination?`
+                                // on the main thread, so its cob value feeds the bolus calc manager.
+                                state.refreshInsulinRecommendation(updatingForecasts: true)
                             }
                         Button {
                             state.date = state.date.addingTimeInterval(15.minutes.timeInterval)
@@ -584,11 +585,12 @@ extension Treatments {
                             .font(.footnote)
                             .onChange(of: state.useFattyMealCorrectionFactor) {
                                 // Clear the mutually exclusive option first so the recalculation
-                                // below sees a consistent pair of flags.
+                                // below sees a consistent pair of flags. Deselecting recalculates
+                                // as well — the option no longer applying changes the result too.
                                 if state.useFattyMealCorrectionFactor {
                                     state.useSuperBolus = false
                                 }
-                                state.recalculateForBolusOptionChange()
+                                state.refreshInsulinRecommendation()
                             }
                         }
                         if state.sweetMeals {
@@ -601,7 +603,7 @@ extension Treatments {
                                 if state.useSuperBolus {
                                     state.useFattyMealCorrectionFactor = false
                                 }
-                                state.recalculateForBolusOptionChange()
+                                state.refreshInsulinRecommendation()
                             }
                         }
                     }
@@ -665,9 +667,9 @@ extension Treatments {
                         unitsText: String(localized: "U", comment: "Units for bolus amount")
                     ).focused($focusedField, equals: .bolus)
                         .onChange(of: state.amount) {
-                            Task {
-                                await state.updateForecasts()
-                            }
+                            // Redraws the forecast for the entered dose. Debounced and cancellable so
+                            // typing a bolus doesn't queue up an oref simulation per keystroke.
+                            handleDebouncedInput(followingAcceptedRecommendation: false)
                         }
                 }
 
@@ -751,7 +753,7 @@ extension Treatments {
                 configureView {
                     state.isActive = true
                     Task { @MainActor in
-                        state.insulinCalculated = await state.calculateInsulin()
+                        state.refreshInsulinRecommendation()
                     }
                     if PropertyPersistentFlags.shared.hasSeenFatProteinOrderChange != true {
                         showFatProteinOrderBanner = true
@@ -808,9 +810,8 @@ extension Treatments {
                             // Directly merge scanned amounts into Treatments state
                             Task { @MainActor in
                                 state.addScannedAmounts(carbs: carbs, fat: fat, protein: protein, note: note)
-                                // Force forecasts update and recalc insulin
-                                await state.updateForecasts(force: true)
-                                state.insulinCalculated = await state.calculateInsulin()
+                                // Scanned carbs are carbs: force forecasts and recalc the recommendation
+                                state.refreshInsulinRecommendation(updatingForecasts: true, forceForecasts: true)
                             }
                         },
                         onDismiss: { showBarcodeScanner = false }
@@ -950,24 +951,20 @@ extension Treatments {
             state.scannedProtein = Decimal(totalProtein)
             state.scannedFat = Decimal(totalFat)
 
-            // Trigger a recalculation immediately (sheet may make view inactive, so do it directly)
+            // Trigger a recalculation immediately (sheet may make view inactive, so force it).
+            // Scanned carbs are carbs, so this goes through the same path as typed macros and
+            // follows an already accepted recommendation.
+            debug(
+                .bolusState,
+                "syncScannedAmounts: carbs=\(state.carbs) scannedCarbs=\(state.scannedCarbs) totalCarbs=\(state.carbs + state.scannedCarbs)"
+            )
             Task { @MainActor in
-                // Update forecasts and insulin immediately (force update even if view not active)
-                debug(
-                    .bolusState,
-                    "syncScannedAmounts: carbs=\(state.carbs) scannedCarbs=\(state.scannedCarbs) totalCarbs=\(state.carbs + state.scannedCarbs)"
-                )
-                await state.updateForecasts(force: true)
-                state.insulinCalculated = await state.calculateInsulin()
-                debug(.bolusState, "syncScannedAmounts: insulinCalculated=\(state.insulinCalculated)")
+                state.refreshInsulinRecommendation(updatingForecasts: true, forceForecasts: true)
             }
-
-            // Also keep the debounced update for smoother UI updates
-            handleDebouncedInput()
         }
 
         var progressText: ProgressText {
-            switch (state.amount > 0, state.carbs > 0) {
+            switch (state.amount > 0, (state.carbs + state.scannedCarbs) > 0) {
             case (true, true):
                 return .updatingIOBandCOB
             case (false, true):
@@ -1148,7 +1145,7 @@ extension Treatments {
             let hasInsulin = state.amount > 0
             let hasCarbs = state.carbs > 0 || state.scannedCarbs > 0
             let hasFatOrProtein =
-                state.fat > 0 || state.scannedFat > 0 || state.protein > 0 || state.scannedProtein > 0
+                state.fat > 0 || state.effectiveScannedFat > 0 || state.protein > 0 || state.effectiveScannedProtein > 0
             let bolusString =
                 state.externalInsulin
                     ? String(localized: "External Insulin") : String(localized: "Enact Bolus")
@@ -1189,11 +1186,11 @@ extension Treatments {
         }
 
         private var fatLimitExceeded: Bool {
-            (state.fat + state.scannedFat) > state.maxFat
+            (state.fat + state.effectiveScannedFat) > state.maxFat
         }
 
         private var proteinLimitExceeded: Bool {
-            (state.protein + state.scannedProtein) > state.maxProtein
+            (state.protein + state.effectiveScannedProtein) > state.maxProtein
         }
 
         private var limitExceeded: Bool {

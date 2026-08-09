@@ -43,6 +43,17 @@ extension Treatments {
         var minDelta: Decimal = 0
         var expectedDelta: Decimal = 0
         var minPredBG: Decimal = 0
+
+        /// `minPredBG` from a forecast that excludes the bolus sitting in the entry field.
+        ///
+        /// The chart and the pre-enact warning want the entered dose included — that is exactly the
+        /// "what happens if I give this" preview. The recommendation must not see it: the entered
+        /// amount is not delivered insulin, and feeding it back makes the calculation self-cancelling.
+        /// Accepting a meal bolus dips the forecast below 54, the calculator's safety check then
+        /// returns 0, and the next recalculation (a Reduced/Super Bolus toggle) collapses both the
+        /// recommendation and the accepted amount to 0.
+        var minPredBGWithoutEnteredBolus: Decimal = 0
+
         var lastLoopDate: Date?
         var isAwaitingDeterminationResult: Bool = false
         var carbRatio: Decimal = 0
@@ -105,6 +116,15 @@ extension Treatments {
         var scannedFat: Decimal = 0
         var scannedProtein: Decimal = 0
         var barcodeScannerOnlyCarbs: Bool = false
+
+        /// The scanned FTUs the entry actually uses.
+        ///
+        /// "Only Allow Carbs from Barcode Scanner" suppresses fat/protein coming *from the scanner*;
+        /// FTUs the user typed here are theirs and stay. Every consumer — the Log button label, the
+        /// max-fat/protein limits, the scanned delta overlays and `saveMeal()` — must read these
+        /// instead of the raw `scannedFat`/`scannedProtein`, or the UI and what gets stored diverge.
+        var effectiveScannedFat: Decimal { barcodeScannerOnlyCarbs ? 0 : scannedFat }
+        var effectiveScannedProtein: Decimal { barcodeScannerOnlyCarbs ? 0 : scannedProtein }
 
         var id_: String = ""
         var summary: String = ""
@@ -220,7 +240,7 @@ extension Treatments {
         /// In-flight work started by this instance; cancelled in `cleanupTreatmentState()`.
         @ObservationIgnored private var setupTask: Task<Void, Never>?
         @ObservationIgnored private var determinationUpdateTask: Task<Void, Never>?
-        @ObservationIgnored private var bolusOptionTask: Task<Void, Never>?
+        @ObservationIgnored private var recommendationTask: Task<Void, Never>?
 
         func cleanupTreatmentState() {
             guard !hasCleanedUp else { return }
@@ -238,7 +258,7 @@ extension Treatments {
             // Cancel in-flight work — the setup task awaits a full oref simulation.
             setupTask?.cancel()
             determinationUpdateTask?.cancel()
-            bolusOptionTask?.cancel()
+            recommendationTask?.cancel()
 
             broadcaster?.unregister(DeterminationObserver.self, observer: self)
             broadcaster?.unregister(BolusFailureObserver.self, observer: self)
@@ -442,9 +462,11 @@ extension Treatments {
 
         /// Calculate insulin recommendation
         func calculateInsulin() async -> Decimal {
-            // Safely get minPredBG on main thread
+            // Safely get minPredBG on main thread. This is the forecast *without* the entered bolus —
+            // the recommendation says how much to give, so it cannot shrink because the user already
+            // typed (or accepted) an amount into the Bolus field.
             let localMinPredBG = await MainActor.run {
-                minPredBG
+                minPredBGWithoutEnteredBolus
             }
 
             // Use the cob value of the simulation if we have a simulated determination
@@ -490,20 +512,45 @@ extension Treatments {
             return apsManager.roundBolus(amount: result.insulinCalculated)
         }
 
-        /// Recomputes the recommendation after a Reduced/Super Bolus toggle changed.
+        /// Recomputes the recommendation after a user-driven input change and keeps an already
+        /// accepted Bolus amount in sync.
         ///
-        /// Two things this handles that a bare `calculateInsulin()` call does not:
+        /// Every user-driven input of the calculation routes through here — the Reduced/Super Bolus
+        /// toggles (selecting *and* deselecting), carbs/fat/protein including scanned amounts, and the
+        /// entry time — so the three things below hold no matter which one changed:
         /// - If the user had already accepted the previous recommendation (the Bolus field still holds
         ///   exactly that value), the entered amount follows the new recommendation instead of going
-        ///   stale. Accepting first and toggling second is the common order when no carbs are entered.
+        ///   stale. Accepting first and changing an input second is the common order when no carbs are
+        ///   entered.
         /// - Toggling one option clears the other, which fires a second change. Cancelling the in-flight
         ///   run makes the last (flag-consistent) calculation the one that publishes, so the two
         ///   concurrent CoreData round-trips can't finish out of order.
-        @MainActor func recalculateForBolusOptionChange() {
-            bolusOptionTask?.cancel()
-            bolusOptionTask = Task { @MainActor in
+        /// - Where the forecast feeds the calculation (`minPredBG`, simulated COB), it is refreshed
+        ///   first and under the same cancellation, so a superseded forecast cannot leak into the
+        ///   recommendation that publishes.
+        ///
+        /// `followsAcceptedAmount: false` recalculates without touching the Bolus field — used by the
+        /// field's own edits, which must never rewrite what the user is typing.
+        ///
+        /// Note: the determination-driven refresh (`scheduleInsulinAndForecastUpdate()`) deliberately
+        /// does not follow the accepted amount either — a new loop cycle must not silently change an
+        /// insulin amount the user already entered.
+        @MainActor func refreshInsulinRecommendation(
+            updatingForecasts: Bool = false,
+            forceForecasts: Bool = false,
+            followsAcceptedAmount: Bool = true
+        ) {
+            recommendationTask?.cancel()
+            recommendationTask = Task { @MainActor in
                 let previousRecommendation = insulinCalculated
-                let hasAcceptedRecommendation = amount > 0 && amount == previousRecommendation
+                let hasAcceptedRecommendation = followsAcceptedAmount
+                    && amount > 0
+                    && amount == previousRecommendation
+
+                if updatingForecasts {
+                    await updateForecasts(force: forceForecasts)
+                    guard !Task.isCancelled else { return }
+                }
 
                 let newRecommendation = await calculateInsulin()
                 guard !Task.isCancelled else { return }
@@ -525,8 +572,8 @@ extension Treatments {
                 }
                 let isInsulinGiven = amount > 0
                 let isCarbsPresent = carbs > 0 || scannedCarbs > 0
-                let isFatPresent = fat > 0 || scannedFat > 0
-                let isProteinPresent = protein > 0 || scannedProtein > 0
+                let isFatPresent = fat > 0 || effectiveScannedFat > 0
+                let isProteinPresent = protein > 0 || effectiveScannedProtein > 0
 
                 if isCarbsPresent || isFatPresent || isProteinPresent {
                     await saveMeal()
@@ -723,8 +770,8 @@ extension Treatments {
         func saveMeal() async {
             do {
                 let totalCarbs = min(carbs + scannedCarbs, maxCarbs)
-                let totalFat = barcodeScannerOnlyCarbs ? 0 : min(fat + scannedFat, maxFat)
-                let totalProtein = barcodeScannerOnlyCarbs ? 0 : min(protein + scannedProtein, maxProtein)
+                let totalFat = min(fat + effectiveScannedFat, maxFat)
+                let totalProtein = min(protein + effectiveScannedProtein, maxProtein)
 
                 guard totalCarbs > 0 || totalFat > 0 || totalProtein > 0 else { return }
 
@@ -956,6 +1003,9 @@ extension Treatments.StateModel {
         insulinRequired = (mostRecentDetermination.insulinReq ?? 0) as Decimal
         evBG = (mostRecentDetermination.eventualBG ?? 0) as Decimal
         minPredBG = (mostRecentDetermination.minPredBGFromReason ?? 0) as Decimal
+        // A real determination knows nothing about the amount in the entry field, so it is the
+        // bolus-free forecast until the next simulation runs.
+        minPredBGWithoutEnteredBolus = minPredBG
         lastLoopDate = apsManager.lastLoopDate as Date?
         insulin = (mostRecentDetermination.insulinForManualBolus ?? 0) as Decimal
         target = (mostRecentDetermination.currentTarget ?? currentBGTarget as NSDecimalNumber) as Decimal
@@ -1013,14 +1063,32 @@ extension Treatments.StateModel {
             simulatedDetermination = forecastData
             debugPrint("\(DebuggingIdentifiers.failed) minPredBG: \(minPredBG)")
         } else {
-            let simulated = await Task { [self] in
+            let simulatedCarbs = carbs + scannedCarbs
+            let entryDate = date
+            let enteredBolus = amount
+
+            let chartSimulation = Task { [self] in
                 debug(.bolusState, "calling simulateDetermineBasal to get forecast data")
                 return await apsManager.simulateDetermineBasal(
-                    simulatedCarbsAmount: carbs + scannedCarbs,
-                    simulatedBolusAmount: amount,
-                    simulatedCarbsDate: date
+                    simulatedCarbsAmount: simulatedCarbs,
+                    simulatedBolusAmount: enteredBolus,
+                    simulatedCarbsDate: entryDate
                 )
-            }.value
+            }
+
+            // The recommendation is computed from a forecast without the entered bolus — see
+            // `minPredBGWithoutEnteredBolus`. With an empty Bolus field the two runs are identical,
+            // so the second oref simulation is only paid for once something is actually entered.
+            let bolusFreeSimulation: Task<Determination?, Never>? = enteredBolus > 0 ? Task { [self] in
+                await apsManager.simulateDetermineBasal(
+                    simulatedCarbsAmount: simulatedCarbs,
+                    simulatedBolusAmount: 0,
+                    simulatedCarbsDate: entryDate
+                )
+            } : nil
+
+            let simulated = await chartSimulation.value
+            let bolusFree = await bolusFreeSimulation?.value ?? simulated
 
             // Stale minPredBG/cob from a superseded run would feed the next bolus calculation.
             guard !Task.isCancelled else { return }
@@ -1032,6 +1100,7 @@ extension Treatments.StateModel {
                 minPredBG = simDetermination.minPredBGFromReason ?? 0
                 debugPrint("\(DebuggingIdentifiers.inProgress) minPredBG: \(minPredBG)")
             }
+            minPredBGWithoutEnteredBolus = bolusFree?.minPredBGFromReason ?? minPredBG
         }
 
         predictionsForChart = simulatedDetermination?.predictions
