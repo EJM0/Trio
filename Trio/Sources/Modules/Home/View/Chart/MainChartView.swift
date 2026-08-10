@@ -999,6 +999,9 @@ struct MainChartCanvas: View {
         .frame(width: canvasWidth)
         .onAppear {
             calculateTempBasals()
+            // The profile otherwise stays empty until the first temp basal or max basal
+            // change comes in, leaving the scheduled basal line off the chart until then.
+            calculateBasals()
         }
     }
 }
