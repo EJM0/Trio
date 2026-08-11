@@ -30,6 +30,9 @@ extension MainChartCanvas {
             .onChange(of: state.maxBasal) {
                 calculateBasals()
             }
+            .onChange(of: state.basalProfile) {
+                calculateBasals()
+            }
             .frame(width: canvasWidth, height: basalHeight)
             .chartXScale(domain: windowStart ... windowEnd)
             .chartXAxis { mainChartXAxis } // grid lines only; hour labels render once, on the bottom pane
@@ -187,16 +190,23 @@ extension MainChartCanvas {
         guard timeBegin < timeEnd else { return [] }
 
         let beginDate = Date(timeIntervalSince1970: timeBegin)
-        let startOfDay = Calendar.current.startOfDay(for: beginDate)
+        let endDate = Date(timeIntervalSince1970: timeEnd)
+        let calendar = Calendar.current
         let profile = state.basalProfile
         var basalPoints: [BasalProfile] = []
         var lastEntryBeforeRange: (amount: Double, date: Date)?
 
-        // Iterate over the next three days, multiplying the time intervals
-        for dayOffset in 0 ..< 3 {
-            let dayTimeOffset = TimeInterval(dayOffset * 24 * 60 * 60) // One Day in seconds
+        // Repeat the daily schedule over every calendar day the range touches. A fixed day
+        // count would run out before the end of the chart's domain, which reaches back
+        // `chartHistorySeconds` and forward to the end of the forecast, and the profile line
+        // would then stop short of the chart's edge. Stepping by calendar day (rather than by
+        // 86400 s) keeps the schedule anchored to local midnight across DST changes.
+        var dayStart = calendar.startOfDay(for: beginDate)
+        while dayStart <= endDate {
+            defer { dayStart = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? endDate.addingTimeInterval(1) }
+
             for entry in profile {
-                let basalTime = startOfDay.addingTimeInterval(entry.minutes.minutes.timeInterval + dayTimeOffset)
+                let basalTime = dayStart.addingTimeInterval(entry.minutes.minutes.timeInterval)
                 let basalTimeInterval = basalTime.timeIntervalSince1970
 
                 if basalTimeInterval < timeBegin {
@@ -228,10 +238,11 @@ extension MainChartCanvas {
 
     func calculateBasals() {
         Task {
-            let dayAgoTime = Date().addingTimeInterval(-1.days.timeInterval).timeIntervalSince1970
-
+            // Span the chart's whole domain, not just the last 24 h: the domain reaches back
+            // `chartHistorySeconds`, and anything shorter leaves the profile line missing over
+            // the older part of the chart once it is scrolled into view.
             async let getRegularBasalPoints = findRegularBasalPoints(
-                timeBegin: dayAgoTime,
+                timeBegin: state.startMarker.timeIntervalSince1970,
                 timeEnd: state.endMarker.timeIntervalSince1970
             )
 

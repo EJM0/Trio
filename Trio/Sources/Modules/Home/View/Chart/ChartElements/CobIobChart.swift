@@ -45,13 +45,6 @@ extension MainChartCanvas {
         )
     }
 
-    /// Plot every determination at normal zoom, every 2nd from 12 h and every 3rd from 18 h.
-    var determinationStride: Int {
-        if visibleSeconds >= 18 * 3600 { return 3 }
-        if visibleSeconds >= 12 * 3600 { return 2 }
-        return 1
-    }
-
     func drawCOBIOBChart() -> some ChartContent {
         // Filter out duplicate entries by `deliverAt`,
         // We sometimes get two determinations when editing carbs, one without the entry-to-be-edited and then another one after editing the entry.
@@ -70,15 +63,7 @@ extension MainChartCanvas {
             return true
         }
 
-        // Each determination emits five marks (COB line + area, IOB line + area, ISF line),
-        // so this pane dominates the canvas re-layout. Zoomed out, neighbouring 5-minute
-        // determinations are sub-pixel apart, so thinning them is invisible but cuts the
-        // mark count by half or two thirds. Determinations arrive newest-first, so striding
-        // by index always keeps the most recent one.
-        let plotted = determinationStride == 1 ? filteredDeterminations :
-            filteredDeterminations.enumerated().compactMap { $0.offset % determinationStride == 0 ? $0.element : nil }
-
-        return ForEach(plotted) { item in
+        return ForEach(filteredDeterminations) { item in
 
             // MARK: - COB line and area mark
 
