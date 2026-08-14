@@ -59,11 +59,24 @@ enum MainChartHelper {
         var low = 0
         var high = glucoseValues.count - 1
         var closestGlucose: GlucoseStored?
+        // Carrying the best distance rather than re-deriving it from `closestGlucose` keeps
+        // the comparison a distance-vs-distance one. Re-deriving it read
+        // `... ?? 0 - time`, which binds as `... ?? (0 - time)`: with a non-nil date that
+        // compared a distance against an absolute unix timestamp, so the test was always
+        // true and the search returned its last probe instead of the nearest reading.
+        var closestDistance = TimeInterval.infinity
 
-        // binary search to find next glucose
+        // Binary search to find the nearest glucose. The readings are fetched ascending by
+        // date, and the probes always bracket `time`, so the nearest reading is among them.
         while low <= high {
             let mid = low + (high - low) / 2
             let midTime = glucoseValues[mid].date?.timeIntervalSince1970 ?? 0
+
+            let distance = abs(midTime - time)
+            if distance < closestDistance {
+                closestDistance = distance
+                closestGlucose = glucoseValues[mid]
+            }
 
             if midTime == time {
                 return glucoseValues[mid]
@@ -71,11 +84,6 @@ enum MainChartHelper {
                 low = mid + 1
             } else {
                 high = mid - 1
-            }
-
-            // update if necessary
-            if closestGlucose == nil || abs(midTime - time) < abs(closestGlucose!.date?.timeIntervalSince1970 ?? 0 - time) {
-                closestGlucose = glucoseValues[mid]
             }
         }
 
