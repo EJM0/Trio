@@ -51,6 +51,13 @@ enum MainChartHelper {
     // Calculates the glucose value thats the nearest to parameter 'time'
     /// -Returns: A NSManagedObject of GlucoseStored
     /// it is thread safe as everything is executed on the main thread
+    ///
+    /// The parentheses around the nil-coalescing in the "update if necessary" test are
+    /// load-bearing. `-` binds tighter than `??`, so `... ?? 0 - time` reads as
+    /// `... ?? (0 - time)`: with a non-nil date that compares a distance against an absolute
+    /// unix timestamp, the test is always true, and the search returns its last probe rather
+    /// than the nearest reading. That offset the bolus and carb markers, which pin their y
+    /// position to the reading this returns.
     static func timeToNearestGlucose(glucoseValues: [GlucoseStored], time: TimeInterval) -> GlucoseStored? {
         guard !glucoseValues.isEmpty else {
             return nil
@@ -59,24 +66,11 @@ enum MainChartHelper {
         var low = 0
         var high = glucoseValues.count - 1
         var closestGlucose: GlucoseStored?
-        // Carrying the best distance rather than re-deriving it from `closestGlucose` keeps
-        // the comparison a distance-vs-distance one. Re-deriving it read
-        // `... ?? 0 - time`, which binds as `... ?? (0 - time)`: with a non-nil date that
-        // compared a distance against an absolute unix timestamp, so the test was always
-        // true and the search returned its last probe instead of the nearest reading.
-        var closestDistance = TimeInterval.infinity
 
-        // Binary search to find the nearest glucose. The readings are fetched ascending by
-        // date, and the probes always bracket `time`, so the nearest reading is among them.
+        // binary search to find next glucose
         while low <= high {
             let mid = low + (high - low) / 2
             let midTime = glucoseValues[mid].date?.timeIntervalSince1970 ?? 0
-
-            let distance = abs(midTime - time)
-            if distance < closestDistance {
-                closestDistance = distance
-                closestGlucose = glucoseValues[mid]
-            }
 
             if midTime == time {
                 return glucoseValues[mid]
@@ -84,6 +78,11 @@ enum MainChartHelper {
                 low = mid + 1
             } else {
                 high = mid - 1
+            }
+
+            // update if necessary
+            if closestGlucose == nil || abs(midTime - time) < abs((closestGlucose!.date?.timeIntervalSince1970 ?? 0) - time) {
+                closestGlucose = glucoseValues[mid]
             }
         }
 
