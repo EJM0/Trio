@@ -449,30 +449,37 @@ extension MainChartView {
                     .frame(width: 6, height: 6)
                     .position(x: x, y: glucoseY)
 
-                // Bottom-pane dots sit at the determination's own timestamp: the lookup
-                // picks the newest determination within ±150 s of the scrub point, so
-                // drawing its value at the rule's x floats the dot off the stepped line.
-                let dotX = xPosition(for: selectedDetermination?.deliverAt ?? selectionDate)
+                // Bottom-pane dots stay on the rule, at the same x as the glucose dot.
+                //
+                // Upstream draws them at the determination's own `deliverAt` instead, to keep
+                // them on a stepped line. This fork's COB/IOB/ISF marks are plain `LineMark`s
+                // with the default linear interpolation (`drawCOBIOBChart`), so that buys
+                // nothing here and costs alignment: the rule sits at the *glucose* reading's
+                // timestamp while `findDetermination` accepts anything within ±150 s, so the
+                // two anchors disagree by up to 150 s and the dots visibly float off the rule
+                // — worst at tight zoom, where 150 s is a large fraction of the viewport.
+                // Between determinations ~5 min apart these values move little, so pinning to
+                // the rule leaves the dots on the line segment anyway.
 
                 // Selected COB / (scaled) IOB dots on the bottom pane.
                 if let selectedDetermination {
                     let y = cobIobYPosition(forChartValue: Double(selectedDetermination.cob))
                     Circle().fill(Color.orange.opacity(0.8))
                         .frame(width: 15, height: 15)
-                        .position(x: dotX, y: y)
+                        .position(x: x, y: y)
                     Circle().fill(Color.primary)
                         .frame(width: 6, height: 6)
-                        .position(x: dotX, y: y)
+                        .position(x: x, y: y)
                 }
                 if let selectedDetermination {
                     let scaled = MainChartHelper.scaledIobAmount(selectedDetermination.iob?.doubleValue ?? 0)
                     let y = cobIobYPosition(forChartValue: scaled)
                     Circle().fill(Color.darkerBlue.opacity(0.8))
                         .frame(width: 15, height: 15)
-                        .position(x: dotX, y: y)
+                        .position(x: x, y: y)
                     Circle().fill(Color.primary)
                         .frame(width: 6, height: 6)
-                        .position(x: dotX, y: y)
+                        .position(x: x, y: y)
                 }
 
                 // Selected ISF dot, drawn on the shared COB/IOB axis.
@@ -480,10 +487,10 @@ extension MainChartView {
                     let y = cobIobYPosition(forChartValue: isf)
                     Circle().fill(Color.white.opacity(0.8))
                         .frame(width: 15, height: 15)
-                        .position(x: dotX, y: y)
+                        .position(x: x, y: y)
                     Circle().fill(Color.primary)
                         .frame(width: 6, height: 6)
-                        .position(x: dotX, y: y)
+                        .position(x: x, y: y)
                 }
 
                 // Detail card: fixed slot at the top of the glucose pane.

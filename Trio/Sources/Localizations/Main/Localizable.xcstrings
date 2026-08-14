@@ -43445,6 +43445,7 @@
       }
     },
     "Also Change" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
