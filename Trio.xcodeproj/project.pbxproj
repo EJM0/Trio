@@ -2673,9 +2673,9 @@
 				BD1179332F4E22C100F90001 /* Sounds */,
 				3811DEC725C9DA7300A708ED /* Trio.entitlements */,
 				388E596425AD948E0019842D /* Info.plist */,
+				0989316D2FDF27180005E7C8 /* liqglass.icon */,
 				8A91342B2D63D9A2007F8874 /* InfoPlist.xcstrings */,
 				19DA487F29CD2B8400EEA1E7 /* Assets.xcassets */,
-				0989316D2FDF27180005E7C8 /* liqglass.icon */,
 			);
 			path = Resources;
 			sourceTree = "<group>";

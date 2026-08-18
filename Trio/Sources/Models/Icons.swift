@@ -3,16 +3,16 @@ import Foundation
 import UIKit
 
 enum Icon_: String, CaseIterable, Identifiable {
-    case primary = "trioBlack"
+    case primary = "liqglass"
     case trioWhiteShadow
     case trioColorBG
     case trioWhite
+    case trioBlack
     case trioCircledNoBackground
     case trio3D
     case wilford = "diabeetus"
     case catWithPod
     case catWithPodWhite = "catWithPodWhiteBG"
-    case liqglass // ← use "clovers", not "liqglass"
     var id: String { rawValue }
 }
 
