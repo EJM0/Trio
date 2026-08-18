@@ -23,6 +23,18 @@ extension Home.StateModel {
         latestTwoGlucoseValues = Array(objects.suffix(2))
         updateGlucoseChartYAxis(glucoseValues: objects)
         updateGlucoseEpisodes()
+        updateGlucosePeaks()
+    }
+
+    func updateGlucosePeaks() {
+        if showGlucosePeaks {
+            glucosePeaks = PeakPicker.pick(
+                data: glucoseFromPersistence,
+                windowHours: chartVisibleHours / 4
+            )
+        } else {
+            glucosePeaks = []
+        }
     }
 
     /// Folds the fetched window into the sustained-excursion markers.

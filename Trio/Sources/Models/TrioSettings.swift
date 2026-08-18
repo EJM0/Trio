@@ -92,6 +92,7 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var notificationsCgm: Bool = false
     var notificationsCarb: Bool = false
     var notificationsAlgorithm: Bool = false
+    var showGlucosePeaks: Bool = false
     var glucoseNotificationsOption: GlucoseNotificationsOption = .enabled
     var addSourceInfoToGlucoseNotifications: Bool = false
     var lowGlucose: Decimal = 70

@@ -9,6 +9,7 @@ extension UserInterfaceSettings {
         @Published var yGridLines: Bool = false
         @Published var showGlucoseEpisodes: Bool = true
         @Published var rulerMarks: Bool = true
+        @Published var showGlucosePeaks: Bool = false
         @Published var bolusDisplayThreshold: BolusDisplayThreshold = .allUnits
         @Published var bolusDisplayThresholdMultiplier: Decimal = 1.3
         @Published var forecastDisplayType: ForecastDisplayType = .cone
@@ -33,6 +34,7 @@ extension UserInterfaceSettings {
             subscribeSetting(\.yGridLines, on: $yGridLines) { yGridLines = $0 }
             subscribeSetting(\.showGlucoseEpisodes, on: $showGlucoseEpisodes) { showGlucoseEpisodes = $0 }
             subscribeSetting(\.rulerMarks, on: $rulerMarks) { rulerMarks = $0 }
+            subscribeSetting(\.showGlucosePeaks, on: $showGlucosePeaks) { showGlucosePeaks = $0 }
             subscribeSetting(\.bolusDisplayThreshold, on: $bolusDisplayThreshold) { bolusDisplayThreshold = $0 }
             subscribeSetting(
                 \.bolusDisplayThresholdMultiplier,

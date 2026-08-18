@@ -96,6 +96,11 @@ extension Home {
         var roundedTotalBolus: String = ""
         var selectedTab: Int = 0
         var waitForSuggestion: Bool = false
+        var showGlucosePeaks: Bool = false
+        var glucosePeaks: [(date: Date, glucose: Int16, type: ExtremumType)] = []
+        /// Committed pinch-zoom window in hours, fed back by the chart shell so the
+        /// peak picker granularity follows the zoom (successor of the time buttons).
+        var chartVisibleHours: Double = MainChartHelper.Config.defaultVisibleSeconds / 3600
         var glucoseFromPersistence: [GlucoseStored] = []
         /// Sustained highs and lows to mark on the chart, refreshed on every glucose update.
         var glucoseEpisodes: [GlucoseEpisode] = []
@@ -691,6 +696,7 @@ extension Home {
             bolusDisplayThresholdMultiplier = settingsManager.settings.bolusDisplayThresholdMultiplier
             // the insulin fetch may have run before the setting was loaded
             updateSMBBolusDisplayCutoff()
+            showGlucosePeaks = settingsManager.settings.showGlucosePeaks
             thresholdLines = settingsManager.settings.rulerMarks
             showCarbsRequiredBadge = settingsManager.settings.showCarbsRequiredBadge
             enableQuickPickTreatments = settingsManager.settings.enableQuickPickTreatments
@@ -914,6 +920,8 @@ extension Home.StateModel:
         displayYgridLines = settingsManager.settings.yGridLines
         showGlucoseEpisodes = settingsManager.settings.showGlucoseEpisodes
         thresholdLines = settingsManager.settings.rulerMarks
+        showGlucosePeaks = settingsManager.settings.showGlucosePeaks
+        updateGlucosePeaks()
         bolusDisplayThreshold = settingsManager.settings.bolusDisplayThreshold
         bolusDisplayThresholdMultiplier = settingsManager.settings.bolusDisplayThresholdMultiplier
         Task { @MainActor in

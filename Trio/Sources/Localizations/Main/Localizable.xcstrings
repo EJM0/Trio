@@ -11427,9 +11427,6 @@
         }
       }
     },
-    "%lld m" : {
-
-    },
     "%lld min" : {
       "localizations" : {
         "bg" : {
@@ -245329,6 +245326,9 @@
           }
         }
       }
+    },
+    "Show Glucose Peaks" : {
+
     },
     "Show live activity" : {
       "comment" : "Notification option",

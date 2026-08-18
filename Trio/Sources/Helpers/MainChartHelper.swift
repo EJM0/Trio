@@ -192,6 +192,71 @@ enum MainChartHelper {
         static let fpuSize: CGFloat = 10
         static let maxGlucose = 270
         static let minGlucose = 45
+
+        /// Max widths for carb (5) and FPU (3) bars.
+        static let carbBarWidth: CGFloat = 5
+        static let fpuBarWidth: CGFloat = 3
+        /// Arrow tip length at the bar's pointed end.
+        static let barArrowHeight: CGFloat = 5
+
+        /// Max bar body height for bolus and carb bars.
+        static let bolusBarMaxHeight: CGFloat = 45
+        static let carbBarMaxHeight: CGFloat = 45
+
+        /// Pixel gap between the bar's arrow tip and the BG curve.
+        static let bolusBarSpacing: CGFloat = 7
+        static let carbBarSpacing: CGFloat = 9
+
+        /// Pixel gap between the bar and its rotated dose/carb annotation label.
+        static let bolusAnnotationSpacing: CGFloat = 0
+        static let carbAnnotationSpacing: CGFloat = 0
+
+        /// Doses below this amount render with a narrower bar (SMB-class).
+        static let smbWidthThreshold: Decimal = 0.3
+
+        /// Bolus bar height = `(amount / maxAmount) ^ bolusHeightExponent * maxHeight`.
+        /// `1.0` = linear, `0.5` = sqrt. Lower → small SMBs grow and big bars stay capped.
+        static let bolusHeightExponent: Double = 0.6
+    }
+
+    /// Bar width: piecewise on `screenHours`, narrower for SMB-class doses. Tightens with
+    /// longer time windows to keep clustered SMBs from overlapping.
+    static func bolusBarWidth(amount: Decimal, minimumSMB: Decimal, screenHours: Int16) -> CGFloat {
+        let isSmall = amount < minimumSMB
+        switch screenHours {
+        case ...6:
+            return isSmall ? 2.5 : 3
+        case 7 ... 18:
+            return isSmall ? 2 : 2.5
+        default: // 19…24
+            return isSmall ? 1.5 : 2
+        }
+    }
+
+    /// Carb bar width — same shape as bolus, clamped to `Config.carbBarWidth`.
+    static func carbBarWidth(amount: Decimal, minimumSMB: Decimal, screenHours: Int16) -> CGFloat {
+        min(bolusBarWidth(amount: amount, minimumSMB: minimumSMB, screenHours: screenHours), Config.carbBarWidth)
+    }
+
+    /// FPU bar width — same shape as bolus, clamped to `Config.fpuBarWidth`.
+    static func fpuBarWidth(amount: Decimal, minimumSMB: Decimal, screenHours: Int16) -> CGFloat {
+        min(bolusBarWidth(amount: amount, minimumSMB: minimumSMB, screenHours: screenHours), Config.fpuBarWidth)
+    }
+
+    /// Bolus bar height with power-law compression — see `Config.bolusHeightExponent`
+    /// for the rationale on the exponent value (sqrt-ish to compress the dynamic range).
+    static func bolusBarHeight(amount: Decimal, maxAmount: Decimal) -> CGFloat {
+        let amountValue = CGFloat(truncating: amount as NSNumber)
+        let maxValue = max(CGFloat(truncating: maxAmount as NSNumber), 0.001)
+        let normalized = max(0, min(1, amountValue / maxValue))
+        return CGFloat(pow(Double(normalized), Config.bolusHeightExponent)) * Config.bolusBarMaxHeight
+    }
+
+    /// Linear carb bar height — `(amount / maxAmount) * carbBarMaxHeight`.
+    static func carbBarHeight(amount: Decimal, maxAmount: Decimal) -> CGFloat {
+        let amountValue = CGFloat(truncating: amount as NSNumber)
+        let maxValue = max(CGFloat(truncating: maxAmount as NSNumber), 0.001)
+        return (amountValue / maxValue) * Config.carbBarMaxHeight
     }
 
     /// Visual scaling applied to IOB values on the shared COB/IOB axis (COB is usually

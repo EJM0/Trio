@@ -202,6 +202,9 @@ struct MainChartView: View {
         }
         .onChange(of: visibleSeconds) {
             updateRenderWindow(force: true)
+            // Feed the committed zoom back so the peak-picker granularity follows it.
+            state.chartVisibleHours = visibleSeconds / 3600
+            state.updateGlucosePeaks()
         }
         .onChange(of: state.glucoseFromPersistence.last?.glucose) {
             state.updateStartEndMarkers()
@@ -951,6 +954,12 @@ struct MainChartCanvas: View {
         units == .mgdL ? 400 : 22.2
     }
 
+    /// Visible window in whole hours, for the bar-width ladder used by the
+    /// bolus/carb bar marks and the peak-label collision avoidance.
+    var screenHours: Int16 {
+        Int16(max(1, (visibleSeconds / 3600).rounded()))
+    }
+
     // The point series sliced to the render window: marks outside the window
     // clip invisibly but still cost layout, so with 72h loaded an unfiltered
     // re-layout (every pinch step) does 3x the work for nothing.
@@ -1127,6 +1136,23 @@ extension MainChartCanvas {
             "zt": Color.zt,
             "cob": Color.orange
         ])
+        .chartOverlay { proxy in
+            if state.showGlucosePeaks {
+                PeakLabelsOverlay(
+                    proxy: proxy,
+                    peaks: state.glucosePeaks.filter { $0.date >= windowStart && $0.date <= windowEnd },
+                    glucoseData: glucose,
+                    insulinData: insulin,
+                    carbData: carbs,
+                    units: state.units,
+                    highGlucose: state.highGlucose,
+                    lowGlucose: state.lowGlucose,
+                    glucoseColorScheme: state.glucoseColorScheme,
+                    currentGlucoseTarget: state.currentGlucoseTarget,
+                    screenHours: screenHours
+                )
+            }
+        }
     }
 }
 
