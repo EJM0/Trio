@@ -346,6 +346,10 @@ extension TrioSettings: Decodable {
         if let showGlucoseEpisodes = try? container.decode(Bool.self, forKey: .showGlucoseEpisodes) {
             settings.showGlucoseEpisodes = showGlucoseEpisodes
         }
+        
+        if let showGlucosePeaks = try? container.decode(Bool.self, forKey: .showGlucosePeaks) {
+            settings.showGlucosePeaks = showGlucosePeaks
+        }
 
         if let showCobIobChart = try? container.decode(Bool.self, forKey: .showCobIobChart) {
             settings.showCobIobChart = showCobIobChart
