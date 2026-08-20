@@ -448,11 +448,11 @@ extension Treatments {
 
             switch current {
             case .fat:
-                return .bolus
+                return .protein
             case .protein:
-                return .fat
+                return .bolus
             case .carbs:
-                return showFPU ? .protein : .bolus
+                return showFPU ? .fat : .bolus
             case .bolus:
                 return .carbs
             }
@@ -470,13 +470,13 @@ extension Treatments {
 
             switch current {
             case .fat:
-                return .protein
-            case .protein:
                 return .carbs
+            case .protein:
+                return .fat
             case .carbs:
                 return .bolus
             case .bolus:
-                return showFPU ? .fat : .carbs
+                return showFPU ? .protein : .carbs
             }
         }
 

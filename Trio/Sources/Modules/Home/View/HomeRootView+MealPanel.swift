@@ -87,6 +87,11 @@ extension Home.RootView {
         }.padding(.horizontal)
     }
 
+    func refreshAlarmsSnooze() {
+        alarmsSnoozeUntil = UserDefaults.standard
+            .object(forKey: "UserNotificationsManager.snoozeUntilDate") as? Date ?? .distantPast
+    }
+
     /// Insulin delivery rate, back in the meal row alongside IOB and COB.
     @ViewBuilder var deliveryRate: some View {
         if state.maxIOB == 0.0 {
