@@ -40,6 +40,12 @@ struct CapsuleSpinnerView<Content: View>: View {
         content(isAnimating)
             .padding(.vertical, 5)
             .padding(.horizontal, 10)
+            // fix content flickering when the spinner appears/disappears by disabling the default animation for the content view
+            .transaction { transaction in
+                if transaction.animation != nil {
+                    transaction.animation = .easeInOut(duration: 0.3)
+                }
+            }
             .overlay(
                 Group {
                     if isAnimating {
