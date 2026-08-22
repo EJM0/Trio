@@ -1,12 +1,17 @@
 import SwiftUI
 
-/// A reusable animated spinner capsule component that overlays any content
+/// A reusable animated spinner capsule component that overlays any content.
+///
+/// With Reduce Motion on, the spinning dashed border never appears: the capsule keeps its
+/// plain static border and the content is handed `reduceMotionActive` so it can spell the
+/// looping state out instead of animating it.
 struct CapsuleSpinnerView<Content: View>: View {
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     let isLooping: Bool
     let color: Color
-    let content: (Bool) -> Content
+    let content: (Bool, Bool) -> Content
 
     @State private var isAnimating: Bool = false
     @State private var spinProgress: CGFloat = 0.0
@@ -15,18 +20,29 @@ struct CapsuleSpinnerView<Content: View>: View {
     @State private var startAnimationTask: Task<Void, Never>? = nil
     @State private var stopAnimationTask: Task<Void, Never>? = nil
 
-    // OPTION 1: Initializer WITH the animating argument
+    // OPTION 1: Initializer WITH the animating and reduce-motion arguments
     init(
         isLooping: Bool,
         color: Color,
-        @ViewBuilder content: @escaping (Bool) -> Content
+        @ViewBuilder content: @escaping (_ isAnimating: Bool, _ reduceMotionActive: Bool) -> Content
     ) {
         self.isLooping = isLooping
         self.color = color
         self.content = content
     }
 
-    // OPTION 2: Initializer WITHOUT the animating argument
+    // OPTION 2: Initializer WITH the animating argument only
+    init(
+        isLooping: Bool,
+        color: Color,
+        @ViewBuilder content: @escaping (_ isAnimating: Bool) -> Content
+    ) {
+        self.isLooping = isLooping
+        self.color = color
+        self.content = { isAnimating, _ in content(isAnimating) }
+    }
+
+    // OPTION 3: Initializer WITHOUT the animating argument
     init(
         isLooping: Bool,
         color: Color,
@@ -34,16 +50,17 @@ struct CapsuleSpinnerView<Content: View>: View {
     ) {
         self.isLooping = isLooping
         self.color = color
-        self.content = { _ in content() }
+        self.content = { _, _ in content() }
     }
 
     var body: some View {
-        content(isAnimating)
+        content(isAnimating, reduceMotion)
             .padding(.vertical, 5)
             .padding(.horizontal, 10)
             .overlay(
                 Group {
-                    if isAnimating {
+                    // Reduce Motion keeps the plain border; the content carries the looping state
+                    if isAnimating, !reduceMotion {
                         DashedCapsuleBorder(progress: spinProgress)
                             .stroke(color.opacity(0.4), style: StrokeStyle(lineWidth: 2.05, lineCap: .round))
                             .animation(spinAnimation, value: spinProgress)
@@ -61,8 +78,20 @@ struct CapsuleSpinnerView<Content: View>: View {
             .onChange(of: isLooping) { _, newValue in
                 updateAnimating(newValue)
             }
-    }
+            .onChange(of: reduceMotion) { _, motionReduced in
+                if motionReduced {
+                    // drop the in-flight spin so the border can't freeze mid-dash
+                    spinAnimation = nil
+                    spinProgress = 0.0
+                } else if isAnimating, startAnimationTask == nil {
+                    guard !reduceMotion else { return }
 
+                    spinAnimation = .linear(duration: 1.333).repeatForever(autoreverses: false)
+                    spinProgress = 1.0
+                }
+            }
+    }
+    
     private func updateAnimating(_ newValue: Bool) {
         if newValue {
             stopAnimationTask?.cancel()
@@ -89,8 +118,7 @@ struct CapsuleSpinnerView<Content: View>: View {
                 try? await Task.sleep(for: .seconds(0.3))
 
                 // 4. Drive the normalized 0.0 -> 1.0 spin loop
-                self.spinAnimation = .linear(duration: 1.333).repeatForever(autoreverses: false)
-                self.spinProgress = 1.0
+                startSpin()
 
                 startAnimationTask = nil
             }

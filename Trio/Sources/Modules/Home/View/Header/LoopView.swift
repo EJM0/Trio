@@ -19,18 +19,21 @@ struct LoopView: View {
     let determination: [OrefDetermination]
 
     var body: some View {
-        CapsuleSpinnerView(isLooping: isLooping, color: color) { isSpinnerAnimating in
-            loopStatusContent(isAnimating: isSpinnerAnimating)
+        CapsuleSpinnerView(isLooping: isLooping, color: color) { isSpinnerAnimating, reduceMotionActive in
+            loopStatusContent(isAnimating: isSpinnerAnimating, reduceMotionActive: reduceMotionActive)
         }
     }
 
-    private func loopStatusContent(isAnimating: Bool) -> some View {
+    private func loopStatusContent(isAnimating: Bool, reduceMotionActive: Bool) -> some View {
         HStack(alignment: .center) {
             ZStack {
                 Image(systemName: (!closedLoop || manualTempBasal) ? "circle.and.line.horizontal" : "circle")
-                    .symbolEffect(.pulse, options: .repeating, isActive: isAnimating)
+                    .symbolEffect(.pulse, options: .repeating, isActive: isAnimating && !reduceMotionActive)
             }
-            if manualTempBasal {
+            if isAnimating, reduceMotionActive {
+                // neither the spinning capsule nor the pulse runs here, so say it in words
+                Text("Looping", comment: "Loop status label while a loop cycle is running")
+            } else if manualTempBasal {
                 Text("Manual")
             } else if determination.first?
                 .deliverAt !=
