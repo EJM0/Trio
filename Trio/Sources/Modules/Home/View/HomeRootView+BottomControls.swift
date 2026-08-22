@@ -302,22 +302,9 @@ extension Home.RootView {
         }
     }
 
-    // same track pattern as BolusProgressBar, slightly slimmer
-    @ViewBuilder func remainingBar(_ fraction: Double?, tint: Color) -> some View {
-        GeometryReader { barGeo in
-            if let fraction {
-                RoundedRectangle(cornerRadius: 15)
-                    .fill(tint.opacity(0.85))
-                    .frame(width: barGeo.size.width * fraction, height: 4)
-                    .frame(maxHeight: .infinity, alignment: .bottom)
-            }
-        }
-        .frame(height: 4)
-    }
-
     @ViewBuilder func adjustmentView() -> some View {
         let tint = adjustmentTint
-        // concurrent override + temp target: halved tint, one remaining bar per half
+        // concurrent override + temp target: halved tint, one remaining shade per half
         let isConcurrent = overrideString != nil && tempTargetString != nil
 
         ZStack {
@@ -329,6 +316,22 @@ extension Home.RootView {
                 }
                 .clipShape(GlassChrome.panelShape)
             }
+            // remaining time reads as a shade filling the unit, matching the bolus panel;
+            // concurrent adjustments shade their own half from its own leading edge
+            Group {
+                if isConcurrent {
+                    HStack(spacing: 0) {
+                        PanelProgressShade(progress: overrideRemainingFraction ?? 0, tint: .purple)
+                        PanelProgressShade(progress: tempTargetRemainingFraction ?? 0, tint: .loopGreen)
+                    }
+                } else if let tint = tint {
+                    PanelProgressShade(
+                        progress: overrideRemainingFraction ?? tempTargetRemainingFraction ?? 0,
+                        tint: tint
+                    )
+                }
+            }
+            .clipShape(GlassChrome.panelShape)
             HStack {
                 if let overrideString = overrideString, let tempTargetString = tempTargetString {
                     // content halves match the tint halves so icons clear the seam
@@ -417,21 +420,6 @@ extension Home.RootView {
                 )
                 : nil
         )
-        .overlay(alignment: .bottom) {
-            // anchored like the bolus progress bar so both panels match
-            Group {
-                if isConcurrent {
-                    HStack(spacing: 6) {
-                        remainingBar(overrideRemainingFraction, tint: .purple)
-                        remainingBar(tempTargetRemainingFraction, tint: .loopGreen)
-                    }
-                } else if let tint = tint {
-                    remainingBar(overrideRemainingFraction ?? tempTargetRemainingFraction, tint: tint)
-                }
-            }
-            .padding(.horizontal, 18)
-            .padding(.bottom, 1)
-        }
         // whole panel navigates; the cancel buttons' own gestures take precedence
         .contentShape(Rectangle())
         .onTapGesture {
@@ -488,7 +476,8 @@ extension Home.RootView {
             .frame(height: HomeLayout.bottomPanelHeight)
             .background(alignment: .leading) {
                 // progress reads as a shade filling the glass unit instead of a hairline bar
-                BolusProgressShade(progress: progress)
+                PanelProgressShade(progress: progress, tint: .insulin)
+                    .clipShape(GlassChrome.panelShape)
             }
             .glassPanel(tint: .insulin, tintOpacity: 0.18, strokeOpacity: 0.30)
             .padding(.horizontal, 10)

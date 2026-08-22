@@ -21,25 +21,38 @@ struct BolusProgressBar: View {
     }
 }
 
-/// Same progress, drawn as a shade instead of a bar: the glass unit behind the bolus
-/// panel fills from its leading edge as the dose is delivered. The fill fades toward its
-/// moving edge so it reads as a wash over the glass rather than a second, thicker bar.
-/// Sized by its container, so it goes in a `.background` under the panel's content.
-struct BolusProgressShade: View {
-    let progress: Decimal
+/// Progress drawn as a shade instead of a bar: the glass unit fills from its leading edge
+/// as the value advances - the delivered part of a bolus, the remaining part of an
+/// adjustment. The fill fades toward its moving edge so it reads as a wash over the glass
+/// rather than a second, thicker bar.
+///
+/// Sized by its container, so it goes under the panel's content and gets clipped by the
+/// caller: the whole panel shape for a single shade, the shared container when two of them
+/// split a panel.
+struct PanelProgressShade: View {
+    let progress: Double
+    let tint: Color
+
+    init(progress: Double, tint: Color) {
+        self.progress = progress
+        self.tint = tint
+    }
+
+    init(progress: Decimal, tint: Color) {
+        self.init(progress: Double(progress), tint: tint)
+    }
 
     var body: some View {
         GeometryReader { geo in
-            let fraction = min(max(CGFloat(progress), 0), 1)
+            let fraction = min(max(progress, 0), 1)
             LinearGradient(
-                colors: [Color.insulin.opacity(0.34), Color.insulin.opacity(0.12)],
+                colors: [tint.opacity(0.34), tint.opacity(0.12)],
                 startPoint: .leading,
                 endPoint: .trailing
             )
             .frame(width: geo.size.width * fraction)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         }
-        .clipShape(GlassChrome.panelShape)
         .animation(.easeInOut(duration: 0.25), value: progress)
     }
 }
