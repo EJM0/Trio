@@ -486,13 +486,11 @@ extension Home.RootView {
             .padding(.horizontal, 10)
             .padding(.trailing, 8)
             .frame(height: HomeLayout.bottomPanelHeight)
-            .glassPanel(tint: .insulin, tintOpacity: 0.18, strokeOpacity: 0.30)
-            .overlay(alignment: .bottom) {
-                // bar hugs the panel's bottom edge (the slot no longer has outer bottom padding)
-                BolusProgressBar(progress: progress)
-                    .padding(.horizontal, 18)
-                    .padding(.bottom, 1)
+            .background(alignment: .leading) {
+                // progress reads as a shade filling the glass unit instead of a hairline bar
+                BolusProgressShade(progress: progress)
             }
+            .glassPanel(tint: .insulin, tintOpacity: 0.18, strokeOpacity: 0.30)
             .padding(.horizontal, 10)
         }
     }
