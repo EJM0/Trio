@@ -84,14 +84,20 @@ struct CapsuleSpinnerView<Content: View>: View {
                     spinAnimation = nil
                     spinProgress = 0.0
                 } else if isAnimating, startAnimationTask == nil {
-                    guard !reduceMotion else { return }
-
-                    spinAnimation = .linear(duration: 1.333).repeatForever(autoreverses: false)
-                    spinProgress = 1.0
+                    startSpin()
                 }
             }
     }
-    
+
+    /// Drives the normalized 0.0 -> 1.0 spin loop. No-op under Reduce Motion, where the
+    /// dashed border isn't rendered at all and the content states the looping instead.
+    private func startSpin() {
+        guard !reduceMotion else { return }
+
+        spinAnimation = .linear(duration: 1.333).repeatForever(autoreverses: false)
+        spinProgress = 1.0
+    }
+
     private func updateAnimating(_ newValue: Bool) {
         if newValue {
             stopAnimationTask?.cancel()
