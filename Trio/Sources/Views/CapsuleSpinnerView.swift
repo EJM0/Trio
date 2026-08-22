@@ -10,6 +10,7 @@ struct CapsuleSpinnerView<Content: View>: View {
 
     @State private var isAnimating: Bool = false
     @State private var spinProgress: CGFloat = 0.0
+    @State private var spinAnimation: Animation? = nil
     @State private var spinStartDate: Date? = nil
     @State private var startAnimationTask: Task<Void, Never>? = nil
     @State private var stopAnimationTask: Task<Void, Never>? = nil
@@ -40,17 +41,12 @@ struct CapsuleSpinnerView<Content: View>: View {
         content(isAnimating)
             .padding(.vertical, 5)
             .padding(.horizontal, 10)
-            // fix content flickering when the spinner appears/disappears by disabling the default animation for the content view
-            .transaction { transaction in
-                if transaction.animation != nil {
-                    transaction.animation = .easeInOut(duration: 0.3)
-                }
-            }
             .overlay(
                 Group {
                     if isAnimating {
                         DashedCapsuleBorder(progress: spinProgress)
                             .stroke(color.opacity(0.4), style: StrokeStyle(lineWidth: 2.05, lineCap: .round))
+                            .animation(spinAnimation, value: spinProgress)
                             .transition(.opacity)
                     } else {
                         Capsule()
@@ -77,25 +73,24 @@ struct CapsuleSpinnerView<Content: View>: View {
             spinStartDate = Date()
 
             startAnimationTask = Task { @MainActor in
-                // 1. Fade in the spinning capsule
+                // 1. Reset progress instantly — `spinAnimation` is nil, so the border
+                //    ignores whatever animation the fade-in below puts in the transaction
+                self.spinAnimation = nil
+                self.spinProgress = 0.0
+
+                // 2. Fade in the spinning capsule
                 withAnimation(.easeInOut(duration: 0.3)) {
                     isAnimating = true
                 }
 
-                // 2. Wait for transition
+                // 3. Wait for transition. Also keeps the reset and the spin target in
+                //    separate updates, so SwiftUI can't collapse 1.0 -> 0.0 -> 1.0 into
+                //    no change at all
                 try? await Task.sleep(for: .seconds(0.3))
 
-                // 3. Reset progress instantly
-                var transaction = Transaction()
-                transaction.disablesAnimations = true
-                withTransaction(transaction) {
-                    self.spinProgress = 0.0
-                }
-
                 // 4. Drive the normalized 0.0 -> 1.0 spin loop
-                withAnimation(.linear(duration: 1.333).repeatForever(autoreverses: false)) {
-                    self.spinProgress = 1.0
-                }
+                self.spinAnimation = .linear(duration: 1.333).repeatForever(autoreverses: false)
+                self.spinProgress = 1.0
 
                 startAnimationTask = nil
             }
@@ -127,11 +122,8 @@ struct CapsuleSpinnerView<Content: View>: View {
                 guard !Task.isCancelled else { return }
 
                 // 3. Reset animation state
-                var transaction = Transaction()
-                transaction.disablesAnimations = true
-                withTransaction(transaction) {
-                    self.spinProgress = 0.0
-                }
+                self.spinAnimation = nil
+                self.spinProgress = 0.0
 
                 spinStartDate = nil
             }
