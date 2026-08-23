@@ -5,9 +5,12 @@ import UIKit
 
 struct LoopView: View {
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private enum Config {
         static let lag: TimeInterval = 30
+        /// Floor for how long the spin stays up, so a sub-second loop still reads as work.
+        static let minimumSpinDuration: TimeInterval = 2
     }
 
     let closedLoop: Bool
@@ -18,20 +21,48 @@ struct LoopView: View {
 
     let determination: [OrefDetermination]
 
+    /// `isLooping`, but never shown for less than `Config.minimumSpinDuration`: a loop can
+    /// finish in well under a second, and a pill that flickers on and off reads as a glitch
+    /// rather than as work. A loop that runs longer than that ends the spin when it ends.
+    @State private var showLooping: Bool = false
+    @State private var spinStart: Date? = nil
+
     var body: some View {
-        CapsuleSpinnerView(isLooping: isLooping, color: color) { isSpinnerAnimating, reduceMotionActive in
-            loopStatusContent(isAnimating: isSpinnerAnimating, reduceMotionActive: reduceMotionActive)
-        }
+        loopStatusContent
+            .padding(.vertical, 5)
+            .padding(.horizontal, 10)
+            .capsuleSpinner(isActive: showLooping, color: color)
+            .task(id: isLooping) {
+                if isLooping {
+                    spinStart = Date()
+                    showLooping = true
+                } else {
+                    // nothing was spinning (first run, or a stop that already elapsed)
+                    guard let spinStart else {
+                        showLooping = false
+                        return
+                    }
+
+                    let remaining = Config.minimumSpinDuration - Date().timeIntervalSince(spinStart)
+                    if remaining > 0 {
+                        try? await Task.sleep(for: .seconds(remaining))
+                        guard !Task.isCancelled else { return }
+                    }
+
+                    showLooping = false
+                    self.spinStart = nil
+                }
+            }
     }
 
-    private func loopStatusContent(isAnimating: Bool, reduceMotionActive: Bool) -> some View {
+    private var loopStatusContent: some View {
         HStack(alignment: .center) {
             ZStack {
                 Image(systemName: (!closedLoop || manualTempBasal) ? "circle.and.line.horizontal" : "circle")
-                    .symbolEffect(.pulse, options: .repeating, isActive: isAnimating && !reduceMotionActive)
+                    .symbolEffect(.pulse, options: .repeating, isActive: showLooping && !reduceMotion)
             }
-            if isAnimating, reduceMotionActive {
-                // neither the spinning capsule nor the pulse runs here, so say it in words
+            if showLooping, reduceMotion {
+                // neither the spinning border nor the pulse runs here, so say it in words
                 Text("Looping", comment: "Loop status label while a loop cycle is running")
             } else if manualTempBasal {
                 Text("Manual")

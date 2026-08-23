@@ -1,167 +1,105 @@
 import SwiftUI
 
-/// A reusable animated spinner capsule component that overlays any content.
+/// A capsule border whose dashed gap travels around the perimeter while `isActive`,
+/// crossfading to a solid border when it stops. Drop it on any pill-shaped view with
+/// `.capsuleSpinner(isActive:color:)` - it needs nothing from its content.
 ///
-/// With Reduce Motion on, the spinning dashed border never appears: the capsule keeps its
-/// plain static border and the content is handed `reduceMotionActive` so it can spell the
-/// looping state out instead of animating it.
-struct CapsuleSpinnerView<Content: View>: View {
-    @Environment(\.colorScheme) var colorScheme
-    @Environment(\.accessibilityReduceMotion) var reduceMotion
-
-    let isLooping: Bool
+/// Reduce Motion is honoured here: the border simply stays solid and no spin is ever
+/// started. Content that used the spin to convey a state has to say so in its own way,
+/// reading `\.accessibilityReduceMotion` itself.
+///
+/// The spin is driven by animating `DashedCapsuleBorder`'s `animatableData` through the
+/// shape's own `.animation(_:value:)`, so the repeating animation is scoped to the border
+/// view and dies with it. It is deliberately never started with `withAnimation` on a
+/// `@State` value, which outlives the view and keeps animating off-screen.
+struct CapsuleSpinnerBorder: ViewModifier {
+    let isActive: Bool
     let color: Color
-    let content: (Bool, Bool) -> Content
+    var activeLineWidth: CGFloat = 2.5
+    var idleLineWidth: CGFloat = 2
+    var spinDuration: Double = 1.333
+    var crossfadeDuration: Double = 0.3
 
-    @State private var isAnimating: Bool = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    @State private var isSpinning: Bool = false
     @State private var spinProgress: CGFloat = 0.0
     @State private var spinAnimation: Animation? = nil
-    @State private var spinStartDate: Date? = nil
-    @State private var startAnimationTask: Task<Void, Never>? = nil
-    @State private var stopAnimationTask: Task<Void, Never>? = nil
 
-    // OPTION 1: Initializer WITH the animating and reduce-motion arguments
-    init(
-        isLooping: Bool,
-        color: Color,
-        @ViewBuilder content: @escaping (_ isAnimating: Bool, _ reduceMotionActive: Bool) -> Content
-    ) {
-        self.isLooping = isLooping
-        self.color = color
-        self.content = content
-    }
+    /// Reduce Motion turns every request into "solid border", and flipping the setting
+    /// re-runs the task below, so a spin already under way is torn down properly.
+    private var shouldSpin: Bool { isActive && !reduceMotion }
 
-    // OPTION 2: Initializer WITH the animating argument only
-    init(
-        isLooping: Bool,
-        color: Color,
-        @ViewBuilder content: @escaping (_ isAnimating: Bool) -> Content
-    ) {
-        self.isLooping = isLooping
-        self.color = color
-        self.content = { isAnimating, _ in content(isAnimating) }
-    }
-
-    // OPTION 3: Initializer WITHOUT the animating argument
-    init(
-        isLooping: Bool,
-        color: Color,
-        @ViewBuilder content: @escaping () -> Content
-    ) {
-        self.isLooping = isLooping
-        self.color = color
-        self.content = { _, _ in content() }
-    }
-
-    var body: some View {
-        content(isAnimating, reduceMotion)
-            .padding(.vertical, 5)
-            .padding(.horizontal, 10)
+    func body(content: Content) -> some View {
+        content
             .overlay(
                 Group {
-                    // Reduce Motion keeps the plain border; the content carries the looping state
-                    if isAnimating, !reduceMotion {
+                    if isSpinning {
                         DashedCapsuleBorder(progress: spinProgress)
-                            .stroke(color.opacity(0.4), style: StrokeStyle(lineWidth: 2.05, lineCap: .round))
+                            .stroke(
+                                color.opacity(0.4),
+                                style: StrokeStyle(lineWidth: activeLineWidth, lineCap: .round)
+                            )
                             .animation(spinAnimation, value: spinProgress)
                             .transition(.opacity)
                     } else {
                         Capsule()
-                            .stroke(color.opacity(0.4), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                            .stroke(
+                                color.opacity(0.4),
+                                style: StrokeStyle(lineWidth: idleLineWidth, lineCap: .round)
+                            )
                             .transition(.opacity)
                     }
                 }
             )
-            .onAppear {
-                updateAnimating(isLooping)
-            }
-            .onChange(of: isLooping) { _, newValue in
-                updateAnimating(newValue)
-            }
-            .onChange(of: reduceMotion) { _, motionReduced in
-                if motionReduced {
-                    // drop the in-flight spin so the border can't freeze mid-dash
-                    spinAnimation = nil
-                    spinProgress = 0.0
-                } else if isAnimating, startAnimationTask == nil {
-                    startSpin()
-                }
+            // Re-runs on every flip, cancelling the previous run, so a stale fade-out can
+            // never clobber a re-activation and no half-finished spin is left behind.
+            .task(id: shouldSpin) {
+                shouldSpin ? await startSpinning() : await stopSpinning()
             }
     }
 
-    /// Drives the normalized 0.0 -> 1.0 spin loop. No-op under Reduce Motion, where the
-    /// dashed border isn't rendered at all and the content states the looping instead.
-    private func startSpin() {
-        guard !reduceMotion else { return }
+    private func startSpinning() async {
+        // 1. Reset progress instantly - `spinAnimation` is nil, so the border ignores
+        //    whatever animation the fade-in below puts in the transaction
+        spinAnimation = nil
+        spinProgress = 0.0
 
-        spinAnimation = .linear(duration: 1.333).repeatForever(autoreverses: false)
+        // 2. Fade in the spinning border
+        withAnimation(.easeInOut(duration: crossfadeDuration)) {
+            isSpinning = true
+        }
+
+        // 3. Wait for the crossfade. Also keeps the reset and the spin target in separate
+        //    updates, so SwiftUI can't collapse 1.0 -> 0.0 -> 1.0 into no change at all
+        try? await Task.sleep(for: .seconds(crossfadeDuration))
+        guard !Task.isCancelled else { return }
+
+        // 4. Drive the normalized 0.0 -> 1.0 spin loop
+        spinAnimation = .linear(duration: spinDuration).repeatForever(autoreverses: false)
         spinProgress = 1.0
     }
 
-    private func updateAnimating(_ newValue: Bool) {
-        if newValue {
-            stopAnimationTask?.cancel()
-            stopAnimationTask = nil
-
-            guard startAnimationTask == nil else { return }
-
-            spinStartDate = Date()
-
-            startAnimationTask = Task { @MainActor in
-                // 1. Reset progress instantly — `spinAnimation` is nil, so the border
-                //    ignores whatever animation the fade-in below puts in the transaction
-                self.spinAnimation = nil
-                self.spinProgress = 0.0
-
-                // 2. Fade in the spinning capsule
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    isAnimating = true
-                }
-
-                // 3. Wait for transition. Also keeps the reset and the spin target in
-                //    separate updates, so SwiftUI can't collapse 1.0 -> 0.0 -> 1.0 into
-                //    no change at all
-                try? await Task.sleep(for: .seconds(0.3))
-
-                // 4. Drive the normalized 0.0 -> 1.0 spin loop
-                startSpin()
-
-                startAnimationTask = nil
-            }
-        } else {
-            stopAnimationTask?.cancel()
-
-            stopAnimationTask = Task { @MainActor in
-                while startAnimationTask != nil {
-                    try? await Task.sleep(for: .milliseconds(20))
-                    guard !Task.isCancelled else { return }
-                }
-
-                let elapsed = spinStartDate.map { Date().timeIntervalSince($0) } ?? 0
-                let minimumSpinTime: TimeInterval = 2.0
-                let remaining = max(0, minimumSpinTime - elapsed)
-
-                if remaining > 0 {
-                    try? await Task.sleep(for: .seconds(remaining))
-                    guard !Task.isCancelled else { return }
-                }
-
-                // 1. Fade out spinning capsule
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    isAnimating = false
-                }
-
-                // 2. Wait for the transition
-                try? await Task.sleep(for: .seconds(0.3))
-                guard !Task.isCancelled else { return }
-
-                // 3. Reset animation state
-                self.spinAnimation = nil
-                self.spinProgress = 0.0
-
-                spinStartDate = nil
-            }
+    private func stopSpinning() async {
+        // 1. Fade out the spinning border
+        withAnimation(.easeInOut(duration: crossfadeDuration)) {
+            isSpinning = false
         }
+
+        // 2. Wait for the crossfade
+        try? await Task.sleep(for: .seconds(crossfadeDuration))
+        guard !Task.isCancelled else { return }
+
+        // 3. Drop the repeating animation once nothing renders it any more
+        spinAnimation = nil
+        spinProgress = 0.0
+    }
+}
+
+extension View {
+    /// Adds a capsule border that spins while `isActive` and is solid otherwise.
+    func capsuleSpinner(isActive: Bool, color: Color) -> some View {
+        modifier(CapsuleSpinnerBorder(isActive: isActive, color: color))
     }
 }
 
