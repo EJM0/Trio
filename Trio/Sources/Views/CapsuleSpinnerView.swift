@@ -8,14 +8,24 @@ import SwiftUI
 /// started. Content that used the spin to convey a state has to say so in its own way,
 /// reading `\.accessibilityReduceMotion` itself.
 ///
-/// The spin is driven by animating `DashedCapsuleBorder`'s `animatableData` through the
-/// shape's own `.animation(_:value:)`, so the repeating animation is scoped to the border
-/// view and dies with it. It is deliberately never started with `withAnimation` on a
-/// `@State` value, which outlives the view and keeps animating off-screen.
+/// The sweep is started by the dashed border's own `onAppear`, at the very start of the
+/// fade-in, so the gap is already travelling while the border becomes visible instead of
+/// appearing as a stalled gap that only then begins to move. It cannot be started any
+/// earlier than the insertion: an animation installed on a view that is not in the tree yet
+/// never takes, and since a sweep parked at 1.0 is a full lap of dash phase -
+/// pixel-identical to one parked at 0.0 - that failure looks exactly like a border that
+/// simply never spins.
+///
+/// Neither the spin nor the crossfade is ever started with `withAnimation`: every animation
+/// here is attached to a view with `.animation(_:value:)`. That keeps them scoped twice
+/// over - they can only be triggered by the one value they name, and they die with the view
+/// they hang on. A `withAnimation` would instead put them in the update's transaction,
+/// which every view re-rendered in the same pass can inherit, and which in the case of a
+/// `repeatForever` never ends at all.
 struct CapsuleSpinnerBorder: ViewModifier {
     let isActive: Bool
     let color: Color
-    var activeLineWidth: CGFloat = 2.5
+    var activeLineWidth: CGFloat = 2.25
     var idleLineWidth: CGFloat = 2
     var spinDuration: Double = 1.333
     var crossfadeDuration: Double = 0.3
@@ -42,6 +52,9 @@ struct CapsuleSpinnerBorder: ViewModifier {
                             )
                             .animation(spinAnimation, value: spinProgress)
                             .transition(.opacity)
+                            // the border itself says when it exists, so the sweep is never
+                            // installed on a view that isn't in the tree yet
+                            .onAppear(perform: startSweep)
                     } else {
                         Capsule()
                             .stroke(
@@ -51,40 +64,45 @@ struct CapsuleSpinnerBorder: ViewModifier {
                             .transition(.opacity)
                     }
                 }
+                // Scoped to this overlay and to `isSpinning` alone. A `withAnimation` here
+                // would put the crossfade in the update's transaction instead, where any
+                // view re-rendered in the same pass - the pill's own label, which swaps at
+                // exactly this moment - could inherit it.
+                .animation(.easeInOut(duration: crossfadeDuration), value: isSpinning)
             )
             // Re-runs on every flip, cancelling the previous run, so a stale fade-out can
             // never clobber a re-activation and no half-finished spin is left behind.
             .task(id: shouldSpin) {
-                shouldSpin ? await startSpinning() : await stopSpinning()
+                if shouldSpin {
+                    startSpinning()
+                } else {
+                    await stopSpinning()
+                }
             }
     }
 
-    private func startSpinning() async {
-        // 1. Reset progress instantly - `spinAnimation` is nil, so the border ignores
-        //    whatever animation the fade-in below puts in the transaction
+    private func startSpinning() {
+        // Reset the sweep instantly - `spinAnimation` is nil, so the border ignores it -
+        // then insert the dashed border. The overlay's own `.animation(_:value:)` fades it
+        // in, and its `onAppear` starts the sweep from there.
         spinAnimation = nil
         spinProgress = 0.0
 
-        // 2. Fade in the spinning border
-        withAnimation(.easeInOut(duration: crossfadeDuration)) {
-            isSpinning = true
-        }
+        isSpinning = true
+    }
 
-        // 3. Wait for the crossfade. Also keeps the reset and the spin target in separate
-        //    updates, so SwiftUI can't collapse 1.0 -> 0.0 -> 1.0 into no change at all
-        try? await Task.sleep(for: .seconds(crossfadeDuration))
-        guard !Task.isCancelled else { return }
-
-        // 4. Drive the normalized 0.0 -> 1.0 spin loop
+    /// Called by the dashed border as it is inserted, at the very start of the fade-in, so
+    /// the gap is already travelling while the border becomes visible. Running in a later
+    /// update than the reset above is also what keeps SwiftUI from collapsing
+    /// 1.0 -> 0.0 -> 1.0 into no change at all.
+    private func startSweep() {
         spinAnimation = .linear(duration: spinDuration).repeatForever(autoreverses: false)
         spinProgress = 1.0
     }
 
     private func stopSpinning() async {
         // 1. Fade out the spinning border
-        withAnimation(.easeInOut(duration: crossfadeDuration)) {
-            isSpinning = false
-        }
+        isSpinning = false
 
         // 2. Wait for the crossfade
         try? await Task.sleep(for: .seconds(crossfadeDuration))
