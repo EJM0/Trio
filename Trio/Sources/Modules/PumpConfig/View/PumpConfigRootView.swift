@@ -14,6 +14,7 @@ extension PumpConfig {
         @State private var decimalPlaceholder: Decimal = 0.0
         @State private var booleanPlaceholder: Bool = false
         @State var showPumpSelection: Bool = false
+        @State private var pendingPump: PumpCatalogEntry?
 
         @Environment(\.colorScheme) var colorScheme
         @Environment(AppState.self) var appState
@@ -85,8 +86,6 @@ extension PumpConfig {
                 .navigationBarTitleDisplayMode(.automatic)
                 .navigationBarItems(leading: displayClose ? Button("Close", action: state.hideModal) : nil)
                 .sheet(isPresented: $state.setupPump) {
-                    // matches the pump sheet presented from Home: the hosted LoopKit
-                    // controllers lay out their own bottom bars and keyboard handling
                     Group {
                         if let pumpManager = state.provider.apsManager.pumpManager {
                             PumpSettingsView(
@@ -95,9 +94,9 @@ extension PumpConfig {
                                 completionDelegate: state,
                                 setupDelegate: state
                             )
-                        } else {
+                        } else if let pumpEntry = state.setupPumpEntry {
                             PumpSetupView(
-                                pumpType: state.setupPumpType,
+                                pumpEntry: pumpEntry,
                                 pumpInitialSettings: state.initialSettings,
                                 bluetoothManager: state.provider.apsManager.bluetoothManager!,
                                 completionDelegate: state,
@@ -119,13 +118,9 @@ extension PumpConfig {
                                     "Current Pump Models Supported:"
                                 )
                                 VStack(alignment: .leading) {
-                                    Text("• Medtronic")
-                                    Text("• All Omnipod Types")
-                                    Text("• Omnipod Eros")
-                                    Text("• Omnipod DASH")
-                                    Text("• Dana (RS/-i)")
-                                    Text("• Medtrum Nano (200u/300u)")
-                                    Text("• Pump Simulator")
+                                    ForEach(DeviceCatalog.pumps) { pump in
+                                        Text("• \(pump.hintLine)")
+                                    }
                                 }
                                 Text(
                                     "Note: If using a pump simulator, you will not have continuous readings from the CGM in Trio. Using a pump simulator is only advisable for becoming familiar with the app user interface. It will not give you insight on how the algorithm will respond."
@@ -135,13 +130,21 @@ extension PumpConfig {
                         sheetTitle: String(localized: "Help", comment: "Help sheet title")
                     )
                 }
-                .confirmationDialog("Pump Model", isPresented: $showPumpSelection) {
-                    Button("Medtronic") { state.addPump(.minimed) }
-                    Button("All Omnipod Types") { state.addPump(.omni) }
-                    Button("Dana(RS/-i)") { state.addPump(.dana) }
-                    Button("Medtrum Nano") { state.addPump(.medtrum) }
-                    Button("Pump Simulator") { state.addPump(.simulator) }
-                } message: { Text("Select Pump Model") }
+                // Selection is applied in onDismiss so the setup sheet is presented only once the picker is gone.
+                .sheet(isPresented: $showPumpSelection, onDismiss: {
+                    if let entry = pendingPump {
+                        pendingPump = nil
+                        state.addPump(entry)
+                    }
+                }) {
+                    DevicePickerView(
+                        title: String(localized: "Add Pump", comment: "The title of the pump chooser in settings"),
+                        entries: DeviceCatalog.pumps
+                    ) { entry in
+                        pendingPump = entry
+                        showPumpSelection = false
+                    }
+                }
             }
         }
     }

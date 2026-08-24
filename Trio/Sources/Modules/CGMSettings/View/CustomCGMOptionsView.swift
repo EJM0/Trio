@@ -129,16 +129,17 @@ extension CGMSettings {
                     stickyDeleteButton
                 }
                 .scrollContentBackground(.hidden)
-                .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
-                .confirmationDialog("Delete CGM", isPresented: $shouldDisplayDeletionConfirmation) {
-                    Button(role: .destructive) {
-                        deleteCGM()
-                    } label: {
-                        Text("Delete \(cgmCurrent.displayName)")
-                            .font(.headline)
-                            .tint(.red)
-                    }
-                } message: { Text("Are you sure you want to delete \(cgmCurrent.displayName)?") }
+                .background(appState.trioBackgroundColor(for: colorScheme))
+                .glassActionSheet(
+                    "Delete CGM",
+                    message: Text("Are you sure you want to delete \(cgmCurrent.displayName)?"),
+                    isPresented: $shouldDisplayDeletionConfirmation,
+                    actions: [
+                        GlassSheetAction("Delete \(cgmCurrent.displayName)", role: .destructive) {
+                            deleteCGM()
+                        }
+                    ]
+                )
                 .onAppear {
                     if cgmCurrent.type == .simulator {
                         initializeSimulatorSettings()

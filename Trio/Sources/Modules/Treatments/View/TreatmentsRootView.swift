@@ -1035,22 +1035,21 @@ extension Treatments {
                     }
                     .disabled(disableTaskButton)
                     .shadow(radius: 3)
-                    .padding(.horizontal)
-                    .padding(.vertical, 6)
-                    .confirmationDialog(
-                        bolusWarning.warningMessage + " Bolus \(state.amount.description) U?",
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .glassActionSheet(
+                        Text(bolusWarning.warningMessage + " Bolus \(state.amount.description) U?"),
                         isPresented: $showConfirmDialogForBolusing,
-                        titleVisibility: .visible
-                    ) {
-                        Button("Cancel", role: .cancel) {}
-                        Button(
-                            bolusWarning.warningMessage
-                                .isEmpty ? String(localized: "Enact Bolus") : String(localized: "Ignore Warning and Enact Bolus"),
-                            role: bolusWarning.warningMessage.isEmpty ? nil : .destructive
-                        ) {
-                            state.invokeTreatmentsTask()
-                        }
-                    }
+                        actions: [
+                            GlassSheetAction(
+                                verbatim: bolusWarning.warningMessage
+                                    .isEmpty ? String(localized: "Enact Bolus") :
+                                    String(localized: "Ignore Warning and Enact Bolus"),
+                                role: bolusWarning.warningMessage.isEmpty ? nil : .destructive
+                            ) {
+                                state.invokeTreatmentsTask()
+                            }
+                        ]
+                    )
                 }
             }
         }
