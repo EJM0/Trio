@@ -2,6 +2,8 @@ name: 4. Build Trio
 run-name: Build Trio (${{ github.ref_name }})
 on:
   workflow_dispatch:
+  push:
+    branches: [dev]
   schedule:
     # Check for updates every Sunday
     #   Later logic builds if there are updates or if it is the 2nd Sunday of the month
@@ -14,10 +16,63 @@ env:
   TARGET_BRANCH: ${{ github.ref_name }} # target branch on fork to be kept in sync
 
 jobs:
+
+  # Debounce pushes: wait for the branch to stay quiet for 15 minutes before
+  # building. If another commit is pushed while this job waits, this run bails
+  # out and the run triggered by that newer commit takes over the wait.
+  debounce:
+    name: Wait for pushes to settle (15 min)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    timeout-minutes: 30
+    outputs:
+      should_build: ${{ steps.quiet.outputs.should_build }}
+    steps:
+      - name: Wait for a 15 minute quiet period
+        id: quiet
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QUIET_PERIOD_SECONDS: 900
+          POLL_INTERVAL_SECONDS: 60
+        run: |
+          set -o pipefail
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          echo "Waiting for ${QUIET_PERIOD_SECONDS}s of no new commits on '$BRANCH' (this commit: ${GITHUB_SHA})."
+
+          DEADLINE=$(( $(date +%s) + QUIET_PERIOD_SECONDS ))
+          while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+            REMAINING=$(( DEADLINE - $(date +%s) ))
+            SLEEP=$(( REMAINING < POLL_INTERVAL_SECONDS ? REMAINING : POLL_INTERVAL_SECONDS ))
+            sleep "$SLEEP"
+
+            # A failed API call (rate limit, blip) must not abort the wait.
+            if ! HEAD_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${BRANCH}" --jq .sha 2>/dev/null); then
+              echo "Could not read the head of '$BRANCH' — retrying."
+              continue
+            fi
+
+            if [ "$HEAD_SHA" != "$GITHUB_SHA" ]; then
+              echo "should_build=false" >> "$GITHUB_OUTPUT"
+              echo "### :hourglass: Build superseded" >> "$GITHUB_STEP_SUMMARY"
+              echo "A newer commit (<code>${HEAD_SHA:0:7}</code>) was pushed to <code>$BRANCH</code> while this run was waiting." >> "$GITHUB_STEP_SUMMARY"
+              echo "The run triggered by that commit will start the 15 minute wait again." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Still at ${GITHUB_SHA} — $(( DEADLINE - $(date +%s) ))s left."
+          done
+
+          echo "should_build=true" >> "$GITHUB_OUTPUT"
+          echo "### :white_check_mark: Quiet period elapsed" >> "$GITHUB_STEP_SUMMARY"
+          echo "No new commits were pushed to <code>$BRANCH</code> for 15 minutes — starting the build." >> "$GITHUB_STEP_SUMMARY"
   # use a single runner for these sequential steps
   check_status:
     runs-on: self-hosted
     name: Check status to decide whether to build
+    needs: [debounce]
+    # 'debounce' is skipped for non-push runs, so those must not be blocked by it.
+    if: |
+      !cancelled() &&
+        (github.event_name != 'push' || needs.debounce.outputs.should_build == 'true')
     permissions:
       contents: write
     outputs:
@@ -195,7 +250,7 @@ jobs:
     uses: ./.github/workflows/create_certs.yml
     secrets: inherit
     if: |
-      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'workflow_dispatch' || github.event_name == 'push' ||
         (vars.SCHEDULED_BUILD != 'false' && needs.check_status.outputs.IS_SECOND_IN_MONTH == 'true') ||
         (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' )
 
@@ -207,8 +262,8 @@ jobs:
     permissions:
       contents: write
     if:
-      | # builds with manual start; if scheduled: once a month or when new commits are found
-      github.event_name == 'workflow_dispatch' ||
+      | # builds with manual start, on a settled push; if scheduled: once a month or when new commits are found
+      github.event_name == 'workflow_dispatch' || github.event_name == 'push' ||
         (vars.SCHEDULED_BUILD != 'false' && needs.check_status.outputs.IS_SECOND_IN_MONTH == 'true') ||
         (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' )
     steps:
