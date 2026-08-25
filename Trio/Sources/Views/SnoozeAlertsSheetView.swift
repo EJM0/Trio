@@ -56,7 +56,7 @@ struct SnoozeAlertsSheetView: View {
                 }.listRowBackground(Color.chart)
             }
             .scrollContentBackground(.hidden)
-            .background(appState.trioBackgroundColor(for: colorScheme))
+            .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .navigationTitle("Snooze Alerts")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
