@@ -11926,6 +11926,9 @@
         }
       }
     },
+    "• %@" : {
+
+    },
     "• A higher number means you need less insulin for the same amount of carbs" : {
       "localizations" : {
         "bg" : {
@@ -12546,10 +12549,8 @@
         }
       }
     },
-    "• Accu-Chek SmartGuide" : {
-
-    },
     "• All Omnipod Types" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -13672,6 +13673,7 @@
       }
     },
     "• Dana (RS/-i)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -14044,6 +14046,7 @@
       }
     },
     "• Dexcom G5" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -14168,6 +14171,7 @@
       }
     },
     "• Dexcom G6 / ONE" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -14292,6 +14296,7 @@
       }
     },
     "• Dexcom G7 / ONE+" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -14416,6 +14421,7 @@
       }
     },
     "• Dexcom Share" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -14786,9 +14792,6 @@
           }
         }
       }
-    },
-    "• Eversense E3/365" : {
-
     },
     "• Fat and Protein Delay" : {
       "localizations" : {
@@ -15411,6 +15414,7 @@
       }
     },
     "• Freestyle Libre" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -15535,6 +15539,7 @@
       }
     },
     "• Freestyle Libre Demo" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -15907,6 +15912,7 @@
       }
     },
     "• Glucose Simulator" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -17643,6 +17649,7 @@
       }
     },
     "• Medtronic" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -17767,6 +17774,7 @@
       }
     },
     "• Medtronic Enlite" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -17891,6 +17899,7 @@
       }
     },
     "• Medtrum Nano (200u/300u)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -18015,6 +18024,7 @@
       }
     },
     "• Nightscout" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -18263,6 +18273,7 @@
       }
     },
     "• Omnipod DASH" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -18387,6 +18398,7 @@
       }
     },
     "• Omnipod Eros" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -18635,6 +18647,7 @@
       }
     },
     "• Pump Simulator" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -19751,6 +19764,7 @@
       }
     },
     "• xDrip4iOS" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -31043,6 +31057,7 @@
       }
     },
     "Add CGM" : {
+      "comment" : "The title of the CGM chooser in settings",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -33702,6 +33717,7 @@
       }
     },
     "Add Pump" : {
+      "comment" : "The title of the pump chooser in settings",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -39541,6 +39557,7 @@
       }
     },
     "All Omnipod Types" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -57634,6 +57651,9 @@
         }
       }
     },
+    "Background" : {
+
+    },
     "Barcode AI Scanner" : {
 
     },
@@ -60775,6 +60795,9 @@
           }
         }
       }
+    },
+    "Black" : {
+
     },
     "Blood Glucose Reminder" : {
       "localizations" : {
@@ -73152,6 +73175,7 @@
       }
     },
     "CGM Model" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -89038,6 +89062,7 @@
       }
     },
     "Dana(RS/-i)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -103733,6 +103758,7 @@
       }
     },
     "Dexcom G5" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -103857,6 +103883,7 @@
       }
     },
     "Dexcom G6 / ONE" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -104113,6 +104140,7 @@
       }
     },
     "Dexcom G7 / ONE+" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -125209,10 +125237,6 @@
         }
       }
     },
-    "Eversense" : {
-      "comment" : "Localized title for the Eversense CGM manager.",
-      "isCommentAutoGenerated" : true
-    },
     "Everything you enter here can be adjusted later in the app." : {
       "localizations" : {
         "bg" : {
@@ -137227,12 +137251,6 @@
           }
         }
       }
-    },
-    "FreeStyle Libre 1 / 2 / 2+" : {
-
-    },
-    "FreeStyle Libre 3 / 3+ (Beta)" : {
-
     },
     "Frequency" : {
       "localizations" : {
@@ -185483,6 +185501,7 @@
       }
     },
     "Medtronic" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -185731,6 +185750,7 @@
       }
     },
     "Medtrum Nano" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -208475,6 +208495,9 @@
         }
       }
     },
+    "Other Sources" : {
+      "comment" : "Device picker section for data relays"
+    },
     "Other third-party services, like Apple Health or Tidepool, can be added later through the settings menu." : {
       "localizations" : {
         "bg" : {
@@ -222134,6 +222157,7 @@
       }
     },
     "Pump Simulator" : {
+      "comment" : "Simulated pump in the device picker",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -236351,6 +236375,7 @@
       }
     },
     "Select CGM Model" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -236723,6 +236748,7 @@
       }
     },
     "Select Pump Model" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -247477,6 +247503,9 @@
           }
         }
       }
+    },
+    "Simulator" : {
+      "comment" : "Device picker section for simulated devices"
     },
     "Simulator Build has no expiry" : {
       "localizations" : {
@@ -288329,6 +288358,9 @@
           }
         }
       }
+    },
+    "Transparent" : {
+
     },
     "Treatments" : {
       "comment" : "History Mode",
