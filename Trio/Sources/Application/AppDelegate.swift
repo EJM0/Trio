@@ -38,6 +38,16 @@ class AppDelegate: NSObject, UIApplicationDelegate, ObservableObject, UNUserNoti
         return true
     }
 
+    /// Supported orientations are decided per screen rather than app-wide: only the Home
+    /// chart is laid out for a sideways viewport, so `OrientationGate` answers for it and
+    /// pins everything else to portrait. iOS calls this on the main thread.
+    func application(
+        _: UIApplication,
+        supportedInterfaceOrientationsFor _: UIWindow?
+    ) -> UIInterfaceOrientationMask {
+        MainActor.assumeIsolated { OrientationGate.mask }
+    }
+
     /// Foreground-transition entry point for telemetry cadence. Re-evaluates
     /// the overdue window every time the user brings Trio to the foreground,
     /// since `scheduleRecurring`'s GCD timer doesn't fire while suspended.

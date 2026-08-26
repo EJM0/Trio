@@ -99,6 +99,7 @@
 		7A11AC0DE000000000000116 /* GlassChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A11AC0DE000000000000016 /* GlassChrome.swift */; };
 		7A11AC0DE000000000000110 /* HomeRootView+BottomControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A11AC0DE000000000000010 /* HomeRootView+BottomControls.swift */; };
 		7A11AC0DE00000000000010E /* HomeRootView+MealPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A11AC0DE00000000000000E /* HomeRootView+MealPanel.swift */; };
+		7A11AC0DE000000000000131 /* HomeRootView+Landscape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A11AC0DE000000000000031 /* HomeRootView+Landscape.swift */; };
 		7A11AC0DE00000000000010D /* HomeRootView+Header.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A11AC0DE00000000000000D /* HomeRootView+Header.swift */; };
 		3811DE3F25C9D4A100A708ED /* SettingsStateModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3811DE3925C9D4A100A708ED /* SettingsStateModel.swift */; };
 		3811DE4125C9D4A100A708ED /* SettingsRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3811DE3C25C9D4A100A708ED /* SettingsRootView.swift */; };
@@ -190,6 +191,7 @@
 		38DF178E27733E6800B3528F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 38DF178C27733E6800B3528F /* Assets.xcassets */; };
 		38DF179027733EAD00B3528F /* SnowScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38DF178F27733EAD00B3528F /* SnowScene.swift */; };
 		38E4451E274DB04600EC9A94 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E4451D274DB04600EC9A94 /* AppDelegate.swift */; };
+		7A11AC0DE000000000000132 /* OrientationGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A11AC0DE000000000000032 /* OrientationGate.swift */; };
 		38E44522274E3DDC00EC9A94 /* NetworkReachabilityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E44521274E3DDC00EC9A94 /* NetworkReachabilityManager.swift */; };
 		38E44528274E401C00EC9A94 /* Protected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E44527274E401C00EC9A94 /* Protected.swift */; };
 		38E44534274E411700EC9A94 /* Disk+InternalHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E4452A274E411600EC9A94 /* Disk+InternalHelpers.swift */; };
@@ -1201,6 +1203,7 @@
 		7A11AC0DE000000000000016 /* GlassChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassChrome.swift; sourceTree = "<group>"; };
 		7A11AC0DE000000000000010 /* HomeRootView+BottomControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HomeRootView+BottomControls.swift"; sourceTree = "<group>"; };
 		7A11AC0DE00000000000000E /* HomeRootView+MealPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HomeRootView+MealPanel.swift"; sourceTree = "<group>"; };
+		7A11AC0DE000000000000031 /* HomeRootView+Landscape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HomeRootView+Landscape.swift"; sourceTree = "<group>"; };
 		7A11AC0DE00000000000000D /* HomeRootView+Header.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HomeRootView+Header.swift"; sourceTree = "<group>"; };
 		3811DE3925C9D4A100A708ED /* SettingsStateModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingsStateModel.swift; sourceTree = "<group>"; };
 		3811DE3C25C9D4A100A708ED /* SettingsRootView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingsRootView.swift; sourceTree = "<group>"; };
@@ -1305,6 +1308,7 @@
 		38DF178C27733E6800B3528F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		38DF178F27733EAD00B3528F /* SnowScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnowScene.swift; sourceTree = "<group>"; };
 		38E4451D274DB04600EC9A94 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		7A11AC0DE000000000000032 /* OrientationGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrientationGate.swift; sourceTree = "<group>"; };
 		38E44521274E3DDC00EC9A94 /* NetworkReachabilityManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NetworkReachabilityManager.swift; sourceTree = "<group>"; };
 		38E44527274E401C00EC9A94 /* Protected.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Protected.swift; sourceTree = "<group>"; };
 		38E4452A274E411600EC9A94 /* Disk+InternalHelpers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Disk+InternalHelpers.swift"; sourceTree = "<group>"; };
@@ -2593,6 +2597,7 @@
 				7A11AC0DE000000000000016 /* GlassChrome.swift */,
 				7A11AC0DE000000000000010 /* HomeRootView+BottomControls.swift */,
 				7A11AC0DE00000000000000E /* HomeRootView+MealPanel.swift */,
+				7A11AC0DE000000000000031 /* HomeRootView+Landscape.swift */,
 				7A11AC0DE00000000000000D /* HomeRootView+Header.swift */,
 				3833B51E260264AC003021B3 /* Chart */,
 				3833B51F260264B6003021B3 /* Header */,
@@ -2734,6 +2739,7 @@
 			isa = PBXGroup;
 			children = (
 				38E4451D274DB04600EC9A94 /* AppDelegate.swift */,
+				7A11AC0DE000000000000032 /* OrientationGate.swift */,
 				BD4ED4FC2CF9D5E8000EDC9C /* AppState.swift */,
 				3B0B4E6B2DE1439A005C6627 /* LockedResolver.swift */,
 				388E595B25AD948C0019842D /* TrioApp.swift */,
@@ -5513,6 +5519,7 @@
 				7A11AC0DE000000000000116 /* GlassChrome.swift in Sources */,
 				7A11AC0DE000000000000110 /* HomeRootView+BottomControls.swift in Sources */,
 				7A11AC0DE00000000000010E /* HomeRootView+MealPanel.swift in Sources */,
+				7A11AC0DE000000000000131 /* HomeRootView+Landscape.swift in Sources */,
 				7A11AC0DE00000000000010D /* HomeRootView+Header.swift in Sources */,
 				38E98A2925F52C9300C0CED0 /* Error+Extensions.swift in Sources */,
 				3E62C7822F54CC1B00433237 /* BolusDisplayThreshold.swift in Sources */,
@@ -5835,6 +5842,7 @@
 				E592A37A2CEEC038009A472C /* ContactImageProvider.swift in Sources */,
 				DD30786A2D42F94000DE0490 /* GarminDevice.swift in Sources */,
 				38E4451E274DB04600EC9A94 /* AppDelegate.swift in Sources */,
+				7A11AC0DE000000000000132 /* OrientationGate.swift in Sources */,
 				096F54772EF21D4B00B557C1 /* NutritionEditorView.swift in Sources */,
 				BD2FF1A02AE29D43005D1C5D /* ToggleStyles.swift in Sources */,
 				3B506FD92E635304000740B9 /* IOBService.swift in Sources */,

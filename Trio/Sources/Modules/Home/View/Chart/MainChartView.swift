@@ -37,6 +37,14 @@ struct MainChartView: View {
     var displayYgridLines: Bool
     var showGlucoseEpisodes: Bool
     var thresholdLines: Bool
+    /// Width of the display cutout the viewport's leading edge runs under, in points.
+    /// Landscape draws the chart under the sensor housing; this is what lets the user pan
+    /// the domain's first reading back out from behind it. Zero everywhere else.
+    var leadingInset: CGFloat = 0
+    /// The same, for the trailing edge. Everything pinned there — the y-axis labels, the
+    /// return-to-now button, the domain's last reading — is pushed clear of the cutout by
+    /// this much. Zero unless the phone is turned so the pill lands on that side.
+    var trailingInset: CGFloat = 0
     var state: Home.StateModel
 
     @Environment(\.colorScheme) var colorScheme
@@ -155,8 +163,9 @@ struct MainChartView: View {
                 )
                 .equatable()
                 .frame(height: mainHeight)
-                // Keep the axis labels off the screen edge.
-                .padding(.trailing, MainChartHelper.Config.yAxisLabelInset)
+                // Keep the axis labels off the screen edge — and off the cutout, when the
+                // phone is turned so that the pill sits on this side.
+                .padding(.trailing, MainChartHelper.Config.yAxisLabelInset + trailingInset)
                 Color.clear.frame(height: cobIobHeight)
             }
             .frame(width: viewportWidth, height: stackHeight, alignment: .topLeading)
@@ -377,7 +386,7 @@ extension MainChartView {
             // Stacked directly above the chart's info button, which `HomeRootView` overlays
             // on this same box: 32pt tall, sitting 16pt off the bottom (6pt padding + 10pt
             // offset) at a 16pt trailing inset. Keep these in sync with `chartInfoButton`.
-            .padding(.trailing, 16)
+            .padding(.trailing, 16 + trailingInset)
             .padding(.bottom, 56)
             .accessibilityLabel("Jump to now")
             .transition(.opacity)
@@ -508,10 +517,10 @@ extension MainChartView {
     /// `endMarker` now ends exactly at the forecast, this is the gap the last forecast point
     /// sits flush against. Falls back to the fraction until the first measurement arrives.
     private var trailingOverscan: TimeInterval {
-        let measured = labelGutterWidth + MainChartHelper.Config.yAxisLabelInset
+        let measured = labelGutterWidth + MainChartHelper.Config.yAxisLabelInset + trailingInset
         let gutterPoints = labelGutterWidth > 0
             ? measured
-            : viewportWidth * MainChartHelper.Config.labelGutterFraction
+            : viewportWidth * MainChartHelper.Config.labelGutterFraction + trailingInset
         return TimeInterval(gutterPoints / viewportWidth) * visibleSeconds
     }
 
@@ -530,9 +539,18 @@ extension MainChartView {
         updateRenderWindow(force: true)
     }
 
+    /// Mirror of `trailingOverscan` for the leading edge: keeps domain-start content clear of
+    /// the display cutout the chart runs under in landscape, converted to chart-time at the
+    /// viewport's current scale so the clearance is exactly as wide as the housing at every
+    /// zoom level. Zero when there is no cutout, which is every other layout.
+    private var leadingOverscan: TimeInterval {
+        guard leadingInset > 0 else { return 0 }
+        return TimeInterval(leadingInset / viewportWidth) * visibleSeconds
+    }
+
     /// Clamps a proposed leading edge so the visible window never leaves the chart's domain.
     private func clampedLeadingEdge(_ proposed: Date) -> Date {
-        let earliest = state.startMarker
+        let earliest = state.startMarker.addingTimeInterval(-leadingOverscan)
         let latest = state.endMarker.addingTimeInterval(trailingOverscan - visibleSeconds)
         return min(max(proposed, earliest), max(earliest, latest))
     }

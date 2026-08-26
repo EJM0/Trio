@@ -10,6 +10,8 @@ extension Home {
 
         @Environment(\.managedObjectContext) var moc
         @Environment(\.colorScheme) var colorScheme
+        @Environment(\.verticalSizeClass) var verticalSizeClass
+        @Environment(\.layoutDirection) var layoutDirection
         @Environment(AppState.self) var appState
 
         @State var state = StateModel()
@@ -50,6 +52,9 @@ extension Home {
         /// decay instead of flickering the slot (see `updateChartReadout`).
         @State var chartReadoutDate: Date? = nil
         @State var chartReadoutDeterminationDate: Date? = nil
+        /// Where the display cutout sits, and how wide it is. Re-read on every rotation
+        /// (see `HousingInsetsReader`); zero in portrait.
+        @State var housingInsets = HousingInsets()
 
         @FetchRequest(fetchRequest: OverrideStored.fetch(
             NSPredicate.lastActiveOverride,
@@ -62,6 +67,13 @@ extension Home {
             ascending: false,
             fetchLimit: 1
         )) var latestTempTarget: FetchedResults<TempTargetStored>
+
+        /// iPhone held sideways. A compact height is the phone-landscape signal specifically:
+        /// iPad stays regular in both orientations, so it keeps the full dashboard.
+        ///
+        /// Gates the whole landscape treatment — chart-only layout, no tab bar, no treatment
+        /// button (see `HomeRootView+Landscape`).
+        var isLandscapeChart: Bool { verticalSizeClass == .compact }
 
         var historySFSymbol: String {
             if #available(iOS 17.0, *) {
@@ -112,6 +124,30 @@ extension Home {
         }
 
         @ViewBuilder func mainViewElements(_ geo: GeometryProxy) -> some View {
+            if isLandscapeChart {
+                // Sideways the chart claims the whole display, safe area included: it runs
+                // under the sensor housing behind a frost rather than stopping short of it,
+                // and flush to every other edge, none of which has hardware to protect. All
+                // edges, not just the horizontal ones — leaving the bottom inset in place
+                // left the home-indicator strip standing there as a black band under the
+                // chart, which reads as a border rather than as a margin.
+                //
+                // The reader below therefore reports the full size — and, having had the safe
+                // area taken off it, no insets at all, which is why the housing is measured
+                // off the window instead (`HousingInsets`).
+                GeometryReader { fullGeo in
+                    landscapeChart(geo: fullGeo, housing: housingInsets)
+                }
+                .ignoresSafeArea()
+                .modifier(HousingInsetsReader(insets: $housingInsets))
+                .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
+            } else {
+                portraitDashboard(geo)
+            }
+        }
+
+        /// The dashboard proper: header, meal slot, chart, bottom zone, pull-to-loop.
+        @ViewBuilder private func portraitDashboard(_ geo: GeometryProxy) -> some View {
             // viewport-sized content: rubber-bands for the pull-down, never scrolls
             ScrollView(.vertical, showsIndicators: false) {
                 dashboardContent(geo)
@@ -213,6 +249,8 @@ extension Home {
             }
             .navigationTitle("Home")
             .navigationBarHidden(true)
+            // sideways the chart owns the screen; the bar would spend a fifth of its height
+            .toolbar(isLandscapeChart ? .hidden : .visible, for: .tabBar)
             .blur(radius: state.isLoopStatusPresented ? 3 : 0)
             .sheet(isPresented: $state.isLoopStatusPresented) {
                 LoopStatusView(state: state)
@@ -367,11 +405,13 @@ extension Home {
 
                 // fixed distance from the physical screen bottom; immune to
                 // safe-area changes (keyboard, accessories)
-                GeometryReader { geo in
-                    treatmentButton
-                        .position(x: geo.size.width / 2, y: geo.size.height - 52)
+                if !isLandscapeChart {
+                    GeometryReader { geo in
+                        treatmentButton
+                            .position(x: geo.size.width / 2, y: geo.size.height - 52)
+                    }
+                    .ignoresSafeArea(.all, edges: .bottom)
                 }
-                .ignoresSafeArea(.all, edges: .bottom)
             }
             .ignoresSafeArea(.container, edges: .bottom)
             .ignoresSafeArea(.keyboard, edges: .bottom)
@@ -483,7 +523,9 @@ extension Home {
                 }
                 .tint(Color.tabBar)
 
-                treatmentButton
+                if !isLandscapeChart {
+                    treatmentButton
+                }
             }.ignoresSafeArea(.keyboard, edges: .bottom).blur(radius: state.waitForSuggestion ? 8 : 0)
                 .onChange(of: selectedTab) {
                     // reset only when leaving Settings; programmatic pushes survive the switch
@@ -500,6 +542,15 @@ extension Home {
                 if state.waitForSuggestion {
                     CustomProgressView(text: String(localized: "Updating IOB...", comment: "Progress text when updating IOB"))
                 }
+            }
+            // Landscape exists for the Home chart alone; every other tab is portrait-only
+            // (see `OrientationGate`).
+            .onAppear { OrientationGate.setAllowsLandscape(selectedTab == 0) }
+            .onChange(of: selectedTab) { _, newValue in
+                // The treatment tag is a transient bounce, not a destination (see
+                // `modernTabSelection`); acting on it would flip the app to portrait and back.
+                guard newValue != RootView.treatmentTabTag else { return }
+                OrientationGate.setAllowsLandscape(newValue == 0)
             }
             .sheet(isPresented: $showQuickPickTreatmentsPicker) {
                 QuickPickTreatmentsView(
