@@ -129,10 +129,10 @@ enum MainChartHelper {
         /// Width (pt) of the strips at the viewport edges where a scrubbing finger makes
         /// the chart auto-pan to reveal more data; pan speed scales with edge depth.
         static let edgePanZoneWidth: CGFloat = 44
-        /// How long (s) a one-finger touch must rest before the inspect popover appears.
+        /// How long (s) a one-finger touch must rest before the inspect readout appears.
         /// Without this, every drag briefly triggered inspect on touch-down — and each
         /// selection change re-lays the canvas, stalling the pan as it starts.
-        static let inspectHoldDelay: TimeInterval = 0.15
+        static let inspectHoldDelay: TimeInterval = 0.25
 
         // MARK: Forecast offset (how far past `now` the chart's domain extends)
 

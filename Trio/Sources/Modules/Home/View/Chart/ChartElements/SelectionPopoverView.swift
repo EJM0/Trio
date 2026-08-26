@@ -2,31 +2,14 @@ import Charts
 import Foundation
 import SwiftUI
 
-/// Color of the selection marker/readout for a glucose value. Shared by the popover card
-/// and the shell's selection overlay dot.
-func selectionMarkColor(
-    for glucose: GlucoseStored,
-    highGlucose: Decimal,
-    lowGlucose: Decimal,
-    currentGlucoseTarget: Decimal,
-    glucoseColorScheme: GlucoseColorScheme
-) -> Color {
-    let hardCodedLow = Decimal(55)
-    let hardCodedHigh = Decimal(220)
-    let isDynamicColorScheme = glucoseColorScheme == .dynamicColor
-
-    return Trio.getDynamicGlucoseColor(
-        glucoseValue: Decimal(glucose.glucose),
-        highGlucoseColorValue: isDynamicColorScheme ? hardCodedHigh : highGlucose,
-        lowGlucoseColorValue: isDynamicColorScheme ? hardCodedLow : lowGlucose,
-        targetGlucose: currentGlucoseTarget,
-        glucoseColorScheme: glucoseColorScheme
-    )
-}
-
-/// The selection detail card. Plain SwiftUI (no longer `ChartContent`): it is rendered by
-/// the shell's selection overlay in a fixed slot, so it can neither be clipped by the
-/// viewport nor force a canvas re-layout while scrubbing.
+/// The selection detail card: the readout as it looked while it floated over the glucose
+/// pane, before `ChartSelectionRow` moved it into the Home meal slot.
+///
+/// Kept, unused, as the fallback if the meal-slot readout doesn't work out. Plain SwiftUI
+/// (no longer `ChartContent`): it was rendered by the shell's selection overlay in a fixed
+/// slot, so it could neither be clipped by the viewport nor force a canvas re-layout while
+/// scrubbing. To revive it, drop it back into `MainChartView.selectionOverlay` and pass
+/// `selectedDetermination` for both determination arguments.
 struct SelectionPopoverView: View {
     let selectedGlucose: GlucoseStored
     let selectedIOBValue: OrefDetermination?

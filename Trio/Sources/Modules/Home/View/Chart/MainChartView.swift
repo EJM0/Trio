@@ -41,8 +41,9 @@ struct MainChartView: View {
 
     @Environment(\.colorScheme) var colorScheme
 
-    /// Date under the user's finger while inspecting (transient popover), else nil.
-    @State var selection: Date? = nil
+    /// Date under the user's finger while inspecting, else nil. Owned by Home so the
+    /// readout can take over the meal slot; the chart only writes it.
+    @Binding var selection: Date?
 
     @State var mainChartHasInitialized = false
 
@@ -309,27 +310,13 @@ extension MainChartView {
 extension MainChartView {
     var selectedGlucose: GlucoseStored? {
         guard let selection = selection else { return nil }
-        let range = selection.addingTimeInterval(-150) ... selection.addingTimeInterval(150)
-        return state.glucoseFromPersistence.first { $0.date.map(range.contains) ?? false }
+        return ChartSelectionLookup.glucose(at: selection, in: state.glucoseFromPersistence)
     }
 
-    private func findDetermination(in range: ClosedRange<Date>) -> OrefDetermination? {
-        let now = Date.now
-        return state.enactedAndNonEnactedDeterminations.first {
-            $0.deliverAt ?? now >= range.lowerBound && $0.deliverAt ?? now <= range.upperBound
-        }
-    }
-
-    var selectedCOBValue: OrefDetermination? {
+    /// COB, IOB and ISF all read off the one determination nearest the selection.
+    var selectedDetermination: OrefDetermination? {
         guard let selection = selection else { return nil }
-        let range = selection.addingTimeInterval(-150) ... selection.addingTimeInterval(150)
-        return findDetermination(in: range)
-    }
-
-    var selectedIOBValue: OrefDetermination? {
-        guard let selection = selection else { return nil }
-        let range = selection.addingTimeInterval(-150) ... selection.addingTimeInterval(150)
-        return findDetermination(in: range)
+        return ChartSelectionLookup.determination(at: selection, in: state.enactedAndNonEnactedDeterminations)
     }
 }
 
@@ -418,10 +405,9 @@ extension MainChartView {
         }
     }
 
-    /// Vertical indicator + point highlights + detail card for the current selection.
-    /// Positions are computed with the same linear maps the canvas charts use, and the
-    /// card sits in a fixed slot at the top of the glucose pane, inside the viewport —
-    /// so it can never be clipped.
+    /// Vertical indicator + point highlights for the current selection. Positions are
+    /// computed with the same linear maps the canvas charts use. The readout itself is
+    /// drawn by Home in the meal slot (`ChartSelectionRow`), never over the chart.
     @ViewBuilder private var selectionOverlay: some View {
         if let selectedGlucose, let selectionDate = selectedGlucose.date {
             let x = xPosition(for: selectionDate)
@@ -434,9 +420,8 @@ extension MainChartView {
                     glucoseColorScheme: glucoseColorScheme
                 )
                 let glucoseY = glucoseYPosition(for: selectedGlucose)
-                // `selectedCOBValue` / `selectedIOBValue` are the same lookup, and every
-                // access rescans the determinations. Resolve it once per frame.
-                let selectedDetermination = selectedCOBValue
+                // Every access rescans the determinations. Resolve it once per frame.
+                let determination = selectedDetermination
 
                 // Vertical indicator through all three panes.
                 Rectangle()
@@ -458,15 +443,15 @@ extension MainChartView {
                 // them on a stepped line. This fork's COB/IOB/ISF marks are plain `LineMark`s
                 // with the default linear interpolation (`drawCOBIOBChart`), so that buys
                 // nothing here and costs alignment: the rule sits at the *glucose* reading's
-                // timestamp while `findDetermination` accepts anything within ±150 s, so the
+                // timestamp while the determination lookup accepts anything within ±150 s, so the
                 // two anchors disagree by up to 150 s and the dots visibly float off the rule
                 // — worst at tight zoom, where 150 s is a large fraction of the viewport.
                 // Between determinations ~5 min apart these values move little, so pinning to
                 // the rule leaves the dots on the line segment anyway.
 
                 // Selected COB / (scaled) IOB dots on the bottom pane.
-                if let selectedDetermination {
-                    let y = cobIobYPosition(forChartValue: Double(selectedDetermination.cob))
+                if let determination {
+                    let y = cobIobYPosition(forChartValue: Double(determination.cob))
                     Circle().fill(Color.orange.opacity(0.8))
                         .frame(width: 15, height: 15)
                         .position(x: x, y: y)
@@ -474,8 +459,8 @@ extension MainChartView {
                         .frame(width: 6, height: 6)
                         .position(x: x, y: y)
                 }
-                if let selectedDetermination {
-                    let scaled = MainChartHelper.scaledIobAmount(selectedDetermination.iob?.doubleValue ?? 0)
+                if let determination {
+                    let scaled = MainChartHelper.scaledIobAmount(determination.iob?.doubleValue ?? 0)
                     let y = cobIobYPosition(forChartValue: scaled)
                     Circle().fill(Color.darkerBlue.opacity(0.8))
                         .frame(width: 15, height: 15)
@@ -486,7 +471,7 @@ extension MainChartView {
                 }
 
                 // Selected ISF dot, drawn on the shared COB/IOB axis.
-                if let isf = selectedDetermination?.insulinSensitivity?.doubleValue {
+                if let isf = determination?.insulinSensitivity?.doubleValue {
                     let y = cobIobYPosition(forChartValue: isf)
                     Circle().fill(Color.white.opacity(0.8))
                         .frame(width: 15, height: 15)
@@ -495,24 +480,6 @@ extension MainChartView {
                         .frame(width: 6, height: 6)
                         .position(x: x, y: y)
                 }
-
-                // Detail card: fixed slot at the top of the glucose pane.
-                VStack(spacing: 0) {
-                    Color.clear.frame(height: basalHeight + 4)
-                    SelectionPopoverView(
-                        selectedGlucose: selectedGlucose,
-                        selectedIOBValue: selectedDetermination,
-                        selectedCOBValue: selectedDetermination,
-                        units: units,
-                        highGlucose: highGlucose,
-                        lowGlucose: lowGlucose,
-                        currentGlucoseTarget: currentGlucoseTarget,
-                        glucoseColorScheme: glucoseColorScheme,
-                        isSmoothingEnabled: state.settingsManager.settings.smoothGlucose
-                    )
-                    Spacer(minLength: 0)
-                }
-                .frame(width: viewportWidth)
             }
         }
     }
@@ -682,7 +649,7 @@ extension MainChartView {
     }
 
     /// Snaps a viewport x position to the 5-minute glucose cadence and updates the
-    /// selection, skipping no-op writes. The popover lookup window is +/-150 s, so the
+    /// selection, skipping no-op writes. `ChartSelectionLookup.window` is +/-150 s, so the
     /// 300 s snap lands exactly on the nearest reading; it also means finger jitter or a
     /// scrub only produces a new value when actually crossing to another reading.
     private func updateSelection(atViewportX x: CGFloat, withPointHaptic: Bool = true) {
@@ -702,8 +669,7 @@ extension MainChartView {
 
     /// Whether a glucose reading exists within the selection matching window of `date`.
     private func hasGlucoseReading(near date: Date) -> Bool {
-        let range = date.addingTimeInterval(-150) ... date.addingTimeInterval(150)
-        return state.glucoseFromPersistence.contains { $0.date.map(range.contains) ?? false }
+        ChartSelectionLookup.glucose(at: date, in: state.glucoseFromPersistence) != nil
     }
 
     /// While scrubbing, a finger resting in the viewport's edge zones auto-pans the chart
@@ -1038,7 +1004,7 @@ struct CobIobPlotFrameKey: PreferenceKey {
     }
 }
 
-// MARK: - Main (glucose) chart pane with selection popover
+// MARK: - Main (glucose) chart pane
 
 extension MainChartCanvas {
     var mainChart: some View {

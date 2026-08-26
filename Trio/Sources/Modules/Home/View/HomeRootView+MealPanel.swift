@@ -48,7 +48,80 @@ extension Home.RootView {
         return nil
     }
 
+    /// The meal slot has two states: the live IOB / COB / delivery-rate row, and — while the
+    /// main chart is being scrubbed — the readout for the selected point. The scrub readout
+    /// wins: it answers the same three questions for a different instant, and showing it here
+    /// keeps the chart itself unobstructed.
+    ///
+    /// It renders from `chartReadoutDate`, not from `chartSelection` directly, so a hole in
+    /// the data can't flicker the slot (see `updateChartReadout`).
     @ViewBuilder func mealPanel() -> some View {
+        if let readoutDate = chartReadoutDate,
+           let selectedGlucose = ChartSelectionLookup.glucose(at: readoutDate, in: state.glucoseFromPersistence)
+        {
+            ChartSelectionRow(
+                selectedGlucose: selectedGlucose,
+                determination: chartReadoutDeterminationDate.flatMap {
+                    ChartSelectionLookup.determination(at: $0, in: state.enactedAndNonEnactedDeterminations)
+                },
+                units: state.units,
+                highGlucose: state.highGlucose,
+                lowGlucose: state.lowGlucose,
+                currentGlucoseTarget: state.currentGlucoseTarget,
+                glucoseColorScheme: state.glucoseColorScheme,
+                isSmoothingEnabled: state.settingsManager.settings.smoothGlucose
+            )
+            .padding(.horizontal)
+            .transition(.opacity)
+        } else {
+            liveMealPanel
+        }
+    }
+
+    /// Decays the readout instead of dropping it.
+    ///
+    /// Glucose readings and determinations both have holes, and they are not the same holes:
+    /// scrubbing across one would otherwise hand the slot straight back to the live meal row
+    /// (or blank out IOB / COB / ISF) for a step or two and flicker. So each half of the
+    /// readout remembers the last selection that actually resolved it, and only once nothing
+    /// has resolved for `ChartSelectionLookup.decay` — a real gap, or the finger lifting —
+    /// does the slot let go.
+    ///
+    /// Run as `.task(id: chartSelection)`: the next scrub step cancels the pending decay, so
+    /// crossing a hole never reaches the timeout in the first place.
+    func updateChartReadout() async {
+        if let selection = chartSelection {
+            var resolvedAnything = false
+
+            if ChartSelectionLookup.glucose(at: selection, in: state.glucoseFromPersistence) != nil {
+                chartReadoutDate = selection
+                resolvedAnything = true
+            }
+
+            if ChartSelectionLookup.determination(
+                at: selection,
+                in: state.enactedAndNonEnactedDeterminations
+            ) != nil {
+                chartReadoutDeterminationDate = selection
+                resolvedAnything = true
+            } else if let held = chartReadoutDeterminationDate,
+                      abs(held.timeIntervalSince(selection)) > ChartSelectionLookup.determinationHold
+            {
+                // a hop to a different part of the chart, not a hole: don't carry the values over
+                chartReadoutDeterminationDate = nil
+            }
+
+            if resolvedAnything { return }
+        }
+
+        guard chartReadoutDate != nil || chartReadoutDeterminationDate != nil else { return }
+        try? await Task.sleep(for: .seconds(ChartSelectionLookup.decay))
+        guard !Task.isCancelled else { return }
+        chartReadoutDate = nil
+        chartReadoutDeterminationDate = nil
+    }
+
+    @ViewBuilder private var liveMealPanel: some View {
         HStack {
             HStack {
                 Image(systemName: "syringe.fill")
