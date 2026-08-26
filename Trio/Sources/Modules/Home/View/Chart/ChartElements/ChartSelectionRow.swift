@@ -119,7 +119,10 @@ struct ChartSelectionRow: View {
         .animation(nil, value: selectedGlucose.date)
         .padding(.horizontal, 12)
         .padding(.vertical, 5)
-        .glassPanel(tint: pointMarkColor, tintOpacity: 0.10, strokeOpacity: 0.25)
+        // Plain chrome, same as the stats banner and the untinted bottom panels: the row
+        // borrows a slot the rest of Home owns, so it should read as that chrome rather than
+        // as a panel of its own. The glucose state stays where it is legible — on the value.
+        .glassPanel()
     }
 
     @ViewBuilder private func row(font: Font) -> some View {
