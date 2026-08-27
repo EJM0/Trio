@@ -36,6 +36,14 @@ enum ChartSelectionLookup {
     /// short enough that the slot doesn't feel stuck after the finger is gone.
     static let decay: TimeInterval = 0.6
 
+    /// The fade the readout swaps in and out with, in both orientations. Driven from the
+    /// mutation site (`withAnimation`), not from an `.animation(_:value:)` on the container:
+    /// the container form animated the arrival but dropped the departure — by the time the
+    /// slot is emptied the view that carried the modifier is already on its way out — and it
+    /// animated anything else that happened to change in the same frame, the chart's pan
+    /// offset included. A transaction animates only what this function itself changes.
+    static let readoutFade: Animation = .easeInOut(duration: 0.15)
+
     /// How far a held determination may sit from the current selection before it is dropped
     /// instead of held. Two determination cadences: bridging a hole is fine, carrying values
     /// across a jump to a different part of the chart is not.

@@ -214,14 +214,11 @@ extension Home {
 
                 mealPanel()
                     .frame(height: HomeLayout.mealSlotHeight)
+                    // Fills and empties the slot, and fades it in and out while doing so
+                    // (`ChartSelectionLookup.readoutFade`) — the swap is animated where the
+                    // state changes, so the values inside can keep updating unanimated for as
+                    // long as the scrub is live.
                     .task(id: chartSelection) { await updateChartReadout() }
-                    // only the swap in and out animates; the values inside must not, or
-                    // scrubbing smears them. Appearing is immediate, letting go fades — the
-                    // readout should never look like it blinked out.
-                    .animation(
-                        chartReadoutDate == nil ? .easeOut(duration: 0.3) : .easeIn(duration: 0.12),
-                        value: chartReadoutDate == nil
-                    )
 
                 mainChart(geo: geo)
             }

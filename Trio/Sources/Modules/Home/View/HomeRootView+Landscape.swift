@@ -131,21 +131,14 @@ extension Home.RootView {
                 // the card sits in the middle of the scrubbing hand's travel; it must never
                 // swallow a touch meant for the chart underneath
                 .allowsHitTesting(false)
-                // Only the swap in and out animates, and only here — scoped to the card, not
-                // to the ZStack, or a pan landing in the same frame would animate the chart's
-                // offset with it. Appearing is immediate, letting go fades: the readout should
-                // never look like it blinked out.
-                .animation(
-                    chartReadoutDate == nil ? .easeOut(duration: 0.3) : .easeIn(duration: 0.12),
-                    value: chartReadoutDate == nil
-                )
         }
         // The chart plots time left-to-right and the housing is a physical cutout, so both
         // the plot and the frost are positioned in screen terms, not in reading order.
         .environment(\.layoutDirection, .leftToRight)
         .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         // The meal slot owns this in portrait; sideways there is no meal slot, so the decay
-        // that keeps the readout from flickering across data holes runs here instead.
+        // that keeps the readout from flickering across data holes — and the fade the card
+        // arrives and leaves with (`ChartSelectionLookup.readoutFade`) — runs here instead.
         .task(id: chartSelection) { await updateChartReadout() }
     }
 

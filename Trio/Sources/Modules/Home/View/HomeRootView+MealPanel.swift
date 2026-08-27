@@ -94,7 +94,14 @@ extension Home.RootView {
             var resolvedAnything = false
 
             if ChartSelectionLookup.glucose(at: selection, in: state.glucoseFromPersistence) != nil {
-                chartReadoutDate = selection
+                // Only the first step of a scrub swaps the slot, and only that step is worth
+                // animating: every step after it merely moves the values inside the readout,
+                // and fading those would smear digits several times a second.
+                if chartReadoutDate == nil {
+                    withAnimation(ChartSelectionLookup.readoutFade) { chartReadoutDate = selection }
+                } else {
+                    chartReadoutDate = selection
+                }
                 resolvedAnything = true
             }
 
@@ -117,8 +124,10 @@ extension Home.RootView {
         guard chartReadoutDate != nil || chartReadoutDeterminationDate != nil else { return }
         try? await Task.sleep(for: .seconds(ChartSelectionLookup.decay))
         guard !Task.isCancelled else { return }
-        chartReadoutDate = nil
-        chartReadoutDeterminationDate = nil
+        withAnimation(ChartSelectionLookup.readoutFade) {
+            chartReadoutDate = nil
+            chartReadoutDeterminationDate = nil
+        }
     }
 
     @ViewBuilder private var liveMealPanel: some View {
