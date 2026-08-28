@@ -42,6 +42,14 @@ extension Home {
         @State var isRefreshArmed = false
         @State var isForcingLoop = false
         @State var notificationsDisabled = false
+        /// Date under the finger while the main chart is being scrubbed, else nil. Owned
+        /// here because the readout lives in the meal slot, outside the chart.
+        @State var chartSelection: Date? = nil
+        /// Last scrub position that resolved to a glucose reading / to a determination. The
+        /// readout renders from these, not from `chartSelection`, so holes in either series
+        /// decay instead of flickering the slot (see `updateChartReadout`).
+        @State var chartReadoutDate: Date? = nil
+        @State var chartReadoutDeterminationDate: Date? = nil
 
         @FetchRequest(fetchRequest: OverrideStored.fetch(
             NSPredicate.lastActiveOverride,
@@ -81,7 +89,8 @@ extension Home {
                     displayXgridLines: state.displayXgridLines,
                     displayYgridLines: state.displayYgridLines,
                     thresholdLines: state.thresholdLines,
-                    state: state
+                    state: state,
+                    selection: $chartSelection
                 )
             }
             // enforce the zone budget; panes flex within it
@@ -200,7 +209,13 @@ extension Home {
                 // fixed slot: header state changes never reflow the zones below
                 .frame(height: HomeLayout.headerHeight)
 
-                mealPanel().frame(height: HomeLayout.mealSlotHeight)
+                mealPanel()
+                    .frame(height: HomeLayout.mealSlotHeight)
+                    // Fills and empties the slot, and fades the readout in and out while
+                    // doing so (`ChartSelectionLookup.readoutFade`) — the swap is animated
+                    // where the state changes, so the values inside can keep updating
+                    // unanimated for as long as the scrub is live.
+                    .task(id: chartSelection) { await updateChartReadout() }
 
                 mainChart(geo: geo)
             }
