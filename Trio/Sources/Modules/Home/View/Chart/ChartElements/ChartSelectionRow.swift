@@ -95,32 +95,38 @@ struct ChartSelectionRow: View {
         )
     }
 
-    /// `raw | smoothed` while smoothing is on, the raw SGV alone otherwise. Only the raw
-    /// value takes the glucose state color — it is the one the chart's dot and the ranges
-    /// refer to; separator and smoothed value stay neutral so they can't be misread as a
-    /// second state.
-    private var glucoseText: Text {
-        let raw = Text(glucoseToDisplay.description).foregroundStyle(pointMarkColor)
-        guard isSmoothingEnabled, let smoothed = selectedGlucose.smoothedGlucose else { return raw }
-        let smoothedToDisplay = units == .mgdL ? smoothed.decimalValue : smoothed.decimalValue.asMmolL
-        // verbatim: a bare separator has nothing to translate, and Xcode would otherwise
-        // extract it into the string catalog
-        return raw + Text(verbatim: " | ").fontWeight(.regular).foregroundStyle(.primary)
-            + Text(smoothedToDisplay.description).foregroundStyle(.primary)
-    }
+    /// A time long enough to reserve room for every other time the scrub can land on: a
+    /// two-digit hour, and — where the locale writes one — an AM/PM marker. Formatting a
+    /// sample date rather than hard-coding a string keeps that true in both 24- and
+    /// 12-hour locales.
+    private static let timeTemplateDate = Calendar.current
+        .date(from: DateComponents(year: 2000, month: 1, day: 1, hour: 22, minute: 38)) ?? .distantPast
 
     private var timeString: String {
         selectedGlucose.date?.formatted(.dateTime.hour().minute(.twoDigits)) ?? ""
     }
 
+    private var timeTemplate: String {
+        Self.timeTemplateDate.formatted(.dateTime.hour().minute(.twoDigits))
+    }
+
+    /// Widest reading the unit can produce: three digits in mg/dL, `88.8` in mmol/L.
+    private var glucoseTemplate: String { units == .mgdL ? "888" : "88.8" }
+
     var body: some View {
-        // Five groups on one row: nothing may truncate, so instead of letting SwiftUI squeeze
-        // one child to an ellipsis (which it did to the glucose value), every group is
-        // `fixedSize` and the whole row steps down a type size until it fits.
+        // Nothing may truncate, so instead of letting SwiftUI squeeze one child to an
+        // ellipsis (which it did to the glucose value), every group is `fixedSize` and the
+        // whole row steps down until it fits — type size first, then the air between the
+        // groups. `ViewThatFits` falls back to its *last* candidate when none fits, so the
+        // smallest step has to be small enough for the widest row this can produce: five
+        // groups, smoothing on, at the widest template of each. Anything less and the panel
+        // spills off the screen edge instead of shrinking.
         ViewThatFits(in: .horizontal) {
-            row(font: .callout)
-            row(font: .subheadline)
-            row(font: .footnote)
+            row(font: .callout, spacing: 12)
+            row(font: .subheadline, spacing: 10)
+            row(font: .footnote, spacing: 8)
+            row(font: .caption, spacing: 6)
+            row(font: .caption2, spacing: 4)
         }
         // Scrubbing changes these values several times a second; animating them would smear
         // digits across the row.
@@ -130,62 +136,135 @@ struct ChartSelectionRow: View {
         .glassPanel(tint: pointMarkColor, tintOpacity: 0.10, strokeOpacity: 0.25)
     }
 
-    @ViewBuilder private func row(font: Font) -> some View {
-        HStack(spacing: 0) {
-            // the row is only ever shown for a scrub, so the time needs no clock glyph to
-            // say what it is
-            Text(timeString)
-                .fixedSize(horizontal: true, vertical: false)
+    /// Fixed spacing rather than `Spacer`s, so the row hugs its content: with no
+    /// determination to read, the panel is just time and glucose and shrinks to fit them,
+    /// instead of stretching the slot's full width around two values.
+    @ViewBuilder private func row(font: Font, spacing: CGFloat) -> some View {
+        HStack(spacing: spacing) {
+            item(
+                icon: "clock",
+                tint: .secondary,
+                value: Text(timeString),
+                template: Text(timeTemplate)
+            )
 
-            Spacer(minLength: 6)
-
-            // The glucose value carries its own state color, and the unit is the app-wide one
-            // the bobble omits too — so it needs neither icon nor suffix to be read. With
-            // smoothing on it reads `raw | smoothed`, both values in one group rather than a
-            // second one across the row.
-            glucoseText
-                .fixedSize(horizontal: true, vertical: false)
+            glucoseGroup
 
             if let iob = determination?.iob {
-                Spacer(minLength: 6)
-                item(icon: "syringe.fill", tint: Color.insulin) {
-                    Text(Formatter.decimalFormatterWithTwoFractionDigits.string(from: iob) ?? "")
-                        + Text(String(localized: " U", comment: "Insulin unit")).fontWeight(.regular)
-                }
+                let unit = Text(String(localized: " U", comment: "Insulin unit")).fontWeight(.regular)
+                item(
+                    icon: "syringe.fill",
+                    tint: Color.insulin,
+                    value: Text(Formatter.decimalFormatterWithTwoFractionDigits.string(from: iob) ?? "") + unit,
+                    template: Text(verbatim: "88.88") + unit
+                )
             }
 
             if let determination {
-                Spacer(minLength: 6)
-                item(icon: "fork.knife", tint: .loopYellow) {
-                    Text(Formatter.integerFormatter.string(from: determination.cob as NSNumber) ?? "")
-                        + Text(String(localized: " g", comment: "gram of carbs")).fontWeight(.regular)
-                }
+                let unit = Text(String(localized: " g", comment: "gram of carbs")).fontWeight(.regular)
+                item(
+                    icon: "fork.knife",
+                    tint: .loopYellow,
+                    value: Text(Formatter.integerFormatter.string(from: determination.cob as NSNumber) ?? "") + unit,
+                    template: Text(verbatim: "888") + unit
+                )
             }
 
             if let isf = determination?.insulinSensitivity {
-                Spacer(minLength: 6)
-                item(icon: "arrow.up.arrow.down", tint: .secondary) {
-                    Text(Formatter.integerFormatter.string(from: isf) ?? "")
-                        + Text(String(localized: " ISF", comment: "Insulin Sensitivity Factor")).fontWeight(.regular)
-                }
+                let unit = Text(String(localized: " ISF", comment: "Insulin Sensitivity Factor")).fontWeight(.regular)
+                item(
+                    icon: "arrow.up.arrow.down",
+                    tint: .secondary,
+                    value: Text(Formatter.integerFormatter.string(from: isf) ?? "") + unit,
+                    template: Text(verbatim: "888") + unit
+                )
             }
         }
         .font(font).fontWeight(.bold).fontDesign(.rounded)
+        // equal-width digits: with the reserved boxes below, this is what keeps a value from
+        // wobbling inside its own box as the scrub runs
+        .monospacedDigit()
         .lineLimit(1)
     }
 
-    /// One icon + value pair, laid out like the meal row's own groups.
+    /// The reading itself, and — with smoothing on — the smoothed value behind the sparkles
+    /// glyph that marks it as smoothed elsewhere in the app. Only the raw value takes the
+    /// glucose state color: it is the one the chart's dot and the ranges refer to, so the
+    /// glyph and the smoothed value stay neutral and can't be misread as a second state.
+    /// No unit suffix — it is the app-wide one the glucose bobble omits too.
+    ///
+    /// The reading and the smoothed pair get a reserved box each, so the glyph and the
+    /// smoothed value hold their own position rather than riding on the reading's width:
+    /// crossing `98` → `105` no longer slides them along the row. The two boxes are read as
+    /// one number, so their slack is pushed outwards rather than between them — the reading
+    /// sits at the trailing edge of its box, the glyph and its value at the leading edge of
+    /// theirs, and the pair stays welded together at every reading width.
+    @ViewBuilder private var glucoseGroup: some View {
+        HStack(spacing: 4) {
+            item(
+                value: Text(glucoseToDisplay.description).foregroundStyle(pointMarkColor),
+                template: Text(glucoseTemplate),
+                // Flush right when the smoothed pair follows: the reading's spare digit then
+                // shows up ahead of the reading, where the row already has slack, instead of
+                // opening a gap between the reading and the glyph that belongs to it.
+                alignment: smoothedToDisplay == nil ? .leading : .trailing
+            )
+
+            if let smoothedToDisplay {
+                // verbatim: a bare separating space has nothing to translate, and Xcode would
+                // otherwise extract it into the string catalog
+                let glyph = Text(Image(systemName: "sparkles")).foregroundStyle(.tertiary) + Text(verbatim: " ")
+                item(
+                    value: glyph + Text(smoothedToDisplay.description),
+                    template: glyph + Text(glucoseTemplate)
+                )
+            }
+        }
+    }
+
+    /// The smoothed reading in display units, or nil when smoothing is off or the reading
+    /// has no smoothed value of its own.
+    private var smoothedToDisplay: Decimal? {
+        guard isSmoothingEnabled, let smoothed = selectedGlucose.smoothedGlucose else { return nil }
+        return units == .mgdL ? smoothed.decimalValue : smoothed.decimalValue.asMmolL
+    }
+
+    /// One value, with the glyph that labels it, laid out in the width `template` needs —
+    /// so a reading that gains or loses a digit mid-scrub cannot resize its own group and
+    /// shove everything after it sideways. Every element in the row therefore keeps its
+    /// position for as long as the same fields are on screen.
+    ///
+    /// The template is laid out and hidden, the real value drawn over it. Hidden views are
+    /// excluded from accessibility, so VoiceOver reads only the value. `Text` rather than
+    /// `String`, so a unit travels inside the box with its own weight — and is measured in
+    /// the template too, since a bold `88.88` and a regular ` U` are not the same width.
+    /// Left outside the box, a unit would be pushed off its number by exactly the slack this
+    /// is meant to absorb.
+    ///
+    /// Leading-aligned by default, so the slack collects at the group's trailing edge rather
+    /// than anywhere inside it: value and unit stay tucked against their glyph, and every bit
+    /// of spare room reads as the gap before the next icon. A box whose content is labelled
+    /// from the right — the reading, with the smoothed pair behind it — passes `.trailing`
+    /// instead, for the same reason read the other way round.
     @ViewBuilder private func item(
-        icon: String,
-        tint: Color,
-        @ViewBuilder value: () -> some View
+        icon: String? = nil,
+        tint: Color = .secondary,
+        value: Text,
+        template: Text,
+        alignment: Alignment = .leading
     ) -> some View {
         HStack(spacing: 4) {
-            // scales with whichever step `ViewThatFits` settled on, instead of pinning a size
-            Image(systemName: icon)
-                .imageScale(.small)
-                .foregroundStyle(tint)
-            value()
+            if let icon {
+                // scales with whichever step `ViewThatFits` settled on, instead of pinning a size
+                Image(systemName: icon)
+                    .imageScale(.small)
+                    .foregroundStyle(tint)
+            }
+            template
+                .hidden()
+                .overlay(alignment: alignment) {
+                    value.fixedSize(horizontal: true, vertical: false)
+                }
         }
         .fixedSize(horizontal: true, vertical: false)
     }
