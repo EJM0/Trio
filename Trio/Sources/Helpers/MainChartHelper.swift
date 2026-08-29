@@ -114,9 +114,13 @@ enum MainChartHelper {
         date: (T) -> Date?
     ) -> [T] {
         guard !sorted.isEmpty, start <= end else { return [] }
-        let key: (T) -> Date = ascendingInput
-            ? { date($0) ?? .distantPast }
-            : { date($0) ?? .distantFuture }
+
+        // A nested function rather than a stored closure: assigning one to a `let` would make
+        // it escaping, and `date` is a non-escaping parameter. A dateless entry is sent to
+        // whichever end the search walks away from, so it falls outside the range either way.
+        func key(_ element: T) -> Date {
+            date(element) ?? (ascendingInput ? .distantPast : .distantFuture)
+        }
 
         // First index whose key satisfies `predicate`. Valid because each predicate below is
         // monotone over the array's own direction: false for a prefix, true for the rest.
@@ -140,7 +144,7 @@ enum MainChartHelper {
         guard low < high else { return [] }
 
         let kept = sorted[low ..< high].filter { date($0) != nil }
-        return ascendingInput == ascendingOutput ? kept : kept.reversed()
+        return ascendingInput == ascendingOutput ? kept : Array(kept.reversed())
     }
 
     enum Config {
