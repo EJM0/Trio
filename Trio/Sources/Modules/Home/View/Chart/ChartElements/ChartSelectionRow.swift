@@ -116,22 +116,35 @@ struct ChartSelectionRow: View {
     var body: some View {
         // Nothing may truncate, so instead of letting SwiftUI squeeze one child to an
         // ellipsis (which it did to the glucose value), every group is `fixedSize` and the
-        // whole row steps down until it fits — type size first, then the air between the
-        // groups. `ViewThatFits` falls back to its *last* candidate when none fits, so the
-        // smallest step has to be small enough for the widest row this can produce: five
-        // groups, smoothing on, at the widest template of each. Anything less and the panel
-        // spills off the screen edge instead of shrinking.
+        // whole row steps down until it fits. The air between the groups is spent before the
+        // type size is: a step that only closes the gaps costs nothing but whitespace, while
+        // a step down in type shrinks every value at once. Pairing the two — as a single
+        // ladder of five (font, spacing) pairs did — makes the row pay both prices for one
+        // step, so adding the ISF group dropped it two sizes when tighter spacing alone
+        // would have carried it. Each size is therefore offered at its full spacing and
+        // again at its tightest before the next size down is tried.
+        //
+        // `ViewThatFits` falls back to its *last* candidate when none fits, so the smallest
+        // step has to be small enough for the widest row this can produce: five groups,
+        // smoothing on, at the widest template of each. Anything less and the panel spills
+        // off the screen edge instead of shrinking.
         ViewThatFits(in: .horizontal) {
             row(font: .callout, spacing: 12)
-            row(font: .subheadline, spacing: 10)
+            row(font: .callout, spacing: 8)
+            row(font: .callout, spacing: 5)
+            row(font: .subheadline, spacing: 8)
+            row(font: .subheadline, spacing: 5)
             row(font: .footnote, spacing: 8)
-            row(font: .caption, spacing: 6)
+            row(font: .footnote, spacing: 5)
+            row(font: .caption, spacing: 4)
             row(font: .caption2, spacing: 4)
         }
         // Scrubbing changes these values several times a second; animating them would smear
         // digits across the row.
         .animation(nil, value: selectedGlucose.date)
-        .padding(.horizontal, 12)
+        // Trimmed from 12: the panel's inset is width the row cannot use, and with five
+        // groups every point of it is the difference between one type size and the next.
+        .padding(.horizontal, 8)
         .padding(.vertical, 5)
         .glassPanel(tint: pointMarkColor, tintOpacity: 0.10, strokeOpacity: 0.25)
     }
@@ -253,7 +266,9 @@ struct ChartSelectionRow: View {
         template: Text,
         alignment: Alignment = .leading
     ) -> some View {
-        HStack(spacing: 4) {
+        // 3 rather than 4: the glyph reads as a label on the value beside it, so the pair can
+        // sit closer than two neighbouring groups do, and five groups pay this gap five times.
+        HStack(spacing: 3) {
             if let icon {
                 // scales with whichever step `ViewThatFits` settled on, instead of pinning a size
                 Image(systemName: icon)
