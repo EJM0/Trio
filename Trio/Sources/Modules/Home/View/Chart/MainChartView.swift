@@ -92,6 +92,10 @@ struct MainChartView: View {
     /// the selection instead of panning, until the finger lifts.
     @State private var isInspectLatched = false
 
+    /// Whether the touch currently down has been part of a pinch. A pinch consumes the
+    /// whole touch: see the guard in `panAndInspectGesture`.
+    @State private var touchWasPinching = false
+
     /// Most recent finger location, so the hold timer can place the selection even if the
     /// finger produced no further events after touch-down.
     @State private var lastTouchLocation: CGPoint?
@@ -824,8 +828,15 @@ extension MainChartView {
                     panBaseline = nil
                     touchDownTime = nil
                     isInspectLatched = false
+                    touchWasPinching = true
                     return
                 }
+                // A touch that has been part of a pinch is spent. Lifting one finger ends the
+                // magnify gesture but leaves this drag alive on the other, still carrying
+                // everything that finger did *during* the pinch: its travel would be read as
+                // a pan the moment the pinch ends, and its speed at lift-off as a fling. The
+                // zoom is the gesture; panning starts from a fresh touch.
+                guard !touchWasPinching else { return }
                 lastTouchLocation = value.location
                 if touchDownTime == nil {
                     touchDownTime = value.time
@@ -870,8 +881,10 @@ extension MainChartView {
                 isInspectLatched = false
                 lastTouchLocation = nil
                 let wasPanning = panBaseline != nil
+                let wasPinching = touchWasPinching
                 panBaseline = nil
-                guard wasPanning, !isPinching else { return }
+                touchWasPinching = false
+                guard wasPanning, !wasPinching, !isPinching else { return }
                 // Momentum: initial velocity in seconds of chart time per second.
                 let velocity = -timeDelta(forTranslation: value.velocity.width)
                 startMomentum(velocitySecondsPerSecond: velocity)
