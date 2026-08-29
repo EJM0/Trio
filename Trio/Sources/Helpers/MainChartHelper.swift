@@ -217,6 +217,19 @@ enum MainChartHelper {
         /// Bolus bar height = `(amount / maxAmount) ^ bolusHeightExponent * maxHeight`.
         /// `1.0` = linear, `0.5` = sqrt. Lower → small SMBs grow and big bars stay capped.
         static let bolusHeightExponent: Double = 0.6
+
+        /// Gap between the bottom of the COB/IOB plot and the top of the x-axis time
+        /// labels below it.
+        static let xAxisLabelTopGap: CGFloat = 4
+
+        /// First-frame stand-in for the height of an x-axis time label, until the strip
+        /// has laid out once and reported its real height (`MainChartView.axisStripHeight`).
+        /// Font metrics rather than a fixed number, so even the very first frame is close
+        /// at any Dynamic Type size; it is not accurate enough to rely on beyond that,
+        /// since a script with taller glyphs than Latin exceeds the font's own line height.
+        static var estimatedXAxisLabelHeight: CGFloat {
+            UIFont.preferredFont(forTextStyle: .footnote).lineHeight
+        }
     }
 
     /// Bar width: piecewise on `screenHours`, narrower for SMB-class doses. Tightens with
@@ -286,6 +299,43 @@ enum MainChartHelper {
         let minValue = min(min(minCob, iobMin), minIsf)
         let maxValue = max(max(maxCob, iobMax), maxIsf)
         return Double(minValue) ... Double(maxValue)
+    }
+
+    /// X-axis grid/label stride for the current continuous zoom level. Same ladder as the
+    /// old presets: up to 6 h visible -> 1 h, up to 12 h -> 2 h, wider -> 4 h.
+    static func xAxisStrideHours(visibleSeconds: TimeInterval) -> Int {
+        let visibleHours = visibleSeconds / 3600
+        if visibleHours <= 6 { return 1 }
+        if visibleHours <= 12 { return 2 }
+        return 4
+    }
+
+    /// Calendar-hour axis mark dates for the given range, anchored to absolute time
+    /// (multiples of the stride counted from midnight, DST-safe via `Calendar`), unlike
+    /// `.stride(by: .hour, count:)`, which anchors its sequence to the domain start.
+    ///
+    /// Shared by the canvas panes (which draw the grid lines) and the shell's x-axis
+    /// overlay (which draws the labels), so labels always land on their own grid lines.
+    static func hourAxisMarks(
+        over range: ClosedRange<Date>,
+        calendar: Calendar,
+        visibleSeconds: TimeInterval
+    ) -> [Date] {
+        let strideHours = xAxisStrideHours(visibleSeconds: visibleSeconds)
+        var components = calendar.dateComponents([.year, .month, .day, .hour], from: range.lowerBound)
+        let hour = components.hour ?? 0
+        components.hour = hour - hour % strideHours
+        guard var mark = calendar.date(from: components) else { return [] }
+
+        var marks: [Date] = []
+        while mark <= range.upperBound {
+            if mark >= range.lowerBound {
+                marks.append(mark)
+            }
+            guard let next = calendar.date(byAdding: .hour, value: strideHours, to: mark) else { break }
+            mark = next
+        }
+        return marks
     }
 
     static func bolusOffset(units: GlucoseUnits) -> Decimal {
@@ -378,67 +428,24 @@ extension MainChartCanvas {
         }
     }
 
-    /// X-axis grid/label stride for the current continuous zoom level. Same ladder as the
-    /// old presets: up to 6 h visible -> 1 h, up to 12 h -> 2 h, wider -> 4 h.
-    var xAxisStrideHours: Int {
-        let visibleHours = visibleSeconds / 3600
-        if visibleHours <= 6 { return 1 }
-        if visibleHours <= 12 { return 2 }
-        return 4
+    /// Mark dates for the rendered window, at the current zoom's hour stride.
+    var hourAxisMarks: [Date] {
+        MainChartHelper.hourAxisMarks(
+            over: windowStart ... windowEnd,
+            calendar: calendar,
+            visibleSeconds: visibleSeconds
+        )
     }
 
-    /// Calendar-hour axis mark dates for the given range, anchored to absolute time
-    /// (multiples of `xAxisStrideHours` counted from midnight, DST-safe via `Calendar`),
-    /// unlike `.stride(by: .hour, count:)`, which anchors its sequence to the domain start.
-    func hourAxisMarks(over range: ClosedRange<Date>) -> [Date] {
-        let strideHours = xAxisStrideHours
-        var components = calendar.dateComponents([.year, .month, .day, .hour], from: range.lowerBound)
-        let hour = components.hour ?? 0
-        components.hour = hour - hour % strideHours
-        guard var mark = calendar.date(from: components) else { return [] }
-
-        var marks: [Date] = []
-        while mark <= range.upperBound {
-            if mark >= range.lowerBound {
-                marks.append(mark)
-            }
-            guard let next = calendar.date(byAdding: .hour, value: strideHours, to: mark) else { break }
-            mark = next
-        }
-        return marks
-    }
-
+    /// Grid lines only — for every pane. The hour labels are no longer an axis component
+    /// at all: they are drawn by the shell (`MainChartView.xAxisOverlay`), which can swap
+    /// them for the scrub's own time label without re-laying the canvas out.
     var mainChartXAxis: some AxisContent {
-        AxisMarks(values: hourAxisMarks(over: windowStart ... windowEnd)) { _ in
+        AxisMarks(values: hourAxisMarks) { _ in
             if displayXgridLines {
                 AxisGridLine(stroke: .init(lineWidth: 0.5, dash: [2, 3]))
             } else {
                 AxisGridLine(stroke: .init(lineWidth: 0, dash: [2, 3]))
-            }
-        }
-    }
-
-    /// Grid lines PLUS hour labels. Used only by the bottom (COB/IOB) pane so the time
-    /// labels render exactly once for the whole stack; the basal and glucose panes use
-    /// `mainChartXAxis` (grid lines only) at the same absolute-anchored mark dates.
-    var basalChartXAxis: some AxisContent {
-        AxisMarks(values: hourAxisMarks(over: windowStart ... windowEnd)) { value in
-            if displayXgridLines {
-                AxisGridLine(stroke: .init(lineWidth: 0.5, dash: [2, 3]))
-            } else {
-                AxisGridLine(stroke: .init(lineWidth: 0, dash: [2, 3]))
-            }
-            // Midnight ticks carry the day ("TUE 07") so panned-back history
-            // stays unambiguous; all other ticks show the hour.
-            if let date = value.as(Date.self), calendar.component(.hour, from: date) == 0 {
-                AxisValueLabel(anchor: .top) {
-                    Text(date.formatted(.dateTime.weekday(.abbreviated).day(.twoDigits)).uppercased())
-                        .font(.footnote).bold()
-                        .foregroundStyle(Color.primary)
-                }
-            } else {
-                AxisValueLabel(format: .dateTime.hour(.defaultDigits(amPM: .narrow)), anchor: .top)
-                    .font(.footnote).foregroundStyle(Color.primary)
             }
         }
     }

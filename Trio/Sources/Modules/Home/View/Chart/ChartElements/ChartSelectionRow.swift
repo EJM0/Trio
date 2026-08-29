@@ -66,6 +66,10 @@ enum ChartSelectionLookup {
 /// The selection readout, rendered in the Home meal slot in place of IOB / COB / delivery
 /// rate for as long as a scrub is live.
 ///
+/// No time: the scrub's time is written on the chart's own x axis, under the selection
+/// indicator, where it travels with the finger (`MainChartView.xAxisOverlay`). Repeating it
+/// here would only ask the eye to leave the point it is reading to find out "when".
+///
 /// It used to be a card floating over the glucose pane, which covered the very data it
 /// described — worst exactly where the finger already is. The meal row is a fixed 44 pt slot
 /// that is always on screen and whose live values the readout supersedes anyway, so taking
@@ -95,72 +99,31 @@ struct ChartSelectionRow: View {
         )
     }
 
-    /// A time long enough to reserve room for every other time the scrub can land on: a
-    /// two-digit hour, and — where the locale writes one — an AM/PM marker. Formatting a
-    /// sample date rather than hard-coding a string keeps that true in both 24- and
-    /// 12-hour locales.
-    private static let timeTemplateDate = Calendar.current
-        .date(from: DateComponents(year: 2000, month: 1, day: 1, hour: 22, minute: 38)) ?? .distantPast
-
-    private var timeString: String {
-        selectedGlucose.date?.formatted(.dateTime.hour().minute(.twoDigits)) ?? ""
-    }
-
-    private var timeTemplate: String {
-        Self.timeTemplateDate.formatted(.dateTime.hour().minute(.twoDigits))
-    }
-
     /// Widest reading the unit can produce: three digits in mg/dL, `88.8` in mmol/L.
     private var glucoseTemplate: String { units == .mgdL ? "888" : "88.8" }
 
     var body: some View {
         // Nothing may truncate, so instead of letting SwiftUI squeeze one child to an
         // ellipsis (which it did to the glucose value), every group is `fixedSize` and the
-        // whole row steps down until it fits. The air between the groups is spent before the
-        // type size is: a step that only closes the gaps costs nothing but whitespace, while
-        // a step down in type shrinks every value at once. Pairing the two — as a single
-        // ladder of five (font, spacing) pairs did — makes the row pay both prices for one
-        // step, so adding the ISF group dropped it two sizes when tighter spacing alone
-        // would have carried it. Each size is therefore offered at its full spacing and
-        // again at its tightest before the next size down is tried.
-        //
-        // `ViewThatFits` falls back to its *last* candidate when none fits, so the smallest
-        // step has to be small enough for the widest row this can produce: five groups,
-        // smoothing on, at the widest template of each. Anything less and the panel spills
-        // off the screen edge instead of shrinking.
+        // whole row steps down a type size until it fits.
         ViewThatFits(in: .horizontal) {
-            row(font: .callout, spacing: 12)
-            row(font: .callout, spacing: 8)
-            row(font: .callout, spacing: 5)
-            row(font: .subheadline, spacing: 8)
-            row(font: .subheadline, spacing: 5)
-            row(font: .footnote, spacing: 8)
-            row(font: .footnote, spacing: 5)
-            row(font: .caption, spacing: 4)
-            row(font: .caption2, spacing: 4)
+            row(font: .callout)
+            row(font: .subheadline)
+            row(font: .footnote)
         }
         // Scrubbing changes these values several times a second; animating them would smear
         // digits across the row.
         .animation(nil, value: selectedGlucose.date)
-        // Trimmed from 12: the panel's inset is width the row cannot use, and with five
-        // groups every point of it is the difference between one type size and the next.
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 12)
         .padding(.vertical, 5)
         .glassPanel(tint: pointMarkColor, tintOpacity: 0.10, strokeOpacity: 0.25)
     }
 
     /// Fixed spacing rather than `Spacer`s, so the row hugs its content: with no
-    /// determination to read, the panel is just time and glucose and shrinks to fit them,
-    /// instead of stretching the slot's full width around two values.
-    @ViewBuilder private func row(font: Font, spacing: CGFloat) -> some View {
-        HStack(spacing: spacing) {
-            item(
-                icon: "clock",
-                tint: .secondary,
-                value: Text(timeString),
-                template: Text(timeTemplate)
-            )
-
+    /// determination to read, the panel is just the reading and shrinks to fit it, instead
+    /// of stretching the slot's full width around one value.
+    @ViewBuilder private func row(font: Font) -> some View {
+        HStack(spacing: 12) {
             glucoseGroup
 
             if let iob = determination?.iob {
@@ -266,9 +229,7 @@ struct ChartSelectionRow: View {
         template: Text,
         alignment: Alignment = .leading
     ) -> some View {
-        // 3 rather than 4: the glyph reads as a label on the value beside it, so the pair can
-        // sit closer than two neighbouring groups do, and five groups pay this gap five times.
-        HStack(spacing: 3) {
+        HStack(spacing: 4) {
             if let icon {
                 // scales with whichever step `ViewThatFits` settled on, instead of pinning a size
                 Image(systemName: icon)
