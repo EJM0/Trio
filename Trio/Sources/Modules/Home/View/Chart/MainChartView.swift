@@ -96,6 +96,11 @@ struct MainChartView: View {
     /// whole touch: see the guard in `panAndInspectGesture`.
     @State private var touchWasPinching = false
 
+    /// Where the touch currently being tracked began. `DragGesture` holds `startLocation`
+    /// fixed for the life of one drag, so a change of it is the one reliable signal that a
+    /// *new* touch has started — which is what the per-touch state has to be reset on.
+    @State private var touchStartLocation: CGPoint?
+
     /// Most recent finger location, so the hold timer can place the selection even if the
     /// finger produced no further events after touch-down.
     @State private var lastTouchLocation: CGPoint?
@@ -831,17 +836,33 @@ extension MainChartView {
                     touchWasPinching = true
                     return
                 }
+                // First frame of a new touch: reset everything the last one left behind.
+                //
+                // This has to key off `startLocation` rather than `onEnded` having run,
+                // because a drag that is *cancelled* never delivers `onEnded` — and that is
+                // exactly what happens to this one when a second finger lands and the pinch
+                // takes over. Its `panBaseline` then survives the gesture, and the next
+                // touch, however still, fails the `panBaseline == nil` test below, takes the
+                // pan branch, and snaps `scrollPosition` straight to that stale baseline.
+                // That is the jump: tap once after a pinch and the chart teleports to
+                // wherever the pan before the pinch had been heading.
+                if touchStartLocation != value.startLocation {
+                    touchStartLocation = value.startLocation
+                    panBaseline = nil
+                    touchWasPinching = false
+                    isInspectLatched = false
+                    touchDownTime = value.time
+                    scheduleInspectHold()
+                }
+
                 // A touch that has been part of a pinch is spent. Lifting one finger ends the
                 // magnify gesture but leaves this drag alive on the other, still carrying
                 // everything that finger did *during* the pinch: its travel would be read as
                 // a pan the moment the pinch ends, and its speed at lift-off as a fling. The
-                // zoom is the gesture; panning starts from a fresh touch.
+                // zoom is the gesture; panning starts from a fresh touch — which the reset
+                // above recognises, since that touch brings a new `startLocation`.
                 guard !touchWasPinching else { return }
                 lastTouchLocation = value.location
-                if touchDownTime == nil {
-                    touchDownTime = value.time
-                    scheduleInspectHold()
-                }
 
                 // Once inspect has engaged, the rest of this touch scrubs the selection —
                 // selection is rendered by a shell overlay, so scrubbing never re-lays
@@ -884,6 +905,7 @@ extension MainChartView {
                 let wasPinching = touchWasPinching
                 panBaseline = nil
                 touchWasPinching = false
+                touchStartLocation = nil
                 guard wasPanning, !wasPinching, !isPinching else { return }
                 // Momentum: initial velocity in seconds of chart time per second.
                 let velocity = -timeDelta(forTranslation: value.velocity.width)
