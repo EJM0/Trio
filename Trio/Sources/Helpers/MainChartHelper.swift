@@ -261,6 +261,87 @@ enum MainChartHelper {
         }
     }
 
+    /// Visual scaling applied to IOB values on the shared COB/IOB axis (COB is usually
+    /// much larger than IOB). Single source of truth for the chart marks, the y-domain,
+    /// and the shell's selection overlay.
+    static func scaledIobAmount<T: Numeric & Comparable>(_ rawAmount: T) -> T
+        where T: ExpressibleByIntegerLiteral
+    {
+        rawAmount > 0 ? rawAmount * 8 : rawAmount * 9
+    }
+
+    /// The combined y-domain of the COB/IOB chart. Used by both the canvas chart and the
+    /// shell's selection overlay, which must agree exactly on the value-to-pixel mapping.
+    /// The ISF line shares the same axis, so its values widen the domain when present.
+    static func cobIobYDomain(
+        minCob: Decimal,
+        maxCob: Decimal,
+        minIob: Decimal,
+        maxIob: Decimal,
+        minIsf: Decimal = 0,
+        maxIsf: Decimal = 0
+    ) -> ClosedRange<Double> {
+        let iobMin = scaledIobAmount(minIob)
+        let iobMax = scaledIobAmount(maxIob)
+        // ISF bounds arrive pre-computed (0...0 when there is no ISF data); folding them in
+        // must stay O(1) because the selection overlay calls this on every scrub frame.
+        let minValue = min(min(minCob, iobMin), minIsf)
+        let maxValue = max(max(maxCob, iobMax), maxIsf)
+        return Double(minValue) ... Double(maxValue)
+    }
+
+    /// X-axis grid/label stride for the current continuous zoom level. Same ladder as the
+    /// old presets: up to 6 h visible -> 1 h, up to 12 h -> 2 h, wider -> 4 h.
+    static func xAxisStrideHours(visibleSeconds: TimeInterval) -> Int {
+        let visibleHours = visibleSeconds / 3600
+        if visibleHours <= 6 { return 1 }
+        if visibleHours <= 12 { return 2 }
+        return 4
+    }
+
+    /// Granularity of the peak picker, banded rather than continuous.
+    ///
+    /// It used to be `visibleHours / 4`, a continuous function of a value that moves on the
+    /// 4 % pinch-commit grid — so one pinch re-derived the whole peak set several times over,
+    /// each run mutating `glucosePeaks` and invalidating the canvas a second time on top of
+    /// the zoom's own re-layout. The bands return exactly what the old formula did at the top
+    /// of each one, so the peaks a given zoom shows are unchanged; they simply stop being
+    /// recomputed between boundaries — which also stops the labels reshuffling mid-gesture.
+    static func peakWindowHours(visibleHours: Double) -> Double {
+        if visibleHours <= 2 { return 0.5 }
+        if visibleHours <= 6 { return 1.5 }
+        if visibleHours <= 12 { return 3 }
+        return 6
+    }
+
+    /// Calendar-hour axis mark dates for the given range, anchored to absolute time
+    /// (multiples of the stride counted from midnight, DST-safe via `Calendar`), unlike
+    /// `.stride(by: .hour, count:)`, which anchors its sequence to the domain start.
+    ///
+    /// Shared by the canvas panes (which draw the grid lines) and the shell's x-axis
+    /// overlay (which draws the labels), so labels always land on their own grid lines.
+    static func hourAxisMarks(
+        over range: ClosedRange<Date>,
+        calendar: Calendar,
+        visibleSeconds: TimeInterval
+    ) -> [Date] {
+        let strideHours = xAxisStrideHours(visibleSeconds: visibleSeconds)
+        var components = calendar.dateComponents([.year, .month, .day, .hour], from: range.lowerBound)
+        let hour = components.hour ?? 0
+        components.hour = hour - hour % strideHours
+        guard var mark = calendar.date(from: components) else { return [] }
+
+        var marks: [Date] = []
+        while mark <= range.upperBound {
+            if mark >= range.lowerBound {
+                marks.append(mark)
+            }
+            guard let next = calendar.date(byAdding: .hour, value: strideHours, to: mark) else { break }
+            mark = next
+        }
+        return marks
+    }
+
     /// Whether a bolus carries its dose label. Pure comparison — no scanning, no Core Data
     /// access beyond the mark's own amount.
     ///

@@ -50,7 +50,6 @@ extension MainChartCanvas {
         let profileMax = basalProfiles.map(\.amount).max() ?? 0
         return max(tempMax, profileMax, 0.1)
     }
-
 }
 
 // MARK: - Draw functions
