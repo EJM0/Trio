@@ -493,7 +493,10 @@
 		BD11A001000000000000A012 /* RileyLinkKitAlertEmissionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11A000000000000000A012 /* RileyLinkKitAlertEmissionTests.swift */; };
 		BD11A001000000000000A013 /* TandemKitAlertEmissionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11A000000000000000A013 /* TandemKitAlertEmissionTests.swift */; };
 		BD11A001000000000000A014 /* AlertColdStartReplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11A000000000000000A014 /* AlertColdStartReplayTests.swift */; };
-		BD11C001000000000000C001 /* CGMSensorDisplayState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11C000000000000000C001 /* CGMSensorDisplayState.swift */; };
+		BD11C001000000000000C012 /* SensorRemainingTimeFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11C000000000000000C001 /* SensorRemainingTimeFormatter.swift */; };
+		BD11C001000000000000C010 /* CGMSensorLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11C000000000000000C010 /* CGMSensorLifecycle.swift */; };
+		BD11C001000000000000C011 /* PeripheralsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11C000000000000000C011 /* PeripheralsView.swift */; };
+		BD11C001000000000000C001 /* SensorRemainingTimeFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11C000000000000000C001 /* SensorRemainingTimeFormatter.swift */; };
 		BD11C001000000000000C003 /* SensorLifecycleArcView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11C000000000000000C003 /* SensorLifecycleArcView.swift */; };
 		BD11C001000000000000C004 /* SensorStatusTagView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11C000000000000000C004 /* SensorStatusTagView.swift */; };
 		BD136FAE2F6AC55F002217F9 /* NSFetchedResultsControllerDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD136FAD2F6AC555002217F9 /* NSFetchedResultsControllerDelegate.swift */; };
@@ -1545,7 +1548,9 @@
 		BD11A000000000000000A012 /* RileyLinkKitAlertEmissionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RileyLinkKitAlertEmissionTests.swift; sourceTree = "<group>"; };
 		BD11A000000000000000A013 /* TandemKitAlertEmissionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TandemKitAlertEmissionTests.swift; sourceTree = "<group>"; };
 		BD11A000000000000000A014 /* AlertColdStartReplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertColdStartReplayTests.swift; sourceTree = "<group>"; };
-		BD11C000000000000000C001 /* CGMSensorDisplayState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGMSensorDisplayState.swift; sourceTree = "<group>"; };
+		BD11C000000000000000C010 /* CGMSensorLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGMSensorLifecycle.swift; sourceTree = "<group>"; };
+		BD11C000000000000000C011 /* PeripheralsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeripheralsView.swift; sourceTree = "<group>"; };
+		BD11C000000000000000C001 /* SensorRemainingTimeFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorRemainingTimeFormatter.swift; sourceTree = "<group>"; };
 		BD11C000000000000000C003 /* SensorLifecycleArcView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorLifecycleArcView.swift; sourceTree = "<group>"; };
 		BD11C000000000000000C004 /* SensorStatusTagView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorStatusTagView.swift; sourceTree = "<group>"; };
 		BD136FAD2F6AC555002217F9 /* NSFetchedResultsControllerDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NSFetchedResultsControllerDelegate.swift; sourceTree = "<group>"; };
@@ -2752,6 +2757,7 @@
 				F816825D28DB441200054060 /* HeartBeatManager.swift */,
 				38569346270B5DFB0002C50D /* AppGroupSource.swift */,
 				38569344270B5DFA0002C50D /* CGMType.swift */,
+				BD11C000000000000000C010 /* CGMSensorLifecycle.swift */,
 				38569345270B5DFA0002C50D /* GlucoseSource.swift */,
 				E013D871273AC6FE0014109C /* GlucoseSimulatorSource.swift */,
 				CE95BF592BA62E4A00DC3DE3 /* PluginSource.swift */,
@@ -2908,6 +2914,7 @@
 				1935363F28496F7D001E0B16 /* TrioCustomOrefVariables.swift */,
 				38AEE73C25F0200C0013F05B /* TrioSettings.swift */,
 				3811DE8E25C9D80400A708ED /* User.swift */,
+				BD11C000000000000000C001 /* SensorRemainingTimeFormatter.swift */,
 				DD3078672D42F5CE00DE0490 /* WatchGlucoseObject.swift */,
 				BD432CA02D2F4E3300D1EB79 /* WatchMessageKeys.swift */,
 				BDA25EFC2D261BF200035F34 /* WatchState.swift */,
@@ -3649,7 +3656,6 @@
 		BD11C002000000000000C000 /* SensorLifecycle */ = {
 			isa = PBXGroup;
 			children = (
-				BD11C000000000000000C001 /* CGMSensorDisplayState.swift */,
 				BD11C000000000000000C003 /* SensorLifecycleArcView.swift */,
 				BD11C000000000000000C004 /* SensorStatusTagView.swift */,
 			);
@@ -3825,6 +3831,7 @@
 				BDA25F1F2D26D5FB00035F34 /* CarbsInputView.swift */,
 				BDA25F1D2D26D5D800035F34 /* GlucoseChartView.swift */,
 				DD246F052D2836AA0027DDE0 /* GlucoseTrendView.swift */,
+				BD11C000000000000000C011 /* PeripheralsView.swift */,
 				BD54A9582D27FB6A00F9C1EE /* OverridePresetsView.swift */,
 				BD54A9702D281A7A00F9C1EE /* TempTargetPresetsView.swift */,
 				DD6F63CB2D27F606007D94CF /* TreatmentMenuView.swift */,
@@ -5190,6 +5197,7 @@
 				DD30BA022E074F0F00DA677C /* GlucoseStatus.swift in Sources */,
 				DDFF20502DB2C11900AB8A96 /* WatchStateSnapshot.swift in Sources */,
 				5887527C2BD986E1008B081D /* OpenAPSBattery.swift in Sources */,
+				BD11C001000000000000C010 /* CGMSensorLifecycle.swift in Sources */,
 				38569348270B5DFB0002C50D /* GlucoseSource.swift in Sources */,
 				CEE9A6582BBB418300EB5194 /* CalibrationsStateModel.swift in Sources */,
 				BD47FD192D88AAFE0043966B /* OnboardingRootView.swift in Sources */,
@@ -5676,7 +5684,7 @@
 				BDF34F932C10D0E100D51995 /* LiveActivityAttributes+Helper.swift in Sources */,
 				E0D4F80527513ECF00BDF1FE /* HealthKitSample.swift in Sources */,
 				38AAF85525FFF846004AF583 /* CurrentGlucoseView.swift in Sources */,
-				BD11C001000000000000C001 /* CGMSensorDisplayState.swift in Sources */,
+				BD11C001000000000000C001 /* SensorRemainingTimeFormatter.swift in Sources */,
 				BD11C001000000000000C003 /* SensorLifecycleArcView.swift in Sources */,
 				BD11C001000000000000C004 /* SensorStatusTagView.swift in Sources */,
 				041D1E995A6AE92E9289DC49 /* TreatmentsDataFlow.swift in Sources */,
@@ -5953,6 +5961,8 @@
 				DD6F63CC2D27F615007D94CF /* TreatmentMenuView.swift in Sources */,
 				DD3A3CE72D29C93F00AE478E /* Helper+Extensions.swift in Sources */,
 				DD246F062D2836AA0027DDE0 /* GlucoseTrendView.swift in Sources */,
+				BD11C001000000000000C011 /* PeripheralsView.swift in Sources */,
+				BD11C001000000000000C012 /* SensorRemainingTimeFormatter.swift in Sources */,
 				BD432CA22D2F4E4000D1EB79 /* WatchMessageKeys.swift in Sources */,
 				C2BA6B9A2F7593C300348E6A /* NotificationIdentifiers.swift in Sources */,
 				DD8262CB2D289297009F6F62 /* BolusConfirmationView.swift in Sources */,

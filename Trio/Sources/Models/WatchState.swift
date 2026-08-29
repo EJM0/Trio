@@ -27,6 +27,25 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var bolusIncrement: Decimal = 0.05
     var confirmBolusFaster: Bool = false
 
+    // Peripherals (pump + CGM device info)
+    var peripheralsUpdatedAt: Date? = nil
+    var pumpName: String? = nil
+    /// Raw reservoir units. The `0xDEAD_BEEF` "50+ U" sentinel is preserved
+    /// end-to-end and interpreted by the watch view, as `PumpView` does.
+    var pumpReservoir: Decimal? = nil
+    /// Only populated for pumps that actually report a battery — patch pumps
+    /// (Omnipod, Medtrum) return `nil` and get a pod-life countdown instead.
+    var pumpBatteryPercent: Int? = nil
+    var pumpExpiresAt: Date? = nil
+    var pumpActivatedAt: Date? = nil
+    var pumpStatusMessage: String? = nil
+    var cgmName: String? = nil
+    var cgmSensorExpiresAt: Date? = nil
+    var cgmProgressPercent: Double? = nil
+    /// `DeviceLifecycleProgressState` raw value; drives the sensor ring color.
+    var cgmProgressState: String? = nil
+    var cgmStatusMessage: String? = nil
+
     // Forecast options
     var showForecast: Bool = false
     var isForecastCone: Bool = false
@@ -36,34 +55,63 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var forecastLines: [String: [Double]] = [:] // "iob" / "cob" / "uam" / "zt" -> values
 
     static func == (lhs: WatchState, rhs: WatchState) -> Bool {
-        lhs.date == rhs.date &&
+        // Split into groups: a single `&&` chain over this many comparisons
+        // blows past the type checker's expression budget.
+        // `elementsEqual` covers the count check. Closure parameters are typed
+        // explicitly: leaving them to inference is what makes this comparison
+        // expensive enough to stall the type checker.
+        let glucoseValuesAreEqual: Bool = lhs.glucoseValues
+            .elementsEqual(rhs.glucoseValues) { (a: WatchGlucoseObject, b: WatchGlucoseObject) -> Bool in
+                a.date == b.date && a.glucose == b.glucose && a.color == b.color
+            }
+
+        let glucoseIsEqual = lhs.date == rhs.date &&
             lhs.currentGlucose == rhs.currentGlucose &&
             lhs.trend == rhs.trend &&
             lhs.delta == rhs.delta &&
-            lhs.glucoseValues.count == rhs.glucoseValues.count &&
-            zip(lhs.glucoseValues, rhs.glucoseValues).allSatisfy {
-                $0.0.date == $0.1.date && $0.0.glucose == $0.1.glucose && $0.0.color == $0.1.color
-            } &&
+            glucoseValuesAreEqual &&
             lhs.minYAxisValue == rhs.minYAxisValue &&
             lhs.maxYAxisValue == rhs.maxYAxisValue &&
-            lhs.units == rhs.units &&
-            lhs.iob == rhs.iob &&
+            lhs.units == rhs.units
+
+        let treatmentsAreEqual = lhs.iob == rhs.iob &&
             lhs.cob == rhs.cob &&
             lhs.lastLoopTime == rhs.lastLoopTime &&
             lhs.overridePresets == rhs.overridePresets &&
-            lhs.tempTargetPresets == rhs.tempTargetPresets &&
-            lhs.maxBolus == rhs.maxBolus &&
+            lhs.tempTargetPresets == rhs.tempTargetPresets
+
+        let limitsAreEqual = lhs.maxBolus == rhs.maxBolus &&
             lhs.maxCarbs == rhs.maxCarbs &&
             lhs.maxFat == rhs.maxFat &&
             lhs.maxProtein == rhs.maxProtein &&
             lhs.bolusIncrement == rhs.bolusIncrement &&
-            lhs.confirmBolusFaster == rhs.confirmBolusFaster &&
-            lhs.showForecast == rhs.showForecast &&
+            lhs.confirmBolusFaster == rhs.confirmBolusFaster
+
+        // Kept as its own group rather than folded into `limitsAreEqual`: the
+        // split exists to keep each boolean chain short enough for the type
+        // checker, and the forecast fields are what pushed it over before.
+        let forecastIsEqual = lhs.showForecast == rhs.showForecast &&
             lhs.isForecastCone == rhs.isForecastCone &&
             lhs.forecastStartDate == rhs.forecastStartDate &&
             lhs.forecastConeMin == rhs.forecastConeMin &&
             lhs.forecastConeMax == rhs.forecastConeMax &&
             lhs.forecastLines == rhs.forecastLines
+
+        let pumpIsEqual = lhs.pumpName == rhs.pumpName &&
+            lhs.pumpReservoir == rhs.pumpReservoir &&
+            lhs.pumpBatteryPercent == rhs.pumpBatteryPercent &&
+            lhs.pumpExpiresAt == rhs.pumpExpiresAt &&
+            lhs.pumpActivatedAt == rhs.pumpActivatedAt &&
+            lhs.pumpStatusMessage == rhs.pumpStatusMessage
+
+        let cgmIsEqual = lhs.cgmName == rhs.cgmName &&
+            lhs.cgmSensorExpiresAt == rhs.cgmSensorExpiresAt &&
+            lhs.cgmProgressPercent == rhs.cgmProgressPercent &&
+            lhs.cgmProgressState == rhs.cgmProgressState &&
+            lhs.cgmStatusMessage == rhs.cgmStatusMessage
+
+        return glucoseIsEqual && treatmentsAreEqual && limitsAreEqual &&
+            forecastIsEqual && pumpIsEqual && cgmIsEqual
     }
 
     func hash(into hasher: inout Hasher) {
@@ -96,5 +144,19 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(forecastConeMin)
         hasher.combine(forecastConeMax)
         hasher.combine(forecastLines)
+        // `peripheralsUpdatedAt` is deliberately excluded from both `==` and
+        // `hash(into:)`: it is a send stamp, not content, and including it
+        // would make every snapshot compare unequal.
+        hasher.combine(pumpName)
+        hasher.combine(pumpReservoir)
+        hasher.combine(pumpBatteryPercent)
+        hasher.combine(pumpExpiresAt)
+        hasher.combine(pumpActivatedAt)
+        hasher.combine(pumpStatusMessage)
+        hasher.combine(cgmName)
+        hasher.combine(cgmSensorExpiresAt)
+        hasher.combine(cgmProgressPercent)
+        hasher.combine(cgmProgressState)
+        hasher.combine(cgmStatusMessage)
     }
 }

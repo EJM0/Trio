@@ -171826,6 +171826,9 @@
         }
       }
     },
+    "Loading…" : {
+
+    },
     "Local glucose source" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -196352,6 +196355,9 @@
           }
         }
       }
+    },
+    "No device data" : {
+
     },
     "No Error" : {
       "extractionState" : "manual",
@@ -232724,6 +232730,9 @@
         }
       }
     },
+    "Replace" : {
+      "comment" : "Watch: patch pump expired"
+    },
     "Replace CGM Sensor" : {
       "comment" : "Title of an alert that instructs the user to replace a CGM sensor.",
       "localizations" : {
@@ -243262,6 +243271,9 @@
           }
         }
       }
+    },
+    "Sensor" : {
+      "comment" : "Watch peripherals section header"
     },
     "Sensor Age" : {
       "extractionState" : "manual",
