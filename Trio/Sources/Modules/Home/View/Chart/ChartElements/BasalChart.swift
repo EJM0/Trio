@@ -50,11 +50,6 @@ extension MainChartCanvas {
         let profileMax = basalProfiles.map(\.amount).max() ?? 0
         return max(tempMax, profileMax, 0.1)
     }
-
-    /// Converts a basal rate to its top-anchored y value.
-    private func invertedY(_ rate: Double) -> Double {
-        basalDomainMax - rate
-    }
 }
 
 // MARK: - Draw functions
@@ -63,12 +58,18 @@ extension MainChartCanvas {
     func drawTempBasals() -> some ChartContent {
         // only bars overlapping the render window; the rest clip invisibly but still cost layout
         let visible = preparedTempBasals.filter { $0.end >= windowStart && $0.start <= windowEnd }
+        // Hoisted, like the windowed series in `mainChart`: `basalDomainMax` scans both rate
+        // arrays and allocates two of them per call, and the loop below asked for it four
+        // times per bar — once directly and three times through the `invertedY` helper this
+        // replaces. Top-anchored y is `domainMax - rate`; the bars hang from the plot's top.
+        let domainMax = basalDomainMax
         return ForEach(visible, id: \.start) { basal in
+            let y = domainMax - basal.rate
             RectangleMark(
                 xStart: .value("start", basal.start),
                 xEnd: .value("end", basal.end),
-                yStart: .value("rate-start", basalDomainMax),
-                yEnd: .value("rate-end", invertedY(basal.rate))
+                yStart: .value("rate-start", domainMax),
+                yEnd: .value("rate-end", y)
             ).foregroundStyle(
                 .linearGradient(
                     colors: [
@@ -80,10 +81,10 @@ extension MainChartCanvas {
                 )
             ).alignsMarkStylesWithPlotArea()
 
-            LineMark(x: .value("Start Date", basal.start), y: .value("Amount", invertedY(basal.rate)))
+            LineMark(x: .value("Start Date", basal.start), y: .value("Amount", y))
                 .lineStyle(.init(lineWidth: 1)).foregroundStyle(Color.insulin)
 
-            LineMark(x: .value("End Date", basal.end), y: .value("Amount", invertedY(basal.rate)))
+            LineMark(x: .value("End Date", basal.end), y: .value("Amount", y))
                 .lineStyle(.init(lineWidth: 1)).foregroundStyle(Color.insulin)
         }
     }
@@ -91,15 +92,17 @@ extension MainChartCanvas {
     func drawBasalProfile() -> some ChartContent {
         /// dashed profile line
         let visible = basalProfiles.filter { ($0.endDate ?? state.endMarker) >= windowStart && $0.startDate <= windowEnd }
+        let domainMax = basalDomainMax
         return ForEach(visible, id: \.self) { profile in
+            let y = domainMax - profile.amount
             LineMark(
                 x: .value("Start Date", profile.startDate),
-                y: .value("Amount", invertedY(profile.amount)),
+                y: .value("Amount", y),
                 series: .value("profile", "profile")
             ).lineStyle(.init(lineWidth: 2, dash: [2, 4])).foregroundStyle(Color.insulin)
             LineMark(
                 x: .value("End Date", profile.endDate ?? state.endMarker),
-                y: .value("Amount", invertedY(profile.amount)),
+                y: .value("Amount", y),
                 series: .value("profile", "profile")
             ).lineStyle(.init(lineWidth: 2.5, dash: [2, 4])).foregroundStyle(Color.insulin)
         }
@@ -133,12 +136,13 @@ extension MainChartCanvas {
 
     func drawSuspensions() -> some ChartContent {
         let visible = suspensionIntervals().filter { $0.end >= windowStart && $0.start <= windowEnd }
+        let domainMax = basalDomainMax
         return ForEach(visible, id: \.start) { interval in
             RectangleMark(
                 xStart: .value("start", interval.start),
                 xEnd: .value("end", interval.end),
-                yStart: .value("suspend-start", basalDomainMax),
-                yEnd: .value("suspend-end", invertedY(interval.height))
+                yStart: .value("suspend-start", domainMax),
+                yEnd: .value("suspend-end", domainMax - interval.height)
             )
             .foregroundStyle(Color.loopGray.opacity(colorScheme == .dark ? 0.3 : 0.8))
         }

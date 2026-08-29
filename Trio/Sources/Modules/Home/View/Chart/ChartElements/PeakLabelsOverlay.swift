@@ -18,14 +18,28 @@ struct PeakLabelsOverlay: View {
     let lowGlucose: Decimal
     let glucoseColorScheme: GlucoseColorScheme
     let currentGlucoseTarget: Decimal
-    let screenHours: Int16
+    /// The rendered domain, for converting the placement distances below into a span of
+    /// chart time — which is what bounds the obstacle search.
+    let windowStart: Date
+    let windowEnd: Date
+    /// Mirrors what `TreatmentOverlay` uses to decide whether a bolus carries its dose label, so
+    /// a marker's reserved footprint matches the one actually drawn.
+    let bolusDisplayThreshold: BolusDisplayThreshold
+    let smbBolusDisplayCutoff: Decimal?
 
     private static let labelMargin: CGFloat = 4
     private static let labelDesiredOffset: CGFloat = 18
     private static let maxPlacementDistance: CGFloat = 80
     private static let glucoseDotSize: CGFloat = 6
+    private static let labelSize = CGSize(width: 30, height: 18)
 
-    private static let barLabelHeight: CGFloat = 22
+    /// Height a dose/carb label adds above (bolus) or below (carb) its marker.
+    private static let markerLabelHeight: CGFloat = 14
+
+    /// Generous bound on half the width of the widest treatment marker — carbs are capped at
+    /// `Config.maxCarbSize` (30) and a large bolus lands around 23 — used only to pad the
+    /// search so a marker whose centre sits just outside it still can't reach a label.
+    private static let maxMarkerHalfWidth: CGFloat = 20
 
     var body: some View {
         GeometryReader { geo in
@@ -76,8 +90,10 @@ struct PeakLabelsOverlay: View {
     }
 
     private func computePlacements(obstacles: [CGRect], plotRect _: CGRect) -> [PlacedPeak] {
+        // Still sorted — `placeLabelCenter` binary-searches by `minX` — but over the tens of
+        // rects the peak neighbourhoods produce rather than the whole render window.
         let sortedObstacles = obstacles.sorted { $0.minX < $1.minX }
-        let labelSize = CGSize(width: 30, height: 18)
+        let labelSize = Self.labelSize
 
         return peaks.compactMap { peak -> PlacedPeak? in
             let glucoseDecimal = Decimal(peak.glucose)
@@ -128,27 +144,61 @@ struct PeakLabelsOverlay: View {
 
     // MARK: - Obstacles
 
-    private var maxBolusValue: Decimal {
-        let amounts = insulinData.compactMap { $0.bolus?.amount?.decimalValue }
-        return amounts.max() ?? 1
-    }
+    /// The rects a peak label has to avoid — built only where one could actually collide.
+    ///
+    /// `LabelPlacement.placeLabelCenter` throws away every obstacle further than
+    /// `maxPlacementDistance` from the peak it is placing, so building one per glucose point,
+    /// bolus and carb across the render window — which at wide zoom is the whole 72 h — was
+    /// work discarded for all but a few tens of them. Peaks are few and arrive in time order,
+    /// so their neighbourhoods are cheap to enumerate and the rest of the data is never
+    /// touched: no scale lookup, no nearest-glucose search.
+    private func computeObstacles(plotRect: CGRect) -> [CGRect] {
+        guard !peaks.isEmpty, plotRect.width > 0 else { return [] }
 
-    private var maxCarbsValue: Decimal {
-        carbData.map { Decimal($0.carbs) }.max() ?? 1
-    }
+        let secondsPerPoint = max(windowEnd.timeIntervalSince(windowStart), 1) / Double(plotRect.width)
+        // Reach of a placement, in chart time: how far the label itself can travel, plus its
+        // own width, plus the widest marker that could still overlap from beyond that.
+        let pad = Double(
+            Self.maxPlacementDistance + Self.labelSize.width + Self.maxMarkerHalfWidth
+        ) * secondsPerPoint
 
-    private func computeObstacles(plotRect _: CGRect) -> [CGRect] {
         var rects: [CGRect] = []
-        let maxBolus = maxBolusValue
-        let maxCarbs = maxCarbsValue
+        for neighbourhood in mergedNeighbourhoods(pad: pad) {
+            appendGlucoseObstacles(in: neighbourhood, to: &rects)
+            appendBolusObstacles(in: neighbourhood, to: &rects)
+            appendCarbObstacles(in: neighbourhood, to: &rects)
+        }
+        return rects
+    }
 
-        // Glucose curve dots
-        for g in glucoseData {
-            guard let date = g.date else { continue }
-            let glucoseDecimal = Decimal(g.glucose)
-            let displayValue = units == .mgdL ? glucoseDecimal : glucoseDecimal.asMmolL
-            guard let x = proxy.position(forX: date),
-                  let y = proxy.position(forY: displayValue) else { continue }
+    /// Each peak's reach, with overlapping ones merged so a cluster of peaks builds its
+    /// shared obstacles once. `PeakPicker` emits peaks in time order, so this is one pass.
+    private func mergedNeighbourhoods(pad: TimeInterval) -> [ClosedRange<Date>] {
+        var merged: [ClosedRange<Date>] = []
+        for peak in peaks {
+            let range = peak.date.addingTimeInterval(-pad) ... peak.date.addingTimeInterval(pad)
+            if let last = merged.last, range.lowerBound <= last.upperBound {
+                merged[merged.count - 1] = last.lowerBound ... Swift.max(last.upperBound, range.upperBound)
+            } else {
+                merged.append(range)
+            }
+        }
+        return merged
+    }
+
+    private func displayValue(_ mgdl: Decimal) -> Decimal {
+        units == .mgdL ? mgdl : mgdl.asMmolL
+    }
+
+    private func appendGlucoseObstacles(in range: ClosedRange<Date>, to rects: inout [CGRect]) {
+        let readings = MainChartHelper.windowSlice(
+            glucoseData, from: range.lowerBound, through: range.upperBound,
+            ascendingInput: true, date: \.date
+        )
+        for reading in readings {
+            guard let date = reading.date,
+                  let x = proxy.position(forX: date),
+                  let y = proxy.position(forY: displayValue(Decimal(reading.glucose))) else { continue }
             rects.append(CGRect(
                 x: x - Self.glucoseDotSize / 2,
                 y: y - Self.glucoseDotSize / 2,
@@ -156,62 +206,79 @@ struct PeakLabelsOverlay: View {
                 height: Self.glucoseDotSize
             ))
         }
+    }
 
-        // Bolus / SMB bars (extend up from curve)
-        for insulin in insulinData {
-            guard let bolus = insulin.bolus, bolus.isExternal == false else { continue }
+    /// The bolus marker as `TreatmentOverlay` actually draws it: a triangle whose box grows with
+    /// the dose, sitting `bolusOffset` above the curve, plus its label when it carries one.
+    ///
+    /// This used to model a bar up to 67 pt tall with a 14 pt minimum width — geometry from a
+    /// bar-chart design that no longer exists — so peak labels were being shoved away from
+    /// markers three to four times taller than the real ones.
+    private func appendBolusObstacles(in range: ClosedRange<Date>, to rects: inout [CGRect]) {
+        let events = MainChartHelper.windowSlice(
+            insulinData, from: range.lowerBound, through: range.upperBound,
+            ascendingInput: true, date: \.timestamp
+        )
+        for event in events {
+            guard let bolus = event.bolus, bolus.isExternal == false, let date = event.timestamp else { continue }
             let amount = (bolus.amount ?? 0 as NSDecimalNumber).decimalValue
             guard amount != 0 else { continue }
-            let date = insulin.timestamp ?? Date()
             guard let glucose = MainChartHelper.timeToNearestGlucose(
                 glucoseValues: glucoseData,
                 time: date.timeIntervalSince1970
             )?.glucose else { continue }
 
-            let displayValue = units == .mgdL ? Decimal(glucose) : Decimal(glucose).asMmolL
+            let markValue = displayValue(Decimal(glucose)) + MainChartHelper.bolusOffset(units: units)
             guard let x = proxy.position(forX: date),
-                  let y = proxy.position(forY: displayValue) else { continue }
+                  let y = proxy.position(forY: markValue) else { continue }
 
-            let barWidth = MainChartHelper.bolusBarWidth(
+            let size = MainChartHelper.Config.bolusSize
+                + CGFloat(truncating: amount as NSNumber) * MainChartHelper.Config.bolusScale
+            let labelled = MainChartHelper.showsBolusLabel(
                 amount: amount,
-                minimumSMB: MainChartHelper.Config.smbWidthThreshold,
-                screenHours: screenHours
+                threshold: bolusDisplayThreshold,
+                smbCutoff: smbBolusDisplayCutoff
             )
-            let barHeight = MainChartHelper.bolusBarHeight(amount: amount, maxAmount: maxBolus)
-            let totalHeight = MainChartHelper.Config.bolusBarSpacing + barHeight + MainChartHelper.Config
-                .bolusAnnotationSpacing + Self.barLabelHeight
+            // the label sits above the marker
+            let top = y - size / 2 - (labelled ? Self.markerLabelHeight : 0)
             rects.append(CGRect(
-                x: x - max(barWidth, 14) / 2, // widen a bit so rotated labels aren't tightly clipped
-                y: y - totalHeight,
-                width: max(barWidth, 14),
-                height: totalHeight
+                x: x - size / 2,
+                y: top,
+                width: size,
+                height: y + size / 2 - top
             ))
         }
+    }
 
-        // Carb bars (extend down from curve)
-        for carb in carbData {
-            let date = carb.date ?? Date()
+    /// The carb marker as `TreatmentOverlay` draws it: the mirrored triangle, capped at
+    /// `Config.maxCarbSize`, below the curve — and its label, which carbs always carry.
+    private func appendCarbObstacles(in range: ClosedRange<Date>, to rects: inout [CGRect]) {
+        let entries = MainChartHelper.windowSlice(
+            carbData, from: range.lowerBound, through: range.upperBound,
+            ascendingInput: true, date: \.date
+        )
+        for entry in entries {
+            guard let date = entry.date else { continue }
             guard let glucose = MainChartHelper.timeToNearestGlucose(
                 glucoseValues: glucoseData,
                 time: date.timeIntervalSince1970
             )?.glucose else { continue }
 
-            let displayValue = units == .mgdL ? Decimal(glucose) : Decimal(glucose).asMmolL
+            let markValue = displayValue(Decimal(glucose)) - MainChartHelper.bolusOffset(units: units)
             guard let x = proxy.position(forX: date),
-                  let y = proxy.position(forY: displayValue) else { continue }
+                  let y = proxy.position(forY: markValue) else { continue }
 
-            let barHeight = MainChartHelper.carbBarHeight(amount: Decimal(carb.carbs), maxAmount: maxCarbs)
-            let totalHeight = MainChartHelper.Config.carbBarSpacing + barHeight + MainChartHelper.Config
-                .carbAnnotationSpacing + Self.barLabelHeight
+            let size = min(
+                MainChartHelper.Config.carbsSize + CGFloat(entry.carbs) * MainChartHelper.Config.carbsScale,
+                MainChartHelper.Config.maxCarbSize
+            )
             rects.append(CGRect(
-                x: x - max(MainChartHelper.Config.carbBarWidth, 14) / 2,
-                y: y,
-                width: max(MainChartHelper.Config.carbBarWidth, 14),
-                height: totalHeight
+                x: x - size / 2,
+                y: y - size / 2,
+                width: size,
+                height: size + Self.markerLabelHeight
             ))
         }
-
-        return rects
     }
 
     // MARK: - Helpers

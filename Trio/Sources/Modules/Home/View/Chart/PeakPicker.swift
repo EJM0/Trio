@@ -14,6 +14,15 @@ struct GlucosePoint {
     let glucose: Int
 }
 
+/// Fingerprint of everything `updateGlucosePeaks()` reads, so a repeat call with the same
+/// inputs can return without re-deriving the peak set (and without mutating observed state).
+struct PeakInputs: Equatable {
+    let windowHours: Double
+    let count: Int
+    let oldest: Date?
+    let newest: Date?
+}
+
 /// Sliding-window local extrema picker.
 ///
 /// A point is a local maximum if it equals the largest value in the window
