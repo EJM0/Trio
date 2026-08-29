@@ -586,7 +586,8 @@ extension MainChartView {
             stackHeight: stackHeight,
             visibleStart: scrollPosition,
             visibleSeconds: visibleSeconds,
-            xPosition: { xPosition(for: $0) },
+            pinchScale: pinchScale,
+            pinchAnchorFraction: pinchAnchor?.anchorFraction,
             yPosition: { glucoseYPosition(forDisplayValue: $0) }
         )
     }
