@@ -23,18 +23,43 @@ extension Home.StateModel {
         latestTwoGlucoseValues = Array(objects.suffix(2))
         updateGlucoseChartYAxis(glucoseValues: objects)
         updateGlucoseEpisodes()
+        // New readings are the one input the memo below cannot see for itself — an edited
+        // value changes neither the count nor either end — so drop it and let the peaks be
+        // derived again.
+        lastPeakInputs = nil
         updateGlucosePeaks()
     }
 
+    /// Recomputes the peak set, but only when an input it actually depends on has moved.
+    ///
+    /// The chart calls this whenever the zoom commits, and a single pinch commits several
+    /// times. Each run is a full pass over the 72 h history — a `filter`, a `sorted`, and two
+    /// monotonic deques — and, worse, assigning `glucosePeaks` invalidates the canvas a
+    /// second time on top of the re-layout the zoom itself caused. Writing the same peaks
+    /// again still counts as a mutation to Observation, so the guard has to be here rather
+    /// than in the caller.
     func updateGlucosePeaks() {
-        if showGlucosePeaks {
-            glucosePeaks = PeakPicker.pick(
-                data: glucoseFromPersistence,
-                windowHours: chartVisibleHours / 4
-            )
-        } else {
-            glucosePeaks = []
+        guard showGlucosePeaks else {
+            if !glucosePeaks.isEmpty { glucosePeaks = [] }
+            lastPeakInputs = nil
+            return
         }
+
+        let windowHours = MainChartHelper.peakWindowHours(visibleHours: chartVisibleHours)
+        // The readings themselves are identified by count plus both ends: a new reading moves
+        // the newest, ageing one out of the 72 h window moves the oldest, and an edited value
+        // in place moves neither — which is why `updateGlucoseFromController` clears the memo
+        // outright rather than relying on this alone.
+        let inputs = PeakInputs(
+            windowHours: windowHours,
+            count: glucoseFromPersistence.count,
+            oldest: glucoseFromPersistence.first?.date,
+            newest: glucoseFromPersistence.last?.date
+        )
+        guard inputs != lastPeakInputs else { return }
+        lastPeakInputs = inputs
+
+        glucosePeaks = PeakPicker.pick(data: glucoseFromPersistence, windowHours: windowHours)
     }
 
     /// Folds the fetched window into the sustained-excursion markers.

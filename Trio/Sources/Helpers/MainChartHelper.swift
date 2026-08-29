@@ -89,6 +89,60 @@ enum MainChartHelper {
         return closestGlucose
     }
 
+    /// The slice of a date-sorted array covering `start ... end`, found by binary search
+    /// rather than a full scan. These run on every canvas layout, over arrays holding the
+    /// whole 72 h history, so the scan is the one part of the cost that grows with how much
+    /// data is loaded rather than with how much is on screen.
+    ///
+    /// `ascendingInput` describes how the array itself is ordered — glucose and pump history
+    /// are fetched ascending, carbs, FPUs and determinations descending (see the fetch
+    /// requests in `Home.StateModel`). `ascendingOutput` says how the caller wants it back;
+    /// the default normalises to ascending, so anything that walks a slice in time order
+    /// need not care which way the fetch ran. Determinations are the exception and pass
+    /// `false`: `drawCOBIOBChart` de-duplicates by keeping the first of two entries sharing
+    /// a `deliverAt`, which is only the right one in the fetch's own order.
+    ///
+    /// An entry with no date cannot be placed in the ordering at all. Core Data groups those
+    /// at one end, so they fall outside the searched range; the filter on the way out is
+    /// belt and braces for the case where one is not where the sort implies.
+    static func windowSlice<T>(
+        _ sorted: [T],
+        from start: Date,
+        through end: Date,
+        ascendingInput: Bool,
+        ascendingOutput: Bool = true,
+        date: (T) -> Date?
+    ) -> [T] {
+        guard !sorted.isEmpty, start <= end else { return [] }
+        let key: (T) -> Date = ascendingInput
+            ? { date($0) ?? .distantPast }
+            : { date($0) ?? .distantFuture }
+
+        // First index whose key satisfies `predicate`. Valid because each predicate below is
+        // monotone over the array's own direction: false for a prefix, true for the rest.
+        func firstIndex(where predicate: (Date) -> Bool) -> Int {
+            var low = 0, high = sorted.count
+            while low < high {
+                let mid = low + (high - low) / 2
+                if predicate(key(sorted[mid])) { high = mid } else { low = mid + 1 }
+            }
+            return low
+        }
+
+        let low: Int, high: Int
+        if ascendingInput {
+            low = firstIndex { $0 >= start }
+            high = firstIndex { $0 > end }
+        } else {
+            low = firstIndex { $0 <= end }
+            high = firstIndex { $0 < start }
+        }
+        guard low < high else { return [] }
+
+        let kept = sorted[low ..< high].filter { date($0) != nil }
+        return ascendingInput == ascendingOutput ? kept : kept.reversed()
+    }
+
     enum Config {
         /// How far back the chart's `startMarker` is anchored — the fixed 24 h
         /// history window loaded on every open. Independent of the currently
@@ -193,31 +247,6 @@ enum MainChartHelper {
         static let maxGlucose = 270
         static let minGlucose = 45
 
-        /// Max widths for carb (5) and FPU (3) bars.
-        static let carbBarWidth: CGFloat = 5
-        static let fpuBarWidth: CGFloat = 3
-        /// Arrow tip length at the bar's pointed end.
-        static let barArrowHeight: CGFloat = 5
-
-        /// Max bar body height for bolus and carb bars.
-        static let bolusBarMaxHeight: CGFloat = 45
-        static let carbBarMaxHeight: CGFloat = 45
-
-        /// Pixel gap between the bar's arrow tip and the BG curve.
-        static let bolusBarSpacing: CGFloat = 7
-        static let carbBarSpacing: CGFloat = 9
-
-        /// Pixel gap between the bar and its rotated dose/carb annotation label.
-        static let bolusAnnotationSpacing: CGFloat = 0
-        static let carbAnnotationSpacing: CGFloat = 0
-
-        /// Doses below this amount render with a narrower bar (SMB-class).
-        static let smbWidthThreshold: Decimal = 0.3
-
-        /// Bolus bar height = `(amount / maxAmount) ^ bolusHeightExponent * maxHeight`.
-        /// `1.0` = linear, `0.5` = sqrt. Lower → small SMBs grow and big bars stay capped.
-        static let bolusHeightExponent: Double = 0.6
-
         /// Gap between the bottom of the COB/IOB plot and the top of the x-axis time
         /// labels below it.
         static let xAxisLabelTopGap: CGFloat = 4
@@ -232,110 +261,24 @@ enum MainChartHelper {
         }
     }
 
-    /// Bar width: piecewise on `screenHours`, narrower for SMB-class doses. Tightens with
-    /// longer time windows to keep clustered SMBs from overlapping.
-    static func bolusBarWidth(amount: Decimal, minimumSMB: Decimal, screenHours: Int16) -> CGFloat {
-        let isSmall = amount < minimumSMB
-        switch screenHours {
-        case ...6:
-            return isSmall ? 2.5 : 3
-        case 7 ... 18:
-            return isSmall ? 2 : 2.5
-        default: // 19…24
-            return isSmall ? 1.5 : 2
-        }
-    }
-
-    /// Carb bar width — same shape as bolus, clamped to `Config.carbBarWidth`.
-    static func carbBarWidth(amount: Decimal, minimumSMB: Decimal, screenHours: Int16) -> CGFloat {
-        min(bolusBarWidth(amount: amount, minimumSMB: minimumSMB, screenHours: screenHours), Config.carbBarWidth)
-    }
-
-    /// FPU bar width — same shape as bolus, clamped to `Config.fpuBarWidth`.
-    static func fpuBarWidth(amount: Decimal, minimumSMB: Decimal, screenHours: Int16) -> CGFloat {
-        min(bolusBarWidth(amount: amount, minimumSMB: minimumSMB, screenHours: screenHours), Config.fpuBarWidth)
-    }
-
-    /// Bolus bar height with power-law compression — see `Config.bolusHeightExponent`
-    /// for the rationale on the exponent value (sqrt-ish to compress the dynamic range).
-    static func bolusBarHeight(amount: Decimal, maxAmount: Decimal) -> CGFloat {
-        let amountValue = CGFloat(truncating: amount as NSNumber)
-        let maxValue = max(CGFloat(truncating: maxAmount as NSNumber), 0.001)
-        let normalized = max(0, min(1, amountValue / maxValue))
-        return CGFloat(pow(Double(normalized), Config.bolusHeightExponent)) * Config.bolusBarMaxHeight
-    }
-
-    /// Linear carb bar height — `(amount / maxAmount) * carbBarMaxHeight`.
-    static func carbBarHeight(amount: Decimal, maxAmount: Decimal) -> CGFloat {
-        let amountValue = CGFloat(truncating: amount as NSNumber)
-        let maxValue = max(CGFloat(truncating: maxAmount as NSNumber), 0.001)
-        return (amountValue / maxValue) * Config.carbBarMaxHeight
-    }
-
-    /// Visual scaling applied to IOB values on the shared COB/IOB axis (COB is usually
-    /// much larger than IOB). Single source of truth for the chart marks, the y-domain,
-    /// and the shell's selection overlay.
-    static func scaledIobAmount<T: Numeric & Comparable>(_ rawAmount: T) -> T
-        where T: ExpressibleByIntegerLiteral
-    {
-        rawAmount > 0 ? rawAmount * 8 : rawAmount * 9
-    }
-
-    /// The combined y-domain of the COB/IOB chart. Used by both the canvas chart and the
-    /// shell's selection overlay, which must agree exactly on the value-to-pixel mapping.
-    /// The ISF line shares the same axis, so its values widen the domain when present.
-    static func cobIobYDomain(
-        minCob: Decimal,
-        maxCob: Decimal,
-        minIob: Decimal,
-        maxIob: Decimal,
-        minIsf: Decimal = 0,
-        maxIsf: Decimal = 0
-    ) -> ClosedRange<Double> {
-        let iobMin = scaledIobAmount(minIob)
-        let iobMax = scaledIobAmount(maxIob)
-        // ISF bounds arrive pre-computed (0...0 when there is no ISF data); folding them in
-        // must stay O(1) because the selection overlay calls this on every scrub frame.
-        let minValue = min(min(minCob, iobMin), minIsf)
-        let maxValue = max(max(maxCob, iobMax), maxIsf)
-        return Double(minValue) ... Double(maxValue)
-    }
-
-    /// X-axis grid/label stride for the current continuous zoom level. Same ladder as the
-    /// old presets: up to 6 h visible -> 1 h, up to 12 h -> 2 h, wider -> 4 h.
-    static func xAxisStrideHours(visibleSeconds: TimeInterval) -> Int {
-        let visibleHours = visibleSeconds / 3600
-        if visibleHours <= 6 { return 1 }
-        if visibleHours <= 12 { return 2 }
-        return 4
-    }
-
-    /// Calendar-hour axis mark dates for the given range, anchored to absolute time
-    /// (multiples of the stride counted from midnight, DST-safe via `Calendar`), unlike
-    /// `.stride(by: .hour, count:)`, which anchors its sequence to the domain start.
+    /// Whether a bolus carries its dose label. Pure comparison — no scanning, no Core Data
+    /// access beyond the mark's own amount.
     ///
-    /// Shared by the canvas panes (which draw the grid lines) and the shell's x-axis
-    /// overlay (which draws the labels), so labels always land on their own grid lines.
-    static func hourAxisMarks(
-        over range: ClosedRange<Date>,
-        calendar: Calendar,
-        visibleSeconds: TimeInterval
-    ) -> [Date] {
-        let strideHours = xAxisStrideHours(visibleSeconds: visibleSeconds)
-        var components = calendar.dateComponents([.year, .month, .day, .hour], from: range.lowerBound)
-        let hour = components.hour ?? 0
-        components.hour = hour - hour % strideHours
-        guard var mark = calendar.date(from: components) else { return [] }
-
-        var marks: [Date] = []
-        while mark <= range.upperBound {
-            if mark >= range.lowerBound {
-                marks.append(mark)
-            }
-            guard let next = calendar.date(byAdding: .hour, value: strideHours, to: mark) else { break }
-            mark = next
+    /// Shared, because `PeakLabelsOverlay` has to reserve exactly the footprint `TreatmentOverlay`
+    /// draws: a labelled bolus is taller than an unlabelled one, and a peak label that
+    /// assumes the wrong one either overlaps the dose or is shoved away from nothing.
+    static func showsBolusLabel(
+        amount: Decimal,
+        threshold: BolusDisplayThreshold,
+        smbCutoff: Decimal?
+    ) -> Bool {
+        switch threshold {
+        case .aboveAverageSMBFactor:
+            guard let smbCutoff else { return true }
+            return amount > smbCutoff
+        default:
+            return amount >= threshold.rawValue
         }
-        return marks
     }
 
     static func bolusOffset(units: GlucoseUnits) -> Decimal {

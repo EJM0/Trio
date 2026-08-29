@@ -155,6 +155,9 @@ struct MainChartView: View {
             .offset(x: -canvasOffsetX)
             .scaleEffect(x: pinchScale, y: 1, anchor: pinchScaleAnchor)
 
+            treatmentOverlay
+                .allowsHitTesting(false)
+
             nowOffscreenGradient
 
             // Pinned y-axis labels over the glucose pane, ABOVE the scrolled-back gradient
@@ -335,7 +338,7 @@ extension MainChartView {
     }
 
     /// Glucose y-domain padded above and below so values at the data extremes (and the carb
-    /// markers `CarbView` pins to the old baseline) render fully instead of straddling the
+    /// markers `TreatmentOverlay` pins to the old baseline) render fully instead of straddling the
     /// plot edge. Also gives the plot visual breathing room at top and bottom.
     var paddedGlucoseYDomain: ClosedRange<Decimal> {
         let padding: Decimal = 25 // mg/dL
@@ -382,7 +385,12 @@ extension MainChartView {
     var axisStripTop: CGFloat { stackHeight }
 
     private func glucoseYPosition(for glucose: GlucoseStored) -> CGFloat {
-        let value = units == .mgdL ? Decimal(glucose.glucose) : Decimal(glucose.glucose).asMmolL
+        glucoseYPosition(forDisplayValue: units == .mgdL ? Decimal(glucose.glucose) : Decimal(glucose.glucose).asMmolL)
+    }
+
+    /// Where a value in the chart's display units sits in the glucose pane. Shared with the
+    /// treatment overlay, which anchors its markers to the curve the same way the marks did.
+    func glucoseYPosition(forDisplayValue value: Decimal) -> CGFloat {
         let domain = paddedGlucoseYDomain
         let span = domain.upperBound - domain.lowerBound
         let fraction = span == 0 ? 0.5 :
@@ -540,6 +548,47 @@ extension MainChartView {
                 }
             }
         }
+    }
+}
+
+// MARK: - Treatment overlay (markers drawn outside the pinch transform)
+
+extension MainChartView {
+    /// Bolus, carb and FPU markers with their labels. Rendered here rather than as marks in
+    /// the canvas so the live-pinch `scaleEffect` cannot stretch them — see `TreatmentOverlay`.
+    ///
+    /// Sliced against the render window rather than the visible one: the overlay culls to
+    /// what is on screen itself, and the nearest-glucose lookup a marker's y anchor needs has
+    /// to be able to reach a reading just outside the visible edge.
+    @ViewBuilder var treatmentOverlay: some View {
+        TreatmentOverlay(
+            glucose: MainChartHelper.windowSlice(
+                state.glucoseFromPersistence, from: renderWindowStart, through: renderWindowEnd,
+                ascendingInput: true, date: \.date
+            ),
+            insulin: MainChartHelper.windowSlice(
+                state.insulinFromPersistence, from: renderWindowStart, through: renderWindowEnd,
+                ascendingInput: true, date: \.timestamp
+            ),
+            carbs: MainChartHelper.windowSlice(
+                state.carbsFromPersistence, from: renderWindowStart, through: renderWindowEnd,
+                ascendingInput: false, date: \.date
+            ),
+            fpus: MainChartHelper.windowSlice(
+                state.fpusFromPersistence, from: renderWindowStart, through: renderWindowEnd,
+                ascendingInput: false, date: \.date
+            ),
+            units: units,
+            bolusDisplayThreshold: state.bolusDisplayThreshold,
+            smbBolusDisplayCutoff: state.smbBolusDisplayCutoff,
+            fpuBaseline: units == .mgdL ? state.minYAxisValue : state.minYAxisValue.asMmolL,
+            viewportWidth: viewportWidth,
+            stackHeight: stackHeight,
+            visibleStart: scrollPosition,
+            visibleSeconds: visibleSeconds,
+            xPosition: { xPosition(for: $0) },
+            yPosition: { glucoseYPosition(forDisplayValue: $0) }
+        )
     }
 }
 
@@ -1125,41 +1174,39 @@ struct MainChartCanvas: View {
         units == .mgdL ? 400 : 22.2
     }
 
-    /// Visible window in whole hours, for the bar-width ladder used by the
-    /// bolus/carb bar marks and the peak-label collision avoidance.
-    var screenHours: Int16 {
-        Int16(max(1, (visibleSeconds / 3600).rounded()))
-    }
-
     // The point series sliced to the render window: marks outside the window
     // clip invisibly but still cost layout, so with 72h loaded an unfiltered
     // re-layout (every pinch step) does 3x the work for nothing.
     var windowedGlucose: [GlucoseStored] {
-        state.glucoseFromPersistence.filter { entry in
-            guard let date = entry.date else { return false }
-            return date >= windowStart && date <= windowEnd
-        }
+        MainChartHelper.windowSlice(
+            state.glucoseFromPersistence,
+            from: windowStart, through: windowEnd,
+            ascendingInput: true, date: \.date
+        )
     }
 
     var windowedInsulin: [PumpEventStored] {
-        state.insulinFromPersistence.filter { entry in
-            guard let date = entry.timestamp else { return false }
-            return date >= windowStart && date <= windowEnd
-        }
+        MainChartHelper.windowSlice(
+            state.insulinFromPersistence,
+            from: windowStart, through: windowEnd,
+            ascendingInput: true, date: \.timestamp
+        )
     }
 
     var windowedCarbs: [CarbEntryStored] {
-        state.carbsFromPersistence.filter { entry in
-            guard let date = entry.date else { return false }
-            return date >= windowStart && date <= windowEnd
-        }
+        MainChartHelper.windowSlice(
+            state.carbsFromPersistence,
+            from: windowStart, through: windowEnd,
+            ascendingInput: false, date: \.date
+        )
     }
 
     var windowedFPUs: [CarbEntryStored] {
-        state.fpusFromPersistence.filter { entry in
-            guard let date = entry.date else { return false }
-            return date >= windowStart && date <= windowEnd
-        }
+        MainChartHelper.windowSlice(
+            state.fpusFromPersistence,
+            from: windowStart, through: windowEnd,
+            ascendingInput: false, date: \.date
+        )
     }
 
     /// Excursion markers overlapping the render window. Unlike the point series these are
@@ -1172,11 +1219,15 @@ struct MainChartCanvas: View {
         }
     }
 
+    /// Kept in the fetch's own descending order: `drawCOBIOBChart` de-duplicates entries
+    /// sharing a `deliverAt` by keeping the first it meets, which is the correct one only
+    /// in that order.
     var windowedDeterminations: [OrefDetermination] {
-        state.enactedAndNonEnactedDeterminations.filter { entry in
-            guard let date = entry.deliverAt else { return false }
-            return date >= windowStart && date <= windowEnd
-        }
+        MainChartHelper.windowSlice(
+            state.enactedAndNonEnactedDeterminations,
+            from: windowStart, through: windowEnd,
+            ascendingInput: false, ascendingOutput: false, date: \.deliverAt
+        )
     }
 
     /// Coordinate space for plot-frame preferences; pane-local plot rects let the
@@ -1218,7 +1269,6 @@ extension MainChartCanvas {
         let glucose = windowedGlucose
         let insulin = windowedInsulin
         let carbs = windowedCarbs
-        let fpus = windowedFPUs
 
         return Chart {
             drawCurrentTimeMarker()
@@ -1251,23 +1301,6 @@ extension MainChartCanvas {
                 currentGlucoseTarget: state.currentGlucoseTarget,
                 isSmoothingEnabled: state.isSmoothingEnabled,
                 glucoseColorScheme: state.glucoseColorScheme
-            )
-
-            InsulinView(
-                glucoseData: glucose,
-                insulinData: insulin,
-                units: state.units,
-                bolusDisplayThreshold: state.bolusDisplayThreshold,
-                smbBolusDisplayCutoff: state.smbBolusDisplayCutoff
-            )
-
-            CarbView(
-                glucoseData: glucose,
-                units: state.units,
-                carbData: carbs,
-                fpuData: fpus,
-                minValue: units == .mgdL ? state.minYAxisValue : state.minYAxisValue
-                    .asMmolL
             )
 
             ForecastView(
@@ -1320,7 +1353,10 @@ extension MainChartCanvas {
                     lowGlucose: state.lowGlucose,
                     glucoseColorScheme: state.glucoseColorScheme,
                     currentGlucoseTarget: state.currentGlucoseTarget,
-                    screenHours: screenHours
+                    windowStart: windowStart,
+                    windowEnd: windowEnd,
+                    bolusDisplayThreshold: state.bolusDisplayThreshold,
+                    smbBolusDisplayCutoff: state.smbBolusDisplayCutoff
                 )
             }
         }

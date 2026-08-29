@@ -94,6 +94,10 @@ extension Home {
         var waitForSuggestion: Bool = false
         var showGlucosePeaks: Bool = false
         var glucosePeaks: [(date: Date, glucose: Int16, type: ExtremumType)] = []
+        /// What the current `glucosePeaks` were derived from, so a zoom commit that changes
+        /// neither the readings nor the picker's granularity can skip the whole pass — see
+        /// `updateGlucosePeaks()`.
+        @ObservationIgnored var lastPeakInputs: PeakInputs?
         /// Committed pinch-zoom window in hours, fed back by the chart shell so the
         /// peak picker granularity follows the zoom (successor of the time buttons).
         var chartVisibleHours: Double = MainChartHelper.Config.defaultVisibleSeconds / 3600
