@@ -2,6 +2,7 @@ import CGMBLEKit
 import CGMBLEKitUI
 import Foundation
 import G7SensorKit
+import LibreLoop
 import LibreTransmitter
 import LoopKit
 import LoopKitUI
@@ -36,6 +37,18 @@ enum CGMSensorLifecycle {
         if let g6 = manager as? G6CGMManager, let exp = g6.latestReading?.sessionExpDate { return exp }
         if let g5 = manager as? G5CGMManager, let exp = g5.latestReading?.sessionExpDate { return exp }
 
+        // Libre 3 / 3 Plus report time remaining rather than an expiry date, and
+        // report it from the first reading — so this must not fall through to the
+        // `percentComplete` derivation below, which stays nil until LibreLoop starts
+        // publishing progress in the last 24 h.
+        if let libreLoop = manager as? LibreLoopCGMManager {
+            if case let .active(remaining, _) = libreLoop.sensorLifecycle, remaining > 0 {
+                return Date().addingTimeInterval(remaining)
+            }
+            // Warmup / initializing / expired — no meaningful expiry yet.
+            return nil
+        }
+
         let activatedAt: Date?
         if let g7 = manager as? G7CGMManager {
             activatedAt = g7.sensorActivatedAt
@@ -69,6 +82,12 @@ enum CGMSensorLifecycle {
         if let g5 = manager as? G5CGMManager, let start = g5.latestReading?.sessionStartDate {
             let ends = start.addingTimeInterval(2 * 60 * 60)
             return ends > Date() ? ends : nil
+        }
+        if let libreLoop = manager as? LibreLoopCGMManager {
+            if case let .warmup(_, remaining) = libreLoop.sensorLifecycle, remaining > 0 {
+                return Date().addingTimeInterval(remaining)
+            }
+            return nil
         }
         return nil
     }
