@@ -11,15 +11,18 @@ extension MainChartCanvas {
             drawCobProjection()
         }
         .chartLegend(.hidden)
+        // Full pane height: the time labels are no longer reserved out of this pane at
+        // all. The shell keeps them in a strip *below* the whole canvas, taken off the
+        // chart zone before the pane heights are split (`MainChartView.chartStackHeight`),
+        // so this pane's plot ends exactly where the strip begins.
         .frame(width: canvasWidth, height: cobIobHeight)
         .chartXScale(domain: windowStart ... windowEnd)
-        .chartXAxis { basalChartXAxis }
+        .chartXAxis { mainChartXAxis }
         .chartYAxis { cobIobChartYAxis }
         .chartYScale(domain: combinedYDomain())
-        // report the pane's true plot rect: the hour labels reserve space inside
-        // the pane frame, so the plot is shorter than cobIobHeight. The overlay
-        // (chart-sized, NOT plot-sized) resolves the plot anchor and rebases it
-        // into canvas coordinates for the shell's selection dots.
+        // report the pane's true plot rect. The overlay (chart-sized, NOT plot-sized)
+        // resolves the plot anchor and rebases it into canvas coordinates for the shell's
+        // selection dots and for the top edge of the shell's x-axis strip.
         .chartOverlay { proxy in
             GeometryReader { geo in
                 if let plotAnchor = proxy.plotFrame {

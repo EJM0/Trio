@@ -106,6 +106,16 @@ struct MainChartView: View {
     /// Measured plot rect of the COB/IOB pane (canvas y-coords) for overlay alignment.
     @State private var cobIobPlotFrame: CGRect = .zero
 
+    /// Measured width of the scrub's time label, so it can be kept inside the viewport
+    /// when the selection is near an edge.
+    @State private var selectionTimeLabelWidth: CGFloat = 0
+
+    /// Measured height of an x-axis time label. Zero until the strip has laid out once.
+    /// Measured rather than assumed: the labels are ordinary `.footnote` text, so their
+    /// height follows Dynamic Type and the script the app is localized into, and a fixed
+    /// number would clip them at accessibility sizes.
+    @State private var axisLabelHeight: CGFloat = 0
+
     var body: some View {
         ZStack(alignment: .topLeading) {
             MainChartCanvas(
@@ -156,17 +166,23 @@ struct MainChartView: View {
             .frame(width: viewportWidth, height: stackHeight, alignment: .topLeading)
             .allowsHitTesting(false)
 
+            xAxisOverlay
+                .allowsHitTesting(false)
+
             selectionOverlay
                 .allowsHitTesting(false)
         }
-        .frame(
-            width: viewportWidth,
-            height: basalHeight + mainHeight + cobIobHeight,
-            alignment: .topLeading
-        )
+        // The full zone: the canvas fills all of it but the bottom strip, which carries
+        // the x-axis labels.
+        .frame(width: viewportWidth, height: chartHeight, alignment: .topLeading)
         .clipped()
         .contentShape(Rectangle())
         .onPreferenceChange(CobIobPlotFrameKey.self) { cobIobPlotFrame = $0 }
+        // Only ever grows into a real measurement: the pill is gone between scrubs, and
+        // letting the preference fall back to zero then would pop the next one into place
+        // uncentered for a frame.
+        .onPreferenceChange(SelectionTimeLabelWidthKey.self) { if $0 > 0 { selectionTimeLabelWidth = $0 } }
+        .onPreferenceChange(AxisLabelHeightKey.self) { if $0 > 0 { axisLabelHeight = $0 } }
         .simultaneousGesture(panAndInspectGesture)
         .simultaneousGesture(magnifyGesture)
         .simultaneousGesture(TapGesture(count: 2).onEnded { cycleZoomPreset() })
@@ -210,12 +226,27 @@ struct MainChartView: View {
 extension MainChartView {
     private var viewportWidth: CGFloat { max(geo.size.width, 1) }
 
+    /// Height of the x-axis label strip below the canvas: one label, plus the gap that
+    /// keeps it off the plot. Derived from the label's own measured height, so it grows
+    /// with Dynamic Type instead of clipping.
+    ///
+    /// Capped, because a strip is only ever the footer of a chart: at the largest
+    /// accessibility sizes an uncapped label would eat the pane it belongs to. Past the
+    /// cap the labels clip rather than the chart collapsing — the lesser of the two.
+    var axisStripHeight: CGFloat {
+        let label = axisLabelHeight > 0 ? axisLabelHeight : MainChartHelper.Config.estimatedXAxisLabelHeight
+        return min(label + MainChartHelper.Config.xAxisLabelTopGap, chartHeight * 0.25)
+    }
+
+    /// What the three panes have to share: the zone, less the label strip.
+    var chartStackHeight: CGFloat { max(chartHeight - axisStripHeight, 1) }
+
     // Pane splits of the chart's own allocation, preserving the proportions
     // of the previous screen-height fractions (0.05 / 0.33 / 0.12 = 10% /
     // 66% / 24% of the 50% chart block).
-    var basalHeight: CGFloat { chartHeight * 0.10 }
-    var mainHeight: CGFloat { chartHeight * 0.66 }
-    var cobIobHeight: CGFloat { chartHeight * 0.24 }
+    var basalHeight: CGFloat { chartStackHeight * 0.10 }
+    var mainHeight: CGFloat { chartStackHeight * 0.66 }
+    var cobIobHeight: CGFloat { chartStackHeight * 0.24 }
 
     private var windowSeconds: TimeInterval {
         max(renderWindowEnd.timeIntervalSince(renderWindowStart), 1)
@@ -303,9 +334,21 @@ extension MainChartView {
 extension MainChartView {
     private var stackHeight: CGFloat { basalHeight + mainHeight + cobIobHeight }
 
+    /// Viewport x of a date, as it is actually on screen — including the live-pinch
+    /// stretch. The overlays sit outside the canvas and so are not carried by its
+    /// `scaleEffect`; without applying the same transform here, every pinned label and
+    /// selection mark would drift off the marks it belongs to for the length of a pinch.
     private func xPosition(for date: Date) -> CGFloat {
-        CGFloat(date.timeIntervalSince(scrollPosition) / visibleSeconds) * viewportWidth
+        let x = CGFloat(date.timeIntervalSince(scrollPosition) / visibleSeconds) * viewportWidth
+        guard let pinch = pinchAnchor, pinchScale != 1 else { return x }
+        let anchorX = pinch.anchorFraction * viewportWidth
+        return anchorX + (x - anchorX) * pinchScale
     }
+
+    /// Top of the x-axis label strip — which is simply the bottom of the canvas, since
+    /// the strip is taken off the zone before the panes split what is left. Nothing
+    /// reserves height inside the COB/IOB pane any more, so its plot ends here too.
+    var axisStripTop: CGFloat { stackHeight }
 
     private func glucoseYPosition(for glucose: GlucoseStored) -> CGFloat {
         let value = units == .mgdL ? Decimal(glucose.glucose) : Decimal(glucose.glucose).asMmolL
@@ -347,7 +390,9 @@ extension MainChartView {
                 startPoint: .leading,
                 endPoint: .trailing
             )
-            .frame(width: 120, height: stackHeight)
+            // the whole zone, label strip included: stopping at the canvas would leave
+            // a seam across the fade
+            .frame(width: 120, height: chartHeight)
             .frame(width: viewportWidth, alignment: .trailing)
             .allowsHitTesting(false)
         }
@@ -369,11 +414,15 @@ extension MainChartView {
                 )
                 let glucoseY = glucoseYPosition(for: selectedGlucose)
 
-                // Vertical indicator through all three panes.
+                // Vertical indicator through all three panes. It stops at the bottom of
+                // the COB/IOB plot rather than running the full stack height: below that
+                // line is the x-axis strip, which during a scrub carries the selection's
+                // own time label — the rule would otherwise strike straight through it.
+                let ruleHeight = max(axisStripTop, 1)
                 Rectangle()
                     .fill(Color.tabBar)
-                    .frame(width: 2, height: stackHeight)
-                    .position(x: x, y: stackHeight / 2)
+                    .frame(width: 2, height: ruleHeight)
+                    .position(x: x, y: ruleHeight / 2)
 
                 // Selected glucose highlight.
                 Circle().fill(markColor)
@@ -408,6 +457,144 @@ extension MainChartView {
                         .frame(width: 6, height: 6)
                         .position(x: dotX, y: y)
                 }
+            }
+        }
+    }
+}
+
+// MARK: - X-axis overlay (hour labels / scrub time, pinned to the viewport)
+
+/// Width of the scrub's time label, reported up to the shell so it can be clamped inside
+/// the viewport. Zero (no label on screen) never overwrites a real measurement.
+private struct SelectionTimeLabelWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        let next = nextValue()
+        if next != 0 { value = next }
+    }
+}
+
+/// Height of an x-axis time label at the current type size, reported up to the shell,
+/// which sizes the strip — and with it the panes above — from it.
+private struct AxisLabelHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+extension MainChartView {
+    /// The time strip under the COB/IOB plot.
+    ///
+    /// It has two states, and only ever one of them: the hour labels of the visible
+    /// window, or — for as long as a scrub is live — the selected reading's own time,
+    /// travelling with the indicator. The x axis is where time is read on this chart, so a
+    /// scrub answers "when?" in that same place instead of on a card elsewhere; and with
+    /// the hour labels gone for the duration, the moving label has the strip to itself and
+    /// cannot collide with them.
+    ///
+    /// Drawn by the shell rather than by the pane's axis (which is now grid lines only):
+    /// the canvas is deliberately not re-evaluated during a gesture, so an axis component
+    /// could not swap its labels mid-scrub without giving that up.
+    @ViewBuilder var xAxisOverlay: some View {
+        let isScrubbing = selection != nil
+        let labelHeight = axisStripHeight - MainChartHelper.Config.xAxisLabelTopGap
+        let labelY = axisStripTop + MainChartHelper.Config.xAxisLabelTopGap + labelHeight / 2
+
+        ZStack(alignment: .topLeading) {
+            axisLabelTemplate
+
+            ForEach(visibleHourMarks, id: \.self) { date in
+                hourLabel(for: date)
+                    .position(x: xPosition(for: date), y: labelY)
+            }
+            .opacity(isScrubbing ? 0 : 1)
+            .animation(.easeInOut(duration: 0.2), value: isScrubbing)
+
+            selectionTimeLabel(y: labelY)
+        }
+        // Load-bearing, exactly as for the pinned y-axis above: an unconstrained sibling
+        // in this ZStack inherits the canvas's (~9x screen) layout width.
+        .frame(width: viewportWidth, height: chartHeight, alignment: .topLeading)
+    }
+
+    /// Laid out but never drawn: this is what the strip's height is measured from. A
+    /// template rather than one of the real labels, so the measurement holds even at a
+    /// zoom or scroll position that puts no hour mark on screen, and doesn't change as
+    /// labels come and go. Both label forms are stacked, so the taller one wins in any
+    /// locale.
+    @ViewBuilder private var axisLabelTemplate: some View {
+        ZStack {
+            hourLabel(for: Self.labelTemplateDate)
+            hourLabel(for: Self.dayLabelTemplateDate)
+        }
+        .background {
+            GeometryReader { geo in
+                Color.clear.preference(key: AxisLabelHeightKey.self, value: geo.size.height)
+            }
+        }
+        .opacity(0)
+        .accessibilityHidden(true)
+    }
+
+    /// A non-midnight and a midnight date, for the two forms `hourLabel` can take.
+    private static let labelTemplateDate = Calendar.current
+        .date(from: DateComponents(year: 2000, month: 1, day: 1, hour: 22)) ?? .distantPast
+    private static let dayLabelTemplateDate = Calendar.current
+        .date(from: DateComponents(year: 2000, month: 1, day: 1, hour: 0)) ?? .distantPast
+
+    /// Hour marks of the *visible* window only — the canvas draws grid lines across the
+    /// whole render window, but labels off-screen are pure layout cost.
+    private var visibleHourMarks: [Date] {
+        MainChartHelper.hourAxisMarks(
+            over: scrollPosition ... scrollPosition.addingTimeInterval(visibleSeconds),
+            calendar: calendar,
+            visibleSeconds: visibleSeconds
+        )
+    }
+
+    /// Midnight ticks carry the day ("TUE 07") so panned-back history stays unambiguous;
+    /// all other ticks show the hour.
+    @ViewBuilder private func hourLabel(for date: Date) -> some View {
+        if calendar.component(.hour, from: date) == 0 {
+            Text(date.formatted(.dateTime.weekday(.abbreviated).day(.twoDigits)).uppercased())
+                .font(.footnote).bold()
+                .foregroundStyle(Color.primary)
+                .fixedSize()
+        } else {
+            Text(date.formatted(.dateTime.hour(.defaultDigits(amPM: .narrow))))
+                .font(.footnote)
+                .foregroundStyle(Color.primary)
+                .fixedSize()
+        }
+    }
+
+    /// The selection's time: the same axis label the hours use, just showing the scrub's
+    /// own time and moving with the indicator. No container — it belongs to the axis, not
+    /// to the readout, and a chip here would read as a second floating card.
+    ///
+    /// Bold is the only difference from an hour label, so it is legible as the live value
+    /// while it has the strip to itself. Near a viewport edge it slides just far enough to
+    /// stay whole: the label is the one part of the readout that must never be half-cut.
+    @ViewBuilder private func selectionTimeLabel(y: CGFloat) -> some View {
+        if let selectedGlucose, let selectionDate = selectedGlucose.date {
+            let x = xPosition(for: selectionDate)
+            if x >= 0, x <= viewportWidth {
+                let halfWidth = selectionTimeLabelWidth / 2
+                Text(selectionDate.formatted(.dateTime.hour().minute(.twoDigits)))
+                    .font(.footnote).bold()
+                    // equal-width digits: the label is re-centred on every scrub step, and
+                    // proportional digits would make it breathe as the minutes run
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .foregroundStyle(Color.primary)
+                    .fixedSize()
+                    .background {
+                        GeometryReader { geo in
+                            Color.clear.preference(key: SelectionTimeLabelWidthKey.self, value: geo.size.width)
+                        }
+                    }
+                    .position(x: min(max(x, halfWidth), viewportWidth - halfWidth), y: y)
             }
         }
     }

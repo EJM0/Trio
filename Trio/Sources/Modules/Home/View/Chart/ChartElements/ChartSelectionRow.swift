@@ -66,6 +66,10 @@ enum ChartSelectionLookup {
 /// The selection readout, rendered in the Home meal slot in place of IOB / COB / alarms for
 /// as long as a scrub is live.
 ///
+/// No time: the scrub's time is written on the chart's own x axis, under the selection
+/// indicator, where it travels with the finger (`MainChartView.xAxisOverlay`). Repeating it
+/// here would only ask the eye to leave the point it is reading to find out "when".
+///
 /// It used to be a card floating over the glucose pane, which covered the very data it
 /// described — worst exactly where the finger already is. The meal row is a fixed 44 pt slot
 /// that is always on screen and whose live values the readout supersedes anyway, so taking
@@ -95,21 +99,6 @@ struct ChartSelectionRow: View {
         )
     }
 
-    /// A time long enough to reserve room for every other time the scrub can land on: a
-    /// two-digit hour, and — where the locale writes one — an AM/PM marker. Formatting a
-    /// sample date rather than hard-coding a string keeps that true in both 24- and
-    /// 12-hour locales.
-    private static let timeTemplateDate = Calendar.current
-        .date(from: DateComponents(year: 2000, month: 1, day: 1, hour: 22, minute: 38)) ?? .distantPast
-
-    private var timeString: String {
-        selectedGlucose.date?.formatted(.dateTime.hour().minute(.twoDigits)) ?? ""
-    }
-
-    private var timeTemplate: String {
-        Self.timeTemplateDate.formatted(.dateTime.hour().minute(.twoDigits))
-    }
-
     /// Widest reading the unit can produce: three digits in mg/dL, `88.8` in mmol/L.
     private var glucoseTemplate: String { units == .mgdL ? "888" : "88.8" }
 
@@ -131,17 +120,10 @@ struct ChartSelectionRow: View {
     }
 
     /// Fixed spacing rather than `Spacer`s, so the row hugs its content: with no
-    /// determination to read, the panel is just time and glucose and shrinks to fit them,
-    /// instead of stretching the slot's full width around two values.
+    /// determination to read, the panel is just the reading and shrinks to fit it, instead
+    /// of stretching the slot's full width around one value.
     @ViewBuilder private func row(font: Font) -> some View {
         HStack(spacing: 12) {
-            item(
-                icon: "clock",
-                tint: .secondary,
-                value: Text(timeString),
-                template: Text(timeTemplate)
-            )
-
             glucoseGroup
 
             if let iob = determination?.iob {
