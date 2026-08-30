@@ -643,7 +643,9 @@ extension MainChartView {
                 visibleStart: scrollPosition,
                 visibleSeconds: visibleSeconds,
                 xPosition: { xPosition(for: $0) },
-                yPosition: { glucoseYPosition(forDisplayValue: $0) }
+                yPosition: { glucoseYPosition(forDisplayValue: $0) },
+                bolusDisplayThreshold: state.bolusDisplayThreshold,
+                smbBolusDisplayCutoff: state.smbBolusDisplayCutoff
             )
         }
     }
