@@ -172,9 +172,6 @@ struct MainChartView: View {
             treatmentOverlay
                 .allowsHitTesting(false)
 
-            peakLabelsOverlay
-                .allowsHitTesting(false)
-
             nowOffscreenGradient
 
             // Pinned y-axis labels over the glucose pane, ABOVE the scrolled-back gradient
@@ -202,6 +199,13 @@ struct MainChartView: View {
             .allowsHitTesting(false)
 
             xAxisOverlay
+                .allowsHitTesting(false)
+
+            // Last of the static content, so a badge is never dimmed by the scrolled-back
+            // gradient nor covered by the pinned axis labels — it is the one label that
+            // marks a specific reading, so it wins every overlap. Only the scrub's own
+            // marks, which are transient, sit above it.
+            peakLabelsOverlay
                 .allowsHitTesting(false)
 
             selectionOverlay

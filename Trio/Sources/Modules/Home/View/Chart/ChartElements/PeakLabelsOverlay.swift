@@ -255,7 +255,9 @@ struct PeakLabelsOverlay: View, Animatable {
             ascendingInput: true, date: \.timestamp
         )
         for event in events {
-            guard let bolus = event.bolus, bolus.isExternal == false, let date = event.timestamp else { continue }
+            // No `isExternal` filter: `TreatmentOverlay` draws external boluses like any
+            // other, so excluding them here reserved nothing and let a badge land on one.
+            guard let bolus = event.bolus, let date = event.timestamp else { continue }
             let amount = (bolus.amount ?? 0 as NSDecimalNumber).decimalValue
             guard amount != 0 else { continue }
             guard let glucose = MainChartHelper.timeToNearestGlucose(
