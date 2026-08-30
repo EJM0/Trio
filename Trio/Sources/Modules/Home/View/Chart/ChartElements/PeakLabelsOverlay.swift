@@ -2,13 +2,20 @@ import Charts
 import Foundation
 import SwiftUI
 
-/// Renders BG peak labels with collision avoidance against bolus/carb bar marks and the
-/// glucose curve. Bars stay anchored to the curve at a fixed pixel offset; labels move
-/// to find a collision-free position via `LabelPlacement.placeLabelCenter`.
-struct PeakLabelsOverlay: View {
+/// BG peak and nadir badges, with collision avoidance against the treatment markers and
+/// the glucose curve (`LabelPlacement.placeLabelCenter`).
+///
+/// Drawn by the shell, for the same reason `TreatmentOverlay` is: inside the canvas these
+/// badges rode the live-pinch `scaleEffect`, an x-only transform, so their text and their
+/// rounded backgrounds stretched for the length of a gesture and snapped back at every
+/// zoom commit. Out here the pinch reaches only their coordinates, through the same
+/// `xPosition` the markers they avoid are placed with.
+///
+/// Cheap to redraw per frame, unlike the treatment markers: a window holds tens of peaks,
+/// not hundreds of doses, and the obstacle search is already scoped to their neighbourhoods.
+struct PeakLabelsOverlay: View, Animatable {
     @Environment(\.colorScheme) private var colorScheme
 
-    let proxy: ChartProxy
     let peaks: [(date: Date, glucose: Int16, type: ExtremumType)]
     let glucoseData: [GlucoseStored]
     let insulinData: [PumpEventStored]
@@ -18,10 +25,20 @@ struct PeakLabelsOverlay: View {
     let lowGlucose: Decimal
     let glucoseColorScheme: GlucoseColorScheme
     let currentGlucoseTarget: Decimal
-    /// The rendered domain, for converting the placement distances below into a span of
-    /// chart time — which is what bounds the obstacle search.
-    let windowStart: Date
-    let windowEnd: Date
+
+    let viewportWidth: CGFloat
+    let stackHeight: CGFloat
+    /// Leading edge of the visible window, and its length. Together they convert the
+    /// placement distances below into a span of chart time, which is what bounds the
+    /// obstacle search. `var`, because `animatableData` interpolates it.
+    var visibleStart: Date
+    let visibleSeconds: TimeInterval
+
+    /// The shell's mappings — `xPosition` carries the live-pinch transform, `yPosition`
+    /// takes a value in display units — so a badge and the marker it avoids can never
+    /// disagree about where either of them is.
+    let xPosition: (Date) -> CGFloat
+    let yPosition: (Decimal) -> CGFloat
     /// Mirrors what `TreatmentOverlay` uses to decide whether a bolus carries its dose label, so
     /// a marker's reserved footprint matches the one actually drawn.
     let bolusDisplayThreshold: BolusDisplayThreshold
@@ -41,34 +58,54 @@ struct PeakLabelsOverlay: View {
     /// search so a marker whose centre sits just outside it still can't reach a label.
     private static let maxMarkerHalfWidth: CGFloat = 20
 
+    /// The leading edge as a scalar SwiftUI can interpolate, so the badges travel with the
+    /// chart during an animated scroll instead of snapping to its destination. Same reason
+    /// as `TreatmentOverlay.animatableData`.
+    var animatableData: Double {
+        get { visibleStart.timeIntervalSinceReferenceDate }
+        set { visibleStart = Date(timeIntervalSinceReferenceDate: newValue) }
+    }
+
     var body: some View {
-        GeometryReader { geo in
-            if let plotAnchor = proxy.plotFrame {
-                let plotRect = geo[plotAnchor]
-                let obstacles = computeObstacles(plotRect: plotRect)
-                let placed = computePlacements(obstacles: obstacles, plotRect: plotRect)
+        let placed = computePlacements(obstacles: computeObstacles())
 
-                ZStack(alignment: .topLeading) {
-                    ForEach(placed.indices, id: \.self) { i in
-                        let p = placed[i]
-                        // Connector from peak point on the curve to the label edge.
-                        Path { path in
-                            path.move(to: CGPoint(x: p.peakX, y: p.peakY))
-                            path.addLine(to: connectorAnchor(rect: p.rect, peakY: p.peakY))
-                        }
-                        .stroke(Color.secondary, lineWidth: 0.75)
-                        .opacity(0.75)
-
-                        PeakLabelBadge(text: p.text, color: p.color)
-                            .fixedSize()
-                            .position(x: p.rect.midX, y: p.rect.midY)
-                    }
+        ZStack(alignment: .topLeading) {
+            ForEach(placed.indices, id: \.self) { i in
+                let p = placed[i]
+                // Connector from peak point on the curve to the label edge.
+                Path { path in
+                    path.move(to: CGPoint(x: p.peakX, y: p.peakY))
+                    path.addLine(to: connectorAnchor(rect: p.rect, peakY: p.peakY))
                 }
-                .frame(width: plotRect.width, height: plotRect.height)
-                .offset(x: plotRect.minX, y: plotRect.minY)
+                .stroke(Color.secondary, lineWidth: 0.75)
+                .opacity(0.75)
+
+                PeakLabelBadge(text: p.text, color: p.color)
+                    .fixedSize()
+                    .position(x: p.rect.midX, y: p.rect.midY)
             }
         }
+        // Load-bearing, as for every other shell overlay: an unconstrained sibling in the
+        // shell's ZStack inherits the canvas's (~9x screen) layout width.
+        .frame(width: viewportWidth, height: stackHeight, alignment: .topLeading)
         .allowsHitTesting(false)
+    }
+
+    /// Peaks that could put a badge on screen — its own position plus the furthest the
+    /// placement may carry it. Everything else is culled before any work is done on it.
+    private var visiblePeaks: [(date: Date, glucose: Int16, type: ExtremumType)] {
+        let reach = Double(Self.maxPlacementDistance + Self.labelSize.width) * secondsPerPoint
+        return MainChartHelper.windowSlice(
+            peaks,
+            from: visibleStart.addingTimeInterval(-reach),
+            through: visibleStart.addingTimeInterval(visibleSeconds + reach),
+            ascendingInput: true,
+            date: { $0.date }
+        )
+    }
+
+    private var secondsPerPoint: TimeInterval {
+        visibleSeconds / Double(max(viewportWidth, 1))
     }
 
     // MARK: - Placement
@@ -89,21 +126,16 @@ struct PeakLabelsOverlay: View {
         return CGPoint(x: rect.midX, y: y)
     }
 
-    private func computePlacements(obstacles: [CGRect], plotRect _: CGRect) -> [PlacedPeak] {
+    private func computePlacements(obstacles: [CGRect]) -> [PlacedPeak] {
         // Still sorted — `placeLabelCenter` binary-searches by `minX` — but over the tens of
         // rects the peak neighbourhoods produce rather than the whole render window.
         let sortedObstacles = obstacles.sorted { $0.minX < $1.minX }
         let labelSize = Self.labelSize
 
-        return peaks.compactMap { peak -> PlacedPeak? in
+        return visiblePeaks.compactMap { peak -> PlacedPeak? in
             let glucoseDecimal = Decimal(peak.glucose)
-            let displayValue = units == .mgdL ? glucoseDecimal : glucoseDecimal.asMmolL
-            guard let cx = proxy.position(forX: peak.date),
-                  let cy = proxy.position(forY: displayValue) else { return nil }
-
-            // Plot-relative coordinates
-            let cxRel = cx
-            let cyRel = cy
+            let cxRel = xPosition(peak.date)
+            let cyRel = yPosition(displayValue(glucoseDecimal))
 
             let desiredCenterY: CGFloat
             let side: VerticalSide
@@ -152,10 +184,10 @@ struct PeakLabelsOverlay: View {
     /// work discarded for all but a few tens of them. Peaks are few and arrive in time order,
     /// so their neighbourhoods are cheap to enumerate and the rest of the data is never
     /// touched: no scale lookup, no nearest-glucose search.
-    private func computeObstacles(plotRect: CGRect) -> [CGRect] {
-        guard !peaks.isEmpty, plotRect.width > 0 else { return [] }
+    private func computeObstacles() -> [CGRect] {
+        let peaks = visiblePeaks
+        guard !peaks.isEmpty, viewportWidth > 0 else { return [] }
 
-        let secondsPerPoint = max(windowEnd.timeIntervalSince(windowStart), 1) / Double(plotRect.width)
         // Reach of a placement, in chart time: how far the label itself can travel, plus its
         // own width, plus the widest marker that could still overlap from beyond that.
         let pad = Double(
@@ -163,7 +195,7 @@ struct PeakLabelsOverlay: View {
         ) * secondsPerPoint
 
         var rects: [CGRect] = []
-        for neighbourhood in mergedNeighbourhoods(pad: pad) {
+        for neighbourhood in mergedNeighbourhoods(peaks, pad: pad) {
             appendGlucoseObstacles(in: neighbourhood, to: &rects)
             appendBolusObstacles(in: neighbourhood, to: &rects)
             appendCarbObstacles(in: neighbourhood, to: &rects)
@@ -173,7 +205,10 @@ struct PeakLabelsOverlay: View {
 
     /// Each peak's reach, with overlapping ones merged so a cluster of peaks builds its
     /// shared obstacles once. `PeakPicker` emits peaks in time order, so this is one pass.
-    private func mergedNeighbourhoods(pad: TimeInterval) -> [ClosedRange<Date>] {
+    private func mergedNeighbourhoods(
+        _ peaks: [(date: Date, glucose: Int16, type: ExtremumType)],
+        pad: TimeInterval
+    ) -> [ClosedRange<Date>] {
         var merged: [ClosedRange<Date>] = []
         for peak in peaks {
             let range = peak.date.addingTimeInterval(-pad) ... peak.date.addingTimeInterval(pad)
@@ -196,9 +231,9 @@ struct PeakLabelsOverlay: View {
             ascendingInput: true, date: \.date
         )
         for reading in readings {
-            guard let date = reading.date,
-                  let x = proxy.position(forX: date),
-                  let y = proxy.position(forY: displayValue(Decimal(reading.glucose))) else { continue }
+            guard let date = reading.date else { continue }
+            let x = xPosition(date)
+            let y = yPosition(displayValue(Decimal(reading.glucose)))
             rects.append(CGRect(
                 x: x - Self.glucoseDotSize / 2,
                 y: y - Self.glucoseDotSize / 2,
@@ -229,8 +264,8 @@ struct PeakLabelsOverlay: View {
             )?.glucose else { continue }
 
             let markValue = displayValue(Decimal(glucose)) + MainChartHelper.bolusOffset(units: units)
-            guard let x = proxy.position(forX: date),
-                  let y = proxy.position(forY: markValue) else { continue }
+            let x = xPosition(date)
+            let y = yPosition(markValue)
 
             let size = MainChartHelper.Config.bolusSize
                 + CGFloat(truncating: amount as NSNumber) * MainChartHelper.Config.bolusScale
@@ -265,8 +300,8 @@ struct PeakLabelsOverlay: View {
             )?.glucose else { continue }
 
             let markValue = displayValue(Decimal(glucose)) - MainChartHelper.bolusOffset(units: units)
-            guard let x = proxy.position(forX: date),
-                  let y = proxy.position(forY: markValue) else { continue }
+            let x = xPosition(date)
+            let y = yPosition(markValue)
 
             let size = min(
                 MainChartHelper.Config.carbsSize + CGFloat(entry.carbs) * MainChartHelper.Config.carbsScale,

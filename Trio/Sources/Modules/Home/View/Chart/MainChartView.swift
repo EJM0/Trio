@@ -172,6 +172,9 @@ struct MainChartView: View {
             treatmentOverlay
                 .allowsHitTesting(false)
 
+            peakLabelsOverlay
+                .allowsHitTesting(false)
+
             nowOffscreenGradient
 
             // Pinned y-axis labels over the glucose pane, ABOVE the scrolled-back gradient
@@ -605,6 +608,44 @@ extension MainChartView {
             pinchAnchorFraction: pinchAnchor?.anchorFraction,
             yPosition: { glucoseYPosition(forDisplayValue: $0) }
         )
+    }
+}
+
+// MARK: - Peak / nadir badges (drawn outside the pinch transform)
+
+extension MainChartView {
+    /// Peak and nadir badges. In the shell rather than a `.chartOverlay` so the live-pinch
+    /// `scaleEffect` cannot stretch them, and so they can be culled to what is on screen —
+    /// see `PeakLabelsOverlay`.
+    @ViewBuilder var peakLabelsOverlay: some View {
+        if state.showGlucosePeaks {
+            PeakLabelsOverlay(
+                peaks: state.glucosePeaks,
+                glucoseData: MainChartHelper.windowSlice(
+                    state.glucoseFromPersistence, from: renderWindowStart, through: renderWindowEnd,
+                    ascendingInput: true, date: \.date
+                ),
+                insulinData: MainChartHelper.windowSlice(
+                    state.insulinFromPersistence, from: renderWindowStart, through: renderWindowEnd,
+                    ascendingInput: true, date: \.timestamp
+                ),
+                carbData: MainChartHelper.windowSlice(
+                    state.carbsFromPersistence, from: renderWindowStart, through: renderWindowEnd,
+                    ascendingInput: false, date: \.date
+                ),
+                units: units,
+                highGlucose: highGlucose,
+                lowGlucose: lowGlucose,
+                glucoseColorScheme: glucoseColorScheme,
+                currentGlucoseTarget: currentGlucoseTarget,
+                viewportWidth: viewportWidth,
+                stackHeight: stackHeight,
+                visibleStart: scrollPosition,
+                visibleSeconds: visibleSeconds,
+                xPosition: { xPosition(for: $0) },
+                yPosition: { glucoseYPosition(forDisplayValue: $0) }
+            )
+        }
     }
 }
 
@@ -1255,30 +1296,6 @@ struct MainChartCanvas: View {
         )
     }
 
-    var windowedInsulin: [PumpEventStored] {
-        MainChartHelper.windowSlice(
-            state.insulinFromPersistence,
-            from: windowStart, through: windowEnd,
-            ascendingInput: true, date: \.timestamp
-        )
-    }
-
-    var windowedCarbs: [CarbEntryStored] {
-        MainChartHelper.windowSlice(
-            state.carbsFromPersistence,
-            from: windowStart, through: windowEnd,
-            ascendingInput: false, date: \.date
-        )
-    }
-
-    var windowedFPUs: [CarbEntryStored] {
-        MainChartHelper.windowSlice(
-            state.fpusFromPersistence,
-            from: windowStart, through: windowEnd,
-            ascendingInput: false, date: \.date
-        )
-    }
-
     /// Excursion markers overlapping the render window. Unlike the point series these are
     /// spans, so an episode that starts before the window — or is still running past its
     /// trailing edge — has to be kept.
@@ -1337,8 +1354,6 @@ extension MainChartCanvas {
         // slice each series once per layout; these were computed properties
         // re-evaluated on every reference (glucose alone was scanned 3x)
         let glucose = windowedGlucose
-        let insulin = windowedInsulin
-        let carbs = windowedCarbs
 
         return Chart {
             drawCurrentTimeMarker()
@@ -1410,26 +1425,6 @@ extension MainChartCanvas {
             "zt": Color.zt,
             "cob": Color.orange
         ])
-        .chartOverlay { proxy in
-            if state.showGlucosePeaks {
-                PeakLabelsOverlay(
-                    proxy: proxy,
-                    peaks: state.glucosePeaks.filter { $0.date >= windowStart && $0.date <= windowEnd },
-                    glucoseData: glucose,
-                    insulinData: insulin,
-                    carbData: carbs,
-                    units: state.units,
-                    highGlucose: state.highGlucose,
-                    lowGlucose: state.lowGlucose,
-                    glucoseColorScheme: state.glucoseColorScheme,
-                    currentGlucoseTarget: state.currentGlucoseTarget,
-                    windowStart: windowStart,
-                    windowEnd: windowEnd,
-                    bolusDisplayThreshold: state.bolusDisplayThreshold,
-                    smbBolusDisplayCutoff: state.smbBolusDisplayCutoff
-                )
-            }
-        }
     }
 }
 
