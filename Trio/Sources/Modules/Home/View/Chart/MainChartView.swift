@@ -110,6 +110,11 @@ struct MainChartView: View {
     /// when the selection is near an edge.
     @State private var selectionTimeLabelWidth: CGFloat = 0
 
+    /// Measured width of the widest x-axis time label. Zero until the strip has laid out
+    /// once. Sets how far past the viewport edge marks are still laid out, so a label can
+    /// travel fully off screen instead of vanishing mid-stride.
+    @State private var axisLabelWidth: CGFloat = 0
+
     /// Measured height of an x-axis time label. Zero until the strip has laid out once.
     /// Measured rather than assumed: the labels are ordinary `.footnote` text, so their
     /// height follows Dynamic Type and the script the app is localized into, and a fixed
@@ -183,6 +188,7 @@ struct MainChartView: View {
         // uncentered for a frame.
         .onPreferenceChange(SelectionTimeLabelWidthKey.self) { if $0 > 0 { selectionTimeLabelWidth = $0 } }
         .onPreferenceChange(AxisLabelHeightKey.self) { if $0 > 0 { axisLabelHeight = $0 } }
+        .onPreferenceChange(AxisLabelWidthKey.self) { if $0 > 0 { axisLabelWidth = $0 } }
         .simultaneousGesture(panAndInspectGesture)
         .simultaneousGesture(magnifyGesture)
         .simultaneousGesture(TapGesture(count: 2).onEnded { cycleZoomPreset() })
@@ -483,6 +489,15 @@ private struct AxisLabelHeightKey: PreferenceKey {
     }
 }
 
+/// Width of the widest x-axis time label, from the same template — a `ZStack` takes the
+/// size of its largest child, so measuring it measures the widest form.
+private struct AxisLabelWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 extension MainChartView {
     /// The time strip under the COB/IOB plot.
     ///
@@ -530,7 +545,9 @@ extension MainChartView {
         }
         .background {
             GeometryReader { geo in
-                Color.clear.preference(key: AxisLabelHeightKey.self, value: geo.size.height)
+                Color.clear
+                    .preference(key: AxisLabelHeightKey.self, value: geo.size.height)
+                    .preference(key: AxisLabelWidthKey.self, value: geo.size.width)
             }
         }
         .opacity(0)
@@ -543,11 +560,28 @@ extension MainChartView {
     private static let dayLabelTemplateDate = Calendar.current
         .date(from: DateComponents(year: 2000, month: 1, day: 1, hour: 0)) ?? .distantPast
 
-    /// Hour marks of the *visible* window only — the canvas draws grid lines across the
-    /// whole render window, but labels off-screen are pure layout cost.
+    /// How far past each viewport edge hour marks are still laid out: exactly far enough
+    /// for a label to clear the edge completely, and no further.
+    ///
+    /// A label is centred on its mark, so it is fully off screen only once the mark itself
+    /// is half a label past the edge. Anything less and the label winks out of existence
+    /// mid-stride instead of travelling off; anything more is laid out for nothing. Half
+    /// the *measured* widest label — the midnight form, "TUE 07" — plus a point of slack
+    /// for the rounding SwiftUI does when it positions it.
+    ///
+    /// The fallback only covers the frame or two before the template has been measured.
+    private var hourMarkOverscanPoints: CGFloat {
+        (axisLabelWidth > 0 ? axisLabelWidth : 56) / 2 + 1
+    }
+
+    /// Hour marks for the visible window plus that overscan — not the whole render window,
+    /// which is ~9x wider and whose off-screen labels would be pure layout cost. The frame
+    /// clips, so the overscanned ones simply slide out of view.
     private var visibleHourMarks: [Date] {
-        MainChartHelper.hourAxisMarks(
-            over: scrollPosition ... scrollPosition.addingTimeInterval(visibleSeconds),
+        let overscan = TimeInterval(hourMarkOverscanPoints / viewportWidth) * visibleSeconds
+        return MainChartHelper.hourAxisMarks(
+            over: scrollPosition.addingTimeInterval(-overscan)
+                ... scrollPosition.addingTimeInterval(visibleSeconds + overscan),
             calendar: calendar,
             visibleSeconds: visibleSeconds
         )
