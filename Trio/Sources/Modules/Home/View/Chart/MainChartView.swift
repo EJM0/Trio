@@ -706,10 +706,15 @@ extension MainChartView {
         ZStack(alignment: .topLeading) {
             axisLabelTemplate
 
-            ForEach(visibleHourMarks, id: \.self) { date in
-                hourLabel(for: date)
-                    .position(x: xPosition(for: date), y: labelY)
-            }
+            HourAxisLabels(
+                visibleStart: scrollPosition,
+                visibleSeconds: visibleSeconds,
+                viewportWidth: viewportWidth,
+                labelY: labelY,
+                pinchScale: pinchScale,
+                pinchAnchorFraction: pinchAnchor?.anchorFraction,
+                labelWidth: axisLabelWidth
+            )
             .opacity(isScrubbing ? 0 : 1)
             .animation(.easeInOut(duration: 0.2), value: isScrubbing)
 
@@ -727,8 +732,8 @@ extension MainChartView {
     /// locale.
     @ViewBuilder private var axisLabelTemplate: some View {
         ZStack {
-            hourLabel(for: Self.labelTemplateDate)
-            hourLabel(for: Self.dayLabelTemplateDate)
+            HourAxisLabel(date: Self.labelTemplateDate)
+            HourAxisLabel(date: Self.dayLabelTemplateDate)
         }
         .background {
             GeometryReader { geo in
@@ -741,54 +746,11 @@ extension MainChartView {
         .accessibilityHidden(true)
     }
 
-    /// A non-midnight and a midnight date, for the two forms `hourLabel` can take.
+    /// A non-midnight and a midnight date, for the two forms `HourAxisLabel` can take.
     private static let labelTemplateDate = Calendar.current
         .date(from: DateComponents(year: 2000, month: 1, day: 1, hour: 22)) ?? .distantPast
     private static let dayLabelTemplateDate = Calendar.current
         .date(from: DateComponents(year: 2000, month: 1, day: 1, hour: 0)) ?? .distantPast
-
-    /// How far past each viewport edge hour marks are still laid out: exactly far enough
-    /// for a label to clear the edge completely, and no further.
-    ///
-    /// A label is centred on its mark, so it is fully off screen only once the mark itself
-    /// is half a label past the edge. Anything less and the label winks out of existence
-    /// mid-stride instead of travelling off; anything more is laid out for nothing. Half
-    /// the *measured* widest label — the midnight form, "TUE 07" — plus a point of slack
-    /// for the rounding SwiftUI does when it positions it.
-    ///
-    /// The fallback only covers the frame or two before the template has been measured.
-    private var hourMarkOverscanPoints: CGFloat {
-        (axisLabelWidth > 0 ? axisLabelWidth : 56) / 2 + 1
-    }
-
-    /// Hour marks for the visible window plus that overscan — not the whole render window,
-    /// which is ~9x wider and whose off-screen labels would be pure layout cost. The frame
-    /// clips, so the overscanned ones simply slide out of view.
-    private var visibleHourMarks: [Date] {
-        let overscan = TimeInterval(hourMarkOverscanPoints / viewportWidth) * visibleSeconds
-        return MainChartHelper.hourAxisMarks(
-            over: scrollPosition.addingTimeInterval(-overscan)
-                ... scrollPosition.addingTimeInterval(visibleSeconds + overscan),
-            calendar: calendar,
-            visibleSeconds: visibleSeconds
-        )
-    }
-
-    /// Midnight ticks carry the day ("TUE 07") so panned-back history stays unambiguous;
-    /// all other ticks show the hour.
-    @ViewBuilder private func hourLabel(for date: Date) -> some View {
-        if calendar.component(.hour, from: date) == 0 {
-            Text(date.formatted(.dateTime.weekday(.abbreviated).day(.twoDigits)).uppercased())
-                .font(.footnote).bold()
-                .foregroundStyle(Color.primary)
-                .fixedSize()
-        } else {
-            Text(date.formatted(.dateTime.hour(.defaultDigits(amPM: .narrow))))
-                .font(.footnote)
-                .foregroundStyle(Color.primary)
-                .fixedSize()
-        }
-    }
 
     /// The selection's time: the same axis label the hours use, just showing the scrub's
     /// own time and moving with the indicator. No container — it belongs to the axis, not
@@ -817,6 +779,109 @@ extension MainChartView {
                     }
                     .position(x: min(max(x, halfWidth), viewportWidth - halfWidth), y: y)
             }
+        }
+    }
+}
+
+/// The hour labels of the x-axis strip, in their own view so that they can be `Animatable`.
+///
+/// Same reason `TreatmentOverlay` and `PeakLabelsOverlay` are: the "jump to now" button
+/// wraps `scrollToTrailingEdge()` in `withAnimation`, and the canvas glides there because
+/// it moves under an animatable `.offset`. A `Date` handed to a view is not animatable at
+/// all, so labels positioned from the shell's `scrollPosition` — already at its final
+/// value when the animation starts — snapped straight to the destination hours while the
+/// grid lines they name slid under them. Interpolating the leading edge here re-runs this
+/// body each frame, so the hours travel with the chart.
+private struct HourAxisLabels: View, Animatable {
+    /// Leading edge of the visible window, and its length: the marks are laid out over
+    /// that span (plus the overscan below). `var`, because `animatableData` interpolates it.
+    var visibleStart: Date
+    let visibleSeconds: TimeInterval
+
+    let viewportWidth: CGFloat
+    /// Centre line of the label strip, measured by the shell.
+    let labelY: CGFloat
+
+    /// The live-pinch transform, applied to label coordinates only — the strip sits
+    /// outside the canvas, so nothing else here is carried by its `scaleEffect`.
+    let pinchScale: CGFloat
+    let pinchAnchorFraction: CGFloat?
+
+    /// Measured width of the widest label form, from the shell's template. Only the
+    /// overscan uses it.
+    let labelWidth: CGFloat
+
+    /// The leading edge as a scalar SwiftUI can interpolate — see the note above.
+    var animatableData: Double {
+        get { visibleStart.timeIntervalSinceReferenceDate }
+        set { visibleStart = Date(timeIntervalSinceReferenceDate: newValue) }
+    }
+
+    var body: some View {
+        ForEach(hourMarks, id: \.self) { date in
+            HourAxisLabel(date: date)
+                .position(x: x(for: date), y: labelY)
+        }
+    }
+
+    /// How far past each viewport edge hour marks are still laid out: exactly far enough
+    /// for a label to clear the edge completely, and no further.
+    ///
+    /// A label is centred on its mark, so it is fully off screen only once the mark itself
+    /// is half a label past the edge. Anything less and the label winks out of existence
+    /// mid-stride instead of travelling off; anything more is laid out for nothing. Half
+    /// the *measured* widest label — the midnight form, "TUE 07" — plus a point of slack
+    /// for the rounding SwiftUI does when it positions it.
+    ///
+    /// The fallback only covers the frame or two before the template has been measured.
+    private var overscanPoints: CGFloat {
+        (labelWidth > 0 ? labelWidth : 56) / 2 + 1
+    }
+
+    /// Hour marks for the visible window plus that overscan — not the whole render window,
+    /// which is ~9x wider and whose off-screen labels would be pure layout cost. The
+    /// shell's frame clips, so the overscanned ones simply slide out of view.
+    private var hourMarks: [Date] {
+        let overscan = TimeInterval(overscanPoints / viewportWidth) * visibleSeconds
+        return MainChartHelper.hourAxisMarks(
+            over: visibleStart.addingTimeInterval(-overscan)
+                ... visibleStart.addingTimeInterval(visibleSeconds + overscan),
+            calendar: calendar,
+            visibleSeconds: visibleSeconds
+        )
+    }
+
+    /// Mirrors the shell's `xPosition(for:)`. Deliberately a copy rather than the closure
+    /// it used to call: that closure captured the shell's `scrollPosition`, so
+    /// interpolating `visibleStart` here would have moved nothing — the same trap
+    /// `TreatmentOverlay.x(for:)` documents.
+    private func x(for date: Date) -> CGFloat {
+        let x = CGFloat(date.timeIntervalSince(visibleStart) / visibleSeconds) * viewportWidth
+        guard let anchorFraction = pinchAnchorFraction, pinchScale != 1 else { return x }
+        let anchorX = anchorFraction * viewportWidth
+        return anchorX + (x - anchorX) * pinchScale
+    }
+}
+
+/// One x-axis time label. Midnight ticks carry the day ("TUE 07") so panned-back history
+/// stays unambiguous; all other ticks show the hour.
+///
+/// Shared by the labels themselves and by the shell's hidden measuring template, so the
+/// strip can never be sized from anything but the type actually drawn in it.
+private struct HourAxisLabel: View {
+    let date: Date
+
+    var body: some View {
+        if calendar.component(.hour, from: date) == 0 {
+            Text(date.formatted(.dateTime.weekday(.abbreviated).day(.twoDigits)).uppercased())
+                .font(.footnote).bold()
+                .foregroundStyle(Color.primary)
+                .fixedSize()
+        } else {
+            Text(date.formatted(.dateTime.hour(.defaultDigits(amPM: .narrow))))
+                .font(.footnote)
+                .foregroundStyle(Color.primary)
+                .fixedSize()
         }
     }
 }
