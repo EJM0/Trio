@@ -151,6 +151,14 @@ struct MainChartView: View {
     /// Measured plot rect of the COB/IOB pane (canvas y-coords) for overlay alignment.
     @State private var cobIobPlotFrame: CGRect = .zero
 
+    /// The same for the glucose pane. Every shell layer that hangs off the curve — the dots,
+    /// the treatment markers, the peak badges, the excursion lane, the scrub highlight — maps
+    /// values through `glucoseYPosition(forDisplayValue:)`, and until this arrives that map
+    /// assumes the pane's plot fills the pane. Swift Charts used to guarantee agreement by
+    /// drawing the readings itself; now that they are drawn out here, the plot rect is measured
+    /// so the two cannot drift apart if the chart's own insets ever change.
+    @State private var glucosePlotFrame: CGRect = .zero
+
     /// Measured width of the pinned y-axis label column, published by `StaticYAxisChart`.
     /// Drives `trailingOverscan`, so the domain edge clears the labels exactly.
     @State private var labelGutterWidth: CGFloat = 0
@@ -252,6 +260,7 @@ struct MainChartView: View {
         .frame(width: viewportWidth, height: chartHeight, alignment: .topLeading)
         .clipped()
         .onPreferenceChange(CobIobPlotFrameKey.self) { cobIobPlotFrame = $0 }
+        .onPreferenceChange(GlucosePlotFrameKey.self) { glucosePlotFrame = $0 }
         .onPreferenceChange(YAxisLabelGutterKey.self) { width in
             let isFirstMeasurement = labelGutterWidth == 0
             guard width > 0, abs(width - labelGutterWidth) > 0.5 else { return }
@@ -454,14 +463,24 @@ extension MainChartView {
         glucoseYPosition(forDisplayValue: units == .mgdL ? Decimal(glucose.glucose) : Decimal(glucose.glucose).asMmolL)
     }
 
-    /// Where a value in the chart's display units sits in the glucose pane. Shared with the
-    /// treatment overlay, which anchors its markers to the curve the same way the marks did.
+    /// Where a value in the chart's display units sits in the glucose pane. Shared by every
+    /// layer that hangs off the curve, so none of them can disagree with another about where a
+    /// reading is.
+    ///
+    /// Mapped through the pane's *measured* plot rect, exactly as `cobIobYPosition` does: the
+    /// glucose readings are no longer marks inside that chart, so nothing but this makes them
+    /// land on its grid lines and its forecast. The pane's own top and height stand in until
+    /// the canvas publishes the rect, which is right to a point or two — the pane's axes are
+    /// hidden and grid-only, so its plot does fill it today. This is what keeps that from
+    /// being an assumption.
     func glucoseYPosition(forDisplayValue value: Decimal) -> CGFloat {
         let domain = paddedGlucoseYDomain
         let span = domain.upperBound - domain.lowerBound
         let fraction = span == 0 ? 0.5 :
             Double(truncating: ((value - domain.lowerBound) / span) as NSDecimalNumber)
-        return basalHeight + mainHeight * CGFloat(1 - min(max(fraction, 0), 1))
+        let plotTop = glucosePlotFrame == .zero ? basalHeight : glucosePlotFrame.minY
+        let plotHeight = glucosePlotFrame == .zero ? mainHeight : glucosePlotFrame.height
+        return plotTop + plotHeight * CGFloat(1 - min(max(fraction, 0), 1))
     }
 
     private func cobIobYPosition(forChartValue value: Double) -> CGFloat {
@@ -1659,6 +1678,15 @@ struct CobIobPlotFrameKey: PreferenceKey {
     }
 }
 
+/// The same for the glucose pane — what the shell's overlays map values through.
+struct GlucosePlotFrameKey: PreferenceKey {
+    static let defaultValue = CGRect.zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        let next = nextValue()
+        if next != .zero { value = next }
+    }
+}
+
 // MARK: - Main (glucose) chart pane
 
 extension MainChartCanvas {
@@ -1703,6 +1731,20 @@ extension MainChartCanvas {
         .chartYAxis(.hidden)
         .chartYScale(domain: glucoseYDomain)
         .chartLegend(.hidden)
+        // Publish the plot rect for the shell's overlays, rebased into canvas coordinates —
+        // the same measurement the COB/IOB pane makes, and for the same reason.
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                if let plotAnchor = proxy.plotFrame {
+                    let chartFrame = geo.frame(in: .named(MainChartCanvas.coordinateSpaceName))
+                    let plotLocal = geo[plotAnchor]
+                    Color.clear.preference(
+                        key: GlucosePlotFrameKey.self,
+                        value: plotLocal.offsetBy(dx: chartFrame.minX, dy: chartFrame.minY)
+                    )
+                }
+            }
+        }
         .chartForegroundStyleScale([
             "iob": Color.insulin,
             "uam": Color.uam,
