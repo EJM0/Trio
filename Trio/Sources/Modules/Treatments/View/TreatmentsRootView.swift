@@ -727,6 +727,7 @@ extension Treatments {
                 }
                 if !isKeyboardVisible {
                     treatmentButton
+                        .padding(.horizontal, 16)
                         .frame(maxHeight: .infinity, alignment: .bottom)
                         .ignoresSafeArea(.keyboard)
                 }
