@@ -204,6 +204,18 @@ enum MainChartHelper {
         static let doubleTapMaxInterval: TimeInterval = 0.35
         /// How far apart (pt) the two taps of a double tap may land.
         static let doubleTapSlop: CGFloat = 44
+        /// Per-frame velocity decay of a post-flick glide at the tightest zoom, where a
+        /// long, loose coast is what fine scrolling wants.
+        static let momentumDecayTight: Double = 0.97
+        /// The same at the widest zoom, deliberately stickier: out there a flick covers
+        /// hours of chart per second, and the tight end's tail reads as a chart that
+        /// refuses to settle.
+        static let momentumDecayWide: Double = 0.925
+        /// A glide stops below this fraction of a viewport per second, at the tightest
+        /// zoom and at the widest respectively. Stopping earlier when zoomed out cuts the
+        /// crawl at the end of the coast, which is the part that feels endless.
+        static let momentumStopFractionTight: Double = 0.02
+        static let momentumStopFractionWide: Double = 0.08
 
         // MARK: Forecast offset (how far past `now` the chart's domain extends)
 

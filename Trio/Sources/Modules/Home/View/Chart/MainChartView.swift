@@ -1214,17 +1214,37 @@ extension MainChartView {
         }
     }
 
+    /// Where the visible window sits in the zoom range: 0 at the tightest, 1 at the widest.
+    /// Log-scaled, so it moves with the geometric grid the zoom itself steps on.
+    private var zoomOutFraction: Double {
+        let span = log2(MainChartHelper.Config.maxVisibleSeconds / MainChartHelper.Config.minVisibleSeconds)
+        guard span > 0 else { return 0 }
+        let position = log2(visibleSeconds / MainChartHelper.Config.minVisibleSeconds) / span
+        return min(max(position, 0), 1)
+    }
+
     /// Deceleration after a flick. Mutates only `scrollPosition` (a transform), so each
     /// frame costs a GPU translation — the same cost profile as live panning.
+    ///
+    /// Friction scales with how far out the zoom is. Exponential decay has a long tail, and
+    /// a tail that reads as a graceful coast at 1 h reads as the chart drifting on its own
+    /// at 24 h — so the wide end both sheds speed faster and gives up on the last crawl
+    /// sooner, which is what makes it stop rather than fade out.
     private func startMomentum(velocitySecondsPerSecond initialVelocity: TimeInterval) {
         // Ignore tiny flicks.
         guard abs(initialVelocity) > visibleSeconds * 0.05 else { return }
+        let stickiness = zoomOutFraction
+        let decayPerFrame = MainChartHelper.Config.momentumDecayTight
+            + (MainChartHelper.Config.momentumDecayWide - MainChartHelper.Config.momentumDecayTight) * stickiness
+        let stopFraction = MainChartHelper.Config.momentumStopFractionTight
+            + (MainChartHelper.Config.momentumStopFractionWide - MainChartHelper.Config.momentumStopFractionTight)
+            * stickiness
+        let stopSpeed = visibleSeconds * stopFraction
         momentumTask?.cancel()
         momentumTask = Task { @MainActor in
             var velocity = initialVelocity
             let frameDuration: TimeInterval = 1.0 / 60.0
-            let decayPerFrame = 0.97
-            while !Task.isCancelled, abs(velocity) > visibleSeconds * 0.02 {
+            while !Task.isCancelled, abs(velocity) > stopSpeed {
                 try? await Task.sleep(nanoseconds: UInt64(frameDuration * 1_000_000_000))
                 guard !Task.isCancelled else { return }
                 let next = clampedLeadingEdge(scrollPosition.addingTimeInterval(velocity * frameDuration))
