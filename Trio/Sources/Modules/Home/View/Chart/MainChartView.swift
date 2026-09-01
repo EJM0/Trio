@@ -843,17 +843,14 @@ extension MainChartView {
         doubleTapZoomEndTime = Date.now
     }
 
-    /// Maps vertical travel onto the zoom: dragging up zooms in, geometrically —
-    /// `Config.doubleTapZoomPointsPerDoubling` points halve or double the visible window,
-    /// so the gesture pulls the same at every zoom level.
+    /// Maps vertical travel onto the zoom: dragging up zooms in, down zooms out.
     private func updateDoubleTapZoom(translationY dy: CGFloat) {
         guard let pinch = pinchAnchor else { return }
-        let magnification = pow(
-            2,
-            -Double(dy) / Double(MainChartHelper.Config.doubleTapZoomPointsPerDoubling)
-        )
         let proposed = min(
-            max(pinch.visibleAtStart / magnification, MainChartHelper.Config.minVisibleSeconds),
+            max(
+                zoomWindow(from: pinch.visibleAtStart, dragDown: dy),
+                MainChartHelper.Config.minVisibleSeconds
+            ),
             MainChartHelper.Config.maxVisibleSeconds
         )
         pinchScale = CGFloat(visibleSeconds / proposed)
@@ -862,6 +859,39 @@ extension MainChartView {
         if pinchScale > drift || pinchScale < 1 / drift {
             commitPinchZoom(proposed)
         }
+    }
+
+    /// The visible window a drag of `dy` points (positive = down = out) reaches from a
+    /// window of `start`.
+    ///
+    /// Accelerating-geometric: the points it takes to double the window shrinks linearly
+    /// across the zoom range, from `Config.doubleTapZoomPointsPerDoubling` at the tightest
+    /// window to that over `Config.doubleTapZoomAcceleration` at the widest. A flat rate
+    /// spends the same travel on 1 h → 2 h as on 12 h → 24 h, which makes the wide end —
+    /// where the useful jumps live — feel like wading.
+    ///
+    /// Working in doublings above the tightest window (`d`), that rate is
+    /// `k(d) = k₀ / (1 + β·d/D)`, and integrating `ds = k(d)·dd` gives the travel to reach
+    /// `d` in closed form — so the result stays a pure function of the drag's *total*
+    /// translation. That is what keeps the gesture exactly reversible: drag back to where
+    /// it started and the zoom lands back where it started, with no drift from summing
+    /// per-frame deltas.
+    private func zoomWindow(from start: TimeInterval, dragDown dy: CGFloat) -> TimeInterval {
+        let tightest = MainChartHelper.Config.minVisibleSeconds
+        let span = log2(MainChartHelper.Config.maxVisibleSeconds / tightest) // D: total doublings
+        let beta = MainChartHelper.Config.doubleTapZoomAcceleration - 1
+        let pointsPerDoubling = Double(MainChartHelper.Config.doubleTapZoomPointsPerDoubling)
+        guard span > 0, beta > 0 else { // flat rate: the plain geometric mapping
+            return start * pow(2, Double(dy) / pointsPerDoubling)
+        }
+
+        let scale = pointsPerDoubling * span / beta
+        let startDoublings = min(max(log2(start / tightest), 0), span)
+        // Travel that would have been needed to arrive at the window this drag started
+        // from, so the drag continues along the same curve rather than restarting it.
+        let startTravel = scale * log(1 + beta * startDoublings / span)
+        let doublings = span / beta * (exp((startTravel + Double(dy)) / scale) - 1)
+        return tightest * pow(2, min(max(doublings, 0), span))
     }
 
     /// Commits whatever the stretch is still previewing and hands the touch back.
