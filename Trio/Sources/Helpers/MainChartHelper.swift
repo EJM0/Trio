@@ -48,29 +48,29 @@ struct TreatmentTriangleSymbol: ChartSymbolShape {
 }
 
 enum MainChartHelper {
-    // Calculates the glucose value thats the nearest to parameter 'time'
-    /// -Returns: A NSManagedObject of GlucoseStored
-    /// it is thread safe as everything is executed on the main thread
+    /// The reading nearest `time`, by binary search over the pre-resolved series.
     ///
-    /// The parentheses around the nil-coalescing in the "update if necessary" test are
-    /// load-bearing. `-` binds tighter than `??`, so `... ?? 0 - time` reads as
-    /// `... ?? (0 - time)`: with a non-nil date that compares a distance against an absolute
-    /// unix timestamp, the test is always true, and the search returns its last probe rather
-    /// than the nearest reading. That offset the bolus and carb markers, which pin their y
-    /// position to the reading this returns.
-    static func timeToNearestGlucose(glucoseValues: [GlucoseStored], time: TimeInterval) -> GlucoseStored? {
+    /// The treatment markers and the peak badges both hang off the curve, so this is what
+    /// anchors them to it. It takes `GlucoseDot`s rather than `GlucoseStored`s because it
+    /// runs inside per-frame draw loops: their dates are non-optional and their values already
+    /// in display units, so a lookup costs no Core Data access and no unit conversion.
+    ///
+    /// (It also retires a trap worth remembering: the old version compared distances against
+    /// `... ?? 0 - time`, which `-` binds tighter than `??` — so with a non-nil date the test
+    /// was always true and the search returned its last probe rather than the nearest reading.)
+    static func timeToNearestGlucose(glucoseValues: [GlucoseDot], time: TimeInterval) -> GlucoseDot? {
         guard !glucoseValues.isEmpty else {
             return nil
         }
 
         var low = 0
         var high = glucoseValues.count - 1
-        var closestGlucose: GlucoseStored?
+        var closestGlucose: GlucoseDot?
 
         // binary search to find next glucose
         while low <= high {
             let mid = low + (high - low) / 2
-            let midTime = glucoseValues[mid].date?.timeIntervalSince1970 ?? 0
+            let midTime = glucoseValues[mid].date.timeIntervalSince1970
 
             if midTime == time {
                 return glucoseValues[mid]
@@ -81,7 +81,9 @@ enum MainChartHelper {
             }
 
             // update if necessary
-            if closestGlucose == nil || abs(midTime - time) < abs((closestGlucose!.date?.timeIntervalSince1970 ?? 0) - time) {
+            if closestGlucose == nil
+                || abs(midTime - time) < abs(closestGlucose!.date.timeIntervalSince1970 - time)
+            {
                 closestGlucose = glucoseValues[mid]
             }
         }
@@ -170,6 +172,17 @@ enum MainChartHelper {
         /// before the window re-anchors and the whole canvas re-lays: 3.0 buys ~2.5
         /// visible-windows of panning per re-layout (1.5 bought exactly one).
         static let renderWindowPadFactor = 3.0
+        /// The same while a zoom gesture is live.
+        ///
+        /// The full pad above exists to buy panning headroom between re-layouts — but every
+        /// viewport in the window is data that each zoom commit has to lay out again, and a
+        /// fast zoom-out commits several times a second with a window that grows at each step.
+        /// Mid-zoom nobody is panning, so the window is cut to what the gesture itself can
+        /// expose: the live stretch is capped at `pinchCommitDriftCeiling`, and with the pinch
+        /// anchored at a viewport edge all of that lands on one side of it — so a pad of
+        /// `ceiling - 1` covers the worst case exactly. The full pad is restored by the commit
+        /// that ends the gesture.
+        static let renderWindowPadFactorDuringZoom = 1.0
         /// Re-anchor when the visible edge gets within this fraction of a
         /// visible-window of the render window's edge.
         static let renderWindowMarginFactor = 0.5
@@ -177,10 +190,31 @@ enum MainChartHelper {
         /// re-lays the full-width canvas, so this bounds a halving of the visible window
         /// to roughly 18 re-layouts instead of hundreds.
         static let zoomStepRatio: Double = 1.04
-        /// Live pinch previews as a transform; once the stretch drifts past
-        /// this ratio a crisp re-layout is committed mid-gesture, so the
-        /// distortion stays bounded.
-        static let pinchCommitScaleDrift: Double = 1.25
+        /// Live pinch previews as a transform; once the stretch drifts past this ratio a
+        /// crisp re-layout is committed mid-gesture, so the distortion stays bounded.
+        ///
+        /// Asymmetric, because the two directions do not look alike: zooming *in* magnifies
+        /// the laid-out canvas, so the stretch is plainly visible and wants committing early,
+        /// while zooming *out* shrinks it, which hides the resampling almost entirely. Letting
+        /// the outward stretch run further is most of what makes a fast zoom-out — the
+        /// expensive direction, since each re-layout covers more data — stop stalling.
+        static let pinchCommitScaleDriftIn: Double = 1.2
+        static let pinchCommitScaleDriftOut: Double = 1.6
+        /// Floor on the gap between two mid-gesture commits. Each one re-lays the whole canvas
+        /// synchronously, so without a floor a fast pinch fires them back to back — a dozen or
+        /// more across a 1 h -> 24 h sweep — and the gesture visibly lags the fingers. Rate-limited
+        /// instead, the stretch (pure GPU) carries the motion and the layout catches up several
+        /// times a second; the gesture's end always commits, so the resting state is crisp.
+        static let pinchCommitMinInterval: TimeInterval = 0.12
+        /// Stretch at which the rate limit gives way and a commit happens regardless.
+        ///
+        /// The preview has only the laid-out canvas to stretch, so a zoom-out that outruns
+        /// what the render window covers would start showing its bare edges — and a fast
+        /// gesture covers a lot of ground inside one `pinchCommitMinInterval`. Paired with
+        /// `renderWindowPadFactorDuringZoom`, which has to satisfy `pad >= ceiling - 1`: the
+        /// pinch anchor can sit at a viewport edge, in which case the whole stretch is exposed
+        /// on one side of it. Change one and the other has to follow.
+        static let pinchCommitDriftCeiling: Double = 2.0
         /// How far (pt) a one-finger touch may travel and still count as a stationary
         /// press-to-inspect; beyond this the touch becomes a pan.
         static let inspectMovementTolerance: CGFloat = 10

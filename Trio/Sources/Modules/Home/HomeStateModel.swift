@@ -102,6 +102,11 @@ extension Home {
         /// peak picker granularity follows the zoom (successor of the time buttons).
         var chartVisibleHours: Double = MainChartHelper.Config.defaultVisibleSeconds / 3600
         var glucoseFromPersistence: [GlucoseStored] = []
+        /// The same readings, resolved for drawing — display-unit value, dynamic colour and
+        /// smoothed value all pre-computed. Rebuilt only when the readings or one of the
+        /// colour inputs move (`rebuildGlucoseDots()`), so the chart's per-frame draw loop
+        /// never touches Core Data. See `GlucoseDot`.
+        var glucoseDots: [GlucoseDot] = []
         /// Sustained highs and lows to mark on the chart, refreshed on every glucose update.
         var glucoseEpisodes: [GlucoseEpisode] = []
         /// Finds them, and keeps them in Core Data across updates and relaunches until they
@@ -854,7 +859,11 @@ extension Home {
             await MainActor.run {
                 self.bgTargets = bgTargets
                 self.targetProfiles = targetProfiles
-                if let currentTarget { self.currentGlucoseTarget = currentTarget }
+                if let currentTarget {
+                    self.currentGlucoseTarget = currentTarget
+                    // The target is one of the dynamic colour's inputs.
+                    self.rebuildGlucoseDots()
+                }
             }
         }
 
@@ -908,6 +917,9 @@ extension Home.StateModel:
             updateSMBBolusDisplayCutoff()
             // The thresholds above define what counts as an excursion.
             updateGlucoseEpisodes()
+            // The display unit and all four dynamic-colour inputs are settings, so the
+            // pre-resolved points have to be derived again from here.
+            rebuildGlucoseDots()
         }
         showCarbsRequiredBadge = settingsManager.settings.showCarbsRequiredBadge
         enableQuickPickTreatments = settingsManager.settings.enableQuickPickTreatments

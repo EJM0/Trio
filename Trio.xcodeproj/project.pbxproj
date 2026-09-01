@@ -377,7 +377,7 @@
 		581AC4392BE22ED10038760C /* JSONConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 581AC4382BE22ED10038760C /* JSONConverter.swift */; };
 		58237D9E2BCF0A6B00A47A79 /* PopupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58237D9D2BCF0A6B00A47A79 /* PopupView.swift */; };
 		5825A1BE2C97335C0046467E /* EditTempTargetForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5825A1BD2C97335C0046467E /* EditTempTargetForm.swift */; };
-		582DF9752C8CDB92001F516D /* GlucoseChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 582DF9742C8CDB92001F516D /* GlucoseChartView.swift */; };
+		09725ACD30349E5B00B148F3 /* GlucoseDotsOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09725ACE30349E5B00B148F3 /* GlucoseDotsOverlay.swift */; };
 		582DF9792C8CE1E5001F516D /* MainChartHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 582DF9782C8CE1E5001F516D /* MainChartHelper.swift */; };
 		582FAE432C05102C00D1C13F /* CoreDataError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 582FAE422C05102C00D1C13F /* CoreDataError.swift */; };
 		583684062BD178DB00070A60 /* GlucoseStored+helper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583684052BD178DB00070A60 /* GlucoseStored+helper.swift */; };
@@ -1471,7 +1471,7 @@
 		581AC4382BE22ED10038760C /* JSONConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONConverter.swift; sourceTree = "<group>"; };
 		58237D9D2BCF0A6B00A47A79 /* PopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopupView.swift; sourceTree = "<group>"; };
 		5825A1BD2C97335C0046467E /* EditTempTargetForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditTempTargetForm.swift; sourceTree = "<group>"; };
-		582DF9742C8CDB92001F516D /* GlucoseChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseChartView.swift; sourceTree = "<group>"; };
+		09725ACE30349E5B00B148F3 /* GlucoseDotsOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseDotsOverlay.swift; sourceTree = "<group>"; };
 		582DF9782C8CE1E5001F516D /* MainChartHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainChartHelper.swift; sourceTree = "<group>"; };
 		582FAE422C05102C00D1C13F /* CoreDataError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataError.swift; sourceTree = "<group>"; };
 		583684052BD178DB00070A60 /* GlucoseStored+helper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GlucoseStored+helper.swift"; sourceTree = "<group>"; };
@@ -3966,7 +3966,7 @@
 				DD2CC85B2D25D9CE00445446 /* GlucoseTargetsView.swift */,
 				BDDAF9EE2D00553E00B34E7A /* ChartSelectionRow.swift */,
 				BDDAF9F02D00554500B34E7A /* SelectionPopoverView.swift */,
-				582DF9742C8CDB92001F516D /* GlucoseChartView.swift */,
+				09725ACE30349E5B00B148F3 /* GlucoseDotsOverlay.swift */,
 				09725AC930349E5B00B148F3 /* PeakLabelsOverlay.swift */,
 				09725ACB30349E5B00B148F3 /* TreatmentOverlay.swift */,
 				58D08B212C8DAA8E00AA37D3 /* OverrideView.swift */,
@@ -5465,7 +5465,7 @@
 				E592A3702CEEC01E009A472C /* ContactTrickEntry.swift in Sources */,
 				DD6A4E7E2DBEBF0F008C4B26 /* StartupReturningUserStepView.swift in Sources */,
 				DD6D67E42C9C253500660C9B /* ColorSchemeOption.swift in Sources */,
-				582DF9752C8CDB92001F516D /* GlucoseChartView.swift in Sources */,
+				09725ACD30349E5B00B148F3 /* GlucoseDotsOverlay.swift in Sources */,
 				BD432CA12D2F4E3600D1EB79 /* WatchMessageKeys.swift in Sources */,
 				DD4C581F2D73C43D001BFF2C /* LoopStatsView.swift in Sources */,
 				58A3D53A2C96D4DE003F90FC /* AddTempTargetForm.swift in Sources */,

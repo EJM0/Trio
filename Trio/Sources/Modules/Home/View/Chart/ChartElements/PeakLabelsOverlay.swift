@@ -17,7 +17,9 @@ struct PeakLabelsOverlay: View, Animatable {
     @Environment(\.colorScheme) private var colorScheme
 
     let peaks: [(date: Date, glucose: Int16, type: ExtremumType)]
-    let glucoseData: [GlucoseStored]
+    /// Pre-resolved readings (`GlucoseDot`): the obstacle scan runs on every frame, so it
+    /// reads display-unit values straight off the struct instead of through Core Data.
+    let glucoseData: [GlucoseDot]
     let insulinData: [PumpEventStored]
     let carbData: [CarbEntryStored]
     let units: GlucoseUnits
@@ -39,6 +41,13 @@ struct PeakLabelsOverlay: View, Animatable {
     /// disagree about where either of them is.
     let xPosition: (Date) -> CGFloat
     let yPosition: (Decimal) -> CGFloat
+
+    /// The live-pinch transform itself. `xPosition` already applies it, but this layer also
+    /// has to run it *backwards* — to know what span of time is actually on screen, and how
+    /// much chart time a point of placement distance is worth — and a closure cannot be
+    /// inverted. Same two values the other shell overlays carry.
+    let pinchScale: CGFloat
+    let pinchAnchorFraction: CGFloat?
     /// Mirrors what `TreatmentOverlay` uses to decide whether a bolus carries its dose label, so
     /// a marker's reserved footprint matches the one actually drawn.
     let bolusDisplayThreshold: BolusDisplayThreshold
@@ -93,19 +102,39 @@ struct PeakLabelsOverlay: View, Animatable {
 
     /// Peaks that could put a badge on screen — its own position plus the furthest the
     /// placement may carry it. Everything else is culled before any work is done on it.
+    ///
+    /// The window is read off the viewport's own edges rather than derived from
+    /// `visibleSeconds`: a live pinch stretches the canvas, so a zoom-out shows a wider span
+    /// of time than the committed window and the badges out there would otherwise only appear
+    /// once the zoom commits.
     private var visiblePeaks: [(date: Date, glucose: Int16, type: ExtremumType)] {
-        let reach = Double(Self.maxPlacementDistance + Self.labelSize.width) * secondsPerPoint
+        let reach = Self.maxPlacementDistance + Self.labelSize.width
         return MainChartHelper.windowSlice(
             peaks,
-            from: visibleStart.addingTimeInterval(-reach),
-            through: visibleStart.addingTimeInterval(visibleSeconds + reach),
+            from: date(atViewportX: -reach),
+            through: date(atViewportX: viewportWidth + reach),
             ascendingInput: true,
             date: { $0.date }
         )
     }
 
+    /// Chart time per point *as currently drawn* — so it follows the live-pinch stretch, the
+    /// same way the placement distances it converts are measured on the stretched screen.
     private var secondsPerPoint: TimeInterval {
-        visibleSeconds / Double(max(viewportWidth, 1))
+        let scale = pinchScale > 0 ? Double(pinchScale) : 1
+        return visibleSeconds / Double(max(viewportWidth, 1)) / scale
+    }
+
+    /// Inverse of the shell's `xPosition`: the date currently under a viewport x.
+    private func date(atViewportX x: CGFloat) -> Date {
+        var untransformed = x
+        if let anchorFraction = pinchAnchorFraction, pinchScale != 1, pinchScale > 0 {
+            let anchorX = anchorFraction * viewportWidth
+            untransformed = anchorX + (x - anchorX) / pinchScale
+        }
+        return visibleStart.addingTimeInterval(
+            TimeInterval(untransformed / max(viewportWidth, 1)) * visibleSeconds
+        )
     }
 
     // MARK: - Placement
@@ -228,12 +257,11 @@ struct PeakLabelsOverlay: View, Animatable {
     private func appendGlucoseObstacles(in range: ClosedRange<Date>, to rects: inout [CGRect]) {
         let readings = MainChartHelper.windowSlice(
             glucoseData, from: range.lowerBound, through: range.upperBound,
-            ascendingInput: true, date: \.date
+            ascendingInput: true, date: { $0.date }
         )
         for reading in readings {
-            guard let date = reading.date else { continue }
-            let x = xPosition(date)
-            let y = yPosition(displayValue(Decimal(reading.glucose)))
+            let x = xPosition(reading.date)
+            let y = yPosition(reading.value)
             rects.append(CGRect(
                 x: x - Self.glucoseDotSize / 2,
                 y: y - Self.glucoseDotSize / 2,
@@ -260,12 +288,12 @@ struct PeakLabelsOverlay: View, Animatable {
             guard let bolus = event.bolus, let date = event.timestamp else { continue }
             let amount = (bolus.amount ?? 0 as NSDecimalNumber).decimalValue
             guard amount != 0 else { continue }
-            guard let glucose = MainChartHelper.timeToNearestGlucose(
+            guard let nearest = MainChartHelper.timeToNearestGlucose(
                 glucoseValues: glucoseData,
                 time: date.timeIntervalSince1970
-            )?.glucose else { continue }
+            ) else { continue }
 
-            let markValue = displayValue(Decimal(glucose)) + MainChartHelper.bolusOffset(units: units)
+            let markValue = nearest.value + MainChartHelper.bolusOffset(units: units)
             let x = xPosition(date)
             let y = yPosition(markValue)
 
@@ -290,18 +318,19 @@ struct PeakLabelsOverlay: View, Animatable {
     /// The carb marker as `TreatmentOverlay` draws it: the mirrored triangle, capped at
     /// `Config.maxCarbSize`, below the curve — and its label, which carbs always carry.
     private func appendCarbObstacles(in range: ClosedRange<Date>, to rects: inout [CGRect]) {
+        // Fetched newest-first, like every carb query; the slice comes back ascending.
         let entries = MainChartHelper.windowSlice(
             carbData, from: range.lowerBound, through: range.upperBound,
-            ascendingInput: true, date: \.date
+            ascendingInput: false, date: \.date
         )
         for entry in entries {
             guard let date = entry.date else { continue }
-            guard let glucose = MainChartHelper.timeToNearestGlucose(
+            guard let nearest = MainChartHelper.timeToNearestGlucose(
                 glucoseValues: glucoseData,
                 time: date.timeIntervalSince1970
-            )?.glucose else { continue }
+            ) else { continue }
 
-            let markValue = displayValue(Decimal(glucose)) - MainChartHelper.bolusOffset(units: units)
+            let markValue = nearest.value - MainChartHelper.bolusOffset(units: units)
             let x = xPosition(date)
             let y = yPosition(markValue)
 

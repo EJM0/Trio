@@ -19,8 +19,9 @@ import SwiftUI
 /// several thousand the canvas's own render window spans.
 struct TreatmentOverlay: View, Animatable {
     /// Ascending, and covering at least the visible window. Boluses and carbs hang off the
-    /// curve, so this is also the series their y anchor is looked up in.
-    let glucose: [GlucoseStored]
+    /// curve, so this is also the series their y anchor is looked up in. Pre-resolved points
+    /// (`GlucoseDot`), so the per-frame lookups below touch no Core Data.
+    let glucose: [GlucoseDot]
     let insulin: [PumpEventStored]
     let carbs: [CarbEntryStored]
     let fpus: [CarbEntryStored]
@@ -93,14 +94,15 @@ struct TreatmentOverlay: View, Animatable {
     /// centre has just left the screen still contributes its label at the edge.
     private static let cullMarginPoints: CGFloat = 60
 
-    private var secondsPerPoint: TimeInterval {
-        visibleSeconds / Double(max(viewportWidth, 1))
-    }
-
+    /// Everything on screen, plus the margin above.
+    ///
+    /// Measured off the viewport's own edges through `date(atViewportX:)` rather than derived
+    /// from `visibleSeconds`: a live pinch stretches the canvas, so a zoom-out puts a wider
+    /// span of time on screen than the committed window, and culling to the committed one
+    /// would leave the newly exposed edges bare until the zoom commits.
     private var cullRange: ClosedRange<Date> {
-        let margin = Double(Self.cullMarginPoints) * secondsPerPoint
-        return visibleStart.addingTimeInterval(-margin)
-            ... visibleStart.addingTimeInterval(visibleSeconds + margin)
+        let margin = Self.cullMarginPoints
+        return date(atViewportX: -margin) ... date(atViewportX: viewportWidth + margin)
     }
 
     /// Mirrors the shell's `xPosition(for:)`. Deliberately a copy rather than the closure it
@@ -114,8 +116,16 @@ struct TreatmentOverlay: View, Animatable {
         return anchorX + (x - anchorX) * pinchScale
     }
 
-    private func displayValue(_ mgdl: Decimal) -> Decimal {
-        units == .mgdL ? mgdl : mgdl.asMmolL
+    /// Inverse of `x(for:)`: the date currently under a viewport x, live pinch included.
+    private func date(atViewportX x: CGFloat) -> Date {
+        var untransformed = x
+        if let anchorFraction = pinchAnchorFraction, pinchScale != 1, pinchScale > 0 {
+            let anchorX = anchorFraction * viewportWidth
+            untransformed = anchorX + (x - anchorX) / pinchScale
+        }
+        return visibleStart.addingTimeInterval(
+            TimeInterval(untransformed / max(viewportWidth, 1)) * visibleSeconds
+        )
     }
 
     /// The y value a treatment hangs off: the curve at its own time, offset clear of it.
@@ -124,10 +134,10 @@ struct TreatmentOverlay: View, Animatable {
         guard let nearest = MainChartHelper.timeToNearestGlucose(
             glucoseValues: glucose,
             time: date.timeIntervalSince1970
-        )?.glucose else { return nil }
+        ) else { return nil }
         let offset = MainChartHelper.bolusOffset(units: units)
-        let value = displayValue(Decimal(nearest)) + (pointsUp ? -offset : offset)
-        return yPosition(value)
+        // `GlucoseDot.value` is already in display units, as is the offset.
+        return yPosition(nearest.value + (pointsUp ? -offset : offset))
     }
 
     private var markers: [Marker] {
@@ -175,9 +185,11 @@ struct TreatmentOverlay: View, Animatable {
 
     private func appendCarbs(to markers: inout [Marker]) {
         let range = cullRange
+        // Carbs (and FPUs below) are fetched newest-first; `windowSlice` hands them back
+        // ascending either way.
         let entries = MainChartHelper.windowSlice(
             carbs, from: range.lowerBound, through: range.upperBound,
-            ascendingInput: true, date: \.date
+            ascendingInput: false, date: \.date
         )
         for entry in entries {
             guard let date = entry.date, let y = curveAnchor(at: date, pointsUp: true) else { continue }
@@ -208,7 +220,7 @@ struct TreatmentOverlay: View, Animatable {
         let range = cullRange
         let entries = MainChartHelper.windowSlice(
             fpus, from: range.lowerBound, through: range.upperBound,
-            ascendingInput: true, date: \.date
+            ascendingInput: false, date: \.date
         )
         let y = yPosition(fpuBaseline)
         for entry in entries {

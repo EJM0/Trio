@@ -79,6 +79,14 @@ struct MainChartView: View {
     /// is only transformed, never re-laid.
     @State private var pinchScale: CGFloat = 1
 
+    /// When the last mid-gesture zoom commit re-laid the canvas, so the next one cannot
+    /// follow it sooner than `Config.pinchCommitMinInterval`.
+    @State private var lastZoomCommit: Date?
+
+    /// True from the moment a zoom gesture takes a touch until its closing commit. It is what
+    /// puts the render window on the narrow gesture-time pad — see `updateRenderWindow`.
+    @State private var isZoomGestureLive = false
+
     /// Captured at pinch start so the zoom stays anchored under the pinch centroid.
     @State private var pinchAnchor: (
         visibleAtStart: TimeInterval,
@@ -189,6 +197,9 @@ struct MainChartView: View {
             .equatable()
             .offset(x: -canvasOffsetX)
             .scaleEffect(x: pinchScale, y: 1, anchor: pinchScaleAnchor)
+
+            glucoseDotsOverlay
+                .allowsHitTesting(false)
 
             treatmentOverlay
                 .allowsHitTesting(false)
@@ -358,7 +369,12 @@ extension MainChartView {
     /// Re-anchors the render window when the visible window nears its edge.
     /// Between re-anchors, panning stays a pure offset transform.
     func updateRenderWindow(force: Bool = false) {
-        let pad = MainChartHelper.Config.renderWindowPadFactor * visibleSeconds
+        // A zoom in flight re-lays the canvas at every commit, so it holds the window to what
+        // the gesture can actually expose; the closing commit restores the full pad.
+        let padFactor = isZoomGestureLive
+            ? MainChartHelper.Config.renderWindowPadFactorDuringZoom
+            : MainChartHelper.Config.renderWindowPadFactor
+        let pad = padFactor * visibleSeconds
         let margin = MainChartHelper.Config.renderWindowMarginFactor * visibleSeconds
         let domainStart = state.startMarker
         let domainEnd = max(state.endMarker, domainStart.addingTimeInterval(1))
@@ -595,33 +611,49 @@ extension MainChartView {
     }
 }
 
+// MARK: - Glucose points (drawn outside the pinch transform)
+
+extension MainChartView {
+    /// The glucose readings. In the shell rather than as marks in the canvas so that a
+    /// committed zoom does not have to re-lay ~900 `PointMark`s, and so the live-pinch
+    /// `scaleEffect` cannot squash the dots into ellipses — see `GlucoseDotsOverlay`.
+    ///
+    /// Handed the whole pre-resolved series: it culls to the visible window itself, and the
+    /// slice is a few hundred plain structs either way.
+    @ViewBuilder var glucoseDotsOverlay: some View {
+        GlucoseDotsOverlay(
+            points: state.glucoseDots,
+            isSmoothingEnabled: state.isSmoothingEnabled,
+            viewportWidth: viewportWidth,
+            stackHeight: stackHeight,
+            visibleStart: scrollPosition,
+            visibleSeconds: visibleSeconds,
+            pinchScale: pinchScale,
+            pinchAnchorFraction: pinchAnchor?.anchorFraction,
+            yPosition: { glucoseYPosition(forDisplayValue: $0) }
+        )
+    }
+}
+
 // MARK: - Treatment overlay (markers drawn outside the pinch transform)
 
 extension MainChartView {
     /// Bolus, carb and FPU markers with their labels. Rendered here rather than as marks in
     /// the canvas so the live-pinch `scaleEffect` cannot stretch them — see `TreatmentOverlay`.
     ///
-    /// Sliced against the render window rather than the visible one: the overlay culls to
-    /// what is on screen itself, and the nearest-glucose lookup a marker's y anchor needs has
-    /// to be able to reach a reading just outside the visible edge.
+    /// Handed the series whole. They used to be pre-sliced to the render window here, which
+    /// cost four `windowSlice` passes — allocating, and touching a Core Data date per element,
+    /// over arrays spanning up to the whole 72 h — on *every* pan, pinch and scrub frame,
+    /// because this body re-runs on each of them (`MainChartCanvas` has `.equatable()` to sit
+    /// those out; an overlay taking closures cannot). The overlay culls to the visible window
+    /// by binary search itself, and every lookup it does on these arrays is a binary search
+    /// too, so the outer slice bought nothing it does not already do per frame.
     @ViewBuilder var treatmentOverlay: some View {
         TreatmentOverlay(
-            glucose: MainChartHelper.windowSlice(
-                state.glucoseFromPersistence, from: renderWindowStart, through: renderWindowEnd,
-                ascendingInput: true, date: \.date
-            ),
-            insulin: MainChartHelper.windowSlice(
-                state.insulinFromPersistence, from: renderWindowStart, through: renderWindowEnd,
-                ascendingInput: true, date: \.timestamp
-            ),
-            carbs: MainChartHelper.windowSlice(
-                state.carbsFromPersistence, from: renderWindowStart, through: renderWindowEnd,
-                ascendingInput: false, date: \.date
-            ),
-            fpus: MainChartHelper.windowSlice(
-                state.fpusFromPersistence, from: renderWindowStart, through: renderWindowEnd,
-                ascendingInput: false, date: \.date
-            ),
+            glucose: state.glucoseDots,
+            insulin: state.insulinFromPersistence,
+            carbs: state.carbsFromPersistence,
+            fpus: state.fpusFromPersistence,
             units: units,
             bolusDisplayThreshold: state.bolusDisplayThreshold,
             smbBolusDisplayCutoff: state.smbBolusDisplayCutoff,
@@ -643,22 +675,16 @@ extension MainChartView {
     /// Peak and nadir badges. In the shell rather than a `.chartOverlay` so the live-pinch
     /// `scaleEffect` cannot stretch them, and so they can be culled to what is on screen —
     /// see `PeakLabelsOverlay`.
+    ///
+    /// Handed the series whole, for the reason `treatmentOverlay` above spells out: the
+    /// obstacle scan already reaches into them by binary search, per peak neighbourhood.
     @ViewBuilder var peakLabelsOverlay: some View {
         if state.showGlucosePeaks {
             PeakLabelsOverlay(
                 peaks: state.glucosePeaks,
-                glucoseData: MainChartHelper.windowSlice(
-                    state.glucoseFromPersistence, from: renderWindowStart, through: renderWindowEnd,
-                    ascendingInput: true, date: \.date
-                ),
-                insulinData: MainChartHelper.windowSlice(
-                    state.insulinFromPersistence, from: renderWindowStart, through: renderWindowEnd,
-                    ascendingInput: true, date: \.timestamp
-                ),
-                carbData: MainChartHelper.windowSlice(
-                    state.carbsFromPersistence, from: renderWindowStart, through: renderWindowEnd,
-                    ascendingInput: false, date: \.date
-                ),
+                glucoseData: state.glucoseDots,
+                insulinData: state.insulinFromPersistence,
+                carbData: state.carbsFromPersistence,
                 units: units,
                 highGlucose: highGlucose,
                 lowGlucose: lowGlucose,
@@ -670,6 +696,8 @@ extension MainChartView {
                 visibleSeconds: visibleSeconds,
                 xPosition: { xPosition(for: $0) },
                 yPosition: { glucoseYPosition(forDisplayValue: $0) },
+                pinchScale: pinchScale,
+                pinchAnchorFraction: pinchAnchor?.anchorFraction,
                 bolusDisplayThreshold: state.bolusDisplayThreshold,
                 smbBolusDisplayCutoff: state.smbBolusDisplayCutoff
             )
@@ -1267,6 +1295,7 @@ extension MainChartView {
                 // would outlive the gesture and leave the canvas permanently distorted.
                 if isDoubleTapZooming { endDoubleTapZoom() }
                 if pinchAnchor == nil {
+                    isZoomGestureLive = true
                     let fraction = min(max(value.startAnchor.x, 0), 1)
                     pinchAnchor = (
                         visibleAtStart: visibleSeconds,
@@ -1288,18 +1317,13 @@ extension MainChartView {
                 )
                 pinchScale = CGFloat(visibleSeconds / proposed)
 
-                let drift = MainChartHelper.Config.pinchCommitScaleDrift
-                if pinchScale > drift || pinchScale < 1 / drift {
+                if shouldCommitMidGesture(stretch: pinchScale) {
                     commitPinchZoom(proposed)
                 }
             }
             .onEnded { _ in
                 guard pinchAnchor != nil else { return }
-                commitPinchZoom(visibleSeconds / TimeInterval(pinchScale))
-                // The commit no-ops when the zoom quantizes back to the
-                // current value; the preview must still un-stretch.
-                pinchScale = 1
-                pinchAnchor = nil
+                finishZoomGesture()
             }
     }
 
@@ -1307,8 +1331,8 @@ extension MainChartView {
     /// once: window re-anchor happens in the same transaction, else the
     /// commit first lays out the OLD window at the new zoom (a canvas up to
     /// 12x the viewport) before re-laying at the right size.
-    private func commitPinchZoom(_ proposed: TimeInterval) {
-        guard let pinch = pinchAnchor else { return }
+    @discardableResult private func commitPinchZoom(_ proposed: TimeInterval) -> Bool {
+        guard let pinch = pinchAnchor else { return false }
         let ratio = MainChartHelper.Config.zoomStepRatio
         let step = (log(proposed / MainChartHelper.Config.defaultVisibleSeconds) / log(ratio)).rounded()
         var quantized = MainChartHelper.Config.defaultVisibleSeconds * pow(ratio, step)
@@ -1318,7 +1342,7 @@ extension MainChartView {
         )
         // A no-op commit would just snap the preview back to 1 with no fresh
         // layout to justify it.
-        guard quantized != visibleSeconds else { return }
+        guard quantized != visibleSeconds else { return false }
 
         visibleSeconds = quantized
         scrollPosition = clampedLeadingEdge(
@@ -1326,6 +1350,27 @@ extension MainChartView {
         )
         updateRenderWindow(force: true)
         pinchScale = 1
+        lastZoomCommit = Date.now
+        return true
+    }
+
+    /// Ends a zoom gesture: commits whatever the stretch is still previewing, with the render
+    /// window back on its full pad.
+    ///
+    /// The flag is cleared *before* the commit so that commit is the one that lays the wide
+    /// window out — one re-layout at the end of the gesture rather than two. When it turns out
+    /// to be a no-op (the zoom quantizes back to where it already was) the window still has to
+    /// be widened, or the chart would be left on the gesture-time pad and re-anchor every half
+    /// viewport of the next pan.
+    private func finishZoomGesture() {
+        isZoomGestureLive = false
+        if !commitPinchZoom(visibleSeconds / TimeInterval(pinchScale)) {
+            updateRenderWindow(force: true)
+        }
+        // The commit no-ops when the zoom quantizes back to the current value; the preview
+        // must still un-stretch.
+        pinchScale = 1
+        pinchAnchor = nil
     }
 
     /// Whether a touch starting here is the second tap of a double tap: close enough in
@@ -1358,6 +1403,7 @@ extension MainChartView {
             anchorFraction: fraction
         )
         isDoubleTapZooming = true
+        isZoomGestureLive = true
         doubleTapZoomEndTime = Date.now
     }
 
@@ -1373,10 +1419,27 @@ extension MainChartView {
         )
         pinchScale = CGFloat(visibleSeconds / proposed)
 
-        let drift = MainChartHelper.Config.pinchCommitScaleDrift
-        if pinchScale > drift || pinchScale < 1 / drift {
+        if shouldCommitMidGesture(stretch: pinchScale) {
             commitPinchZoom(proposed)
         }
+    }
+
+    /// Whether the live stretch has drifted far enough — and long enough since the last one —
+    /// to be worth a crisp re-layout while the gesture is still running.
+    ///
+    /// `stretch` is `visibleSeconds / proposed`, so above 1 is zooming in (the canvas is
+    /// magnified) and below 1 is zooming out. Both call sites, the pinch and the
+    /// double-tap-drag, feed the same zoom state, so they share this. The gesture's *end*
+    /// never asks: it commits unconditionally.
+    private func shouldCommitMidGesture(stretch: CGFloat) -> Bool {
+        let driftedIn = stretch > MainChartHelper.Config.pinchCommitScaleDriftIn
+        let driftedOut = stretch < 1 / MainChartHelper.Config.pinchCommitScaleDriftOut
+        guard driftedIn || driftedOut else { return false }
+        // A stretch this far out has outrun the canvas; the rate limit yields to it.
+        let ceiling = MainChartHelper.Config.pinchCommitDriftCeiling
+        if stretch > ceiling || stretch < 1 / ceiling { return true }
+        guard let last = lastZoomCommit else { return true }
+        return Date.now.timeIntervalSince(last) >= MainChartHelper.Config.pinchCommitMinInterval
     }
 
     /// The visible window a drag of `dy` points (positive = down = out) reaches from a
@@ -1414,11 +1477,7 @@ extension MainChartView {
 
     /// Commits whatever the stretch is still previewing and hands the touch back.
     private func endDoubleTapZoom() {
-        commitPinchZoom(visibleSeconds / TimeInterval(pinchScale))
-        // The commit no-ops when the zoom quantizes back to the current value; the preview
-        // must still un-stretch.
-        pinchScale = 1
-        pinchAnchor = nil
+        finishZoomGesture()
         isDoubleTapZooming = false
         doubleTapZoomEndTime = Date.now
         lastTapEnd = nil
@@ -1545,17 +1604,6 @@ struct MainChartCanvas: View {
         units == .mgdL ? 400 : 22.2
     }
 
-    // The point series sliced to the render window: marks outside the window
-    // clip invisibly but still cost layout, so with 72h loaded an unfiltered
-    // re-layout (every pinch step) does 3x the work for nothing.
-    var windowedGlucose: [GlucoseStored] {
-        MainChartHelper.windowSlice(
-            state.glucoseFromPersistence,
-            from: windowStart, through: windowEnd,
-            ascendingInput: true, date: \.date
-        )
-    }
-
     /// Excursion markers overlapping the render window. Unlike the point series these are
     /// spans, so an episode that starts before the window — or is still running past its
     /// trailing edge — has to be kept.
@@ -1611,11 +1659,7 @@ struct CobIobPlotFrameKey: PreferenceKey {
 
 extension MainChartCanvas {
     var mainChart: some View {
-        // slice each series once per layout; these were computed properties
-        // re-evaluated on every reference (glucose alone was scanned 3x)
-        let glucose = windowedGlucose
-
-        return Chart {
+        Chart {
             drawCurrentTimeMarker()
             drawThresholdLines()
 
@@ -1636,16 +1680,6 @@ extension MainChartCanvas {
                 tempTargetRunStored: state.tempTargetRunStored,
                 units: state.units,
                 viewContext: context
-            )
-
-            GlucoseChartView(
-                glucoseData: glucose,
-                units: state.units,
-                highGlucose: state.highGlucose,
-                lowGlucose: state.lowGlucose,
-                currentGlucoseTarget: state.currentGlucoseTarget,
-                isSmoothingEnabled: state.isSmoothingEnabled,
-                glucoseColorScheme: state.glucoseColorScheme
             )
 
             ForecastView(

@@ -28,6 +28,50 @@ extension Home.StateModel {
         // derived again.
         lastPeakInputs = nil
         updateGlucosePeaks()
+        rebuildGlucoseDots()
+    }
+
+    /// Resolves the readings into what the chart actually draws: display-unit value, dynamic
+    /// colour, smoothed value.
+    ///
+    /// Every one of these was derived per reading *per canvas layout* while the glucose series
+    /// was a `PointMark` each — a full pass over the window on every zoom commit, several times
+    /// per pinch, plus a Core Data property access per point. Doing it here instead means it
+    /// happens once per data change; the draw loop then walks plain structs.
+    ///
+    /// Call it wherever an input moves: new readings (above), the display unit, or any of the
+    /// four values the dynamic colour is derived from.
+    @MainActor func rebuildGlucoseDots() {
+        let isMgdL = units == .mgdL
+        // TODO: workaround for now: set low value to 55, to have dynamic color shades between 55 and user-set low (approx. 70); same for high glucose
+        let hardCodedLow = Decimal(55)
+        let hardCodedHigh = Decimal(220)
+        let isDynamicColorScheme = glucoseColorScheme == .dynamicColor
+        let highColorValue = isDynamicColorScheme ? hardCodedHigh : highGlucose
+        let lowColorValue = isDynamicColorScheme ? hardCodedLow : lowGlucose
+
+        glucoseDots = glucoseFromPersistence.compactMap { entry in
+            guard let date = entry.date else { return nil }
+            let mgdl = Decimal(entry.glucose)
+            let smoothed = entry.smoothedGlucose.flatMap { value -> Decimal? in
+                let decimal = value.decimalValue
+                guard decimal != 0 else { return nil }
+                return isMgdL ? decimal : decimal.asMmolL
+            }
+            return GlucoseDot(
+                date: date,
+                value: isMgdL ? mgdl : mgdl.asMmolL,
+                smoothed: smoothed,
+                isManual: entry.isManual,
+                color: getDynamicGlucoseColor(
+                    glucoseValue: mgdl,
+                    highGlucoseColorValue: highColorValue,
+                    lowGlucoseColorValue: lowColorValue,
+                    targetGlucose: currentGlucoseTarget,
+                    glucoseColorScheme: glucoseColorScheme
+                )
+            )
+        }
     }
 
     /// Recomputes the peak set, but only when an input it actually depends on has moved.
