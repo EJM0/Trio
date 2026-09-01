@@ -9,11 +9,11 @@ import SwiftUI
 /// badges rode the live-pinch `scaleEffect`, an x-only transform, so their text and their
 /// rounded backgrounds stretched for the length of a gesture and snapped back at every
 /// zoom commit. Out here the pinch reaches only their coordinates, through the same
-/// `xPosition` the markers they avoid are placed with.
+/// mapping the markers they avoid are placed with.
 ///
 /// Cheap to redraw per frame, unlike the treatment markers: a window holds tens of peaks,
 /// not hundreds of doses, and the obstacle search is already scoped to their neighbourhoods.
-struct PeakLabelsOverlay: View, Animatable {
+struct PeakLabelsOverlay: View {
     @Environment(\.colorScheme) private var colorScheme
 
     let peaks: [(date: Date, glucose: Int16, type: ExtremumType)]
@@ -22,32 +22,30 @@ struct PeakLabelsOverlay: View, Animatable {
     let glucoseData: [GlucoseDot]
     let insulinData: [PumpEventStored]
     let carbData: [CarbEntryStored]
+    let fpuData: [CarbEntryStored]
+    /// Baseline the FPU dots sit on, in display units — the same one `TreatmentOverlay` pins
+    /// them to.
+    let fpuBaseline: Decimal
     let units: GlucoseUnits
     let highGlucose: Decimal
     let lowGlucose: Decimal
     let glucoseColorScheme: GlucoseColorScheme
     let currentGlucoseTarget: Decimal
 
-    let viewportWidth: CGFloat
-    let stackHeight: CGFloat
-    /// Leading edge of the visible window, and its length. Together they convert the
-    /// placement distances below into a span of chart time, which is what bounds the
-    /// obstacle search. `var`, because `animatableData` interpolates it.
-    var visibleStart: Date
-    let visibleSeconds: TimeInterval
+    /// Time-to-x mapping for this frame, handed down by `ChartOverlayLayer` — already
+    /// interpolated, and already carrying the live-pinch stretch.
+    ///
+    /// This layer used to take the shell's `xPosition` *closure* instead, which is the one
+    /// form that cannot work: it captured `scrollPosition` at its final value, so the badges
+    /// snapped to the end of an animated scroll while every other layer glided there, despite
+    /// this view conforming to `Animatable`. A closure also cannot be run backwards, and this
+    /// layer needs the inverse — for what span of time is on screen, and for what a point of
+    /// placement distance is worth in chart time.
+    let viewport: ChartViewport
 
-    /// The shell's mappings — `xPosition` carries the live-pinch transform, `yPosition`
-    /// takes a value in display units — so a badge and the marker it avoids can never
-    /// disagree about where either of them is.
-    let xPosition: (Date) -> CGFloat
+    /// Value-to-pixel mapping for the glucose pane, so a badge and the marker it avoids can
+    /// never disagree about where either of them is.
     let yPosition: (Decimal) -> CGFloat
-
-    /// The live-pinch transform itself. `xPosition` already applies it, but this layer also
-    /// has to run it *backwards* — to know what span of time is actually on screen, and how
-    /// much chart time a point of placement distance is worth — and a closure cannot be
-    /// inverted. Same two values the other shell overlays carry.
-    let pinchScale: CGFloat
-    let pinchAnchorFraction: CGFloat?
     /// Mirrors what `TreatmentOverlay` uses to decide whether a bolus carries its dose label, so
     /// a marker's reserved footprint matches the one actually drawn.
     let bolusDisplayThreshold: BolusDisplayThreshold
@@ -66,14 +64,6 @@ struct PeakLabelsOverlay: View, Animatable {
     /// `Config.maxCarbSize` (30) and a large bolus lands around 23 — used only to pad the
     /// search so a marker whose centre sits just outside it still can't reach a label.
     private static let maxMarkerHalfWidth: CGFloat = 20
-
-    /// The leading edge as a scalar SwiftUI can interpolate, so the badges travel with the
-    /// chart during an animated scroll instead of snapping to its destination. Same reason
-    /// as `TreatmentOverlay.animatableData`.
-    var animatableData: Double {
-        get { visibleStart.timeIntervalSinceReferenceDate }
-        set { visibleStart = Date(timeIntervalSinceReferenceDate: newValue) }
-    }
 
     var body: some View {
         let placed = computePlacements(obstacles: computeObstacles())
@@ -94,46 +84,22 @@ struct PeakLabelsOverlay: View, Animatable {
                     .position(x: p.rect.midX, y: p.rect.midY)
             }
         }
-        // Load-bearing, as for every other shell overlay: an unconstrained sibling in the
-        // shell's ZStack inherits the canvas's (~9x screen) layout width.
-        .frame(width: viewportWidth, height: stackHeight, alignment: .topLeading)
-        .allowsHitTesting(false)
     }
 
     /// Peaks that could put a badge on screen — its own position plus the furthest the
     /// placement may carry it. Everything else is culled before any work is done on it.
     ///
-    /// The window is read off the viewport's own edges rather than derived from
-    /// `visibleSeconds`: a live pinch stretches the canvas, so a zoom-out shows a wider span
-    /// of time than the committed window and the badges out there would otherwise only appear
-    /// once the zoom commits.
+    /// The reach is a placement distance, so it is measured in points and converted by the
+    /// viewport — which follows the live-pinch stretch, so a zoom-out cannot leave badges out
+    /// of the newly exposed edges until the zoom commits.
     private var visiblePeaks: [(date: Date, glucose: Int16, type: ExtremumType)] {
-        let reach = Self.maxPlacementDistance + Self.labelSize.width
+        let range = viewport.cullRange(marginPoints: Self.maxPlacementDistance + Self.labelSize.width)
         return MainChartHelper.windowSlice(
             peaks,
-            from: date(atViewportX: -reach),
-            through: date(atViewportX: viewportWidth + reach),
+            from: range.lowerBound,
+            through: range.upperBound,
             ascendingInput: true,
             date: { $0.date }
-        )
-    }
-
-    /// Chart time per point *as currently drawn* — so it follows the live-pinch stretch, the
-    /// same way the placement distances it converts are measured on the stretched screen.
-    private var secondsPerPoint: TimeInterval {
-        let scale = pinchScale > 0 ? Double(pinchScale) : 1
-        return visibleSeconds / Double(max(viewportWidth, 1)) / scale
-    }
-
-    /// Inverse of the shell's `xPosition`: the date currently under a viewport x.
-    private func date(atViewportX x: CGFloat) -> Date {
-        var untransformed = x
-        if let anchorFraction = pinchAnchorFraction, pinchScale != 1, pinchScale > 0 {
-            let anchorX = anchorFraction * viewportWidth
-            untransformed = anchorX + (x - anchorX) / pinchScale
-        }
-        return visibleStart.addingTimeInterval(
-            TimeInterval(untransformed / max(viewportWidth, 1)) * visibleSeconds
         )
     }
 
@@ -163,7 +129,7 @@ struct PeakLabelsOverlay: View, Animatable {
 
         return visiblePeaks.compactMap { peak -> PlacedPeak? in
             let glucoseDecimal = Decimal(peak.glucose)
-            let cxRel = xPosition(peak.date)
+            let cxRel = viewport.x(for: peak.date)
             let cyRel = yPosition(displayValue(glucoseDecimal))
 
             let desiredCenterY: CGFloat
@@ -209,25 +175,26 @@ struct PeakLabelsOverlay: View, Animatable {
     ///
     /// `LabelPlacement.placeLabelCenter` throws away every obstacle further than
     /// `maxPlacementDistance` from the peak it is placing, so building one per glucose point,
-    /// bolus and carb across the render window — which at wide zoom is the whole 72 h — was
+    /// bolus, carb and FPU across the render window — which at wide zoom is the whole 72 h — was
     /// work discarded for all but a few tens of them. Peaks are few and arrive in time order,
     /// so their neighbourhoods are cheap to enumerate and the rest of the data is never
     /// touched: no scale lookup, no nearest-glucose search.
     private func computeObstacles() -> [CGRect] {
         let peaks = visiblePeaks
-        guard !peaks.isEmpty, viewportWidth > 0 else { return [] }
+        guard !peaks.isEmpty, viewport.viewportWidth > 0 else { return [] }
 
         // Reach of a placement, in chart time: how far the label itself can travel, plus its
         // own width, plus the widest marker that could still overlap from beyond that.
         let pad = Double(
             Self.maxPlacementDistance + Self.labelSize.width + Self.maxMarkerHalfWidth
-        ) * secondsPerPoint
+        ) * viewport.secondsPerPoint
 
         var rects: [CGRect] = []
         for neighbourhood in mergedNeighbourhoods(peaks, pad: pad) {
             appendGlucoseObstacles(in: neighbourhood, to: &rects)
             appendBolusObstacles(in: neighbourhood, to: &rects)
             appendCarbObstacles(in: neighbourhood, to: &rects)
+            appendFPUObstacles(in: neighbourhood, to: &rects)
         }
         return rects
     }
@@ -260,7 +227,7 @@ struct PeakLabelsOverlay: View, Animatable {
             ascendingInput: true, date: { $0.date }
         )
         for reading in readings {
-            let x = xPosition(reading.date)
+            let x = viewport.x(for: reading.date)
             let y = yPosition(reading.value)
             rects.append(CGRect(
                 x: x - Self.glucoseDotSize / 2,
@@ -294,7 +261,7 @@ struct PeakLabelsOverlay: View, Animatable {
             ) else { continue }
 
             let markValue = nearest.value + MainChartHelper.bolusOffset(units: units)
-            let x = xPosition(date)
+            let x = viewport.x(for: date)
             let y = yPosition(markValue)
 
             let size = MainChartHelper.Config.bolusSize
@@ -331,7 +298,7 @@ struct PeakLabelsOverlay: View, Animatable {
             ) else { continue }
 
             let markValue = nearest.value - MainChartHelper.bolusOffset(units: units)
-            let x = xPosition(date)
+            let x = viewport.x(for: date)
             let y = yPosition(markValue)
 
             let size = min(
@@ -343,6 +310,34 @@ struct PeakLabelsOverlay: View, Animatable {
                 y: y - size / 2,
                 width: size,
                 height: size + Self.markerLabelHeight
+            ))
+        }
+    }
+
+    /// The FPU dots as `TreatmentOverlay` draws them: brown circles on the baseline, carrying
+    /// no label. They matter to a *nadir* badge, which is placed below its curve and so is the
+    /// one that reaches down into the baseline they sit on.
+    private func appendFPUObstacles(in range: ClosedRange<Date>, to rects: inout [CGRect]) {
+        // Fetched newest-first, like every carb query; the slice comes back ascending.
+        let entries = MainChartHelper.windowSlice(
+            fpuData, from: range.lowerBound, through: range.upperBound,
+            ascendingInput: false, date: \.date
+        )
+        guard !entries.isEmpty else { return }
+        // One baseline for all of them, so it is resolved once.
+        let y = yPosition(fpuBaseline)
+
+        for entry in entries {
+            guard let date = entry.date else { continue }
+            // `symbolSize` is an *area* in square points, not a bounding box, so the diameter
+            // is recovered from it — exactly as the overlay does when it draws them.
+            let area = (MainChartHelper.Config.fpuSize + CGFloat(entry.carbs) * MainChartHelper.Config.carbsScale) * 1.8
+            let diameter = 2 * sqrt(max(area, 0) / .pi)
+            rects.append(CGRect(
+                x: viewport.x(for: date) - diameter / 2,
+                y: y - diameter / 2,
+                width: diameter,
+                height: diameter
             ))
         }
     }

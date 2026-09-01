@@ -15,6 +15,7 @@
 		09725ACC30349E5B00B148F3 /* TreatmentOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09725ACB30349E5B00B148F3 /* TreatmentOverlay.swift */; };
 		09725ACC3034A3CF00B148F3 /* PeakPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09725ACB3034A3CF00B148F3 /* PeakPicker.swift */; };
 		09725ACE3034A73B00B148F3 /* LabelPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09725ACD3034A73B00B148F3 /* LabelPlacement.swift */; };
+		09725ACF3034A73B00B148F3 /* ChartViewport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09725AD03034A73B00B148F3 /* ChartViewport.swift */; };
 		0977A2262EF1F35C00A1AF88 /* BarcodeScannerStateModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0977A2252EF1F35200A1AF88 /* BarcodeScannerStateModel.swift */; };
 		0989316E2FDF27180005E7C8 /* liqglass.icon in Resources */ = {isa = PBXBuildFile; fileRef = 0989316D2FDF27180005E7C8 /* liqglass.icon */; };
 		09A169602EE302EB0026711C /* BarcodeScannerDataFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A1695B2EE302EB0026711C /* BarcodeScannerDataFlow.swift */; };
@@ -971,7 +972,7 @@
 		E592A37A2CEEC038009A472C /* ContactImageProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E592A3742CEEC038009A472C /* ContactImageProvider.swift */; };
 		E974172296125A5AE99E634C /* PumpConfigRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AD22C985B79A2F0D2EA3D9D /* PumpConfigRootView.swift */; };
 		EA00000000000000000000A2 /* GlucoseEpisode.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA00000000000000000000A1 /* GlucoseEpisode.swift */; };
-		EA00000000000000000000B2 /* GlucoseEpisodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA00000000000000000000B1 /* GlucoseEpisodeView.swift */; };
+		EA00000000000000000000B2 /* GlucoseEpisodesOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA00000000000000000000B1 /* GlucoseEpisodesOverlay.swift */; };
 		EA00000000000000000000B4 /* GlucoseEpisodeStored+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA00000000000000000000B3 /* GlucoseEpisodeStored+CoreDataClass.swift */; };
 		EA00000000000000000000B6 /* GlucoseEpisodeStored+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA00000000000000000000B5 /* GlucoseEpisodeStored+CoreDataProperties.swift */; };
 		EA00000000000000000000C2 /* GlucoseEpisodeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA00000000000000000000C1 /* GlucoseEpisodeStore.swift */; };
@@ -1118,6 +1119,7 @@
 		09725ACB30349E5B00B148F3 /* TreatmentOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentOverlay.swift; sourceTree = "<group>"; };
 		09725ACB3034A3CF00B148F3 /* PeakPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakPicker.swift; sourceTree = "<group>"; };
 		09725ACD3034A73B00B148F3 /* LabelPlacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelPlacement.swift; sourceTree = "<group>"; };
+		09725AD03034A73B00B148F3 /* ChartViewport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartViewport.swift; sourceTree = "<group>"; };
 		0977A2252EF1F35200A1AF88 /* BarcodeScannerStateModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerStateModel.swift; sourceTree = "<group>"; };
 		0989316D2FDF27180005E7C8 /* liqglass.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = liqglass.icon; sourceTree = "<group>"; };
 		09A169582EE302EB0026711C /* BarcodeScannerRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerRootView.swift; sourceTree = "<group>"; };
@@ -2062,7 +2064,7 @@
 		E592A3742CEEC038009A472C /* ContactImageProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactImageProvider.swift; sourceTree = "<group>"; };
 		E592A3752CEEC038009A472C /* ContactImageStateModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactImageStateModel.swift; sourceTree = "<group>"; };
 		EA00000000000000000000A1 /* GlucoseEpisode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseEpisode.swift; sourceTree = "<group>"; };
-		EA00000000000000000000B1 /* GlucoseEpisodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseEpisodeView.swift; sourceTree = "<group>"; };
+		EA00000000000000000000B1 /* GlucoseEpisodesOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseEpisodesOverlay.swift; sourceTree = "<group>"; };
 		EA00000000000000000000B3 /* GlucoseEpisodeStored+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GlucoseEpisodeStored+CoreDataClass.swift"; sourceTree = "<group>"; };
 		EA00000000000000000000B5 /* GlucoseEpisodeStored+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GlucoseEpisodeStored+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		EA00000000000000000000C1 /* GlucoseEpisodeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseEpisodeStore.swift; sourceTree = "<group>"; };
@@ -2845,6 +2847,7 @@
 			children = (
 				09725ACB3034A3CF00B148F3 /* PeakPicker.swift */,
 				09725ACD3034A73B00B148F3 /* LabelPlacement.swift */,
+				09725AD03034A73B00B148F3 /* ChartViewport.swift */,
 				DDA6E24F2D22187500C2988C /* ChartLegendView.swift */,
 				BD3CC0712B0B89D50013189E /* MainChartView.swift */,
 				BDDAF9F12D0055CC00B34E7A /* ChartElements */,
@@ -3974,7 +3977,7 @@
 				58D08B332C8DF9A700AA37D3 /* CobIobChart.swift */,
 				58D08B372C8DFB6000AA37D3 /* BasalChart.swift */,
 				58D08B392C8DFECD00AA37D3 /* TempTargets.swift */,
-				EA00000000000000000000B1 /* GlucoseEpisodeView.swift */,
+				EA00000000000000000000B1 /* GlucoseEpisodesOverlay.swift */,
 			);
 			path = ChartElements;
 			sourceTree = "<group>";
@@ -5487,7 +5490,7 @@
 				EA00000000000000000000B6 /* GlucoseEpisodeStored+CoreDataProperties.swift in Sources */,
 				EA00000000000000000000B4 /* GlucoseEpisodeStored+CoreDataClass.swift in Sources */,
 				EA00000000000000000000C2 /* GlucoseEpisodeStore.swift in Sources */,
-				EA00000000000000000000B2 /* GlucoseEpisodeView.swift in Sources */,
+				EA00000000000000000000B2 /* GlucoseEpisodesOverlay.swift in Sources */,
 				DD940BAA2CA7585D000830A5 /* GlucoseColorScheme.swift in Sources */,
 				3811DE2225C9D48300A708ED /* MainProvider.swift in Sources */,
 				BD47FD1B2D88AB4F0043966B /* OnboardingStateModel.swift in Sources */,
@@ -6000,6 +6003,7 @@
 				BD175EBE0000100000000009 /* HistoryRootView+Glucose.swift in Sources */,
 				BD175EBE000010000000000A /* HistoryRootView+Adjustments.swift in Sources */,
 				09725ACE3034A73B00B148F3 /* LabelPlacement.swift in Sources */,
+				09725ACF3034A73B00B148F3 /* ChartViewport.swift in Sources */,
 				BD175EBE000010000000000B /* HistoryRootView+Filters.swift in Sources */,
 				BD175EBE000010000000000C /* HistoryRootView+AddGlucose.swift in Sources */,
 				BD175EBE000010000000000D /* HistoryRootView+Confirmations.swift in Sources */,

@@ -48,8 +48,6 @@ struct MainChartView: View {
     var trailingInset: CGFloat = 0
     var state: Home.StateModel
 
-    @Environment(\.colorScheme) var colorScheme
-
     /// Date under the user's finger while inspecting, else nil. Owned by Home so the
     /// readout can take over the meal slot; the chart only writes it.
     @Binding var selection: Date?
@@ -174,37 +172,44 @@ struct MainChartView: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            MainChartCanvas(
-                state: state,
-                units: units,
-                highGlucose: highGlucose,
-                lowGlucose: lowGlucose,
-                currentGlucoseTarget: currentGlucoseTarget,
-                glucoseColorScheme: glucoseColorScheme,
-                displayXgridLines: displayXgridLines,
-                displayYgridLines: displayYgridLines,
-                showGlucoseEpisodes: showGlucoseEpisodes,
-                thresholdLines: thresholdLines,
-                visibleSeconds: visibleSeconds,
-                windowStart: renderWindowStart,
-                windowEnd: renderWindowEnd,
-                canvasWidth: canvasWidth,
-                basalHeight: basalHeight,
-                mainHeight: mainHeight,
-                cobIobHeight: cobIobHeight,
-                glucoseYDomain: paddedGlucoseYDomain
-            )
-            .equatable()
-            .offset(x: -canvasOffsetX)
-            .scaleEffect(x: pinchScale, y: 1, anchor: pinchScaleAnchor)
+            ZStack(alignment: .topLeading) {
+                MainChartCanvas(
+                    state: state,
+                    units: units,
+                    highGlucose: highGlucose,
+                    lowGlucose: lowGlucose,
+                    currentGlucoseTarget: currentGlucoseTarget,
+                    glucoseColorScheme: glucoseColorScheme,
+                    displayXgridLines: displayXgridLines,
+                    displayYgridLines: displayYgridLines,
+                    thresholdLines: thresholdLines,
+                    visibleSeconds: visibleSeconds,
+                    windowStart: renderWindowStart,
+                    windowEnd: renderWindowEnd,
+                    canvasWidth: canvasWidth,
+                    basalHeight: basalHeight,
+                    mainHeight: mainHeight,
+                    cobIobHeight: cobIobHeight,
+                    glucoseYDomain: paddedGlucoseYDomain
+                )
+                .equatable()
+                .offset(x: -canvasOffsetX)
+                .scaleEffect(x: pinchScale, y: 1, anchor: pinchScaleAnchor)
 
-            glucoseDotsOverlay
-                .allowsHitTesting(false)
+                glucoseDotsOverlay
 
-            treatmentOverlay
-                .allowsHitTesting(false)
+                glucoseEpisodesOverlay
 
-            nowOffscreenGradient
+                treatmentOverlay
+            }
+            // Everything that scrolls fades out at the trailing edge once "now" is off screen
+            // — see `scrolledBackMask`. Grouped and masked rather than covered with a dark
+            // gradient: a scrim only dims what is under it, and the point is that the past
+            // *ends* here. The pinned axis labels, the peak badges and the scrub marks are
+            // outside this group and so stay at full strength, as they were when the fade was
+            // painted under them.
+            .frame(width: viewportWidth, height: chartHeight, alignment: .topLeading)
+            .mask(alignment: .topLeading) { scrolledBackMask }
 
             // Pinned y-axis labels over the glucose pane, ABOVE the scrolled-back gradient
             // so the labels are never dimmed by it. Pure overlay; never re-lays the canvas.
@@ -238,7 +243,6 @@ struct MainChartView: View {
             // marks a specific reading, so it wins every overlap. Only the scrub's own
             // marks, which are transient, sit above it.
             peakLabelsOverlay
-                .allowsHitTesting(false)
 
             selectionOverlay
                 .allowsHitTesting(false)
@@ -397,6 +401,19 @@ extension MainChartView {
         renderWindowEnd = newEnd
     }
 
+    /// The time-to-x mapping every shell overlay draws with — one value, built once per body
+    /// pass, so no two layers can disagree about where a date sits. `ChartOverlayLayer`
+    /// interpolates its `visibleStart` for animated scrolls.
+    var viewport: ChartViewport {
+        ChartViewport(
+            visibleStart: scrollPosition,
+            visibleSeconds: visibleSeconds,
+            viewportWidth: viewportWidth,
+            pinchScale: pinchScale,
+            pinchAnchorFraction: pinchAnchor?.anchorFraction
+        )
+    }
+
     /// Glucose y-domain padded above and below so values at the data extremes (and the carb
     /// markers `TreatmentOverlay` pins to the old baseline) render fully instead of straddling the
     /// plot edge. Also gives the plot visual breathing room at top and bottom.
@@ -427,17 +444,6 @@ extension MainChartView {
 
 extension MainChartView {
     private var stackHeight: CGFloat { basalHeight + mainHeight + cobIobHeight }
-
-    /// Viewport x of a date, as it is actually on screen — including the live-pinch
-    /// stretch. The overlays sit outside the canvas and so are not carried by its
-    /// `scaleEffect`; without applying the same transform here, every pinned label and
-    /// selection mark would drift off the marks it belongs to for the length of a pinch.
-    private func xPosition(for date: Date) -> CGFloat {
-        let x = CGFloat(date.timeIntervalSince(scrollPosition) / visibleSeconds) * viewportWidth
-        guard let pinch = pinchAnchor, pinchScale != 1 else { return x }
-        let anchorX = pinch.anchorFraction * viewportWidth
-        return anchorX + (x - anchorX) * pinchScale
-    }
 
     /// Top of the x-axis label strip — which is simply the bottom of the canvas, since
     /// the strip is taken off the zone before the panes split what is left. Nothing
@@ -504,35 +510,49 @@ extension MainChartView {
         }
     }
 
-    /// Dark fade pinned to the trailing edge whenever "now" is scrolled off-screen.
-    /// Without it, yesterday's 2 am and today's 2 am are visually indistinguishable; the
-    /// fade signals "you are looking at the past — newer data lies this way". Opacity
-    /// ramps in over the first 30 min of scroll-back so it doesn't pop at the boundary.
-    @ViewBuilder private var nowOffscreenGradient: some View {
+    /// Fades the chart out at its trailing edge whenever "now" is scrolled off-screen.
+    ///
+    /// Without it, yesterday's 2 am and today's 2 am are visually indistinguishable; the fade
+    /// signals "you are looking at the past — newer data lies this way". It ramps in over the
+    /// first 30 min of scroll-back so it doesn't pop at the boundary, and stops short of
+    /// erasing the edge outright: enough alpha is left that the curve is still followable into
+    /// it, so this reads as the data thinning out rather than as a hole in the chart.
+    ///
+    /// A mask, not the dark scrim it used to be. A scrim tints whatever is under it — which
+    /// looks like a shadow *on* the chart, and gets worse the busier the chart is — where a
+    /// mask takes the content's own alpha down, so the marks genuinely fade away. It spans the
+    /// whole zone, x-axis strip included: stopping at the canvas would leave a seam across the
+    /// fade.
+    private var scrolledBackMask: some View {
         let trailingEdge = scrollPosition.addingTimeInterval(visibleSeconds)
         let secondsBehindNow = Date.now.timeIntervalSince(trailingEdge)
-        let color: Color = (colorScheme == .dark ? Color.bgDarkerDarkBlue : Color.black.opacity(0.25))
-        if isScrolledBack {
-            let strength = min(1.0, secondsBehindNow / 1800)
-            LinearGradient(
-                colors: [color.opacity(0), color.opacity(0.8 * strength)],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-            // the whole zone, label strip included: stopping at the canvas would leave
-            // a seam across the fade
-            .frame(width: 120, height: chartHeight)
-            .frame(width: viewportWidth, alignment: .trailing)
-            .allowsHitTesting(false)
-        }
+        let strength = isScrolledBack ? min(1.0, secondsBehindNow / 1800) : 0
+        // Opaque everywhere but the last `fadeWidth`, so the gradient is expressed in stops on
+        // one full-width layer: two stacked layers cannot work, since a translucent white over
+        // an opaque one still masks nothing.
+        let fadeStart = max(0, viewportWidth - Self.fadeWidth) / max(viewportWidth, 1)
+
+        return LinearGradient(
+            stops: [
+                .init(color: .white, location: 0),
+                .init(color: .white, location: fadeStart),
+                .init(color: .white.opacity(1 - 0.8 * strength), location: 1)
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+        .frame(width: viewportWidth, height: chartHeight)
     }
+
+    /// Width of the trailing fade.
+    private static let fadeWidth: CGFloat = 120
 
     /// Vertical indicator + point highlights for the current selection. Positions are
     /// computed with the same linear maps the canvas charts use. The readout itself is
     /// drawn by Home in the meal slot (`ChartSelectionRow`), never over the chart.
     @ViewBuilder private var selectionOverlay: some View {
         if let selectedGlucose, let selectionDate = selectedGlucose.date {
-            let x = xPosition(for: selectionDate)
+            let x = viewport.x(for: selectionDate)
             if x >= 0, x <= viewportWidth {
                 let markColor = selectionMarkColor(
                     for: selectedGlucose,
@@ -621,17 +641,40 @@ extension MainChartView {
     /// Handed the whole pre-resolved series: it culls to the visible window itself, and the
     /// slice is a few hundred plain structs either way.
     @ViewBuilder var glucoseDotsOverlay: some View {
-        GlucoseDotsOverlay(
-            points: state.glucoseDots,
-            isSmoothingEnabled: state.isSmoothingEnabled,
-            viewportWidth: viewportWidth,
-            stackHeight: stackHeight,
-            visibleStart: scrollPosition,
-            visibleSeconds: visibleSeconds,
-            pinchScale: pinchScale,
-            pinchAnchorFraction: pinchAnchor?.anchorFraction,
-            yPosition: { glucoseYPosition(forDisplayValue: $0) }
-        )
+        ChartOverlayLayer(viewport: viewport, height: stackHeight) { viewport in
+            GlucoseDotsOverlay(
+                points: state.glucoseDots,
+                isSmoothingEnabled: state.isSmoothingEnabled,
+                viewport: viewport,
+                yPosition: { glucoseYPosition(forDisplayValue: $0) }
+            )
+        }
+    }
+}
+
+// MARK: - Excursion markers (drawn outside the pinch transform)
+
+extension MainChartView {
+    /// Sustained high/low brackets in the lane above the data. In the shell for the reasons
+    /// `GlucoseEpisodesOverlay` documents: inside the canvas the pinch stretched the bar and
+    /// its duration label, and the marks re-laid on every committed zoom step.
+    @ViewBuilder var glucoseEpisodesOverlay: some View {
+        if showGlucoseEpisodes {
+            ChartOverlayLayer(viewport: viewport, height: stackHeight) { viewport in
+                GlucoseEpisodesOverlay(
+                    episodes: state.glucoseEpisodes,
+                    units: units,
+                    highGlucose: highGlucose,
+                    lowGlucose: lowGlucose,
+                    currentGlucoseTarget: currentGlucoseTarget,
+                    glucoseColorScheme: glucoseColorScheme,
+                    maxYAxisValue: state.maxYAxisValue,
+                    historyStart: state.startMarker,
+                    viewport: viewport,
+                    yPosition: { glucoseYPosition(forDisplayValue: $0) }
+                )
+            }
+        }
     }
 }
 
@@ -649,23 +692,20 @@ extension MainChartView {
     /// by binary search itself, and every lookup it does on these arrays is a binary search
     /// too, so the outer slice bought nothing it does not already do per frame.
     @ViewBuilder var treatmentOverlay: some View {
-        TreatmentOverlay(
-            glucose: state.glucoseDots,
-            insulin: state.insulinFromPersistence,
-            carbs: state.carbsFromPersistence,
-            fpus: state.fpusFromPersistence,
-            units: units,
-            bolusDisplayThreshold: state.bolusDisplayThreshold,
-            smbBolusDisplayCutoff: state.smbBolusDisplayCutoff,
-            fpuBaseline: units == .mgdL ? state.minYAxisValue : state.minYAxisValue.asMmolL,
-            viewportWidth: viewportWidth,
-            stackHeight: stackHeight,
-            visibleStart: scrollPosition,
-            visibleSeconds: visibleSeconds,
-            pinchScale: pinchScale,
-            pinchAnchorFraction: pinchAnchor?.anchorFraction,
-            yPosition: { glucoseYPosition(forDisplayValue: $0) }
-        )
+        ChartOverlayLayer(viewport: viewport, height: stackHeight) { viewport in
+            TreatmentOverlay(
+                glucose: state.glucoseDots,
+                insulin: state.insulinFromPersistence,
+                carbs: state.carbsFromPersistence,
+                fpus: state.fpusFromPersistence,
+                units: units,
+                bolusDisplayThreshold: state.bolusDisplayThreshold,
+                smbBolusDisplayCutoff: state.smbBolusDisplayCutoff,
+                fpuBaseline: units == .mgdL ? state.minYAxisValue : state.minYAxisValue.asMmolL,
+                viewport: viewport,
+                yPosition: { glucoseYPosition(forDisplayValue: $0) }
+            )
+        }
     }
 }
 
@@ -680,27 +720,25 @@ extension MainChartView {
     /// obstacle scan already reaches into them by binary search, per peak neighbourhood.
     @ViewBuilder var peakLabelsOverlay: some View {
         if state.showGlucosePeaks {
-            PeakLabelsOverlay(
-                peaks: state.glucosePeaks,
-                glucoseData: state.glucoseDots,
-                insulinData: state.insulinFromPersistence,
-                carbData: state.carbsFromPersistence,
-                units: units,
-                highGlucose: highGlucose,
-                lowGlucose: lowGlucose,
-                glucoseColorScheme: glucoseColorScheme,
-                currentGlucoseTarget: currentGlucoseTarget,
-                viewportWidth: viewportWidth,
-                stackHeight: stackHeight,
-                visibleStart: scrollPosition,
-                visibleSeconds: visibleSeconds,
-                xPosition: { xPosition(for: $0) },
-                yPosition: { glucoseYPosition(forDisplayValue: $0) },
-                pinchScale: pinchScale,
-                pinchAnchorFraction: pinchAnchor?.anchorFraction,
-                bolusDisplayThreshold: state.bolusDisplayThreshold,
-                smbBolusDisplayCutoff: state.smbBolusDisplayCutoff
-            )
+            ChartOverlayLayer(viewport: viewport, height: stackHeight) { viewport in
+                PeakLabelsOverlay(
+                    peaks: state.glucosePeaks,
+                    glucoseData: state.glucoseDots,
+                    insulinData: state.insulinFromPersistence,
+                    carbData: state.carbsFromPersistence,
+                    fpuData: state.fpusFromPersistence,
+                    fpuBaseline: units == .mgdL ? state.minYAxisValue : state.minYAxisValue.asMmolL,
+                    units: units,
+                    highGlucose: highGlucose,
+                    lowGlucose: lowGlucose,
+                    glucoseColorScheme: glucoseColorScheme,
+                    currentGlucoseTarget: currentGlucoseTarget,
+                    viewport: viewport,
+                    yPosition: { glucoseYPosition(forDisplayValue: $0) },
+                    bolusDisplayThreshold: state.bolusDisplayThreshold,
+                    smbBolusDisplayCutoff: state.smbBolusDisplayCutoff
+                )
+            }
         }
     }
 }
@@ -757,12 +795,8 @@ extension MainChartView {
             axisLabelTemplate
 
             HourAxisLabels(
-                visibleStart: scrollPosition,
-                visibleSeconds: visibleSeconds,
-                viewportWidth: viewportWidth,
+                viewport: viewport,
                 labelY: labelY,
-                pinchScale: pinchScale,
-                pinchAnchorFraction: pinchAnchor?.anchorFraction,
                 labelWidth: axisLabelWidth
             )
             .opacity(isScrubbing ? 0 : 1)
@@ -811,7 +845,7 @@ extension MainChartView {
     /// stay whole: the label is the one part of the readout that must never be half-cut.
     @ViewBuilder private func selectionTimeLabel(y: CGFloat) -> some View {
         if let selectedGlucose, let selectionDate = selectedGlucose.date {
-            let x = xPosition(for: selectionDate)
+            let x = viewport.x(for: selectionDate)
             if x >= 0, x <= viewportWidth {
                 let halfWidth = selectionTimeLabelWidth / 2
                 Text(selectionDate.formatted(.dateTime.hour().minute(.twoDigits)))
@@ -843,34 +877,31 @@ extension MainChartView {
 /// grid lines they name slid under them. Interpolating the leading edge here re-runs this
 /// body each frame, so the hours travel with the chart.
 private struct HourAxisLabels: View, Animatable {
-    /// Leading edge of the visible window, and its length: the marks are laid out over
-    /// that span (plus the overscan below). `var`, because `animatableData` interpolates it.
-    var visibleStart: Date
-    let visibleSeconds: TimeInterval
+    /// The marks are laid out over the visible span plus the overscan below. `var`, because
+    /// `animatableData` interpolates the leading edge inside it.
+    var viewport: ChartViewport
 
-    let viewportWidth: CGFloat
     /// Centre line of the label strip, measured by the shell.
     let labelY: CGFloat
-
-    /// The live-pinch transform, applied to label coordinates only — the strip sits
-    /// outside the canvas, so nothing else here is carried by its `scaleEffect`.
-    let pinchScale: CGFloat
-    let pinchAnchorFraction: CGFloat?
 
     /// Measured width of the widest label form, from the shell's template. Only the
     /// overscan uses it.
     let labelWidth: CGFloat
 
     /// The leading edge as a scalar SwiftUI can interpolate — see the note above.
+    ///
+    /// This is the one layer that keeps its own `Animatable` conformance rather than sitting
+    /// inside a `ChartOverlayLayer`: it is a component *within* the x-axis strip, which has
+    /// its own frame and stacks it against the scrub's time label, not a top-level overlay.
     var animatableData: Double {
-        get { visibleStart.timeIntervalSinceReferenceDate }
-        set { visibleStart = Date(timeIntervalSinceReferenceDate: newValue) }
+        get { viewport.animatableTime }
+        set { viewport.animatableTime = newValue }
     }
 
     var body: some View {
         ForEach(hourMarks, id: \.self) { date in
             HourAxisLabel(date: date)
-                .position(x: x(for: date), y: labelY)
+                .position(x: viewport.x(for: date), y: labelY)
         }
     }
 
@@ -892,24 +923,12 @@ private struct HourAxisLabels: View, Animatable {
     /// which is ~9x wider and whose off-screen labels would be pure layout cost. The
     /// shell's frame clips, so the overscanned ones simply slide out of view.
     private var hourMarks: [Date] {
-        let overscan = TimeInterval(overscanPoints / viewportWidth) * visibleSeconds
+        let range = viewport.cullRange(marginPoints: overscanPoints)
         return MainChartHelper.hourAxisMarks(
-            over: visibleStart.addingTimeInterval(-overscan)
-                ... visibleStart.addingTimeInterval(visibleSeconds + overscan),
+            over: range,
             calendar: calendar,
-            visibleSeconds: visibleSeconds
+            visibleSeconds: viewport.visibleSeconds
         )
-    }
-
-    /// Mirrors the shell's `xPosition(for:)`. Deliberately a copy rather than the closure
-    /// it used to call: that closure captured the shell's `scrollPosition`, so
-    /// interpolating `visibleStart` here would have moved nothing — the same trap
-    /// `TreatmentOverlay.x(for:)` documents.
-    private func x(for date: Date) -> CGFloat {
-        let x = CGFloat(date.timeIntervalSince(visibleStart) / visibleSeconds) * viewportWidth
-        guard let anchorFraction = pinchAnchorFraction, pinchScale != 1 else { return x }
-        let anchorX = anchorFraction * viewportWidth
-        return anchorX + (x - anchorX) * pinchScale
     }
 }
 
@@ -944,12 +963,6 @@ extension MainChartView {
     /// Converts a horizontal translation (pt) into a time delta within the visible window.
     private func timeDelta(forTranslation dx: CGFloat) -> TimeInterval {
         TimeInterval(dx / viewportWidth) * visibleSeconds
-    }
-
-    /// The date under a given x position (in the viewport's coordinate space).
-    private func date(atViewportX x: CGFloat) -> Date {
-        let fraction = min(max(x / viewportWidth, 0), 1)
-        return scrollPosition.addingTimeInterval(visibleSeconds * TimeInterval(fraction))
     }
 
     /// Keeps domain-edge content clear of the pinned y-axis labels.
@@ -1186,7 +1199,9 @@ extension MainChartView {
     /// 300 s snap lands exactly on the nearest reading; it also means finger jitter or a
     /// scrub only produces a new value when actually crossing to another reading.
     private func updateSelection(atViewportX x: CGFloat, withPointHaptic: Bool = true) {
-        let raw = date(atViewportX: x)
+        // Clamped to the viewport: a scrub that runs off an edge keeps selecting the last
+        // reading on screen rather than one beyond it.
+        let raw = viewport.date(atViewportX: min(max(x, 0), viewportWidth))
         let quantum: TimeInterval = 300
         let snapped = Date(
             timeIntervalSince1970: (raw.timeIntervalSince1970 / quantum).rounded() * quantum
@@ -1576,7 +1591,6 @@ struct MainChartCanvas: View {
     var glucoseColorScheme: GlucoseColorScheme
     var displayXgridLines: Bool
     var displayYgridLines: Bool
-    var showGlucoseEpisodes: Bool
     var thresholdLines: Bool
     var visibleSeconds: TimeInterval
     /// Rendered slice of the domain; all panes share this x-scale.
@@ -1602,16 +1616,6 @@ struct MainChartCanvas: View {
 
     var upperLimit: Decimal {
         units == .mgdL ? 400 : 22.2
-    }
-
-    /// Excursion markers overlapping the render window. Unlike the point series these are
-    /// spans, so an episode that starts before the window — or is still running past its
-    /// trailing edge — has to be kept.
-    var windowedEpisodes: [GlucoseEpisode] {
-        let now = Date()
-        return state.glucoseEpisodes.filter { episode in
-            episode.start <= windowEnd && episode.displayEnd(asOf: now) >= windowStart
-        }
     }
 
     /// Kept in the fetch's own descending order: `drawCOBIOBChart` de-duplicates entries
@@ -1692,20 +1696,6 @@ extension MainChartCanvas {
                 lastDeterminationDate: state.determinationsFromPersistence.first?.deliverAt ?? .distantPast,
                 chartEndDate: state.endMarker
             )
-
-            if showGlucoseEpisodes {
-                GlucoseEpisodeView(
-                    episodes: windowedEpisodes,
-                    units: state.units,
-                    highGlucose: state.highGlucose,
-                    lowGlucose: state.lowGlucose,
-                    currentGlucoseTarget: state.currentGlucoseTarget,
-                    glucoseColorScheme: state.glucoseColorScheme,
-                    maxYAxisValue: state.maxYAxisValue,
-                    historyStart: state.startMarker,
-                    visibleSeconds: visibleSeconds
-                )
-            }
         }
         .frame(width: canvasWidth, height: mainHeight)
         .chartXScale(domain: windowStart ... windowEnd)
@@ -1737,7 +1727,6 @@ extension MainChartCanvas: Equatable {
             lhs.glucoseColorScheme == rhs.glucoseColorScheme &&
             lhs.displayXgridLines == rhs.displayXgridLines &&
             lhs.displayYgridLines == rhs.displayYgridLines &&
-            lhs.showGlucoseEpisodes == rhs.showGlucoseEpisodes &&
             lhs.thresholdLines == rhs.thresholdLines &&
             lhs.visibleSeconds == rhs.visibleSeconds &&
             lhs.windowStart == rhs.windowStart &&

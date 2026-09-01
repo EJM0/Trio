@@ -292,9 +292,6 @@ enum MainChartHelper {
         static let episodeMaxGap: TimeInterval = 90 * 60
         /// Excursions shorter than this are not worth marking — the chart already shows them.
         static let episodeMinimumDuration: TimeInterval = 60 * 60
-        /// The duration label is dropped once the marker covers less than this fraction of
-        /// the visible window, where the text would be wider than the bar it labels.
-        static let episodeLabelMinimumWindowFraction: Double = 0.06
         /// How far behind the settled mark `GlucoseEpisodeStore` re-scans on each update.
         /// Covers the routine CGM backfill (a transmitter reconnecting hands over the last
         /// couple of hours at once), so those readings still reshape the episode they belong

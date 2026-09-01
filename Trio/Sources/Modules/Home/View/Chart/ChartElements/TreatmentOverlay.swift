@@ -10,14 +10,18 @@ import SwiftUI
 /// where the gap between two timestamps genuinely does stretch, and wrong for anything with
 /// a fixed point size — the triangles came out skewed, the dose text came out stretched, and
 /// both snapped back at every zoom commit. Out here the pinch reaches their *coordinates*
-/// (through `x(for:)`, which applies the same transform) and nothing else, so a marker holds its
+/// (through `ChartViewport.x(for:)`, which applies the same transform) and nothing else, so a marker holds its
 /// own shape for the whole gesture and there is nothing to snap back from.
 ///
 /// One `Canvas` rather than a view per marker. This layer has no `Equatable` shortcut — it
 /// redraws on every pan and pinch frame — so what it draws has to be cheap and bounded: it
 /// culls to the visible window, which at any zoom is a few hundred markers rather than the
 /// several thousand the canvas's own render window spans.
-struct TreatmentOverlay: View, Animatable {
+///
+/// The frame, the hit testing and the animated-scroll interpolation belong to the
+/// `ChartOverlayLayer` this is drawn inside; everything here works off the `viewport` it is
+/// handed.
+struct TreatmentOverlay: View {
     /// Ascending, and covering at least the visible window. Boluses and carbs hang off the
     /// curve, so this is also the series their y anchor is looked up in. Pre-resolved points
     /// (`GlucoseDot`), so the per-frame lookups below touch no Core Data.
@@ -34,34 +38,13 @@ struct TreatmentOverlay: View, Animatable {
     /// Baseline the FPU dots sit on, in display units — the bottom of the plotted range.
     let fpuBaseline: Decimal
 
-    let viewportWidth: CGFloat
-    let stackHeight: CGFloat
-    /// Leading edge of the visible window, and its length: everything outside is culled.
-    /// `var`, because `animatableData` below interpolates it.
-    var visibleStart: Date
-    let visibleSeconds: TimeInterval
-
-    /// The live-pinch transform, applied to marker coordinates only — which is the whole
-    /// point of drawing them out here.
-    let pinchScale: CGFloat
-    let pinchAnchorFraction: CGFloat?
+    /// Time-to-x mapping for this frame, handed down by `ChartOverlayLayer` — already
+    /// interpolated, and already carrying the live-pinch stretch.
+    let viewport: ChartViewport
 
     /// Value-to-pixel mapping for the glucose pane, passed in so the markers and the
-    /// selection overlay can never disagree about where a reading sits. Only y: x has to be
-    /// computed here so it can be animated — see `x(for:)`.
+    /// selection overlay can never disagree about where a reading sits.
     let yPosition: (Decimal) -> CGFloat
-
-    /// The leading edge as a scalar SwiftUI can interpolate.
-    ///
-    /// Without it the markers snapped to the end of an animated scroll — the "jump to now"
-    /// button wraps `scrollToTrailingEdge()` in `withAnimation` — while the canvas glided
-    /// there, because the canvas moves under an animatable `.offset` and a `Date` handed to
-    /// this view is not animatable at all. Interpolating it re-runs the draw closure each
-    /// frame, so the markers travel with the chart they are pinned to.
-    var animatableData: Double {
-        get { visibleStart.timeIntervalSinceReferenceDate }
-        set { visibleStart = Date(timeIntervalSinceReferenceDate: newValue) }
-    }
 
     var body: some View {
         Canvas(opaque: false, rendersAsynchronously: false) { context, _ in
@@ -72,8 +55,6 @@ struct TreatmentOverlay: View, Animatable {
                 }
             }
         }
-        .frame(width: viewportWidth, height: stackHeight)
-        .allowsHitTesting(false)
     }
 
     // MARK: - Marker geometry
@@ -95,37 +76,8 @@ struct TreatmentOverlay: View, Animatable {
     private static let cullMarginPoints: CGFloat = 60
 
     /// Everything on screen, plus the margin above.
-    ///
-    /// Measured off the viewport's own edges through `date(atViewportX:)` rather than derived
-    /// from `visibleSeconds`: a live pinch stretches the canvas, so a zoom-out puts a wider
-    /// span of time on screen than the committed window, and culling to the committed one
-    /// would leave the newly exposed edges bare until the zoom commits.
     private var cullRange: ClosedRange<Date> {
-        let margin = Self.cullMarginPoints
-        return date(atViewportX: -margin) ... date(atViewportX: viewportWidth + margin)
-    }
-
-    /// Mirrors the shell's `xPosition(for:)`. Deliberately a copy rather than the closure it
-    /// used to be: the closure captured the shell's `scrollPosition`, which is already at its
-    /// final value when an animated scroll begins, so interpolating `visibleStart` here would
-    /// have moved nothing.
-    private func x(for date: Date) -> CGFloat {
-        let x = CGFloat(date.timeIntervalSince(visibleStart) / visibleSeconds) * viewportWidth
-        guard let anchorFraction = pinchAnchorFraction, pinchScale != 1 else { return x }
-        let anchorX = anchorFraction * viewportWidth
-        return anchorX + (x - anchorX) * pinchScale
-    }
-
-    /// Inverse of `x(for:)`: the date currently under a viewport x, live pinch included.
-    private func date(atViewportX x: CGFloat) -> Date {
-        var untransformed = x
-        if let anchorFraction = pinchAnchorFraction, pinchScale != 1, pinchScale > 0 {
-            let anchorX = anchorFraction * viewportWidth
-            untransformed = anchorX + (x - anchorX) / pinchScale
-        }
-        return visibleStart.addingTimeInterval(
-            TimeInterval(untransformed / max(viewportWidth, 1)) * visibleSeconds
-        )
+        viewport.cullRange(marginPoints: Self.cullMarginPoints)
     }
 
     /// The y value a treatment hangs off: the curve at its own time, offset clear of it.
@@ -163,7 +115,7 @@ struct TreatmentOverlay: View, Animatable {
             // amount-driven growth the Image had.
             let size = MainChartHelper.Config.bolusSize
                 + CGFloat(truncating: amount as NSNumber) * MainChartHelper.Config.bolusScale
-            let rect = CGRect(x: x(for: date) - size / 2, y: y - size / 2, width: size, height: size)
+            let rect = CGRect(x: viewport.x(for: date) - size / 2, y: y - size / 2, width: size, height: size)
 
             let labelled = MainChartHelper.showsBolusLabel(
                 amount: amount,
@@ -198,7 +150,7 @@ struct TreatmentOverlay: View, Animatable {
                 MainChartHelper.Config.carbsSize + CGFloat(entry.carbs) * MainChartHelper.Config.carbsScale,
                 MainChartHelper.Config.maxCarbSize
             )
-            let rect = CGRect(x: x(for: date) - size / 2, y: y - size / 2, width: size, height: size)
+            let rect = CGRect(x: viewport.x(for: date) - size / 2, y: y - size / 2, width: size, height: size)
 
             markers.append(Marker(
                 path: TreatmentTriangleSymbol(pointsDown: false).path(in: rect),
@@ -228,7 +180,7 @@ struct TreatmentOverlay: View, Animatable {
             let area = (MainChartHelper.Config.fpuSize + CGFloat(entry.carbs) * MainChartHelper.Config.carbsScale) * 1.8
             let diameter = 2 * sqrt(max(area, 0) / .pi)
             let rect = CGRect(
-                x: x(for: date) - diameter / 2,
+                x: viewport.x(for: date) - diameter / 2,
                 y: y - diameter / 2,
                 width: diameter,
                 height: diameter

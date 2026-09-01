@@ -31,34 +31,18 @@ struct GlucoseDot: Equatable {
 /// with an x-only `.scaleEffect`, which squashed the dots into ellipses for the length of a
 /// gesture and snapped them back at every commit. The transform reaches only their
 /// *coordinates* here (through `x(for:)`), so a dot keeps its shape.
-struct GlucoseDotsOverlay: View, Animatable {
+struct GlucoseDotsOverlay: View {
     /// Ascending, and covering the whole domain — this layer culls to the visible window itself.
     let points: [GlucoseDot]
     let isSmoothingEnabled: Bool
 
-    let viewportWidth: CGFloat
-    let stackHeight: CGFloat
-    /// Leading edge of the visible window, and its length: everything outside is culled.
-    /// `var`, because `animatableData` below interpolates it.
-    var visibleStart: Date
-    let visibleSeconds: TimeInterval
-
-    /// The live-pinch transform, applied to dot coordinates only — which is the whole point of
-    /// drawing them out here.
-    let pinchScale: CGFloat
-    let pinchAnchorFraction: CGFloat?
+    /// Time-to-x mapping for this frame, handed down by `ChartOverlayLayer` — already
+    /// interpolated, and already carrying the live-pinch stretch.
+    let viewport: ChartViewport
 
     /// Value-to-pixel mapping for the glucose pane, passed in so the dots, the treatment
     /// markers hanging off them and the selection highlight can never disagree.
     let yPosition: (Decimal) -> CGFloat
-
-    /// The leading edge as a scalar SwiftUI can interpolate, so the dots travel with the chart
-    /// during an animated scroll instead of snapping to its destination — same reason as
-    /// `TreatmentOverlay.animatableData`.
-    var animatableData: Double {
-        get { visibleStart.timeIntervalSinceReferenceDate }
-        set { visibleStart = Date(timeIntervalSinceReferenceDate: newValue) }
-    }
 
     /// Diameter of a reading's dot. `PointMark.symbolSize` is an *area* in square points, so
     /// the 20 the chart marks carried is recovered as a diameter here rather than hardcoded —
@@ -80,8 +64,6 @@ struct GlucoseDotsOverlay: View, Animatable {
             }
             drawDots(visible, into: &context)
         }
-        .frame(width: viewportWidth, height: stackHeight)
-        .allowsHitTesting(false)
     }
 
     // MARK: - Drawing
@@ -92,7 +74,7 @@ struct GlucoseDotsOverlay: View, Animatable {
         var manualSymbol: GraphicsContext.ResolvedText?
 
         for point in visible {
-            let x = x(for: point.date)
+            let x = viewport.x(for: point.date)
             let y = yPosition(point.value)
 
             if point.isManual {
@@ -125,7 +107,7 @@ struct GlucoseDotsOverlay: View, Animatable {
                 started = false
                 continue
             }
-            let location = CGPoint(x: x(for: point.date), y: yPosition(smoothed))
+            let location = CGPoint(x: viewport.x(for: point.date), y: yPosition(smoothed))
             if started {
                 path.addLine(to: location)
             } else {
@@ -137,52 +119,19 @@ struct GlucoseDotsOverlay: View, Animatable {
         context.stroke(path, with: .color(Color.secondary), lineWidth: Self.smoothedLineWidth)
     }
 
-    // MARK: - Geometry
+    // MARK: - Culling
 
-    /// The readings on screen, plus a margin.
-    ///
-    /// The range is read off the viewport's own edges — through `date(atViewportX:)`, which
-    /// inverts the same transform `x(for:)` applies — rather than derived from
-    /// `visibleSeconds`. While a pinch is live the canvas is stretched, so a zoom-out puts a
-    /// *wider* span of time on screen than the committed window: culling to the committed one
-    /// leaves the newly exposed edges empty until the zoom commits, which reads as the
-    /// readings loading in as you zoom out.
-    ///
-    /// The 300 s slack past each edge is one reading at the CGM cadence — the smoothed curve
-    /// has to reach the reading just outside the viewport, or it stops short of the edge
-    /// instead of running off it.
+    /// The readings on screen, plus a margin. The 300 s slack is one reading at the CGM
+    /// cadence: the smoothed curve has to reach the reading just outside the viewport, or it
+    /// stops short of the edge instead of running off it.
     private var visiblePoints: [GlucoseDot] {
-        let margin = Self.cullMarginPoints
+        let range = viewport.cullRange(marginPoints: Self.cullMarginPoints, minimumSlack: 300)
         return MainChartHelper.windowSlice(
             points,
-            from: date(atViewportX: -margin).addingTimeInterval(-300),
-            through: date(atViewportX: viewportWidth + margin).addingTimeInterval(300),
+            from: range.lowerBound,
+            through: range.upperBound,
             ascendingInput: true,
             date: { $0.date }
-        )
-    }
-
-    /// Mirrors the shell's `xPosition(for:)`. Deliberately a copy rather than the closure it
-    /// could be: the closure captures the shell's `scrollPosition`, which is already at its
-    /// final value when an animated scroll begins, so interpolating `visibleStart` here would
-    /// have moved nothing — the same trap `TreatmentOverlay.x(for:)` documents.
-    private func x(for date: Date) -> CGFloat {
-        let x = CGFloat(date.timeIntervalSince(visibleStart) / visibleSeconds) * viewportWidth
-        guard let anchorFraction = pinchAnchorFraction, pinchScale != 1 else { return x }
-        let anchorX = anchorFraction * viewportWidth
-        return anchorX + (x - anchorX) * pinchScale
-    }
-
-    /// Inverse of `x(for:)`: the date currently under a viewport x, live pinch included.
-    /// What the cull range is measured with, so it always covers exactly what is on screen.
-    private func date(atViewportX x: CGFloat) -> Date {
-        var untransformed = x
-        if let anchorFraction = pinchAnchorFraction, pinchScale != 1, pinchScale > 0 {
-            let anchorX = anchorFraction * viewportWidth
-            untransformed = anchorX + (x - anchorX) / pinchScale
-        }
-        return visibleStart.addingTimeInterval(
-            TimeInterval(untransformed / max(viewportWidth, 1)) * visibleSeconds
         )
     }
 }
