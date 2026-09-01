@@ -191,6 +191,14 @@ enum MainChartHelper {
         /// Without this, every drag briefly triggered inspect on touch-down — and each
         /// selection change re-lays the canvas, stalling the pan as it starts.
         static let inspectHoldDelay: TimeInterval = 0.25
+        /// Vertical travel (pt) of a double-tap-and-drag that halves or doubles the visible
+        /// window. Geometric, like the pinch, so the gesture feels identical at every zoom.
+        static let doubleTapZoomPointsPerDoubling: CGFloat = 180
+        /// Longest gap (s) between a tap lifting and the next touch landing for the two to
+        /// count as a double tap — the gesture that arms the drag zoom.
+        static let doubleTapMaxInterval: TimeInterval = 0.35
+        /// How far apart (pt) the two taps of a double tap may land.
+        static let doubleTapSlop: CGFloat = 44
 
         // MARK: Forecast offset (how far past `now` the chart's domain extends)
 
