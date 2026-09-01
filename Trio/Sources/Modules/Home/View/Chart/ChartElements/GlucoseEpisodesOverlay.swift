@@ -11,6 +11,12 @@ import SwiftUI
 /// episodes past `Config.episodeMinimumDuration` are drawn; shorter excursions are already
 /// legible from the curve itself.
 ///
+/// The bar is filled with the colors of the readings underneath it, in place — a gradient
+/// sampled from the same `GlucoseDot`s the curve is drawn from — so a bracket lifted into an
+/// empty lane still carries the shape of the excursion it spans and not merely its extent, and
+/// the duration badge takes the color of the episode's mean. See `barShading(for:...)` for how
+/// that survives the static color scheme, which has only one color per band to sample.
+///
 /// Drawn by the shell, like every other marker layer: inside the canvas the live-pinch
 /// `scaleEffect` — an x-only transform — stretched the bar's round caps and the duration text
 /// for the length of a gesture and snapped them back at every commit, and the marks re-laid
@@ -31,6 +37,11 @@ struct GlucoseEpisodesOverlay: View {
     @Environment(\.colorScheme) private var colorScheme
 
     let episodes: [GlucoseEpisode]
+    /// The resolved readings, ascending and covering the whole domain — the very array
+    /// `GlucoseDotsOverlay` draws. Each bar is filled with a gradient sampled from the slice
+    /// that falls inside its own episode, so a bracket reads as a smear of the curve it spans.
+    /// Handed over whole, like the treatment series: this layer slices it by binary search.
+    let glucoseDots: [GlucoseDot]
     let units: GlucoseUnits
     let highGlucose: Decimal
     let lowGlucose: Decimal
@@ -61,6 +72,27 @@ struct GlucoseEpisodesOverlay: View {
     /// than wink out.
     private static let cullMarginPoints: CGFloat = 60
 
+    /// Alpha the bar is drawn at — what the flat fill carried, now baked into every stop of the
+    /// gradient that replaced it.
+    private static let barOpacity: Double = 0.75
+
+    /// Upper bound on gradient stops per bar. A 12 h excursion is ~145 readings and the bar is
+    /// rebuilt on every pan, pinch and scrub frame; sampling evenly across the slice keeps the
+    /// shape of the excursion while bounding that work, and at 4 pt thick the difference is not
+    /// visible.
+    private static let maximumGradientStops = 24
+
+    // TODO: same workaround as the glucose dots and threshold lines — the dynamic scheme needs
+    // headroom beyond the user's limits to have shades to interpolate through. The static
+    // scheme's shading ramp reuses them as the far end of its own ramp, so a bar deepens over
+    // the same span the dynamic one changes hue across.
+    private static let hardCodedLow = Decimal(55)
+    private static let hardCodedHigh = Decimal(220)
+
+    /// Floor on how far the static scheme's shading ramp reaches past a threshold, in mg/dL, for
+    /// thresholds already at or beyond the bounds above.
+    private static let minimumShadingSpan = Decimal(30)
+
     var body: some View {
         // Fixed for the pass, like the canvas's own current-time rule: an ongoing episode is
         // drawn up to here, and its length is measured to here.
@@ -70,7 +102,7 @@ struct GlucoseEpisodesOverlay: View {
 
         Canvas(opaque: false, rendersAsynchronously: false) { context, size in
             for bracket in brackets(asOf: now) {
-                context.fill(bracket.bar, with: .color(bracket.tint.opacity(0.75)))
+                context.fill(bracket.bar, with: bracket.fill)
 
                 // Resolved here rather than up front: measuring it is what sizes the badge
                 // behind it, and only a context can measure.
@@ -100,8 +132,10 @@ struct GlucoseEpisodesOverlay: View {
 
     private struct Bracket {
         let bar: Path
-        /// The episode's own color, at full strength: the bar and the badge each take it down
-        /// by their own amount.
+        /// The bar's fill: the colors of the readings it spans, laid along its length.
+        let fill: GraphicsContext.Shading
+        /// The badge's color — the episode's mean glucose, at full strength; the badge takes it
+        /// down by its own amount.
         let tint: Color
         let label: Text
         let labelCenter: CGPoint
@@ -110,17 +144,16 @@ struct GlucoseEpisodesOverlay: View {
     private func brackets(asOf now: Date) -> [Bracket] {
         let lane = yPosition(laneValue)
         let thickness = Self.barThickness
-        // Two kinds, so the color is resolved twice per pass rather than once per bracket.
-        let highColor = color(for: .high)
-        let lowColor = color(for: .low)
 
         return visibleEpisodes(asOf: now).map { episode in
-            let tint = episode.type == .high ? highColor : lowColor
             // An excursion that began before the chart's history is drawn from that edge: the
             // readings behind it are gone, and the label — which reports the whole length
             // either way — then centres between the edge and the end.
-            let startX = viewport.x(for: max(episode.start, historyStart))
-            let endX = viewport.x(for: episode.displayEnd(asOf: now))
+            let start = max(episode.start, historyStart)
+            let end = episode.displayEnd(asOf: now)
+            let startX = viewport.x(for: start)
+            let endX = viewport.x(for: end)
+            let covered = readings(from: start, through: end)
 
             // Round caps extend a `RuleMark` by half its line width at each end, so the rect is
             // that much wider than the span it covers. It is handed the episode's real extent,
@@ -134,7 +167,15 @@ struct GlucoseEpisodesOverlay: View {
 
             return Bracket(
                 bar: Path(roundedRect: rect, cornerRadius: thickness / 2),
-                tint: tint,
+                fill: barShading(
+                    for: episode,
+                    readings: covered,
+                    over: start ... max(start, end),
+                    from: startX,
+                    to: endX,
+                    lane: lane
+                ),
+                tint: badgeTint(for: episode, readings: covered),
                 label: durationLabel(for: episode, asOf: now),
                 // The middle of the bar, and nothing else — the label is the mark's own
                 // caption, so it stays put on it however the bar moves. Every bracket carries
@@ -148,6 +189,132 @@ struct GlucoseEpisodesOverlay: View {
                 labelCenter: CGPoint(x: (startX + endX) / 2, y: lane)
             )
         }
+    }
+
+    // MARK: - Bar color
+
+    /// The readings inside one bracket's drawn extent — the ones whose colors the bar is made of.
+    private func readings(from start: Date, through end: Date) -> [GlucoseDot] {
+        MainChartHelper.windowSlice(
+            glucoseDots,
+            from: start,
+            through: end,
+            ascendingInput: true,
+            date: { $0.date }
+        )
+    }
+
+    /// The bar's fill: the color each reading under it was drawn in, laid along its length, so a
+    /// bracket carries the shape of the excursion and not just its extent.
+    ///
+    /// `ChartViewport.x(for:)` is affine in time, so a reading's fraction along the bar is its
+    /// fraction of the bar's own *duration* — the stops need no coordinate conversion, and they
+    /// survive a pinch untouched because the two endpoints carry the stretch for them.
+    ///
+    /// The stops span the readings, not the bar: a bar reaching back to `historyStart`, or an
+    /// ongoing one running to `now`, has stretches with no data at its ends, and SwiftUI holds
+    /// the end stops' colors across those rather than fading out of them.
+    ///
+    /// Falls back to a flat fill when there is nothing to interpolate — an episode whose
+    /// readings have aged out of the loaded series, or one covered by a single reading.
+    private func barShading(
+        for episode: GlucoseEpisode,
+        readings: [GlucoseDot],
+        over span: ClosedRange<Date>,
+        from startX: CGFloat,
+        to endX: CGFloat,
+        lane: CGFloat
+    ) -> GraphicsContext.Shading {
+        func flat(_ color: Color) -> GraphicsContext.Shading { .color(color.opacity(Self.barOpacity)) }
+
+        guard let first = readings.first else { return flat(color(for: episode.type)) }
+        let seconds = span.upperBound.timeIntervalSince(span.lowerBound)
+        guard readings.count > 1, seconds > 0, endX > startX else { return flat(barColor(for: first, in: episode)) }
+
+        let stops = sampled(readings).map { dot in
+            Gradient.Stop(
+                color: barColor(for: dot, in: episode).opacity(Self.barOpacity),
+                location: min(max(CGFloat(dot.date.timeIntervalSince(span.lowerBound) / seconds), 0), 1)
+            )
+        }
+
+        return .linearGradient(
+            Gradient(stops: stops),
+            startPoint: CGPoint(x: startX, y: lane),
+            endPoint: CGPoint(x: endX, y: lane)
+        )
+    }
+
+    /// At most `maximumGradientStops` readings, spread evenly through the slice and always
+    /// including both ends.
+    private func sampled(_ readings: [GlucoseDot]) -> [GlucoseDot] {
+        guard readings.count > Self.maximumGradientStops else { return readings }
+        let step = Double(readings.count - 1) / Double(Self.maximumGradientStops - 1)
+        return (0 ..< Self.maximumGradientStops).map { readings[Int((Double($0) * step).rounded())] }
+    }
+
+    /// The bar's color at one reading.
+    ///
+    /// Under the dynamic scheme this is the reading's own dot color, already resolved once per
+    /// data change by `rebuildGlucoseDots`, so the bracket is literally a smear of the curve
+    /// below it and costs nothing to sample.
+    ///
+    /// The static scheme has one color per band, which would leave every bar flat — so there the
+    /// band's hue is held and its shade ramped by how far past the threshold the reading sits. A
+    /// brief in-range dip inside an excursion (detection bridges those, see
+    /// `GlucoseEpisode.detect`) lands at the pale end of that ramp, reading as a light patch in
+    /// the bar rather than switching to the in-range green the dots use.
+    private func barColor(for dot: GlucoseDot, in episode: GlucoseEpisode) -> Color {
+        guard glucoseColorScheme != .dynamicColor else { return dot.color }
+        return shadedStaticColor(forMgdl: mgdl(dot.value), type: episode.type)
+    }
+
+    /// The badge takes the color of the episode's *mean* glucose: one reading's worth of summary
+    /// for a bar that spans many, and the one thing the duration beside it does not already say.
+    ///
+    /// Colored exactly as a reading of that value would be, under whichever scheme is in force,
+    /// so the badge always sits somewhere inside the range of shades its own bar runs through.
+    private func badgeTint(for episode: GlucoseEpisode, readings: [GlucoseDot]) -> Color {
+        guard !readings.isEmpty else { return color(for: episode.type) }
+        let mean = mgdl(readings.reduce(Decimal(0)) { $0 + $1.value } / Decimal(readings.count))
+        return glucoseColorScheme == .dynamicColor
+            ? dynamicColor(forMgdl: mean)
+            : shadedStaticColor(forMgdl: mean, type: episode.type)
+    }
+
+    /// A value's color under the dynamic scheme — the same call `rebuildGlucoseDots` makes, with
+    /// the same headroom, so a mean colors exactly like a dot of that value.
+    private func dynamicColor(forMgdl value: Decimal) -> Color {
+        calculateHueBasedGlucoseColor(
+            glucoseValue: value,
+            highGlucose: Self.hardCodedHigh,
+            lowGlucose: Self.hardCodedLow,
+            targetGlucose: currentGlucoseTarget
+        )
+    }
+
+    /// A value's shade within its episode's static band: palest at the user's threshold, deepest
+    /// at the headroom bound the dynamic ramp ends on, clamped past it.
+    ///
+    /// The far end is pushed out past the user's own threshold when their setting has already
+    /// passed it, so the ramp always has a span to work across whatever the thresholds are set to
+    /// — a high limit of 250 would otherwise sit on or beyond the 220 bound and flatten the bar
+    /// back to a single shade.
+    private func shadedStaticColor(forMgdl value: Decimal, type: GlucoseEpisode.EpisodeType) -> Color {
+        let isHigh = type == .high
+        return shadedStaticGlucoseColor(
+            glucoseValue: value,
+            threshold: isHigh ? highGlucose : lowGlucose,
+            extreme: isHigh
+                ? max(Self.hardCodedHigh, highGlucose + Self.minimumShadingSpan)
+                : min(Self.hardCodedLow, lowGlucose - Self.minimumShadingSpan),
+            hue: isHigh ? GlucoseHue.purple : GlucoseHue.red
+        )
+    }
+
+    /// `GlucoseDot.value` is in the user's display units; every color function takes mg/dL.
+    private func mgdl(_ displayValue: Decimal) -> Decimal {
+        units == .mgdL ? displayValue : displayValue.asMgdL
     }
 
     // MARK: - Culling
@@ -199,17 +366,17 @@ struct GlucoseEpisodesOverlay: View {
 
     /// The same colors the threshold lines use, so a marker reads as "this is the high line's
     /// territory" without a legend.
+    ///
+    /// Only a fallback now: both the bar and its badge take their color from the readings the
+    /// episode actually covers, and this stands in for an episode that has none left in the
+    /// loaded series.
     private func color(for type: GlucoseEpisode.EpisodeType) -> Color {
-        // TODO: same workaround as the glucose dots and threshold lines — the dynamic scheme
-        // needs headroom beyond the user's limits to have shades to interpolate through.
-        let hardCodedLow = Decimal(55)
-        let hardCodedHigh = Decimal(220)
         let isDynamicColorScheme = glucoseColorScheme == .dynamicColor
 
         return getDynamicGlucoseColor(
             glucoseValue: type == .high ? highGlucose : lowGlucose,
-            highGlucoseColorValue: isDynamicColorScheme ? hardCodedHigh : highGlucose,
-            lowGlucoseColorValue: isDynamicColorScheme ? hardCodedLow : lowGlucose,
+            highGlucoseColorValue: isDynamicColorScheme ? Self.hardCodedHigh : highGlucose,
+            lowGlucoseColorValue: isDynamicColorScheme ? Self.hardCodedLow : lowGlucose,
             targetGlucose: currentGlucoseTarget,
             glucoseColorScheme: glucoseColorScheme
         )

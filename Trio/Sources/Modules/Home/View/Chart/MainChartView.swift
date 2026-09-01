@@ -682,6 +682,7 @@ extension MainChartView {
             ChartOverlayLayer(viewport: viewport, height: stackHeight) { viewport in
                 GlucoseEpisodesOverlay(
                     episodes: state.glucoseEpisodes,
+                    glucoseDots: state.glucoseDots,
                     units: units,
                     highGlucose: highGlucose,
                     lowGlucose: lowGlucose,
