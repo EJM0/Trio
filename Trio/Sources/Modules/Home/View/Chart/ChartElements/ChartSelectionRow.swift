@@ -66,10 +66,6 @@ enum ChartSelectionLookup {
 /// The selection readout, rendered in the Home meal slot in place of IOB / COB / alarms for
 /// as long as a scrub is live.
 ///
-/// No time: the scrub's time is written on the chart's own x axis, under the selection
-/// indicator, where it travels with the finger (`MainChartView.xAxisOverlay`). Repeating it
-/// here would only ask the eye to leave the point it is reading to find out "when".
-///
 /// It used to be a card floating over the glucose pane, which covered the very data it
 /// described — worst exactly where the finger already is. The meal row is a fixed 44 pt slot
 /// that is always on screen and whose live values the readout supersedes anyway, so taking
@@ -99,6 +95,21 @@ struct ChartSelectionRow: View {
         )
     }
 
+    /// A time long enough to reserve room for every other time the scrub can land on: a
+    /// two-digit hour, and — where the locale writes one — an AM/PM marker. Formatting a
+    /// sample date rather than hard-coding a string keeps that true in both 24- and
+    /// 12-hour locales.
+    private static let timeTemplateDate = Calendar.current
+        .date(from: DateComponents(year: 2000, month: 1, day: 1, hour: 22, minute: 38)) ?? .distantPast
+
+    private var timeString: String {
+        selectedGlucose.date?.formatted(.dateTime.hour().minute(.twoDigits)) ?? ""
+    }
+
+    private var timeTemplate: String {
+        Self.timeTemplateDate.formatted(.dateTime.hour().minute(.twoDigits))
+    }
+
     /// Widest reading the unit can produce: three digits in mg/dL, `88.8` in mmol/L.
     private var glucoseTemplate: String { units == .mgdL ? "888" : "88.8" }
 
@@ -120,10 +131,17 @@ struct ChartSelectionRow: View {
     }
 
     /// Fixed spacing rather than `Spacer`s, so the row hugs its content: with no
-    /// determination to read, the panel is just the reading and shrinks to fit it, instead
-    /// of stretching the slot's full width around one value.
+    /// determination to read, the panel is just time and glucose and shrinks to fit them,
+    /// instead of stretching the slot's full width around two values.
     @ViewBuilder private func row(font: Font) -> some View {
         HStack(spacing: 12) {
+            item(
+                icon: "clock",
+                tint: .secondary,
+                value: Text(timeString),
+                template: Text(timeTemplate)
+            )
+
             glucoseGroup
 
             if let iob = determination?.iob {
@@ -153,36 +171,41 @@ struct ChartSelectionRow: View {
         .lineLimit(1)
     }
 
-    /// The reading itself, and — with smoothing on — the smoothed value behind the sparkles
-    /// glyph that marks it as smoothed elsewhere in the app. Only the raw value takes the
-    /// glucose state color: it is the one the chart's dot and the ranges refer to, so the
-    /// glyph and the smoothed value stay neutral and can't be misread as a second state.
-    /// No unit suffix — it is the app-wide one the glucose bobble omits too.
+    /// The reading itself, under the drop every other item in this row has an icon for, and —
+    /// with smoothing on — the smoothed value in brackets behind it. The brackets are the
+    /// whole label: a glyph in there would read as another item in a row whose items are all
+    /// icon-and-value. Only the drop and the raw value take the glucose state color: that
+    /// value is the one the chart's dot and the ranges refer to, so the bracketed value stays
+    /// neutral and can't be misread as a second state. No unit suffix — it is the app-wide
+    /// one the glucose bobble omits too.
     ///
-    /// The reading and the smoothed pair get a reserved box each, so the glyph and the
-    /// smoothed value hold their own position rather than riding on the reading's width:
-    /// crossing `98` → `105` no longer slides them along the row. The two boxes are read as
-    /// one number, so their slack is pushed outwards rather than between them — the reading
-    /// sits at the trailing edge of its box, the glyph and its value at the leading edge of
-    /// theirs, and the pair stays welded together at every reading width.
+    /// The reading and the bracketed value get a reserved box each, so the smoothed value
+    /// holds its own position rather than riding on the reading's width: crossing `98` →
+    /// `105` no longer slides it along the row. The two boxes are read as one number, so
+    /// their slack is pushed outwards rather than between them — the reading sits at the
+    /// trailing edge of its box, the bracketed value at the leading edge of theirs, and the
+    /// pair stays welded together at every reading width.
     @ViewBuilder private var glucoseGroup: some View {
         HStack(spacing: 4) {
             item(
+                icon: "drop.fill",
+                tint: pointMarkColor,
                 value: Text(glucoseToDisplay.description).foregroundStyle(pointMarkColor),
                 template: Text(glucoseTemplate),
                 // Flush right when the smoothed pair follows: the reading's spare digit then
                 // shows up ahead of the reading, where the row already has slack, instead of
-                // opening a gap between the reading and the glyph that belongs to it.
+                // opening a gap between the reading and the bracket that belongs to it.
                 alignment: smoothedToDisplay == nil ? .leading : .trailing
             )
 
             if let smoothedToDisplay {
-                // verbatim: a bare separating space has nothing to translate, and Xcode would
-                // otherwise extract it into the string catalog
-                let glyph = Text(Image(systemName: "sparkles")).foregroundStyle(.tertiary) + Text(verbatim: " ")
+                // verbatim: brackets have nothing to translate, and Xcode would otherwise
+                // extract them into the string catalog
+                let open = Text(verbatim: "(")
+                let close = Text(verbatim: ")")
                 item(
-                    value: glyph + Text(smoothedToDisplay.description),
-                    template: glyph + Text(glucoseTemplate)
+                    value: (open + Text(smoothedToDisplay.description) + close).foregroundStyle(.secondary),
+                    template: open + Text(glucoseTemplate) + close
                 )
             }
         }
