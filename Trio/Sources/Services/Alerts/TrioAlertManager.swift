@@ -165,21 +165,34 @@ final class BaseTrioAlertManager: TrioAlertManager, Injectable {
         // Honor `playsSound: false` (alert was issued with sound: nil) —
         // user explicitly opted out of audio on this alarm.
         guard let soundName = alert.sound?.filename else { return }
+        let stopAfter = Self.soundDuration(for: alert)
         Task { @MainActor in
             // AlarmKit pierces silent/Focus and survives app suspension.
             if alarmScheduler == nil { alarmScheduler = CriticalAlertAlarmScheduler() }
             let scheduled = alarmScheduler?.scheduleAlarm(for: alert) { [weak self] in
-                Task { @MainActor in self?.playAudioFallback(soundNamed: soundName) }
+                Task { @MainActor in self?.playAudioFallback(soundNamed: soundName, stopAfter: stopAfter) }
             } ?? false
             guard !scheduled else { return }
             // Fallback: in-process audio. Only sounds while Trio is running.
-            playAudioFallback(soundNamed: soundName)
+            playAudioFallback(soundNamed: soundName, stopAfter: stopAfter)
         }
     }
 
-    @MainActor private func playAudioFallback(soundNamed soundName: String) {
+    @MainActor private func playAudioFallback(soundNamed soundName: String, stopAfter: TimeInterval? = nil) {
         if criticalAudioPlayer == nil { criticalAudioPlayer = CriticalAlertAudioPlayer() }
-        criticalAudioPlayer?.play(soundNamed: soundName)
+        criticalAudioPlayer?.play(soundNamed: soundName, stopAfter: stopAfter)
+    }
+
+    /// The tier config's playback cap for this alarm, read at fire time rather
+    /// than carried on the `Alert`: a `.delayed` alarm arms long before it
+    /// sounds, and the user may have changed the setting in between.
+    private static func soundDuration(for alert: Alert) -> TimeInterval? {
+        guard let entry = AlertCatalogRegistry.lookup(alert.identifier),
+              let tier = DeviceAlertSeverity(level: entry.interruptionLevel)
+        else { return nil }
+        let now = Date()
+        let isNight = GlucoseAlertsStore.shared.configuration.isNight(at: now)
+        return DeviceAlertsStore.shared.config(for: tier, at: now, isNight: isNight)?.soundDuration.seconds
     }
 
     // MARK: - Issue / Retract
@@ -218,7 +231,15 @@ final class BaseTrioAlertManager: TrioAlertManager, Injectable {
                 )
                 return
             }
-            effective = Self.applyDeviceSeverityConfig(config, entry: entry, to: alert)
+            // Per-concept silencing rides on top of the tier config: the alarm
+            // still reaches the user, it just arrives without a tone (and so
+            // without the critical-audio fallback, which keys off `sound`).
+            var resolved = config
+            if DeviceAlertsStore.shared.isSilenced(entry.concept) {
+                resolved.playsSound = false
+                debug(.service, "TrioAlertManager silenced tone for \(alert.identifier.value): concept opted out")
+            }
+            effective = Self.applyDeviceSeverityConfig(resolved, entry: entry, to: alert)
         } else {
             effective = alert
         }

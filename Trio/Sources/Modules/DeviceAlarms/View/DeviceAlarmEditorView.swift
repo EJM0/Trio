@@ -12,6 +12,9 @@ struct DeviceAlarmEditorView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(AppState.self) private var appState
     @State private var working: DeviceAlertSeverityConfig
+    /// Pending per-concept silencing. Held here rather than written straight to
+    /// the store so Cancel discards it along with everything else in the sheet.
+    @State private var silencedConcepts: Set<String>
 
     init(
         store: DeviceAlertsStore,
@@ -26,6 +29,7 @@ struct DeviceAlarmEditorView: View {
         self.onDone = onDone
         self.onCancel = onCancel
         _working = State(initialValue: initial)
+        _silencedConcepts = State(initialValue: store.silencedConcepts)
     }
 
     var body: some View {
@@ -57,14 +61,21 @@ struct DeviceAlarmEditorView: View {
                 AlarmActiveSection(activeOption: $working.activeOption)
                 AlarmAudioSection(
                     playsSound: $working.playsSound,
-                    soundFilename: $working.soundFilename
+                    soundFilename: $working.soundFilename,
+                    soundDuration: $working.soundDuration
                 )
 
-                Section(header: Text("Applies To (Cannot be changed)")) {
+                Section(
+                    header: Text("Applies To"),
+                    footer: Text(
+                        "Turn one off to keep its notification but drop the tone. Which alarms land in this tier cannot be changed."
+                    )
+                ) {
                     ForEach(conceptsForTier(working.severity), id: \.self) { concept in
-                        Text(concept.displayTitle)
-                            .font(.footnote)
-                            .foregroundColor(.secondary)
+                        Toggle(isOn: soundBinding(for: concept)) {
+                            Text(concept.displayTitle)
+                                .font(.footnote)
+                        }
                     }
                 }.listRowBackground(Color.chart)
 
@@ -90,6 +101,7 @@ struct DeviceAlarmEditorView: View {
                         } else {
                             store.update(working)
                         }
+                        store.silencedConcepts = silencedConcepts
                         onDone()
                         dismiss()
                     }
@@ -102,6 +114,21 @@ struct DeviceAlarmEditorView: View {
                 }
             }
         }
+    }
+
+    /// Reads through to the pending set rather than the store, so Cancel drops
+    /// these edits like every other field in the sheet.
+    private func soundBinding(for concept: LoopKit.Alert.CatalogConcept) -> Binding<Bool> {
+        Binding(
+            get: { !silencedConcepts.contains(concept.persistenceKey) },
+            set: { plays in
+                if plays {
+                    silencedConcepts.remove(concept.persistenceKey)
+                } else {
+                    silencedConcepts.insert(concept.persistenceKey)
+                }
+            }
+        )
     }
 
     private var activeLabel: String {

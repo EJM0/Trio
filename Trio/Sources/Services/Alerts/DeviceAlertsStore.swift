@@ -14,21 +14,28 @@ final class DeviceAlertsStore: ObservableObject {
     @Published var configs: [DeviceAlertSeverityConfig]
     /// Per-tier snooze expirations keyed by `DeviceAlertSeverity.rawValue`.
     @Published var tierSnoozes: [String: Date]
+    /// Alarm concepts the user has silenced individually, keyed by
+    /// `Alert.CatalogConcept.persistenceKey`. A silenced concept still raises its
+    /// notification — only the tone and the critical-audio fallback are dropped.
+    @Published var silencedConcepts: Set<String>
 
     private let defaults: UserDefaults
     private let configsKey: String
     private let snoozesKey: String
+    private let silencedConceptsKey: String
 
     private var subscriptions = Set<AnyCancellable>()
 
     init(
         defaults: UserDefaults = .standard,
         configsKey: String = "trio.deviceAlertSeverityConfigs.v1",
-        snoozesKey: String = "trio.deviceAlertTierSnoozes.v1"
+        snoozesKey: String = "trio.deviceAlertTierSnoozes.v1",
+        silencedConceptsKey: String = "trio.deviceAlertSilencedConcepts.v1"
     ) {
         self.defaults = defaults
         self.configsKey = configsKey
         self.snoozesKey = snoozesKey
+        self.silencedConceptsKey = silencedConceptsKey
         let loaded = Self.decode([DeviceAlertSeverityConfig].self, from: defaults, key: configsKey) ?? []
         var seeded = loaded
         for severity in DeviceAlertSeverity.allCases
@@ -39,6 +46,7 @@ final class DeviceAlertsStore: ObservableObject {
         configs = Self.sorted(seeded)
         let snoozes = Self.decode([String: Date].self, from: defaults, key: snoozesKey) ?? [:]
         tierSnoozes = snoozes.filter { $0.value > Date() }
+        silencedConcepts = Self.decode(Set<String>.self, from: defaults, key: silencedConceptsKey) ?? []
         bind()
     }
 
@@ -68,6 +76,25 @@ final class DeviceAlertsStore: ObservableObject {
             .removeDuplicates()
             .sink { [weak self] value in self?.encode(value, to: self?.snoozesKey ?? "") }
             .store(in: &subscriptions)
+        $silencedConcepts
+            .dropFirst()
+            .removeDuplicates()
+            .sink { [weak self] value in self?.encode(value, to: self?.silencedConceptsKey ?? "") }
+            .store(in: &subscriptions)
+    }
+
+    // MARK: - Per-concept silencing
+
+    func isSilenced(_ concept: LoopKit.Alert.CatalogConcept) -> Bool {
+        silencedConcepts.contains(concept.persistenceKey)
+    }
+
+    func setSilenced(_ silenced: Bool, for concept: LoopKit.Alert.CatalogConcept) {
+        if silenced {
+            silencedConcepts.insert(concept.persistenceKey)
+        } else {
+            silencedConcepts.remove(concept.persistenceKey)
+        }
     }
 
     // MARK: - Lookup

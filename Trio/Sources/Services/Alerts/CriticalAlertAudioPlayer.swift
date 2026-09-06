@@ -10,6 +10,7 @@ final class CriticalAlertAudioPlayer {
 
     private var player: AVAudioPlayer?
     private var vibrationTimer: Timer?
+    private var autoStopTimer: Timer?
 
     private let vibrationInterval: TimeInterval = 2.0
     private let boostedVolume: Float = 1.0
@@ -23,7 +24,10 @@ final class CriticalAlertAudioPlayer {
     /// LoopFollow / Jonas loop-failure alarm. `.playback` audio session gives
     /// the app a privileged background state so the alarm continues even if
     /// the user has the screen locked.
-    func play(soundNamed soundName: String = "critical.caf") {
+    /// - Parameter stopAfter: playback cap in seconds. Nil keeps the historical
+    /// behavior — loop until `stop()`. A cap silences the tone on its own after
+    /// the interval, leaving the notification itself untouched.
+    func play(soundNamed soundName: String = "critical.caf", stopAfter: TimeInterval? = nil) {
         stop()
 
         startVibration()
@@ -66,6 +70,11 @@ final class CriticalAlertAudioPlayer {
                 return
             }
             player = p
+            if let stopAfter, stopAfter > 0 {
+                autoStopTimer = Timer.scheduledTimer(withTimeInterval: stopAfter, repeats: false) { [weak self] _ in
+                    Task { @MainActor in self?.stop() }
+                }
+            }
             os_log("Started critical-alert audio playback (duration=%{public}.2fs)", log: log, type: .info, p.duration)
         } catch {
             os_log("Failed to start audio playback: %{public}@", log: log, type: .error, String(describing: error))
@@ -81,6 +90,8 @@ final class CriticalAlertAudioPlayer {
 
     /// Stop playback if any. Safe to call when not playing.
     func stop() {
+        autoStopTimer?.invalidate()
+        autoStopTimer = nil
         guard player != nil || vibrationTimer != nil else { return }
         player?.stop()
         player = nil

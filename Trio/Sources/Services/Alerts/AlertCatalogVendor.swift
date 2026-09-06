@@ -47,6 +47,12 @@ extension Alert {
         /// Plugin-unique alarm that doesn't merge with anything else.
         case unspecified
 
+        /// Stable key for `UserDefaults`. The cases carry no associated values, so
+        /// the case name is the identity — renaming one resets that concept's
+        /// stored preference, which is the right trade for not hand-maintaining a
+        /// parallel string table.
+        var persistenceKey: String { String(describing: self) }
+
         var displayTitle: String {
             switch self {
             case .occlusion: return String(localized: "Occlusion")
