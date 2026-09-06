@@ -42,7 +42,7 @@ enum ChartSelectionLookup {
     /// slot is emptied the view that carried the modifier is already on its way out — and it
     /// animated anything else that happened to change in the same frame, the chart's pan
     /// offset included. A transaction animates only what this function itself changes.
-    static let readoutFade: Animation = .easeInOut(duration: 0.15)
+    static let readoutFade: Animation = .easeOut(duration: 0.12)
 
     /// How far a held determination may sit from the current selection before it is dropped
     /// instead of held. Two determination cadences: bridging a hole is fine, carrying values
@@ -146,15 +146,6 @@ struct ChartSelectionRow: View {
                 )
             }
 
-            if let isf = determination?.insulinSensitivity {
-                let unit = Text(String(localized: " ISF", comment: "Insulin Sensitivity Factor")).fontWeight(.regular)
-                item(
-                    icon: "arrow.up.arrow.down",
-                    tint: .secondary,
-                    value: Text(Formatter.integerFormatter.string(from: isf) ?? "") + unit,
-                    template: Text(verbatim: "888") + unit
-                )
-            }
         }
         .font(font).fontWeight(.bold).fontDesign(.rounded)
         // equal-width digits: with the reserved boxes below, this is what keeps a value from
@@ -163,36 +154,32 @@ struct ChartSelectionRow: View {
         .lineLimit(1)
     }
 
-    /// The reading itself, and — with smoothing on — the smoothed value behind the sparkles
-    /// glyph that marks it as smoothed elsewhere in the app. Only the raw value takes the
-    /// glucose state color: it is the one the chart's dot and the ranges refer to, so the
-    /// glyph and the smoothed value stay neutral and can't be misread as a second state.
-    /// No unit suffix — it is the app-wide one the glucose bobble omits too.
-    ///
-    /// The reading and the smoothed pair get a reserved box each, so the glyph and the
-    /// smoothed value hold their own position rather than riding on the reading's width:
-    /// crossing `98` → `105` no longer slides them along the row. The two boxes are read as
-    /// one number, so their slack is pushed outwards rather than between them — the reading
-    /// sits at the trailing edge of its box, the glyph and its value at the leading edge of
-    /// theirs, and the pair stays welded together at every reading width.
+    /// The reading under the drop and, with smoothing on, the smoothed value in brackets
+    /// behind it. The brackets are the whole label — a glyph there would read as another item
+    /// — and only the drop and the raw value take the glucose color, so the bracketed value
+    /// can't be misread as a second state. Each gets its own reserved box with the slack
+    /// pushed outwards, so the pair stays welded together at every reading width.
     @ViewBuilder private var glucoseGroup: some View {
         HStack(spacing: 4) {
             item(
+                icon: "drop.fill",
+                tint: pointMarkColor,
                 value: Text(glucoseToDisplay.description).foregroundStyle(pointMarkColor),
                 template: Text(glucoseTemplate),
                 // Flush right when the smoothed pair follows: the reading's spare digit then
                 // shows up ahead of the reading, where the row already has slack, instead of
-                // opening a gap between the reading and the glyph that belongs to it.
+                // opening a gap between the reading and the bracket that belongs to it.
                 alignment: smoothedToDisplay == nil ? .leading : .trailing
             )
 
             if let smoothedToDisplay {
-                // verbatim: a bare separating space has nothing to translate, and Xcode would
-                // otherwise extract it into the string catalog
-                let glyph = Text(Image(systemName: "sparkles")).foregroundStyle(.tertiary) + Text(verbatim: " ")
+                // verbatim: brackets have nothing to translate, and Xcode would otherwise
+                // extract them into the string catalog
+                let open = Text(verbatim: "(")
+                let close = Text(verbatim: ")")
                 item(
-                    value: glyph + Text(smoothedToDisplay.description),
-                    template: glyph + Text(glucoseTemplate)
+                    value: (open + Text(smoothedToDisplay.description) + close).foregroundStyle(.secondary),
+                    template: open + Text(glucoseTemplate) + close
                 )
             }
         }

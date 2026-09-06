@@ -50,8 +50,11 @@ extension Home {
         /// Last scrub position that resolved to a glucose reading / to a determination. The
         /// readout renders from these, not from `chartSelection`, so holes in either series
         /// decay instead of flickering the slot (see `updateChartReadout`).
+        /// They outlive the readout itself — it needs values to fade out with.
         @State var chartReadoutDate: Date? = nil
         @State var chartReadoutDeterminationDate: Date? = nil
+        /// Whether the readout owns the meal slot. The one thing the fade is keyed on.
+        @State var isChartReadoutVisible = false
         /// Where the display cutout sits, and how wide it is. Re-read on every rotation
         /// (see `HousingInsetsReader`); zero in portrait.
         @State var housingInsets = HousingInsets()
@@ -212,10 +215,10 @@ extension Home {
 
                 mealPanel()
                     .frame(height: HomeLayout.mealSlotHeight)
-                    // Fills and empties the slot, and fades it in and out while doing so
-                    // (`ChartSelectionLookup.readoutFade`) — the swap is animated where the
-                    // state changes, so the values inside can keep updating unanimated for as
-                    // long as the scrub is live.
+                    // Fades the readout in and out. Keyed on visibility, not on the date: a
+                    // scrub step leaves the flag alone, so only the swap animates and the
+                    // values inside keep updating unanimated.
+                    .animation(ChartSelectionLookup.readoutFade, value: isChartReadoutVisible)
                     .task(id: chartSelection) { await updateChartReadout() }
 
                 mainChart(geo: geo)
