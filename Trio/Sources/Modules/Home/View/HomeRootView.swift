@@ -210,8 +210,11 @@ extension Home {
 
                 mealPanel()
                     .frame(height: HomeLayout.mealSlotHeight)
-                    // Fills and empties the slot, fading the readout (`readoutFade`) at the
-                    // state change — so the values inside can keep updating unanimated.
+                    // Fades the readout in and out. Keyed on whether one is showing, not on
+                    // the date: a scrub step leaves the flag alone, so only the swap animates
+                    // and the values inside keep updating unanimated. It sits on the slot,
+                    // which outlives both states, so the departure animates too.
+                    .animation(ChartSelectionLookup.readoutFade, value: chartReadoutDate != nil)
                     .task(id: chartSelection) { await updateChartReadout() }
 
                 mainChart(geo: geo)

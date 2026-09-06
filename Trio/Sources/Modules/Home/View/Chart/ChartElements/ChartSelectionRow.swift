@@ -33,9 +33,10 @@ enum ChartSelectionLookup {
     /// a missing reading, short enough not to feel stuck once the finger lifts.
     static let decay: TimeInterval = 0.6
 
-    /// The fade the readout swaps in and out with, driven from the mutation site
-    /// (`withAnimation`): `.animation(_:value:)` drops the departure, since the view carrying
-    /// it is already leaving, and would animate everything else changing in the same frame.
+    /// The fade the readout swaps in and out with. Applied to the meal slot itself, keyed on
+    /// whether a readout is showing: scoping it there keeps the transaction off everything
+    /// else that changes in the same frame, which a `withAnimation` at the mutation site
+    /// could not do.
     static let readoutFade: Animation = .easeInOut(duration: 0.25)
 
     /// How far a held determination may sit from the selection before it is dropped instead:
