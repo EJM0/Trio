@@ -99,9 +99,11 @@ struct MainChartView: View {
     /// marks who is holding it.
     @State private var isDoubleTapZooming = false
 
-    /// When the last drag zoom engaged or ended, so the double tap that started it cannot
-    /// also fire a preset jump. Expires by itself, so a later real double tap still works.
-    @State private var doubleTapZoomEndTime: Date?
+    /// When a double tap was last used up by something other than a preset jump — the drag
+    /// zoom engaging or ending, or the hold handing the touch to inspect — so the tap
+    /// recognizer cannot jump a preset on top of it. Expires by itself, so a later real
+    /// double tap still works.
+    @State private var doubleTapConsumedAt: Date?
 
     /// Most recent finger location, so the hold timer can place the selection even if the
     /// finger produced no further events after touch-down.
@@ -480,7 +482,7 @@ extension MainChartView {
         // The drag zoom starts from this very double tap: the tap recognizer must not jump
         // a preset on top of it when the drag stayed short enough to still read as a tap.
         guard !isDoubleTapZooming else { return }
-        if let ended = doubleTapZoomEndTime,
+        if let ended = doubleTapConsumedAt,
            Date.now.timeIntervalSince(ended) < MainChartHelper.Config.doubleTapMaxInterval { return }
         let presets = MainChartHelper.Config.zoomPresets
         let next = presets.first(where: { $0 > visibleSeconds + 1 }) ?? presets[0]
@@ -545,20 +547,27 @@ extension MainChartView {
                 lastTouchLocation = value.location
                 if touchDownTime == nil {
                     touchDownTime = value.time
-                    // Second tap of a double tap: this touch is reserved for the zoom, so
-                    // it must neither pan nor latch inspect — lifting it still cycles the
-                    // presets, travelling engages the drag zoom.
+                    // Second tap of a double tap: this touch is reserved for the zoom, so it
+                    // does not pan — lifting it cycles the presets, travelling engages the
+                    // drag zoom.
                     doubleTapCandidate = isSecondTap(value)
-                    // No inspect on the second tap — and cancel any hold the first one
-                    // left armed, so the drag zoom can never be preceded by inspect's
-                    // haptic tick.
-                    if doubleTapCandidate { inspectHoldTask?.cancel() } else { scheduleInspectHold() }
+                    // It is only reserved for as long as it is going somewhere, though: rest
+                    // it and the hold timer hands it to inspect like any other press, just on
+                    // a longer fuse. Re-arming also clears any hold the first tap left running.
+                    scheduleInspectHold(
+                        after: doubleTapCandidate
+                            ? MainChartHelper.Config.doubleTapHoldToInspectDelay
+                            : MainChartHelper.Config.inspectHoldDelay
+                    )
                 }
 
                 // Second tap travelling: engage the drag zoom, anchored under the tap.
                 // Vertical movement drives it; horizontal is ignored, since after a double
                 // tap there is nothing else this touch could have meant.
-                if doubleTapCandidate {
+                // Once the hold has fired, the touch belongs to inspect and falls through to
+                // scrubbing; `doubleTapCandidate` stays set only to mark, at lift, that this
+                // tap has been used up.
+                if doubleTapCandidate, !isInspectLatched {
                     let travel = hypot(value.translation.width, value.translation.height)
                     guard travel > MainChartHelper.Config.inspectMovementTolerance else { return }
                     beginDoubleTapZoom(atViewportX: value.startLocation.x)
@@ -614,6 +623,11 @@ extension MainChartView {
                     return
                 }
 
+                // A second tap that turned into an inspect is spent: the tap recognizer fires
+                // on lift however long the finger stayed down, and would jump a preset on top
+                // of the inspect it just did.
+                if wasDoubleTapCandidate, wasInspecting { doubleTapConsumedAt = Date.now }
+
                 // Remember a clean tap: a touch that neither panned, pinched nor inspected
                 // is what arms the drag zoom for the touch after it. A tap that was itself
                 // a second tap arms nothing, so a third tap starts the count over.
@@ -632,16 +646,15 @@ extension MainChartView {
     /// Arms the inspect hold: after `Config.inspectHoldDelay`, if the touch is still down
     /// and has neither become a pan nor a pinch, latch into inspect mode at the finger's
     /// last known position — with a haptic tick so the mode change is felt.
-    private func scheduleInspectHold() {
+    private func scheduleInspectHold(after delay: TimeInterval = MainChartHelper.Config.inspectHoldDelay) {
         inspectHoldTask?.cancel()
         inspectHoldTask = Task { @MainActor in
-            try? await Task.sleep(
-                nanoseconds: UInt64(MainChartHelper.Config.inspectHoldDelay * 1_000_000_000)
-            )
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             guard !Task.isCancelled,
                   touchDownTime != nil, // finger still down
                   panBaseline == nil, // touch has not become a pan
                   !isPinching,
+                  !isDoubleTapZooming, // the drag zoom got there first
                   !isInspectLatched
             else { return }
 
@@ -840,7 +853,7 @@ extension MainChartView {
             anchorFraction: fraction
         )
         isDoubleTapZooming = true
-        doubleTapZoomEndTime = Date.now
+        doubleTapConsumedAt = Date.now
     }
 
     /// Maps vertical travel onto the zoom: dragging up zooms in, down zooms out.
@@ -902,7 +915,7 @@ extension MainChartView {
         pinchScale = 1
         pinchAnchor = nil
         isDoubleTapZooming = false
-        doubleTapZoomEndTime = Date.now
+        doubleTapConsumedAt = Date.now
         lastTapEnd = nil
     }
 
