@@ -305,8 +305,7 @@ extension Home {
             .sheet(isPresented: $state.shouldDisplayCGMSetupSheet) {
                 Group {
                     switch state.cgmCurrent.type {
-                    case .enlite,
-                         .nightscout,
+                    case .nightscout,
                          .none,
                          .simulator,
                          .xdrip:

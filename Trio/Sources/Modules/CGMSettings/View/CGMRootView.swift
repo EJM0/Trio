@@ -149,8 +149,7 @@ extension CGMSettings {
                     // controllers lay out their own bottom bars and keyboard handling
                     Group {
                         switch state.cgmCurrent.type {
-                        case .enlite,
-                             .nightscout,
+                        case .nightscout,
                              .none,
                              .simulator,
                              .xdrip:
