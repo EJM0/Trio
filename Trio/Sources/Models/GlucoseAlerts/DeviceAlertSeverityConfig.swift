@@ -120,9 +120,11 @@ extension DeviceAlertSeverityConfig {
 
 /// Bounds for the alarm-length slider, and the label that goes with a value.
 enum AlarmSoundDurationRange {
-    static let minimumSeconds: TimeInterval = 5
+    static let minimumSeconds: TimeInterval = 1
     static let maximumSeconds: TimeInterval = 300
-    static let step: TimeInterval = 5
+    /// One second, so the tone can be cut to a single blip. Coarser steps could
+    /// not express that at all, and the label carries the exact value anyway.
+    static let step: TimeInterval = 1
     static let defaultSeconds: TimeInterval = 60
 
     static var bounds: ClosedRange<TimeInterval> { minimumSeconds ... maximumSeconds }

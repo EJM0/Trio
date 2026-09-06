@@ -10902,6 +10902,15 @@
         }
       }
     },
+    "%1$d min %2$d s" : {
+      "comment" : "Alarm length in minutes and seconds"
+    },
+    "%d min" : {
+      "comment" : "Alarm length in minutes"
+    },
+    "%d s" : {
+      "comment" : "Alarm length in seconds"
+    },
     "%dh ago" : {
       "comment" : "A time ago string, in the format \"X hours ago\".",
       "localizations" : {
@@ -23720,9 +23729,6 @@
         }
       }
     },
-    "1 minute" : {
-
-    },
     "1 U and over" : {
       "comment" : "Name to display for the \"1 U and over\" bolus display threshold option.",
       "localizations" : {
@@ -24120,9 +24126,6 @@
           }
         }
       }
-    },
-    "2 minutes" : {
-
     },
     "2 U" : {
       "localizations" : {
@@ -25037,9 +25040,6 @@
           }
         }
       }
-    },
-    "5 minutes" : {
-
     },
     "5. Ensure that the \"Write Data\" option is enabled for the desired health metrics." : {
       "localizations" : {
@@ -25965,9 +25965,6 @@
         }
       }
     },
-    "15 seconds" : {
-
-    },
     "19:05" : {
       "localizations" : {
         "bg" : {
@@ -26880,9 +26877,6 @@
           }
         }
       }
-    },
-    "30 seconds" : {
-
     },
     "43.21 U" : {
       "localizations" : {
@@ -178935,6 +178929,9 @@
         }
       }
     },
+    "Length" : {
+
+    },
     "Let's go through a few quick steps to ensure Trio works optimally for you." : {
       "localizations" : {
         "bg" : {
@@ -230605,7 +230602,7 @@
     "Pinch" : {
 
     },
-    "Play For" : {
+    "Play Once" : {
 
     },
     "Play Sound" : {
@@ -259498,6 +259495,9 @@
           }
         }
       }
+    },
+    "Set Length" : {
+
     },
     "Set limits for each type of macro per meal entry." : {
       "localizations" : {
@@ -311796,6 +311796,12 @@
         }
       }
     },
+    "Trim Sound" : {
+
+    },
+    "Trim To" : {
+
+    },
     "Trio" : {
       "localizations" : {
         "bg" : {
@@ -322382,9 +322388,6 @@
           }
         }
       }
-    },
-    "Until Acknowledged" : {
-
     },
     "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next." : {
       "extractionState" : "stale",
