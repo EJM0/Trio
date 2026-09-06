@@ -236,6 +236,11 @@ enum MainChartHelper {
         /// Longest gap (s) between a tap lifting and the next touch landing for the two to
         /// count as a double tap — the gesture that arms the drag zoom.
         static let doubleTapMaxInterval: TimeInterval = 0.35
+        /// How long the second tap of a double tap may rest before the touch gives up on the
+        /// drag zoom and becomes an inspect. Longer than `inspectHoldDelay`, because a double
+        /// tap that means to zoom often pauses a moment before it moves, and stealing that
+        /// touch is worse than making a deliberate hold wait.
+        static let doubleTapHoldToInspectDelay: TimeInterval = 0.5
         /// How far apart (pt) the two taps of a double tap may land.
         static let doubleTapSlop: CGFloat = 44
         /// Per-frame velocity decay of a post-flick glide at the tightest zoom, where a
