@@ -40,8 +40,8 @@ struct MainChartView: View {
 
     @Environment(\.colorScheme) var colorScheme
 
-    /// Date under the user's finger while inspecting, else nil. Owned by Home so the
-    /// readout can take over the meal slot; the chart only writes it.
+    /// Date under the finger while inspecting, else nil. Owned by Home, which draws the
+    /// readout in the meal slot; the chart only writes it.
     @Binding var selection: Date?
 
     @State var mainChartHasInitialized = false
@@ -353,9 +353,8 @@ extension MainChartView {
         }
     }
 
-    /// Vertical indicator + point highlights for the current selection. Positions are
-    /// computed with the same linear maps the canvas charts use. The readout itself is
-    /// drawn by Home in the meal slot (`ChartSelectionRow`), never over the chart.
+    /// Vertical indicator + point highlights for the selection, positioned with the same
+    /// linear maps the canvas uses. The readout itself is Home's (`ChartSelectionRow`).
     @ViewBuilder private var selectionOverlay: some View {
         if let selectedGlucose, let selectionDate = selectedGlucose.date {
             let x = xPosition(for: selectionDate)
@@ -563,10 +562,9 @@ extension MainChartView {
         }
     }
 
-    /// Snaps a viewport x position to the 5-minute glucose cadence and updates the
-    /// selection, skipping no-op writes. The readout lookup window is +/-150 s, so the
-    /// 300 s snap lands exactly on the nearest reading; it also means finger jitter or a
-    /// scrub only produces a new value when actually crossing to another reading.
+    /// Snaps a viewport x to the 5-minute glucose cadence and updates the selection, skipping
+    /// no-op writes: against the +/-150 s lookup window the 300 s snap lands on exactly one
+    /// reading, so jitter yields a new value only when crossing to another one.
     private func updateSelection(atViewportX x: CGFloat, withPointHaptic: Bool = true) {
         let raw = date(atViewportX: x)
         let quantum: TimeInterval = 300

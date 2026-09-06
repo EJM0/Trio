@@ -1,8 +1,7 @@
 import Foundation
 import SwiftUI
 
-/// Color of the selection marker/readout for a glucose value. Shared by the readout row
-/// and the shell's selection overlay dot.
+/// Selection marker/readout color for a glucose value, shared with the shell's overlay dot.
 func selectionMarkColor(
     for glucose: GlucoseStored,
     highGlucose: Decimal,
@@ -23,30 +22,24 @@ func selectionMarkColor(
     )
 }
 
-/// Resolves a scrub timestamp to the records it points at. Shared by the chart shell (which
-/// draws the marks) and the Home meal slot (which draws the readout), so both always speak
-/// about the same reading.
+/// Resolves a scrub timestamp to the records it points at, so the chart's marks and the
+/// Home meal slot's readout always describe the same reading.
 enum ChartSelectionLookup {
     /// Half-width of the lookup window. Pairs with the 300 s scrub snap in
     /// `MainChartView.updateSelection`, so a snapped selection lands on exactly one reading.
     static let window: TimeInterval = 150
 
-    /// How long the readout stays up after the scrub stops resolving to anything — a gap in
-    /// the CGM data, or the finger lifting. Long enough to bridge a missing reading or two,
-    /// short enough that the slot doesn't feel stuck after the finger is gone.
+    /// How long the readout survives a scrub that resolves to nothing: long enough to bridge
+    /// a missing reading, short enough not to feel stuck once the finger lifts.
     static let decay: TimeInterval = 0.6
 
-    /// The fade the readout swaps in and out with. Driven from the mutation site
-    /// (`withAnimation`), not from an `.animation(_:value:)` on the slot: the modifier form
-    /// animates the arrival but drops the departure — by the time the slot is emptied, the
-    /// view that carried the modifier is already on its way out — and it would animate
-    /// anything else that changed in the same frame. A transaction animates only what
-    /// `updateChartReadout` itself changes.
+    /// The fade the readout swaps in and out with, driven from the mutation site
+    /// (`withAnimation`): `.animation(_:value:)` drops the departure, since the view carrying
+    /// it is already leaving, and would animate everything else changing in the same frame.
     static let readoutFade: Animation = .easeInOut(duration: 0.25)
 
-    /// How far a held determination may sit from the current selection before it is dropped
-    /// instead of held. Two determination cadences: bridging a hole is fine, carrying values
-    /// across a jump to a different part of the chart is not.
+    /// How far a held determination may sit from the selection before it is dropped instead:
+    /// two cadences, so a hole is bridged but a jump elsewhere on the chart is not.
     static let determinationHold: TimeInterval = 600
 
     static func glucose(at date: Date, in readings: [GlucoseStored]) -> GlucoseStored? {
@@ -63,13 +56,10 @@ enum ChartSelectionLookup {
     }
 }
 
-/// The selection readout, rendered in the Home meal slot in place of IOB / COB / alarms for
-/// as long as a scrub is live.
-///
-/// It used to be a card floating over the glucose pane, which covered the very data it
-/// described — worst exactly where the finger already is. The meal row is a fixed 44 pt slot
-/// that is always on screen and whose live values the readout supersedes anyway, so taking
-/// it over costs nothing and reflows nothing.
+/// The selection readout, shown in the Home meal slot in place of IOB / COB / alarms while a
+/// scrub is live. A card floating over the glucose pane covered the very data it described;
+/// the meal slot is always on screen and its live values are superseded anyway, so taking it
+/// over reflows nothing.
 struct ChartSelectionRow: View {
     let selectedGlucose: GlucoseStored
     /// COB and IOB both come from the one determination nearest the selection.
@@ -95,10 +85,9 @@ struct ChartSelectionRow: View {
         )
     }
 
-    /// A time long enough to reserve room for every other time the scrub can land on: a
-    /// two-digit hour, and — where the locale writes one — an AM/PM marker. Formatting a
-    /// sample date rather than hard-coding a string keeps that true in both 24- and
-    /// 12-hour locales.
+    /// A time wide enough to reserve room for any other the scrub can land on: two-digit hour
+    /// plus, where the locale writes one, an AM/PM marker. Formatted rather than hard-coded so
+    /// that holds in 12- and 24-hour locales alike.
     private static let timeTemplateDate = Calendar.current
         .date(from: DateComponents(year: 2000, month: 1, day: 1, hour: 22, minute: 38)) ?? .distantPast
 
@@ -114,25 +103,22 @@ struct ChartSelectionRow: View {
     private var glucoseTemplate: String { units == .mgdL ? "888" : "88.8" }
 
     var body: some View {
-        // Nothing may truncate, so instead of letting SwiftUI squeeze one child to an
-        // ellipsis (which it did to the glucose value), every group is `fixedSize` and the
-        // whole row steps down a type size until it fits.
+        // Nothing may truncate — SwiftUI ellipsised the glucose value — so every group is
+        // `fixedSize` and the whole row steps down a type size until it fits.
         ViewThatFits(in: .horizontal) {
             row(font: .callout)
             row(font: .subheadline)
             row(font: .footnote)
         }
-        // Scrubbing changes these values several times a second; animating them would smear
-        // digits across the row.
+        // Scrubbing changes these several times a second; animating them smears the digits.
         .animation(nil, value: selectedGlucose.date)
         .padding(.horizontal, 12)
         .padding(.vertical, 5)
         .glassPanel(tint: pointMarkColor, tintOpacity: 0.10, strokeOpacity: 0.25)
     }
 
-    /// Fixed spacing rather than `Spacer`s, so the row hugs its content: with no
-    /// determination to read, the panel is just time and glucose and shrinks to fit them,
-    /// instead of stretching the slot's full width around two values.
+    /// Fixed spacing rather than `Spacer`s, so the row hugs its content: with no determination
+    /// it shrinks to time and glucose instead of stretching the slot around them.
     @ViewBuilder private func row(font: Font) -> some View {
         HStack(spacing: 12) {
             item(
@@ -165,26 +151,16 @@ struct ChartSelectionRow: View {
             }
         }
         .font(font).fontWeight(.bold).fontDesign(.rounded)
-        // equal-width digits: with the reserved boxes below, this is what keeps a value from
-        // wobbling inside its own box as the scrub runs
+        // equal-width digits, so a value can't wobble inside its reserved box mid-scrub
         .monospacedDigit()
         .lineLimit(1)
     }
 
-    /// The reading itself, under the drop every other item in this row has an icon for, and —
-    /// with smoothing on — the smoothed value in brackets behind it. The brackets are the
-    /// whole label: a glyph in there would read as another item in a row whose items are all
-    /// icon-and-value. Only the drop and the raw value take the glucose state color: that
-    /// value is the one the chart's dot and the ranges refer to, so the bracketed value stays
-    /// neutral and can't be misread as a second state. No unit suffix — it is the app-wide
-    /// one the glucose bobble omits too.
-    ///
-    /// The reading and the bracketed value get a reserved box each, so the smoothed value
-    /// holds its own position rather than riding on the reading's width: crossing `98` →
-    /// `105` no longer slides it along the row. The two boxes are read as one number, so
-    /// their slack is pushed outwards rather than between them — the reading sits at the
-    /// trailing edge of its box, the bracketed value at the leading edge of theirs, and the
-    /// pair stays welded together at every reading width.
+    /// The reading under the drop and, with smoothing on, the smoothed value in brackets
+    /// behind it. The brackets are the whole label — a glyph there would read as another item
+    /// — and only the drop and the raw value take the glucose color, so the bracketed value
+    /// can't be misread as a second state. Each gets its own reserved box with the slack
+    /// pushed outwards, so the pair stays welded together at every reading width.
     @ViewBuilder private var glucoseGroup: some View {
         HStack(spacing: 4) {
             item(
@@ -192,15 +168,13 @@ struct ChartSelectionRow: View {
                 tint: pointMarkColor,
                 value: Text(glucoseToDisplay.description).foregroundStyle(pointMarkColor),
                 template: Text(glucoseTemplate),
-                // Flush right when the smoothed pair follows: the reading's spare digit then
-                // shows up ahead of the reading, where the row already has slack, instead of
-                // opening a gap between the reading and the bracket that belongs to it.
+                // Flush right when the smoothed pair follows, so the spare digit shows up
+                // where the row has slack, not between the reading and its bracket.
                 alignment: smoothedToDisplay == nil ? .leading : .trailing
             )
 
             if let smoothedToDisplay {
-                // verbatim: brackets have nothing to translate, and Xcode would otherwise
-                // extract them into the string catalog
+                // verbatim: nothing to translate, and Xcode would extract them into the catalog
                 let open = Text(verbatim: "(")
                 let close = Text(verbatim: ")")
                 item(
@@ -211,30 +185,18 @@ struct ChartSelectionRow: View {
         }
     }
 
-    /// The smoothed reading in display units, or nil when smoothing is off or the reading
-    /// has no smoothed value of its own.
+    /// The smoothed reading in display units, or nil with smoothing off or no smoothed value.
     private var smoothedToDisplay: Decimal? {
         guard isSmoothingEnabled, let smoothed = selectedGlucose.smoothedGlucose else { return nil }
         return units == .mgdL ? smoothed.decimalValue : smoothed.decimalValue.asMmolL
     }
 
-    /// One value, with the glyph that labels it, laid out in the width `template` needs —
-    /// so a reading that gains or loses a digit mid-scrub cannot resize its own group and
-    /// shove everything after it sideways. Every element in the row therefore keeps its
-    /// position for as long as the same fields are on screen.
-    ///
-    /// The template is laid out and hidden, the real value drawn over it. Hidden views are
-    /// excluded from accessibility, so VoiceOver reads only the value. `Text` rather than
-    /// `String`, so a unit travels inside the box with its own weight — and is measured in
-    /// the template too, since a bold `88.88` and a regular ` U` are not the same width.
-    /// Left outside the box, a unit would be pushed off its number by exactly the slack this
-    /// is meant to absorb.
-    ///
-    /// Leading-aligned by default, so the slack collects at the group's trailing edge rather
-    /// than anywhere inside it: value and unit stay tucked against their glyph, and every bit
-    /// of spare room reads as the gap before the next icon. A box whose content is labelled
-    /// from the right — the reading, with the smoothed pair behind it — passes `.trailing`
-    /// instead, for the same reason read the other way round.
+    /// One value plus its glyph, laid out in the width `template` needs, so a reading that
+    /// gains a digit mid-scrub can't resize its group and shove the row sideways. The template
+    /// is hidden (hidden views are skipped by VoiceOver, which reads only the value) with the
+    /// value drawn over it, and is a `Text` so a unit is measured inside the box at its own
+    /// weight. Leading alignment collects the slack at the trailing edge, tucking value and
+    /// unit against their glyph; a box labelled from the right passes `.trailing` instead.
     @ViewBuilder private func item(
         icon: String? = nil,
         tint: Color = .secondary,
@@ -244,7 +206,7 @@ struct ChartSelectionRow: View {
     ) -> some View {
         HStack(spacing: 4) {
             if let icon {
-                // scales with whichever step `ViewThatFits` settled on, instead of pinning a size
+                // scales with whichever step `ViewThatFits` settled on
                 Image(systemName: icon)
                     .imageScale(.small)
                     .foregroundStyle(tint)
