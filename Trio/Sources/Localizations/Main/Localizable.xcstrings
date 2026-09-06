@@ -79505,6 +79505,9 @@
         }
       }
     },
+    "Chart Gestures" : {
+
+    },
     "Chart Legend" : {
       "localizations" : {
         "bg" : {
@@ -117664,6 +117667,15 @@
           }
         }
       }
+    },
+    "Double-Tap" : {
+
+    },
+    "Double-Tap and Hold, then Drag" : {
+
+    },
+    "Drag" : {
+
     },
     "Drives the outer-ring + tag on the home screen's glucose bobble." : {
       "localizations" : {
@@ -175394,6 +175406,9 @@
     "It also enables you to submit corrected nutrition values from edited scanned items back to the OpenFoodFacts database, helping improve data quality for everyone." : {
 
     },
+    "It anchors under your finger like the other two, and the further you drag the faster it moves, so a whole day is a short pull away." : {
+
+    },
     "It can handle small gaps in data and ignores sensor error values. It needs 4 readings in a row, each arriving within 12 minutes of the one before it, to work properly. Only CGM readings are smoothed—manual entries are not changed." : {
       "localizations" : {
         "bg" : {
@@ -176431,6 +176446,9 @@
           }
         }
       }
+    },
+    "Keep your finger down and slide to scrub along the curve; slide to either edge and the chart pans along with you." : {
+
     },
     "Largest basal rate allowed." : {
       "localizations" : {
@@ -227149,6 +227167,9 @@
         }
       }
     },
+    "Pans the chart through time. Flick and let go to keep it gliding, and it comes to rest on its own." : {
+
+    },
     "Password" : {
 
     },
@@ -230207,6 +230228,9 @@
         }
       }
     },
+    "Pinch" : {
+
+    },
     "Play Sound" : {
       "localizations" : {
         "bg" : {
@@ -232991,6 +233015,9 @@
           }
         }
       }
+    },
+    "Press and Hold" : {
+
     },
     "Preview Contact Image" : {
       "localizations" : {
@@ -247027,6 +247054,9 @@
           }
         }
       }
+    },
+    "Rest a finger on the chart to inspect a single reading with its IOB and COB." : {
+
     },
     "Restart Live Activity" : {
       "localizations" : {
@@ -275798,6 +275828,9 @@
           }
         }
       }
+    },
+    "Steps through the zoom presets — 6, 12 and 24 hours — anchored under your finger, the same way a pinch is." : {
+
     },
     "Stop" : {
       "localizations" : {
@@ -343234,6 +343267,12 @@
           }
         }
       }
+    },
+    "Zooms continuously, between one hour and a full day on screen. The moment you pinch around stays put, so the chart grows out of the point you are looking at." : {
+
+    },
+    "Zooms with one hand: keep your finger down on the second tap and drag up to zoom in, down to zoom out." : {
+
     },
     "ZT" : {
       "localizations" : {

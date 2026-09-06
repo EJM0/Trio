@@ -146,6 +146,15 @@ struct ChartSelectionRow: View {
                 )
             }
 
+            if let isf = determination?.insulinSensitivity {
+                let unit = Text(String(localized: " ISF", comment: "Insulin Sensitivity Factor")).fontWeight(.regular)
+                item(
+                    icon: "arrow.up.arrow.down",
+                    tint: .secondary,
+                    value: Text(Formatter.integerFormatter.string(from: isf) ?? "") + unit,
+                    template: Text(verbatim: "888") + unit
+                )
+            }
         }
         .font(font).fontWeight(.bold).fontDesign(.rounded)
         // equal-width digits: with the reserved boxes below, this is what keeps a value from
