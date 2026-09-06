@@ -47,8 +47,11 @@ extension Home {
         @State var chartSelection: Date? = nil
         /// Last scrub position that resolved to a reading / a determination. The readout renders
         /// from these, so holes decay instead of flickering the slot (see `updateChartReadout`).
+        /// They outlive the readout itself — it needs values to fade out with.
         @State var chartReadoutDate: Date? = nil
         @State var chartReadoutDeterminationDate: Date? = nil
+        /// Whether the readout owns the meal slot. The one thing the fade is keyed on.
+        @State var isChartReadoutVisible = false
 
         @FetchRequest(fetchRequest: OverrideStored.fetch(
             NSPredicate.lastActiveOverride,
@@ -210,11 +213,10 @@ extension Home {
 
                 mealPanel()
                     .frame(height: HomeLayout.mealSlotHeight)
-                    // Fades the readout in and out. Keyed on whether one is showing, not on
-                    // the date: a scrub step leaves the flag alone, so only the swap animates
-                    // and the values inside keep updating unanimated. It sits on the slot,
-                    // which outlives both states, so the departure animates too.
-                    .animation(ChartSelectionLookup.readoutFade, value: chartReadoutDate != nil)
+                    // Fades the readout in and out. Keyed on visibility, not on the date: a
+                    // scrub step leaves the flag alone, so only the swap animates and the
+                    // values inside keep updating unanimated.
+                    .animation(ChartSelectionLookup.readoutFade, value: isChartReadoutVisible)
                     .task(id: chartSelection) { await updateChartReadout() }
 
                 mainChart(geo: geo)

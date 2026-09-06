@@ -9,26 +9,39 @@ extension Home.RootView {
     /// different instant without covering the data the finger is on. It renders from
     /// `chartReadoutDate`, not `chartSelection`, so a hole can't flicker the slot
     /// (see `updateChartReadout`).
+    ///
+    /// Both halves stay mounted and cross-fade on `opacity`. Swapping them with `if`/`else`
+    /// left the exit to a removal transition, which never played: the row's root is a
+    /// `ViewThatFits` and its background is a glass/material effect, and neither survives one
+    /// — the readout blinked out while the arrival faded in normally. Opacity is a plain
+    /// animatable value, so both directions animate.
     @ViewBuilder func mealPanel() -> some View {
-        if let readoutDate = chartReadoutDate,
-           let selectedGlucose = ChartSelectionLookup.glucose(at: readoutDate, in: state.glucoseFromPersistence)
-        {
-            ChartSelectionRow(
-                selectedGlucose: selectedGlucose,
-                determination: chartReadoutDeterminationDate.flatMap {
-                    ChartSelectionLookup.determination(at: $0, in: state.enactedAndNonEnactedDeterminations)
-                },
-                units: state.units,
-                highGlucose: state.highGlucose,
-                lowGlucose: state.lowGlucose,
-                currentGlucoseTarget: state.currentGlucoseTarget,
-                glucoseColorScheme: state.glucoseColorScheme,
-                isSmoothingEnabled: state.settingsManager.settings.smoothGlucose
-            )
-            .padding(.horizontal)
-            .transition(.opacity)
-        } else {
+        ZStack {
             liveMealPanel
+                .opacity(isChartReadoutVisible ? 0 : 1)
+
+            // Renders from the last resolved selection, which is deliberately not cleared on
+            // decay: the row has to keep its values to fade out with, and it is invisible
+            // (and untouchable) for as long as no readout is showing.
+            if let readoutDate = chartReadoutDate,
+               let selectedGlucose = ChartSelectionLookup.glucose(at: readoutDate, in: state.glucoseFromPersistence)
+            {
+                ChartSelectionRow(
+                    selectedGlucose: selectedGlucose,
+                    determination: chartReadoutDeterminationDate.flatMap {
+                        ChartSelectionLookup.determination(at: $0, in: state.enactedAndNonEnactedDeterminations)
+                    },
+                    units: state.units,
+                    highGlucose: state.highGlucose,
+                    lowGlucose: state.lowGlucose,
+                    currentGlucoseTarget: state.currentGlucoseTarget,
+                    glucoseColorScheme: state.glucoseColorScheme,
+                    isSmoothingEnabled: state.settingsManager.settings.smoothGlucose
+                )
+                .padding(.horizontal)
+                .opacity(isChartReadoutVisible ? 1 : 0)
+                .allowsHitTesting(isChartReadoutVisible)
+            }
         }
     }
 
@@ -37,7 +50,13 @@ extension Home.RootView {
     /// slot only lets go once nothing has resolved for `ChartSelectionLookup.decay`. Run as
     /// `.task(id: chartSelection)`, so the next scrub step cancels a pending decay and
     /// crossing a hole never reaches the timeout.
-    func updateChartReadout() async {
+    ///
+    /// Only `isChartReadoutVisible` is cleared when it does let go; the dates it renders from
+    /// stay, so the row keeps its values while fading out.
+    ///
+    /// `@MainActor` because the continuation after the decay sleep would otherwise resume off
+    /// the main actor, writing view state from the wrong one.
+    @MainActor func updateChartReadout() async {
         if let selection = chartSelection {
             var resolvedAnything = false
 
@@ -59,14 +78,16 @@ extension Home.RootView {
                 chartReadoutDeterminationDate = nil
             }
 
-            if resolvedAnything { return }
+            if resolvedAnything {
+                isChartReadoutVisible = true
+                return
+            }
         }
 
-        guard chartReadoutDate != nil || chartReadoutDeterminationDate != nil else { return }
+        guard isChartReadoutVisible else { return }
         try? await Task.sleep(for: .seconds(ChartSelectionLookup.decay))
         guard !Task.isCancelled else { return }
-        chartReadoutDate = nil
-        chartReadoutDeterminationDate = nil
+        isChartReadoutVisible = false
     }
 
     @ViewBuilder private var liveMealPanel: some View {
