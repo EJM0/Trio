@@ -23720,6 +23720,9 @@
         }
       }
     },
+    "1 minute" : {
+
+    },
     "1 U and over" : {
       "comment" : "Name to display for the \"1 U and over\" bolus display threshold option.",
       "localizations" : {
@@ -24117,6 +24120,9 @@
           }
         }
       }
+    },
+    "2 minutes" : {
+
     },
     "2 U" : {
       "localizations" : {
@@ -25031,6 +25037,9 @@
           }
         }
       }
+    },
+    "5 minutes" : {
+
     },
     "5. Ensure that the \"Write Data\" option is enabled for the desired health metrics." : {
       "localizations" : {
@@ -25956,6 +25965,9 @@
         }
       }
     },
+    "15 seconds" : {
+
+    },
     "19:05" : {
       "localizations" : {
         "bg" : {
@@ -26868,6 +26880,9 @@
           }
         }
       }
+    },
+    "30 seconds" : {
+
     },
     "43.21 U" : {
       "localizations" : {
@@ -40305,6 +40320,9 @@
         }
       }
     },
+    "Alert Identifier" : {
+
+    },
     "Alert Sound" : {
       "comment" : "A section header for the alert sound settings.",
       "localizations" : {
@@ -52965,7 +52983,11 @@
         }
       }
     },
+    "Applies To" : {
+
+    },
     "Applies To (Cannot be changed)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -189986,6 +190008,9 @@
         }
       }
     },
+    "Manager Identifier" : {
+
+    },
     "Manual" : {
       "comment" : "Manual Bolus",
       "localizations" : {
@@ -230578,6 +230603,9 @@
       }
     },
     "Pinch" : {
+
+    },
+    "Play For" : {
 
     },
     "Play Sound" : {
@@ -277341,6 +277369,9 @@
         }
       }
     },
+    "Stop Trio Alarm" : {
+
+    },
     "Stopped Override successfully." : {
       "comment" : "Stopped Override successfully",
       "localizations" : {
@@ -318516,6 +318547,9 @@
     "Try logging in with your OpenFoodFacts account to reduce rate limits." : {
 
     },
+    "Turn one off to keep its notification but drop the tone. Which alarms land in this tier cannot be changed." : {
+
+    },
     "Turn this setting on to give basal adjustments more agility. Keep this setting off if your basal needs are not highly variable." : {
       "localizations" : {
         "bg" : {
@@ -322348,6 +322382,9 @@
           }
         }
       }
+    },
+    "Until Acknowledged" : {
+
     },
     "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next." : {
       "extractionState" : "stale",

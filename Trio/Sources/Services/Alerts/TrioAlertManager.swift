@@ -183,7 +183,7 @@ final class BaseTrioAlertManager: TrioAlertManager, Injectable {
         criticalAudioPlayer?.play(soundNamed: soundName, stopAfter: stopAfter)
     }
 
-    /// The tier config's playback cap for this alarm, read at fire time rather
+    /// The tier config's alarm length for this alarm, read at fire time rather
     /// than carried on the `Alert`: a `.delayed` alarm arms long before it
     /// sounds, and the user may have changed the setting in between.
     private static func soundDuration(for alert: Alert) -> TimeInterval? {
@@ -192,7 +192,7 @@ final class BaseTrioAlertManager: TrioAlertManager, Injectable {
         else { return nil }
         let now = Date()
         let isNight = GlucoseAlertsStore.shared.configuration.isNight(at: now)
-        return DeviceAlertsStore.shared.config(for: tier, at: now, isNight: isNight)?.soundDuration.seconds
+        return DeviceAlertsStore.shared.config(for: tier, at: now, isNight: isNight)?.soundDuration
     }
 
     // MARK: - Issue / Retract

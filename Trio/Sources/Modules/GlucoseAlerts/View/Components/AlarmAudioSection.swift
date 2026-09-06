@@ -4,9 +4,9 @@ import SwiftUI
 struct AlarmAudioSection: View {
     @Binding var playsSound: Bool
     @Binding var soundFilename: String
-    /// Optional so the glucose-alert callers, which have no duration setting of
+    /// Optional so the glucose-alert callers, which have no length setting of
     /// their own, keep working unchanged — the row only appears when bound.
-    var soundDuration: Binding<AlarmSoundDuration>? = nil
+    var soundDuration: Binding<TimeInterval>? = nil
 
     @State private var showTonePicker = false
 
@@ -34,12 +34,18 @@ struct AlarmAudioSection: View {
                 }
 
                 if let soundDuration {
-                    Picker(selection: soundDuration) {
-                        ForEach(AlarmSoundDuration.allCases) { duration in
-                            Text(duration.displayName).tag(duration)
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Play For")
+                            Spacer()
+                            Text(AlarmSoundDurationRange.label(for: soundDuration.wrappedValue))
+                                .foregroundColor(.secondary)
                         }
-                    } label: {
-                        Text("Play For")
+                        Slider(
+                            value: soundDuration,
+                            in: AlarmSoundDurationRange.bounds,
+                            step: AlarmSoundDurationRange.step
+                        )
                     }
                 }
             }
