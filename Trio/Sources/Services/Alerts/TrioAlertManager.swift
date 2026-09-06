@@ -165,22 +165,25 @@ final class BaseTrioAlertManager: TrioAlertManager, Injectable {
         // Honor `playsSound: false` (alert was issued with sound: nil) —
         // user explicitly opted out of audio on this alarm.
         guard let soundName = alert.sound?.filename else { return }
-        let stopAfter = Self.soundDuration(for: alert)
+        let playback = Self.playback(for: alert)
         Task { @MainActor in
             // AlarmKit pierces silent/Focus and survives app suspension.
             if alarmScheduler == nil { alarmScheduler = CriticalAlertAlarmScheduler() }
             let scheduled = alarmScheduler?.scheduleAlarm(for: alert) { [weak self] in
-                Task { @MainActor in self?.playAudioFallback(soundNamed: soundName, stopAfter: stopAfter) }
+                Task { @MainActor in self?.playAudioFallback(soundNamed: soundName, playback: playback) }
             } ?? false
             guard !scheduled else { return }
             // Fallback: in-process audio. Only sounds while Trio is running.
-            playAudioFallback(soundNamed: soundName, stopAfter: stopAfter)
+            playAudioFallback(soundNamed: soundName, playback: playback)
         }
     }
 
-    @MainActor private func playAudioFallback(soundNamed soundName: String, stopAfter: TimeInterval? = nil) {
+    @MainActor private func playAudioFallback(
+        soundNamed soundName: String,
+        playback: AlarmSoundPlayback = .untilAcknowledged
+    ) {
         if criticalAudioPlayer == nil { criticalAudioPlayer = CriticalAlertAudioPlayer() }
-        criticalAudioPlayer?.play(soundNamed: soundName, stopAfter: stopAfter)
+        criticalAudioPlayer?.play(soundNamed: soundName, playback: playback)
     }
 
     /// The tier config's alarm length for this alarm, read at fire time rather

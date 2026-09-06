@@ -14,8 +14,12 @@ struct DeviceAlertSeverityConfig: Codable, Equatable, Identifiable {
     var isEnabled: Bool
     var soundFilename: String
     var playsSound: Bool
-    /// Seconds the alarm tone sounds for before cutting itself off. The player
-    /// loops its tone, so without this an alarm nobody acknowledges never stops.
+    /// Whether the tone is cut short at all. Off is the untrimmed behavior: the
+    /// player loops until the alert is acknowledged or retracted.
+    var trimsSound: Bool
+    /// What the tone is trimmed to when `trimsSound` is on.
+    var soundTrim: AlarmSoundTrim
+    /// Seconds the tone sounds for when `soundTrim` is `.length`.
     var soundDuration: TimeInterval
     /// When true, alarms in this tier bypass Focus Mode / silent switch
     /// (maps to `Alert.InterruptionLevel.critical` and engages the in-process
@@ -34,6 +38,8 @@ struct DeviceAlertSeverityConfig: Codable, Equatable, Identifiable {
         isEnabled = true
         soundFilename = severity.defaultSoundFilename
         playsSound = true
+        trimsSound = false
+        soundTrim = .length
         soundDuration = AlarmSoundDurationRange.defaultSeconds
         overridesSilenceAndDND = severity.defaultOverridesSilenceAndDND
         self.activeOption = activeOption
@@ -47,6 +53,8 @@ struct DeviceAlertSeverityConfig: Codable, Equatable, Identifiable {
         case isEnabled
         case soundFilename
         case playsSound
+        case trimsSound
+        case soundTrim
         case soundDuration
         case overridesSilenceAndDND
         case activeOption
@@ -59,6 +67,8 @@ struct DeviceAlertSeverityConfig: Codable, Equatable, Identifiable {
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
         soundFilename = try container.decodeIfPresent(String.self, forKey: .soundFilename) ?? severity.defaultSoundFilename
         playsSound = try container.decodeIfPresent(Bool.self, forKey: .playsSound) ?? true
+        trimsSound = try container.decodeIfPresent(Bool.self, forKey: .trimsSound) ?? false
+        soundTrim = try container.decodeIfPresent(AlarmSoundTrim.self, forKey: .soundTrim) ?? .length
         soundDuration = try container.decodeIfPresent(
             TimeInterval.self,
             forKey: .soundDuration
@@ -68,6 +78,43 @@ struct DeviceAlertSeverityConfig: Codable, Equatable, Identifiable {
             forKey: .overridesSilenceAndDND
         ) ?? severity.defaultOverridesSilenceAndDND
         activeOption = try container.decodeIfPresent(ActiveOption.self, forKey: .activeOption) ?? .always
+    }
+}
+
+/// What a trimmed alarm tone is cut to.
+enum AlarmSoundTrim: String, CaseIterable, Codable, Identifiable {
+    /// One pass of the sound file, however long that happens to be.
+    case playOnce
+    /// A fixed stretch, set by the slider.
+    case length
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .playOnce: return String(localized: "Play Once")
+        case .length: return String(localized: "Set Length")
+        }
+    }
+}
+
+/// How the alarm tone should be played, resolved from the tier config.
+enum AlarmSoundPlayback: Equatable {
+    /// Loop until something stops it — acknowledgement or retraction.
+    case untilAcknowledged
+    /// A single pass of the file.
+    case once
+    /// Loop, then cut off after this many seconds.
+    case seconds(TimeInterval)
+}
+
+extension DeviceAlertSeverityConfig {
+    var playback: AlarmSoundPlayback {
+        guard trimsSound else { return .untilAcknowledged }
+        switch soundTrim {
+        case .playOnce: return .once
+        case .length: return .seconds(soundDuration)
+        }
     }
 }
 

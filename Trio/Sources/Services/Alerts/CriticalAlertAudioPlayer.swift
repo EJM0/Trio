@@ -24,10 +24,11 @@ final class CriticalAlertAudioPlayer {
     /// LoopFollow / Jonas loop-failure alarm. `.playback` audio session gives
     /// the app a privileged background state so the alarm continues even if
     /// the user has the screen locked.
-    /// - Parameter stopAfter: playback cap in seconds. Nil keeps the historical
-    /// behavior — loop until `stop()`. A cap silences the tone on its own after
-    /// the interval, leaving the notification itself untouched.
-    func play(soundNamed soundName: String = "critical.caf", stopAfter: TimeInterval? = nil) {
+    /// - Parameter playback: `.untilAcknowledged` is the historical behavior —
+    /// loop until `stop()`. `.once` plays a single pass of the file, `.seconds`
+    /// loops and then cuts off. Either way only the tone ends; the notification
+    /// itself is untouched.
+    func play(soundNamed soundName: String = "critical.caf", playback: AlarmSoundPlayback = .untilAcknowledged) {
         stop()
 
         startVibration()
@@ -61,7 +62,9 @@ final class CriticalAlertAudioPlayer {
             volumeBooster.boost(to: boostedVolume)
 
             let p = try AVAudioPlayer(contentsOf: url)
-            p.numberOfLoops = -1
+            // A single pass has to stop looping in the player itself; a capped
+            // one keeps looping and is cut off by the timer below.
+            p.numberOfLoops = playback == .once ? 0 : -1
             p.volume = 1.0
             p.prepareToPlay()
             guard p.play() else {
@@ -70,10 +73,19 @@ final class CriticalAlertAudioPlayer {
                 return
             }
             player = p
-            if let stopAfter, stopAfter > 0 {
-                autoStopTimer = Timer.scheduledTimer(withTimeInterval: stopAfter, repeats: false) { [weak self] _ in
+            switch playback {
+            case let .seconds(cap) where cap > 0:
+                autoStopTimer = Timer.scheduledTimer(withTimeInterval: cap, repeats: false) { [weak self] _ in
                     Task { @MainActor in self?.stop() }
                 }
+            case .once:
+                // Vibration runs on its own timer, so the single pass ending is
+                // not enough to end the alarm — stop everything with it.
+                autoStopTimer = Timer.scheduledTimer(withTimeInterval: p.duration, repeats: false) { [weak self] _ in
+                    Task { @MainActor in self?.stop() }
+                }
+            default:
+                break
             }
             os_log("Started critical-alert audio playback (duration=%{public}.2fs)", log: log, type: .info, p.duration)
         } catch {

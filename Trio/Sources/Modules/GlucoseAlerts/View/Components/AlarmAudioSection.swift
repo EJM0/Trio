@@ -4,9 +4,9 @@ import SwiftUI
 struct AlarmAudioSection: View {
     @Binding var playsSound: Bool
     @Binding var soundFilename: String
-    /// Optional so the glucose-alert callers, which have no length setting of
-    /// their own, keep working unchanged — the row only appears when bound.
-    var soundDuration: Binding<TimeInterval>? = nil
+    /// Optional so the glucose-alert callers, which have no trim settings of
+    /// their own, keep working unchanged — the rows only appear when bound.
+    var trim: AlarmTrimControls? = nil
 
     @State private var showTonePicker = false
 
@@ -33,25 +33,47 @@ struct AlarmAudioSection: View {
                     TonePickerSheet(selected: $soundFilename)
                 }
 
-                if let soundDuration {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text("Play For")
-                            Spacer()
-                            Text(AlarmSoundDurationRange.label(for: soundDuration.wrappedValue))
-                                .foregroundColor(.secondary)
+                if let trim {
+                    Toggle("Trim Sound", isOn: trim.trimsSound)
+
+                    if trim.trimsSound.wrappedValue {
+                        Picker(selection: trim.mode) {
+                            ForEach(AlarmSoundTrim.allCases) { option in
+                                Text(option.displayName).tag(option)
+                            }
+                        } label: {
+                            Text("Trim To")
                         }
-                        Slider(
-                            value: soundDuration,
-                            in: AlarmSoundDurationRange.bounds,
-                            step: AlarmSoundDurationRange.step
-                        )
+
+                        if trim.mode.wrappedValue == .length {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text("Length")
+                                    Spacer()
+                                    Text(AlarmSoundDurationRange.label(for: trim.seconds.wrappedValue))
+                                        .foregroundColor(.secondary)
+                                }
+                                Slider(
+                                    value: trim.seconds,
+                                    in: AlarmSoundDurationRange.bounds,
+                                    step: AlarmSoundDurationRange.step
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
         .listRowBackground(Color.chart)
     }
+}
+
+/// The three bindings the trim rows need, kept together so a caller cannot
+/// supply half of them.
+struct AlarmTrimControls {
+    var trimsSound: Binding<Bool>
+    var mode: Binding<AlarmSoundTrim>
+    var seconds: Binding<TimeInterval>
 }
 
 private struct TonePickerSheet: View {
