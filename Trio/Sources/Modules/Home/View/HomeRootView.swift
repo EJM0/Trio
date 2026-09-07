@@ -121,6 +121,7 @@ extension Home {
             ChartOverlayButton(systemImage: "info") {
                 state.isLegendPresented.toggle()
             }
+            .accessibilityLabel(Text("Chart legend"))
             .padding(.bottom, 6)
             // same trailing inset as the meal row
             .padding(.trailing, 16)

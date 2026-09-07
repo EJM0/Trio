@@ -85,14 +85,17 @@ public struct TextFieldWithToolBar: View {
                             }) {
                                 Image(systemName: "trash")
                             }
+                            .accessibilityLabel(Text("Clear"))
 
                             if showArrows {
                                 Button(action: { previousTextField?() }) {
                                     Image(systemName: "chevron.up")
                                 }
+                                .accessibilityLabel(Text("Previous field"))
                                 Button(action: { nextTextField?() }) {
                                     Image(systemName: "chevron.down")
                                 }
+                                .accessibilityLabel(Text("Next field"))
                             }
 
                             Spacer()
@@ -101,6 +104,7 @@ public struct TextFieldWithToolBar: View {
                                 Button(action: { isFocused = false }) {
                                     Image(systemName: "keyboard.chevron.compact.down")
                                 }
+                                .accessibilityLabel(Text("Dismiss keyboard"))
                             }
                         }
                     }
@@ -374,6 +378,7 @@ public struct TextFieldWithToolBarString: View {
                         } label: {
                             Image(systemName: "trash")
                         }
+                        .accessibilityLabel(Text("Clear"))
 
                         Spacer()
 
@@ -383,6 +388,7 @@ public struct TextFieldWithToolBarString: View {
                             } label: {
                                 Image(systemName: "keyboard.chevron.compact.down")
                             }
+                            .accessibilityLabel(Text("Dismiss keyboard"))
                         }
                     }
                 }

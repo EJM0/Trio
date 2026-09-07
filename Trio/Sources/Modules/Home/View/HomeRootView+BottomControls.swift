@@ -57,6 +57,7 @@ extension Home.RootView {
             .foregroundStyle(tint)
             .frame(width: 30, height: 30)
             .background(Circle().fill(tint.opacity(0.18)))
+            .accessibilityHidden(true)
     }
 
     var adjustmentTint: Color? {
@@ -228,6 +229,9 @@ extension Home.RootView {
             .onTapGesture {
                 cancelAction()
             }
+            .accessibilityLabel(Text("Stop adjustment"))
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { cancelAction() }
     }
 
     @ViewBuilder func adjustmentsCancelTempTargetView() -> some View {
@@ -251,6 +255,13 @@ extension Home.RootView {
                     isConfirmStopTempTargetShown = true
                 }
             }
+            .accessibilityLabel(Text("Stop temp target"))
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction {
+                if !latestTempTarget.isEmpty {
+                    isConfirmStopTempTargetShown = true
+                }
+            }
     }
 
     @ViewBuilder func adjustmentsCancelOverrideView() -> some View {
@@ -270,6 +281,13 @@ extension Home.RootView {
             )
             .padding(.trailing, 8)
             .onTapGesture {
+                if !latestOverride.isEmpty {
+                    isConfirmStopOverridePresented = true
+                }
+            }
+            .accessibilityLabel(Text("Stop override"))
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction {
                 if !latestOverride.isEmpty {
                     isConfirmStopOverridePresented = true
                 }
@@ -426,6 +444,9 @@ extension Home.RootView {
         .onTapGesture {
             selectedTab = 2
         }
+        .accessibilityHint(Text(String(localized: "Opens adjustments", comment: "Accessibility hint")))
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { selectedTab = 2 }
         .padding(.horizontal, 10)
     }
 
@@ -446,6 +467,7 @@ extension Home.RootView {
             HStack {
                 Image(systemName: "cross.vial.fill")
                     .font(.system(size: 25))
+                    .accessibilityHidden(true)
 
                 Spacer()
 
@@ -457,6 +479,9 @@ extension Home.RootView {
                         .font(.caption)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }.padding(.leading, 5)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Text(bolusLabel))
+                    .accessibilityValue(Text(bolusString))
 
                 Spacer()
 
@@ -468,6 +493,7 @@ extension Home.RootView {
                         Image(systemName: "xmark.app")
                             .font(.system(size: 25))
                     }
+                    .accessibilityLabel(Text("Cancel bolus"))
                 } else if state.bolusStatus == .initiating {
                     ProgressView()
                 }

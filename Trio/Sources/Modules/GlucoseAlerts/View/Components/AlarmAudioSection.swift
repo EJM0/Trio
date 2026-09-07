@@ -136,6 +136,7 @@ private struct TonePickerRow: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityAddTraits(filename == selected ? [.isButton, .isSelected] : .isButton)
 
             Spacer()
 
@@ -147,6 +148,11 @@ private struct TonePickerRow: View {
                     .foregroundColor(Color.tabBar)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(Text(
+                isPlaying
+                    ? String(localized: "Stop preview", comment: "Accessibility: stop tone preview")
+                    : String(localized: "Play preview", comment: "Accessibility: play tone preview")
+            ))
 
             Spacer()
         }

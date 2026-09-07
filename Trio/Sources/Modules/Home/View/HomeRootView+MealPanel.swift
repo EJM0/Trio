@@ -156,6 +156,15 @@ extension Home.RootView {
                 )
                 .font(.callout).fontWeight(.bold).fontDesign(.rounded)
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("Insulin on board"))
+            .accessibilityValue(Text(
+                (
+                    Formatter.decimalFormatterWithTwoFractionDigits
+                        .string(from: state.currentIOB as NSNumber) ?? "0"
+                )
+                    + String(localized: " U", comment: "Insulin unit")
+            ))
 
             Spacer()
 
@@ -173,6 +182,13 @@ extension Home.RootView {
                 )
                 .font(.callout).fontWeight(.bold).fontDesign(.rounded)
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("Carbs on board"))
+            .accessibilityValue(Text(
+                (Formatter.decimalFormatterWithTwoFractionDigits.string(
+                    from: NSNumber(value: state.enactedAndNonEnactedDeterminations.first?.cob ?? 0)
+                ) ?? "0") + String(localized: " g", comment: "gram of carbs")
+            ))
 
             Spacer()
 

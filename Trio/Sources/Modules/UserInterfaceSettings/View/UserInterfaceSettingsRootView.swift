@@ -105,7 +105,7 @@ extension UserInterfaceSettings {
                                     },
                                     label: {
                                         HStack {
-                                            Image(systemName: "questionmark.circle")
+                                            Image(systemName: "questionmark.circle").accessibilityLabel(Text("More information"))
                                         }
                                     }
                                 ).buttonStyle(BorderlessButtonStyle())
@@ -171,7 +171,7 @@ extension UserInterfaceSettings {
                                 },
                                 label: {
                                     HStack {
-                                        Image(systemName: "questionmark.circle")
+                                        Image(systemName: "questionmark.circle").accessibilityLabel(Text("More information"))
                                     }
                                 }
                             ).buttonStyle(BorderlessButtonStyle())
@@ -207,7 +207,7 @@ extension UserInterfaceSettings {
                                     },
                                     label: {
                                         HStack {
-                                            Image(systemName: "questionmark.circle")
+                                            Image(systemName: "questionmark.circle").accessibilityLabel(Text("More information"))
                                         }
                                     }
                                 ).buttonStyle(BorderlessButtonStyle())
@@ -253,9 +253,26 @@ extension UserInterfaceSettings {
                                         Text(state.units == .mgdL ? " mg/dL" : " mmol/L").foregroundColor(.secondary)
                                     }
                                 }
+                                .contentShape(Rectangle())
                                 .onTapGesture {
                                     displayPickerLowThreshold.toggle()
                                 }
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel(Text("Low Threshold"))
+                                .accessibilityValue(Text(
+                                    (state.units == .mgdL ? state.low.description : state.low.asMmolL.description)
+                                        + " " + state.units.spokenValue
+                                ))
+                                .accessibilityHint(Text(
+                                    displayPickerLowThreshold
+                                        ? String(localized: "Closes the value picker", comment: "Accessibility hint")
+                                        : String(
+                                            localized: "Opens a picker to change this value",
+                                            comment: "Accessibility hint"
+                                        )
+                                ))
+                                .accessibilityAddTraits(.isButton)
+                                .accessibilityAction { displayPickerLowThreshold.toggle() }
                             }
                             .padding(.top)
 
@@ -288,9 +305,26 @@ extension UserInterfaceSettings {
                                         Text(state.units == .mgdL ? " mg/dL" : " mmol/L").foregroundColor(.secondary)
                                     }
                                 }
+                                .contentShape(Rectangle())
                                 .onTapGesture {
                                     displayPickerHighThreshold.toggle()
                                 }
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel(Text("High Threshold"))
+                                .accessibilityValue(Text(
+                                    (state.units == .mgdL ? state.high.description : state.high.asMmolL.description)
+                                        + " " + state.units.spokenValue
+                                ))
+                                .accessibilityHint(Text(
+                                    displayPickerHighThreshold
+                                        ? String(localized: "Closes the value picker", comment: "Accessibility hint")
+                                        : String(
+                                            localized: "Opens a picker to change this value",
+                                            comment: "Accessibility hint"
+                                        )
+                                ))
+                                .accessibilityAddTraits(.isButton)
+                                .accessibilityAction { displayPickerHighThreshold.toggle() }
                             }
                             .padding(.top)
 
@@ -341,7 +375,7 @@ extension UserInterfaceSettings {
                                     },
                                     label: {
                                         HStack {
-                                            Image(systemName: "questionmark.circle")
+                                            Image(systemName: "questionmark.circle").accessibilityLabel(Text("More information"))
                                         }
                                     }
                                 ).buttonStyle(BorderlessButtonStyle())
@@ -396,7 +430,7 @@ extension UserInterfaceSettings {
                                 },
                                 label: {
                                     HStack {
-                                        Image(systemName: "questionmark.circle")
+                                        Image(systemName: "questionmark.circle").accessibilityLabel(Text("More information"))
                                     }
                                 }
                             ).buttonStyle(BorderlessButtonStyle())
@@ -441,7 +475,7 @@ extension UserInterfaceSettings {
                                 },
                                 label: {
                                     HStack {
-                                        Image(systemName: "questionmark.circle")
+                                        Image(systemName: "questionmark.circle").accessibilityLabel(Text("More information"))
                                     }
                                 }
                             ).buttonStyle(BorderlessButtonStyle())
@@ -548,7 +582,7 @@ extension UserInterfaceSettings {
                                     },
                                     label: {
                                         HStack {
-                                            Image(systemName: "questionmark.circle")
+                                            Image(systemName: "questionmark.circle").accessibilityLabel(Text("More information"))
                                         }
                                     }
                                 ).buttonStyle(BorderlessButtonStyle())
@@ -628,7 +662,7 @@ extension UserInterfaceSettings {
                                 },
                                 label: {
                                     HStack {
-                                        Image(systemName: "questionmark.circle")
+                                        Image(systemName: "questionmark.circle").accessibilityLabel(Text("More information"))
                                     }
                                 }
                             ).buttonStyle(BorderlessButtonStyle())
@@ -668,7 +702,7 @@ extension UserInterfaceSettings {
                                 },
                                 label: {
                                     HStack {
-                                        Image(systemName: "questionmark.circle")
+                                        Image(systemName: "questionmark.circle").accessibilityLabel(Text("More information"))
                                     }
                                 }
                             ).buttonStyle(BorderlessButtonStyle())

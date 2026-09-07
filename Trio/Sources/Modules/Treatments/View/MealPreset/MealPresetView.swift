@@ -312,6 +312,7 @@ struct MealPresetView: View {
             Image(systemName: "minus.circle.fill")
                 .font(.title3)
         }
+        .accessibilityLabel(Text("Remove one serving"))
         .disabled(
             state
                 .selection == nil
@@ -337,6 +338,7 @@ struct MealPresetView: View {
             Image(systemName: "plus.circle.fill")
                 .font(.title3)
         }
+        .accessibilityLabel(Text("Add one serving"))
         .disabled(state.selection == nil)
         .buttonStyle(.borderless)
         .tint(.blue)
