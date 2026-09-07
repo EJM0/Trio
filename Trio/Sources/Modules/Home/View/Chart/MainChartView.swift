@@ -9,6 +9,13 @@ let calendar = Calendar.current
 /// evaluation) and stays prepared across ticks.
 private let scrubPointHaptic = UISelectionFeedbackGenerator()
 
+/// The gesture a live zoom belongs to. A pinch and a double-tap-and-drag share every
+/// piece of zoom state; only the touch handling differs.
+private enum ZoomSource {
+    case pinch
+    case dragAfterDoubleTap
+}
+
 /// The Home screen chart stack (basal / glucose / COB-IOB).
 ///
 /// Rendering strategy: the three charts are laid out ONCE per (data, zoom) change onto a
@@ -83,7 +90,11 @@ struct MainChartView: View {
 
     /// True from the moment a zoom gesture takes a touch until its closing commit. It is what
     /// puts the render window on the narrow gesture-time pad — see `updateRenderWindow`.
-    @State private var isZoomGestureLive = false
+    /// Which gesture is driving the zoom right now, or nil when none is. Both write
+    /// the same `pinchAnchor` / `pinchScale` and commit through `commitPinchZoom`, so
+    /// this is the only thing that distinguishes them — and what the pan branch reads
+    /// to know the touch is not its own.
+    @State private var zoomSource: ZoomSource?
 
     /// Captured at pinch start so the zoom stays anchored under the pinch centroid.
     @State private var pinchAnchor: (
@@ -117,13 +128,11 @@ struct MainChartView: View {
     /// True while a double-tap-and-drag zoom owns the touch. The zoom drives the very
     /// state a pinch does — `pinchAnchor`, `pinchScale`, `commitPinchZoom` — so this only
     /// marks who is holding it.
-    @State private var isDoubleTapZooming = false
 
     /// When a double tap was last used up by something other than a preset jump — the drag
     /// zoom engaging or ending, or the hold handing the touch to inspect — so the tap
     /// recognizer cannot jump a preset on top of it. Expires by itself, so a later real
     /// double tap still works.
-    @State private var doubleTapConsumedAt: Date?
 
     /// Where the touch currently being tracked began. `DragGesture` holds `startLocation`
     /// fixed for the life of one drag, so a change of it is the one reliable signal that a
@@ -285,9 +294,6 @@ struct MainChartView: View {
         .contentShape(Rectangle())
         .simultaneousGesture(panAndInspectGesture)
         .simultaneousGesture(magnifyGesture)
-        .simultaneousGesture(
-            SpatialTapGesture(count: 2).onEnded { value in cycleZoomPreset(atViewportX: value.location.x) }
-        )
         // Overlaid after the gestures so its tap wins over the pan/inspect recognizer.
         .overlay(alignment: .bottomTrailing) { scrollToNowButton }
         .onDisappear {
@@ -386,7 +392,7 @@ extension MainChartView {
     func updateRenderWindow(force: Bool = false) {
         // A zoom in flight re-lays the canvas at every commit, so it holds the window to what
         // the gesture can actually expose; the closing commit restores the full pad.
-        let padFactor = isZoomGestureLive
+        let padFactor = zoomSource != nil
             ? MainChartHelper.Config.renderWindowPadFactorDuringZoom
             : MainChartHelper.Config.renderWindowPadFactor
         let pad = padFactor * visibleSeconds
@@ -980,7 +986,11 @@ private struct HourAxisLabel: View {
 // MARK: - Zoom / pan / inspect gesture handling
 
 extension MainChartView {
-    private var isPinching: Bool { pinchAnchor != nil }
+    /// Which gesture currently owns the zoom, if any. The drag zoom borrows the
+    /// pinch's anchor, so `pinchAnchor != nil` cannot answer this: it is true for
+    /// both. Asking the source directly is what lets the two be told apart.
+    private var isPinching: Bool { zoomSource == .pinch }
+    private var isDoubleTapZooming: Bool { zoomSource == .dragAfterDoubleTap }
 
     /// Converts a horizontal translation (pt) into a time delta within the visible window.
     private func timeDelta(forTranslation dx: CGFloat) -> TimeInterval {
@@ -1001,14 +1011,14 @@ extension MainChartView {
         return TimeInterval(gutterPoints / viewportWidth) * visibleSeconds
     }
 
-    /// Double-tap cycles the zoom presets, anchored under the tap: the date the user
-    /// tapped stays at the same screen position, exactly like a pinch centroid.
+    /// Cycles the zoom presets, anchored under the tap: the date the user tapped stays at
+    /// the same screen position, exactly like a pinch centroid.
+    ///
+    /// Called only from the drag recognizer's `onEnded`, which is the one place that knows
+    /// the touch was a second tap that neither travelled, panned nor inspected. A separate
+    /// `SpatialTapGesture` used to do this and could not be told any of that — it fires on
+    /// lift however long the finger rested — so the two had to be kept apart by timestamp.
     private func cycleZoomPreset(atViewportX x: CGFloat) {
-        // The drag zoom starts from this very double tap: the tap recognizer must not jump
-        // a preset on top of it when the drag stayed short enough to still read as a tap.
-        guard !isDoubleTapZooming else { return }
-        if let ended = doubleTapConsumedAt,
-           Date.now.timeIntervalSince(ended) < MainChartHelper.Config.doubleTapMaxInterval { return }
         let presets = MainChartHelper.Config.zoomPresets
         let next = presets.first(where: { $0 > visibleSeconds + 1 }) ?? presets[0]
         let fraction = min(max(x / viewportWidth, 0), 1)
@@ -1062,9 +1072,8 @@ extension MainChartView {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
                 momentumTask?.cancel()
-                // A live drag zoom owns the whole touch. It has to be handled ahead of the
-                // `isPinching` guard below, which would otherwise see the anchor the zoom
-                // itself installed and write the touch off as spent.
+                // A live drag zoom owns the whole touch: this recognizer is the one
+                // driving it, so it feeds the zoom and nothing below runs.
                 if isDoubleTapZooming {
                     updateDoubleTapZoom(translationY: value.translation.height)
                     return
@@ -1183,18 +1192,20 @@ extension MainChartView {
                     return
                 }
 
-                // A second tap that turned into an inspect is spent: the tap recognizer fires
-                // on lift however long the finger stayed down, and would jump a preset on top
-                // of the inspect it just did.
-                if wasDoubleTapCandidate, wasInspecting { doubleTapConsumedAt = Date.now }
-
                 // Remember a clean tap: a touch that neither panned, pinched nor inspected
                 // is what arms the drag zoom for the touch after it. A tap that was itself
                 // a second tap arms nothing, so a third tap starts the count over.
                 let travel = hypot(value.translation.width, value.translation.height)
-                let wasTap = !wasPanning && !wasPinching && !wasInspecting && !wasDoubleTapCandidate
-                    && travel <= MainChartHelper.Config.inspectMovementTolerance
+                let stationary = travel <= MainChartHelper.Config.inspectMovementTolerance
+                let wasClean = !wasPanning && !wasPinching && !wasInspecting && stationary
+                let wasTap = wasClean && !wasDoubleTapCandidate
                 lastTapEnd = wasTap ? (time: value.time, location: value.location) : nil
+
+                // A second tap that lifted without going anywhere is the double tap itself:
+                // no drag zoom came of it, so it jumps a preset.
+                if wasClean, wasDoubleTapCandidate {
+                    cycleZoomPreset(atViewportX: value.startLocation.x)
+                }
 
                 guard wasPanning, !wasPinching, !isPinching else { return }
                 // Momentum: initial velocity in seconds of chart time per second.
@@ -1213,8 +1224,7 @@ extension MainChartView {
             guard !Task.isCancelled,
                   touchDownTime != nil, // finger still down
                   panBaseline == nil, // touch has not become a pan
-                  !isPinching,
-                  !isDoubleTapZooming, // the drag zoom got there first
+                  zoomSource == nil, // no pinch or drag zoom got there first
                   !isInspectLatched
             else { return }
 
@@ -1343,7 +1353,7 @@ extension MainChartView {
                 // would outlive the gesture and leave the canvas permanently distorted.
                 if isDoubleTapZooming { endDoubleTapZoom() }
                 if pinchAnchor == nil {
-                    isZoomGestureLive = true
+                    zoomSource = .pinch
                     let fraction = min(max(value.startAnchor.x, 0), 1)
                     pinchAnchor = (
                         visibleAtStart: visibleSeconds,
@@ -1411,7 +1421,7 @@ extension MainChartView {
     /// be widened, or the chart would be left on the gesture-time pad and re-anchor every half
     /// viewport of the next pan.
     private func finishZoomGesture() {
-        isZoomGestureLive = false
+        zoomSource = nil
         if !commitPinchZoom(visibleSeconds / TimeInterval(pinchScale)) {
             updateRenderWindow(force: true)
         }
@@ -1450,9 +1460,7 @@ extension MainChartView {
             anchorDate: scrollPosition.addingTimeInterval(visibleSeconds * TimeInterval(fraction)),
             anchorFraction: fraction
         )
-        isDoubleTapZooming = true
-        isZoomGestureLive = true
-        doubleTapConsumedAt = Date.now
+        zoomSource = .dragAfterDoubleTap
     }
 
     /// Maps vertical travel onto the zoom: dragging up zooms in, down zooms out.
@@ -1525,9 +1533,7 @@ extension MainChartView {
 
     /// Commits whatever the stretch is still previewing and hands the touch back.
     private func endDoubleTapZoom() {
-        finishZoomGesture()
-        isDoubleTapZooming = false
-        doubleTapConsumedAt = Date.now
+        finishZoomGesture() // clears `zoomSource`
         lastTapEnd = nil
     }
 
