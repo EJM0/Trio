@@ -99,6 +99,11 @@ struct ChartSelectionRow: View {
         )
     }
 
+    /// Stand-in for a value the selection resolves to nothing: the item keeps its place and
+    /// its width, and says so rather than vanishing. Centered in the box it holds, since it
+    /// stands for the whole of it rather than starting it.
+    private static let missingValue = Text(verbatim: "–").foregroundStyle(.secondary)
+
     /// Widest reading the unit can produce: three digits in mg/dL, `88.8` in mmol/L.
     private var glucoseTemplate: String { units == .mgdL ? "888" : "88.8" }
 
@@ -126,35 +131,42 @@ struct ChartSelectionRow: View {
         HStack(spacing: 12) {
             glucoseGroup
 
-            if let iob = determination?.iob {
-                let unit = Text(String(localized: " U", comment: "Insulin unit")).fontWeight(.regular)
-                item(
-                    icon: "syringe.fill",
-                    tint: Color.insulin,
-                    value: Text(Formatter.decimalFormatterWithTwoFractionDigits.string(from: iob) ?? "") + unit,
-                    template: Text(verbatim: "88.88") + unit
-                )
-            }
+            // All three stay in the row when the scrub lands where oref produced no
+            // determination — a gap in the data, or a loop that never ran — and show a dash
+            // instead. Letting them come and go would resize the row under the finger, which
+            // is the one thing the reserved boxes exist to prevent.
+            let iobUnit = Text(String(localized: " U", comment: "Insulin unit")).fontWeight(.regular)
+            let iobString = determination?.iob
+                .flatMap { Formatter.decimalFormatterWithTwoFractionDigits.string(from: $0) }
+            item(
+                icon: "syringe.fill",
+                tint: Color.insulin,
+                value: iobString.map { Text($0) + iobUnit } ?? Self.missingValue,
+                template: Text(verbatim: "88.88") + iobUnit,
+                alignment: iobString == nil ? .center : .leading
+            )
 
-            if let determination {
-                let unit = Text(String(localized: " g", comment: "gram of carbs")).fontWeight(.regular)
-                item(
-                    icon: "fork.knife",
-                    tint: .loopYellow,
-                    value: Text(Formatter.integerFormatter.string(from: determination.cob as NSNumber) ?? "") + unit,
-                    template: Text(verbatim: "888") + unit
-                )
-            }
+            let cobUnit = Text(String(localized: " g", comment: "gram of carbs")).fontWeight(.regular)
+            let cobString = determination
+                .flatMap { Formatter.integerFormatter.string(from: $0.cob as NSNumber) }
+            item(
+                icon: "fork.knife",
+                tint: .loopYellow,
+                value: cobString.map { Text($0) + cobUnit } ?? Self.missingValue,
+                template: Text(verbatim: "888") + cobUnit,
+                alignment: cobString == nil ? .center : .leading
+            )
 
-            if let isf = determination?.insulinSensitivity {
-                let unit = Text(String(localized: " ISF", comment: "Insulin Sensitivity Factor")).fontWeight(.regular)
-                item(
-                    icon: "arrow.up.arrow.down",
-                    tint: .secondary,
-                    value: Text(Formatter.integerFormatter.string(from: isf) ?? "") + unit,
-                    template: Text(verbatim: "888") + unit
-                )
-            }
+            let isfUnit = Text(String(localized: " ISF", comment: "Insulin Sensitivity Factor")).fontWeight(.regular)
+            let isfString = determination?.insulinSensitivity
+                .flatMap { Formatter.integerFormatter.string(from: $0) }
+            item(
+                icon: "arrow.up.arrow.down",
+                tint: .secondary,
+                value: isfString.map { Text($0) + isfUnit } ?? Self.missingValue,
+                template: Text(verbatim: "888") + isfUnit,
+                alignment: isfString == nil ? .center : .leading
+            )
         }
         .font(font).fontWeight(.bold).fontDesign(.rounded)
         // equal-width digits: with the reserved boxes below, this is what keeps a value from
@@ -169,29 +181,26 @@ struct ChartSelectionRow: View {
     /// can't be misread as a second state. Each gets its own reserved box with the slack
     /// pushed outwards, so the pair stays welded together at every reading width.
     @ViewBuilder private var glucoseGroup: some View {
-        HStack(spacing: 4) {
-            item(
-                icon: "drop.fill",
-                tint: pointMarkColor,
-                value: Text(glucoseToDisplay.description).foregroundStyle(pointMarkColor),
-                template: Text(glucoseTemplate),
-                // Flush right when the smoothed pair follows: the reading's spare digit then
-                // shows up ahead of the reading, where the row already has slack, instead of
-                // opening a gap between the reading and the bracket that belongs to it.
-                alignment: smoothedToDisplay == nil ? .leading : .trailing
-            )
+        // verbatim: brackets have nothing to translate, and Xcode would otherwise extract
+        // them into the string catalog
+        let open = Text(verbatim: "(")
+        let close = Text(verbatim: ")")
+        let reading = Text(glucoseToDisplay.description).foregroundStyle(pointMarkColor)
+        let smoothed = smoothedToDisplay.map { (open + Text($0.description) + close).foregroundStyle(.secondary) }
 
-            if let smoothedToDisplay {
-                // verbatim: brackets have nothing to translate, and Xcode would otherwise
-                // extract them into the string catalog
-                let open = Text(verbatim: "(")
-                let close = Text(verbatim: ")")
-                item(
-                    value: (open + Text(smoothedToDisplay.description) + close).foregroundStyle(.secondary),
-                    template: open + Text(glucoseTemplate) + close
-                )
-            }
-        }
+        item(
+            icon: "drop.fill",
+            tint: pointMarkColor,
+            value: smoothed.map { reading + $0 } ?? reading,
+            // One box for the pair, not one each: separate boxes would park the reading's
+            // spare digits between it and its bracket. The setting decides the width, not
+            // the individual reading — with smoothing on the bracket's room is held even for
+            // a reading that has no smoothed value, so the row never reflows mid-scrub; with
+            // it off the box is just the reading and the row is that much tighter.
+            template: isSmoothingEnabled
+                ? Text(glucoseTemplate) + open + Text(glucoseTemplate) + close
+                : Text(glucoseTemplate)
+        )
     }
 
     /// The smoothed reading in display units, or nil when smoothing is off or the reading
