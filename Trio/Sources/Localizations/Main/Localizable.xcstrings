@@ -10099,6 +10099,9 @@
         }
       }
     },
+    "%@ times" : {
+      "comment" : "Accessibility: multiplier value, as in 2 times"
+    },
     "%@-%@" : {
       "localizations" : {
         "bg" : {
@@ -11300,6 +11303,9 @@
         }
       }
     },
+    "%1$d min %2$d s" : {
+      "comment" : "Alarm length in minutes and seconds"
+    },
     "%d calibration points" : {
       "comment" : "Accessibility: calibration count",
       "localizations" : {
@@ -11562,6 +11568,9 @@
         }
       }
     },
+    "%d min" : {
+      "comment" : "Alarm length in minutes"
+    },
     "%d minutes" : {
       "comment" : "Accessibility: pod time",
       "localizations" : {
@@ -11823,12 +11832,6 @@
           }
         }
       }
-    },
-    "%1$d min %2$d s" : {
-      "comment" : "Alarm length in minutes and seconds"
-    },
-    "%d min" : {
-      "comment" : "Alarm length in minutes"
     },
     "%d s" : {
       "comment" : "Alarm length in seconds"
@@ -15361,6 +15364,9 @@
         }
       }
     },
+    "• Color Mode: Color keeps the glucose number's dynamic color; Monochrome shows it in white. The ring and arrow stay colored either way." : {
+
+    },
     "• Current Glucose Reading" : {
       "localizations" : {
         "bg" : {
@@ -17535,6 +17541,9 @@
           }
         }
       }
+    },
+    "• Glucose Bobble: Mirrors the glucose HUD, colored by glucose value with a trend arrow." : {
+
     },
     "• Glucose Delta: Change in glucose value." : {
       "localizations" : {
@@ -21005,6 +21014,12 @@
           }
         }
       }
+    },
+    "• Show Delta: Toggle the glucose delta beneath the glucose number." : {
+
+    },
+    "• Show Minutes Since Reading: Toggle the reading age beneath the glucose number." : {
+
     },
     "• Split: Divides values into two separate areas of same size." : {
       "localizations" : {
@@ -31578,6 +31593,9 @@
         }
       }
     },
+    "Above avg SMB x factor" : {
+
+    },
     "above range" : {
       "comment" : "Accessibility: glucose range",
       "localizations" : {
@@ -31708,9 +31726,6 @@
           }
         }
       }
-    },
-    "Above avg SMB x factor" : {
-
     },
     "Acknowledge all alerts" : {
       "extractionState" : "stale",
@@ -32364,6 +32379,7 @@
     },
     "active" : {
       "comment" : "Accessibility: alarms active",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -74444,6 +74460,9 @@
         }
       }
     },
+    "Calibrate" : {
+
+    },
     "Calibration chart" : {
       "localizations" : {
         "bg" : {
@@ -74573,9 +74592,6 @@
           }
         }
       }
-    },
-    "Calibrate" : {
-
     },
     "Calibration unavailable" : {
       "localizations" : {
@@ -95624,6 +95640,9 @@
           }
         }
       }
+    },
+    "Could not save the change." : {
+      "comment" : "Adjustment could not be saved"
     },
     "Count" : {
       "localizations" : {
@@ -131969,6 +131988,9 @@
         }
       }
     },
+    "Enables barcode scanning to import nutritional data directly in the app." : {
+
+    },
     "Enables this temp target" : {
       "comment" : "Accessibility hint",
       "localizations" : {
@@ -132099,9 +132121,6 @@
           }
         }
       }
-    },
-    "Enables barcode scanning to import nutritional data directly in the app." : {
-
     },
     "Enabling Adjust Basal replaces the standard Autosens Ratio calculation with its own Autosens Ratio calculated as such:" : {
       "localizations" : {
@@ -138412,6 +138431,7 @@
     },
     "Error! Something went wrong when processing your request." : {
       "comment" : "Error message when activating override",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -156504,6 +156524,12 @@
         }
       }
     },
+    "Glucose Bobble" : {
+
+    },
+    "Glucose Bobble Options" : {
+
+    },
     "Glucose Calculation" : {
       "localizations" : {
         "bg" : {
@@ -156766,6 +156792,7 @@
     },
     "Glucose chart, no data" : {
       "comment" : "Accessibility: empty chart",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -156897,6 +156924,7 @@
     },
     "Glucose chart. Latest %@ %@." : {
       "comment" : "Accessibility: chart summary",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -157034,6 +157062,7 @@
     },
     "Glucose chart. Latest %@ %@. Visible range %@ to %@." : {
       "comment" : "Accessibility: chart summary with range",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -180722,6 +180751,9 @@
         }
       }
     },
+    "Insulin Sensitivity Factor (ISF)" : {
+
+    },
     "Insulin sensitivity profile chart, 24 hours" : {
       "localizations" : {
         "bg" : {
@@ -180851,9 +180883,6 @@
           }
         }
       }
-    },
-    "Insulin Sensitivity Factor (ISF)" : {
-
     },
     "Insulin Suspended" : {
       "extractionState" : "manual",
@@ -187442,6 +187471,9 @@
         }
       }
     },
+    "Length" : {
+
+    },
     "less than a minute ago" : {
       "comment" : "Accessibility: elapsed time",
       "localizations" : {
@@ -187572,9 +187604,6 @@
           }
         }
       }
-    },
-    "Length" : {
-
     },
     "Let's go through a few quick steps to ensure Trio works optimally for you." : {
       "localizations" : {
@@ -194036,6 +194065,9 @@
         }
       }
     },
+    "Looking up product…" : {
+
+    },
     "Loop" : {
       "comment" : "Accessibility: loop pill label",
       "localizations" : {
@@ -194166,9 +194198,6 @@
           }
         }
       }
-    },
-    "Looking up product…" : {
-
     },
     "Loop at %@ failed." : {
       "localizations" : {
@@ -225233,6 +225262,9 @@
         }
       }
     },
+    "Not enough SMB data" : {
+
+    },
     "not looping" : {
       "comment" : "Accessibility: loop status",
       "localizations" : {
@@ -225363,9 +225395,6 @@
           }
         }
       }
-    },
-    "Not enough SMB data" : {
-
     },
     "Not looping." : {
       "localizations" : {
@@ -228883,6 +228912,9 @@
           }
         }
       }
+    },
+    "Nothing is currently running." : {
+      "comment" : "No active adjustment to cancel"
     },
     "nothing to see here" : {
       "extractionState" : "manual",
@@ -233359,6 +233391,9 @@
         }
       }
     },
+    "Only shown for the Glucose Bobble style, which replaces Display Values, Ring Settings, and Font Settings:" : {
+
+    },
     "Oops, there was an issue!" : {
       "localizations" : {
         "bg" : {
@@ -235083,6 +235118,9 @@
         }
       }
     },
+    "OpenFoodFacts Login" : {
+
+    },
     "Opens a picker to change the target" : {
       "comment" : "Accessibility hint",
       "localizations" : {
@@ -236264,6 +236302,7 @@
     },
     "Opens snooze options" : {
       "comment" : "Accessibility hint",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -236392,9 +236431,6 @@
           }
         }
       }
-    },
-    "OpenFoodFacts Login" : {
-
     },
     "Opens Trio's Barcode scanner for scanning processed food" : {
 
@@ -241027,9 +241063,6 @@
     "Password" : {
 
     },
-    "Pans the chart through time. Flick and let go to keep it gliding." : {
-
-    },
     "Past 24 Hours " : {
       "comment" : "Duration displayed in statPanel",
       "extractionState" : "manual",
@@ -242110,6 +242143,9 @@
         }
       }
     },
+    "Per 100%@" : {
+
+    },
     "percent" : {
       "comment" : "Accessibility: spoken unit",
       "localizations" : {
@@ -242240,9 +242276,6 @@
           }
         }
       }
-    },
-    "Per 100%@" : {
-
     },
     "Percent" : {
       "localizations" : {
@@ -244350,6 +244383,9 @@
     "Pinch" : {
 
     },
+    "Play Once" : {
+
+    },
     "Play preview" : {
       "comment" : "Accessibility: play tone preview",
       "localizations" : {
@@ -244480,9 +244516,6 @@
           }
         }
       }
-    },
-    "Play Once" : {
-
     },
     "Play Sound" : {
       "localizations" : {
@@ -247009,7 +247042,7 @@
       }
     },
     "Preset \"%@\" not found." : {
-      "comment" : "Preset not found",
+      "comment" : "Adjustment preset not found",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -254364,6 +254397,7 @@
     },
     "Quick Pick Treatments" : {
       "comment" : "A label for a button that opens a view that allows users to pick a treatment from their recent entries.",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -260255,6 +260289,9 @@
         }
       }
     },
+    "Remove Photo" : {
+
+    },
     "Remove widget" : {
       "localizations" : {
         "bg" : {
@@ -260384,9 +260421,6 @@
           }
         }
       }
-    },
-    "Remove Photo" : {
-
     },
     "Remove Widget" : {
       "localizations" : {
@@ -278627,6 +278661,9 @@
         }
       }
     },
+    "Show Delta" : {
+
+    },
     "Show forecast on Watch" : {
       "comment" : "Text displayed in a setting input section that shows the forecast on the Apple Watch.",
       "localizations" : {
@@ -279690,6 +279727,9 @@
           }
         }
       }
+    },
+    "Show Minutes Since Reading" : {
+
     },
     "Show X-Axis Grid Lines" : {
       "localizations" : {
@@ -287040,6 +287080,7 @@
     },
     "snoozed, %d minutes remaining" : {
       "comment" : "Accessibility: alarm snooze",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -292036,9 +292077,6 @@
       }
     },
     "Steps through the zoom presets — 6, 12 and 24 hours — anchored under your finger, the same way a pinch is." : {
-
-    },
-    "Steps through the zoom presets — 6, 12 and 24 hours — keeping the right-hand edge of the window where it is." : {
 
     },
     "Stop" : {
@@ -339404,6 +339442,131 @@
         }
       }
     },
+    "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bg" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        },
+        "nb-NO" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frem til nå kunne Trio bare sende krasjrapporter. Nå kan du også dele anonym bruksstatistikk – ting som iPhone- og iOS-versjonen din, og hvilken pumpe og CGM du har koblet til. Dette hjelper Trio-teamet med å prioritere hva som skal fikses og forbedres videre."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
+          }
+        }
+      }
+    },
     "up to date" : {
       "comment" : "Accessibility: version status",
       "localizations" : {
@@ -339535,6 +339698,9 @@
         }
       }
     },
+    "Update" : {
+
+    },
     "update available" : {
       "comment" : "Accessibility: version status",
       "localizations" : {
@@ -339665,134 +339831,6 @@
           }
         }
       }
-    },
-    "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "bg" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        },
-        "cs" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        },
-        "he" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Frem til nå kunne Trio bare sende krasjrapporter. Nå kan du også dele anonym bruksstatistikk – ting som iPhone- og iOS-versjonen din, og hvilken pumpe og CGM du har koblet til. Dette hjelper Trio-teamet med å prioritere hva som skal fikses og forbedres videre."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        },
-        "pt-PT" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Until now, Trio could only sent crash reports. You can now also share anonymous usage statistics — things like your iPhone and iOS version, and which pump and CGM you have paired. This helps the Trio team prioritize what to fix and improve next."
-          }
-        }
-      }
-    },
-    "Update" : {
-
     },
     "Update Available" : {
       "comment" : "Title for update available alert",
@@ -361178,9 +361216,6 @@
 
     },
     "Zooms with one hand: keep your finger down on the second tap and drag up to zoom in, down to zoom out." : {
-
-    },
-    "Zooms continuously, between one hour and a full day on screen." : {
 
     },
     "ZT" : {
