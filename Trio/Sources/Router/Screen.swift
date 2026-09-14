@@ -18,7 +18,6 @@ enum Screen: Identifiable, Hashable {
     case barcodeScanner
     case treatmentView
     case treatmentWithScanner
-    case manualTempBasal
     case history
     case cgm
     case healthkit
@@ -105,8 +104,6 @@ extension Screen {
                 resolver: resolver,
                 openWithScanner: true
             )
-        case .manualTempBasal:
-            ManualTempBasal.RootView(resolver: resolver)
         case .history:
             History.RootView(resolver: resolver)
         case .cgm:
