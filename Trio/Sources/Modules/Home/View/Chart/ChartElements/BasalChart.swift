@@ -63,33 +63,129 @@ extension MainChartCanvas {
         // times per bar — once directly and three times through the `invertedY` helper this
         // replaces. Top-anchored y is `domainMax - rate`; the bars hang from the plot's top.
         let domainMax = basalDomainMax
-        return ForEach(visible, id: \.start) { basal in
-            let y = domainMax - basal.rate
-            RectangleMark(
-                xStart: .value("start", basal.start),
-                xEnd: .value("end", basal.end),
-                yStart: .value("rate-start", domainMax),
-                yEnd: .value("rate-end", y)
-            ).foregroundStyle(
-                .linearGradient(
-                    colors: [
-                        Color.insulin.opacity(0.6),
-                        Color.insulin.opacity(0.1)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
+        // One stroked outline per contiguous run, rather than one for the whole strip. Left as a
+        // single series, the line also spans the gaps *between* bars — a stretch nothing covered,
+        // such as a suspension — and Swift Charts joins the two ends across it with a diagonal
+        // ramp, as though the rate had slid from one level to the other. Bars that do abut stay
+        // in the same run, so their join remains the vertical step it has always been.
+        // A gap only breaks the outline when it is wide enough to see. Measured in points rather
+        // than in seconds: bars can sit seconds apart and still land on the same pixel column, and
+        // splitting those left each side closing on the baseline — a stroke up and straight back
+        // down, reading as a seam between two bars that belong together.
+        let secondsPerPoint = windowEnd.timeIntervalSince(windowStart) / Double(max(canvasWidth, 1))
+        return ForEach(contiguousBasalRuns(visible, minimumGap: secondsPerPoint * Self.visibleGapPoints)) { run in
+            ForEach(run.bars, id: \.start) { basal in
+                let y = domainMax - basal.rate
+                RectangleMark(
+                    xStart: .value("start", basal.start),
+                    xEnd: .value("end", basal.end),
+                    yStart: .value("rate-start", domainMax),
+                    yEnd: .value("rate-end", y)
+                ).foregroundStyle(
+                    .linearGradient(
+                        colors: [
+                            Color.insulin.opacity(0.6),
+                            Color.insulin.opacity(0.1)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                ).alignsMarkStylesWithPlotArea()
+                    .opacity(basal.isScheduled ? 0.5 : 1)
+            }
+
+            // The run's outline, walked as one line: down from the zero baseline at the leading
+            // edge, across each bar's top, and back up to the baseline at the trailing edge.
+            // The two baseline points are what draw the side strokes on the first and last bar;
+            // without them a run begins and ends in mid-air and only its top shows.
+            ForEach(run.outlinePoints(baseline: domainMax)) { point in
+                LineMark(
+                    x: .value("Date", point.date),
+                    y: .value("Amount", point.y),
+                    series: .value("basal run", run.id)
                 )
-            ).alignsMarkStylesWithPlotArea()
-                .opacity(basal.isScheduled ? 0.5 : 1)
-
-            LineMark(x: .value("Start Date", basal.start), y: .value("Amount", y))
                 .lineStyle(.init(lineWidth: 1)).foregroundStyle(Color.insulin)
-                .opacity(basal.isScheduled ? 0.5 : 1)
-
-            LineMark(x: .value("End Date", basal.end), y: .value("Amount", y))
-                .lineStyle(.init(lineWidth: 1)).foregroundStyle(Color.insulin)
-                .opacity(basal.isScheduled ? 0.5 : 1)
+                .opacity(point.opacity)
+            }
         }
+    }
+
+    /// How wide a gap has to be, in points, before it breaks the outline. Below one point there
+    /// is no column left to draw the break in, and the bars either side are touching on screen.
+    static var visibleGapPoints: Double { 1 }
+
+    /// One point of a run's stroked outline.
+    struct BasalOutlinePoint: Identifiable {
+        let id: String
+        let date: Date
+        let y: Double
+        /// Taken from the bar the point belongs to, so an inferred scheduled stretch keeps the
+        /// dimmed stroke it has always had.
+        let opacity: Double
+    }
+
+    /// A stretch of basal bars that abut one another end-to-start, and so belong to one outline.
+    struct BasalRun: Identifiable {
+        let id: String
+        let bars: [(start: Date, end: Date, rate: Double, isScheduled: Bool)]
+
+        /// The outline as the points one stroked line walks, in x order.
+        ///
+        /// `baseline` is the y of a zero rate — the top of the strip, since the bars hang from
+        /// it. Closing on it at both ends is what gives the outer bars their vertical sides; the
+        /// ones in between get theirs from the step between two neighbours.
+        func outlinePoints(baseline: Double) -> [BasalOutlinePoint] {
+            guard let first = bars.first, let last = bars.last else { return [] }
+
+            var points: [BasalOutlinePoint] = []
+            points.reserveCapacity(bars.count * 2 + 2)
+
+            func append(_ date: Date, _ y: Double, _ opacity: Double) {
+                points.append(BasalOutlinePoint(id: "\(id)-\(points.count)", date: date, y: y, opacity: opacity))
+            }
+
+            append(first.start, baseline, first.isScheduled ? 0.5 : 1)
+            for bar in bars {
+                let y = baseline - bar.rate
+                let opacity = bar.isScheduled ? 0.5 : 1
+                append(bar.start, y, opacity)
+                append(bar.end, y, opacity)
+            }
+            append(last.end, baseline, last.isScheduled ? 0.5 : 1)
+
+            return points
+        }
+    }
+
+    /// Splits the sorted bars into runs, breaking wherever one bar's end does not meet the next
+    /// one's start.
+    ///
+    /// `calculateTempBasals` already sweeps the pump's schedule into every gap it can infer, so a
+    /// break here means a stretch nothing covered at all — a suspension, or a window the pump
+    /// reported nothing for. Those are exactly the places the outline must not be drawn across.
+    ///
+    /// `minimumGap` is what counts as a break, in seconds — derived from the current zoom, so a
+    /// gap too narrow to render keeps its bars in one run rather than closing both sides on the
+    /// baseline. Overlapping bars give a negative interval and stay in the same run either way.
+    func contiguousBasalRuns(
+        _ bars: [(start: Date, end: Date, rate: Double, isScheduled: Bool)],
+        minimumGap: TimeInterval
+    ) -> [BasalRun] {
+        var runs: [BasalRun] = []
+        var current: [(start: Date, end: Date, rate: Double, isScheduled: Bool)] = []
+
+        func closeRun() {
+            guard let first = current.first else { return }
+            runs.append(BasalRun(id: "basal-\(first.start.timeIntervalSince1970)", bars: current))
+            current = []
+        }
+
+        for bar in bars {
+            if let last = current.last, bar.start.timeIntervalSince(last.end) > minimumGap { closeRun() }
+            current.append(bar)
+        }
+        closeRun()
+        return runs
     }
 
     func drawBasalProfile() -> some ChartContent {
