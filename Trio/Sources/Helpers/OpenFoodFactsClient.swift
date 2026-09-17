@@ -92,13 +92,20 @@ extension BarcodeScanner {
         /// - Throws: `OpenFoodFactsError.productNotFound` if no product matches the barcode,
         ///   or `OpenFoodFactsError.invalidResponse` when the response is invalid.
         func fetchProduct(barcode: String) async throws -> FoodItem {
+            // Built through URLComponents rather than interpolated: the previous string joined
+            // the field list on with "&fields=" and no "?" anywhere, so there was no query at
+            // all — the whole thing was one path component. The projection never applied, and
+            // the request went to a path no product lives at.
             guard
-                let url =
-                URL(
-                    string:
-                    "https://world.openfoodfacts.org/api/v2/product/\(barcode).json&fields=code,product_name,image_url,image_front_small_url,nutriments,serving_quantity_unit,serving_quantity,product_quantity,product_quantity_unit"
+                var components = URLComponents(
+                    string: "https://world.openfoodfacts.org/api/v2/product/\(barcode).json"
                 )
             else {
+                throw OpenFoodFactsError.invalidResponse
+            }
+            components.queryItems = [URLQueryItem(name: "fields", value: Self.productFields)]
+
+            guard let url = components.url else {
                 throw OpenFoodFactsError.invalidResponse
             }
 
