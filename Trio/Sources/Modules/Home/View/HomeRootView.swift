@@ -17,6 +17,9 @@ extension Home {
         @State var state = StateModel()
 
         @State var settingsPath = NavigationPath()
+        /// When the user last left the settings tab with a screen pushed, or `nil` while they are
+        /// on it — wall clock, so time spent with the app backgrounded counts.
+        @State private var settingsLeftAt: Date?
         @State var settingsSearchHighlight = SettingsSearchHighlight()
         @State var isStatusPopupPresented = false
         @State var showCancelAlert = false
@@ -28,6 +31,11 @@ extension Home {
         @State var showTreatments = false
         @State var selectedTab: Int = 0
         static let treatmentTabTag = 4
+
+        /// How long the settings tab keeps the screen the user was on after they leave it.
+        /// A hop to the home screen to check a number and straight back lands where they were;
+        /// coming back later starts at the settings root, as before.
+        static let settingsPathRetention: TimeInterval = 30
         @State var showQuickPickTreatmentsPicker = false
         @State var showQuickPickTreatmentsNoHistory = false
         @State var showPumpSelection: Bool = false
@@ -415,10 +423,20 @@ extension Home {
             .ignoresSafeArea(.container, edges: .bottom)
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .blur(radius: state.waitForSuggestion ? 8 : 0)
-            .onChange(of: selectedTab) {
-                if selectedTab != 3, !settingsPath.isEmpty {
+            .onChange(of: selectedTab) { syncSettingsPath() }
+        }
+
+        /// Drops the settings navigation stack once the user has been away from that tab for
+        /// longer than `settingsPathRetention`. Resetting on the way back rather than on the way
+        /// out is what makes the short hop away free; programmatic pushes survive either way.
+        private func syncSettingsPath() {
+            if selectedTab == 3 {
+                if let leftAt = settingsLeftAt, Date().timeIntervalSince(leftAt) > Self.settingsPathRetention {
                     settingsPath = NavigationPath()
                 }
+                settingsLeftAt = nil
+            } else if settingsLeftAt == nil, !settingsPath.isEmpty {
+                settingsLeftAt = Date()
             }
         }
 
@@ -526,12 +544,7 @@ extension Home {
                     treatmentButton
                 }
             }.ignoresSafeArea(.keyboard, edges: .bottom).blur(radius: state.waitForSuggestion ? 8 : 0)
-                .onChange(of: selectedTab) {
-                    // reset only when leaving Settings; programmatic pushes survive the switch
-                    if selectedTab != 3, !settingsPath.isEmpty {
-                        settingsPath = NavigationPath()
-                    }
-                }
+                .onChange(of: selectedTab) { syncSettingsPath() }
         }
 
         var body: some View {
