@@ -12,6 +12,30 @@ import Foundation
 final class OpenFoodFactsClient {
     private let authStore = OpenFoodFactsAuthStore()
 
+    /// The product fields this client asks for, as OpenFoodFacts spells them.
+    ///
+    /// Exactly the keys `ProductData` decodes. A product document carries hundreds of
+    /// fields — ingredient analysis, ecoscore, packaging, every translation — and the
+    /// decoder throws all but these away, so requesting them is bandwidth and parse time
+    /// spent on nothing. Keep in step with `ProductData.CodingKeys`: a key added there but
+    /// not here silently decodes as nil, since every property is `decodeIfPresent`.
+    static let productFields = [
+        "code",
+        "product_name",
+        "brands",
+        "quantity",
+        "product_quantity",
+        "product_quantity_unit",
+        "serving_size",
+        "serving_quantity",
+        "serving_quantity_unit",
+        "ingredients_text",
+        "image_url",
+        "image_front_url",
+        "image_front_thumb_url",
+        "nutriments"
+    ].joined(separator: ",")
+
     func setCredentials(username: String, password: String) async {
         await authStore.setCredentials(username: username, password: password)
     }
@@ -73,13 +97,20 @@ final class OpenFoodFactsClient {
     /// - Throws: `OpenFoodFactsError.productNotFound` if no product matches the barcode,
     ///   or `OpenFoodFactsError.invalidResponse` when the response is invalid.
     func fetchProduct(barcode: String) async throws -> FoodItem {
+        // Built through URLComponents rather than interpolated: the previous string joined
+        // the field list on with "&fields=" and no "?" anywhere, so there was no query at
+        // all — the whole thing was one path component. The projection never applied, and
+        // the request went to a path no product lives at.
         guard
-            let url =
-            URL(
-                string:
-                "https://world.openfoodfacts.org/api/v2/product/\(barcode).json&fields=code,product_name,image_url,image_front_small_url,nutriments,serving_quantity_unit,serving_quantity,product_quantity,product_quantity_unit"
+            var components = URLComponents(
+                string: "https://world.openfoodfacts.org/api/v2/product/\(barcode).json"
             )
         else {
+            throw OpenFoodFactsError.invalidResponse
+        }
+        components.queryItems = [URLQueryItem(name: "fields", value: Self.productFields)]
+
+        guard let url = components.url else {
             throw OpenFoodFactsError.invalidResponse
         }
 
@@ -113,6 +144,17 @@ final class OpenFoodFactsClient {
     }
 
     /// Search products by name/text query
+    ///
+    /// Uses the v2 search endpoint rather than the legacy `/cgi/search.pl` CGI. The query
+    /// parameters that carry meaning here — `search_terms`, `page`, `page_size` — are the
+    /// same on both; `search_simple`, `action` and `json` were CGI plumbing with no v2
+    /// equivalent, since v2 always returns JSON.
+    ///
+    /// v2 also honours `fields`, which the CGI did not. Without it every hit comes back as
+    /// a full product document — hundreds of keys, most of a megabyte for a page of 24 —
+    /// of which `ProductData` reads fourteen. Asking for just those is the difference
+    /// between a page of results being a large download and a small one.
+    ///
     /// - Parameters:
     ///   - query: The search term to look for
     ///   - page: Page number for pagination (1-indexed)
@@ -124,18 +166,16 @@ final class OpenFoodFactsClient {
             return []
         }
 
-        guard var components = URLComponents(string: "https://world.openfoodfacts.org/cgi/search.pl")
+        guard var components = URLComponents(string: "https://world.openfoodfacts.org/api/v2/search")
         else {
             throw OpenFoodFactsError.invalidResponse
         }
 
         components.queryItems = [
             URLQueryItem(name: "search_terms", value: query),
-            URLQueryItem(name: "search_simple", value: "1"),
-            URLQueryItem(name: "action", value: "process"),
-            URLQueryItem(name: "json", value: "1"),
             URLQueryItem(name: "page", value: String(page)),
-            URLQueryItem(name: "page_size", value: String(pageSize))
+            URLQueryItem(name: "page_size", value: String(pageSize)),
+            URLQueryItem(name: "fields", value: Self.productFields)
         ]
 
         guard let url = components.url else {
@@ -388,10 +428,16 @@ private extension OpenFoodFactsClient {
     }
 
     /// Response structure for search API endpoint
+    ///
+    /// `products` is the only key this client reads; the rest are decoded because they are
+    /// part of the contract and useful when debugging a page of results. They are optional
+    /// because only `products` and `count` are guaranteed — a response that omits the
+    /// pagination echo would otherwise fail to decode and surface as "no results" rather than
+    /// as the results it actually carried.
     struct SearchAPIResponse: Decodable {
-        let count: Int
-        let page: Int
-        let pageSize: Int
+        let count: Int?
+        let page: Int?
+        let pageSize: Int?
         let products: [ProductData]
     }
 
