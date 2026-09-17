@@ -1,8 +1,6 @@
 import CodeScanner
-import CoreData
 import SwiftUI
 import Swinject
-import UIKit
 
 private func localizedScanFailureMessage(for error: ScanError) -> String {
     switch error {
@@ -21,41 +19,26 @@ private func localizedScanFailureMessage(for error: ScanError) -> String {
 
 // MARK: - Root View
 
-extension BarcodeScanner {
+extension MealManager {
     struct RootView: BaseView {
         let resolver: Resolver
-        var showListInitially: Bool = false
         var onAddTreatments: ((Decimal, Decimal, Decimal, String) -> Void)?
 
         @ObservedObject var state: StateModel
         @State private var isEditingFromList = false
         @State private var showEditorCard = false
 
-        @State private var selectedListTab: ListTab = .scanned
         @FocusState private var focusedItemID: UUID?
         @FocusState private var isSearchFocused: Bool
-        @Environment(\.managedObjectContext) var moc
-
-        @FetchRequest(
-            entity: MealPresetStored.entity(),
-            sortDescriptors: [NSSortDescriptor(key: "dish", ascending: true)]
-        ) var presets: FetchedResults<MealPresetStored>
-
-        private var matchingPresets: [MealPresetStored] {
-            if state.searchQuery.isEmpty { return [] }
-            return presets.filter { ($0.dish ?? "").localizedCaseInsensitiveContains(state.searchQuery) }
-        }
 
         init(
             resolver: Resolver,
             state: StateModel,
-            showListInitially: Bool = false,
             onAddTreatments: ((Decimal, Decimal, Decimal, String) -> Void)? = nil,
             onDismiss: (() -> Void)? = nil
         ) {
             self.resolver = resolver
             _state = ObservedObject(wrappedValue: state)
-            self.showListInitially = showListInitially
             self.onAddTreatments = onAddTreatments
             // Wire optional callback into the state so it can call back when user selects "Add to Treatments"
             self.state.onAddTreatments = onAddTreatments
@@ -76,10 +59,16 @@ extension BarcodeScanner {
             case fiber
         }
 
-        enum ListTab: String, CaseIterable {
-            case scanner = "Scanner"
-            case scanned = "Meal"
-            case presets = "Presets"
+        /// Tabs follow the feature gates: no Scanner tab without the barcode scanner, no Presets
+        /// tab without meal presets. The current meal is always reachable.
+        private var availableTabs: [ListTab] {
+            ListTab.allCases.filter { tab in
+                switch tab {
+                case .scanner: return state.isScannerEnabled
+                case .scanned: return true
+                case .presets: return state.displayPresets
+                }
+            }
         }
 
         private var torchToggleButton: some View {
@@ -105,9 +94,9 @@ extension BarcodeScanner {
 
         var body: some View {
             VStack(spacing: 0) {
-                if !state.showEditorView || selectedListTab != .scanner {
-                    Picker("Mode", selection: $selectedListTab) {
-                        ForEach(ListTab.allCases, id: \.self) { tab in
+                if availableTabs.count > 1, !state.showEditorView || state.selectedTab != .scanner {
+                    Picker("Mode", selection: $state.selectedTab) {
+                        ForEach(availableTabs, id: \.self) { tab in
                             Text(LocalizedStringKey(tab.rawValue)).tag(tab)
                         }
                     }
@@ -118,7 +107,7 @@ extension BarcodeScanner {
                 }
 
                 ZStack {
-                    switch selectedListTab {
+                    switch state.selectedTab {
                     case .scanner:
                         scannerViewContent
                     case .scanned:
@@ -130,21 +119,14 @@ extension BarcodeScanner {
             }
             .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
             .navigationTitle(LocalizedStringKey(navigationTitle))
-            .onChange(of: state.showListView) { _, newValue in
-                if newValue {
-                    if selectedListTab == .scanner {
-                        selectedListTab = .scanned
-                    }
-                    // Reset torch when list view is shown (scanner hides)
-                    state.isTorchOn = false
-                } else {
-                    selectedListTab = .scanner
+            .onAppear {
+                // A disabled feature must not leave the sheet showing an empty tab.
+                if !availableTabs.contains(state.selectedTab) {
+                    state.selectedTab = availableTabs.first ?? .scanned
                 }
             }
-            .onChange(of: selectedListTab) { _, newValue in
-                state.showListView = (newValue != .scanner)
-
-                // Reset torch when switching to any tab other than scanner
+            .onChange(of: state.selectedTab) { _, newValue in
+                // The torch belongs to the scanner tab only.
                 if newValue != .scanner {
                     state.isTorchOn = false
                 }
@@ -203,13 +185,6 @@ extension BarcodeScanner {
             .onAppear {
                 configureView()
                 state.handleAppear()
-                state.showListView = showListInitially
-                // Sync tab state with showListInitially
-                if showListInitially {
-                    selectedListTab = .scanned
-                } else {
-                    selectedListTab = .scanner
-                }
             }
         }
 
@@ -222,7 +197,7 @@ extension BarcodeScanner {
                     NutritionEditorView(
                         state: state,
                         isEditingFromList: $isEditingFromList,
-                        onDismissList: { state.showListView = true }
+                        onDismissList: { state.selectedTab = .scanned }
                     )
                     .transition(.move(edge: .trailing).combined(with: .opacity))
                 } else {
@@ -361,32 +336,12 @@ extension BarcodeScanner {
         }
 
         private var presetListView: some View {
-            PresetListView(
+            MealPresetListView(
                 scannerState: state,
                 onSelect: { preset in
-                    var imageSource: BarcodeScanner.FoodItem.ImageSource = .none
-                    if let data = preset.imageData, let img = UIImage(data: data) {
-                        imageSource = .image(img)
-                    }
-
-                    let item = BarcodeScanner.FoodItem(
-                        id: UUID(),
-                        name: preset.dish ?? "Unknown",
-                        imageSource: imageSource,
-                        nutriments: .init(
-                            basis: preset.isMl ? .per100ml : .per100g,
-                            carbohydratesPer100g: Double(truncating: preset.carbs ?? 0),
-                            sugarsPer100g: nil,
-                            fatPer100g: Double(truncating: preset.fat ?? 0),
-                            proteinPer100g: Double(truncating: preset.protein ?? 0),
-                            fiberPer100g: nil
-                        ),
-                        amount: preset.amount,
-                        isMlInput: preset.isMl
-                    )
                     withAnimation {
-                        state.scannedProducts.append(item)
-                        selectedListTab = .scanned
+                        state.scannedProducts.append(FoodItem(preset: preset))
+                        state.selectedTab = .scanned
                     }
                 },
                 shouldDismissOnSelect: false
@@ -398,163 +353,16 @@ extension BarcodeScanner {
                 List {
                     // Search Section
                     Section {
-                        BarcodeScanner.ProductSearchField(
-                            searchText: $state.searchQuery,
-                            isFocused: $isSearchFocused,
-                            onSubmit: {
-                                state.performFoodSearch()
-                            },
-                            onClear: {
-                                state.searchQuery = ""
-                                state.searchResults = []
-                                state.searchError = nil
-                                state.hasMoreSearchResults = false
-                            },
-                            onChange: {
-                                state.searchResults = []
-                                state.searchError = nil
-                                state.hasMoreSearchResults = false
-                            }
-                        )
-                        .listRowInsets(EdgeInsets(top: 20, leading: 0, bottom: 10, trailing: 0))
+                        MealManager.MealSearchBar(state: state, isFocused: $isSearchFocused)
+                            .listRowInsets(EdgeInsets(top: 20, leading: 0, bottom: 10, trailing: 0))
 
-                        // Search
                         if !state.searchQuery.isEmpty {
-                            let results = matchingPresets
-                            ForEach(results) { preset in
-                                Button {
-                                    withAnimation {
-                                        var imageSource: BarcodeScanner.FoodItem.ImageSource = .none
-                                        if let data = preset.imageData, let image = UIImage(data: data) {
-                                            imageSource = .image(image)
-                                        }
-
-                                        let item = BarcodeScanner.FoodItem(
-                                            barcode: nil,
-                                            name: preset.dish ?? "Preset",
-                                            brand: "Preset",
-                                            imageSource: imageSource,
-                                            servingQuantity: preset.amount,
-                                            servingQuantityUnit: preset.isMl ? "ml" : "g",
-                                            nutriments: .init(
-                                                basis: preset.isMl ? .per100ml : .per100g,
-                                                carbohydratesPer100g: (preset.carbs as NSDecimalNumber?)?.doubleValue,
-                                                fatPer100g: (preset.fat as NSDecimalNumber?)?.doubleValue,
-                                                proteinPer100g: (preset.protein as NSDecimalNumber?)?.doubleValue
-                                            ),
-                                            amount: preset.amount,
-                                            isMlInput: preset.isMl,
-                                            isManualEntry: true
-                                        )
-                                        state.scannedProducts.append(item)
-                                        state.searchQuery = ""
-                                        state.searchResults = []
-                                        isSearchFocused = false
-                                    }
-                                } label: {
-                                    HStack(spacing: 12) {
-                                        if let data = preset.imageData, let uiImage = UIImage(data: data) {
-                                            Image(uiImage: uiImage)
-                                                .resizable()
-                                                .scaledToFill()
-                                                .frame(width: 44, height: 44)
-                                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        } else {
-                                            Image(systemName: "fork.knife")
-                                                .font(.title2)
-                                                .frame(width: 44, height: 44)
-                                                .background(Color.gray.opacity(0.1))
-                                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                                .foregroundStyle(.secondary)
-                                        }
-
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(preset.dish ?? "Unknown")
-                                                .font(.subheadline.weight(.medium))
-                                                .foregroundStyle(.primary)
-                                                .frame(maxWidth: .infinity, alignment: .leading)
-
-                                            HStack {
-                                                Text("Preset")
-                                                    .font(.caption2)
-                                                    .padding(.horizontal, 4)
-                                                    .padding(.vertical, 2)
-                                                    .background(Color.blue.opacity(0.1))
-                                                    .foregroundStyle(.blue)
-                                                    .cornerRadius(4)
-
-                                                if let c = preset.carbs {
-                                                    Text(String(format: "%.0fg carbs", (c as NSDecimalNumber).doubleValue))
-                                                        .font(.caption)
-                                                        .foregroundStyle(.secondary)
-                                                }
-                                            }
-                                        }
-                                        Spacer()
-                                        Image(systemName: "plus.circle.fill")
-                                            .foregroundStyle(.blue)
-                                            .font(.title3)
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                                .listRowSeparator(.hidden)
-                                .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                            }
-                        }
-
-                        if state.isSearching {
-                            HStack {
-                                Spacer()
-                                ProgressView()
-                                    .scaleEffect(1.5)
-                                Spacer()
-                            }
-                            .listRowSeparator(.hidden)
-                        } else if let error = state.searchError {
-                            Text(error)
-                                .font(.caption)
-                                .foregroundStyle(.red)
-                                .listRowSeparator(.hidden)
-                        } else if !state.searchResults.isEmpty {
-                            ForEach(state.searchResults) { item in
-                                BarcodeScanner.FoodSearchResultRow(item: item) {
-                                    withAnimation {
-                                        var mutableItem = item
-                                        mutableItem.amount = item.servingQuantity ?? 100
-                                        state.scannedProducts.append(mutableItem)
-                                        state.searchQuery = ""
-                                        state.searchResults = []
-                                        state.searchError = nil
-                                        state.hasMoreSearchResults = false
-                                        isSearchFocused = false
-                                    }
-                                }
-                                .listRowSeparator(.hidden)
-                                .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
-                            }
-
-                            if state.hasMoreSearchResults {
-                                Button {
-                                    state.loadMoreSearchResults()
-                                } label: {
-                                    HStack {
-                                        if state.isLoadingMoreSearchResults {
-                                            ProgressView()
-                                                .scaleEffect(0.9)
-                                        } else {
-                                            Text("Show 4 more results")
-                                                .font(.caption.weight(.medium))
-                                            Image(systemName: "chevron.down")
-                                                .font(.caption)
-                                        }
-                                    }
-                                    .foregroundStyle(.blue)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 8)
-                                }
-                                .buttonStyle(.plain)
-                                .disabled(state.isLoadingMoreSearchResults)
-                                .listRowSeparator(.hidden)
+                            MealManager.SearchResults(state: state, layout: .list) { item in
+                                var mutableItem = item
+                                mutableItem.amount = item.servingQuantity ?? 100
+                                state.scannedProducts.append(mutableItem)
+                                state.clearSearch()
+                                isSearchFocused = false
                             }
                         }
 
@@ -602,7 +410,7 @@ extension BarcodeScanner {
 
         // MARK: - Scanned Product Actions
 
-        func actionButtonsForScannedProduct(for product: BarcodeScanner.FoodItem) -> some View {
+        func actionButtonsForScannedProduct(for product: FoodItem) -> some View {
             Group {
                 Button(role: .destructive) {
                     withAnimation {
@@ -628,28 +436,36 @@ extension BarcodeScanner {
         private var emptyListView: some View {
             VStack(spacing: 20) {
                 Spacer()
-                Image(systemName: "barcode.viewfinder")
+                Image(systemName: state.isScannerEnabled ? "barcode.viewfinder" : "fork.knife")
                     .font(.system(size: 60))
                     .foregroundStyle(.secondary)
                 Text(String(localized: "No items yet"))
                     .font(.title3.weight(.medium))
-                Text(String(localized: "Scan barcodes or search to add items."))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                Button {
-                    state.showListView = false
-                } label: {
-                    HStack {
-                        Image(systemName: "barcode.viewfinder")
-                        Text(String(localized: "Start Scanning"))
+                Text(
+                    state.isScannerEnabled
+                        ? String(localized: "Scan barcodes or search to add items.")
+                        : String(localized: "Search your meal presets to add items.")
+                )
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+
+                // Without the scanner there is no Scanner tab to send anyone to.
+                if state.isScannerEnabled {
+                    Button {
+                        state.selectedTab = .scanner
+                    } label: {
+                        HStack {
+                            Image(systemName: "barcode.viewfinder")
+                            Text(String(localized: "Start Scanning"))
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal)
                     }
-                    .font(.subheadline.weight(.semibold))
-                    .padding(.horizontal)
+                    .buttonStyle(.borderedProminent)
+                    .padding(.top, 8)
                 }
-                .buttonStyle(.borderedProminent)
-                .padding(.top, 8)
                 Spacer()
             }
             .frame(maxWidth: .infinity)

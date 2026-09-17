@@ -78,8 +78,8 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var displayGlucoseForecasts: Bool = false
     var bolusShortcut: BolusShortcutLimit = .notAllowed
     var timeInRangeType: TimeInRangeType = .timeInTightRange
-    var barcodeScannerEnabled: Bool = false
-    var barcodeScannerOnlyCarbs: Bool = false
+    var mealManagerScannerEnabled: Bool = false
+    var mealManagerOnlyCarbs: Bool = false
     var openFoodFactsUsername: String = ""
     var openFoodFactsPassword: String = ""
     var scaleIP: String = ""
@@ -461,16 +461,24 @@ extension TrioSettings: Decodable {
             settings.timeInRangeType = timeInRangeType
         }
 
-        if let barcodeScannerEnabled = try? container.decode(Bool.self, forKey: .barcodeScannerEnabled)
-        {
-            settings.barcodeScannerEnabled = barcodeScannerEnabled
-        }
-
-        if let barcodeScannerOnlyCarbs = try? container.decode(
-            Bool.self, forKey: .barcodeScannerOnlyCarbs
+        if let mealManagerScannerEnabled = try? container.decode(
+            Bool.self, forKey: .mealManagerScannerEnabled
         )
         {
-            settings.barcodeScannerOnlyCarbs = barcodeScannerOnlyCarbs
+            settings.mealManagerScannerEnabled = mealManagerScannerEnabled
+        } else if let legacyValue = decodeLegacyBool(from: decoder, legacyKey: "barcodeScannerEnabled") {
+            // Migrate the pre-rename "barcodeScannerEnabled" key so existing users keep their opt-in.
+            settings.mealManagerScannerEnabled = legacyValue
+        }
+
+        if let mealManagerOnlyCarbs = try? container.decode(
+            Bool.self, forKey: .mealManagerOnlyCarbs
+        )
+        {
+            settings.mealManagerOnlyCarbs = mealManagerOnlyCarbs
+        } else if let legacyValue = decodeLegacyBool(from: decoder, legacyKey: "barcodeScannerOnlyCarbs") {
+            // Migrate the pre-rename "barcodeScannerOnlyCarbs" key.
+            settings.mealManagerOnlyCarbs = legacyValue
         }
 
         if let openFoodFactsUsername = try? container.decode(

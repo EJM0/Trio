@@ -10,8 +10,8 @@ extension BolusCalculatorConfig {
         @Published var sweetMealFactor: Decimal = 0
         @Published var displayPresets: Bool = true
         @Published var confirmBolusWhenVeryLowGlucose: Bool = false
-        @Published var barcodeScannerEnabled: Bool = false
-        @Published var barcodeScannerOnlyCarbs: Bool = false
+        @Published var mealManagerScannerEnabled: Bool = false
+        @Published var mealManagerOnlyCarbs: Bool = false
         @Published var openFoodFactsUsername: String = ""
         @Published var openFoodFactsPassword: String = ""
         @Published var isOpenFoodFactsLoginSuccessful: Bool = false
@@ -19,8 +19,6 @@ extension BolusCalculatorConfig {
         @Published var openFoodFactsLoginError: String?
         @Published var scaleIP: String = ""
         @Published var calibrationWeight: Decimal = 100
-
-        private let openFoodFactsClient = BarcodeScanner.OpenFoodFactsClient()
 
         func tareScale() {
             provider.scaleManager.tare(ip: scaleIP)
@@ -42,10 +40,10 @@ extension BolusCalculatorConfig {
             openFoodFactsLoginError = nil
 
             Task { @MainActor in
-                await openFoodFactsClient.setCredentials(username: trimmedUsername, password: openFoodFactsPassword)
+                await provider.openFoodFacts.setCredentials(username: trimmedUsername, password: openFoodFactsPassword)
 
                 do {
-                    let loginSuccessful = try await openFoodFactsClient.login()
+                    let loginSuccessful = try await provider.openFoodFacts.login()
                     isOpenFoodFactsLoginSuccessful = loginSuccessful
                     if !loginSuccessful {
                         openFoodFactsLoginError = String(localized: "Login failed. Check username/password.")
@@ -69,7 +67,7 @@ extension BolusCalculatorConfig {
             openFoodFactsLoginError = nil
 
             Task { @MainActor in
-                await openFoodFactsClient.setCredentials(username: "", password: "")
+                await provider.openFoodFacts.setCredentials(username: "", password: "")
             }
         }
 
@@ -85,11 +83,11 @@ extension BolusCalculatorConfig {
             subscribeSetting(\.confirmBolus, on: $confirmBolusWhenVeryLowGlucose) {
                 confirmBolusWhenVeryLowGlucose = $0
             }
-            subscribeSetting(\.barcodeScannerEnabled, on: $barcodeScannerEnabled) {
-                barcodeScannerEnabled = $0
+            subscribeSetting(\.mealManagerScannerEnabled, on: $mealManagerScannerEnabled) {
+                mealManagerScannerEnabled = $0
             }
-            subscribeSetting(\.barcodeScannerOnlyCarbs, on: $barcodeScannerOnlyCarbs) {
-                barcodeScannerOnlyCarbs = $0
+            subscribeSetting(\.mealManagerOnlyCarbs, on: $mealManagerOnlyCarbs) {
+                mealManagerOnlyCarbs = $0
             }
             subscribeSetting(\.openFoodFactsUsername, on: $openFoodFactsUsername) {
                 openFoodFactsUsername = $0
@@ -100,11 +98,11 @@ extension BolusCalculatorConfig {
             subscribeSetting(\.scaleIP, on: $scaleIP) { scaleIP = $0 }
 
             Task { @MainActor in
-                await self.openFoodFactsClient.setCredentials(
+                await self.provider.openFoodFacts.setCredentials(
                     username: self.openFoodFactsUsername,
                     password: self.openFoodFactsPassword
                 )
-                self.isOpenFoodFactsLoginSuccessful = await self.openFoodFactsClient.hasValidSessionCookie()
+                self.isOpenFoodFactsLoginSuccessful = await self.provider.openFoodFacts.hasValidSessionCookie()
             }
         }
     }

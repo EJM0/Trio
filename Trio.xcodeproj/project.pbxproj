@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		394BF984A24494593EF6DCAD /* MealManagerStateModel+Search.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F15671275146A864BFED038 /* MealManagerStateModel+Search.swift */; };
+		C7F5F8F7DEFEECACF3C90702 /* MealManagerStateModel+Scale.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7678DD4DAA2C43554E4DD3 /* MealManagerStateModel+Scale.swift */; };
+		C6B56FA15485E9E13D04BC1B /* MealSearchResults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BC8F37FF402BEF2CBAAF730 /* MealSearchResults.swift */; };
+		A6A68FBD80AD95C3CD06815D /* FoodItem+MealPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68EB27C1BB1AC224B509617A /* FoodItem+MealPreset.swift */; };
 		041D1E995A6AE92E9289DC49 /* TreatmentsDataFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8D1A7CA8C10C4403D4BBFA7 /* TreatmentsDataFlow.swift */; };
 		090F87222FD35B8E00E0CA01 /* CombinedGlucoseChartview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090F87212FD35B8E00E0CA01 /* CombinedGlucoseChartview.swift */; };
 		0961457D2F0BEEDE003E06D3 /* NutritionTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0961457C2F0BEEDE003E06D3 /* NutritionTextField.swift */; };
@@ -16,20 +20,20 @@
 		09725ACC3034A3CF00B148F3 /* PeakPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09725ACB3034A3CF00B148F3 /* PeakPicker.swift */; };
 		09725ACE3034A73B00B148F3 /* LabelPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09725ACD3034A73B00B148F3 /* LabelPlacement.swift */; };
 		09725ACF3034A73B00B148F3 /* ChartViewport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09725AD03034A73B00B148F3 /* ChartViewport.swift */; };
-		0977A2262EF1F35C00A1AF88 /* BarcodeScannerStateModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0977A2252EF1F35200A1AF88 /* BarcodeScannerStateModel.swift */; };
+		0977A2262EF1F35C00A1AF88 /* MealManagerStateModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0977A2252EF1F35200A1AF88 /* MealManagerStateModel.swift */; };
 		0989316E2FDF27180005E7C8 /* liqglass.icon in Resources */ = {isa = PBXBuildFile; fileRef = 0989316D2FDF27180005E7C8 /* liqglass.icon */; };
-		09A169602EE302EB0026711C /* BarcodeScannerDataFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A1695B2EE302EB0026711C /* BarcodeScannerDataFlow.swift */; };
-		09A169642EE302EB0026711C /* BarcodeScannerProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A1695C2EE302EB0026711C /* BarcodeScannerProvider.swift */; };
-		09A169652EE302EB0026711C /* BarcodeScannerRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A169582EE302EB0026711C /* BarcodeScannerRootView.swift */; };
+		09A169602EE302EB0026711C /* MealManagerDataFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A1695B2EE302EB0026711C /* MealManagerDataFlow.swift */; };
+		09A169642EE302EB0026711C /* MealManagerProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A1695C2EE302EB0026711C /* MealManagerProvider.swift */; };
+		09A169652EE302EB0026711C /* MealManagerRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A169582EE302EB0026711C /* MealManagerRootView.swift */; };
 		09A169682EE3030D0026711C /* OpenBarcodeScannerIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A169662EE3030D0026711C /* OpenBarcodeScannerIntent.swift */; };
-		09A169792EE302EB0026711D /* OpenFoodFactsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A169712EE302EB0026711D /* OpenFoodFactsModels.swift */; };
-		09A1697B2EE302EB0026711D /* ScannerPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A169732EE302EB0026711D /* ScannerPreviewView.swift */; };
-		09A1697C2EE302EB0026711D /* ProductViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A169742EE302EB0026711D /* ProductViews.swift */; };
+		09A169792EE302EB0026711D /* FoodItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A169712EE302EB0026711D /* FoodItem.swift */; };
+		09A1697C2EE302EB0026711D /* ScannedProductRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A169742EE302EB0026711D /* ScannedProductRow.swift */; };
 		09A26C3F2F3424E1006B3BB6 /* ScaleSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A26C3E2F3424E1006B3BB6 /* ScaleSettingsView.swift */; };
 		09C7754D2FF3C7FD004C6CF4 /* CapsuleSpinnerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09C7754C2FF3C7FD004C6CF4 /* CapsuleSpinnerView.swift */; };
-		09D758522F31671B00F9055E /* ProductSearchField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09D758512F31671B00F9055E /* ProductSearchField.swift */; };
+		09D758522F31671B00F9055E /* MealSearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09D758512F31671B00F9055E /* MealSearchBar.swift */; };
 		09D758532F31671B00F9055E /* FoodSearchResultRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09D758502F31671B00F9055E /* FoodSearchResultRow.swift */; };
 		09EE33D92F3692B9008EEBA5 /* PhotoPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09EE33D82F3692B9008EEBA5 /* PhotoPicker.swift */; };
+		197D3F9D51414342EAC8D5A0 /* OpenFoodFactsAuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40E6F67DBECE257CEA735B8 /* OpenFoodFactsAuthStore.swift */; };
 		09F000722F01D6E800835F6D /* OpenFoodFactsClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09F000712F01D6E800835F6D /* OpenFoodFactsClient.swift */; };
 		09FBA78E2F3407210028BB52 /* ScaleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09FBA78C2F3407210028BB52 /* ScaleManager.swift */; };
 		09FC6D0B2FEEBC3600CE99A2 /* CodeScanner in Frameworks */ = {isa = PBXBuildFile; productRef = 09FC6D0A2FEEBC3600CE99A2 /* CodeScanner */; };
@@ -473,7 +477,7 @@
 		BA00D96F7B2FF169A06FB530 /* CGMSettingsStateModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C018D1680307A31C9ED7120 /* CGMSettingsStateModel.swift */; };
 		BB5227A51D9D4377A1A70BA6 /* TempTargetData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8F3B0E159844FD8746DFC0 /* TempTargetData.swift */; };
 		BD04ECCE2D29952A008C5FEB /* BolusProgressOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD04ECCD2D299522008C5FEB /* BolusProgressOverlay.swift */; };
-		BD0B2EF32C5998E600B3298F /* MealPresetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD0B2EF22C5998E600B3298F /* MealPresetView.swift */; };
+		BD0B2EF32C5998E600B3298F /* MealPresetListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD0B2EF22C5998E600B3298F /* MealPresetListView.swift */; };
 		BD10516D2DA986E1007C6D89 /* PulsingLogoAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD10516C2DA986DC007C6D89 /* PulsingLogoAnimation.swift */; };
 		BD1179202F4E22C100F90001 /* TrioAlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1179212F4E22C100F90001 /* TrioAlertManager.swift */; };
 		BD1179222F4E22C100F90001 /* TrioModalAlertScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1179232F4E22C100F90001 /* TrioModalAlertScheduler.swift */; };
@@ -978,7 +982,6 @@
 		DDF847DF2C5C28780049BB3B /* LiveActivitySettingsProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF847DE2C5C28780049BB3B /* LiveActivitySettingsProvider.swift */; };
 		DDF847E12C5C287F0049BB3B /* LiveActivitySettingsStateModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF847E02C5C287F0049BB3B /* LiveActivitySettingsStateModel.swift */; };
 		DDF847E42C5C288F0049BB3B /* LiveActivitySettingsRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF847E32C5C288F0049BB3B /* LiveActivitySettingsRootView.swift */; };
-		DDF847E62C5D66490049BB3B /* AddMealPresetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF847E52C5D66490049BB3B /* AddMealPresetView.swift */; };
 		DDF847E82C5DABA30049BB3B /* WatchConfigAppleWatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF847E72C5DABA30049BB3B /* WatchConfigAppleWatchView.swift */; };
 		DDF847EA2C5DABAC0049BB3B /* WatchConfigGarminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF847E92C5DABAC0049BB3B /* WatchConfigGarminView.swift */; };
 		DDFF202F2DB1D14500AB8A96 /* NotificationPermissionStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDFF202E2DB1D14500AB8A96 /* NotificationPermissionStepView.swift */; };
@@ -1146,6 +1149,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		8F15671275146A864BFED038 /* MealManagerStateModel+Search.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MealManagerStateModel+Search.swift"; sourceTree = "<group>"; };
+		6F7678DD4DAA2C43554E4DD3 /* MealManagerStateModel+Scale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MealManagerStateModel+Scale.swift"; sourceTree = "<group>"; };
+		5BC8F37FF402BEF2CBAAF730 /* MealSearchResults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealSearchResults.swift; sourceTree = "<group>"; };
+		68EB27C1BB1AC224B509617A /* FoodItem+MealPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FoodItem+MealPreset.swift"; sourceTree = "<group>"; };
 		090F87212FD35B8E00E0CA01 /* CombinedGlucoseChartview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CombinedGlucoseChartview.swift; sourceTree = "<group>"; };
 		0961457C2F0BEEDE003E06D3 /* NutritionTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionTextField.swift; sourceTree = "<group>"; };
 		096F54762EF21D4B00B557C1 /* NutritionEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionEditorView.swift; sourceTree = "<group>"; };
@@ -1154,20 +1161,20 @@
 		09725ACB3034A3CF00B148F3 /* PeakPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakPicker.swift; sourceTree = "<group>"; };
 		09725ACD3034A73B00B148F3 /* LabelPlacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelPlacement.swift; sourceTree = "<group>"; };
 		09725AD03034A73B00B148F3 /* ChartViewport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartViewport.swift; sourceTree = "<group>"; };
-		0977A2252EF1F35200A1AF88 /* BarcodeScannerStateModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerStateModel.swift; sourceTree = "<group>"; };
+		0977A2252EF1F35200A1AF88 /* MealManagerStateModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealManagerStateModel.swift; sourceTree = "<group>"; };
 		0989316D2FDF27180005E7C8 /* liqglass.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = liqglass.icon; sourceTree = "<group>"; };
-		09A169582EE302EB0026711C /* BarcodeScannerRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerRootView.swift; sourceTree = "<group>"; };
-		09A1695B2EE302EB0026711C /* BarcodeScannerDataFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerDataFlow.swift; sourceTree = "<group>"; };
-		09A1695C2EE302EB0026711C /* BarcodeScannerProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerProvider.swift; sourceTree = "<group>"; };
+		09A169582EE302EB0026711C /* MealManagerRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealManagerRootView.swift; sourceTree = "<group>"; };
+		09A1695B2EE302EB0026711C /* MealManagerDataFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealManagerDataFlow.swift; sourceTree = "<group>"; };
+		09A1695C2EE302EB0026711C /* MealManagerProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealManagerProvider.swift; sourceTree = "<group>"; };
 		09A169662EE3030D0026711C /* OpenBarcodeScannerIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenBarcodeScannerIntent.swift; sourceTree = "<group>"; };
-		09A169712EE302EB0026711D /* OpenFoodFactsModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenFoodFactsModels.swift; sourceTree = "<group>"; };
-		09A169732EE302EB0026711D /* ScannerPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerPreviewView.swift; sourceTree = "<group>"; };
-		09A169742EE302EB0026711D /* ProductViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductViews.swift; sourceTree = "<group>"; };
+		09A169712EE302EB0026711D /* FoodItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodItem.swift; sourceTree = "<group>"; };
+		09A169742EE302EB0026711D /* ScannedProductRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannedProductRow.swift; sourceTree = "<group>"; };
 		09A26C3E2F3424E1006B3BB6 /* ScaleSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScaleSettingsView.swift; sourceTree = "<group>"; };
 		09C7754C2FF3C7FD004C6CF4 /* CapsuleSpinnerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsuleSpinnerView.swift; sourceTree = "<group>"; };
 		09D758502F31671B00F9055E /* FoodSearchResultRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodSearchResultRow.swift; sourceTree = "<group>"; };
-		09D758512F31671B00F9055E /* ProductSearchField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductSearchField.swift; sourceTree = "<group>"; };
+		09D758512F31671B00F9055E /* MealSearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealSearchBar.swift; sourceTree = "<group>"; };
 		09EE33D82F3692B9008EEBA5 /* PhotoPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPicker.swift; sourceTree = "<group>"; };
+		F40E6F67DBECE257CEA735B8 /* OpenFoodFactsAuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenFoodFactsAuthStore.swift; sourceTree = "<group>"; };
 		09F000712F01D6E800835F6D /* OpenFoodFactsClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenFoodFactsClient.swift; sourceTree = "<group>"; };
 		09FBA78C2F3407210028BB52 /* ScaleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScaleManager.swift; sourceTree = "<group>"; };
 		0A1E8522E7684C6AA742F6E4 /* HomeStateModel+QuickPickTreatments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HomeStateModel+QuickPickTreatments.swift"; sourceTree = "<group>"; };
@@ -1600,7 +1607,7 @@
 		B9B5C0607505A38F256BF99A /* CGMSettingsDataFlow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CGMSettingsDataFlow.swift; sourceTree = "<group>"; };
 		BA49538D56989D8DA6FCF538 /* TargetsEditorDataFlow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TargetsEditorDataFlow.swift; sourceTree = "<group>"; };
 		BD04ECCD2D299522008C5FEB /* BolusProgressOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BolusProgressOverlay.swift; sourceTree = "<group>"; };
-		BD0B2EF22C5998E600B3298F /* MealPresetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealPresetView.swift; sourceTree = "<group>"; };
+		BD0B2EF22C5998E600B3298F /* MealPresetListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealPresetListView.swift; sourceTree = "<group>"; };
 		BD10516C2DA986DC007C6D89 /* PulsingLogoAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulsingLogoAnimation.swift; sourceTree = "<group>"; };
 		BD1179212F4E22C100F90001 /* TrioAlertManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrioAlertManager.swift; sourceTree = "<group>"; };
 		BD1179232F4E22C100F90001 /* TrioModalAlertScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrioModalAlertScheduler.swift; sourceTree = "<group>"; };
@@ -2108,7 +2115,6 @@
 		DDF847DE2C5C28780049BB3B /* LiveActivitySettingsProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivitySettingsProvider.swift; sourceTree = "<group>"; };
 		DDF847E02C5C287F0049BB3B /* LiveActivitySettingsStateModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivitySettingsStateModel.swift; sourceTree = "<group>"; };
 		DDF847E32C5C288F0049BB3B /* LiveActivitySettingsRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivitySettingsRootView.swift; sourceTree = "<group>"; };
-		DDF847E52C5D66490049BB3B /* AddMealPresetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddMealPresetView.swift; sourceTree = "<group>"; };
 		DDF847E72C5DABA30049BB3B /* WatchConfigAppleWatchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConfigAppleWatchView.swift; sourceTree = "<group>"; };
 		DDF847E92C5DABAC0049BB3B /* WatchConfigGarminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConfigGarminView.swift; sourceTree = "<group>"; };
 		DDFF202E2DB1D14500AB8A96 /* NotificationPermissionStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionStepView.swift; sourceTree = "<group>"; };
@@ -2277,34 +2283,47 @@
 		09A1695A2EE302EB0026711C /* View */ = {
 			isa = PBXGroup;
 			children = (
-				09A169582EE302EB0026711C /* BarcodeScannerRootView.swift */,
+				5BC8F37FF402BEF2CBAAF730 /* MealSearchResults.swift */,
+				09A169582EE302EB0026711C /* MealManagerRootView.swift */,
 				096F54762EF21D4B00B557C1 /* NutritionEditorView.swift */,
-				09A169732EE302EB0026711D /* ScannerPreviewView.swift */,
 				09EE33D82F3692B9008EEBA5 /* PhotoPicker.swift */,
-				09A169742EE302EB0026711D /* ProductViews.swift */,
+				09A169742EE302EB0026711D /* ScannedProductRow.swift */,
 				09D758502F31671B00F9055E /* FoodSearchResultRow.swift */,
-				09D758512F31671B00F9055E /* ProductSearchField.swift */,
+				09D758512F31671B00F9055E /* MealSearchBar.swift */,
+				BD0B2EF22C5998E600B3298F /* MealPresetListView.swift */,
 			);
 			path = View;
 			sourceTree = "<group>";
 		};
-		09A1695F2EE302EB0026711C /* BarcodeScanner */ = {
+		09A1695F2EE302EB0026711C /* MealManager */ = {
 			isa = PBXGroup;
 			children = (
+				8F15671275146A864BFED038 /* MealManagerStateModel+Search.swift */,
+				6F7678DD4DAA2C43554E4DD3 /* MealManagerStateModel+Scale.swift */,
+				68EB27C1BB1AC224B509617A /* FoodItem+MealPreset.swift */,
 				09A1695A2EE302EB0026711C /* View */,
-				0977A2252EF1F35200A1AF88 /* BarcodeScannerStateModel.swift */,
-				09A1695B2EE302EB0026711C /* BarcodeScannerDataFlow.swift */,
-				09A1695C2EE302EB0026711C /* BarcodeScannerProvider.swift */,
+				0977A2252EF1F35200A1AF88 /* MealManagerStateModel.swift */,
+				09A1695B2EE302EB0026711C /* MealManagerDataFlow.swift */,
+				09A1695C2EE302EB0026711C /* MealManagerProvider.swift */,
 			);
-			path = BarcodeScanner;
+			path = MealManager;
 			sourceTree = "<group>";
 		};
-		09A169672EE3030D0026711C /* BarcodeScanner */ = {
+		09A169672EE3030D0026711C /* MealManager */ = {
 			isa = PBXGroup;
 			children = (
 				09A169662EE3030D0026711C /* OpenBarcodeScannerIntent.swift */,
 			);
-			path = BarcodeScanner;
+			path = MealManager;
+			sourceTree = "<group>";
+		};
+		47178078EA47174891C715CE /* OpenFoodFacts */ = {
+			isa = PBXGroup;
+			children = (
+				F40E6F67DBECE257CEA735B8 /* OpenFoodFactsAuthStore.swift */,
+				09F000712F01D6E800835F6D /* OpenFoodFactsClient.swift */,
+			);
+			path = OpenFoodFacts;
 			sourceTree = "<group>";
 		};
 		09FBA78D2F3407210028BB52 /* Scale */ = {
@@ -2537,7 +2556,7 @@
 				DD7E1E30000000000000000B /* Telemetry */,
 				DD1745422C55C5C400211FAC /* AutosensSettings */,
 				A42F1FEDFFD0DDE00AAD54D3 /* BasalProfileEditor */,
-				09A1695F2EE302EB0026711C /* BarcodeScanner */,
+				09A1695F2EE302EB0026711C /* MealManager */,
 				3811DE0425C9D32E00A708ED /* Base */,
 				BD7DA9A32AE06DBA00601B20 /* BolusCalculatorConfig */,
 				DD09D4792C5986BA003FEA5D /* CalendarEventSettings */,
@@ -2716,6 +2735,7 @@
 				3811DE9425C9D88200A708ED /* Network */,
 				38B4F3C425E5016800E76A18 /* Notifications */,
 				BD47FD112D88AA630043966B /* OnboardingManager */,
+				47178078EA47174891C715CE /* OpenFoodFacts */,
 				DD9ECB662CA99EFE00AA7C45 /* RemoteControl */,
 				09FBA78D2F3407210028BB52 /* Scale */,
 				38AEE75025F021F10013F05B /* SettingsManager */,
@@ -3114,7 +3134,7 @@
 				385CEA8125F23DFD002D6D5B /* NightscoutStatus.swift */,
 				389442CA25F65F7100FA1F27 /* NightscoutTreatment.swift */,
 				C2BA6B982F758E7600348E6A /* NotificationIdentifiers.swift */,
-				09A169712EE302EB0026711D /* OpenFoodFactsModels.swift */,
+				09A169712EE302EB0026711D /* FoodItem.swift */,
 				BDC2EA462C3045AD00E5BBD0 /* Override.swift */,
 				BD54A95A2D28087700F9C1EE /* OverridePresetWatch.swift */,
 				3895E4C525B9E00D00214B37 /* Preferences.swift */,
@@ -3173,7 +3193,6 @@
 				38FCF3D525E8FDF40078B0D1 /* MD5.swift */,
 				38E98A2C25F52DC400C0CED0 /* NSLocking+Extensions.swift */,
 				38C4D33925E9A1ED00D30B77 /* NSObject+AssociatedValues.swift */,
-				09F000712F01D6E800835F6D /* OpenFoodFactsClient.swift */,
 				3811DE5725C9D4D500A708ED /* ProgressBar.swift */,
 				DD82D4B72DCAB2BA00BAFC77 /* PropertyPersistentFlags.swift */,
 				3811DEE325CA063400A708ED /* PropertyWrappers */,
@@ -3755,7 +3774,6 @@
 				BDFD16592AE40438007F0DDA /* TreatmentsRootView.swift */,
 				58237D9D2BCF0A6B00A47A79 /* PopupView.swift */,
 				BDB899872C564509006F3298 /* ForecastChart.swift */,
-				DD07CA5A2CE950B9002D45A9 /* MealPreset */,
 			);
 			path = View;
 			sourceTree = "<group>";
@@ -4175,7 +4193,7 @@
 				DD4C57A42D73ADDA001BFF2C /* LiveActivity */,
 				118DF7692C5ECBC60067FEB7 /* Override */,
 				110AEDE22C5193D100615CC9 /* Bolus */,
-				09A169672EE3030D0026711C /* BarcodeScanner */,
+				09A169672EE3030D0026711C /* MealManager */,
 				CE1856F32ADC4835007E39C7 /* Carbs */,
 				CE7CA3432A064973004BE681 /* AppShortcuts.swift */,
 				CE7CA3442A064973004BE681 /* BaseIntentsRequest.swift */,
@@ -4292,15 +4310,6 @@
 				DB0BA0010000000000000002 /* DevelopmentBranchAlerter.swift */,
 			);
 			path = DevelopmentBranchAlerter;
-			sourceTree = "<group>";
-		};
-		DD07CA5A2CE950B9002D45A9 /* MealPreset */ = {
-			isa = PBXGroup;
-			children = (
-				BD0B2EF22C5998E600B3298F /* MealPresetView.swift */,
-				DDF847E52C5D66490049BB3B /* AddMealPresetView.swift */,
-			);
-			path = MealPreset;
 			sourceTree = "<group>";
 		};
 		DD09D4792C5986BA003FEA5D /* CalendarEventSettings */ = {
@@ -5464,6 +5473,10 @@
 				DD4A00242DAEF5E400AB7387 /* AlgorithmSettingsSubstepView.swift in Sources */,
 				DDB0E3742DB1BAC1004B826F /* LogoBurstSplash.swift in Sources */,
 				388E595C25AD948C0019842D /* TrioApp.swift in Sources */,
+				394BF984A24494593EF6DCAD /* MealManagerStateModel+Search.swift in Sources */,
+				C7F5F8F7DEFEECACF3C90702 /* MealManagerStateModel+Scale.swift in Sources */,
+				C6B56FA15485E9E13D04BC1B /* MealSearchResults.swift in Sources */,
+				A6A68FBD80AD95C3CD06815D /* FoodItem+MealPreset.swift in Sources */,
 				38FEF3FC2737E53800574A46 /* MainStateModel.swift in Sources */,
 				DD1745352C55AE7E00211FAC /* TargetBehavoirRootView.swift in Sources */,
 				DD30BA022E074F0F00DA677C /* GlucoseStatus.swift in Sources */,
@@ -5583,7 +5596,7 @@
 				BD249D8A2D42FC1200412DEB /* GlucosePercentileChart.swift in Sources */,
 				38B4F3AF25E2979F00E76A18 /* IndexedCollection.swift in Sources */,
 				58D08B222C8DAA8E00AA37D3 /* OverrideView.swift in Sources */,
-				BD0B2EF32C5998E600B3298F /* MealPresetView.swift in Sources */,
+				BD0B2EF32C5998E600B3298F /* MealPresetListView.swift in Sources */,
 				E592A3702CEEC01E009A472C /* ContactTrickEntry.swift in Sources */,
 				DD6A4E7E2DBEBF0F008C4B26 /* StartupReturningUserStepView.swift in Sources */,
 				DD6D67E42C9C253500660C9B /* ColorSchemeOption.swift in Sources */,
@@ -5597,7 +5610,6 @@
 				118DF76D2C5ECBC60067FEB7 /* OverridePresetEntity.swift in Sources */,
 				58645B9F2CA2D2BE008AFCE7 /* PumpHistorySetup.swift in Sources */,
 				DD17454E2C55CA4D00211FAC /* UnitsLimitsSettingsDataFlow.swift in Sources */,
-				DDF847E62C5D66490049BB3B /* AddMealPresetView.swift in Sources */,
 				3811DEAE25C9D88300A708ED /* Cache.swift in Sources */,
 				BDA6CC882CAF219B00F942F9 /* TempTargetSetup.swift in Sources */,
 				383420D625FFE38C002D46C1 /* LoopView.swift in Sources */,
@@ -5811,7 +5823,7 @@
 				491D6FC02D56741C00C49F67 /* TempTargetStored+CoreDataClass.swift in Sources */,
 				DD1745442C55C60E00211FAC /* AutosensSettingsDataFlow.swift in Sources */,
 				BD249DA72D42FE4600412DEB /* Calendar+GlucoseStatsChart.swift in Sources */,
-				0977A2262EF1F35C00A1AF88 /* BarcodeScannerStateModel.swift in Sources */,
+				0977A2262EF1F35C00A1AF88 /* MealManagerStateModel.swift in Sources */,
 				BDCAF2382C639F35002DC907 /* SettingItems.swift in Sources */,
 				3B5F45B62D6A239500F70982 /* DoubleApproximateMatching.swift in Sources */,
 				DD6A4E082DBD95F1008C4B26 /* BluetoothRequiredView.swift in Sources */,
@@ -5844,7 +5856,7 @@
 				389ECDFE2601061500D86C4F /* View+Snapshot.swift in Sources */,
 				38FEF3FE2738083E00574A46 /* CGMSettingsProvider.swift in Sources */,
 				38E98A3725F5509500C0CED0 /* String+Extensions.swift in Sources */,
-				09D758522F31671B00F9055E /* ProductSearchField.swift in Sources */,
+				09D758522F31671B00F9055E /* MealSearchBar.swift in Sources */,
 				09D758532F31671B00F9055E /* FoodSearchResultRow.swift in Sources */,
 				CC76E9512BD4812E008BEB61 /* Forecast+helper.swift in Sources */,
 				DD1745242C55526000211FAC /* SMBSettingsStateModel.swift in Sources */,
@@ -6027,12 +6039,11 @@
 				195D80B92AF697F700D25097 /* DynamicSettingsProvider.swift in Sources */,
 				DD3F1F832D9DC78800DCE7B3 /* UnitSelectionStepView.swift in Sources */,
 				DD09D47D2C5986DA003FEA5D /* CalendarEventSettingsProvider.swift in Sources */,
-				09A169602EE302EB0026711C /* BarcodeScannerDataFlow.swift in Sources */,
-				09A169642EE302EB0026711C /* BarcodeScannerProvider.swift in Sources */,
-				09A169652EE302EB0026711C /* BarcodeScannerRootView.swift in Sources */,
-				09A169792EE302EB0026711D /* OpenFoodFactsModels.swift in Sources */,
-				09A1697B2EE302EB0026711D /* ScannerPreviewView.swift in Sources */,
-				09A1697C2EE302EB0026711D /* ProductViews.swift in Sources */,
+				09A169602EE302EB0026711C /* MealManagerDataFlow.swift in Sources */,
+				09A169642EE302EB0026711C /* MealManagerProvider.swift in Sources */,
+				09A169652EE302EB0026711C /* MealManagerRootView.swift in Sources */,
+				09A169792EE302EB0026711D /* FoodItem.swift in Sources */,
+				09A1697C2EE302EB0026711D /* ScannedProductRow.swift in Sources */,
 				DD09D47B2C5986D1003FEA5D /* CalendarEventSettingsDataFlow.swift in Sources */,
 				DD1745202C55523E00211FAC /* SMBSettingsDataFlow.swift in Sources */,
 				D6D02515BBFBE64FEBE89856 /* HistoryRootView.swift in Sources */,
@@ -6063,6 +6074,7 @@
 				DD30B9CA2E062A3400DA677C /* ForecastGenerator.swift in Sources */,
 				DDE179532C910127003CDDB7 /* MealPresetStored+CoreDataProperties.swift in Sources */,
 				09F000722F01D6E800835F6D /* OpenFoodFactsClient.swift in Sources */,
+				197D3F9D51414342EAC8D5A0 /* OpenFoodFactsAuthStore.swift in Sources */,
 				0961457D2F0BEEDE003E06D3 /* NutritionTextField.swift in Sources */,
 				DDE179542C910127003CDDB7 /* LoopStatRecord+CoreDataClass.swift in Sources */,
 				BDC530FF2D0F6BE300088832 /* ContactImageManager.swift in Sources */,

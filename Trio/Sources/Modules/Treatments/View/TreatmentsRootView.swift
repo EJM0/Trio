@@ -17,30 +17,22 @@ extension Treatments {
         @FocusState private var focusedField: FocusedField?
 
         let resolver: Resolver
-        var openWithScanner: Bool = false
+        /// Set by the `.treatmentWithScanner` route (the Siri shortcut). Which tab opens is
+        /// decided here, not by the caller, because it depends on the feature settings.
+        var opensMealManagerOnAppear: Bool = false
 
         @State var state = StateModel()
 
-        @State private var showPresetSheet = false
         @State private var autofocus: Bool = true
         @State private var calculatorDetent = PresentationDetent.large
         @State private var pushed: Bool = false
         @State private var debounce: DispatchWorkItem?
         @State private var showFatProteinOrderBanner = false
 
-        // Food search state
-        @State private var treatmentSearchQuery = ""
-        @State private var treatmentSearchResults: [BarcodeScanner.FoodItem] = []
-        @State private var isTreatmentSearching = false
-        @State private var treatmentSearchError: String?
-        @State private var treatmentSearchHasMoreResults = false
-        @State private var isLoadingMoreTreatmentSearchResults = false
-        @State private var currentTreatmentSearchPage = 1
+        // Meal search state lives on MealManager.StateModel, which this screen shares with the
+        // Meal Manager sheet -- it used to be duplicated here as a second, independent copy.
         @FocusState private var isSearchFocused: Bool
         @State private var isKeyboardVisible = false
-
-        private let foodSearchClient = BarcodeScanner.OpenFoodFactsClient()
-        private let treatmentSearchPageSize = 4
 
         private enum Config {
             static let dividerHeight: CGFloat = 2
@@ -49,18 +41,6 @@ extension Treatments {
 
         @Environment(\.colorScheme) var colorScheme
         @Environment(AppState.self) var appState
-
-        @FetchRequest(
-            entity: MealPresetStored.entity(),
-            sortDescriptors: [NSSortDescriptor(key: "dish", ascending: true)]
-        ) var presets: FetchedResults<MealPresetStored>
-
-        private var matchingPresets: [MealPresetStored] {
-            if treatmentSearchQuery.isEmpty { return [] }
-            return presets.filter {
-                ($0.dish ?? "").localizedCaseInsensitiveContains(treatmentSearchQuery)
-            }
-        }
 
         private var formatter: NumberFormatter {
             let formatter = NumberFormatter()
@@ -212,57 +192,39 @@ extension Treatments {
             }
         }
 
+        /// Meal search: saved presets, plus OpenFoodFacts when the barcode scanner is enabled.
+        ///
+        /// The two settings are independent. `displayPresets` governs local meal presets and
+        /// `mealManagerScannerEnabled` governs the barcode scanner and OpenFoodFacts, so either
+        /// one on is enough to show this section, and turning the scanner off no longer takes
+        /// offline preset search down with it.
         @ViewBuilder var foodSearch: some View {
-            // Food Search & Quick Actions
-            if state.settings != nil && state.settings.settings.barcodeScannerEnabled {
-                // Combined search bar with action buttons
+            if mealManager.displayPresets || mealManager.isScannerEnabled {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(spacing: 8) {
-                        // Scanner button
-                        Button {
-                            configureAndShowScanner(showList: false)
-                        } label: {
-                            Image(systemName: "barcode.viewfinder")
-                                .font(.title2)
-                                .foregroundStyle(.blue)
-                        }
-                        .buttonStyle(.plain)
-
-                        // Search field
-                        BarcodeScanner.ProductSearchField(
-                            searchText: $treatmentSearchQuery,
-                            isFocused: $isSearchFocused,
-                            onSubmit: {
-                                performTreatmentFoodSearch()
-                            },
-                            onClear: {
-                                treatmentSearchQuery = ""
-                                treatmentSearchResults = []
-                                treatmentSearchError = nil
-                                treatmentSearchHasMoreResults = false
-                                isLoadingMoreTreatmentSearchResults = false
-                                currentTreatmentSearchPage = 1
-                            },
-                            onChange: {
-                                treatmentSearchResults = []
-                                treatmentSearchError = nil
-                                treatmentSearchHasMoreResults = false
-                                isLoadingMoreTreatmentSearchResults = false
-                                currentTreatmentSearchPage = 1
+                        if mealManager.isScannerEnabled {
+                            Button {
+                                openMealManager(at: .scanner)
+                            } label: {
+                                Image(systemName: "barcode.viewfinder")
+                                    .font(.title2)
+                                    .foregroundStyle(.blue)
                             }
-                        )
+                            .buttonStyle(.plain)
+                        }
 
-                        // List button
+                        MealManager.MealSearchBar(state: mealManager, isFocused: $isSearchFocused)
+
                         Button {
-                            configureAndShowScanner(showList: true)
+                            openMealManager(at: .scanned)
                         } label: {
                             ZStack(alignment: .topTrailing) {
                                 Image(systemName: "list.bullet")
                                     .font(.title2)
                                     .foregroundStyle(.blue)
 
-                                if !scannerState.scannedProducts.isEmpty {
-                                    Text("\(scannerState.scannedProducts.count)")
+                                if !mealManager.scannedProducts.isEmpty {
+                                    Text("\(mealManager.scannedProducts.count)")
                                         .font(.caption2.weight(.bold))
                                         .foregroundStyle(.white)
                                         .padding(4)
@@ -274,133 +236,9 @@ extension Treatments {
                         .buttonStyle(.plain)
                     }
 
-                    // Search results and Spinner
-                    if !treatmentSearchQuery.isEmpty {
-                        let results = matchingPresets
-                        ForEach(results) { preset in
-                            Button {
-                                withAnimation {
-                                    var imageSource: BarcodeScanner.FoodItem.ImageSource = .none
-                                    if let data = preset.imageData, let image = UIImage(data: data) {
-                                        imageSource = .image(image)
-                                    }
-
-                                    let item = BarcodeScanner.FoodItem(
-                                        barcode: nil,
-                                        name: preset.dish ?? "Preset",
-                                        brand: "Preset",
-                                        imageSource: imageSource,
-                                        servingQuantity: preset.amount,
-                                        servingQuantityUnit: preset.isMl ? "ml" : "g",
-                                        nutriments: .init(
-                                            basis: preset.isMl ? .per100ml : .per100g,
-                                            carbohydratesPer100g: (preset.carbs as NSDecimalNumber?)?.doubleValue,
-                                            fatPer100g: (preset.fat as NSDecimalNumber?)?.doubleValue,
-                                            proteinPer100g: (preset.protein as NSDecimalNumber?)?.doubleValue
-                                        ),
-                                        amount: preset.amount,
-                                        isMlInput: preset.isMl,
-                                        isManualEntry: true
-                                    )
-                                    addSearchResultToMeal(item)
-                                }
-                            } label: {
-                                HStack(spacing: 12) {
-                                    if let data = preset.imageData, let uiImage = UIImage(data: data) {
-                                        Image(uiImage: uiImage)
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 44, height: 44)
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    } else {
-                                        Image(systemName: "fork.knife")
-                                            .font(.title2)
-                                            .frame(width: 44, height: 44)
-                                            .background(Color.gray.opacity(0.1))
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                                            .foregroundStyle(.secondary)
-                                    }
-
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(preset.dish ?? "Unknown")
-                                            .font(.subheadline.weight(.medium))
-                                            .foregroundStyle(.primary)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                                        HStack {
-                                            Text("Preset")
-                                                .font(.caption2)
-                                                .padding(.horizontal, 4)
-                                                .padding(.vertical, 2)
-                                                .background(Color.blue.opacity(0.1))
-                                                .foregroundStyle(.blue)
-                                                .cornerRadius(4)
-
-                                            if let c = preset.carbs {
-                                                Text(String(format: "%.0fg carbs", (c as NSDecimalNumber).doubleValue))
-                                                    .font(.caption)
-                                                    .foregroundStyle(.secondary)
-                                            }
-                                        }
-                                    }
-                                    Spacer()
-                                    Image(systemName: "plus.circle.fill")
-                                        .foregroundStyle(.blue)
-                                        .font(.title3)
-                                }
-                                .padding(.vertical, 4)
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-
-                            Divider().opacity(0.3)
-                        }
-                    }
-
-                    if isTreatmentSearching {
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                                .padding(.vertical, 8)
-                            Spacer()
-                        }
-                    } else if let error = treatmentSearchError {
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                    } else if !treatmentSearchResults.isEmpty {
-                        VStack(spacing: 0) {
-                            ForEach(treatmentSearchResults) { item in
-                                BarcodeScanner.FoodSearchResultRow(item: item) {
-                                    addSearchResultToMeal(item)
-                                }
-                                if item.id != treatmentSearchResults.last?.id {
-                                    Divider().opacity(0.3)
-                                }
-                            }
-
-                            if treatmentSearchHasMoreResults {
-                                Button {
-                                    loadMoreTreatmentSearchResults()
-                                } label: {
-                                    HStack {
-                                        if isLoadingMoreTreatmentSearchResults {
-                                            ProgressView()
-                                                .scaleEffect(0.9)
-                                        } else {
-                                            Text("Show 4 more results")
-                                                .font(.caption.weight(.medium))
-                                            Image(systemName: "chevron.down")
-                                                .font(.caption)
-                                        }
-                                    }
-                                    .foregroundStyle(.blue)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 8)
-                                }
-                                .buttonStyle(.plain)
-                                .disabled(isLoadingMoreTreatmentSearchResults)
-                            }
+                    if !mealManager.searchQuery.isEmpty {
+                        MealManager.SearchResults(state: mealManager, layout: .stack) { item in
+                            addSearchResultToMeal(item)
                         }
                     }
                 }
@@ -760,7 +598,22 @@ extension Treatments {
             .onReceive(Foundation.NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
                 isKeyboardVisible = false
             }
+            // When this screen is already up, the shortcut cannot come in via the modal router --
+            // it de-duplicates on screen id, so re-sending the same screen is a no-op. Handle the
+            // notification here instead and just present the sheet.
+            .onReceive(Foundation.NotificationCenter.default.publisher(for: .openBarcode)) { _ in
+                openMealManager(at: shortcutTab)
+            }
             .onAppear {
+                // This screen owns the MealManager state model and reads its feature gates before
+                // the sheet is ever opened, so it has to do the resolver hand-off that
+                // MealManager.RootView.configureView() would otherwise do. Clearing isInitial
+                // keeps that call a no-op, so subscribe() is not run twice.
+                if mealManager.isInitial {
+                    mealManager.resolver = resolver
+                    mealManager.isInitial = false
+                }
+
                 configureView {
                     state.isActive = true
                     Task { @MainActor in
@@ -769,9 +622,8 @@ extension Treatments {
                     if PropertyPersistentFlags.shared.hasSeenFatProteinOrderChange != true {
                         showFatProteinOrderBanner = true
                     }
-                    // Auto-open scanner if requested
-                    if openWithScanner {
-                        configureAndShowScanner(showList: false)
+                    if opensMealManagerOnAppear {
+                        openMealManager(at: shortcutTab)
                     }
                 }
             }
@@ -780,25 +632,13 @@ extension Treatments {
                 state.addButtonPressed = false
 
                 // Stop scale connection
-                scannerState.stopScaleStream()
+                mealManager.stopScaleStream()
 
                 // Cancel all Combine subscriptions and unregister State from broadcaster
                 state.cleanupTreatmentState()
             }
             .sheet(isPresented: $state.showInfo) {
                 PopupView(state: state)
-            }
-            .sheet(
-                isPresented: $showPresetSheet,
-                onDismiss: {
-                    showPresetSheet = false
-                }
-            ) {
-                PresetListView(scannerState: scannerState) { preset in
-                    state.carbs += preset.carbs?.decimalValue ?? 0
-                    state.fat += preset.fat?.decimalValue ?? 0
-                    state.protein += preset.protein?.decimalValue ?? 0
-                }
             }
             .alert("Error while processing Treatment", isPresented: $state.showDeterminationFailureAlert)
             {
@@ -808,15 +648,14 @@ extension Treatments {
             } message: {
                 Text("\(state.determinationFailureMessage)")
             }
-            .sheet(isPresented: $showBarcodeScanner, onDismiss: {
-                scannerState.cancelEditing()
-                scannerState.isEditingFromList = false
+            .sheet(isPresented: $showMealManager, onDismiss: {
+                mealManager.cancelEditing()
+                mealManager.isEditingFromList = false
             }) {
                 NavigationStack {
-                    BarcodeScanner.RootView(
+                    MealManager.RootView(
                         resolver: resolver,
-                        state: scannerState,
-                        showListInitially: initialShowList,
+                        state: mealManager,
                         onAddTreatments: { carbs, fat, protein, note in
                             // Directly merge scanned amounts into Treatments state
                             Task { @MainActor in
@@ -825,142 +664,51 @@ extension Treatments {
                                 state.refreshInsulinRecommendation(updatingForecasts: true, forceForecasts: true)
                             }
                         },
-                        onDismiss: { showBarcodeScanner = false }
+                        onDismiss: { showMealManager = false }
                     )
                     .environment(appState)
                 }
-                .onChange(of: scannerState.scannedProducts) {
-                    syncScannedAmounts()
-                }
+            }
+            // Observed here rather than inside the sheet builder: items can also be added from
+            // the inline search results, when no sheet is presented.
+            .onChange(of: mealManager.scannedProducts) {
+                syncScannedAmounts()
             }
         }
 
-        @StateObject private var scannerState = BarcodeScanner.StateModel()
-        @State private var showBarcodeScanner = false
-        @State private var initialShowList = false
+        /// Owned here, not by the sheet: the Treatments screen reads `scannedProducts` to keep
+        /// its macro totals in step, so the model has to outlive each presentation of the sheet.
+        @StateObject private var mealManager = MealManager.StateModel()
+        @State private var showMealManager = false
 
-        func configureAndShowScanner(showList: Bool) {
-            scannerState.showListView = showList
-            showBarcodeScanner = true
-            initialShowList = showList
+        /// Opens the Meal Manager sheet on a specific tab.
+        func openMealManager(at tab: MealManager.ListTab) {
+            mealManager.selectedTab = tab
+            showMealManager = true
         }
 
-        /// Adds a search result to the scanned products and updates calculations
-        private func addSearchResultToMeal(_ item: BarcodeScanner.FoodItem) {
-            // Add to scanner state's scanned products with default amount
+        /// The tab the "Open Barcode Scanner" shortcut should land on: the scanner when it is
+        /// enabled, otherwise the saved meal presets, which are the only way in that is left.
+        private var shortcutTab: MealManager.ListTab {
+            mealManager.isScannerEnabled ? .scanner : .presets
+        }
+
+        /// Adds a search result to the meal and clears the search.
+        private func addSearchResultToMeal(_ item: FoodItem) {
             var mutableItem = item
             mutableItem.amount = item.servingQuantity ?? 100 // Default to serving or 100g
-            scannerState.scannedProducts.append(mutableItem)
+            mealManager.scannedProducts.append(mutableItem)
 
-            // Clear search
-            treatmentSearchQuery = ""
-            treatmentSearchResults = []
-            treatmentSearchError = nil
-            treatmentSearchHasMoreResults = false
-            isLoadingMoreTreatmentSearchResults = false
-            currentTreatmentSearchPage = 1
-
-            // Sync amounts and recalculate
-            syncScannedAmounts()
+            mealManager.clearSearch()
             isSearchFocused = false
-        }
-
-        private func performTreatmentFoodSearch() {
-            treatmentSearchError = nil
-            treatmentSearchResults = []
-            treatmentSearchHasMoreResults = false
-            currentTreatmentSearchPage = 1
-            isLoadingMoreTreatmentSearchResults = false
-
-            let query = treatmentSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !query.isEmpty else {
-                isTreatmentSearching = false
-                return
-            }
-
-            isTreatmentSearching = true
-
-            Task { @MainActor in
-                do {
-                    let firstPageResults = try await foodSearchClient.searchProducts(
-                        query: query,
-                        page: 1,
-                        pageSize: treatmentSearchPageSize
-                    )
-                    treatmentSearchResults = firstPageResults
-                    treatmentSearchHasMoreResults = firstPageResults.count == treatmentSearchPageSize
-                } catch {
-                    treatmentSearchError = error.localizedDescription
-                    treatmentSearchResults = []
-                    treatmentSearchHasMoreResults = false
-                }
-                isTreatmentSearching = false
-            }
-        }
-
-        private func loadMoreTreatmentSearchResults() {
-            guard !isTreatmentSearching,
-                  !isLoadingMoreTreatmentSearchResults,
-                  treatmentSearchHasMoreResults
-            else {
-                return
-            }
-
-            let query = treatmentSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !query.isEmpty else {
-                treatmentSearchHasMoreResults = false
-                return
-            }
-
-            isLoadingMoreTreatmentSearchResults = true
-            treatmentSearchError = nil
-
-            let nextPage = currentTreatmentSearchPage + 1
-
-            Task { @MainActor in
-                defer { isLoadingMoreTreatmentSearchResults = false }
-
-                do {
-                    let nextPageResults = try await foodSearchClient.searchProducts(
-                        query: query,
-                        page: nextPage,
-                        pageSize: treatmentSearchPageSize
-                    )
-
-                    if nextPageResults.isEmpty {
-                        treatmentSearchHasMoreResults = false
-                        return
-                    }
-
-                    treatmentSearchResults.append(contentsOf: nextPageResults)
-                    currentTreatmentSearchPage = nextPage
-                    treatmentSearchHasMoreResults = nextPageResults.count == treatmentSearchPageSize
-                } catch {
-                    treatmentSearchError = error.localizedDescription
-                }
-            }
+            // scannedProducts is observed in `body`, which drives syncScannedAmounts().
         }
 
         private func syncScannedAmounts() {
-            let totalCarbs = scannerState.scannedProducts.reduce(into: 0.0) { result, item in
-                let carbsPer100 = item.nutriments.carbohydratesPer100g ?? 0
-                let amount = item.amount.isFinite ? item.amount : 0
-                result += (carbsPer100 * amount) / 100.0
-            }
-            let totalProtein = scannerState.scannedProducts.reduce(into: 0.0) { result, item in
-                let protPer100 = item.nutriments.proteinPer100g ?? 0
-                let amount = item.amount.isFinite ? item.amount : 0
-                result += (protPer100 * amount) / 100.0
-            }
-            let totalFat = scannerState.scannedProducts.reduce(into: 0.0) { result, item in
-                let fatPer100 = item.nutriments.fatPer100g ?? 0
-                let amount = item.amount.isFinite ? item.amount : 0
-                result += (fatPer100 * amount) / 100.0
-            }
-
-            state.scannedCarbs = Decimal(totalCarbs)
-            state.scannedProtein = Decimal(totalProtein)
-            state.scannedFat = Decimal(totalFat)
+            let items = mealManager.scannedProducts
+            state.scannedCarbs = Decimal(items.reduce(0) { $0 + $1.carbs })
+            state.scannedProtein = Decimal(items.reduce(0) { $0 + $1.protein })
+            state.scannedFat = Decimal(items.reduce(0) { $0 + $1.fat })
 
             // Trigger a recalculation immediately (sheet may make view inactive, so force it).
             // Scanned carbs are carbs, so this goes through the same path as typed macros and

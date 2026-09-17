@@ -190,9 +190,9 @@ extension BolusCalculatorConfig {
                     }
                 )
 
-                Section(header: Text("Barcode Scanner")) {
+                Section(header: Text("Meal Manager")) {
                     VStack(alignment: .leading, spacing: 12) {
-                        Toggle(isOn: $state.barcodeScannerEnabled) {
+                        Toggle(isOn: $state.mealManagerScannerEnabled) {
                             Text(String(localized: "Enable Barcode Scanner"))
                         }
 
@@ -227,10 +227,10 @@ extension BolusCalculatorConfig {
                             .buttonStyle(BorderlessButtonStyle())
                         }
 
-                        if state.barcodeScannerEnabled {
+                        if state.mealManagerScannerEnabled {
                             Divider()
 
-                            Toggle(isOn: $state.barcodeScannerOnlyCarbs) {
+                            Toggle(isOn: $state.mealManagerOnlyCarbs) {
                                 Text(String(localized: "Only Allow Carbs"))
                             }
 
@@ -343,7 +343,7 @@ extension BolusCalculatorConfig {
                     .padding(.vertical, 4)
                 }
                 .listRowBackground(Color.chart)
-                .settingsSearchTarget(label: String(localized: "barcode scanner"))
+                .settingsSearchTarget(label: String(localized: "meal manager"))
                 .settingsSearchTarget(label: String(localized: "Enable Barcode Scanner"))
                 .settingsSearchTarget(label: String(localized: "Only Allow Carbs"))
                 .settingsSearchTarget(label: String(localized: "OpenFoodFacts Login"))

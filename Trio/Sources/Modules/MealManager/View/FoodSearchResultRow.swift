@@ -1,9 +1,12 @@
 import SwiftUI
 
-extension Treatments {
+extension MealManager {
     /// A compact row view for displaying food search results
     struct FoodSearchResultRow: View {
-        let item: BarcodeScanner.FoodItem
+        let item: FoodItem
+        /// Saved meal presets render their origin as a chip and their carbs as a plain total,
+        /// which is how they have always been shown; remote results keep the per-100g form.
+        var isPreset: Bool = false
         let onAdd: () -> Void
 
         var body: some View {
@@ -23,15 +26,31 @@ extension Treatments {
 
                         HStack(spacing: 8) {
                             if let brand = item.brand {
-                                Text(brand)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
+                                if isPreset {
+                                    Text(brand)
+                                        .font(.caption2)
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 2)
+                                        .background(Color.blue.opacity(0.1))
+                                        .foregroundStyle(.blue)
+                                        .cornerRadius(4)
+                                } else {
+                                    Text(brand)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
                             }
                             if let carbs = item.nutriments.carbohydratesPer100g {
-                                Text("\(carbs, specifier: "%.1f")g carbs/100g")
-                                    .font(.caption)
-                                    .foregroundStyle(.blue)
+                                if isPreset {
+                                    Text("\(carbs, specifier: "%.0f")g carbs")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                } else {
+                                    Text("\(carbs, specifier: "%.1f")g carbs/100g")
+                                        .font(.caption)
+                                        .foregroundStyle(.blue)
+                                }
                             }
                         }
                     }

@@ -4,4 +4,5 @@ enum BolusCalculatorConfig {
 
 protocol BolusCalculatorConfigProvider {
     var scaleManager: ScaleManager { get }
+    var openFoodFacts: OpenFoodFactsClient { get }
 }

@@ -15,7 +15,6 @@ enum Screen: Identifiable, Hashable {
     case isfEditor
     case crEditor
     case targetsEditor
-    case barcodeScanner
     case treatmentView
     case treatmentWithScanner
     case history
@@ -95,14 +94,12 @@ extension Screen {
             CarbRatioEditor.RootView(resolver: resolver)
         case .targetsEditor:
             TargetsEditor.RootView(resolver: resolver)
-        case .barcodeScanner:
-            BarcodeScanner.RootView(resolver: resolver, state: BarcodeScanner.StateModel())
         case .treatmentView:
             Treatments.RootView(resolver: resolver)
         case .treatmentWithScanner:
             Treatments.RootView(
                 resolver: resolver,
-                openWithScanner: true
+                opensMealManagerOnAppear: true
             )
         case .history:
             History.RootView(resolver: resolver)

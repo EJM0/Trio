@@ -3,7 +3,7 @@ import UIKit
 
 // MARK: - Nutrition Editor View
 
-extension BarcodeScanner {
+extension MealManager {
     struct NutritionEditorView: View {
         @ObservedObject var state: StateModel
         @FocusState private var focusedField: RootView.NutritionField?
@@ -164,7 +164,7 @@ extension BarcodeScanner {
                                     field: .carbs,
                                     focusedField: $focusedField
                                 )
-                                if !state.settingsManager.settings.barcodeScannerOnlyCarbs {
+                                if !state.settingsManager.settings.mealManagerOnlyCarbs {
                                     Divider().padding(.leading)
 
                                     NutritionTextField(

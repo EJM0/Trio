@@ -6,7 +6,7 @@ import UIKit
 
 // MARK: - StateModel
 
-extension BarcodeScanner {
+extension MealManager {
     final class StateModel: BaseStateModel<Provider> {
         deinit {
             stopScaleStream()
@@ -31,7 +31,7 @@ extension BarcodeScanner {
         @Published var liveScaleWeight: Double?
 
         // External control
-        @Published var showListView = false
+        @Published var selectedTab: ListTab = .scanner
         @Published var isTorchOn = false
         var onAddTreatments: ((Decimal, Decimal, Decimal, String) -> Void)?
         var onDismiss: (() -> Void)?
@@ -39,6 +39,12 @@ extension BarcodeScanner {
         // Editor amount input
         @Published var editingAmount: Double = 0
         @Published var editingIsMl: Bool = false
+
+        // Feature gates. `isScannerEnabled` controls the barcode scanner and OpenFoodFacts;
+        // `displayPresets` controls local meal presets. They are independent: either one on
+        // is enough to show the meal search UI.
+        @Published var isScannerEnabled = false
+        @Published var displayPresets = true
 
         // Search State
         @Published var searchQuery = ""
@@ -50,131 +56,32 @@ extension BarcodeScanner {
         @Published var isUploadingNutritionCorrection = false
         @Published var nutritionUploadStatusMessage: String?
 
-        // Scale polling
-        private var scaleCheckTimer: Timer?
-        private var isCheckingScaleConnection = false
+        // Scale polling. Not private: used from MealManagerStateModel+Scale.swift, and Swift
+        // does not allow stored properties in extensions.
+        var scaleCheckTimer: Timer?
+        var isCheckingScaleConnection = false
         private var originalScannedNutriments: FoodItem.Nutriments?
-
-        // MARK: - Scale
-
-        func startScalePolling() {
-            // Cancel any existing timer
-            scaleCheckTimer?.invalidate()
-
-            // Check immediately
-            checkScaleConnectionOnce()
-
-            // Then check every 1 second
-            scaleCheckTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) {
-                [weak self] _ in
-                self?.checkScaleConnectionOnce()
-            }
-        }
-
-        func stopScalePolling() {
-            scaleCheckTimer?.invalidate()
-            scaleCheckTimer = nil
-        }
-
-        private func checkScaleConnectionOnce() {
-            // Skip if already connected or checking
-            guard liveScaleWeight == nil, !isCheckingScaleConnection else { return }
-
-            isCheckingScaleConnection = true
-            provider.scaleManager.fetchBatteryLevel { [weak self] level in
-                guard let self = self else { return }
-                self.isCheckingScaleConnection = false
-                self.scaleBatteryLevel = level
-                if level != nil {
-                    // Scale detected! Stop polling and start WebSocket
-                    self.stopScalePolling()
-                    self.startScaleStream()
-                }
-            }
-        }
-
-        func checkScaleConnection() {
-            print(
-                "DEBUG: checkScaleConnection called, liveScaleWeight: \(liveScaleWeight?.description ?? "nil")"
-            )
-            // Only fetch if not already connected/streaming
-            if liveScaleWeight == nil {
-                provider.scaleManager.fetchBatteryLevel { [weak self] level in
-                    print("DEBUG: Battery level response: \(level?.description ?? "nil")")
-                    self?.scaleBatteryLevel = level
-                    if level != nil {
-                        print("DEBUG: Starting scale stream...")
-                        self?.startScaleStream()
-                    }
-                }
-            } else {
-                // Just update battery
-                provider.scaleManager.fetchBatteryLevel { [weak self] level in
-                    print("DEBUG: Battery level update: \(level?.description ?? "nil")")
-                    self?.scaleBatteryLevel = level
-                }
-            }
-        }
-
-        func startScaleStream() {
-            print("DEBUG: connectToWebSocket called")
-            provider.scaleManager.connectToWebSocket(
-                ip: nil,
-                onMessage: { [weak self] weight in
-                    print("DEBUG: Received weight from WebSocket: \(weight)")
-                    self?.liveScaleWeight = weight
-                },
-                onConnectionChange: { [weak self] isConnected in
-                    guard let self = self else { return }
-                    print("DEBUG: Connection changed: \(isConnected)")
-                    if isConnected {
-                        // Set initial weight to 0.0 if nil so UI shows "Connected" state
-                        // while waiting for first reading
-                        if self.liveScaleWeight == nil {
-                            self.liveScaleWeight = 0.0
-                        }
-                    } else {
-                        self.liveScaleWeight = nil
-                        // Ensure clean state in manager
-                        self.provider.scaleManager.disconnectWebSocket()
-                        // If connection lost, go back to polling
-                        print("DEBUG: Lost connection to scale. Switching back to polling.")
-                        self.startScalePolling()
-                    }
-                }
-            )
-        }
-
-        func stopScaleStream() {
-            stopScalePolling()
-            provider?.scaleManager.disconnectWebSocket()
-            liveScaleWeight = nil
-            scaleBatteryLevel = nil
-        }
-
-        func fetchScaleWeight(completion: @escaping (Double) -> Void) {
-            provider.scaleManager.fetchWeight(completion: completion)
-        }
-
-        func tareScale() {
-            provider.scaleManager.tare(ip: nil)
-        }
 
         // MARK: - Private Properties
 
-        private let client = OpenFoodFactsClient()
         private var lastScanTime: Date?
         private var lastScannedBarcode: String?
         private var lastScanWasSuccessful: Bool = false
         private let scanCooldownSeconds: TimeInterval = 1.0
-        private let searchPageSize = 4
-        private var currentSearchPage = 1
+        // Used from MealManagerStateModel+Search.swift.
+        let searchPageSize = 4
+        var currentSearchPage = 1
 
         // MARK: - Lifecycle
 
+        override func subscribe() {
+            subscribeSetting(\.mealManagerScannerEnabled, on: $isScannerEnabled) { isScannerEnabled = $0 }
+            subscribeSetting(\.displayPresets, on: $displayPresets) { displayPresets = $0 }
+        }
+
         func handleAppear() {
             Task {
-                await client.setCredentials(
+                await provider.openFoodFacts.setCredentials(
                     username: settingsManager.settings.openFoodFactsUsername,
                     password: settingsManager.settings.openFoodFactsPassword
                 )
@@ -267,7 +174,7 @@ extension BarcodeScanner {
 
             Task { @MainActor in
                 do {
-                    var fetchedProduct = try await client.fetchProduct(barcode: barcode)
+                    var fetchedProduct = try await provider.openFoodFacts.fetchProduct(barcode: barcode)
                     self.setupEditingAmount(for: fetchedProduct)
                     self.originalScannedNutriments = fetchedProduct.nutriments
 
@@ -367,7 +274,7 @@ extension BarcodeScanner {
             item.isMlInput = editingIsMl
 
             // If "Only Carbs" setting is on, ensure other macros are zeroed out
-            if settingsManager.settings.barcodeScannerOnlyCarbs {
+            if settingsManager.settings.mealManagerOnlyCarbs {
                 item.nutriments.fatPer100g = 0
                 item.nutriments.proteinPer100g = 0
             }
@@ -381,7 +288,7 @@ extension BarcodeScanner {
             // Turn off torch *before* clearing the scanned item. clearScannedProduct() clears
             // currentScannedItem synchronously, which flips showEditorView to false and briefly
             // re-mounts the live camera view (with whatever isTorchOn was) for one runloop tick,
-            // before the deferred showListView flip below switches the tab away and resets it.
+            // before the deferred tab flip below switches the tab away and resets it.
             // That gap is what causes the visible torch flash.
             isTorchOn = false
 
@@ -392,7 +299,7 @@ extension BarcodeScanner {
 
             // This prevents the UI from hanging when transitioning from scanner to list view
             DispatchQueue.main.async {
-                self.showListView = true
+                self.selectedTab = .scanned
             }
         }
 
@@ -507,7 +414,7 @@ extension BarcodeScanner {
             }
 
             do {
-                let success = try await client.uploadNutritionCorrection(for: currentItem, comparedTo: original)
+                let success = try await provider.openFoodFacts.uploadNutritionCorrection(for: currentItem, comparedTo: original)
                 if success {
                     originalScannedNutriments = currentItem.nutriments
                     nutritionUploadStatusMessage = String(localized: "Uploaded to OpenFoodFacts")
@@ -526,83 +433,6 @@ extension BarcodeScanner {
                 onDismiss()
             } else {
                 hideModal()
-            }
-        }
-
-        /// Performs food search using Open Food Facts API
-        func performFoodSearch() {
-            searchError = nil
-            searchResults = []
-            hasMoreSearchResults = false
-            currentSearchPage = 1
-            isLoadingMoreSearchResults = false
-
-            let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !query.isEmpty else {
-                isSearching = false
-                return
-            }
-
-            isSearching = true
-
-            Task { @MainActor in
-                do {
-                    let firstPageResults = try await client.searchProducts(
-                        query: query,
-                        page: 1,
-                        pageSize: searchPageSize
-                    )
-                    searchResults = firstPageResults
-                    hasMoreSearchResults = firstPageResults.count == searchPageSize
-                } catch {
-                    searchError = error.localizedDescription
-                    searchResults = []
-                    hasMoreSearchResults = false
-                }
-                isSearching = false
-            }
-        }
-
-        func loadMoreSearchResults() {
-            guard !isSearching,
-                  !isLoadingMoreSearchResults,
-                  hasMoreSearchResults
-            else {
-                return
-            }
-
-            let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !query.isEmpty else {
-                hasMoreSearchResults = false
-                return
-            }
-
-            isLoadingMoreSearchResults = true
-            searchError = nil
-
-            let nextPage = currentSearchPage + 1
-
-            Task { @MainActor in
-                defer { isLoadingMoreSearchResults = false }
-
-                do {
-                    let nextPageResults = try await client.searchProducts(
-                        query: query,
-                        page: nextPage,
-                        pageSize: searchPageSize
-                    )
-
-                    if nextPageResults.isEmpty {
-                        hasMoreSearchResults = false
-                        return
-                    }
-
-                    searchResults.append(contentsOf: nextPageResults)
-                    currentSearchPage = nextPage
-                    hasMoreSearchResults = nextPageResults.count == searchPageSize
-                } catch {
-                    searchError = error.localizedDescription
-                }
             }
         }
     }

@@ -9,6 +9,13 @@ extension Main {
         @Injected() var alertPermissionsChecker: AlertPermissionsChecker!
         @Injected() var broadcaster: Broadcaster!
         @Published var modal: Modal?
+
+        /// True while either Treatments route is the presented modal.
+        private var isShowingTreatments: Bool {
+            guard let screen = modal?.screen else { return false }
+            return screen == .treatmentView || screen == .treatmentWithScanner
+        }
+
         @Published var secondaryModal: SecondaryModalWrapper?
 
         override func subscribe() {
@@ -41,11 +48,20 @@ extension Main {
                 }
                 .store(in: &lifetime)
 
-            // Subscribe to BarcodeScanner shortcut notification
+            // Subscribe to MealManager shortcut notification.
+            //
+            // Only route when Treatments is not already up. If it is, re-sending would either be
+            // swallowed by the de-duplication above (same screen) or tear the screen down and
+            // rebuild it, losing anything already typed -- so Treatments.RootView listens for the
+            // same notification itself and just presents the sheet.
+            //
+            // Which tab opens is decided there too, since it depends on whether the barcode
+            // scanner is enabled.
             Foundation.NotificationCenter.default.publisher(for: .openBarcode)
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
-                    self?.router.mainModalScreen.send(.treatmentWithScanner)
+                    guard let self, !self.isShowingTreatments else { return }
+                    self.router.mainModalScreen.send(.treatmentWithScanner)
                 }
                 .store(in: &lifetime)
         }

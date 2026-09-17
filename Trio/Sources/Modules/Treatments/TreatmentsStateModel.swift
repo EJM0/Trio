@@ -113,9 +113,6 @@ extension Treatments {
 
         var carbsRequired: Decimal?
         var useFPUconversion: Bool = false
-        var dish: String = ""
-        var selection: MealPresetStored?
-        var summation: [String] = []
         var maxCarbs: Decimal = 0
         var maxFat: Decimal = 0
         var maxProtein: Decimal = 0
@@ -124,7 +121,7 @@ extension Treatments {
         var scannedCarbs: Decimal = 0
         var scannedFat: Decimal = 0
         var scannedProtein: Decimal = 0
-        var barcodeScannerOnlyCarbs: Bool = false
+        var mealManagerOnlyCarbs: Bool = false
 
         /// The scanned FTUs the entry actually uses.
         ///
@@ -132,8 +129,8 @@ extension Treatments {
         /// FTUs the user typed here are theirs and stay. Every consumer — the Log button label, the
         /// max-fat/protein limits, the scanned delta overlays and `saveMeal()` — must read these
         /// instead of the raw `scannedFat`/`scannedProtein`, or the UI and what gets stored diverge.
-        var effectiveScannedFat: Decimal { barcodeScannerOnlyCarbs ? 0 : scannedFat }
-        var effectiveScannedProtein: Decimal { barcodeScannerOnlyCarbs ? 0 : scannedProtein }
+        var effectiveScannedFat: Decimal { mealManagerOnlyCarbs ? 0 : scannedFat }
+        var effectiveScannedProtein: Decimal { mealManagerOnlyCarbs ? 0 : scannedProtein }
 
         var id_: String = ""
         var summary: String = ""
@@ -398,7 +395,7 @@ extension Treatments {
             useFPUconversion = settingsManager.settings.useFPUconversion
             isSmoothingEnabled = settingsManager.settings.smoothGlucose
             glucoseColorScheme = settingsManager.settings.glucoseColorScheme
-            barcodeScannerOnlyCarbs = settings.settings.barcodeScannerOnlyCarbs
+            mealManagerOnlyCarbs = settings.settings.mealManagerOnlyCarbs
         }
 
         private func getCurrentSettingValue(for type: SettingType) async {
@@ -819,46 +816,6 @@ extension Treatments {
             } catch {
                 debug(.default, "\(DebuggingIdentifiers.failed) Failed to save carbs: \(error)")
             }
-        }
-
-        // MARK: - Presets
-
-        func deletePreset() {
-            if selection != nil {
-                viewContext.delete(selection!)
-
-                do {
-                    guard viewContext.hasChanges else { return }
-                    try viewContext.save()
-                } catch {
-                    print(error.localizedDescription)
-                }
-                carbs = 0
-                fat = 0
-                protein = 0
-            }
-            selection = nil
-        }
-
-        func removePresetFromNewMeal() {
-            let a = summation.firstIndex(where: { $0 == selection?.dish! })
-            if a != nil, summation[a ?? 0] != "" {
-                summation.remove(at: a!)
-            }
-        }
-
-        func addPresetToNewMeal() {
-            if let selection = selection, let dish = selection.dish {
-                summation.append(dish)
-            }
-        }
-
-        func addNewPresetToWaitersNotepad(_ dish: String) {
-            summation.append(dish)
-        }
-
-        func addToSummation() {
-            summation.append(selection?.dish ?? "")
         }
 
         func addScannedAmounts(carbs: Decimal, fat: Decimal, protein: Decimal, note: String) {
