@@ -23,9 +23,13 @@ extension MealManager {
         @Published var isFetchingProduct = false
         @Published var errorMessage: String?
         @Published var scannedProducts: [FoodItem] = []
-        @Published var isEditingFromList: Bool = false
 
-        @Published var scannedLabelBasisAmount: Double = 100.0
+        /// True while the nutrition editor is presented as a sheet (from the meal list or the
+        /// preset list) rather than inline on the scanner tab. A sheet has to be dismissed
+        /// explicitly; the inline editor just disappears when `currentScannedItem` clears.
+        /// This used to be two flags -- this one plus a local `@State` in the root view -- that
+        /// every call site set and cleared in pairs and read as `a || b`.
+        @Published var isEditorPresentedAsSheet: Bool = false
 
         @Published var scaleBatteryLevel: Int?
         @Published var liveScaleWeight: Double?
@@ -33,7 +37,6 @@ extension MealManager {
         // External control
         @Published var selectedTab: ListTab = .scanner
         @Published var isTorchOn = false
-        var onAddTreatments: ((Decimal, Decimal, Decimal, String) -> Void)?
         var onDismiss: (() -> Void)?
 
         // Editor amount input
@@ -68,8 +71,9 @@ extension MealManager {
         private var lastScannedBarcode: String?
         private var lastScanWasSuccessful: Bool = false
         private let scanCooldownSeconds: TimeInterval = 1.0
-        // Used from MealManagerStateModel+Search.swift.
-        let searchPageSize = 4
+        // Used from MealManagerStateModel+Search.swift. Four made "Show 4 more results" the
+        // most-tapped control on the screen.
+        let searchPageSize = 10
         var currentSearchPage = 1
 
         // MARK: - Lifecycle
@@ -273,11 +277,7 @@ extension MealManager {
             item.amount = editingAmount
             item.isMlInput = editingIsMl
 
-            // If "Only Carbs" setting is on, ensure other macros are zeroed out
-            if settingsManager.settings.mealManagerOnlyCarbs {
-                item.nutriments.fatPer100g = 0
-                item.nutriments.proteinPer100g = 0
-            }
+            item.nutriments = nutrimentsHonoringOnlyCarbs(item.nutriments)
 
             if let index = scannedProducts.firstIndex(where: { $0.id == item.id }) {
                 scannedProducts[index] = item
@@ -315,17 +315,37 @@ extension MealManager {
             }
         }
 
-        func selectQuickPortion(amount: Double, unit: String) {
-            if editingAmount == amount {
-                // Deselect: revert to standard 100 basis
-                editingAmount = 100
-                currentScannedItem?.servingQuantity = nil
-                currentScannedItem?.servingQuantityUnit = nil
-            } else {
-                editingAmount = amount
-                currentScannedItem?.servingQuantity = amount
-                currentScannedItem?.servingQuantityUnit = unit
-            }
+        /// A quick-portion chip is a shortcut for the amount field and nothing more.
+        ///
+        /// It used to write the tapped value into `currentScannedItem.servingQuantity` and clear
+        /// it again on deselect, so tapping a chip destroyed the serving size OpenFoodFacts had
+        /// returned -- which is also what the portion stepper in the meal list measures against.
+        func selectQuickPortion(amount: Double) {
+            editingAmount = (editingAmount == amount) ? 100 : amount
+        }
+
+        /// Drops macros the user cannot see. `mealManagerOnlyCarbs` hides the fat and protein
+        /// fields, so whatever is left in them is stale and must not reach storage. Applied on
+        /// every way out of the editor -- adding to the meal and saving a preset both go
+        /// through here, which the preset path previously did not.
+        func nutrimentsHonoringOnlyCarbs(_ nutriments: FoodItem.Nutriments) -> FoodItem.Nutriments {
+            guard settingsManager.settings.mealManagerOnlyCarbs else { return nutriments }
+            var result = nutriments
+            result.fatPer100g = 0
+            result.proteinPer100g = 0
+            return result
+        }
+
+        /// Keeps the nutriment basis in step with the unit the user is typing in.
+        ///
+        /// The basis is the unit the *values* are given in; `editingIsMl` is the unit of the
+        /// portion. For a hand-entered item or a preset they are the same thing, because the
+        /// user supplies both. For a scanned product the basis comes from OpenFoodFacts and the
+        /// portion picker must not rewrite it -- the editor used to label the whole block
+        /// "per 100ml" purely because the portion picker said ml, without converting anything.
+        func syncNutrimentBasisToInputUnit() {
+            guard currentScannedItem?.barcode == nil else { return }
+            currentScannedItem?.nutriments.basis = editingIsMl ? .per100ml : .per100g
         }
 
         /// Clears the currently displayed product from the overlay
@@ -337,6 +357,11 @@ extension MealManager {
             errorMessage = nil
             nutritionUploadStatusMessage = nil
             isScanning = true
+        }
+
+        /// The carbohydrates every item currently in the meal adds up to, in grams.
+        var totalCarbs: Double {
+            scannedProducts.reduce(0) { $0 + $1.carbs }
         }
 
         /// Whether to show the editor view (product available)

@@ -33,6 +33,7 @@ extension MealManager {
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(String(localized: "Clear search"))
                 }
             }
             .padding(10)

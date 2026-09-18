@@ -40,7 +40,7 @@ extension MealManager {
                 ForEach(matchingPresets) { preset in
                     row {
                         FoodSearchResultRow(item: FoodItem(preset: preset), isPreset: true) {
-                            withAnimation { onSelect(FoodItem(preset: preset)) }
+                            onSelect(FoodItem(preset: preset))
                         }
                     }
                 }
@@ -55,15 +55,27 @@ extension MealManager {
                     }
                 } else if let error = state.searchError {
                     row {
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text(error)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                            Spacer()
+                            // A search that failed on a flaky connection used to be a dead end.
+                            Button(String(localized: "Retry"), action: state.performFoodSearch)
+                                .font(.caption.weight(.semibold))
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.blue)
+                        }
                     }
                 } else {
+                    // Deliberately not wrapped in `withAnimation`: every caller clears the
+                    // search, which collapses this whole block, so animating the selection
+                    // animated the entire result list sliding away along with the row that was
+                    // tapped and the meal list growing underneath it, all at once.
                     ForEach(state.searchResults) { item in
                         row {
                             FoodSearchResultRow(item: item) {
-                                withAnimation { onSelect(item) }
+                                onSelect(item)
                             }
                         }
                     }

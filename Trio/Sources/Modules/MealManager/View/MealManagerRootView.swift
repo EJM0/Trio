@@ -22,10 +22,8 @@ private func localizedScanFailureMessage(for error: ScanError) -> String {
 extension MealManager {
     struct RootView: BaseView {
         let resolver: Resolver
-        var onAddTreatments: ((Decimal, Decimal, Decimal, String) -> Void)?
 
         @ObservedObject var state: StateModel
-        @State private var isEditingFromList = false
         @State private var showEditorCard = false
 
         @FocusState private var focusedItemID: UUID?
@@ -34,14 +32,10 @@ extension MealManager {
         init(
             resolver: Resolver,
             state: StateModel,
-            onAddTreatments: ((Decimal, Decimal, Decimal, String) -> Void)? = nil,
             onDismiss: (() -> Void)? = nil
         ) {
             self.resolver = resolver
             _state = ObservedObject(wrappedValue: state)
-            self.onAddTreatments = onAddTreatments
-            // Wire optional callback into the state so it can call back when user selects "Add to Treatments"
-            self.state.onAddTreatments = onAddTreatments
             self.state.onDismiss = onDismiss
         }
 
@@ -51,12 +45,9 @@ extension MealManager {
         enum NutritionField: Hashable {
             case name
             case amount
-            case calories
             case carbs
-            case sugars
             case fat
             case protein
-            case fiber
         }
 
         /// Tabs follow the feature gates: no Scanner tab without the barcode scanner, no Presets
@@ -85,11 +76,12 @@ extension MealManager {
                 .padding(.vertical, 12)
             }
             .buttonStyle(.borderedProminent)
-            .tint(.blue)
+            .tint(state.isTorchOn ? .yellow : .blue)
             .padding(.horizontal, 20)
             .padding(.bottom, 8)
             .safeAreaPadding(.bottom, 8)
             .accessibilityLabel(String(localized: "Flash"))
+            .accessibilityAddTraits(state.isTorchOn ? .isSelected : [])
         }
 
         var body: some View {
@@ -102,8 +94,7 @@ extension MealManager {
                     }
                     .pickerStyle(.segmented)
                     .padding(.horizontal)
-                    .padding(.top)
-                    .padding(.bottom, 0)
+                    .padding(.top, Layout.contentTopSpacing)
                 }
 
                 ZStack {
@@ -116,10 +107,17 @@ extension MealManager {
                         presetListView
                     }
                 }
+                // The one place the gap under the selector is set, so the three tabs cannot
+                // drift apart again. It sits here rather than on the picker so the spacing
+                // survives the cases where the picker is not shown at all.
+                .padding(.top, Layout.contentTopSpacing)
             }
             .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
-            .navigationTitle(LocalizedStringKey(navigationTitle))
+            .navigationTitle(navigationTitle)
+            .navigationBarTitleDisplayMode(.inline)
             .onAppear {
+                configureView()
+                state.handleAppear()
                 // A disabled feature must not leave the sheet showing an empty tab.
                 if !availableTabs.contains(state.selectedTab) {
                     state.selectedTab = availableTabs.first ?? .scanned
@@ -135,56 +133,35 @@ extension MealManager {
                 // Ensure the torch state resets if the entire RootView is dismissed
                 state.isTorchOn = false
             }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(content: {
+            .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button(
-                        action: {
-                            state.performDismissal()
-                        },
-                        label: {
-                            Text("Close")
-                        }
-                    )
+                    // "Done", not "Close": items land in the meal as they are added, so there
+                    // is nothing here left to confirm and nothing that closing discards.
+                    Button(String(localized: "Done")) { state.performDismissal() }
                 }
-            })
+            }
             .sheet(isPresented: $showEditorCard) {
                 NavigationStack {
                     NutritionEditorView(
                         state: state,
-                        isEditingFromList: $isEditingFromList,
                         onDismissList: { showEditorCard = false }
                     )
                     .navigationTitle(String(localized: "Edit Item"))
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .topBarLeading) {
-                            Button(String(localized: "Cancel")) {
-                                showEditorCard = false
-                                // Robust cleanup: Check either local or state flag
-                                if isEditingFromList || state.isEditingFromList {
-                                    isEditingFromList = false
-                                    state.isEditingFromList = false
-                                    state.cancelEditing()
-                                }
-                            }
+                            // Cleanup lives in the onChange below, which this triggers. Doing it
+                            // here as well ran it twice on every tap of this button.
+                            Button(String(localized: "Cancel")) { showEditorCard = false }
                         }
                     }
                 }
             }
             .onChange(of: showEditorCard) { _, isPresented in
-                // If the sheet is dismissed interactively while editing from list, reset editing state
-                if !isPresented {
-                    if isEditingFromList || state.isEditingFromList {
-                        isEditingFromList = false
-                        state.isEditingFromList = false
-                        state.cancelEditing()
-                    }
-                }
-            }
-            .onAppear {
-                configureView()
-                state.handleAppear()
+                // Covers both the Cancel button and an interactive swipe-down.
+                guard !isPresented, state.isEditorPresentedAsSheet else { return }
+                state.isEditorPresentedAsSheet = false
+                state.cancelEditing()
             }
         }
 
@@ -196,7 +173,6 @@ extension MealManager {
                     // Show full editor view when product/nutrition data is available
                     NutritionEditorView(
                         state: state,
-                        isEditingFromList: $isEditingFromList,
                         onDismissList: { state.selectedTab = .scanned }
                     )
                     .transition(.move(edge: .trailing).combined(with: .opacity))
@@ -303,7 +279,6 @@ extension MealManager {
                         .strokeBorder(.white.opacity(0.3), lineWidth: 1)
                 )
                 .padding(.horizontal)
-                .padding(.top, 8)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 if state.cameraStatus == .authorized {
@@ -331,8 +306,14 @@ extension MealManager {
 
         // MARK: - List View Content
 
-        private var navigationTitle: String {
-            "Barcode Scanner"
+        /// The title used to be "Barcode Scanner" on all three tabs, including on installs where
+        /// the scanner is switched off and that tab does not exist.
+        private var navigationTitle: LocalizedStringKey {
+            switch state.selectedTab {
+            case .scanner: return "Barcode Scanner"
+            case .scanned: return "Meal"
+            case .presets: return "Meal Presets"
+            }
         }
 
         private var presetListView: some View {
@@ -349,13 +330,24 @@ extension MealManager {
         }
 
         private var mainListView: some View {
-            ZStack(alignment: .leading) {
-                List {
-                    // Search Section
-                    Section {
-                        MealManager.MealSearchBar(state: state, isFocused: $isSearchFocused)
-                            .listRowInsets(EdgeInsets(top: 20, leading: 0, bottom: 10, trailing: 0))
+            VStack(spacing: 0) {
+                // Both of these are headers for the meal rather than part of it, so they sit
+                // above the `List` and share one container, one horizontal inset and one gap
+                // down to the rows. The search field was previously the first row of an
+                // `.insetGrouped` section, which clipped it to the section's rounded top
+                // corners and overrode the shape it asks for.
+                VStack(alignment: .leading, spacing: 16) {
+                    MealManager.MealSearchBar(state: state, isFocused: $isSearchFocused)
 
+                    if !state.scannedProducts.isEmpty {
+                        listHeader
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, Layout.contentTopSpacing)
+
+                List {
+                    Section {
                         if !state.searchQuery.isEmpty {
                             MealManager.SearchResults(state: state, layout: .list) { item in
                                 var mutableItem = item
@@ -364,17 +356,6 @@ extension MealManager {
                                 state.clearSearch()
                                 isSearchFocused = false
                             }
-                        }
-
-                        if state.scannedProducts.isEmpty, state.searchResults.isEmpty, !state.isSearching {
-                            emptyListView
-                                .listRowSeparator(.hidden)
-                        }
-
-                        if !state.scannedProducts.isEmpty {
-                            listHeader
-                                .listRowSeparator(.hidden)
-                                .listRowInsets(EdgeInsets(top: 5, leading: 0, bottom: 20, trailing: 0))
                         }
                     }
                     .listRowBackground(Color.clear)
@@ -390,11 +371,16 @@ extension MealManager {
                                 )
                                 .listRowInsets(EdgeInsets())
                                 .padding(15)
+                                // Destructive last in a context menu, outermost in a swipe:
+                                // the platform conventions want opposite orders, and this used
+                                // to be one shared builder putting Delete first in both.
                                 .contextMenu {
-                                    actionButtonsForScannedProduct(for: item)
+                                    editButton(for: item)
+                                    deleteButton(for: item)
                                 }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    actionButtonsForScannedProduct(for: item)
+                                    deleteButton(for: item)
+                                    editButton(for: item)
                                 }
                             }
                         }
@@ -405,94 +391,86 @@ extension MealManager {
                 .listSectionSpacing(0)
                 .contentMargins(.top, 0, for: .scrollContent)
                 .scrollContentBackground(.hidden)
+                // An overlay, not a row. As a row inside the `List` the action button kept
+                // being handed the row's full height and filling it, whatever size its label
+                // asked for. The presets tab has always drawn its empty state this way.
+                .overlay {
+                    if showsEmptyState {
+                        emptyListView
+                    }
+                }
             }
         }
 
         // MARK: - Scanned Product Actions
 
-        func actionButtonsForScannedProduct(for product: FoodItem) -> some View {
-            Group {
-                Button(role: .destructive) {
-                    withAnimation {
-                        state.removeScannedProduct(product)
-                    }
-                } label: {
-                    Label("Delete", systemImage: "trash.fill")
-                }
-                .tint(.red)
-
-                Button {
-                    state.editScannedProduct(product)
-                    isEditingFromList = true
-                    state.isEditingFromList = true
-                    showEditorCard = true
-                } label: {
-                    Label("Edit", systemImage: "pencil")
-                }
-                .tint(.blue)
+        private func deleteButton(for product: FoodItem) -> some View {
+            Button(role: .destructive) {
+                withAnimation { state.removeScannedProduct(product) }
+            } label: {
+                Label("Delete", systemImage: "trash.fill")
             }
+            .tint(.red)
+        }
+
+        private func editButton(for product: FoodItem) -> some View {
+            Button {
+                state.editScannedProduct(product)
+                state.isEditorPresentedAsSheet = true
+                showEditorCard = true
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            .tint(.blue)
+        }
+
+        /// Nothing to show: no items in the meal, and no search running that would fill it.
+        ///
+        /// Presets are matched live by `SearchResults` and never land in `state.searchResults`,
+        /// so an active query is enough to stand down -- checking `searchResults` alone let the
+        /// empty state sit on top of a list of matching presets.
+        private var showsEmptyState: Bool {
+            state.scannedProducts.isEmpty
+                && state.searchQuery.isEmpty
+                && !state.isSearching
+                && state.searchError == nil
         }
 
         private var emptyListView: some View {
-            VStack(spacing: 20) {
-                Spacer()
-                Image(systemName: state.isScannerEnabled ? "barcode.viewfinder" : "fork.knife")
-                    .font(.system(size: 60))
-                    .foregroundStyle(.secondary)
-                Text(String(localized: "No items yet"))
-                    .font(.title3.weight(.medium))
+            ContentUnavailableView {
+                Label(
+                    String(localized: "No items yet"),
+                    systemImage: state.isScannerEnabled ? "barcode.viewfinder" : "fork.knife"
+                )
+            } description: {
                 Text(
                     state.isScannerEnabled
                         ? String(localized: "Scan barcodes or search to add items.")
                         : String(localized: "Search your meal presets to add items.")
                 )
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-
+            } actions: {
                 // Without the scanner there is no Scanner tab to send anyone to.
                 if state.isScannerEnabled {
-                    Button {
+                    Button(String(localized: "Start Scanning")) {
                         state.selectedTab = .scanner
-                    } label: {
-                        HStack {
-                            Image(systemName: "barcode.viewfinder")
-                            Text(String(localized: "Start Scanning"))
-                        }
-                        .font(.subheadline.weight(.semibold))
-                        .padding(.horizontal)
                     }
                     .buttonStyle(.borderedProminent)
-                    .padding(.top, 8)
                 }
-                Spacer()
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 60)
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
         }
 
         private var listHeader: some View {
-            let totalCarbs = state.scannedProducts.reduce(into: 0.0) { result, item in
-                let carbsPer100 = item.nutriments.carbohydratesPer100g ?? 0
-                let amount = item.amount.isFinite ? item.amount : 0
-                result += (carbsPer100 * amount) / 100.0
-            }
-            return HStack(alignment: .top) {
+            HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(
-                        "\(state.scannedProducts.count) Item\(state.scannedProducts.count == 1 ? "" : "s")"
-                    )
-                    .font(.title2)
-                    .bold()
+                    // Automatic grammatical agreement: this used to be
+                    // `"\(count) Item\(count == 1 ? "" : "s")"`, which no translator could fix.
+                    Text("^[\(state.scannedProducts.count) item](inflect: true)")
+                        .font(.title2)
+                        .bold()
 
-                    HStack(spacing: 16) {
-                        Text("total \(totalCarbs, specifier: "%.1f") g of carbs")
-                            .foregroundStyle(.blue)
-                    }
-                    .font(.subheadline)
+                    Text("Total \(state.totalCarbs, specifier: "%.1f") g carbs")
+                        .font(.subheadline)
+                        .foregroundStyle(.blue)
                 }
 
                 Spacer()
@@ -504,6 +482,8 @@ extension MealManager {
                         Text(String(format: "%.1f g", liveWeight))
                             .font(.system(.body, design: .monospaced).weight(.semibold))
                             .foregroundColor(.accentColor)
+                            .accessibilityLabel(String(localized: "Scale reading"))
+                            .accessibilityValue(String(format: "%.1f g", liveWeight))
 
                         HStack(spacing: 8) {
                             Button {
@@ -516,16 +496,28 @@ extension MealManager {
                                     .foregroundColor(.accentColor)
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel(String(localized: "Tare scale"))
 
                             if let battery = state.scaleBatteryLevel {
-                                Text("\(battery)%")
+                                Label("\(battery)%", systemImage: batteryIcon(for: battery))
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
+                                    .accessibilityLabel(String(localized: "Scale battery"))
+                                    .accessibilityValue("\(battery)%")
                             }
                         }
                     }
                     .frame(minWidth: 60)
                 }
+            }
+        }
+
+        private func batteryIcon(for level: Int) -> String {
+            switch level {
+            case ..<15: return "battery.0percent"
+            case ..<40: return "battery.25percent"
+            case ..<75: return "battery.50percent"
+            default: return "battery.100percent"
             }
         }
     }

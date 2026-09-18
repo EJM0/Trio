@@ -19,80 +19,82 @@ struct MealPresetListView: View {
     var shouldDismissOnSelect: Bool = true
 
     @State private var showEditor = false
-    @State private var isEditing = false
     @State private var editingPreset: MealPresetStored?
+    @State private var presetPendingDeletion: MealPresetStored?
 
     var body: some View {
         List {
             ForEach(presets) { preset in
-                HStack(spacing: 0) {
-                    Button {
-                        onSelect?(preset)
-                        if shouldDismissOnSelect {
-                            dismiss()
-                        }
-                    } label: {
-                        HStack(spacing: 12) {
-                            if let data = preset.imageData, let uiImage = UIImage(data: data) {
-                                Image(uiImage: uiImage)
+                Button {
+                    onSelect?(preset)
+                    if shouldDismissOnSelect {
+                        dismiss()
+                    }
+                } label: {
+                    HStack(spacing: 12) {
+                        if let data = preset.imageData, let uiImage = UIImage(data: data) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(
+                                    width: MealManager.Layout.thumbnail,
+                                    height: MealManager.Layout.thumbnail
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: MealManager.Layout.cornerRadius))
+                        } else {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: MealManager.Layout.cornerRadius)
+                                    .fill(Color.blue.opacity(0.1))
+                                    .frame(
+                                        width: MealManager.Layout.thumbnail,
+                                        height: MealManager.Layout.thumbnail
+                                    )
+                                Image(systemName: "fork.knife")
                                     .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: 58, height: 58)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                            } else {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color.blue.opacity(0.1))
-                                        .frame(width: 58, height: 58)
-                                    Image(systemName: "fork.knife")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 24, height: 24)
-                                        .foregroundStyle(.blue)
-                                }
-                            }
-
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(preset.dish ?? "Unknown")
-                                    .font(.subheadline.weight(.semibold))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                                Text("\(format(preset.carbs))g carbs")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 24, height: 24)
+                                    .foregroundStyle(.blue)
                             }
                         }
-                        .padding(12)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .contextMenu {
-                        Button(role: .destructive) {
-                            deletePreset(preset)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                        .tint(.red)
 
-                        Button {
-                            startEditPreset(preset)
-                        } label: {
-                            Label("Edit", systemImage: "pencil")
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(preset.dish ?? String(localized: "Unknown"))
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            // `preset.carbs` is a per-100 g/ml figure, but this row used to
+                            // print it bare as "Xg carbs" -- so a 250 g preset at 10 g/100 g
+                            // advertised 10 g and added 25 g. Show the portion and its total.
+                            Text(presetSummary(preset))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
-                        .tint(.blue)
+                    }
+                    .padding(12)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                // Destructive last in a context menu, outermost in a swipe.
+                .contextMenu {
+                    Button {
+                        startEditPreset(preset)
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
                     }
 
-                    // Edit button outside the main tap area, but visually aligned if needed
-                    // For now, removing the separate edit button from the row visual flow
-                    // and relying on swipe actions or a trailing button if desired.
-                    // But to match the list style, we keep the edit button separate or integrated.
-                    // Based on "ScannedProductRow", it seems the action happens on the row itself.
+                    Button(role: .destructive) {
+                        presetPendingDeletion = preset
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
                 }
                 .listRowBackground(Color.chart)
                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                // No full swipe: a preset is saved data with a photo attached, and a stray
+                // swipe used to delete it outright with no confirmation and no undo.
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
-                        deletePreset(preset)
+                        presetPendingDeletion = preset
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
@@ -105,23 +107,50 @@ struct MealPresetListView: View {
                     .tint(.blue)
                 }
             }
-            // onDelete removed from here as it is now in swipeActions
+        }
+        .overlay {
+            if presets.isEmpty {
+                ContentUnavailableView {
+                    Label(String(localized: "No presets yet"), systemImage: "fork.knife")
+                } description: {
+                    Text(String(localized: "Save a meal you eat often and it will be one tap away."))
+                } actions: {
+                    Button(String(localized: "New Preset"), action: startNewPreset)
+                        .buttonStyle(.borderedProminent)
+                }
+            }
         }
         .listStyle(.insetGrouped)
         .listRowSpacing(10)
         .scrollContentBackground(.hidden)
+        // No extra top padding: the meal tab sets a zero top margin, so a 15pt pad here made
+        // the content jump every time you switched between the two tabs.
         .contentMargins(.top, 0, for: .scrollContent)
-        .padding(.top, 15)
-        // .navigationTitle not needed as it's handled by parent view
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    startNewPreset()
-                } label: {
+                Button(action: startNewPreset) {
                     Image(systemName: "plus")
                 }
+                .accessibilityLabel(String(localized: "New Preset"))
             }
+        }
+        .confirmationDialog(
+            String(localized: "Delete this preset?"),
+            isPresented: Binding(
+                get: { presetPendingDeletion != nil },
+                set: { if !$0 { presetPendingDeletion = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: presetPendingDeletion
+        ) { preset in
+            Button(String(localized: "Delete"), role: .destructive) {
+                deletePreset(preset)
+                presetPendingDeletion = nil
+            }
+            Button(String(localized: "Cancel"), role: .cancel) { presetPendingDeletion = nil }
+        } message: { preset in
+            Text(preset.dish ?? String(localized: "Unknown"))
         }
         .sheet(
             isPresented: $showEditor,
@@ -132,7 +161,6 @@ struct MealPresetListView: View {
             NavigationStack {
                 MealManager.NutritionEditorView(
                     state: scannerState,
-                    isEditingFromList: $isEditing,
                     onDismissList: { showEditor = false },
                     customSaveButtonTitle: editingPreset == nil ? "Save Preset" : "Update Preset",
                     onSave: {
@@ -154,14 +182,17 @@ struct MealPresetListView: View {
 
     private func cleanupEditorState() {
         editingPreset = nil
-        isEditing = false
         // Ensure we clear the scanner state so it doesn't think we are still editing
+        scannerState.isEditorPresentedAsSheet = false
         scannerState.cancelEditing()
     }
 
     private func startNewPreset() {
         editingPreset = nil
-        isEditing = false
+        // Both preset paths present the editor as a sheet, so both have to tell it to dismiss
+        // itself. Only the edit path used to set this, so Cancel on a *new* preset cleared the
+        // form and left the empty sheet sitting there.
+        scannerState.isEditorPresentedAsSheet = true
         // Initialize a clean item
         let newItem = FoodItem(
             id: UUID(),
@@ -184,7 +215,7 @@ struct MealPresetListView: View {
 
     private func startEditPreset(_ preset: MealPresetStored) {
         editingPreset = preset
-        isEditing = true
+        scannerState.isEditorPresentedAsSheet = true
 
         // This used to hardcode a per-100g basis, so editing a millilitre-based preset silently
         // reinterpreted its nutriments as grams. FoodItem(preset:) follows `isMl`.
@@ -197,11 +228,16 @@ struct MealPresetListView: View {
     private func saveCurrentItemAsPreset() {
         guard let item = scannerState.currentScannedItem, !item.name.isEmpty else { return }
 
+        // The fat and protein fields are hidden when `mealManagerOnlyCarbs` is on, so whatever
+        // is left in them is stale. `addProductToList()` already dropped them on the way into a
+        // meal; this path used to persist them into the preset regardless.
+        let nutriments = scannerState.nutrimentsHonoringOnlyCarbs(item.nutriments)
+
         let preset = editingPreset ?? MealPresetStored(context: moc)
         preset.dish = item.name
-        preset.carbs = NSDecimalNumber(value: item.nutriments.carbohydratesPer100g ?? 0)
-        preset.fat = NSDecimalNumber(value: item.nutriments.fatPer100g ?? 0)
-        preset.protein = NSDecimalNumber(value: item.nutriments.proteinPer100g ?? 0)
+        preset.carbs = NSDecimalNumber(value: nutriments.carbohydratesPer100g ?? 0)
+        preset.fat = NSDecimalNumber(value: nutriments.fatPer100g ?? 0)
+        preset.protein = NSDecimalNumber(value: nutriments.proteinPer100g ?? 0)
         preset.isMl = scannerState.editingIsMl
         preset.amount = scannerState.editingAmount
 
@@ -248,11 +284,12 @@ struct MealPresetListView: View {
         }
     }
 
-    private func format(_ number: NSDecimalNumber?) -> String {
-        guard let number = number else { return "0" }
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 1
-        return formatter.string(from: number) ?? "0"
+    /// "250 g · 25.0 g carbs" -- the portion the preset was saved at and what it actually adds.
+    private func presetSummary(_ preset: MealPresetStored) -> String {
+        let item = FoodItem(preset: preset)
+        let unit = preset.isMl ? String(localized: "ml") : String(localized: "g")
+        let amount = preset.amount.formatted(.number.precision(.fractionLength(0 ... 1)))
+        let carbs = item.carbs.formatted(.number.precision(.fractionLength(0 ... 1)))
+        return "\(amount) \(unit) · \(carbs) \(String(localized: "g carbs"))"
     }
 }

@@ -650,20 +650,15 @@ extension Treatments {
             }
             .sheet(isPresented: $showMealManager, onDismiss: {
                 mealManager.cancelEditing()
-                mealManager.isEditingFromList = false
+                mealManager.isEditorPresentedAsSheet = false
             }) {
                 NavigationStack {
+                    // No `onAddTreatments:` here any more. It was wired through the root view
+                    // and the state model but never called from anywhere; the live path is the
+                    // `onChange(of:)` on `scannedProducts` below.
                     MealManager.RootView(
                         resolver: resolver,
                         state: mealManager,
-                        onAddTreatments: { carbs, fat, protein, note in
-                            // Directly merge scanned amounts into Treatments state
-                            Task { @MainActor in
-                                state.addScannedAmounts(carbs: carbs, fat: fat, protein: protein, note: note)
-                                // Scanned carbs are carbs: force forecasts and recalc the recommendation
-                                state.refreshInsulinRecommendation(updatingForecasts: true, forceForecasts: true)
-                            }
-                        },
                         onDismiss: { showMealManager = false }
                     )
                     .environment(appState)

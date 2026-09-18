@@ -13,11 +13,19 @@ extension MealManager {
         @State private var isMlInput: Bool = false
         @State private var showQuickSelector: Bool = false
 
-        private var formatter: NumberFormatter {
+        // Built once: this was a computed property, so the body made a fresh one every render.
+        private static let formatter: NumberFormatter = {
             let formatter = NumberFormatter()
             formatter.numberStyle = .decimal
             formatter.maximumFractionDigits = 1
             return formatter
+        }()
+
+        /// The portion stepper only means anything when the product tells us what one portion
+        /// is. Without it the stepper used to step by 100g and label that "1x Portion".
+        private var portionSize: Double? {
+            guard let quantity = item.servingQuantity, quantity > 0 else { return nil }
+            return quantity
         }
 
         var body: some View {
@@ -25,21 +33,45 @@ extension MealManager {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .center, spacing: 12) {
                     productImage
+                        .contentShape(Rectangle())
+                        .onTapGesture(perform: togglePortions)
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(item.name)
-                            .font(.subheadline.weight(.semibold))
-                            .lineLimit(2)
+                        // The item itself opens the portion stepper. The tap deliberately stops
+                        // short of the amount field and the unit picker below/beside it -- a
+                        // gesture over the whole row swallowed taps meant for those.
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 4) {
+                                Text(item.name)
+                                    .font(.subheadline.weight(.semibold))
+                                    .lineLimit(2)
 
-                        if let brand = item.brand {
-                            Text(brand)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                if portionSize != nil {
+                                    Image(systemName: "chevron.down")
+                                        .font(.caption2.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                        .rotationEffect(.degrees(showQuickSelector ? 180 : 0))
+                                }
+                            }
+
+                            if let brand = item.brand {
+                                Text(brand)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .onTapGesture(perform: togglePortions)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityAddTraits(portionSize == nil ? [] : .isButton)
+                        .accessibilityHint(
+                            portionSize == nil ? "" : String(localized: "Shows the portion stepper")
+                        )
 
                         KeyboardToolbarTextField(
                             value: $amount,
-                            formatter: formatter,
+                            formatter: Self.formatter,
                             configuration: .init(
                                 keyboardType: .decimalPad,
                                 textAlignment: .left,
@@ -83,9 +115,10 @@ extension MealManager {
                                     .foregroundColor(.accentColor)
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel(String(localized: "Use scale reading"))
                         }
 
-                        Picker("", selection: $isMlInput) {
+                        Picker(String(localized: "Unit"), selection: $isMlInput) {
                             Text("g").tag(false)
                             Text("ml").tag(true)
                         }
@@ -96,14 +129,14 @@ extension MealManager {
                         }
                     }
                 }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    showQuickSelector.toggle()
-                }
 
                 if showQuickSelector {
                     multiplierWheel
-                        .padding(.top, 8)
+                        .padding(.top, 12)
+                        // Fade only. The default insertion slides the wheel in from the row's
+                        // edge, and a `List` row clips it mid-flight while its own height is
+                        // still animating, which is what made this look broken.
+                        .transition(.opacity)
                 }
             }
             .onAppear {
@@ -115,6 +148,13 @@ extension MealManager {
             .onChange(of: item.isMlInput) { _, _ in
                 updateFromItem()
             }
+        }
+
+        /// Only items that carry a serving size have portions to step through; for anything
+        /// else the tap is a no-op rather than a stepper that invents a 100g "portion".
+        private func togglePortions() {
+            guard portionSize != nil else { return }
+            withAnimation(.snappy(duration: 0.2)) { showQuickSelector.toggle() }
         }
 
         private func updateFromItem() {
@@ -129,61 +169,60 @@ extension MealManager {
         }
 
         private func stepMultiplier(by value: Int) {
-            let base = item.servingQuantity ?? 100
-            let current = base > 0 ? Int(round(item.amount / base)) : 1
-            let next = max(1, current + value)
-            quickSelectMultiplier(next)
+            guard let base = portionSize else { return }
+            let next = max(1, Int(round(item.amount / base)) + value)
+            updateAmount(base * Double(next))
         }
 
         @ViewBuilder private var multiplierWheel: some View {
-            let base = item.servingQuantity ?? 100
-            let current = base > 0 ? Int(round(item.amount / base)) : 1
+            if let base = portionSize {
+                let current = max(1, Int(round(item.amount / base)))
 
-            HStack(spacing: 12) {
-                Button {
-                    stepMultiplier(by: -1)
-                } label: {
-                    Image(systemName: "minus")
-                        .font(.title2.weight(.bold))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 60)
-                        .background(Color.accentColor.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                }
-                .buttonStyle(.plain)
+                HStack(spacing: 12) {
+                    Button {
+                        stepMultiplier(by: -1)
+                    } label: {
+                        Image(systemName: "minus")
+                            .font(.title2.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 60)
+                            .background(Color.accentColor.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(String(localized: "One portion fewer"))
+                    .disabled(current <= 1)
 
-                VStack(spacing: 2) {
-                    Text("\(current)x")
-                        .font(.title2.weight(.bold))
-                    Text(current == 1 ? String(localized: "Portion") : String(localized: "Portions"))
+                    VStack(spacing: 2) {
+                        Text("\(current)x")
+                            .font(.title2.weight(.bold))
+                        // Says what a portion actually is, instead of asserting that one
+                        // exists: "1x / 30 g each" rather than a bare "1x PORTION".
+                        Text(
+                            "\(Self.formatter.string(from: NSNumber(value: base)) ?? "") \(isMlInput ? "ml" : "g") each"
+                        )
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
-                }
-                .frame(width: 100, height: 60)
-                .background(Color.accentColor.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .frame(width: 110, height: 60)
+                    .background(Color.accentColor.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .accessibilityElement(children: .combine)
 
-                Button {
-                    stepMultiplier(by: 1)
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.title2.weight(.bold))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 60)
-                        .background(Color.accentColor.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    Button {
+                        stepMultiplier(by: 1)
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.title2.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 60)
+                            .background(Color.accentColor.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(String(localized: "One portion more"))
                 }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal)
-        }
-
-        private func quickSelectMultiplier(_ multiplier: Int) {
-            if let servingQuantity = item.servingQuantity, servingQuantity > 0 {
-                updateAmount(servingQuantity * Double(multiplier))
-            } else {
-                updateAmount(Double(multiplier) * 100)
+                .padding(.horizontal)
             }
         }
 
@@ -193,8 +232,8 @@ extension MealManager {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 60, height: 60)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .frame(width: MealManager.Layout.thumbnail, height: MealManager.Layout.thumbnail)
+                    .clipShape(RoundedRectangle(cornerRadius: MealManager.Layout.cornerRadius))
 
             case let .url(url):
                 AsyncImage(url: url) { phase in
@@ -209,17 +248,17 @@ extension MealManager {
                         ProgressView()
                     }
                 }
-                .frame(width: 60, height: 60)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .frame(width: MealManager.Layout.thumbnail, height: MealManager.Layout.thumbnail)
+                .clipShape(RoundedRectangle(cornerRadius: MealManager.Layout.cornerRadius))
 
             case .none:
                 placeholder
-                    .frame(width: 60, height: 60)
+                    .frame(width: MealManager.Layout.thumbnail, height: MealManager.Layout.thumbnail)
             }
         }
 
         private var placeholder: some View {
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: MealManager.Layout.cornerRadius)
                 .fill(Color.secondary.opacity(0.2))
                 .overlay(
                     Image(systemName: "photo")
