@@ -96,6 +96,25 @@ struct GlucoseAlert: Identifiable, Codable, Equatable {
 }
 
 extension GlucoseAlert {
+    /// The alarms the Snooze Alerts sheet lists individually: snoozed right
+    /// now, and outlasting the global snooze window.
+    ///
+    /// A global snooze stamps `snoozedUntil` on every non-urgent-low alarm
+    /// (`GlucoseAlertCoordinator.snoozeDidChange`), so without the second test
+    /// every alarm would appear under the global row as an echo of it.
+    static func individuallySnoozed(
+        _ alarms: [GlucoseAlert],
+        globalSnoozeUntil: Date,
+        now: Date = Date()
+    ) -> [GlucoseAlert] {
+        alarms
+            .filter { alarm in
+                guard let until = alarm.snoozedUntil, until > now else { return false }
+                return until > globalSnoozeUntil
+            }
+            .sorted { $0.type.priority < $1.type.priority }
+    }
+
     var playback: AlarmSoundPlayback {
         AlarmSoundPlayback(trimsSound: trimsSound, trim: soundTrim, seconds: soundDuration)
     }

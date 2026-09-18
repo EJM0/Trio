@@ -195,6 +195,41 @@ import Testing
         #expect(a.playback == .seconds(15))
     }
 
+    // MARK: - Group E: the Snooze Alerts sheet's individual rows
+
+    @Test("Only alarms snoozed right now are listed") func individuallySnoozedSkipsUnsnoozed() {
+        let now = Date()
+        var snoozed = GlucoseAlert(type: .low)
+        snoozed.snoozedUntil = now.addingTimeInterval(600)
+        var expired = GlucoseAlert(type: .high)
+        expired.snoozedUntil = now.addingTimeInterval(-60)
+        let never = GlucoseAlert(type: .carbsRequired)
+
+        let listed = GlucoseAlert.individuallySnoozed(
+            [snoozed, expired, never],
+            globalSnoozeUntil: .distantPast,
+            now: now
+        )
+        #expect(listed.map(\.id) == [snoozed.id])
+    }
+
+    @Test("Alarms covered by the global snooze are not echoed") func individuallySnoozedSkipsGlobalEcho() {
+        let now = Date()
+        let globalUntil = now.addingTimeInterval(3600)
+        // What snoozeDidChange stamps: the global window's own end date.
+        var mirrored = GlucoseAlert(type: .low)
+        mirrored.snoozedUntil = globalUntil
+        var longer = GlucoseAlert(type: .high)
+        longer.snoozedUntil = globalUntil.addingTimeInterval(60)
+
+        let listed = GlucoseAlert.individuallySnoozed(
+            [mirrored, longer],
+            globalSnoozeUntil: globalUntil,
+            now: now
+        )
+        #expect(listed.map(\.id) == [longer.id])
+    }
+
     @Test("Older stored alarms decode as untrimmed") func legacyDecodeIsUntrimmed() throws {
         let json = Data("""
         {"id":"\(UUID().uuidString)","type":"low","name":"Low","thresholdMgDL":70}

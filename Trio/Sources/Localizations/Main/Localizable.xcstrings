@@ -10001,6 +10001,9 @@
         }
       }
     },
+    "%@ device alarms" : {
+
+    },
     "%@ Device Alerts" : {
       "comment" : "Device Alerts help sheet label; text reads: '<severity level> Device Alerts'.",
       "localizations" : {
@@ -292730,6 +292733,9 @@
           }
         }
       }
+    },
+    "Snoozed Alarms" : {
+
     },
     "Snoozed until %@" : {
       "localizations" : {
