@@ -108,13 +108,21 @@ enum AlarmSoundPlayback: Equatable {
     case seconds(TimeInterval)
 }
 
+extension AlarmSoundPlayback {
+    /// Shared by the device-alarm tier configs and the glucose alarms — both
+    /// store the same three trim fields.
+    init(trimsSound: Bool, trim: AlarmSoundTrim, seconds: TimeInterval) {
+        guard trimsSound else { self = .untilAcknowledged; return }
+        switch trim {
+        case .playOnce: self = .once
+        case .length: self = .seconds(seconds)
+        }
+    }
+}
+
 extension DeviceAlertSeverityConfig {
     var playback: AlarmSoundPlayback {
-        guard trimsSound else { return .untilAcknowledged }
-        switch soundTrim {
-        case .playOnce: return .once
-        case .length: return .seconds(soundDuration)
-        }
+        AlarmSoundPlayback(trimsSound: trimsSound, trim: soundTrim, seconds: soundDuration)
     }
 }
 

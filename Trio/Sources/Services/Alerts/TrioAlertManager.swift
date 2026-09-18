@@ -211,12 +211,21 @@ final class BaseTrioAlertManager: TrioAlertManager, Injectable {
     private static func playback(for alert: Alert) -> AlarmSoundPlayback {
         guard let entry = AlertCatalogRegistry.lookup(alert.identifier),
               let tier = DeviceAlertSeverity(level: entry.interruptionLevel)
-        else { return .untilAcknowledged }
+        else { return glucosePlayback(for: alert) }
         let now = Date()
         let isNight = GlucoseAlertsStore.shared.configuration.isNight(at: now)
         return DeviceAlertsStore.shared
             .config(for: tier, at: now, isNight: isNight)?
             .playback ?? .untilAcknowledged
+    }
+
+    /// Trio's own glucose alarms are not in the catalog — each one carries its
+    /// own trim settings, so the identifier names the alarm to read them from.
+    private static func glucosePlayback(for alert: Alert) -> AlarmSoundPlayback {
+        guard let alarmID = GlucoseAlertCoordinator.alarmID(from: alert.identifier),
+              let alarm = GlucoseAlertsStore.shared.alerts.first(where: { $0.id == alarmID })
+        else { return .untilAcknowledged }
+        return alarm.playback
     }
 
     // MARK: - Issue / Retract
@@ -415,9 +424,19 @@ final class BaseTrioAlertManager: TrioAlertManager, Injectable {
         let identifier = Alert.Identifier(managerIdentifier: managerId, alertIdentifier: alertId)
 
         // Swipe = 15-min snooze (mirrors the in-app banner's swipe-up).
-        // Tap and action buttons keep the full-ack path.
+        // Tap keeps the full-ack path.
         if response.actionIdentifier == UNNotificationDismissActionIdentifier {
             modalScheduler.snooze(identifier: identifier, duration: 15 * 60)
+            userNotificationScheduler.unschedule(identifier: identifier)
+            return
+        }
+
+        // The notification's snooze actions route exactly like the in-app
+        // banner's moon menu — glucose per-type, device per-tier, the rest
+        // global. Without this they fell through to a bare acknowledgement
+        // and set no snooze at all.
+        if let action = NotificationResponseAction(rawValue: response.actionIdentifier) {
+            modalScheduler.snooze(identifier: identifier, duration: action.duration)
             userNotificationScheduler.unschedule(identifier: identifier)
             return
         }

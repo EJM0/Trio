@@ -154,6 +154,9 @@ import Testing
         original.thresholdMgDL = 65
         original.soundFilename = "custom_sound.caf"
         original.playsSound = false
+        original.trimsSound = true
+        original.soundTrim = .playOnce
+        original.soundDuration = 42
         original.overridesSilenceAndDND = true
         original.activeOption = .night
         original.snoozedUntil = Date(timeIntervalSinceReferenceDate: 1_000_000)
@@ -161,5 +164,43 @@ import Testing
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(GlucoseAlert.self, from: data)
         #expect(decoded == original)
+    }
+
+    // MARK: - Group D: sound trimming
+
+    @Test("Untrimmed alarms loop until acknowledged") func playbackUntrimmed() {
+        let a = GlucoseAlert(type: .low)
+        #expect(a.trimsSound == false)
+        #expect(a.playback == .untilAcknowledged)
+    }
+
+    @Test("Trim mode is ignored while trimming is off") func playbackTrimOffIgnoresMode() {
+        var a = GlucoseAlert(type: .low)
+        a.soundTrim = .playOnce
+        #expect(a.playback == .untilAcknowledged)
+    }
+
+    @Test("Play Once plays a single pass") func playbackPlayOnce() {
+        var a = GlucoseAlert(type: .low)
+        a.trimsSound = true
+        a.soundTrim = .playOnce
+        #expect(a.playback == .once)
+    }
+
+    @Test("Set Length cuts the tone at the chosen duration") func playbackSetLength() {
+        var a = GlucoseAlert(type: .high)
+        a.trimsSound = true
+        a.soundTrim = .length
+        a.soundDuration = 15
+        #expect(a.playback == .seconds(15))
+    }
+
+    @Test("Older stored alarms decode as untrimmed") func legacyDecodeIsUntrimmed() throws {
+        let json = Data("""
+        {"id":"\(UUID().uuidString)","type":"low","name":"Low","thresholdMgDL":70}
+        """.utf8)
+        let decoded = try JSONDecoder().decode(GlucoseAlert.self, from: json)
+        #expect(decoded.playback == .untilAcknowledged)
+        #expect(decoded.soundDuration == AlarmSoundDurationRange.defaultSeconds)
     }
 }

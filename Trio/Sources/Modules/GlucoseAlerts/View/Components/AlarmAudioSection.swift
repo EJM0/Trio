@@ -4,8 +4,8 @@ import SwiftUI
 struct AlarmAudioSection: View {
     @Binding var playsSound: Bool
     @Binding var soundFilename: String
-    /// Optional so the glucose-alert callers, which have no trim settings of
-    /// their own, keep working unchanged — the rows only appear when bound.
+    /// Optional so a caller without trim settings of its own keeps working —
+    /// the rows only appear when bound.
     var trim: AlarmTrimControls? = nil
 
     @State private var showTonePicker = false

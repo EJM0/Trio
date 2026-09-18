@@ -61,6 +61,22 @@ extension DeviceAlarms {
                             }.padding(.vertical, 5)
                         }
 
+                        // Device snoozes are taken per tier, not per row —
+                        // one line for the whole section, with a swipe to
+                        // end it. Evaluated at render time, so an expired
+                        // snooze clears on the next redraw.
+                        if let until = store.tierSnoozes[severity.rawValue], until > Date() {
+                            AlarmSnoozeBadge(until: until)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button {
+                                        store.snoozeTier(severity, until: .distantPast)
+                                    } label: {
+                                        Label("End Snooze", systemImage: "alarm.waves.left.and.right.fill")
+                                    }
+                                    .tint(.blue)
+                                }
+                        }
+
                         ForEach(store.configs(in: severity)) { config in
                             row(for: config)
                                 .opacity(config.isEnabled ? 1 : 0.5)

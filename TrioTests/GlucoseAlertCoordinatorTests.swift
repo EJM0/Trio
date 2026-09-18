@@ -1,4 +1,5 @@
 import Foundation
+import LoopKit
 import Testing
 
 @testable import Trio
@@ -86,5 +87,24 @@ import Testing
     @Test("Only high/low/urgentLow are reading-driven") func readingDrivenSetIsExact() {
         let readingDriven = Set(GlucoseAlertType.allCases.filter(\.isReadingDriven))
         #expect(readingDriven == [.high, .low, .urgentLow])
+    }
+
+    // MARK: - Identifier round-trip
+
+    @Test("alarmID reads the alarm back out of a glucose identifier") func alarmIDParsesOwnIdentifier() {
+        let id = UUID()
+        let identifier = Alert.Identifier(
+            managerIdentifier: BaseTrioAlertManager.managerIdentifier,
+            alertIdentifier: "glucose.urgentLow.\(id.uuidString)"
+        )
+        #expect(GlucoseAlertCoordinator.alarmID(from: identifier) == id)
+    }
+
+    @Test("alarmID ignores identifiers that aren't glucose alarms") func alarmIDRejectsOthers() {
+        let foreign = Alert.Identifier(
+            managerIdentifier: "org.loopkit.OmnipodKit",
+            alertIdentifier: "pump.reservoir.low"
+        )
+        #expect(GlucoseAlertCoordinator.alarmID(from: foreign) == nil)
     }
 }

@@ -61,7 +61,12 @@ struct GlucoseAlertEditorView: View {
                 )
                 AlarmAudioSection(
                     playsSound: $working.playsSound,
-                    soundFilename: $working.soundFilename
+                    soundFilename: $working.soundFilename,
+                    trim: AlarmTrimControls(
+                        trimsSound: $working.trimsSound,
+                        mode: $working.soundTrim,
+                        seconds: $working.soundDuration
+                    )
                 )
 
                 if !isNew, store.canDelete(working) {

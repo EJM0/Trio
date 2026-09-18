@@ -13,6 +13,13 @@ struct GlucoseAlert: Identifiable, Codable, Equatable {
     /// When false, the alarm fires the banner / notification but no sound.
     /// iOS still drives haptics from the interruption level.
     var playsSound: Bool
+    /// Whether the tone is cut short at all. Off is the untrimmed behavior: the
+    /// player loops until the alarm is acknowledged or retracted.
+    var trimsSound: Bool
+    /// What the tone is trimmed to when `trimsSound` is on.
+    var soundTrim: AlarmSoundTrim
+    /// Seconds the tone sounds for when `soundTrim` is `.length`.
+    var soundDuration: TimeInterval
     /// When true, this alarm bypasses Focus Mode / silent switch
     /// modes. Maps to `Alert.InterruptionLevel.critical` and triggers the
     /// in-process `CriticalAlertAudioPlayer` fallback for builds without the
@@ -30,6 +37,9 @@ struct GlucoseAlert: Identifiable, Codable, Equatable {
         thresholdMgDL = type.defaultThresholdMgDL
         soundFilename = type.defaultSoundFilename
         playsSound = true
+        trimsSound = false
+        soundTrim = .length
+        soundDuration = AlarmSoundDurationRange.defaultSeconds
         overridesSilenceAndDND = type.defaultOverridesSilenceAndDND
         activeOption = .always
         snoozedUntil = nil
@@ -53,6 +63,9 @@ struct GlucoseAlert: Identifiable, Codable, Equatable {
         case thresholdMgDL
         case soundFilename
         case playsSound
+        case trimsSound
+        case soundTrim
+        case soundDuration
         case overridesSilenceAndDND
         case activeOption
         case snoozedUntil
@@ -67,11 +80,23 @@ struct GlucoseAlert: Identifiable, Codable, Equatable {
         thresholdMgDL = try container.decode(Decimal.self, forKey: .thresholdMgDL)
         soundFilename = try container.decodeIfPresent(String.self, forKey: .soundFilename) ?? type.defaultSoundFilename
         playsSound = try container.decodeIfPresent(Bool.self, forKey: .playsSound) ?? true
+        trimsSound = try container.decodeIfPresent(Bool.self, forKey: .trimsSound) ?? false
+        soundTrim = try container.decodeIfPresent(AlarmSoundTrim.self, forKey: .soundTrim) ?? .length
+        soundDuration = try container.decodeIfPresent(
+            TimeInterval.self,
+            forKey: .soundDuration
+        ) ?? AlarmSoundDurationRange.defaultSeconds
         overridesSilenceAndDND = try container.decodeIfPresent(
             Bool.self,
             forKey: .overridesSilenceAndDND
         ) ?? type.defaultOverridesSilenceAndDND
         activeOption = try container.decodeIfPresent(ActiveOption.self, forKey: .activeOption) ?? .always
         snoozedUntil = try container.decodeIfPresent(Date.self, forKey: .snoozedUntil)
+    }
+}
+
+extension GlucoseAlert {
+    var playback: AlarmSoundPlayback {
+        AlarmSoundPlayback(trimsSound: trimsSound, trim: soundTrim, seconds: soundDuration)
     }
 }

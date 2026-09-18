@@ -353,6 +353,15 @@ final class GlucoseAlertCoordinator: Injectable {
         )
     }
 
+    /// The alarm this identifier names, or nil when it isn't one of ours.
+    /// Inverse of `alertID(for:)` — used at fire time to read the alarm's
+    /// audio settings back off an `Alert`.
+    static func alarmID(from identifier: Alert.Identifier) -> UUID? {
+        let parts = identifier.alertIdentifier.split(separator: ".")
+        guard parts.count == 3, parts[0] == "glucose" else { return nil }
+        return UUID(uuidString: String(parts[2]))
+    }
+
     private func bodyText(for alarm: GlucoseAlert, valueMgDL: Decimal) -> String {
         let units = settingsManager.settings.units
         let valueString = valueMgDL.formatted(withUnits: units)

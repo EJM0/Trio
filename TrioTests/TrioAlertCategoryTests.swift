@@ -1,6 +1,7 @@
 import Foundation
 import LoopKit
 import Testing
+import UserNotifications
 
 @testable import Trio
 
@@ -68,5 +69,20 @@ import Testing
 
     @Test("commsTransient is dwell-suppressed") func commsTransientDoesNotFireImmediately() {
         #expect(TrioAlertCategory.commsTransient.shouldFireImmediately == false)
+    }
+
+    /// `handleNotificationResponse` recognises a snooze button by feeding the
+    /// response's `actionIdentifier` back through `NotificationResponseAction`.
+    /// If a registered action ever stops round-tripping, the button silently
+    /// falls through to a bare acknowledgement and snoozes nothing.
+    @Test("Every registered snooze action round-trips to a duration") func snoozeActionsRoundTrip() {
+        let category = NotificationCategoryFactory.createGlucoseCategory()
+        #expect(category.identifier == NotificationCategoryIdentifier.trioAlert.rawValue)
+        #expect(!category.actions.isEmpty)
+        for action in category.actions {
+            let parsed = NotificationResponseAction(rawValue: action.identifier)
+            #expect(parsed != nil, "\(action.identifier) no longer maps to a snooze action")
+            #expect((parsed?.duration ?? 0) > 0)
+        }
     }
 }

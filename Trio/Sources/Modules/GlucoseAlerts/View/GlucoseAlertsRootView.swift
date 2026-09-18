@@ -273,6 +273,11 @@ extension GlucoseAlerts {
                             .font(.footnote)
                             .foregroundColor(.secondary)
                         soundSummary(for: alarm)
+                        // Evaluated at render time — a snooze that runs out
+                        // while this screen is open clears on the next redraw.
+                        if let until = alarm.snoozedUntil, until > Date() {
+                            AlarmSnoozeBadge(until: until)
+                        }
                     }
 
                     Spacer()
@@ -289,6 +294,16 @@ extension GlucoseAlerts {
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
+                }
+                if let until = alarm.snoozedUntil, until > Date() {
+                    Button {
+                        var updated = alarm
+                        updated.snoozedUntil = nil
+                        store.update(updated)
+                    } label: {
+                        Label("End Snooze", systemImage: "alarm.waves.left.and.right.fill")
+                    }
+                    .tint(.blue)
                 }
             }
         }
