@@ -2003,7 +2003,6 @@
       }
     },
     " %@ · GMI %@" : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -8227,9 +8226,6 @@
         }
       }
     },
-    "%.0fg carbs" : {
-
-    },
     "%.1f g" : {
 
     },
@@ -8765,6 +8761,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ - 0.5 × (%2$@ - %3$@) = %4$@"
+          }
+        }
+      }
+    },
+    "%@ · %.1fg carbs" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$.1fg carbs"
           }
         }
       }
@@ -9309,6 +9315,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ %2$@ / %3$@ %4$@/%5$@ = %6$@ %7$@"
+          }
+        }
+      }
+    },
+    "%@ %@ each" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ each"
           }
         }
       }
@@ -11840,9 +11856,6 @@
         }
       }
     },
-    "%@g carbs" : {
-
-    },
     "%1$@ for %2$@" : {
       "comment" : "Summary string for temporary basal rate configuration page",
       "extractionState" : "manual",
@@ -13815,16 +13828,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld 小時"
-          }
-        }
-      }
-    },
-    "%lld Item%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld Item%2$@"
           }
         }
       }
@@ -23375,6 +23378,9 @@
         }
       }
     },
+    "^[%lld item](inflect: true)" : {
+
+    },
     "→" : {
       "localizations" : {
         "bg" : {
@@ -24549,6 +24555,7 @@
       }
     },
     "⌀ %@ · GMI %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -28867,6 +28874,9 @@
         }
       }
     },
+    "24 h" : {
+      "comment" : "Stats interval: the rolling last 24 hours"
+    },
     "24 hours" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31862,6 +31872,9 @@
         }
       }
     },
+    "A plate of %@, food photography" : {
+
+    },
     "A pre-condition to have Temp Targets adjust Sensitivity is that the respective Target Behavior settings High Temp Target Raises Sensitivity or Low Temp Target Lowers Sensitivity are set to enabled." : {
       "localizations" : {
         "bg" : {
@@ -34488,6 +34501,9 @@
           }
         }
       }
+    },
+    "Add %@" : {
+
     },
     "Add %@ without bolusing" : {
       "comment" : "Add insulin from source outside of pump",
@@ -63371,7 +63387,6 @@
     },
     "Avg. Glucose:" : {
       "comment" : "Stats banner label",
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -65222,6 +65237,9 @@
       }
     },
     "Barcode AI Scanner" : {
+
+    },
+    "Barcode Scanner" : {
 
     },
     "Basal" : {
@@ -88267,6 +88285,7 @@
       }
     },
     "Choose what the statistics panel on the home screen shows by default. Tapping the panel always opens the full statistics view.\n\nTime in Range: today's time in range percentage with a glucose distribution bar.\n\nDistribution Bar Only: just the glucose distribution bar, without the percentage.\n\nToday's Averages: today's average glucose and GMI (Glucose Management Index)." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -88397,6 +88416,7 @@
       }
     },
     "Choose what the statistics panel on the home screen shows by default. Tapping the panel always opens the full statistics view.\n\nTime in Range: today's time in range percentage with a glucose distribution bar.\n\nDistribution Bar Only: just the glucose distribution bar, without the percentage.\n\nToday's Averages: today's average glucose and GMI (Glucose Management Index).\n\nHide Statistics: shows no data at all, just a \"View Statistics\" shortcut." : {
+
     },
     "Choose what the statistics panel on the home screen shows by default. Tapping the panel always opens the full statistics view.\n\nTime in Range: today's time in range percentage with a glucose distribution bar.\n\nDistribution Bar Only: just the glucose distribution bar, without the percentage.\n\nToday's Averages: today's average glucose and GMI (Glucose Management Index).\n\nToday's Treatments: insulin delivered since midnight — no glucose statistics. Announced carbs (and fat and protein, if you log them) appear once logged that day.\n\nHide Statistics: shows no data at all, just a \"View Statistics\" shortcut." : {
       "extractionState" : "stale",
@@ -89447,6 +89467,9 @@
           }
         }
       }
+    },
+    "Clear search" : {
+
     },
     "Clears the local App Attest key, registered flag, and forbidden flag. The next telemetry send will re-attest from scratch. Use only if telemetry is stuck." : {
       "localizations" : {
@@ -115365,6 +115388,9 @@
           }
         }
       }
+    },
+    "Delete this preset?" : {
+
     },
     "Delete Variant" : {
       "localizations" : {
@@ -157162,6 +157188,9 @@
         }
       }
     },
+    "g carbs" : {
+
+    },
     "g/U" : {
       "comment" : " grams per Unit",
       "localizations" : {
@@ -158212,6 +158241,9 @@
           }
         }
       }
+    },
+    "Generate Image" : {
+
     },
     "Generate Secret" : {
       "localizations" : {
@@ -160306,6 +160338,7 @@
       }
     },
     "Glucose Chart Type" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -169403,7 +169436,6 @@
     },
     "Hide Statistics" : {
       "comment" : "Home stats panel face option",
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -182545,6 +182577,7 @@
       }
     },
     "Insulin Chart Type" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -199293,6 +199326,7 @@
       }
     },
     "Looping Chart Type" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -211648,6 +211682,7 @@
       }
     },
     "Meal Chart Type" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -221407,6 +221442,9 @@
         }
       }
     },
+    "Next day" : {
+
+    },
     "Next field" : {
       "localizations" : {
         "bg" : {
@@ -225987,6 +226025,9 @@
           }
         }
       }
+    },
+    "No presets yet" : {
+
     },
     "No profile; cannot determine basal." : {
       "localizations" : {
@@ -237427,6 +237468,12 @@
           }
         }
       }
+    },
+    "One portion fewer" : {
+
+    },
+    "One portion more" : {
+
     },
     "Only adjust these settings if you’re an advanced or returning user who knows what they’re doing." : {
       "localizations" : {
@@ -251586,12 +251633,6 @@
         }
       }
     },
-    "Portion" : {
-
-    },
-    "Portions" : {
-
-    },
     "Prediction Type" : {
       "localizations" : {
         "bg" : {
@@ -252899,6 +252940,9 @@
           }
         }
       }
+    },
+    "Previous day" : {
+
     },
     "Previous field" : {
       "localizations" : {
@@ -271026,6 +271070,9 @@
         }
       }
     },
+    "Save a meal you eat often and it will be one tap away." : {
+
+    },
     "Save and continue" : {
       "comment" : "Save Carbs and continue to bolus recommendation",
       "extractionState" : "manual",
@@ -272626,6 +272673,12 @@
           }
         }
       }
+    },
+    "Scale battery" : {
+
+    },
+    "Scale reading" : {
+
     },
     "Scale Settings" : {
 
@@ -275130,6 +275183,12 @@
           }
         }
       }
+    },
+    "Select Day" : {
+
+    },
+    "Select day, %@" : {
+
     },
     "Select font size, weight, and width to match your style:" : {
       "localizations" : {
@@ -286495,6 +286554,9 @@
           }
         }
       }
+    },
+    "Shows the portion stepper" : {
+
     },
     "Sigmoid" : {
       "localizations" : {
@@ -305516,6 +305578,9 @@
           }
         }
       }
+    },
+    "Tare scale" : {
+
     },
     "Tare Scale" : {
 
@@ -331132,6 +331197,7 @@
     },
     "Today's average" : {
       "comment" : "Stats banner subtitle",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -331263,7 +331329,6 @@
     },
     "Today's Average" : {
       "comment" : "Stats banner subtitle",
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -332316,7 +332381,7 @@
         }
       }
     },
-    "total %.1f g of carbs" : {
+    "Total %.1f g carbs" : {
 
     },
     "Total Daily Dose" : {
@@ -351735,6 +351800,9 @@
         }
       }
     },
+    "Use scale reading" : {
+
+    },
     "Use Sigmoid Function" : {
       "comment" : "Headline Use Sigmoid Function",
       "extractionState" : "manual",
@@ -354887,7 +354955,6 @@
     },
     "View Statistics" : {
       "comment" : "Stats banner hidden face",
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -365494,6 +365561,7 @@
       }
     },
     "Yesterday" : {
+      "comment" : "Stats day picker: the previous day",
       "localizations" : {
         "bg" : {
           "stringUnit" : {

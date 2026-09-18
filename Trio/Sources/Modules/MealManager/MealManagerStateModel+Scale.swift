@@ -11,16 +11,24 @@ import Foundation
 extension MealManager.StateModel {
     // MARK: - Scale
 
+    /// How long to wait before probing a scale that did not answer.
+    ///
+    /// A scale that was just powered on has to rejoin WiFi and bring its HTTP server up before
+    /// it can answer at all, which takes several seconds -- probing every second only produced
+    /// failures it had no chance of passing.
+    static let scaleRetryInterval: TimeInterval = 10
+
     func startScalePolling() {
-        // Cancel any existing timer
         scaleCheckTimer?.invalidate()
 
-        // Check immediately
+        // Probe straight away, so a scale that is already up is found without waiting out the
+        // retry interval; only failures pay it.
         checkScaleConnectionOnce()
 
-        // Then check every 1 second
-        scaleCheckTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) {
-            [weak self] _ in
+        scaleCheckTimer = Timer.scheduledTimer(
+            withTimeInterval: Self.scaleRetryInterval,
+            repeats: true
+        ) { [weak self] _ in
             self?.checkScaleConnectionOnce()
         }
     }
@@ -31,8 +39,12 @@ extension MealManager.StateModel {
     }
 
     private func checkScaleConnectionOnce() {
-        // Skip if already connected or checking
-        guard liveScaleWeight == nil, !isCheckingScaleConnection else { return }
+        // Gated on the real socket state, not on `liveScaleWeight`. That is a UI value: it is
+        // set to 0.0 the moment a connection is attempted and only cleared when a disconnect is
+        // reported. Any drop that failed to report one left it non-nil, and this guard then
+        // skipped every poll for the life of the sheet -- which is why a scale that was powered
+        // off and back on never came back until the sheet was reopened.
+        guard !provider.scaleManager.isScaleConnected, !isCheckingScaleConnection else { return }
 
         isCheckingScaleConnection = true
         provider.scaleManager.fetchBatteryLevel { [weak self] level in
@@ -113,4 +125,5 @@ extension MealManager.StateModel {
 
     func tareScale() {
         provider.scaleManager.tare(ip: nil)
-    }}
+    }
+}

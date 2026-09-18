@@ -2,10 +2,14 @@ import Foundation
 import Swinject
 
 protocol ScaleManager {
+    /// Whether the live-weight websocket is currently up.
+    var isScaleConnected: Bool { get }
+
     func tare(ip: String?)
     func calibrate(weight: Decimal, ip: String?)
     func fetchWeight(completion: @escaping (Double) -> Void)
     func fetchBatteryLevel(completion: @escaping (Int?) -> Void)
+
     func connectToWebSocket(
         ip: String?, onMessage: @escaping (Double) -> Void, onConnectionChange: ((Bool) -> Void)?
     )
@@ -17,7 +21,7 @@ final class BaseScaleManager: ScaleManager, Injectable {
     private var webSocketTask: URLSessionWebSocketTask?
 
     // Reconnection state
-    private var isConnectedToWebSocket = false
+    private(set) var isScaleConnected = false
     private var shouldReconnect = false
     private var currentOnConnectionChange: ((Bool) -> Void)?
 
@@ -53,9 +57,9 @@ final class BaseScaleManager: ScaleManager, Injectable {
 
     func fetchWeight(completion: @escaping (Double) -> Void) {
         let ip = settingsManager.settings.scaleIP
-        print("DEBUG ScaleManager: fetchWeight called with IP: \(ip)")
+        debug(.service, "fetchWeight called with IP: \(ip)")
         guard !ip.isEmpty, let url = URL(string: "http://\(ip):8080/read") else {
-            print("DEBUG ScaleManager: IP is empty or invalid URL for weight")
+            debug(.service, "IP is empty or invalid URL for weight")
             return
         }
 
@@ -63,8 +67,9 @@ final class BaseScaleManager: ScaleManager, Injectable {
         request.timeoutInterval = 10
 
         URLSession.shared.dataTask(with: request) { data, _, error in
-            print(
-                "DEBUG ScaleManager: Weight response received - error: \(error?.localizedDescription ?? "none"), data: \(data?.count ?? 0) bytes"
+            debug(
+                .service,
+                "Weight response received - error: \(error?.localizedDescription ?? "none"), data: \(data?.count ?? 0) bytes"
             )
 
             guard let data = data, error == nil else { return }
@@ -83,9 +88,9 @@ final class BaseScaleManager: ScaleManager, Injectable {
 
     func fetchBatteryLevel(completion: @escaping (Int?) -> Void) {
         let ip = settingsManager.settings.scaleIP
-        print("DEBUG ScaleManager: fetchBatteryLevel called with IP: \(ip)")
+        debug(.service, "fetchBatteryLevel called with IP: \(ip)")
         guard !ip.isEmpty, let url = URL(string: "http://\(ip):8080/battery") else {
-            print("DEBUG ScaleManager: IP is empty or invalid URL")
+            debug(.service, "IP is empty or invalid URL")
             completion(nil)
             return
         }
@@ -94,52 +99,67 @@ final class BaseScaleManager: ScaleManager, Injectable {
         request.timeoutInterval = 10
 
         URLSession.shared.dataTask(with: request) { data, _, error in
-            print(
-                "DEBUG ScaleManager: Battery response received - error: \(error?.localizedDescription ?? "none"), data: \(data?.count ?? 0) bytes"
+            debug(
+                .service,
+                "Battery response received - error: \(error?.localizedDescription ?? "none"), data: \(data?.count ?? 0) bytes"
             )
             guard let data = data, error == nil else {
                 DispatchQueue.main.async { completion(nil) }
                 return
             }
 
+            // The firmware sends {"voltage":3.76,"percent":51}. Trio decoded "percentage",
+            // which never matched, so it always fell through to deriving its own number --
+            // the scale showed 51% while the phone showed something else entirely.
+            //
+            // Double, not Int: firmware reporting a fractional percent failed an Int decode
+            // and then fell through every branch to nil, showing no battery at all.
             struct BatteryPercentageResponse: Decodable {
-                let percentage: Int
+                let percent: Double
+
+                enum CodingKeys: String, CodingKey {
+                    case percent
+                    case percentage
+                }
+
+                init(from decoder: Decoder) throws {
+                    let container = try decoder.container(keyedBy: CodingKeys.self)
+                    guard let value = try container.decodeIfPresent(Double.self, forKey: .percent)
+                        ?? container.decodeIfPresent(Double.self, forKey: .percentage)
+                    else {
+                        throw DecodingError.keyNotFound(
+                            CodingKeys.percent,
+                            .init(codingPath: container.codingPath, debugDescription: "no percent field")
+                        )
+                    }
+                    percent = value
+                }
             }
 
             struct BatteryVoltageResponse: Decodable {
                 let voltage: Double
             }
 
-            // Try percentage format first
+            // The scale's own number always wins, so Trio shows what the device shows.
             if let response = try? JSONDecoder().decode(BatteryPercentageResponse.self, from: data) {
                 DispatchQueue.main.async {
-                    completion(response.percentage)
+                    completion(Int(response.percent.rounded()))
                 }
             }
-            // Try voltage JSON format
+            // Voltage JSON format
             else if let response = try? JSONDecoder().decode(BatteryVoltageResponse.self, from: data) {
-                // Map 3.0V (0%) to 4.2V (100%)
-                let minV = 3.0
-                let maxV = 4.2
-                let pct = Int(max(0, min(100, (response.voltage - minV) / (maxV - minV) * 100)))
-
                 DispatchQueue.main.async {
-                    completion(pct)
+                    completion(Self.batteryPercent(forVoltage: response.voltage))
                 }
             }
-            // Try plain text voltage format like "3.92V"
+            // Plain text voltage format like "3.92V"
             else if let text = String(data: data, encoding: .utf8)?.trimmingCharacters(
                 in: .whitespacesAndNewlines
             ),
                 let voltage = Double(text.replacingOccurrences(of: "V", with: ""))
             {
-                // Map 3.0V (0%) to 4.2V (100%)
-                let minV = 3.0
-                let maxV = 4.2
-                let pct = Int(max(0, min(100, (voltage - minV) / (maxV - minV) * 100)))
-
                 DispatchQueue.main.async {
-                    completion(pct)
+                    completion(Self.batteryPercent(forVoltage: voltage))
                 }
             } else {
                 DispatchQueue.main.async {
@@ -149,15 +169,33 @@ final class BaseScaleManager: ScaleManager, Injectable {
         }.resume()
     }
 
+    /// Mirrors the scale firmware's own `battPercent()` so the two readings agree.
+    ///
+    /// Only reached when the scale sends volts without a percent; its own number is preferred,
+    /// and this exists so the fallback does not disagree with the device either.
+    ///
+    /// A straight line is not how a LiPo actually discharges -- it reads high through the middle
+    /// and falls off a cliff near the end. That is worth fixing, but in the firmware, which owns
+    /// the number shown on the scale's own display; Trio would then follow for free through
+    /// `percent`. Diverging here would only recreate the mismatch this replaced.
+    ///
+    /// ponytail: keep in step with BAT_EMPTY/BAT_FULL in scale.ino.
+    static func batteryPercent(forVoltage voltage: Double) -> Int {
+        let empty = 3.30
+        let full = 4.20
+        let ratio = (voltage - empty) / (full - empty) * 100
+        return Int(max(0, min(100, ratio.rounded())))
+    }
+
     func connectToWebSocket(
         ip: String? = nil,
         onMessage: @escaping (Double) -> Void,
         onConnectionChange: ((Bool) -> Void)? = nil
     ) {
         let ipToUse = ip ?? settingsManager.settings.scaleIP
-        print("DEBUG ScaleManager: connectToWebSocket called with IP: \(ipToUse)")
+        debug(.service, "connectToWebSocket called with IP: \(ipToUse)")
         guard !ipToUse.isEmpty else {
-            print("DEBUG ScaleManager: IP is empty for WebSocket")
+            debug(.service, "IP is empty for WebSocket")
             return
         }
 
@@ -172,11 +210,11 @@ final class BaseScaleManager: ScaleManager, Injectable {
         }
 
         guard let url = URL(string: "ws://\(host):\(wsPort)") else {
-            print("DEBUG ScaleManager: Invalid WebSocket URL")
+            debug(.service, "Invalid WebSocket URL")
             return
         }
 
-        print("DEBUG ScaleManager: Connecting to WebSocket at \(url.absoluteString)")
+        debug(.service, "Connecting to WebSocket at \(url.absoluteString)")
 
         // Store parameters for reconnection
         currentOnConnectionChange = onConnectionChange
@@ -191,7 +229,7 @@ final class BaseScaleManager: ScaleManager, Injectable {
         webSocketTask = URLSession.shared.webSocketTask(with: url)
         webSocketTask?.resume()
 
-        isConnectedToWebSocket = true
+        isScaleConnected = true
         DispatchQueue.main.async { [weak self] in
             self?.currentOnConnectionChange?(true)
         }
@@ -202,12 +240,19 @@ final class BaseScaleManager: ScaleManager, Injectable {
         let currentTask = webSocketTask
         webSocketTask?.receive { [weak self] result in
             guard let self = self else { return }
-            // Ensure we are handling the active task and haven't been disconnected
-            guard self.webSocketTask === currentTask, self.shouldReconnect else { return }
+            // Only the active task speaks for the connection: an old task's cancellation
+            // arrives here too, and must not be reported as this connection dropping.
+            //
+            // Deliberately not also gated on `shouldReconnect`. It is cleared by
+            // disconnectWebSocket(), which the consumer calls from its own disconnect handler --
+            // so a genuine drop that landed here while it was false was swallowed, the consumer
+            // never heard "disconnected", and its reconnect polling never started. An
+            // intentional disconnect nils the task, which this check already covers.
+            guard self.webSocketTask === currentTask else { return }
 
             switch result {
             case let .failure(error):
-                print("WebSocket error: \(error)")
+                debug(.service, "WebSocket error: \(error)")
                 self.handleConnectionFailure()
 
             case let .success(message):
@@ -237,9 +282,9 @@ final class BaseScaleManager: ScaleManager, Injectable {
         // We no longer auto-reconnect at the socket layer.
         // Instead, we just notify the consumer (StateModel) that connection is lost.
         // The consumer is responsible for falling back to polling (battery check) and then reconnecting.
-        print("DEBUG ScaleManager: WebSocket disconnected or error. Notifying consumer.")
+        debug(.service, "WebSocket disconnected or error. Notifying consumer.")
 
-        isConnectedToWebSocket = false
+        isScaleConnected = false
         DispatchQueue.main.async { [weak self] in
             self?.currentOnConnectionChange?(false)
         }
@@ -252,7 +297,7 @@ final class BaseScaleManager: ScaleManager, Injectable {
         shouldReconnect = false
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
-        isConnectedToWebSocket = false
+        isScaleConnected = false
         // Do not notify listener here - this is an intentional disconnect initiated by the consumer
     }
 }
