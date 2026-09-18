@@ -145,15 +145,12 @@ final class OpenFoodFactsClient {
 
     /// Search products by name/text query
     ///
-    /// Uses the v2 search endpoint rather than the legacy `/cgi/search.pl` CGI. The query
-    /// parameters that carry meaning here — `search_terms`, `page`, `page_size` — are the
-    /// same on both; `search_simple`, `action` and `json` were CGI plumbing with no v2
-    /// equivalent, since v2 always returns JSON.
+    /// Uses `/cgi/search.pl`, not `/api/v2/search`: v2 filters by tag only and silently
+    /// ignores `search_terms`, so every query came back with the same arbitrary slice of
+    /// the whole database. Both return the same envelope, so only the URL differs.
     ///
-    /// v2 also honours `fields`, which the CGI did not. Without it every hit comes back as
-    /// a full product document — hundreds of keys, most of a megabyte for a page of 24 —
-    /// of which `ProductData` reads fourteen. Asking for just those is the difference
-    /// between a page of results being a large download and a small one.
+    /// `fields` keeps the payload small — without it every hit is a full product document,
+    /// hundreds of keys, of which `ProductData` reads fourteen.
     ///
     /// - Parameters:
     ///   - query: The search term to look for
@@ -166,13 +163,16 @@ final class OpenFoodFactsClient {
             return []
         }
 
-        guard var components = URLComponents(string: "https://world.openfoodfacts.org/api/v2/search")
+        guard var components = URLComponents(string: "https://world.openfoodfacts.org/cgi/search.pl")
         else {
             throw OpenFoodFactsError.invalidResponse
         }
 
         components.queryItems = [
             URLQueryItem(name: "search_terms", value: query),
+            URLQueryItem(name: "search_simple", value: "1"),
+            URLQueryItem(name: "action", value: "process"),
+            URLQueryItem(name: "json", value: "1"),
             URLQueryItem(name: "page", value: String(page)),
             URLQueryItem(name: "page_size", value: String(pageSize)),
             URLQueryItem(name: "fields", value: Self.productFields)
