@@ -12393,6 +12393,9 @@
         }
       }
     },
+    "%d days" : {
+      "comment" : "Stats range picker footer: how many whole days the range covers"
+    },
     "%d hours" : {
       "comment" : "Accessibility: pod time",
       "localizations" : {
@@ -221445,9 +221448,6 @@
         }
       }
     },
-    "Next day" : {
-
-    },
     "Next field" : {
       "localizations" : {
         "bg" : {
@@ -221577,6 +221577,9 @@
           }
         }
       }
+    },
+    "Next period" : {
+
     },
     "Night only" : {
       "comment" : "A label for \"Night only\".",
@@ -252944,9 +252947,6 @@
         }
       }
     },
-    "Previous day" : {
-
-    },
     "Previous field" : {
       "localizations" : {
         "bg" : {
@@ -253076,6 +253076,9 @@
           }
         }
       }
+    },
+    "Previous period" : {
+
     },
     "Previous Pod Information" : {
       "comment" : "Text for previous pod information row",
@@ -260565,6 +260568,7 @@
       }
     },
     "Range" : {
+      "comment" : "Stats interval: a user-picked span of days",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -275187,10 +275191,10 @@
         }
       }
     },
-    "Select Day" : {
+    "Select Days" : {
 
     },
-    "Select day, %@" : {
+    "Select days, %@" : {
 
     },
     "Select font size, weight, and width to match your style:" : {
@@ -304924,6 +304928,9 @@
           }
         }
       }
+    },
+    "Tap and hold the selected date to return to today." : {
+
     },
     "Tap and hold the Time-in-Range ring to reveal more details." : {
       "localizations" : {
