@@ -51,6 +51,8 @@
 	<array>
 		<string>gcm-ciq</string>
 		<string>dexcomg7</string>
+		<string>dexcomoneplus</string>
+		<string>stelo</string>
 		<string>xdripswift</string>
 		<string>dexcomg6</string>
 		<string>dexcomcgm</string>
@@ -80,7 +82,7 @@
 	<key>NSCalendarsUsageDescription</key>
 	<string>Calendar is used to create a new glucose events.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Camera is used to scan food barcodes for nutritional information</string>
+	<string>Camera is used to scan food barcodes and the code on your Dexcom sensor packaging</string>
 	<key>NSContactsUsageDescription</key>
 	<string>Contact is used to create a Apple Watch complication</string>
 	<key>NSFaceIDUsageDescription</key>
