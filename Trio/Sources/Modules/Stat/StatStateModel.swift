@@ -315,6 +315,8 @@ extension Stat.StateModel {
         case percentileByDay = "Percentile (by day)"
         /// Day-based distribution of glucose ranges
         case distributionByDay = "Distribution (by day)"
+        /// One bar per day, measured against a time-in-range goal
+        case goal = "Goal"
 
         var displayName: String {
             switch self {
@@ -326,6 +328,37 @@ extension Stat.StateModel {
                 return String(localized: "Percentile (by day)")
             case .distributionByDay:
                 return String(localized: "Distribution (by day)")
+            case .goal:
+                return String(localized: "Goal")
+            }
+        }
+
+        /// Whether this chart needs more than a single day to show anything. The by-day
+        /// charts scroll through a run of days, so a rolling 24 h window leaves them with
+        /// nothing to draw. The goal chart is content with one row.
+        var requiresMultipleDays: Bool {
+            switch self {
+            case .distributionByDay,
+                 .percentileByDay:
+                return true
+            case .distributionByTime,
+                 .goal,
+                 .percentileByTime:
+                return false
+            }
+        }
+
+        /// Whether this chart already breaks the window down per day, which makes the
+        /// separate stats card underneath a repeat of what it is showing.
+        var spansDays: Bool {
+            switch self {
+            case .distributionByDay,
+                 .goal,
+                 .percentileByDay:
+                return true
+            case .distributionByTime,
+                 .percentileByTime:
+                return false
             }
         }
     }

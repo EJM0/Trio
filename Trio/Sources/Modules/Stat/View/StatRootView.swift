@@ -27,7 +27,7 @@ extension Stat {
         /// show them. A picked range does — several days is exactly what they want — so
         /// `.custom` stays on offer and only `.day` drops out.
         private var intervalOptions: [Stat.StateModel.StatsTimeIntervalWithCustom] {
-            state.selectedGlucoseChartType == .percentileByDay || state.selectedGlucoseChartType == .distributionByDay
+            state.selectedGlucoseChartType.requiresMultipleDays
                 ? [.custom, .week, .month, .total] : Stat.StateModel.StatsTimeIntervalWithCustom.allCases
         }
 
@@ -64,7 +64,7 @@ extension Stat {
             .onChange(of: state.selectedGlucoseChartType) { _, newValue in
                 // The by-day charts need more than a single day of data. A picked range of
                 // several days qualifies, so only a one-day window has to be left behind.
-                guard newValue == .percentileByDay || newValue == .distributionByDay else { return }
+                guard newValue.requiresMultipleDays else { return }
                 let isSingleDay = state.selectedIntervalForGlucoseStats == .day
                     || (state.selectedIntervalForGlucoseStats == .custom && state.selectedStatsRangeDayCount == 1)
                 if isSingleDay {
@@ -412,9 +412,7 @@ extension Stat {
             } else {
                 timeInRangeCard
 
-                if !isGlucoseDaySelected && state.selectedGlucoseChartType != .percentileByDay && state
-                    .selectedGlucoseChartType != .distributionByDay
-                {
+                if !isGlucoseDaySelected, !state.selectedGlucoseChartType.spansDays {
                     glucoseStatsCard
                 }
 
@@ -422,9 +420,11 @@ extension Stat {
                     var hintText: String {
                         switch state.selectedGlucoseChartType {
                         case .percentileByTime:
-                            String(localized: "Tap and hold the AGP graph or Time-in-Range ring to reveal more details.")
+                            String(
+                                localized: "Tap and hold the AGP graph, or tap a segment of the Time-in-Range bar, to reveal more details."
+                            )
                         case .distributionByTime:
-                            String(localized: "Tap and hold the Time-in-Range ring to reveal more details.")
+                            String(localized: "Tap a segment of the Time-in-Range bar to reveal more details.")
                         case .percentileByDay:
                             String(
                                 localized: "Tap a percentile or tap and hold a bar to reveal more details. Swipe to scroll through time."
@@ -433,6 +433,8 @@ extension Stat {
                             String(
                                 localized: "Tap and hold a bar in the chart to reveal more details. Swipe to scroll through time."
                             )
+                        case .goal:
+                            String(localized: "Tap the goal to change it. Days that reached it are filled in.")
                         }
                     }
                     Image(systemName: "hand.draw.fill")
@@ -510,6 +512,13 @@ extension Stat {
                             isToday: state.selectedIntervalForGlucoseStats == .custom
                                 && state.selectedStatsRangeDayCount == 1
                                 && Calendar.current.isDateInToday(state.selectedStatsRange.lowerBound)
+                        )
+
+                    case .goal:
+                        GlucoseGoalChart(
+                            dailyStats: state.dailyGlucoseDistributionStats,
+                            window: state.dateRange(for: state.selectedIntervalForGlucoseStats),
+                            interval: state.selectedIntervalForGlucoseStats
                         )
 
                     case .distributionByTime:

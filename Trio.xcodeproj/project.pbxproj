@@ -560,6 +560,7 @@
 		BD249D8E2D42FC3900412DEB /* LoopBarChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD249D8D2D42FC3600412DEB /* LoopBarChartView.swift */; };
 		BD249D902D42FC4500412DEB /* MealStatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD249D8F2D42FC4300412DEB /* MealStatsView.swift */; };
 		BD249D922D42FC5300412DEB /* GlucoseSectorChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD249D912D42FC5000412DEB /* GlucoseSectorChart.swift */; };
+		EA11000000000000000002AA /* GlucoseGoalChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA11000000000000000001AA /* GlucoseGoalChart.swift */; };
 		BD249D942D42FC5E00412DEB /* TotalDailyDoseChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD249D932D42FC5C00412DEB /* TotalDailyDoseChart.swift */; };
 		BD249D972D42FCBF00412DEB /* AreaChartSetup.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD249D962D42FCBD00412DEB /* AreaChartSetup.swift */; };
 		BD249D992D42FCCD00412DEB /* BolusStatsSetup.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD249D982D42FCCA00412DEB /* BolusStatsSetup.swift */; };
@@ -1685,6 +1686,7 @@
 		BD249D8D2D42FC3600412DEB /* LoopBarChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopBarChartView.swift; sourceTree = "<group>"; };
 		BD249D8F2D42FC4300412DEB /* MealStatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealStatsView.swift; sourceTree = "<group>"; };
 		BD249D912D42FC5000412DEB /* GlucoseSectorChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseSectorChart.swift; sourceTree = "<group>"; };
+		EA11000000000000000001AA /* GlucoseGoalChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseGoalChart.swift; sourceTree = "<group>"; };
 		BD249D932D42FC5C00412DEB /* TotalDailyDoseChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TotalDailyDoseChart.swift; sourceTree = "<group>"; };
 		BD249D962D42FCBD00412DEB /* AreaChartSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AreaChartSetup.swift; sourceTree = "<group>"; };
 		BD249D982D42FCCA00412DEB /* BolusStatsSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BolusStatsSetup.swift; sourceTree = "<group>"; };
@@ -4699,6 +4701,7 @@
 				C29E26892DADFD2A00F87E75 /* GlucoseDailyPercentileChart.swift */,
 				C28DD7252DBA9A9E00EC02DD /* GlucosePercentileDetailView.swift */,
 				BD249D912D42FC5000412DEB /* GlucoseSectorChart.swift */,
+				EA11000000000000000001AA /* GlucoseGoalChart.swift */,
 				BD249D8B2D42FC2500412DEB /* GlucoseDistributionChart.swift */,
 				BD249D892D42FC0E00412DEB /* GlucosePercentileChart.swift */,
 				BD249D852D42FBE600412DEB /* GlucoseMetricsView.swift */,
@@ -5976,6 +5979,7 @@
 				041D1E995A6AE92E9289DC49 /* TreatmentsDataFlow.swift in Sources */,
 				DD32CF9E2CC824C5003686D6 /* TrioRemoteControl+Override.swift in Sources */,
 				BD249D922D42FC5300412DEB /* GlucoseSectorChart.swift in Sources */,
+				EA11000000000000000002AA /* GlucoseGoalChart.swift in Sources */,
 				23888883D4EA091C88480FF2 /* TreatmentsProvider.swift in Sources */,
 				38E98A2D25F52DC400C0CED0 /* NSLocking+Extensions.swift in Sources */,
 				BB5227A51D9D4377A1A70BA6 /* TempTargetData.swift in Sources */,
