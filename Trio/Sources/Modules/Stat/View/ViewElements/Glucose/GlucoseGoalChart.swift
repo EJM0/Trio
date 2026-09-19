@@ -61,8 +61,13 @@ struct GlucoseGoalChart: View {
 
     // MARK: - Data
 
-    /// Only days the window covers, oldest first. Days without readings are simply absent
+    /// Only days the window covers, newest first. Days without readings are simply absent
     /// from the stats, so they leave no row rather than an empty one.
+    ///
+    /// Newest at the top because that is where a 90-day range is read from: the most recent
+    /// days are the ones being judged, and the older ones are context below them. Oldest-first
+    /// put today at the bottom of a list far taller than the screen, so the day that matters
+    /// most took the longest scroll to reach.
     private var daysInWindow: [GlucoseDailyDistributionStats] {
         let calendar = Calendar.current
 
@@ -81,7 +86,7 @@ struct GlucoseGoalChart: View {
                 let day = calendar.startOfDay(for: stat.date)
                 return day >= first && day <= last
             }
-            .sorted { $0.date < $1.date }
+            .sorted { $0.date > $1.date }
     }
 
     /// The figure a row actually shows, rounded once. The bar, the percentage and the
@@ -131,8 +136,12 @@ struct GlucoseGoalChart: View {
             .font(.subheadline)
             .foregroundStyle(Color.secondary)
 
-            if let first = days.first?.date, let last = days.last?.date {
-                Text("\(shortDate(first)) – \(shortDate(last))")
+            // Read off the dates themselves rather than the ends of the array: the rows run
+            // newest-first, so `first` is the later date, and a caption that quietly inverts
+            // itself when the sort changes is not worth the two characters it saves.
+            let dates = days.map(\.date)
+            if let earliest = dates.min(), let latest = dates.max() {
+                Text("\(shortDate(earliest)) – \(shortDate(latest))")
                     .font(.subheadline)
                     .foregroundStyle(Color.secondary)
             }
