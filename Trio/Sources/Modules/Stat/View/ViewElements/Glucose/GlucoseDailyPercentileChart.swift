@@ -293,7 +293,7 @@ struct GlucoseDailyPercentileChart: View {
             StatChartUtils.dateAxisMarks(for: selectedInterval)
         }
         .chartYScale(domain: glucoseYScaleDomain())
-        .chartXSelection(value: $selectedDate.animation(.easeInOut))
+        .chartXSelection(value: $selectedDate)
         .onChange(of: selectedDate) { _, newValue in
             isDaySelected = newValue != nil
             // Clear percentile selection when a day is selected

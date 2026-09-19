@@ -182,7 +182,7 @@ struct GlucosePercentileChart: View {
                     }
                 }
             }
-            .chartXSelection(value: $selection.animation(.easeInOut))
+            .chartXSelection(value: $selection)
             .frame(height: 200)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text("Glucose percentile chart"))

@@ -73,7 +73,10 @@ struct GlucoseDailyDistributionChart: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        // Bound once: the two subviews below both read it, and each read re-filters every
+        // stored reading — a Core Data property access per element.
+        let activeGlucose = activeGlucoseData
+        return VStack(alignment: .leading, spacing: 8) {
             chartView
                 .frame(height: 200)
 
@@ -92,7 +95,7 @@ struct GlucoseDailyDistributionChart: View {
             GlucoseSectorChart(
                 highLimit: highLimit,
                 units: units,
-                glucose: activeGlucoseData,
+                glucose: activeGlucose,
                 timeInRangeType: timeInRangeType,
                 showChart: false
             )
@@ -104,7 +107,7 @@ struct GlucoseDailyDistributionChart: View {
             GlucoseMetricsView(
                 units: units,
                 eA1cDisplayUnit: eA1cDisplayUnit,
-                glucose: activeGlucoseData
+                glucose: activeGlucose
             )
             .animation(.easeInOut, value: selectedDate)
         }
@@ -153,7 +156,7 @@ struct GlucoseDailyDistributionChart: View {
             legend("high"): Color.dynamicBlue,
             legend("veryHigh"): Color.dynamicPurple
         ])
-        .chartXSelection(value: $selectedDate.animation(.easeInOut))
+        .chartXSelection(value: $selectedDate)
         .onChange(of: selectedDate) { _, newValue in
             withAnimation(.easeInOut) {
                 isDaySelected = newValue != nil
