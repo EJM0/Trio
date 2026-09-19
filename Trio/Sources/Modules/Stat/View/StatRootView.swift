@@ -31,6 +31,16 @@ extension Stat {
                 ? [.custom, .week, .month, .total] : Stat.StateModel.StatsTimeIntervalWithCustom.allCases
         }
 
+        /// The goals tab drops the rolling 24 h window.
+        ///
+        /// Every bar on that chart is a whole calendar day, and a rolling window straddles
+        /// midnight — so the chart already had to collapse `.day` to today alone rather than
+        /// draw a partial yesterday. That leaves it doing exactly what a picked range on today
+        /// does, under a second name. One way of asking for today is enough.
+        private var goalIntervalOptions: [Stat.StateModel.StatsTimeIntervalWithCustom] {
+            [.custom, .week, .month, .total]
+        }
+
         var body: some View {
             VStack {
                 Picker("View", selection: $selectedView) {
@@ -413,7 +423,7 @@ extension Stat {
         /// re-framing each other.
         @ViewBuilder var goalsView: some View {
             Picker("Duration", selection: $state.selectedIntervalForGoalStats) {
-                ForEach(StateModel.StatsTimeIntervalWithCustom.allCases, id: \.self) { timeInterval in
+                ForEach(goalIntervalOptions, id: \.self) { timeInterval in
                     Text(timeInterval.displayName)
                 }
             }

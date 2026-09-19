@@ -78,7 +78,10 @@ struct GlucoseGoalChart: View {
 
         // The rolling 24 h window straddles midnight, but these bars are whole calendar days.
         // Reporting yesterday in full would count hours the window never covered, so that
-        // interval reports on today alone.
+        // interval reports on today alone. The Goals tab no longer offers `.day` — collapsing
+        // to today made it a second name for a picked range on today — but the guard stays:
+        // `interval` is a parameter, and without it such a caller would silently get a
+        // yesterday bar counting hours it never asked for.
         let first = interval == .day ? last : calendar.startOfDay(for: window.start)
 
         return dailyStats
