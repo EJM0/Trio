@@ -46,6 +46,8 @@ extension Stat {
                         switch selectedView {
                         case .glucose:
                             glucoseView
+                        case .goals:
+                            goalsView
                         case .insulin:
                             insulinView
                         case .looping:
@@ -110,6 +112,10 @@ extension Stat {
                     Picker("Chart Type", selection: $state.selectedMealChartType) {
                         ForEach(StateModel.MealChartType.allCases, id: \.self) { Text($0.displayName) }
                     }
+                case .goals:
+                    // One chart, so nothing to pick between — `controlRow` leaves the menu off
+                    // this tab entirely; this case only satisfies the switch.
+                    EmptyView()
                 }
             } label: {
                 HStack(spacing: 4) {
@@ -129,6 +135,7 @@ extension Stat {
         private var selectedChartTypeName: String {
             switch selectedView {
             case .glucose: return state.selectedGlucoseChartType.displayName
+            case .goals: return String(localized: "Goal", comment: "Chart name on the Goals tab")
             case .insulin: return state.selectedInsulinChartType.displayName
             case .looping: return state.selectedLoopingChartType.displayName
             case .meals: return state.selectedMealChartType.displayName
@@ -151,9 +158,12 @@ extension Stat {
                     Spacer()
                 }
 
-                chartTypeMenu
-                    .frame(height: 28)
-                    .padding(.leading, 8)
+                // The goals tab has a single chart, so it gets no chart-type menu.
+                if selectedView != .goals {
+                    chartTypeMenu
+                        .frame(height: 28)
+                        .padding(.leading, 8)
+                }
             }
             .buttonStyle(.borderless)
             .padding(.horizontal, 4)
@@ -215,6 +225,7 @@ extension Stat {
         private var isDayPickerVisible: Bool {
             switch selectedView {
             case .glucose: return state.selectedIntervalForGlucoseStats == .custom
+            case .goals: return state.selectedIntervalForGoalStats == .custom
             case .looping: return state.selectedIntervalForLoopStats == .custom
             case .insulin,
                  .meals: return false
@@ -393,6 +404,56 @@ extension Stat {
 
         // MARK: - Stats View
 
+        /// Time in range per day, read against a goal.
+        ///
+        /// Its own tab rather than one of the glucose chart types: it answers a different
+        /// question from the rest of that tab — not "what did the glucose do" but "how often
+        /// did it land where I wanted" — and it is read over weeks where those are usually read
+        /// over a day. It carries its own interval for that reason, so the two do not keep
+        /// re-framing each other.
+        @ViewBuilder var goalsView: some View {
+            Picker("Duration", selection: $state.selectedIntervalForGoalStats) {
+                ForEach(StateModel.StatsTimeIntervalWithCustom.allCases, id: \.self) { timeInterval in
+                    Text(timeInterval.displayName)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            controlRow
+
+            if state.dailyGlucoseDistributionStats.isEmpty {
+                ContentUnavailableView(
+                    String(localized: "No Glucose Data"),
+                    systemImage: "target",
+                    description: Text("Daily goals will appear here once glucose data is available.")
+                )
+            } else {
+                StatCard {
+                    GlucoseGoalChart(
+                        dailyStats: state.dailyGlucoseDistributionStats,
+                        window: state.dateRange(for: state.selectedIntervalForGoalStats),
+                        interval: state.selectedIntervalForGoalStats
+                    )
+                }
+
+                HStack {
+                    Image(systemName: "hand.draw.fill")
+                        .foregroundStyle(Color.primary)
+                        .padding(.leading)
+                    VStack(alignment: .leading) {
+                        Text("Tap the goal to change it. Days that reached it are filled in.")
+                        // Only while the day picker is on screen — it is the
+                        // thing the gesture acts on.
+                        if isDayPickerVisible {
+                            Text("Tap and hold the selected date to return to today.")
+                        }
+                    }
+                    .foregroundStyle(Color.secondary)
+                    .padding(.trailing)
+                }.font(.footnote)
+            }
+        }
+
         @ViewBuilder var glucoseView: some View {
             Picker("Duration", selection: $state.selectedIntervalForGlucoseStats) {
                 ForEach(intervalOptions, id: \.self) { timeInterval in
@@ -433,8 +494,6 @@ extension Stat {
                             String(
                                 localized: "Tap and hold a bar in the chart to reveal more details. Swipe to scroll through time."
                             )
-                        case .goal:
-                            String(localized: "Tap the goal to change it. Days that reached it are filled in.")
                         }
                     }
                     Image(systemName: "hand.draw.fill")
@@ -512,13 +571,6 @@ extension Stat {
                             isToday: state.selectedIntervalForGlucoseStats == .custom
                                 && state.selectedStatsRangeDayCount == 1
                                 && Calendar.current.isDateInToday(state.selectedStatsRange.lowerBound)
-                        )
-
-                    case .goal:
-                        GlucoseGoalChart(
-                            dailyStats: state.dailyGlucoseDistributionStats,
-                            window: state.dateRange(for: state.selectedIntervalForGlucoseStats),
-                            interval: state.selectedIntervalForGlucoseStats
                         )
 
                     case .distributionByTime:
