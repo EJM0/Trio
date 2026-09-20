@@ -154,6 +154,19 @@ extension Stat {
             }
         }
 
+        /// Selected Duration for the Goals tab.
+        ///
+        /// Its own, rather than the glucose tab's: the goal chart is a run of days read against
+        /// a target, so it is usually looked at over weeks, while the glucose charts are most
+        /// often on a single day. Sharing one interval meant switching tabs re-framed whichever
+        /// one you had just set up.
+        ///
+        /// Unlike the other intervals this needs no `didSet`. The goal chart reads
+        /// `dailyGlucoseDistributionStats`, which `setupGlucoseDailyStats` fills for the whole
+        /// 90-day history once, and filters it to the window itself — so changing the interval
+        /// re-filters what is already in memory rather than re-fetching.
+        var selectedIntervalForGoalStats: StatsTimeIntervalWithCustom = .month
+
         // Selected Glucose Chart Type
         var selectedGlucoseChartType: GlucoseChartType = .percentileByTime
 
@@ -315,8 +328,6 @@ extension Stat.StateModel {
         case percentileByDay = "Percentile (by day)"
         /// Day-based distribution of glucose ranges
         case distributionByDay = "Distribution (by day)"
-        /// One bar per day, measured against a time-in-range goal
-        case goal = "Goal"
 
         var displayName: String {
             switch self {
@@ -328,21 +339,18 @@ extension Stat.StateModel {
                 return String(localized: "Percentile (by day)")
             case .distributionByDay:
                 return String(localized: "Distribution (by day)")
-            case .goal:
-                return String(localized: "Goal")
             }
         }
 
         /// Whether this chart needs more than a single day to show anything. The by-day
         /// charts scroll through a run of days, so a rolling 24 h window leaves them with
-        /// nothing to draw. The goal chart is content with one row.
+        /// nothing to draw.
         var requiresMultipleDays: Bool {
             switch self {
             case .distributionByDay,
                  .percentileByDay:
                 return true
             case .distributionByTime,
-                 .goal,
                  .percentileByTime:
                 return false
             }
@@ -353,7 +361,6 @@ extension Stat.StateModel {
         var spansDays: Bool {
             switch self {
             case .distributionByDay,
-                 .goal,
                  .percentileByDay:
                 return true
             case .distributionByTime,
@@ -487,6 +494,8 @@ extension Stat.StateModel {
     enum StatisticViewType: String, CaseIterable, Identifiable {
         /// Glucose-related statistics including AGP and distributions
         case glucose
+        /// Per-day time-in-range measured against a goal
+        case goals
         /// Insulin delivery statistics including TDD and bolus distributions
         case insulin
         /// Loop performance and system status statistics
@@ -500,6 +509,8 @@ extension Stat.StateModel {
             switch self {
             case .glucose:
                 return String(localized: "Glucose", comment: "Title for glucose-related statistics")
+            case .goals:
+                return String(localized: "Goals", comment: "Title for the time-in-range goal statistics")
             case .insulin:
                 return String(localized: "Insulin", comment: "Title for insulin-related statistics")
             case .looping:
