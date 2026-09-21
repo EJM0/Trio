@@ -130,7 +130,12 @@ extension Home.RootView {
             }
 
             if resolvedAnything {
-                isChartReadoutVisible = true
+                // Only when the flag actually flips. A resolving scrub step leaves it alone,
+                // and opening a transaction per step would put the fade's curve over whatever
+                // else changed in that frame — the chart's pan offset included.
+                if !isChartReadoutVisible {
+                    withAnimation(ChartSelectionLookup.readoutFade) { isChartReadoutVisible = true }
+                }
                 return
             }
         }
@@ -138,7 +143,7 @@ extension Home.RootView {
         guard isChartReadoutVisible else { return }
         try? await Task.sleep(for: .seconds(ChartSelectionLookup.decay))
         guard !Task.isCancelled else { return }
-        isChartReadoutVisible = false
+        withAnimation(ChartSelectionLookup.readoutFade) { isChartReadoutVisible = false }
     }
 
     @ViewBuilder private var liveMealPanel: some View {

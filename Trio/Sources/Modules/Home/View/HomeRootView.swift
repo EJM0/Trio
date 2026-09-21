@@ -224,10 +224,11 @@ extension Home {
 
                 mealPanel()
                     .frame(height: HomeLayout.mealSlotHeight)
-                    // Fades the readout in and out. Keyed on visibility, not on the date: a
-                    // scrub step leaves the flag alone, so only the swap animates and the
-                    // values inside keep updating unanimated.
-                    .animation(ChartSelectionLookup.readoutFade, value: isChartReadoutVisible)
+                    // No `.animation(_:value:)` here: the fade is driven from the mutation
+                    // site, in `updateChartReadout`. See `ChartSelectionLookup.readoutFade`
+                    // — the container form animated the arrival but dropped the departure,
+                    // because by the time the slot empties the view carrying the modifier is
+                    // already on its way out.
                     .task(id: chartSelection) { await updateChartReadout() }
 
                 mainChart(geo: geo)
