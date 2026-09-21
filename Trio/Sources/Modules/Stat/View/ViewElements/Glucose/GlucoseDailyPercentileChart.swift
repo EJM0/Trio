@@ -294,6 +294,9 @@ struct GlucoseDailyPercentileChart: View {
         }
         .chartYScale(domain: glucoseYScaleDomain())
         .chartXSelection(value: $selectedDate)
+        // Keyed on whether a selection exists, not on which one: the popover and its
+        // rule mark fade in and out, while a scrub between points leaves the marks alone.
+        .animation(StatChartUtils.selectionAnimation, value: selectedDate == nil)
         .onChange(of: selectedDate) { _, newValue in
             isDaySelected = newValue != nil
             // Clear percentile selection when a day is selected

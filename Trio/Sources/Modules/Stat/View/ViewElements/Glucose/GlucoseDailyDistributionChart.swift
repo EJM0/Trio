@@ -157,6 +157,9 @@ struct GlucoseDailyDistributionChart: View {
             legend("veryHigh"): Color.dynamicPurple
         ])
         .chartXSelection(value: $selectedDate)
+        // Keyed on whether a selection exists, not on which one: the popover and its
+        // rule mark fade in and out, while a scrub between points leaves the marks alone.
+        .animation(StatChartUtils.selectionAnimation, value: selectedDate == nil)
         .onChange(of: selectedDate) { _, newValue in
             withAnimation(.easeInOut) {
                 isDaySelected = newValue != nil

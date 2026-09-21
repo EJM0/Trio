@@ -3,6 +3,16 @@ import Foundation
 import SwiftUI
 
 struct StatChartUtils {
+    /// How the selection popover and its rule mark come and go.
+    ///
+    /// Keyed on *whether* something is selected, never on what — see the call sites. Animating
+    /// the selection binding itself (`$selection.animation(...)`) opened a transaction over
+    /// everything reading the selection, which is the whole chart, and so interpolated every
+    /// mark on every update of a scrub: the indicator ended up lagging the finger that was
+    /// dragging it. Keyed on presence, the same fade costs two transitions per scrub — one in,
+    /// one out — and the marks in between are left alone.
+    static let selectionAnimation: Animation = .easeInOut(duration: 0.2)
+
     /// Returns the time interval length for the visible domain based on the selected duration.
     /// - Parameter selectedInterval: The selected time interval for statistics.
     /// - Returns: The time interval in seconds.

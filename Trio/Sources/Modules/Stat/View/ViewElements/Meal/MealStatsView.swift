@@ -240,6 +240,9 @@ struct MealStatsView: View {
         }
         .chartScrollableAxes(.horizontal)
         .chartXSelection(value: $selectedDate)
+        // Keyed on whether a selection exists, not on which one: the popover and its
+        // rule mark fade in and out, while a scrub between points leaves the marks alone.
+        .animation(StatChartUtils.selectionAnimation, value: selectedDate == nil)
         .chartScrollPosition(x: $scrollPosition)
         .chartScrollTargetBehavior(
             .valueAligned(

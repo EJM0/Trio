@@ -183,6 +183,9 @@ struct GlucosePercentileChart: View {
                 }
             }
             .chartXSelection(value: $selection)
+            // Keyed on whether a selection exists, not on which one: the popover and its
+            // rule mark fade in and out, while a scrub between points leaves the marks alone.
+            .animation(StatChartUtils.selectionAnimation, value: selection == nil)
             .frame(height: 200)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text("Glucose percentile chart"))
