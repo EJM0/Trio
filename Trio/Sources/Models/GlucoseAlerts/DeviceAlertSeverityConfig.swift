@@ -37,7 +37,7 @@ struct DeviceAlertSeverityConfig: Codable, Equatable, Identifiable {
         self.severity = severity
         isEnabled = true
         soundFilename = severity.defaultSoundFilename
-        playsSound = true
+        playsSound = severity.defaultPlaysSound
         trimsSound = false
         soundTrim = .length
         soundDuration = AlarmSoundDurationRange.defaultSeconds
@@ -66,7 +66,7 @@ struct DeviceAlertSeverityConfig: Codable, Equatable, Identifiable {
         severity = try container.decode(DeviceAlertSeverity.self, forKey: .severity)
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
         soundFilename = try container.decodeIfPresent(String.self, forKey: .soundFilename) ?? severity.defaultSoundFilename
-        playsSound = try container.decodeIfPresent(Bool.self, forKey: .playsSound) ?? true
+        playsSound = try container.decodeIfPresent(Bool.self, forKey: .playsSound) ?? severity.defaultPlaysSound
         trimsSound = try container.decodeIfPresent(Bool.self, forKey: .trimsSound) ?? false
         soundTrim = try container.decodeIfPresent(AlarmSoundTrim.self, forKey: .soundTrim) ?? .length
         soundDuration = try container.decodeIfPresent(

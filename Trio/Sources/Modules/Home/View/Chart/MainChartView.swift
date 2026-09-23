@@ -1682,8 +1682,7 @@ struct MainChartCanvas: View {
         .coordinateSpace(name: Self.coordinateSpaceName)
         .onAppear {
             calculateTempBasals()
-            // The profile otherwise stays empty until the first temp basal or max basal
-            // change comes in, leaving the scheduled basal line off the chart until then.
+            // without pump history nothing else fills the profile line
             calculateBasals()
         }
     }
