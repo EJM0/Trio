@@ -4,48 +4,39 @@ import SwiftUI
 // MARK: - Zone C: meal panel (IOB / COB / delivery rate)
 
 extension Home.RootView {
-    var basalString: String? {
-        var rate: NSNumber = 0
-        var manualBasalString = ""
-
-        guard let apsManager = state.apsManager else {
+    /// Rate pill: what the pump delivers, and whether the temp is the user's own.
+    var currentBasalReadout: (label: String, accessibilityLabel: String, isManual: Bool, isScheduled: Bool)? {
+        switch state.activeBasalDelivery {
+        case .none:
             return nil
-        }
-
-        if apsManager.isScheduledBasal == true {
-            guard let scheduledRate = scheduledBasalDeliveryRate(at: Date()) else {
-                return nil
-            }
-            rate = scheduledRate
-        } else {
-            guard let lastTempBasal = state.tempBasals.last?.tempBasal, let tempRate = lastTempBasal.rate else {
-                return nil
-            }
-            if apsManager.isManualTempBasal {
-                manualBasalString = String(
-                    localized: " - Manual Basal ⚠️",
-                    comment: "Manual Temp basal"
+        case .suspended:
+            let label = String(localized: "Suspended", comment: "Basal delivery suspended on the pump")
+            return (label, label, false, false)
+        case let .temp(rate):
+            let manual = state.manualTempBasal
+            let label = basalRateLabel(rate)
+            let spoken = manual
+                ? String(
+                    localized: "Manual basal \(basalRateAccessibilityLabel(rate))",
+                    comment: "Accessibility: manual temp basal rate the user set on the pump"
                 )
-            }
-            rate = tempRate
+                : basalRateAccessibilityLabel(rate)
+            return (label, spoken, manual, false)
+        case let .scheduled(rate):
+            return (basalRateLabel(rate), basalRateAccessibilityLabel(rate), false, true)
         }
-
-        let rateString = Formatter.decimalFormatterWithThreeFractionDigits.string(from: rate) ?? "0"
-        return rateString + String(localized: " U/hr", comment: "Unit per hour with space") +
-            manualBasalString
     }
 
-    func scheduledBasalDeliveryRate(at when: Date) -> NSNumber? {
-        let calendar = Calendar(identifier: .gregorian)
+    func basalRateLabel(_ rate: Decimal) -> String {
+        let value = Formatter.decimalFormatterWithTwoFractionDigits
+            .string(from: NSDecimalNumber(decimal: rate)) ?? "\(rate)"
+        return value + String(localized: " U/hr", comment: "Unit per hour with space")
+    }
 
-        let hours = calendar.component(.hour, from: when)
-        let minutes = calendar.component(.minute, from: when)
-        let totalMinutes = hours * 60 + minutes
-
-        if let rate = findBasalRateForOffset(for: totalMinutes, in: state.basalProfile) {
-            return NSDecimalNumber(decimal: rate)
-        }
-        return nil
+    func basalRateAccessibilityLabel(_ rate: Decimal) -> String {
+        let value = Formatter.decimalFormatterWithTwoFractionDigits
+            .string(from: NSDecimalNumber(decimal: rate)) ?? "\(rate)"
+        return value + " " + UnitSpelling.spoken("U/hr")
     }
 
     /// The meal slot has two states: the live IOB / COB / delivery-rate row, and — while the
@@ -215,37 +206,26 @@ extension Home.RootView {
             }.bold()
                 .foregroundStyle(Color.red)
                 .font(.callout)
-        } else {
+        } else if let basal = currentBasalReadout {
             HStack {
-                /// Only display the insulin delivery rate info if the pump is not
-                /// suspended and is available (e.g., pod is paired & not faulted).
-                let pumpAvailable = state.apsManager.isScheduledBasal != nil
-                if !state.apsManager.isSuspended && pumpAvailable {
-                    Image(systemName: "drop.circle")
-                        .font(.callout)
-                        .foregroundColor(Color.insulin)
-                    if let basalString = self.basalString {
-                        /// Adjust opacity when displaying a scheduled basal rate
-                        let opacity = state.apsManager?.isScheduledBasal == true ? 0.6 : 1.0
-                        if basalString.count > 5 {
-                            Text(basalString)
-                                .font(.callout).fontWeight(.bold).fontDesign(.rounded)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.85)
-                                .truncationMode(.tail)
-                                .allowsTightening(true)
-                                .opacity(opacity)
-                        } else {
-                            // Short strings can just display normally
-                            Text(basalString)
-                                .font(.callout).fontWeight(.bold).fontDesign(.rounded)
-                                .opacity(opacity)
-                        }
-                    } else {
-                        Text("No Data")
-                            .font(.callout).fontWeight(.bold).fontDesign(.rounded)
-                    }
-                }
+                Image(systemName: basal.isManual ? "hand.raised.fill" : "drop.circle")
+                    .font(.callout)
+                    .foregroundColor(basal.isManual ? Color.loopManualTemp : Color.insulin)
+
+                Text(basal.label)
+                    .font(.callout).fontWeight(.bold).fontDesign(.rounded)
+                    .foregroundStyle(basal.isManual ? Color.loopManualTemp : .primary)
+                    .opacity(basal.isScheduled ? 0.6 : 1.0)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(basal.accessibilityLabel))
+        } else if !state.pumpName.isEmpty {
+            HStack {
+                Image(systemName: "drop.circle")
+                    .font(.callout)
+                    .foregroundColor(Color.insulin)
+                Text("No Data")
+                    .font(.callout).fontWeight(.bold).fontDesign(.rounded)
             }
         }
     }
