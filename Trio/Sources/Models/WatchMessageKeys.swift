@@ -58,6 +58,7 @@ enum WatchMessageKeys {
 
     // Notification Actions
     static let snoozeDuration = "snoozeDuration"
+    static let snoozeUntilDate = "snoozeUntilDate"
 
     // Watch reads the G7 itself (step 1 of watch independence: display and alerts only)
     /// The G7 the phone reads directly ("DXCMxx"); empty when it reads none.

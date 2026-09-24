@@ -6,15 +6,16 @@ struct TrioMainWatchView: View {
     @State private var state = WatchState.shared
     @State private var untethered = UntetheredWatchManager.shared
 
-    // Pages in order: bubble, chart, the watch's own G7 reading, then untethered mode's status page, where it
+    // Pages in order: bubble, chart, the watch's own G7 reading, alarm snooze, then untethered mode's status page, where it
     // starts from the wrist and its history opens, and while it loops, the watch's own loop status.
     private let watchSensorPage = 2
+    private let snoozePage = 3
     /// Untethered mode off on the phone: no status page, but a session still running keeps it.
     private var showsUntethered: Bool { state.untetheredMode || untethered.isActive }
-    private var statusPage: Int { watchSensorPage + 1 }
+    private var statusPage: Int { snoozePage + 1 }
     /// The watch's own loop status, while it loops.
     private var loopPage: Int? { untethered.isActive ? statusPage + 1 : nil }
-    private var lastPage: Int { showsUntethered ? loopPage ?? statusPage : watchSensorPage }
+    private var lastPage: Int { showsUntethered ? loopPage ?? statusPage : snoozePage }
 
     // misc
     @State private var currentPage: Int = 0
@@ -123,6 +124,10 @@ struct TrioMainWatchView: View {
                 // Page 3: the watch reading the G7 itself
                 WatchG7View()
                     .tag(watchSensorPage)
+
+                // Page 4: alarm snooze (nightscout/Trio#1576, t1dude)
+                AlarmSnoozeView(state: state)
+                    .tag(snoozePage)
 
                 if showsUntethered {
                     UntetheredStatusView(manager: untethered).tag(statusPage)
