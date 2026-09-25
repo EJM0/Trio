@@ -68,7 +68,30 @@ final class BaseUserNotificationsManager: NSObject, UserNotificationsManager, In
     private func requestCriticalAlertsIfNeeded() {
         notificationCenter.getNotificationSettings { [weak self] settings in
             guard settings.authorizationStatus == .authorized else { return }
-            self?.notificationCenter.requestAuthorization(options: [.badge, .sound, .alert, .criticalAlert]) { _, _ in }
+            self?.requestAuthorizationPreferringCriticalAlerts { _ in }
+        }
+    }
+
+    /// Asks for `.criticalAlert` and falls back to the plain options if iOS
+    /// refuses. Requesting `.criticalAlert` without the Critical Alerts
+    /// entitlement fails the whole request, which would leave a self-built
+    /// Trio with no notification permission at all — so a refusal while the
+    /// status is still undecided means "entitlement missing", and we ask
+    /// again without it. No entitlement introspection needed, and nothing to
+    /// keep in sync when a build does have it.
+    private func requestAuthorizationPreferringCriticalAlerts(completion: @escaping (Bool) -> Void) {
+        notificationCenter.requestAuthorization(options: [.badge, .sound, .alert, .criticalAlert]) { [weak self] granted, error in
+            guard !granted, let self else { return completion(granted) }
+            warning(.service, "Critical alerts authorization failed; retrying without", error: error)
+            self.notificationCenter.getNotificationSettings { settings in
+                // Anything but `.notDetermined` means the user was asked and
+                // said no — re-prompting is pointless and iOS wouldn't show it.
+                guard settings.authorizationStatus == .notDetermined else { return completion(false) }
+                self.notificationCenter.requestAuthorization(options: [.badge, .sound, .alert]) { granted, error in
+                    if !granted { warning(.service, "requestNotificationPermissions failed", error: error) }
+                    completion(granted)
+                }
+            }
         }
     }
 
@@ -200,14 +223,11 @@ final class BaseUserNotificationsManager: NSObject, UserNotificationsManager, In
 
     func requestNotificationPermissions(completion: @escaping (Bool) -> Void) {
         debug(.service, "requestNotificationPermissions")
-        notificationCenter.requestAuthorization(options: [.badge, .sound, .alert, .criticalAlert]) { granted, error in
-            if granted {
-                debug(.service, "requestNotificationPermissions was granted")
-                DispatchQueue.main.async {
-                    completion(granted)
-                }
-            } else {
-                warning(.service, "requestNotificationPermissions failed", error: error)
+        requestAuthorizationPreferringCriticalAlerts { granted in
+            guard granted else { return }
+            debug(.service, "requestNotificationPermissions was granted")
+            DispatchQueue.main.async {
+                completion(granted)
             }
         }
     }
