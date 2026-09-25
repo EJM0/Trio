@@ -188,9 +188,9 @@ extension UserInterfaceSettings {
                     content: {
                         VStack {
                             Toggle("Show X-Axis Grid Lines", isOn: $state.xGridLines)
-                            Toggle("Show Y-Axis Grid Lines", isOn: $state.yGridLines)
-                            Toggle("Show Glucose Episodes", isOn: $state.showGlucoseEpisodes)
-                            Toggle("Show Glucose Peaks", isOn: $state.showGlucosePeaks)
+                            Toggle("Show Y-Axis Grid Lines", isOn: $state.yGridLines).padding(.top)
+                            Toggle("Show Glucose Episodes", isOn: $state.showGlucoseEpisodes).padding(.top)
+                            Toggle("Show Glucose Peaks", isOn: $state.showGlucosePeaks).padding(.top)
 
                             HStack(alignment: .center) {
                                 Text(
