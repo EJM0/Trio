@@ -52,7 +52,7 @@ extension Alert {
         /// stored preference, which is the right trade for not hand-maintaining a
         /// parallel string table.
         var persistenceKey: String { String(describing: self) }
-        
+
         /// True for alerts emitted as an escalation ladder.
         /// Exempt from tier-wide dismissal.
         var isEscalationStep: Bool {

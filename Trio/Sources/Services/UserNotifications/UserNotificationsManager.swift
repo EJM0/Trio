@@ -57,6 +57,19 @@ final class BaseUserNotificationsManager: NSObject, UserNotificationsManager, In
         clearLegacyCarbsRequiredNotification()
         clearLegacyLoopNotifications()
         subscribeGlucoseUpdates()
+        requestCriticalAlertsIfNeeded()
+    }
+
+    /// Installs that granted notifications before Trio shipped the Critical
+    /// Alerts entitlement were never asked for `.criticalAlert`, so iOS
+    /// silently downgrades critical alerts. Ask once they're past onboarding.
+    /// iOS only prompts for options that aren't decided yet, so this is a
+    /// no-op afterwards.
+    private func requestCriticalAlertsIfNeeded() {
+        notificationCenter.getNotificationSettings { [weak self] settings in
+            guard settings.authorizationStatus == .authorized else { return }
+            self?.notificationCenter.requestAuthorization(options: [.badge, .sound, .alert, .criticalAlert]) { _, _ in }
+        }
     }
 
     private func configureNotificationCategories() {
@@ -187,7 +200,7 @@ final class BaseUserNotificationsManager: NSObject, UserNotificationsManager, In
 
     func requestNotificationPermissions(completion: @escaping (Bool) -> Void) {
         debug(.service, "requestNotificationPermissions")
-        notificationCenter.requestAuthorization(options: [.badge, .sound, .alert]) { granted, error in
+        notificationCenter.requestAuthorization(options: [.badge, .sound, .alert, .criticalAlert]) { granted, error in
             if granted {
                 debug(.service, "requestNotificationPermissions was granted")
                 DispatchQueue.main.async {
