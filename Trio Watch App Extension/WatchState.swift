@@ -239,7 +239,7 @@ import WatchConnectivity
 
         let context = session.receivedApplicationContext
         if !context.isEmpty {
-            handleIncomingWatchStatePayload(context)
+            acceptWatchStatePayload(context)
         }
 
         forceConditionalWatchStateUpdate()
@@ -321,16 +321,29 @@ import WatchConnectivity
         return true
     }
 
-    /// Shared path for watch-state payloads from either delegate method.
-    /// Enforces the freshness contract in one place so the two delivery paths
-    /// can't drift.
+    /// Entry point for watch-state payloads arriving on WatchConnectivity's
+    /// delegate queue.
     private func handleIncomingWatchStatePayload(_ dictionary: [String: Any]) {
+        DispatchQueue.main.async {
+            self.acceptWatchStatePayload(dictionary)
+        }
+    }
+
+    /// Shared path for watch-state payloads from every delivery route (message,
+    /// userInfo, application context, request reply). Enforces the freshness
+    /// contract in one place so the routes can't drift. Must be called on the
+    /// main queue.
+    ///
+    /// Leaves the syncing animation alone when a payload is rejected: a stale
+    /// or duplicate payload can arrive while a request is still in flight, and
+    /// the request's own completion is what ends the animation.
+    /// - Returns: `true` if the payload was accepted and scheduled for display.
+    @discardableResult func acceptWatchStatePayload(_ dictionary: [String: Any]) -> Bool {
         guard let payload = dictionary[WatchMessageKeys.watchState] as? [String: Any],
               let timestamp = payload[WatchMessageKeys.date] as? TimeInterval
         else {
             Task { await WatchLogger.shared.log("⌚️ Faulty watch state payload — skipping", force: true) }
-            DispatchQueue.main.async { self.showSyncingAnimation = false }
-            return
+            return false
         }
         let date = Date(timeIntervalSince1970: timestamp)
 
@@ -339,21 +352,19 @@ import WatchConnectivity
         // schedules merge + UI work.
         guard date >= Date().addingTimeInterval(-Self.maxAcceptableMessageAgeInMinutes) else {
             Task { await WatchLogger.shared.log("⌚️ Skipping stale watch state (\(date))") }
-            DispatchQueue.main.async { self.showSyncingAnimation = false }
-            return
+            return false
         }
 
-        DispatchQueue.main.async {
-            // Monotonicity dedup: the same snapshot can arrive both as a
-            // message and as the application context.
-            if let lastAccepted = self.lastAcceptedStateDate, date <= lastAccepted {
-                Task { await WatchLogger.shared.log("⌚️ Skipping duplicate watch state (\(date))") }
-                return
-            }
-
-            self.lastAcceptedStateDate = date
-            self.scheduleUIUpdate(with: payload)
+        // Monotonicity dedup: the same snapshot can arrive both as a message
+        // and as the application context.
+        if let lastAccepted = lastAcceptedStateDate, date <= lastAccepted {
+            Task { await WatchLogger.shared.log("⌚️ Skipping duplicate watch state (\(date))") }
+            return false
         }
+
+        lastAcceptedStateDate = date
+        scheduleUIUpdate(with: payload)
+        return true
     }
 
     func session(_: WCSession, didFinish _: WCSessionUserInfoTransfer, error: (any Error)?) {

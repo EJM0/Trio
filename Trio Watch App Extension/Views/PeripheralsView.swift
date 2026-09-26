@@ -56,8 +56,9 @@ struct PeripheralsView: View {
         return false
     }
 
-    /// In on-demand mode the page is empty until the reply lands. Distinguish
-    /// that from "the phone answered and there is genuinely nothing to show".
+    /// Until the first watch state arrives the page has nothing to show.
+    /// Distinguish that from "the phone answered and there is genuinely
+    /// nothing to show".
     private var isAwaitingFirstPayload: Bool {
         !state.hasReceivedPeripheralData && !hasPumpData && !hasCGMData
     }

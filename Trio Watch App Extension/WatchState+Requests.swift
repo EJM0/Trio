@@ -247,6 +247,9 @@ extension WatchState {
         }
     }
 
+    /// Asks the phone for a fresh watch state. The phone answers through the
+    /// reply handler, so the request's outcome is known: an answer, an empty
+    /// answer (phone could not build a state) or a delivery error.
     /// - Returns: `true` if the request was handed to WatchConnectivity.
     @discardableResult func requestWatchStateUpdate() -> Bool {
         guard let session = session else {
@@ -271,7 +274,15 @@ extension WatchState {
 
             let message = [WatchMessageKeys.requestWatchUpdate: WatchMessageKeys.watchState]
 
-            session.sendMessage(message, replyHandler: nil) { error in
+            session.sendMessage(message, replyHandler: { reply in
+                DispatchQueue.main.async {
+                    // An empty reply means the phone could not build a state.
+                    // An accepted payload ends the animation once it is applied.
+                    if reply.isEmpty || !self.acceptWatchStatePayload(reply) {
+                        self.showSyncingAnimation = false
+                    }
+                }
+            }, errorHandler: { error in
                 Task {
                     await WatchLogger.shared.log("⌚️ Error requesting WatchState update: \(error)")
                     await WatchLogger.shared.log("⌚️ Saving logs to disk as fallback!")
@@ -280,7 +291,7 @@ extension WatchState {
                 DispatchQueue.main.async {
                     self.showSyncingAnimation = false
                 }
-            }
+            })
             return true
         } else {
             Task {

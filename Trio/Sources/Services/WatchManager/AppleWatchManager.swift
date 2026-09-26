@@ -753,23 +753,36 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     /// Sends the state of type WatchState to the connected Watch
     /// - Parameter state: Current WatchState containing glucose data to be sent
     @MainActor func sendDataToWatch(_ state: WatchState) async {
-        guard let session = session else { return }
+        guard let session = session, let message = prepareWatchStatePayload(state) else { return }
+
+        // if session is reachable, it means watch App is in the foreground -> also send watchState as message for immediate delivery
+        if session.isReachable {
+            session.sendMessage([WatchMessageKeys.watchState: message], replyHandler: nil) { error in
+                debug(.watchManager, "❌ Error sending watch state: \(error)")
+            }
+        }
+    }
+
+    /// Stamps the state with the send time, stores it as the application context and returns the payload.
+    /// - Returns: The watch state dictionary, or `nil` if there is no usable watch session.
+    @MainActor private func prepareWatchStatePayload(_ state: WatchState) -> [String: Any]? {
+        guard let session = session else { return nil }
 
         guard session.isPaired else {
             debug(.watchManager, "⌚️❌ No Watch is paired")
-            return
+            return nil
         }
 
         guard session.isWatchAppInstalled else {
-            debug(.watchManager, "⌚️❌ Trio Watch app is")
-            return
+            debug(.watchManager, "⌚️❌ Trio Watch app is not installed")
+            return nil
         }
 
         guard session.activationState == .activated else {
             let activationStateString = "\(session.activationState)"
             debug(.watchManager, "⌚️ Watch session activationState = \(activationStateString). Reactivating...")
             session.activate()
-            return
+            return nil
         }
 
         // Stamp the snapshot with send time. Each push gets a strictly newer
@@ -790,13 +803,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             debug(.watchManager, "❌ Error updating watch application context: \(error)")
         }
 
-        // if session is reachable, it means watch App is in the foreground -> also send watchState as message for immediate delivery
-        if session.isReachable {
-            session.sendMessage([WatchMessageKeys.watchState: message], replyHandler: nil) { error in
-                debug(.watchManager, "❌ Error sending watch state: \(error)")
-            }
-        }
-        WatchStateSnapshot.saveLatestDateToDisk(state.date)
+        return message
     }
 
     func sendAcknowledgment(toWatch success: Bool, message: String = "", ackCode: AcknowledgmentCode) {
@@ -830,6 +837,37 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         // Try to send initial data after activation
         Task {
             await self.pushWatchState()
+        }
+    }
+
+    /// Messages that expect a reply. The watch requests its state this way, so it learns
+    /// whether the request was answered. Every path must call `replyHandler`, or the watch
+    /// only finds out through a delivery timeout.
+    func session(
+        _ session: WCSession,
+        didReceiveMessage message: [String: Any],
+        replyHandler: @escaping ([String: Any]) -> Void
+    ) {
+        guard let requestWatchUpdate = message[WatchMessageKeys.requestWatchUpdate] as? String,
+              requestWatchUpdate == WatchMessageKeys.watchState
+        else {
+            // Nothing else is sent with a reply handler today; handle it like a plain message.
+            replyHandler([:])
+            self.session(session, didReceiveMessage: message)
+            return
+        }
+
+        debug(.watchManager, "📱 Watch requested watch state data update (with reply).")
+
+        Task { @MainActor [weak self] in
+            guard let self,
+                  let state = await self.setupWatchState(),
+                  let payload = self.prepareWatchStatePayload(state)
+            else {
+                replyHandler([:])
+                return
+            }
+            replyHandler([WatchMessageKeys.watchState: payload])
         }
     }
 
