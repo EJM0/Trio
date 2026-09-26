@@ -394,15 +394,6 @@ import WatchConnectivity
         // and as the application context.
         if let lastAccepted = lastAcceptedStateDate, date <= lastAccepted {
             Task { await WatchLogger.shared.log("⌚️ Skipping duplicate watch state (\(date))") }
-            if date == lastAccepted {
-                // Same build, but not necessarily the same glucose part: a
-                // request's full reply shares its stamp with the context the
-                // phone set at the same time, which carries only recent readings.
-                applyGlucoseHistory(from: payload, isDuplicate: true)
-                if hasPendingGlucoseHistoryUpdate {
-                    publishGlucoseHistory()
-                }
-            }
             return false
         }
 
@@ -438,9 +429,7 @@ import WatchConnectivity
     /// Merges the payload's glucose readings into `glucoseHistory` and asks the
     /// phone for whatever the merge found missing. Must be called on the main
     /// queue.
-    /// - Parameter isDuplicate: A second payload of an already accepted build,
-    ///   whose outcome must not count twice towards disabling delta sync.
-    private func applyGlucoseHistory(from payload: [String: Any], isDuplicate: Bool = false) {
+    private func applyGlucoseHistory(from payload: [String: Any]) {
         let isDelta = payload[WatchMessageKeys.glucoseSyncMode] as? String == WatchGlucoseSync.modeDelta
 
         if isDelta, isGlucoseDeltaSyncDisabled {
@@ -474,9 +463,7 @@ import WatchConnectivity
             // Keep showing the merged readings (the newest are right) while
             // the full window is on its way.
             hasPendingGlucoseHistoryUpdate = true
-            if !isDuplicate {
-                consecutiveGlucoseDeltaMismatches += 1
-            }
+            consecutiveGlucoseDeltaMismatches += 1
             if consecutiveGlucoseDeltaMismatches >= Self.maxConsecutiveGlucoseDeltaMismatches {
                 disableGlucoseDeltaSync(reason: "\(consecutiveGlucoseDeltaMismatches) merged deltas in a row did not verify")
             }

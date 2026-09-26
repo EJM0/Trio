@@ -12,8 +12,6 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var glucoseWindowStart: Date? = nil
     /// Units and color settings `glucoseValues` was converted and colored with.
     var glucoseSignature: String = ""
-    /// Dates of readings deleted inside the glucose window.
-    var deletedGlucoseDates: [Date] = []
     var minYAxisValue: Decimal = 39.0
     var maxYAxisValue: Decimal = 200.0
     var units: GlucoseUnits = .mgdL

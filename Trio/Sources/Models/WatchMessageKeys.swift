@@ -96,9 +96,6 @@ enum WatchMessageKeys {
     /// the watch can verify its merged copy.
     static let glucoseCount = "glucoseCount"
     static let glucoseChecksum = "glucoseChecksum"
-    /// Timestamps of readings deleted on the phone inside the window. The watch
-    /// drops them from its history, which a delta alone can't express.
-    static let glucoseDeleted = "glucoseDeleted"
     /// Units and color settings the readings were converted and colored with.
     /// Readings from different settings must never be mixed.
     static let glucoseSignature = "glucoseSignature"
@@ -126,14 +123,12 @@ enum WatchGlucoseSync {
     static let readingColorKey = "color"
 
     /// Adds the sync metadata for the full history `readings` (encoded exactly as
-    /// sent) to a watch state payload, with the timestamps of readings deleted
-    /// inside the window.
+    /// sent) to a watch state payload.
     static func annotateFullHistory(
         _ payload: inout [String: Any],
         readings: [[String: Any]],
         windowStart: TimeInterval?,
-        signature: String,
-        deletedTimestamps: [TimeInterval] = []
+        signature: String
     ) {
         var checksum = WatchGlucoseChecksum()
         for reading in readings {
@@ -150,9 +145,6 @@ enum WatchGlucoseSync {
         payload[WatchMessageKeys.glucoseSignature] = signature
         if let windowStart = windowStart {
             payload[WatchMessageKeys.glucoseWindowStart] = windowStart
-        }
-        if !deletedTimestamps.isEmpty {
-            payload[WatchMessageKeys.glucoseDeleted] = deletedTimestamps
         }
     }
 

@@ -89,12 +89,6 @@ struct WatchGlucoseHistory {
             return .needsBackfill
         }
 
-        // Readings deleted on the phone: a delta only adds, so it names them.
-        if let deleted = payload[WatchMessageKeys.glucoseDeleted] as? [TimeInterval], !deleted.isEmpty {
-            let deletedSet = Set(deleted)
-            readings.removeAll { deletedSet.contains($0.timestamp) }
-        }
-
         // Everything up to `newest` is already here; the delta may overlap it
         // when the watch got ahead of the delta's base in the meantime.
         readings.append(contentsOf: incoming.filter { $0.timestamp > newest })
