@@ -5,6 +5,14 @@ import WatchConnectivity
 /// WatchState manages the communication between the Watch app and the iPhone app using WatchConnectivity.
 /// It handles glucose data synchronization and sending treatment requests (bolus, carbs) to the phone.
 @Observable final class WatchState: NSObject, WCSessionDelegate {
+    /// The one instance that owns `WCSession.default`'s delegate slot.
+    ///
+    /// Must be shared rather than created in a view: `@State` re-evaluates its
+    /// initial value every time the view is re-initialized, and each throwaway
+    /// instance would take over the (weak) session delegate and then be
+    /// released, leaving no delegate to receive anything from the phone.
+    static let shared = WatchState()
+
     // MARK: - Properties
 
     /// The WatchConnectivity session instance used for communication
@@ -97,6 +105,15 @@ import WatchConnectivity
     /// `didReceiveUserInfo`.
     private static let maxAcceptableMessageAgeInMinutes: TimeInterval = 15 * 60
 
+    /// Date of the newest watch state payload accepted in this process. Kept
+    /// in memory only: the UI starts empty on every launch, so a payload must
+    /// never be dropped as a duplicate of one a previous process displayed.
+    /// Only accessed on the main queue.
+    private var lastAcceptedStateDate: Date?
+
+    /// Hides a syncing spinner whose update request never got an answer.
+    private static let syncingAnimationTimeout: TimeInterval = 10
+
     // MARK: - Debouncing and batch processing helpers
 
     /// Temporary storage for new data arriving via WatchConnectivity.
@@ -120,8 +137,16 @@ import WatchConnectivity
         if WCSession.isSupported() {
             let session = WCSession.default
             session.delegate = self
-            session.activate()
             self.session = session
+            if session.activationState == .activated {
+                // Activated before this delegate was installed, so the
+                // activation callback has already gone elsewhere.
+                DispatchQueue.main.async {
+                    self.handleSessionActivated(session)
+                }
+            } else {
+                session.activate()
+            }
             Task {
                 await WatchLogger.shared.log("⌚️ WCSession setup complete.")
             }
@@ -198,14 +223,34 @@ import WatchConnectivity
                     await WatchLogger.shared.log("⌚️ Watch session activated with state: \(activationState.rawValue)")
                 }
 
-                self.forceConditionalWatchStateUpdate()
-
-                self.isReachable = session.isReachable
-
-                Task {
-                    await WatchLogger.shared.log("⌚️ Watch isReachable after activation: \(session.isReachable)")
-                }
+                self.handleSessionActivated(session)
             }
+        }
+    }
+
+    /// Shows the phone's last application context right away, then asks for a
+    /// fresh state if the phone is reachable. Must be called on the main queue.
+    private func handleSessionActivated(_ session: WCSession) {
+        isReachable = session.isReachable
+
+        Task {
+            await WatchLogger.shared.log("⌚️ Watch isReachable after activation: \(session.isReachable)")
+        }
+
+        let context = session.receivedApplicationContext
+        if !context.isEmpty {
+            handleIncomingWatchStatePayload(context)
+        }
+
+        forceConditionalWatchStateUpdate()
+    }
+
+    /// Requests a fresh watch state if the displayed one is outdated. Called
+    /// when the app returns to the foreground.
+    func refreshIfNeeded() {
+        DispatchQueue.main.async {
+            guard let session = self.session, session.activationState == .activated else { return }
+            self.forceConditionalWatchStateUpdate()
         }
     }
 
@@ -254,6 +299,12 @@ import WatchConnectivity
         handleIncomingWatchStatePayload(userInfo)
     }
 
+    /// The phone keeps its latest watch state in the application context, so
+    /// it reaches the watch even while the app is not in the foreground.
+    func session(_: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        handleIncomingWatchStatePayload(applicationContext)
+    }
+
     /// Standalone peripheral payload — sent on its own when a peripheral change
     /// has to reach the watch outside a routine push, a removed pump above all.
     /// Applied immediately rather than through `scheduleUIUpdate`'s debounce,
@@ -292,15 +343,15 @@ import WatchConnectivity
             return
         }
 
-        // Monotonicity dedup.
-        let lastProcessed = WatchStateSnapshot.loadLatestDateFromDisk()
-        guard date > lastProcessed else {
-            Task { await WatchLogger.shared.log("⌚️ Skipping duplicate watch state (\(date))") }
-            return
-        }
-
-        WatchStateSnapshot.saveLatestDateToDisk(date)
         DispatchQueue.main.async {
+            // Monotonicity dedup: the same snapshot can arrive both as a
+            // message and as the application context.
+            if let lastAccepted = self.lastAcceptedStateDate, date <= lastAccepted {
+                Task { await WatchLogger.shared.log("⌚️ Skipping duplicate watch state (\(date))") }
+                return
+            }
+
+            self.lastAcceptedStateDate = date
             self.scheduleUIUpdate(with: payload)
         }
     }
@@ -323,6 +374,8 @@ import WatchConnectivity
                 await WatchLogger.shared.log("⌚️ Watch reachability changed: \(session.isReachable)")
             }
 
+            self.isReachable = session.isReachable
+
             if session.isReachable {
                 self.forceConditionalWatchStateUpdate()
 
@@ -343,7 +396,7 @@ import WatchConnectivity
     ///  - If `lastWatchStateUpdate` is `nil` (meaning there has never been an update), or
     ///  - If more than 15 seconds have passed,
     ///
-    /// it will show a syncing animation and request a new watch state update from the iPhone app.
+    /// it will request a new watch state update from the iPhone app and, if the request could be sent, show a syncing animation.
     private func forceConditionalWatchStateUpdate() {
         guard let lastUpdateTimestamp = lastWatchStateUpdate else {
             Task {
@@ -351,8 +404,7 @@ import WatchConnectivity
             }
 
             // If there's no recorded timestamp, we must force a fresh update immediately.
-            showSyncingAnimation = true
-            requestWatchStateUpdate()
+            requestWatchStateUpdateWithSyncingAnimation()
             return
         }
 
@@ -364,9 +416,25 @@ import WatchConnectivity
 
         // If more than 15 seconds have elapsed since the last update, force an(other) update.
         if secondsSinceUpdate > 15 {
-            showSyncingAnimation = true
-            requestWatchStateUpdate()
+            requestWatchStateUpdateWithSyncingAnimation()
             return
+        }
+    }
+
+    /// Shows the syncing animation only for a request that was actually sent,
+    /// and hides it again if the phone never answers. Otherwise an unreachable
+    /// phone would leave the spinner running indefinitely.
+    private func requestWatchStateUpdateWithSyncingAnimation() {
+        guard requestWatchStateUpdate() else { return }
+
+        showSyncingAnimation = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.syncingAnimationTimeout) {
+            // A pending update clears the animation itself once it finalizes.
+            guard self.showSyncingAnimation, self.pendingData.isEmpty else { return }
+            self.showSyncingAnimation = false
+            Task {
+                await WatchLogger.shared.log("⌚️ No WatchState answer from iPhone — hiding syncing animation")
+            }
         }
     }
 
