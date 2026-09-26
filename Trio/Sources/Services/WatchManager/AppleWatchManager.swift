@@ -239,6 +239,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             // Get NSManagedObjectIDs
             let glucoseWindowStart = Date.oneDayAgo
             let glucoseIds = try await fetchGlucose(since: glucoseWindowStart)
+            let deletedGlucoseDates = await fetchDeletedGlucoseDates(since: glucoseWindowStart)
             let determinationIds = try await determinationStorage.fetchLastDeterminationObjectID(
                 predicate: NSPredicate.predicateFor30MinAgoForDetermination
             )
@@ -297,6 +298,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 // Everything the history's values and colors depend on. The watch never mixes
                 // readings with different signatures.
                 watchState.glucoseWindowStart = glucoseWindowStart
+                watchState.deletedGlucoseDates = deletedGlucoseDates
                 watchState.glucoseSignature = [
                     self.units.rawValue,
                     self.glucoseColorScheme.rawValue,
@@ -507,6 +509,25 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 "\(DebuggingIdentifiers.failed) Error setting up watch state: \(error)"
             )
             return nil
+        }
+    }
+
+    /// Dates of glucose readings deleted inside the window. `deleteGlucose` keeps a `DeletedGlucoseStored` entry with
+    /// the reading's exact date, so the watch can drop the same reading from its history.
+    private func fetchDeletedGlucoseDates(since windowStart: Date) async -> [Date] {
+        let context = CoreDataStack.shared.newTaskContext()
+        context.name = "fetchDeletedGlucoseDates"
+        return await context.perform {
+            let request = NSFetchRequest<NSDictionary>(entityName: "DeletedGlucoseStored")
+            request.predicate = NSPredicate(format: "date >= %@", windowStart as NSDate)
+            request.propertiesToFetch = ["date"]
+            request.resultType = .dictionaryResultType
+            do {
+                return try context.fetch(request).compactMap { $0["date"] as? Date }
+            } catch {
+                debug(.watchManager, "❌ Error fetching deleted glucose: \(error)")
+                return []
+            }
         }
     }
 
@@ -774,7 +795,8 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             &dictionary,
             readings: glucoseReadings,
             windowStart: state.glucoseWindowStart?.timeIntervalSince1970,
-            signature: state.glucoseSignature
+            signature: state.glucoseSignature,
+            deletedTimestamps: state.deletedGlucoseDates.map(\.timeIntervalSince1970)
         )
 
         var forecastData: [String: Any] = [
