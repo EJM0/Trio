@@ -161,6 +161,8 @@ import WatchConnectivity
 
     override init() {
         super.init()
+        // Before the session: an activation may hand over a snapshot to merge.
+        restoreGlucoseHistory()
         setupSession()
     }
 
@@ -384,6 +386,7 @@ import WatchConnectivity
         // schedules merge + UI work.
         guard date >= Date().addingTimeInterval(-Self.maxAcceptableMessageAgeInMinutes) else {
             Task { await WatchLogger.shared.log("⌚️ Skipping stale watch state (\(date))") }
+            adoptGlucoseHistory(fromStale: payload)
             return false
         }
 
@@ -403,6 +406,24 @@ import WatchConnectivity
         uiPayload.removeValue(forKey: WatchMessageKeys.glucoseValues)
         scheduleUIUpdate(with: uiPayload)
         return true
+    }
+
+    /// A stale payload's current values (IOB, COB, trend) are outdated, but its
+    /// glucose readings are not: past readings don't change. Takes over a full
+    /// history that reaches further than the local one, so the next request
+    /// only asks for the readings after it. Must be called on the main queue.
+    private func adoptGlucoseHistory(fromStale payload: [String: Any]) {
+        guard payload[WatchMessageKeys.glucoseSyncMode] as? String != WatchGlucoseSync.modeDelta,
+              let newest = WatchGlucoseSync.newestTimestamp(in: payload),
+              newest > glucoseHistory.newestTimestamp ?? -.infinity
+        else { return }
+
+        Task { await WatchLogger.shared.log("⌚️ Taking over glucose readings from stale watch state") }
+        applyGlucoseHistory(from: payload)
+        // No UI update is scheduled for a stale payload; show the readings now.
+        if hasPendingGlucoseHistoryUpdate {
+            publishGlucoseHistory()
+        }
     }
 
     /// Merges the payload's glucose readings into `glucoseHistory` and asks the
@@ -428,6 +449,7 @@ import WatchConnectivity
             if isDelta {
                 consecutiveGlucoseDeltaMismatches = 0
             }
+            saveGlucoseHistory()
 
         case .updatedUnverified:
             // Still the phone's readings, so show them.
@@ -435,6 +457,7 @@ import WatchConnectivity
             pendingGlucoseResync = nil
             glucoseResyncAttempts = 0
             disableGlucoseDeltaSync(reason: "full glucose history does not match its own checksum")
+            saveGlucoseHistory()
 
         case .mismatch:
             // Keep showing the merged readings (the newest are right) while
@@ -452,6 +475,56 @@ import WatchConnectivity
         case let .needsFullHistory(reason):
             requestGlucoseResync(.full, reason: reason)
         }
+    }
+
+    // MARK: - Glucose history persistence
+
+    /// Saved after every merge the phone's checksum confirmed, so a relaunched
+    /// app shows the chart right away and asks only for newer readings, even
+    /// without a usable application context.
+    private static let glucoseHistoryFileURL: URL? = FileManager.default
+        .urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
+        .appendingPathComponent("GlucoseHistory.plist")
+    private static let glucoseHistoryFileQueue = DispatchQueue(label: "WatchState.glucoseHistoryFile", qos: .utility)
+
+    private func saveGlucoseHistory() {
+        guard let url = Self.glucoseHistoryFileURL, let data = glucoseHistory.encoded() else { return }
+        Self.glucoseHistoryFileQueue.async {
+            do {
+                try FileManager.default.createDirectory(
+                    at: url.deletingLastPathComponent(),
+                    withIntermediateDirectories: true
+                )
+                try data.write(to: url, options: .atomic)
+            } catch {
+                Task { await WatchLogger.shared.log("⌚️ Saving glucose history failed: \(error)") }
+            }
+        }
+    }
+
+    /// Loads the saved history. The phone's checksum still verifies it with
+    /// the next payload, and readings it no longer has are dropped then.
+    private func restoreGlucoseHistory() {
+        guard let url = Self.glucoseHistoryFileURL,
+              let data = try? Data(contentsOf: url),
+              let restored = WatchGlucoseHistory(data: data)
+        else { return }
+
+        glucoseHistory = restored
+        publishGlucoseHistory()
+        Task { await WatchLogger.shared.log("⌚️ Restored \(restored.readings.count) saved glucose readings") }
+    }
+
+    /// Republishes `glucoseValues` from `glucoseHistory`.
+    private func publishGlucoseHistory() {
+        glucoseValues = glucoseHistory.readings.map { reading in
+            (
+                date: Date(timeIntervalSince1970: reading.timestamp),
+                glucose: reading.glucose,
+                color: reading.color.toColor() // Convert colorString to Color
+            )
+        }
+        hasPendingGlucoseHistoryUpdate = false
     }
 
     private func disableGlucoseDeltaSync(reason: String) {
@@ -746,14 +819,7 @@ import WatchConnectivity
         }
 
         if hasPendingGlucoseHistoryUpdate {
-            glucoseValues = glucoseHistory.readings.map { reading in
-                (
-                    date: Date(timeIntervalSince1970: reading.timestamp),
-                    glucose: reading.glucose,
-                    color: reading.color.toColor() // Convert colorString to Color
-                )
-            }
-            hasPendingGlucoseHistoryUpdate = false
+            publishGlucoseHistory()
         }
 
         if let minYAxisValue = message[WatchMessageKeys.minYAxisValue] {

@@ -6,7 +6,7 @@ import Foundation
 /// Readings are stored exactly as the phone sent them, so delta bases and the
 /// checksum compare bit for bit with the phone's values.
 struct WatchGlucoseHistory {
-    struct Reading: Equatable {
+    struct Reading: Equatable, Codable {
         let timestamp: TimeInterval
         let glucose: Double
         let color: String
@@ -35,6 +35,32 @@ struct WatchGlucoseHistory {
     private(set) var signature: String?
 
     var newestTimestamp: TimeInterval? { readings.last?.timestamp }
+
+    init() {}
+
+    // MARK: - Persistence
+
+    /// What is written to disk: enough to show the chart at launch and to ask
+    /// the phone for only the readings after the newest one.
+    private struct Stored: Codable {
+        let readings: [Reading]
+        let signature: String?
+    }
+
+    /// Restores a history saved with `encoded()`; `nil` if the data can't be read.
+    init?(data: Data) {
+        guard let stored = try? PropertyListDecoder().decode(Stored.self, from: data) else { return nil }
+        readings = stored.readings.sorted { $0.timestamp < $1.timestamp }
+        signature = stored.signature
+    }
+
+    func encoded() -> Data? {
+        let encoder = PropertyListEncoder()
+        encoder.outputFormat = .binary
+        return try? encoder.encode(Stored(readings: readings, signature: signature))
+    }
+
+    // MARK: - Merging
 
     mutating func merge(_ payload: [String: Any]) -> MergeResult {
         guard let encoded = payload[WatchMessageKeys.glucoseValues] as? [[String: Any]] else { return .unchanged }
