@@ -140,10 +140,10 @@ import WatchConnectivity
     /// Resync requests since the history last verified. Bounds the retries.
     private var glucoseResyncAttempts = 0
     private static let maxGlucoseResyncAttempts = 3
-    /// Merged deltas in a row that did not verify. Past the limit, deltas
-    /// can't be trusted and the watch asks the phone for full histories only.
-    private var consecutiveGlucoseDeltaMismatches = 0
-    private static let maxConsecutiveGlucoseDeltaMismatches = 3
+    /// Set once a full history fails its own checksum: deltas can't be trusted
+    /// then, and the watch asks the phone for full histories only. A delta that
+    /// does not verify is no such sign, as readings deleted or backfilled on the
+    /// phone cause it too; it only costs one full history.
     private var isGlucoseDeltaSyncDisabled = false
 
     // MARK: - Debouncing and batch processing helpers
@@ -394,6 +394,15 @@ import WatchConnectivity
         // and as the application context.
         if let lastAccepted = lastAcceptedStateDate, date <= lastAccepted {
             Task { await WatchLogger.shared.log("⌚️ Skipping duplicate watch state (\(date))") }
+            if date == lastAccepted {
+                // Same build, but not necessarily the same glucose part: a
+                // request's full reply shares its stamp with the context the
+                // phone set at the same time, which carries only recent readings.
+                applyGlucoseHistory(from: payload)
+                if hasPendingGlucoseHistoryUpdate {
+                    publishGlucoseHistory()
+                }
+            }
             return false
         }
 
@@ -446,9 +455,6 @@ import WatchConnectivity
             hasPendingGlucoseHistoryUpdate = true
             pendingGlucoseResync = nil
             glucoseResyncAttempts = 0
-            if isDelta {
-                consecutiveGlucoseDeltaMismatches = 0
-            }
             saveGlucoseHistory()
 
         case .updatedUnverified:
@@ -463,10 +469,6 @@ import WatchConnectivity
             // Keep showing the merged readings (the newest are right) while
             // the full window is on its way.
             hasPendingGlucoseHistoryUpdate = true
-            consecutiveGlucoseDeltaMismatches += 1
-            if consecutiveGlucoseDeltaMismatches >= Self.maxConsecutiveGlucoseDeltaMismatches {
-                disableGlucoseDeltaSync(reason: "\(consecutiveGlucoseDeltaMismatches) merged deltas in a row did not verify")
-            }
             requestGlucoseResync(.full, reason: "merged glucose history does not match the phone's")
 
         case .needsBackfill:
