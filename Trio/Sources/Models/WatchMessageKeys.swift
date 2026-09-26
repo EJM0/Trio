@@ -164,6 +164,19 @@ enum WatchGlucoseSync {
         return delta
     }
 
+    /// A delta of an annotated full-history payload carrying only the recent
+    /// readings: those after the newest reading at or before `cutoff`. `nil`
+    /// when no reading is that old, so the full history is barely larger.
+    static func recentTail(of payload: [String: Any], after cutoff: TimeInterval) -> [String: Any]? {
+        let readings = payload[WatchMessageKeys.glucoseValues] as? [[String: Any]] ?? []
+        let base = readings
+            .compactMap { $0[readingTimestampKey] as? TimeInterval }
+            .filter { $0 <= cutoff }
+            .max()
+        guard let base = base else { return nil }
+        return delta(of: payload, since: base)
+    }
+
     /// Timestamp of the newest reading in an annotated payload, the base of the
     /// next delta.
     static func newestTimestamp(in payload: [String: Any]) -> TimeInterval? {

@@ -409,12 +409,12 @@ import WatchConnectivity
     }
 
     /// A stale payload's current values (IOB, COB, trend) are outdated, but its
-    /// glucose readings are not: past readings don't change. Takes over a full
-    /// history that reaches further than the local one, so the next request
-    /// only asks for the readings after it. Must be called on the main queue.
+    /// glucose readings are not: past readings don't change. Takes over its
+    /// readings (a full history, or the recent tail an application context
+    /// carries) when they reach further than the local ones, so the next
+    /// request only asks for what came after. Must be called on the main queue.
     private func adoptGlucoseHistory(fromStale payload: [String: Any]) {
-        guard payload[WatchMessageKeys.glucoseSyncMode] as? String != WatchGlucoseSync.modeDelta,
-              let newest = WatchGlucoseSync.newestTimestamp(in: payload),
+        guard let newest = WatchGlucoseSync.newestTimestamp(in: payload),
               newest > glucoseHistory.newestTimestamp ?? -.infinity
         else { return }
 

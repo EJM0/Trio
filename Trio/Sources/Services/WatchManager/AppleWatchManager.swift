@@ -52,6 +52,17 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     /// builds, every payload carries the full glucose history.
     private var watchSupportsGlucoseDelta = false
 
+    /// The application context carries the readings of this recent span once the watch merges deltas; the watch
+    /// keeps the rest of the window saved, and asks for missing readings when the tail does not connect to it.
+    private static let contextGlucoseTail: TimeInterval = 2 * 60 * 60
+    /// Content of the last application context, without its per-build stamps, and when it was set. An unchanged
+    /// context is not sent again until it is this old, so the watch never sees it go stale (15 minutes).
+    private var lastContextContent: NSDictionary?
+    private var lastContextUpdate: Date?
+    private static let unchangedContextRefreshInterval: TimeInterval = 5 * 60
+    /// Bytes handed to WatchConnectivity since launch, per route, for the transfer log.
+    private var transferredBytes: [String: Int] = [:]
+
     typealias PumpEvent = PumpEventStored.EventType
 
     let viewContext = CoreDataStack.shared.persistentContainer.viewContext
@@ -798,11 +809,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         if watchSupportsGlucoseDelta, let base = previousGlucoseNewest, previousGlucoseSignature == state.glucoseSignature {
             message = WatchGlucoseSync.delta(of: payload, since: base)
         }
-        let readingCount = (message[WatchMessageKeys.glucoseValues] as? [[String: Any]])?.count ?? 0
-        debug(
-            .watchManager,
-            "📤 Sending watch state (\((message[WatchMessageKeys.glucoseSyncMode] as? String) ?? WatchGlucoseSync.modeFull), \(readingCount) glucose readings)"
-        )
+        logTransfer("message", [WatchMessageKeys.watchState: message])
 
         session.sendMessage([WatchMessageKeys.watchState: message], replyHandler: nil) { error in
             debug(.watchManager, "❌ Error sending watch state: \(error)")
@@ -827,6 +834,38 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         lastSentGlucoseNewest = nil
         lastSentGlucoseSignature = nil
         watchSupportsGlucoseDelta = false
+        lastContextContent = nil
+        lastContextUpdate = nil
+    }
+
+    /// A context's content without what changes with every build even when nothing visible does: the send
+    /// stamp, the glucose window start and the peripherals' gather time.
+    private static func contextContent(of context: [String: Any]) -> NSDictionary {
+        var content = context
+        content.removeValue(forKey: WatchMessageKeys.date)
+        content.removeValue(forKey: WatchMessageKeys.glucoseWindowStart)
+        if var peripherals = content[WatchMessageKeys.peripheralData] as? [String: Any] {
+            peripherals.removeValue(forKey: WatchMessageKeys.peripheralsUpdatedAt)
+            content[WatchMessageKeys.peripheralData] = peripherals
+        }
+        return content as NSDictionary
+    }
+
+    /// Logs the size of a payload handed to WatchConnectivity, with the total per route since launch.
+    /// Sizes are those of a binary property list, close to what goes over the air.
+    @MainActor private func logTransfer(_ route: String, _ payload: [String: Any]) {
+        guard let data = try? PropertyListSerialization.data(fromPropertyList: payload, format: .binary, options: 0)
+        else {
+            debug(.watchManager, "📦 \(route): size unknown")
+            return
+        }
+        transferredBytes[route, default: 0] += data.count
+        let watchState = payload[WatchMessageKeys.watchState] as? [String: Any]
+        let readings = (watchState?[WatchMessageKeys.glucoseValues] as? [Any])?.count ?? 0
+        debug(
+            .watchManager,
+            "📦 \(route): \(data.count) B, \(readings) glucose readings; since launch: \(transferredBytes[route] ?? 0) B"
+        )
     }
 
     /// Stamps the state with the send time, stores it as the application context and returns the payload.
@@ -863,11 +902,32 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
         // The application context always holds the latest state. It replaces the previous one instead of
         // queueing up like userInfo transfers, and the watch reads it on launch, so it has data even when
-        // it was out of reach when the state was sent.
-        do {
-            try session.updateApplicationContext([WatchMessageKeys.watchState: message])
-        } catch {
-            debug(.watchManager, "❌ Error updating watch application context: \(error)")
+        // it was out of reach when the state was sent. A watch that merges deltas keeps its history saved,
+        // so the context only carries the recent readings.
+        var context = message
+        if watchSupportsGlucoseDelta,
+           let tail = WatchGlucoseSync.recentTail(
+               of: message,
+               after: state.date.timeIntervalSince1970 - Self.contextGlucoseTail
+           )
+        {
+            context = tail
+        }
+
+        let content = Self.contextContent(of: context)
+        if let lastContent = lastContextContent, lastContent.isEqual(content),
+           let lastUpdate = lastContextUpdate, state.date.timeIntervalSince(lastUpdate) < Self.unchangedContextRefreshInterval
+        {
+            debug(.watchManager, "📦 Skipping unchanged watch application context")
+        } else {
+            do {
+                try session.updateApplicationContext([WatchMessageKeys.watchState: context])
+                lastContextContent = content
+                lastContextUpdate = state.date
+                logTransfer("context", [WatchMessageKeys.watchState: context])
+            } catch {
+                debug(.watchManager, "❌ Error updating watch application context: \(error)")
+            }
         }
 
         lastSentGlucoseNewest = WatchGlucoseSync.newestTimestamp(in: message)
@@ -943,7 +1003,9 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 replyHandler([:])
                 return
             }
-            replyHandler([WatchMessageKeys.watchState: self.replyPayload(payload, for: message, state: state)])
+            let reply = [WatchMessageKeys.watchState: self.replyPayload(payload, for: message, state: state)]
+            self.logTransfer("reply", reply)
+            replyHandler(reply)
         }
     }
 
