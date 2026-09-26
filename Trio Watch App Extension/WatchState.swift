@@ -114,6 +114,38 @@ import WatchConnectivity
     /// Hides a syncing spinner whose update request never got an answer.
     private static let syncingAnimationTimeout: TimeInterval = 10
 
+    // MARK: - Glucose history sync (see `WatchGlucoseSync`)
+
+    /// What the phone has to resend when a payload's readings don't fit the
+    /// local history.
+    enum GlucoseResync: Int, Comparable {
+        /// The readings after the newest local one.
+        case backfill
+        /// The whole window.
+        case full
+
+        static func < (lhs: GlucoseResync, rhs: GlucoseResync) -> Bool {
+            lhs.rawValue < rhs.rawValue
+        }
+    }
+
+    /// The watch's copy of the phone's glucose window; `glucoseValues` is
+    /// derived from it. Only accessed on the main queue, like everything below.
+    private var glucoseHistory = WatchGlucoseHistory()
+    /// `glucoseHistory` changed and `glucoseValues` is yet to be republished.
+    private var hasPendingGlucoseHistoryUpdate = false
+    /// Kept until a payload brings the history back in step with the phone.
+    private var pendingGlucoseResync: GlucoseResync?
+    private var isGlucoseResyncInFlight = false
+    /// Resync requests since the history last verified. Bounds the retries.
+    private var glucoseResyncAttempts = 0
+    private static let maxGlucoseResyncAttempts = 3
+    /// Merged deltas in a row that did not verify. Past the limit, deltas
+    /// can't be trusted and the watch asks the phone for full histories only.
+    private var consecutiveGlucoseDeltaMismatches = 0
+    private static let maxConsecutiveGlucoseDeltaMismatches = 3
+    private var isGlucoseDeltaSyncDisabled = false
+
     // MARK: - Debouncing and batch processing helpers
 
     /// Temporary storage for new data arriving via WatchConnectivity.
@@ -363,8 +395,115 @@ import WatchConnectivity
         }
 
         lastAcceptedStateDate = date
-        scheduleUIUpdate(with: payload)
+        applyGlucoseHistory(from: payload)
+
+        // The readings now live in `glucoseHistory`; `glucoseValues` is
+        // republished from there when the pending update is applied.
+        var uiPayload = payload
+        uiPayload.removeValue(forKey: WatchMessageKeys.glucoseValues)
+        scheduleUIUpdate(with: uiPayload)
         return true
+    }
+
+    /// Merges the payload's glucose readings into `glucoseHistory` and asks the
+    /// phone for whatever the merge found missing. Must be called on the main
+    /// queue.
+    private func applyGlucoseHistory(from payload: [String: Any]) {
+        let isDelta = payload[WatchMessageKeys.glucoseSyncMode] as? String == WatchGlucoseSync.modeDelta
+
+        if isDelta, isGlucoseDeltaSyncDisabled {
+            // The phone hasn't heard yet; the resync request tells it.
+            requestGlucoseResync(.full, reason: "delta received while delta sync is disabled")
+            return
+        }
+
+        switch glucoseHistory.merge(payload) {
+        case .unchanged:
+            return
+
+        case .updated:
+            hasPendingGlucoseHistoryUpdate = true
+            pendingGlucoseResync = nil
+            glucoseResyncAttempts = 0
+            if isDelta {
+                consecutiveGlucoseDeltaMismatches = 0
+            }
+
+        case .updatedUnverified:
+            // Still the phone's readings, so show them.
+            hasPendingGlucoseHistoryUpdate = true
+            pendingGlucoseResync = nil
+            glucoseResyncAttempts = 0
+            disableGlucoseDeltaSync(reason: "full glucose history does not match its own checksum")
+
+        case .mismatch:
+            // Keep showing the merged readings (the newest are right) while
+            // the full window is on its way.
+            hasPendingGlucoseHistoryUpdate = true
+            consecutiveGlucoseDeltaMismatches += 1
+            if consecutiveGlucoseDeltaMismatches >= Self.maxConsecutiveGlucoseDeltaMismatches {
+                disableGlucoseDeltaSync(reason: "\(consecutiveGlucoseDeltaMismatches) merged deltas in a row did not verify")
+            }
+            requestGlucoseResync(.full, reason: "merged glucose history does not match the phone's")
+
+        case .needsBackfill:
+            requestGlucoseResync(.backfill, reason: "glucose delta does not connect to the newest local reading")
+
+        case let .needsFullHistory(reason):
+            requestGlucoseResync(.full, reason: reason)
+        }
+    }
+
+    private func disableGlucoseDeltaSync(reason: String) {
+        guard !isGlucoseDeltaSyncDisabled else { return }
+        isGlucoseDeltaSyncDisabled = true
+        Task { await WatchLogger.shared.log("⌚️ Glucose delta sync disabled: \(reason)", force: true) }
+    }
+
+    private func requestGlucoseResync(_ resync: GlucoseResync, reason: String) {
+        Task { await WatchLogger.shared.log("⌚️ Glucose history resync (\(resync)): \(reason)") }
+        pendingGlucoseResync = max(pendingGlucoseResync ?? resync, resync)
+        sendPendingGlucoseResync()
+    }
+
+    /// Sends the pending resync request, one at a time. An answered request
+    /// that did not settle it (its reply lost the race against a newer push,
+    /// or revealed that more is needed) is retried, up to a limit. One that
+    /// could not be delivered waits for the next regular update request,
+    /// which carries the pending resync as well.
+    private func sendPendingGlucoseResync() {
+        guard pendingGlucoseResync != nil, !isGlucoseResyncInFlight else { return }
+        guard glucoseResyncAttempts < Self.maxGlucoseResyncAttempts else {
+            Task { await WatchLogger.shared.log("⌚️ Glucose history resync attempts exhausted; waiting for the next update") }
+            return
+        }
+
+        glucoseResyncAttempts += 1
+        isGlucoseResyncInFlight = true
+        let sent = requestWatchStateUpdate { answered in
+            self.isGlucoseResyncInFlight = false
+            if answered {
+                self.sendPendingGlucoseResync()
+            }
+        }
+        if !sent {
+            isGlucoseResyncInFlight = false
+        }
+    }
+
+    /// Glucose sync fields for a watch state request: whether the watch can
+    /// merge deltas, and the newest reading it holds, unless it needs the full
+    /// window. Must be called on the main queue.
+    func glucoseSyncRequestFields() -> [String: Any] {
+        var fields: [String: Any] = [WatchMessageKeys.supportsGlucoseDelta: !isGlucoseDeltaSyncDisabled]
+        guard !isGlucoseDeltaSyncDisabled, pendingGlucoseResync != .full,
+              let since = glucoseHistory.newestTimestamp,
+              let signature = glucoseHistory.signature
+        else { return fields }
+
+        fields[WatchMessageKeys.glucoseSince] = since
+        fields[WatchMessageKeys.glucoseSignature] = signature
+        return fields
     }
 
     func session(_: WCSession, didFinish _: WCSessionUserInfoTransfer, error: (any Error)?) {
@@ -487,8 +626,8 @@ import WatchConnectivity
             }
 
             // 2) Raw watchState data
-            if let watchStateData = message[WatchMessageKeys.watchState] as? [String: Any] {
-                self.scheduleUIUpdate(with: watchStateData)
+            if message[WatchMessageKeys.watchState] != nil {
+                self.acceptWatchStatePayload(message)
             }
         }
     }
@@ -606,20 +745,15 @@ import WatchConnectivity
             self.lastLoopTime = lastLoopTime
         }
 
-        if let glucoseData = message[WatchMessageKeys.glucoseValues] as? [[String: Any]] {
-            glucoseValues = glucoseData.compactMap { data in
-                guard let glucose = data["glucose"] as? Double,
-                      let timestamp = data["date"] as? TimeInterval,
-                      let colorString = data["color"] as? String
-                else { return nil }
-
-                return (
-                    Date(timeIntervalSince1970: timestamp),
-                    glucose,
-                    colorString.toColor() // Convert colorString to Color
+        if hasPendingGlucoseHistoryUpdate {
+            glucoseValues = glucoseHistory.readings.map { reading in
+                (
+                    date: Date(timeIntervalSince1970: reading.timestamp),
+                    glucose: reading.glucose,
+                    color: reading.color.toColor() // Convert colorString to Color
                 )
             }
-            .sorted { $0.date < $1.date }
+            hasPendingGlucoseHistoryUpdate = false
         }
 
         if let minYAxisValue = message[WatchMessageKeys.minYAxisValue] {

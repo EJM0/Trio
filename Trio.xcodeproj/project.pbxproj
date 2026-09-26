@@ -627,6 +627,7 @@
 		BDA6CC882CAF219B00F942F9 /* TempTargetSetup.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDA6CC872CAF219800F942F9 /* TempTargetSetup.swift */; };
 		BDA7593E2D37CFC400E649A4 /* CarbEntryEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDA7593D2D37CFC000E649A4 /* CarbEntryEditorView.swift */; };
 		BDAE40002D372BAD009C12B1 /* WatchState+Requests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDAE3FFF2D372BA8009C12B1 /* WatchState+Requests.swift */; };
+		C3A7E0022FA0000100D1E001 /* WatchGlucoseHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A7E0012FA0000100D1E001 /* WatchGlucoseHistory.swift */; };
 		BDB3C1192C03DD1000CEEAA1 /* UserDefaultsExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDB3C1182C03DD1000CEEAA1 /* UserDefaultsExtension.swift */; };
 		BDB899882C564509006F3298 /* ForecastChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDB899872C564509006F3298 /* ForecastChart.swift */; };
 		BDB8998A2C565D0C006F3298 /* CarbsGlucose+helper.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDB899892C565D0B006F3298 /* CarbsGlucose+helper.swift */; };
@@ -1745,6 +1746,7 @@
 		BDA6CC872CAF219800F942F9 /* TempTargetSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempTargetSetup.swift; sourceTree = "<group>"; };
 		BDA7593D2D37CFC000E649A4 /* CarbEntryEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarbEntryEditorView.swift; sourceTree = "<group>"; };
 		BDAE3FFF2D372BA8009C12B1 /* WatchState+Requests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchState+Requests.swift"; sourceTree = "<group>"; };
+		C3A7E0012FA0000100D1E001 /* WatchGlucoseHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchGlucoseHistory.swift; sourceTree = "<group>"; };
 		BDB3C1182C03DD1000CEEAA1 /* UserDefaultsExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDefaultsExtension.swift; sourceTree = "<group>"; };
 		BDB899872C564509006F3298 /* ForecastChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastChart.swift; sourceTree = "<group>"; };
 		BDB899892C565D0B006F3298 /* CarbsGlucose+helper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CarbsGlucose+helper.swift"; sourceTree = "<group>"; };
@@ -4101,6 +4103,7 @@
 				DDFF20492DB29EF500AB8A96 /* WatchLogger.swift */,
 				BDA25EE52D260D5800035F34 /* WatchState.swift */,
 				BDAE3FFF2D372BA8009C12B1 /* WatchState+Requests.swift */,
+				C3A7E0012FA0000100D1E001 /* WatchGlucoseHistory.swift */,
 				DD3A3CEC2D29CFBA00AE478E /* Helper */,
 				BDA25F1A2D26BCE800035F34 /* Views */,
 				BDFF7A9E2D25FA970016C40C /* Preview Content */,
@@ -6280,6 +6283,7 @@
 				BD54A9712D281A8100F9C1EE /* TempTargetPresetsView.swift in Sources */,
 				DD3A3CE92D29C97800AE478E /* Helper+ButtonStyles.swift in Sources */,
 				BDAE40002D372BAD009C12B1 /* WatchState+Requests.swift in Sources */,
+				C3A7E0022FA0000100D1E001 /* WatchGlucoseHistory.swift in Sources */,
 				BDA25EE62D260D5E00035F34 /* WatchState.swift in Sources */,
 				BD04ECCE2D29952A008C5FEB /* BolusProgressOverlay.swift in Sources */,
 				DD09D5C92D29F3D0000D82C9 /* AcknowledgementPendingView.swift in Sources */,

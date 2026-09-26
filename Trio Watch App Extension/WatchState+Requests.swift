@@ -250,8 +250,13 @@ extension WatchState {
     /// Asks the phone for a fresh watch state. The phone answers through the
     /// reply handler, so the request's outcome is known: an answer, an empty
     /// answer (phone could not build a state) or a delivery error.
+    ///
+    /// The request tells the phone which glucose readings the watch already
+    /// holds, so the reply only carries the newer ones.
+    /// - Parameter completion: Called on the main queue once the request is
+    ///   settled, with `true` if the phone answered, after the answer is applied.
     /// - Returns: `true` if the request was handed to WatchConnectivity.
-    @discardableResult func requestWatchStateUpdate() -> Bool {
+    @discardableResult func requestWatchStateUpdate(completion: ((_ answered: Bool) -> Void)? = nil) -> Bool {
         guard let session = session else {
             Task {
                 await WatchLogger.shared.log("⌚️ No session available for state update")
@@ -272,7 +277,8 @@ extension WatchState {
                 await WatchLogger.shared.log("⌚️ Requesting WatchState update from iPhone")
             }
 
-            let message = [WatchMessageKeys.requestWatchUpdate: WatchMessageKeys.watchState]
+            var message: [String: Any] = [WatchMessageKeys.requestWatchUpdate: WatchMessageKeys.watchState]
+            message.merge(glucoseSyncRequestFields()) { _, new in new }
 
             session.sendMessage(message, replyHandler: { reply in
                 DispatchQueue.main.async {
@@ -281,6 +287,7 @@ extension WatchState {
                     if reply.isEmpty || !self.acceptWatchStatePayload(reply) {
                         self.showSyncingAnimation = false
                     }
+                    completion?(true)
                 }
             }, errorHandler: { error in
                 Task {
@@ -290,6 +297,7 @@ extension WatchState {
                 }
                 DispatchQueue.main.async {
                     self.showSyncingAnimation = false
+                    completion?(false)
                 }
             })
             return true
