@@ -798,7 +798,11 @@ extension Treatments {
                 // Covered by the button.
                 Color.clear.frame(height: TreatmentCardMetrics.height)
             }
-            .background(Color.chart, in: RoundedRectangle(cornerRadius: TreatmentCardMetrics.cornerRadius))
+            // The default list row background, as the warning row in the list used to have.
+            .background(
+                Color(.secondarySystemGroupedBackground),
+                in: RoundedRectangle(cornerRadius: TreatmentCardMetrics.cornerRadius)
+            )
         }
 
         private func enactTreatmentButton(background: Color) -> some View {
