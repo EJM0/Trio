@@ -33,6 +33,8 @@ extension Treatments {
         // Meal Manager sheet -- it used to be duplicated here as a second, independent copy.
         @FocusState private var isSearchFocused: Bool
         @State private var isKeyboardVisible = false
+        /// Height of the treatment button area, warning panel included, so the list can scroll clear of it.
+        @State private var treatmentButtonAreaHeight: CGFloat = TreatmentCardMetrics.height
 
         private enum Config {
             static let dividerHeight: CGFloat = 2
@@ -540,14 +542,6 @@ extension Treatments {
                     foodSearch
                 }.listRowBackground(Color.chart)
 
-                if !bolusWarning.warningMessage.isEmpty {
-                    Text(bolusWarning.warningMessage)
-                        .textCase(nil)
-                        .font(.subheadline)
-                        .foregroundColor(bolusWarning.color)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
-
                 Section {
                     ForecastChart(state: state)
                 }.listRowBackground(Color.chart)
@@ -569,13 +563,16 @@ extension Treatments {
             ZStack(alignment: .center) {
                 listView()
                     .blur(radius: state.showInfo || state.isAwaitingDeterminationResult ? 3 : 0)
-                    .safeAreaPadding(.bottom, 50)
+                    .safeAreaPadding(.bottom, treatmentButtonAreaHeight)
                 if state.isAwaitingDeterminationResult {
                     CustomProgressView(text: progressText.displayName)
                 }
                 if !isKeyboardVisible {
                     treatmentButton
                         .padding(.horizontal, 16)
+                        .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { height in
+                            treatmentButtonAreaHeight = height
+                        }
                         .frame(maxHeight: .infinity, alignment: .bottom)
                         .ignoresSafeArea(.keyboard)
                 }
@@ -770,42 +767,73 @@ extension Treatments {
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                 } else {
-                    Button {
-                        if bolusWarning.shouldConfirm {
-                            showConfirmDialogForBolusing = true
-                        } else {
-                            state.invokeTreatmentsTask()
+                    ZStack(alignment: .bottom) {
+                        if !bolusWarning.warningMessage.isEmpty {
+                            bolusWarningPanel
+                                .transition(.move(edge: .bottom))
                         }
-                    } label: {
-                        HStack {
-                            taskButtonLabel
-                        }
-                        .font(.headline)
-                        .foregroundStyle(Color.white)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .frame(height: 50)
-                        .background(treatmentButtonBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: 15))
+                        enactTreatmentButton(background: treatmentButtonBackground)
                     }
-                    .disabled(disableTaskButton)
-                    .shadow(radius: 3)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .glassActionSheet(
-                        Text(bolusWarning.warningMessage + " Bolus \(state.amount.description) U?"),
-                        isPresented: $showConfirmDialogForBolusing,
-                        actions: [
-                            GlassSheetAction(
-                                verbatim: bolusWarning.warningMessage
-                                    .isEmpty ? String(localized: "Enact Bolus") :
-                                    String(localized: "Ignore Warning and Enact Bolus"),
-                                role: bolusWarning.warningMessage.isEmpty ? nil : .destructive
-                            ) {
-                                state.invokeTreatmentsTask()
-                            }
-                        ]
-                    )
+                    // Same width and corners as `bolusInProgressView`. The clip makes the warning panel
+                    // slide out from behind the button instead of rising from below it.
+                    .padding(.horizontal, TreatmentCardMetrics.horizontalInset)
+                    .clipShape(RoundedRectangle(cornerRadius: TreatmentCardMetrics.cornerRadius))
+                    .animation(.easeInOut(duration: 0.25), value: bolusWarning.warningMessage)
                 }
             }
+        }
+
+        /// Sits behind the treatment button, same width and corners, and shows the bolus warning in the part
+        /// that sticks out above it.
+        private var bolusWarningPanel: some View {
+            VStack(spacing: 0) {
+                Text(bolusWarning.warningMessage)
+                    .font(.subheadline)
+                    .foregroundStyle(bolusWarning.color)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+
+                // Covered by the button.
+                Color.clear.frame(height: TreatmentCardMetrics.height)
+            }
+            .background(Color.chart, in: RoundedRectangle(cornerRadius: TreatmentCardMetrics.cornerRadius))
+        }
+
+        private func enactTreatmentButton(background: Color) -> some View {
+            Button {
+                if bolusWarning.shouldConfirm {
+                    showConfirmDialogForBolusing = true
+                } else {
+                    state.invokeTreatmentsTask()
+                }
+            } label: {
+                HStack {
+                    taskButtonLabel
+                }
+                .font(.headline)
+                .foregroundStyle(Color.white)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .frame(height: TreatmentCardMetrics.height)
+                .background(background)
+                .clipShape(RoundedRectangle(cornerRadius: TreatmentCardMetrics.cornerRadius))
+            }
+            .disabled(disableTaskButton)
+            .glassActionSheet(
+                Text(bolusWarning.warningMessage + " Bolus \(state.amount.description) U?"),
+                isPresented: $showConfirmDialogForBolusing,
+                actions: [
+                    GlassSheetAction(
+                        verbatim: bolusWarning.warningMessage
+                            .isEmpty ? String(localized: "Enact Bolus") :
+                            String(localized: "Ignore Warning and Enact Bolus"),
+                        role: bolusWarning.warningMessage.isEmpty ? nil : .destructive
+                    ) {
+                        state.invokeTreatmentsTask()
+                    }
+                ]
+            )
         }
 
         /// Card-style in-progress visualizer matching Home's `bolusView` look:
@@ -826,13 +854,13 @@ extension Treatments {
 
             ZStack {
                 // background card
-                RoundedRectangle(cornerRadius: 15)
+                RoundedRectangle(cornerRadius: TreatmentCardMetrics.cornerRadius)
                     .fill(
                         colorScheme == .dark
                             ? Color(red: 0.03921568627, green: 0.133333333, blue: 0.2156862745)
                             : Color.insulin.opacity(0.2)
                     )
-                    .frame(height: 56)
+                    .frame(height: TreatmentCardMetrics.height)
                     .shadow(
                         color: colorScheme == .dark
                             ? Color(red: 0.02745098039, green: 0.1098039216, blue: 0.1411764706)
@@ -873,13 +901,13 @@ extension Treatments {
                 .padding(.horizontal, 10)
                 .padding(.trailing, 8)
             }
-            .padding(.horizontal, 10)
+            .padding(.horizontal, TreatmentCardMetrics.horizontalInset)
             .overlay(alignment: .bottom) {
                 BolusProgressBar(progress: progress)
                     .padding(.horizontal, 18)
                     .padding(.bottom, 1)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 15))
+            .clipShape(RoundedRectangle(cornerRadius: TreatmentCardMetrics.cornerRadius))
         }
 
         private var taskButtonLabel: some View {
@@ -985,4 +1013,11 @@ extension Treatments {
                 .padding(.vertical)
         }
     }
+}
+
+/// Shared by the treatment button, the bolus warning panel behind it and the bolus progress card, so the three line up.
+private enum TreatmentCardMetrics {
+    static let height: CGFloat = 56
+    static let cornerRadius: CGFloat = 15
+    static let horizontalInset: CGFloat = 10
 }
