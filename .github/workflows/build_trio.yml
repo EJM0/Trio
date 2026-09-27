@@ -226,7 +226,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: write
+    # `!cancelled()` and the explicit result check replace the implicit `success()`, which also looks at
+    # `debounce`, skipped on every run that is not a push (see check_status).
     if: |
+      !cancelled() && needs.check_status.result == 'success' &&
       github.event_name == 'schedule' &&
         !(vars.SCHEDULED_BUILD != 'false' && needs.check_status.outputs.IS_SECOND_IN_MONTH == 'true') &&
         !(vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true')
@@ -249,10 +252,13 @@ jobs:
     name: Check certificates
     uses: ./.github/workflows/create_certs.yml
     secrets: inherit
+    # Without `!cancelled()`, the implicit `success()` also requires `debounce`, which is skipped for manual and
+    # scheduled runs, so those never built.
     if: |
-      github.event_name == 'workflow_dispatch' || github.event_name == 'push' ||
+      !cancelled() && needs.check_status.result == 'success' &&
+      (github.event_name == 'workflow_dispatch' || github.event_name == 'push' ||
         (vars.SCHEDULED_BUILD != 'false' && needs.check_status.outputs.IS_SECOND_IN_MONTH == 'true') ||
-        (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' )
+        (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' ))
 
   # Builds Trio
   build:
@@ -263,9 +269,10 @@ jobs:
       contents: write
     if:
       | # builds with manual start, on a settled push; if scheduled: once a month or when new commits are found
-      github.event_name == 'workflow_dispatch' || github.event_name == 'push' ||
+      !cancelled() && needs.check_status.result == 'success' && needs.check_certs.result == 'success' &&
+      (github.event_name == 'workflow_dispatch' || github.event_name == 'push' ||
         (vars.SCHEDULED_BUILD != 'false' && needs.check_status.outputs.IS_SECOND_IN_MONTH == 'true') ||
-        (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' )
+        (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' ))
     steps:
       - name: Select Xcode version
         run: "SUDO_ASKPASS=/usr/local/bin/askpass.sh sudo -A xcode-select --switch /Applications/Xcode-26.2.0.app/Contents/Developer"
