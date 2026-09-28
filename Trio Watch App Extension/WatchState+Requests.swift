@@ -247,15 +247,8 @@ extension WatchState {
         }
     }
 
-    /// Asks the phone for a fresh watch state. The phone answers through the
-    /// reply handler, so the request's outcome is known: an answer, an empty
-    /// answer (phone could not build a state) or a delivery error.
-    ///
-    /// The request tells the phone which glucose readings the watch already
-    /// holds, so the reply only carries the newer ones.
-    /// - Parameter completion: Called on the main queue once the request is
-    ///   settled, with `true` if the phone answered, after the answer is applied.
-    /// - Returns: `true` if the request was handed to WatchConnectivity.
+    /// - Parameter completion: Called on the main queue with `true` if the phone answered.
+    /// - Returns: `true` if the request was sent.
     @discardableResult func requestWatchStateUpdate(completion: ((_ answered: Bool) -> Void)? = nil) -> Bool {
         guard let session = session else {
             Task {
@@ -282,8 +275,7 @@ extension WatchState {
 
             session.sendMessage(message, replyHandler: { reply in
                 DispatchQueue.main.async {
-                    // An empty reply means the phone could not build a state.
-                    // An accepted payload ends the animation once it is applied.
+                    // Empty reply: the phone could not build a state.
                     if reply.isEmpty || !self.acceptWatchStatePayload(reply) {
                         self.showSyncingAnimation = false
                     }

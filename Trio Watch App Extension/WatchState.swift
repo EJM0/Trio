@@ -5,12 +5,8 @@ import WatchConnectivity
 /// WatchState manages the communication between the Watch app and the iPhone app using WatchConnectivity.
 /// It handles glucose data synchronization and sending treatment requests (bolus, carbs) to the phone.
 @Observable final class WatchState: NSObject, WCSessionDelegate {
-    /// The one instance that owns `WCSession.default`'s delegate slot.
-    ///
-    /// Must be shared rather than created in a view: `@State` re-evaluates its
-    /// initial value every time the view is re-initialized, and each throwaway
-    /// instance would take over the (weak) session delegate and then be
-    /// released, leaving no delegate to receive anything from the phone.
+    /// Shared, not created in a view: every throwaway instance from a view re-init would take over the
+    /// (weak) session delegate and then be released, leaving nothing to receive from the phone.
     static let shared = WatchState()
 
     // MARK: - Properties
@@ -105,23 +101,16 @@ import WatchConnectivity
     /// `didReceiveUserInfo`.
     private static let maxAcceptableMessageAgeInMinutes: TimeInterval = 15 * 60
 
-    /// Date of the newest watch state payload accepted in this process. Kept
-    /// in memory only: the UI starts empty on every launch, so a payload must
-    /// never be dropped as a duplicate of one a previous process displayed.
-    /// Only accessed on the main queue.
+    /// In memory only: the UI starts empty on every launch, so a payload must never be dropped as a
+    /// duplicate of one a previous launch displayed.
     private var lastAcceptedStateDate: Date?
 
-    /// Hides a syncing spinner whose update request never got an answer.
     private static let syncingAnimationTimeout: TimeInterval = 10
 
-    // MARK: - Glucose history sync (see `WatchGlucoseSync`)
+    // MARK: - Glucose history sync
 
-    /// What the phone has to resend when a payload's readings don't fit the
-    /// local history.
     enum GlucoseResync: Int, Comparable {
-        /// The readings after the newest local one.
         case backfill
-        /// The whole window.
         case full
 
         static func < (lhs: GlucoseResync, rhs: GlucoseResync) -> Bool {
@@ -129,21 +118,15 @@ import WatchConnectivity
         }
     }
 
-    /// The watch's copy of the phone's glucose window; `glucoseValues` is
-    /// derived from it. Only accessed on the main queue, like everything below.
+    /// Only accessed on the main queue, like everything below.
     private var glucoseHistory = WatchGlucoseHistory()
-    /// `glucoseHistory` changed and `glucoseValues` is yet to be republished.
     private var hasPendingGlucoseHistoryUpdate = false
-    /// Kept until a payload brings the history back in step with the phone.
     private var pendingGlucoseResync: GlucoseResync?
     private var isGlucoseResyncInFlight = false
-    /// Resync requests since the history last verified. Bounds the retries.
     private var glucoseResyncAttempts = 0
     private static let maxGlucoseResyncAttempts = 3
-    /// Set once a full history fails its own checksum: deltas can't be trusted
-    /// then, and the watch asks the phone for full histories only. A delta that
-    /// does not verify is no such sign, as readings deleted or backfilled on the
-    /// phone cause it too; it only costs one full history.
+    /// Set once a full history fails its own checksum. A delta that doesn't verify is no such sign:
+    /// readings deleted or backfilled on the phone cause that too.
     private var isGlucoseDeltaSyncDisabled = false
 
     // MARK: - Debouncing and batch processing helpers
@@ -161,7 +144,6 @@ import WatchConnectivity
 
     override init() {
         super.init()
-        // Before the session: an activation may hand over a snapshot to merge.
         restoreGlucoseHistory()
         setupSession()
     }
@@ -173,8 +155,7 @@ import WatchConnectivity
             session.delegate = self
             self.session = session
             if session.activationState == .activated {
-                // Activated before this delegate was installed, so the
-                // activation callback has already gone elsewhere.
+                // Activated before this delegate was installed: the activation callback won't come.
                 DispatchQueue.main.async {
                     self.handleSessionActivated(session)
                 }
@@ -262,8 +243,6 @@ import WatchConnectivity
         }
     }
 
-    /// Shows the phone's last application context right away, then asks for a
-    /// fresh state if the phone is reachable. Must be called on the main queue.
     private func handleSessionActivated(_ session: WCSession) {
         isReachable = session.isReachable
 
@@ -279,8 +258,6 @@ import WatchConnectivity
         forceConditionalWatchStateUpdate()
     }
 
-    /// Requests a fresh watch state if the displayed one is outdated. Called
-    /// when the app returns to the foreground.
     func refreshIfNeeded() {
         DispatchQueue.main.async {
             guard let session = self.session, session.activationState == .activated else { return }
@@ -333,8 +310,6 @@ import WatchConnectivity
         handleIncomingWatchStatePayload(userInfo)
     }
 
-    /// The phone keeps its latest watch state in the application context, so
-    /// it reaches the watch even while the app is not in the foreground.
     func session(_: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
         handleIncomingWatchStatePayload(applicationContext)
     }
@@ -355,23 +330,14 @@ import WatchConnectivity
         return true
     }
 
-    /// Entry point for watch-state payloads arriving on WatchConnectivity's
-    /// delegate queue.
     private func handleIncomingWatchStatePayload(_ dictionary: [String: Any]) {
         DispatchQueue.main.async {
             self.acceptWatchStatePayload(dictionary)
         }
     }
 
-    /// Shared path for watch-state payloads from every delivery route (message,
-    /// userInfo, application context, request reply). Enforces the freshness
-    /// contract in one place so the routes can't drift. Must be called on the
-    /// main queue.
-    ///
-    /// Leaves the syncing animation alone when a payload is rejected: a stale
-    /// or duplicate payload can arrive while a request is still in flight, and
-    /// the request's own completion is what ends the animation.
-    /// - Returns: `true` if the payload was accepted and scheduled for display.
+    /// Doesn't end the syncing animation when a payload is rejected: a stale or duplicate payload can
+    /// arrive while a request is still in flight.
     @discardableResult func acceptWatchStatePayload(_ dictionary: [String: Any]) -> Bool {
         guard let payload = dictionary[WatchMessageKeys.watchState] as? [String: Any],
               let timestamp = payload[WatchMessageKeys.date] as? TimeInterval
@@ -390,14 +356,11 @@ import WatchConnectivity
             return false
         }
 
-        // Monotonicity dedup: the same snapshot can arrive both as a message
-        // and as the application context.
+        // The same state can arrive both as a message and as the application context.
         if let lastAccepted = lastAcceptedStateDate, date <= lastAccepted {
             Task { await WatchLogger.shared.log("⌚️ Skipping duplicate watch state (\(date))") }
             if date == lastAccepted {
-                // Same build, but not necessarily the same glucose part: a
-                // request's full reply shares its stamp with the context the
-                // phone set at the same time, which carries only recent readings.
+                // A request's full reply shares its stamp with the context, which only carries recent readings.
                 applyGlucoseHistory(from: payload)
                 if hasPendingGlucoseHistoryUpdate {
                     publishGlucoseHistory()
@@ -409,19 +372,13 @@ import WatchConnectivity
         lastAcceptedStateDate = date
         applyGlucoseHistory(from: payload)
 
-        // The readings now live in `glucoseHistory`; `glucoseValues` is
-        // republished from there when the pending update is applied.
         var uiPayload = payload
         uiPayload.removeValue(forKey: WatchMessageKeys.glucoseValues)
         scheduleUIUpdate(with: uiPayload)
         return true
     }
 
-    /// A stale payload's current values (IOB, COB, trend) are outdated, but its
-    /// glucose readings are not: past readings don't change. Takes over its
-    /// readings (a full history, or the recent tail an application context
-    /// carries) when they reach further than the local ones, so the next
-    /// request only asks for what came after. Must be called on the main queue.
+    /// A stale payload's IOB, COB and trend are outdated, but its glucose readings are not.
     private func adoptGlucoseHistory(fromStale payload: [String: Any]) {
         guard let newest = WatchGlucoseSync.newestTimestamp(in: payload),
               newest > glucoseHistory.newestTimestamp ?? -.infinity
@@ -429,20 +386,15 @@ import WatchConnectivity
 
         Task { await WatchLogger.shared.log("⌚️ Taking over glucose readings from stale watch state") }
         applyGlucoseHistory(from: payload)
-        // No UI update is scheduled for a stale payload; show the readings now.
         if hasPendingGlucoseHistoryUpdate {
             publishGlucoseHistory()
         }
     }
 
-    /// Merges the payload's glucose readings into `glucoseHistory` and asks the
-    /// phone for whatever the merge found missing. Must be called on the main
-    /// queue.
     private func applyGlucoseHistory(from payload: [String: Any]) {
-        let isDelta = payload[WatchMessageKeys.glucoseSyncMode] as? String == WatchGlucoseSync.modeDelta
+        let isDelta = payload[WatchMessageKeys.glucoseSyncBase] != nil
 
         if isDelta, isGlucoseDeltaSyncDisabled {
-            // The phone hasn't heard yet; the resync request tells it.
             requestGlucoseResync(.full, reason: "delta received while delta sync is disabled")
             return
         }
@@ -458,7 +410,6 @@ import WatchConnectivity
             saveGlucoseHistory()
 
         case .updatedUnverified:
-            // Still the phone's readings, so show them.
             hasPendingGlucoseHistoryUpdate = true
             pendingGlucoseResync = nil
             glucoseResyncAttempts = 0
@@ -466,8 +417,7 @@ import WatchConnectivity
             saveGlucoseHistory()
 
         case .mismatch:
-            // Keep showing the merged readings (the newest are right) while
-            // the full window is on its way.
+            // Keep showing the merged readings while the full window is on its way.
             hasPendingGlucoseHistoryUpdate = true
             requestGlucoseResync(.full, reason: "merged glucose history does not match the phone's")
 
@@ -481,9 +431,6 @@ import WatchConnectivity
 
     // MARK: - Glucose history persistence
 
-    /// Saved after every merge the phone's checksum confirmed, so a relaunched
-    /// app shows the chart right away and asks only for newer readings, even
-    /// without a usable application context.
     private static let glucoseHistoryFileURL: URL? = FileManager.default
         .urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
         .appendingPathComponent("GlucoseHistory.plist")
@@ -504,8 +451,6 @@ import WatchConnectivity
         }
     }
 
-    /// Loads the saved history. The phone's checksum still verifies it with
-    /// the next payload, and readings it no longer has are dropped then.
     private func restoreGlucoseHistory() {
         guard let url = Self.glucoseHistoryFileURL,
               let data = try? Data(contentsOf: url),
@@ -517,7 +462,6 @@ import WatchConnectivity
         Task { await WatchLogger.shared.log("⌚️ Restored \(restored.readings.count) saved glucose readings") }
     }
 
-    /// Republishes `glucoseValues` from `glucoseHistory`.
     private func publishGlucoseHistory() {
         glucoseValues = glucoseHistory.readings.map { reading in
             (
@@ -541,11 +485,8 @@ import WatchConnectivity
         sendPendingGlucoseResync()
     }
 
-    /// Sends the pending resync request, one at a time. An answered request
-    /// that did not settle it (its reply lost the race against a newer push,
-    /// or revealed that more is needed) is retried, up to a limit. One that
-    /// could not be delivered waits for the next regular update request,
-    /// which carries the pending resync as well.
+    /// One request at a time. A request that couldn't be delivered waits for the next regular update
+    /// request, which carries the pending resync too.
     private func sendPendingGlucoseResync() {
         guard pendingGlucoseResync != nil, !isGlucoseResyncInFlight else { return }
         guard glucoseResyncAttempts < Self.maxGlucoseResyncAttempts else {
@@ -566,9 +507,6 @@ import WatchConnectivity
         }
     }
 
-    /// Glucose sync fields for a watch state request: whether the watch can
-    /// merge deltas, and the newest reading it holds, unless it needs the full
-    /// window. Must be called on the main queue.
     func glucoseSyncRequestFields() -> [String: Any] {
         var fields: [String: Any] = [WatchMessageKeys.supportsGlucoseDelta: !isGlucoseDeltaSyncDisabled]
         guard !isGlucoseDeltaSyncDisabled, pendingGlucoseResync != .full,
@@ -646,15 +584,11 @@ import WatchConnectivity
         }
     }
 
-    /// Shows the syncing animation only for a request that was actually sent,
-    /// and hides it again if the phone never answers. Otherwise an unreachable
-    /// phone would leave the spinner running indefinitely.
     private func requestWatchStateUpdateWithSyncingAnimation() {
         guard requestWatchStateUpdate() else { return }
 
         showSyncingAnimation = true
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.syncingAnimationTimeout) {
-            // A pending update clears the animation itself once it finalizes.
             guard self.showSyncingAnimation, self.pendingData.isEmpty else { return }
             self.showSyncingAnimation = false
             Task {

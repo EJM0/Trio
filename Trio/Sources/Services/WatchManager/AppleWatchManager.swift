@@ -33,7 +33,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     private var glucoseColorScheme: GlucoseColorScheme = .staticColor
     private var lowGlucose: Decimal = 70.0
     private var highGlucose: Decimal = 180.0
-    private var currentGlucoseTarget: Decimal = 100.0
     private var activeBolusAmount: Double = 0.0
 
     // Queue for handling Core Data change notifications
@@ -41,26 +40,21 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     private var coreDataPublisher: AnyPublisher<Set<NSManagedObjectID>, Never>?
     private var subscriptions = Set<AnyCancellable>()
 
-    /// Pending debounced watch state push. Only accessed on `queue`.
+    /// Only accessed on `queue`.
     private var pendingWatchStatePush: DispatchWorkItem?
 
-    // Glucose history sync (see `WatchGlucoseSync`). Only accessed on the main actor.
-    /// Newest reading and settings signature of the last payload built for the watch: the base of the next delta.
+    // Glucose history sync. Only accessed on the main actor.
+    /// The last payload sent: the base of the next delta.
     private var lastSentGlucoseNewest: TimeInterval?
     private var lastSentGlucoseSignature: String?
-    /// Set from every watch state request. Until the watch app says it can merge deltas, and for older watch
-    /// builds, every payload carries the full glucose history.
+    /// False while the watch has turned delta sync off after a history failed its checksum.
     private var watchSupportsGlucoseDelta = false
 
-    /// The application context carries the readings of this recent span once the watch merges deltas; the watch
-    /// keeps the rest of the window saved, and asks for missing readings when the tail does not connect to it.
     private static let contextGlucoseTail: TimeInterval = 2 * 60 * 60
-    /// Content of the last application context, without its per-build stamps, and when it was set. An unchanged
-    /// context is not sent again until it is this old, so the watch never sees it go stale (15 minutes).
     private var lastContextContent: NSDictionary?
     private var lastContextUpdate: Date?
+    /// Resends an unchanged context before the watch sees it as stale (15 minutes).
     private static let unchangedContextRefreshInterval: TimeInterval = 5 * 60
-    /// Bytes handed to WatchConnectivity since launch, per route, for the transfer log.
     private var transferredBytes: [String: Int] = [:]
 
     typealias PumpEvent = PumpEventStored.EventType
@@ -76,9 +70,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         glucoseColorScheme = settingsManager.settings.glucoseColorScheme
         lowGlucose = settingsManager.settings.low
         highGlucose = settingsManager.settings.high
-        Task {
-            currentGlucoseTarget = await getCurrentGlucoseTarget() ?? Decimal(100)
-        }
         broadcaster.register(SettingsObserver.self, observer: self)
         broadcaster.register(PumpSettingsObserver.self, observer: self)
         broadcaster.register(PumpReservoirObserver.self, observer: self)
@@ -139,9 +130,8 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         scheduleWatchStatePush()
     }
 
-    /// Coalesces bursts of triggers (a new glucose value, the loop's
-    /// determination and the IOB update usually land together) into a single
-    /// watch state build and push.
+    /// A new reading, the loop's determination and the IOB update usually land together: send them as one push.
+    /// Longer than a typical loop cycle (median 0.7–1.3 s, measured in #1377), so the determination makes it in.
     private func scheduleWatchStatePush() {
         guard let session = session, session.isPaired, session.isWatchAppInstalled else { return }
 
@@ -155,11 +145,10 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 }
             }
             self.pendingWatchStatePush = workItem
-            self.queue.asyncAfter(deadline: .now() + 0.5, execute: workItem)
+            self.queue.asyncAfter(deadline: .now() + 2, execute: workItem)
         }
     }
 
-    /// Builds the current watch state and sends it, unless it could not be built.
     private func pushWatchState() async {
         guard let state = await setupWatchState() else { return }
         await sendDataToWatch(state)
@@ -217,11 +206,9 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
     /// Prepares the current state data to be sent to the Watch
     /// - Returns: WatchState containing current glucose readings and trends and determination infos for displaying cob and iob in the view,
-    ///   or `nil` if there is no watch to send it to or the state could not be built. Never an empty placeholder state: the watch
-    ///   would accept and display it, since it carries the newest timestamp.
+    ///   or `nil`, never an empty placeholder: the watch would display it, since it carries the newest timestamp.
     func setupWatchState() async -> WatchState? {
-        // Check if a watch is paired before doing expensive calculations. Reachability is not required:
-        // an unreachable watch still gets the state through the application context.
+        // Reachability is not required: an unreachable watch still gets the application context.
         guard let session = session, session.isPaired, session.isWatchAppInstalled else {
             debug(.watchManager, "⌚️❌ Skipping setupWatchState - No Watch is paired or app not installed")
             return nil
@@ -244,6 +231,8 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             )
             let overridePresetIds = try await overrideStorage.fetchForOverridePresets()
             let tempTargetPresetIds = try await tempTargetStorage.fetchForTempTargetPresets()
+            // Read per build: it follows the time of day and is part of the sync signature.
+            let currentGlucoseTarget = await getCurrentGlucoseTarget() ?? Decimal(100)
 
             // Get NSManagedObjects
             let glucoseObjects: [GlucoseStored] = try await CoreDataStack.shared
@@ -283,7 +272,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                     )
                 }
 
-                /// Color parameters, shared by the current glucose and the history
                 let hardCodedLow = Decimal(55)
                 let hardCodedHigh = Decimal(220)
                 let isDynamicColorScheme = self.glucoseColorScheme == .dynamicColor
@@ -292,17 +280,15 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 let lowGlucoseValue = isDynamicColorScheme ? hardCodedLow : self.lowGlucose
                 let highGlucoseColorValue = highGlucoseValue
                 let lowGlucoseColorValue = lowGlucoseValue
-                let targetGlucose = self.currentGlucoseTarget
+                let targetGlucose = currentGlucoseTarget
 
-                // Everything the history's values and colors depend on. The watch never mixes
-                // readings with different signatures.
                 watchState.glucoseWindowStart = glucoseWindowStart
                 watchState.glucoseSignature = [
                     self.units.rawValue,
                     self.glucoseColorScheme.rawValue,
                     "\(lowGlucoseColorValue)",
                     "\(highGlucoseColorValue)",
-                    "\(targetGlucose)"
+                    isDynamicColorScheme ? "\(targetGlucose)" : ""
                 ].joined(separator: "|")
 
                 guard let latestGlucose = glucoseObjects.first else {
@@ -511,7 +497,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     }
 
     /// Fetches recent glucose readings from CoreData
-    /// - Parameter windowStart: Oldest reading date to include. Sent to the watch, which trims its history to it.
     /// - Returns: Array of NSManagedObjectIDs for glucose readings
     private func fetchGlucose(since windowStart: Date) async throws -> [NSManagedObjectID] {
         let context = CoreDataStack.shared.newTaskContext()
@@ -762,7 +747,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         // edge of the type checker's budget for a single expression.
         dictionary[WatchMessageKeys.peripheralData] = peripheralsToDictionary(from: state)
 
-        // Always the full history here; `WatchGlucoseSync.delta` derives a delta from it.
         let glucoseReadings: [[String: Any]] = state.glucoseValues.map { value -> [String: Any] in
             [
                 WatchGlucoseSync.readingGlucoseKey: value.glucose,
@@ -796,7 +780,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     @MainActor func sendDataToWatch(_ state: WatchState) async {
         guard let session = session else { return }
 
-        // The previous payload is what the watch is expected to hold: the delta builds on it.
         let previousGlucoseNewest = lastSentGlucoseNewest
         let previousGlucoseSignature = lastSentGlucoseSignature
 
@@ -816,8 +799,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         }
     }
 
-    /// The reply to a watch state request: only the readings newer than the newest one the watch holds when it
-    /// can merge them, otherwise the full history.
     private func replyPayload(_ payload: [String: Any], for request: [String: Any], state: WatchState) -> [String: Any] {
         guard request[WatchMessageKeys.supportsGlucoseDelta] as? Bool == true,
               let since = request[WatchMessageKeys.glucoseSince] as? TimeInterval,
@@ -829,7 +810,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         return WatchGlucoseSync.delta(of: payload, since: since)
     }
 
-    /// Forgets what the watch was sent, so the next payloads carry the full history.
     @MainActor private func resetGlucoseSync() {
         lastSentGlucoseNewest = nil
         lastSentGlucoseSignature = nil
@@ -838,8 +818,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         lastContextUpdate = nil
     }
 
-    /// A context's content without what changes with every build even when nothing visible does: the send
-    /// stamp, the glucose window start and the peripherals' gather time.
+    /// Without the stamps that change with every build.
     private static func contextContent(of context: [String: Any]) -> NSDictionary {
         var content = context
         content.removeValue(forKey: WatchMessageKeys.date)
@@ -851,8 +830,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         return content as NSDictionary
     }
 
-    /// Logs the size of a payload handed to WatchConnectivity, with the total per route since launch.
-    /// Sizes are those of a binary property list, close to what goes over the air.
     @MainActor private func logTransfer(_ route: String, _ payload: [String: Any]) {
         guard let data = try? PropertyListSerialization.data(fromPropertyList: payload, format: .binary, options: 0)
         else {
@@ -868,9 +845,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         )
     }
 
-    /// Stamps the state with the send time, stores it as the application context and returns the payload.
-    /// Remembers the payload's newest glucose reading as the base of the next delta.
-    /// - Returns: The watch state dictionary with the full glucose history, or `nil` if there is no usable watch session.
+    /// - Returns: The payload with the full glucose history, or `nil` if there is no usable watch session.
     @MainActor private func prepareWatchStatePayload(_ state: WatchState) -> [String: Any]? {
         guard let session = session else { return nil }
 
@@ -900,10 +875,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
         let message: [String: Any] = watchStateToDictionary(from: state)
 
-        // The application context always holds the latest state. It replaces the previous one instead of
-        // queueing up like userInfo transfers, and the watch reads it on launch, so it has data even when
-        // it was out of reach when the state was sent. A watch that merges deltas keeps its history saved,
-        // so the context only carries the recent readings.
+        // The watch keeps its history saved, so the context only needs the recent readings.
         var context = message
         if watchSupportsGlucoseDelta,
            let tail = WatchGlucoseSync.recentTail(
@@ -970,9 +942,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         }
     }
 
-    /// Messages that expect a reply. The watch requests its state this way, so it learns
-    /// whether the request was answered. Every path must call `replyHandler`, or the watch
-    /// only finds out through a delivery timeout.
+    /// Every path must call `replyHandler`, or the watch only finds out through a delivery timeout.
     func session(
         _ session: WCSession,
         didReceiveMessage message: [String: Any],
@@ -981,7 +951,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         guard let requestWatchUpdate = message[WatchMessageKeys.requestWatchUpdate] as? String,
               requestWatchUpdate == WatchMessageKeys.watchState
         else {
-            // Nothing else is sent with a reply handler today; handle it like a plain message.
             replyHandler([:])
             self.session(session, didReceiveMessage: message)
             return
@@ -1017,21 +986,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
         Task { @MainActor [weak self] in
             guard let self else { return }
-
-            if let requestWatchUpdate = message[WatchMessageKeys.requestWatchUpdate] as? String,
-               requestWatchUpdate == WatchMessageKeys.watchState
-            {
-                debug(.watchManager, "📱 Watch requested watch state data update.")
-                // Only watch builds without glucose delta support still send this request without a reply handler.
-                self.watchSupportsGlucoseDelta = false
-                // Skip if no watch is paired or app not installed
-                guard let session = self.session, session.isPaired, session.isReachable,
-                      session.isWatchAppInstalled else { return }
-                Task {
-                    await self.pushWatchState()
-                }
-                return
-            }
 
             if let snoozeMinutes = message[WatchMessageKeys.snoozeDuration] as? Int {
                 debug(.watchManager, "📱 Received snooze request from watch: \(snoozeMinutes) minutes")
@@ -1168,7 +1122,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     #if os(iOS)
         func sessionDidBecomeInactive(_: WCSession) {}
         func sessionDidDeactivate(_ session: WCSession) {
-            // The next active watch holds its own glucose history and may run another build.
+            // The next active watch holds its own glucose history.
             Task { @MainActor [weak self] in
                 self?.resetGlucoseSync()
             }
