@@ -200,6 +200,11 @@ struct GlucoseChartView: View {
                     }
                 }
                 .chartYScale(domain: yAxisDomain)
+                // `withAnimation` doesn't reach an `@AppStorage` write, so the chart animates itself —
+                // on zoom and whenever new readings or a new forecast arrive.
+                .animation(.easeInOut, value: timeWindow)
+                .animation(.easeInOut, value: glucoseValues.last?.date)
+                .animation(.easeInOut, value: state.forecastStartDate)
                 .chartPlotStyle { plotContent in
                     plotContent
                         .background(
@@ -213,9 +218,7 @@ struct GlucoseChartView: View {
         }
         .padding(.horizontal, 6)
         .onTapGesture {
-            withAnimation {
-                timeWindow = timeWindow.next
-            }
+            timeWindow = timeWindow.next
         }
     }
 }
