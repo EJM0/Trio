@@ -145,6 +145,8 @@ struct BolusInputView: View {
             }
         }
         .background(trioBackgroundColor)
+        // The clock would crowd the on-board badge in the toolbar.
+        .persistentSystemOverlays(.hidden)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 OnBoardToolbarBadge(systemImage: "syringe.fill", value: state.iob, unit: insulinUnit, color: .insulin, state: state)
