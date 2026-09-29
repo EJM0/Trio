@@ -11,6 +11,8 @@ struct BolusInputView: View {
     let state: WatchState
 
     @FocusState private var isCrownFocused: Bool
+    /// Set once the first recommendation arrived (or timed out); later recalculations then keep the layout.
+    @State private var hasLoadedRecommendation = false
 
     private var effectiveBolusLimit: Double {
         Double(truncating: state.maxBolus as NSNumber)
@@ -24,9 +26,11 @@ struct BolusInputView: View {
 
     var body: some View {
         let bolusIncrement = Double(truncating: state.bolusIncrement as NSNumber)
-        // The epsilon keeps floating point from flooring an exact step one increment down (0.3 / 0.1 = 2.999…).
-        let adjustedBolusAmount = floor(bolusAmount / bolusIncrement + 1e-9) * bolusIncrement
+        let adjustedBolusAmount = roundedDown(bolusAmount)
         let recommendedAmount = min(effectiveBolusLimit, Double(truncating: NSDecimalNumber(decimal: state.recommendedBolus)))
+        let isLimitReached = bolusAmount > 0.0 && bolusAmount >= effectiveBolusLimit
+        // A first recommendation fills the whole screen; later ones (option toggles) keep the layout.
+        let isRecalculating = state.showBolusCalculationProgress && hasLoadedRecommendation
         // As on the phone, the recommendation pill grays out once its amount is the one entered, or when it is zero.
         let isRecommendationTaken = recommendedAmount <= 0 || abs(adjustedBolusAmount - recommendedAmount) < bolusIncrement / 2
 
@@ -39,7 +43,7 @@ struct BolusInputView: View {
             : String(localized: "Enact Bolus")
 
         VStack {
-            if state.showBolusCalculationProgress {
+            if state.showBolusCalculationProgress && !hasLoadedRecommendation {
                 ProgressView(String(
                     localized: "Calculating Bolus...",
                     comment: "Progress view text on watch when calculating bolus"
@@ -66,7 +70,7 @@ struct BolusInputView: View {
                     HStack {
                         // "-" Button
                         Button(action: {
-                            if bolusAmount > 0 { bolusAmount -= Double(truncating: state.bolusIncrement as NSNumber) }
+                            bolusAmount = max(0, bolusAmount - bolusIncrement)
                         }) {
                             Image(systemName: "minus.circle.fill")
                                 .font(.title3)
@@ -77,17 +81,18 @@ struct BolusInputView: View {
 
                         Spacer()
 
-                        Text(String(format: "%.2f \(String(localized: "U", comment: "Insulin unit"))", adjustedBolusAmount))
+                        Text(verbatim: "\(formattedAmount(adjustedBolusAmount)) \(insulinUnit)")
                             .fontWeight(.bold)
                             .font(.system(.title2, design: .rounded))
-                            .foregroundColor(bolusAmount > 0.0 && bolusAmount >= effectiveBolusLimit ? .loopRed : .primary)
+                            .monospacedDigit()
+                            .foregroundColor(isLimitReached ? .loopRed : .primary)
                             .focusable(true)
                             .focused($isCrownFocused)
                             .digitalCrownRotation(
                                 $bolusAmount,
                                 from: 0,
                                 through: effectiveBolusLimit,
-                                by: Double(truncating: state.bolusIncrement as NSNumber),
+                                by: bolusIncrement,
                                 sensitivity: .medium,
                                 isContinuous: false,
                                 isHapticFeedbackEnabled: true
@@ -97,10 +102,7 @@ struct BolusInputView: View {
 
                         // "+" Button
                         Button(action: {
-                            bolusAmount = min(
-                                effectiveBolusLimit,
-                                bolusAmount + Double(truncating: state.bolusIncrement as NSNumber)
-                            )
+                            bolusAmount = min(effectiveBolusLimit, bolusAmount + bolusIncrement)
                         }) {
                             Image(systemName: "plus.circle.fill")
                                 .font(.title3)
@@ -110,18 +112,20 @@ struct BolusInputView: View {
                         .disabled(bolusAmount >= effectiveBolusLimit)
                     }.padding(.horizontal)
 
+                    recommendationPill(
+                        amount: recommendedAmount,
+                        isTaken: isRecommendationTaken,
+                        isRecalculating: isRecalculating,
+                        isLimitReached: isLimitReached
+                    )
+                    .padding(.top, 2)
+
                     if state.isReducedBolusAvailable || state.isSuperBolusAvailable {
                         bolusOptions
                             .padding(.top, 4)
                     }
 
                     Spacer()
-
-                    if bolusAmount > 0.0 && bolusAmount >= effectiveBolusLimit {
-                        Text("Bolus Limit Reached!")
-                            .font(.footnote)
-                            .foregroundColor(.loopRed)
-                    }
 
                     Button(actionButtonLabel) {
                         if isCarbsOnly {
@@ -136,30 +140,6 @@ struct BolusInputView: View {
                     .buttonStyle(.bordered)
                     .tint(Color.insulin)
                     .disabled(!isCarbsOnly && (!(bolusAmount > 0.0) || bolusAmount > effectiveBolusLimit))
-
-                    // Tapping the recommendation takes it as the amount, as on the phone's Treatments view.
-                    Button {
-                        bolusAmount = recommendedAmount
-                        WKInterfaceDevice.current().play(.click)
-                    } label: {
-                        Text(String(
-                            format: "\(String(localized: "Recommended:", comment: "Recommended bolus on Watch")) %.1f \(String(localized: "U", comment: "Insulin unit"))",
-                            NSDecimalNumber(decimal: state.recommendedBolus).doubleValue
-                        ))
-                            .font(.footnote)
-                            .foregroundStyle(isRecommendationTaken ? Color.secondary : Color.insulin)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                            .padding(.vertical, 2)
-                            .padding(.horizontal, 8)
-                            .background(
-                                isRecommendationTaken ? Color.secondary.opacity(0.2) : Color.insulin.opacity(0.25),
-                                in: Capsule()
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isRecommendationTaken)
-                    .animation(.easeInOut(duration: 0.2), value: isRecommendationTaken)
                 }
             }
         }
@@ -184,19 +164,91 @@ struct BolusInputView: View {
                 bolusAmount = Double(truncating: NSDecimalNumber(decimal: state.recommendedBolus))
             }
         }
-        // Add onChange to update bolus amount when recommendation changes
+        .onChange(of: state.showBolusCalculationProgress) { _, isCalculating in
+            if !isCalculating { hasLoadedRecommendation = true }
+        }
         .onChange(of: state.recommendedBolus) { oldValue, newValue in
-            // Only update if user hasn't modified the value OR if recommendation hasn't changed
-            if bolusAmount == 0 || oldValue != newValue {
-                bolusAmount = Double(truncating: NSDecimalNumber(decimal: newValue))
+            // As on the phone, the amount follows a new recommendation only while it still holds the previous
+            // one (or nothing). An amount the user set stays, and the pill offers the new recommendation.
+            let previous = min(effectiveBolusLimit, Double(truncating: NSDecimalNumber(decimal: oldValue)))
+            let increment = Double(truncating: state.bolusIncrement as NSNumber)
+            if bolusAmount == 0 || abs(roundedDown(bolusAmount) - previous) < increment / 2 {
+                bolusAmount = min(effectiveBolusLimit, Double(truncating: NSDecimalNumber(decimal: newValue)))
             }
         }
+    }
+
+    // MARK: - Amounts
+
+    private var insulinUnit: String { String(localized: "U", comment: "Insulin unit") }
+
+    /// Rounds down to the pump's bolus increment. The epsilon keeps floating point from flooring an exact step one
+    /// increment down (0.3 / 0.1 = 2.999…).
+    private func roundedDown(_ amount: Double) -> Double {
+        let increment = Double(truncating: state.bolusIncrement as NSNumber)
+        guard increment > 0 else { return amount }
+        return floor(amount / increment + 1e-9) * increment
+    }
+
+    /// Shows as many decimals as the bolus increment has (0.1 → 6.7, 0.05 → 6.65), at least one.
+    private func formattedAmount(_ amount: Double) -> String {
+        let increment = NSDecimalNumber(decimal: state.bolusIncrement).stringValue
+        let decimals = increment.split(separator: ".").dropFirst().first?.count ?? 0
+        return String(format: "%.\(min(max(decimals, 1), 3))f", amount)
+    }
+
+    // MARK: - Recommendation
+
+    /// Tapping the recommendation takes it as the amount, as on the phone's Treatments view. While a new one is being
+    /// calculated it shows a spinner in place of the number; at the bolus limit it shows the limit warning instead,
+    /// so neither moves the layout.
+    private func recommendationPill(
+        amount: Double,
+        isTaken: Bool,
+        isRecalculating: Bool,
+        isLimitReached: Bool
+    ) -> some View {
+        let isInactive = isTaken || isRecalculating || isLimitReached
+        let foreground: Color = isLimitReached ? .loopRed : isInactive ? .secondary : .insulin
+        let background: Color = isLimitReached ? Color.loopRed.opacity(0.2) :
+            isInactive ? Color.secondary.opacity(0.2) : Color.insulin.opacity(0.25)
+
+        return Button {
+            bolusAmount = amount
+            WKInterfaceDevice.current().play(.click)
+        } label: {
+            HStack(spacing: 4) {
+                if isLimitReached {
+                    Text("Bolus Limit Reached!")
+                } else {
+                    Text(String(localized: "Recommended:", comment: "Recommended bolus on Watch"))
+                    if isRecalculating {
+                        ProgressView()
+                            .controlSize(.mini)
+                    } else {
+                        Text(verbatim: "\(formattedAmount(amount)) \(insulinUnit)")
+                            .monospacedDigit()
+                    }
+                }
+            }
+            .font(.footnote)
+            .foregroundStyle(foreground)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .padding(.vertical, 2)
+            .padding(.horizontal, 8)
+            .background(background, in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .disabled(isInactive)
+        .animation(.easeInOut(duration: 0.2), value: isInactive)
     }
 
     // MARK: - Reduced and super bolus
 
     /// The phone's "Reduced Bolus" and "Super Bolus" options, offered when enabled in its settings. Mutually
-    /// exclusive; each change asks the phone for a new recommendation, which then replaces the amount.
+    /// exclusive; each change asks the phone for a new recommendation, which replaces the amount unless the user
+    /// changed it.
     private var bolusOptions: some View {
         HStack(spacing: 6) {
             if state.isReducedBolusAvailable {
