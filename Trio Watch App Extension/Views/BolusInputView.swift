@@ -163,6 +163,15 @@ struct BolusInputView: View {
         .onChange(of: state.showBolusCalculationProgress) { _, isCalculating in
             if !isCalculating { hasLoadedRecommendation = true }
         }
+        .onChange(of: state.recommendedBolus) { oldValue, newValue in
+            // Once the user took a recommendation, a new one (e.g. after switching reduced, super or normal)
+            // replaces it, as on the phone. A 0 or self-set amount stays; the pill offers the new value.
+            let previous = min(effectiveBolusLimit, Double(truncating: NSDecimalNumber(decimal: oldValue)))
+            let increment = Double(truncating: state.bolusIncrement as NSNumber)
+            if bolusAmount > 0, abs(roundedDown(bolusAmount) - previous) < increment / 2 {
+                bolusAmount = min(effectiveBolusLimit, Double(truncating: NSDecimalNumber(decimal: newValue)))
+            }
+        }
     }
 
     // MARK: - Amounts
@@ -235,7 +244,8 @@ struct BolusInputView: View {
     // MARK: - Reduced and super bolus
 
     /// The phone's "Reduced Bolus" and "Super Bolus" options, offered when enabled in its settings. Mutually
-    /// exclusive; each change asks the phone for a new recommendation, which the pill then offers.
+    /// exclusive; each change asks the phone for a new recommendation, which the pill then offers and which replaces
+    /// an amount taken from the previous recommendation.
     private var bolusOptions: some View {
         HStack(spacing: 6) {
             if state.isReducedBolusAvailable {
