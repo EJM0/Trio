@@ -1115,6 +1115,20 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                         debug(.default, "Unexpected error: \(error)")
                     }
 
+                    // As in the phone's Treatments view, the safety check uses the forecast with the
+                    // entered carbs. The last loop's forecast has no carbs and often sits below 54,
+                    // which zeroed every watch recommendation right before a meal.
+                    if carbs > 0,
+                       let simulated = await apsManager.simulateDetermineBasal(
+                           simulatedCarbsAmount: Decimal(carbs),
+                           simulatedBolusAmount: 0,
+                           simulatedCarbsDate: Date()
+                       ),
+                       let simulatedMinPredBG = simulated.minPredBGFromReason
+                    {
+                        minPredBG = simulatedMinPredBG
+                    }
+
                     // Get recommendation from BolusCalculationManager
                     let result = await bolusCalculationManager.handleBolusCalculation(
                         carbs: Decimal(carbs),
