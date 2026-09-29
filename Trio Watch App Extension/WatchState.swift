@@ -51,6 +51,13 @@ import WatchConnectivity
     var bolusIncrement: Decimal = 0.05
     var confirmBolusFaster: Bool = false
 
+    // Bolus calculator options, offered when enabled in the phone's settings
+    var isReducedBolusAvailable: Bool = false
+    var isSuperBolusAvailable: Bool = false
+    /// Chosen for the next bolus recommendation; mutually exclusive, as on the phone.
+    var useReducedBolus: Bool = false
+    var useSuperBolus: Bool = false
+
     // Forecast options
     var showForecast: Bool = false
     var isForecastCone: Bool = false
@@ -562,6 +569,16 @@ import WatchConnectivity
             if let booleanValue = confirmBolusFaster as? Bool {
                 self.confirmBolusFaster = booleanValue
             }
+        }
+
+        if let isReducedBolusAvailable = message[WatchMessageKeys.isReducedBolusAvailable] as? Bool {
+            self.isReducedBolusAvailable = isReducedBolusAvailable
+            if !isReducedBolusAvailable { useReducedBolus = false }
+        }
+
+        if let isSuperBolusAvailable = message[WatchMessageKeys.isSuperBolusAvailable] as? Bool {
+            self.isSuperBolusAvailable = isSuperBolusAvailable
+            if !isSuperBolusAvailable { useSuperBolus = false }
         }
 
         if let showForecast = message[WatchMessageKeys.showForecastWatch] as? Bool {

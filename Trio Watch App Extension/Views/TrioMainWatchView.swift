@@ -117,6 +117,9 @@ struct TrioMainWatchView: View {
                 /// Reset `bolusAmount` and `recommendedBolus` to ensure no stale / old value is set when user opens bolus input or meal combo the next time.
                 state.bolusAmount = 0
                 state.recommendedBolus = 0
+                // Like the phone's Treatments view, every new bolus starts without reduced or super bolus.
+                state.useReducedBolus = false
+                state.useSuperBolus = false
             }
             // each page draws the phone's gradient: a vertical page view covers anything behind it
             .tabViewStyle(.verticalPage)
