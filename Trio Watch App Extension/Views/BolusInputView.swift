@@ -150,24 +150,15 @@ struct BolusInputView: View {
             }
         }
         .onAppear {
-            // Set initial bolus amount to recommended value
-            // Only do this if user has not updated amount previously, e.g., when navigating to next and then back to this view
+            // As on the phone, the amount starts at 0 and the recommendation is only offered in the pill; the user
+            // takes it (normal, reduced or super) by tapping it. Only ask for one when no amount is set yet, e.g. not
+            // when coming back from the confirmation screen.
             if bolusAmount == 0 {
                 state.requestBolusRecommendation()
-                bolusAmount = Double(truncating: NSDecimalNumber(decimal: state.recommendedBolus))
             }
         }
         .onChange(of: state.showBolusCalculationProgress) { _, isCalculating in
             if !isCalculating { hasLoadedRecommendation = true }
-        }
-        .onChange(of: state.recommendedBolus) { oldValue, newValue in
-            // As on the phone, the amount follows a new recommendation only while it still holds the previous
-            // one (or nothing). An amount the user set stays, and the pill offers the new recommendation.
-            let previous = min(effectiveBolusLimit, Double(truncating: NSDecimalNumber(decimal: oldValue)))
-            let increment = Double(truncating: state.bolusIncrement as NSNumber)
-            if bolusAmount == 0 || abs(roundedDown(bolusAmount) - previous) < increment / 2 {
-                bolusAmount = min(effectiveBolusLimit, Double(truncating: NSDecimalNumber(decimal: newValue)))
-            }
         }
     }
 
@@ -240,8 +231,7 @@ struct BolusInputView: View {
     // MARK: - Reduced and super bolus
 
     /// The phone's "Reduced Bolus" and "Super Bolus" options, offered when enabled in its settings. Mutually
-    /// exclusive; each change asks the phone for a new recommendation, which replaces the amount unless the user
-    /// changed it.
+    /// exclusive; each change asks the phone for a new recommendation, which the pill then offers.
     private var bolusOptions: some View {
         HStack(spacing: 6) {
             if state.isReducedBolusAvailable {
