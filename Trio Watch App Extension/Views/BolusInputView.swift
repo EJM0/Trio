@@ -145,7 +145,7 @@ struct BolusInputView: View {
                         Text(String(
                             format: "\(String(localized: "Recommended:", comment: "Recommended bolus on Watch")) %.1f \(String(localized: "U", comment: "Insulin unit"))",
                             NSDecimalNumber(decimal: state.recommendedBolus).doubleValue
-                        ) + selectedBolusOptionSuffix)
+                        ))
                             .font(.footnote)
                             .foregroundStyle(isRecommendationTaken ? Color.secondary : Color.insulin)
                             .lineLimit(1)
@@ -225,17 +225,6 @@ struct BolusInputView: View {
             }
         }
         .padding(.horizontal)
-    }
-
-    /// Names the active option after the recommendation, so it is clear the amount includes it.
-    private var selectedBolusOptionSuffix: String {
-        if state.useReducedBolus {
-            return " (\(String(localized: "Reduced", comment: "Short bolus option label on the watch bolus screen")))"
-        }
-        if state.useSuperBolus {
-            return " (\(String(localized: "Super", comment: "Short bolus option label on the watch bolus screen")))"
-        }
-        return ""
     }
 
     private func bolusOptionButton(
