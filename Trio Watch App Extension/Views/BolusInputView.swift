@@ -133,12 +133,27 @@ struct BolusInputView: View {
                     .tint(Color.insulin)
                     .disabled(!isCarbsOnly && (!(bolusAmount > 0.0) || bolusAmount > effectiveBolusLimit))
 
-                    Text(String(
-                        format: "\(String(localized: "Recommended:", comment: "Recommended bolus on Watch")) %.1f \(String(localized: "U", comment: "Insulin unit"))",
-                        NSDecimalNumber(decimal: state.recommendedBolus).doubleValue
-                    ) + selectedBolusOptionSuffix)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    // Tapping the recommendation takes it as the amount, as on the phone's Treatments view.
+                    Button {
+                        bolusAmount = min(
+                            effectiveBolusLimit,
+                            Double(truncating: NSDecimalNumber(decimal: state.recommendedBolus))
+                        )
+                        WKInterfaceDevice.current().play(.click)
+                    } label: {
+                        Text(String(
+                            format: "\(String(localized: "Recommended:", comment: "Recommended bolus on Watch")) %.1f \(String(localized: "U", comment: "Insulin unit"))",
+                            NSDecimalNumber(decimal: state.recommendedBolus).doubleValue
+                        ) + selectedBolusOptionSuffix)
+                            .font(.footnote)
+                            .foregroundStyle(Color.insulin)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                            .padding(.vertical, 2)
+                            .padding(.horizontal, 8)
+                            .background(Color.insulin.opacity(0.2), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
