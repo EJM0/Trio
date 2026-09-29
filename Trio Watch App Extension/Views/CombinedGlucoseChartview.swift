@@ -7,33 +7,57 @@ struct CombinedGlucoseChartview: View {
     let rotationDegrees: Double
     let isWatchStateDated: Bool
 
+    /// Like the phone's home screen: the last reading stays on screen with its age until it is 12 minutes old
+    /// (one missed CGM transmission, the loop's own freshness gate), even while no new data arrives.
+    private static let readingDisplayLimit: TimeInterval = 12 * 60
+
+    private func readingAge(at now: Date) -> TimeInterval? {
+        state.glucoseValues.last.map { now.timeIntervalSince($0.date) }
+    }
+
+    /// "6 m", or "< 1 m" for a reading younger than a minute, as on the phone.
+    private func readingAgeText(_ age: TimeInterval) -> String {
+        let minutes = Int(floor(age / 60))
+        let unit = String(localized: "m", comment: "Abbreviation for Minutes")
+        return minutes >= 1 ? "\(minutes)\u{00A0}\(unit)" : "<\u{00A0}1\u{00A0}\(unit)"
+    }
+
     var body: some View {
         VStack(alignment: .center, spacing: -16) {
-            // Top row: circle perfectly centered, texts sit directly beside it
-            ZStack {
-                MinimizedGlucoseTrendView(
-                    state: state,
-                    rotationDegrees: rotationDegrees,
-                    isWatchStateDated: isWatchStateDated
-                )
-                .scaleEffect(state.deviceType.minimizedScale, anchor: .center)
-                .frame(width: 45, height: 45)
+            // Top row: circle perfectly centered, texts sit directly beside it. Redrawn every 30 seconds, so the
+            // reading's age keeps counting while no new data arrives.
+            TimelineView(.periodic(from: .now, by: 30)) { context in
+                let age = readingAge(at: context.date)
+                let isReadingShown = age.map { $0 < Self.readingDisplayLimit } ?? false
 
-                HStack(spacing: 0) {
-                    Text(isWatchStateDated ? "--" : (state.lastLoopTime ?? "--"))
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .frame(width: 50, alignment: .trailing)
+                ZStack {
+                    MinimizedGlucoseTrendView(
+                        state: state,
+                        rotationDegrees: rotationDegrees,
+                        isWatchStateDated: isWatchStateDated,
+                        isReadingShown: isReadingShown
+                    )
+                    .scaleEffect(state.deviceType.minimizedScale, anchor: .center)
+                    .frame(width: 45, height: 45)
 
-                    Spacer().frame(width: state.deviceType.minimizedCircleSpacerWidth + 2)
+                    HStack(spacing: 0) {
+                        // Age of the shown reading, like the "6 m" in the phone's glucose bobble.
+                        Text(isReadingShown ? age.map(readingAgeText) ?? "--" : "--")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .frame(width: 50, alignment: .trailing)
 
-                    Text(isWatchStateDated ? "--" : (state.delta ?? "--"))
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .frame(width: 50, alignment: .leading)
+                        Spacer().frame(width: state.deviceType.minimizedCircleSpacerWidth + 2)
+
+                        Text(isReadingShown ? (state.delta ?? "--") : "--")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .frame(width: 50, alignment: .leading)
+                    }
                 }
+                .frame(height: 45)
             }
             .frame(height: 45)
 
@@ -52,7 +76,10 @@ struct CombinedGlucoseChartview: View {
 struct MinimizedGlucoseTrendView: View {
     let state: WatchState
     let rotationDegrees: Double
+    /// Greys out the loop status ring.
     let isWatchStateDated: Bool
+    /// The last reading is recent enough to show, with its trend arrow.
+    let isReadingShown: Bool
 
     private func statusColor(for timeString: String?) -> Color {
         guard let timeString = timeString,
@@ -86,7 +113,7 @@ struct MinimizedGlucoseTrendView: View {
                     .shadow(color: statusColor(for: state.lastLoopTime), radius: state.deviceType.shadowRadius)
 
                 TrendShape(
-                    isWatchStateDated: isWatchStateDated,
+                    isWatchStateDated: !isReadingShown,
                     rotationDegrees: rotationDegrees,
                     deviceType: state.deviceType
                 )
@@ -97,13 +124,13 @@ struct MinimizedGlucoseTrendView: View {
                     if state.showSyncingAnimation {
                         Image(systemName: "iphone.radiowaves.left.and.right")
                     } else {
-                        Text(isWatchStateDated ? "--" : state.currentGlucose)
+                        Text(isReadingShown ? state.currentGlucose : "--")
                             .fontWeight(.bold)
                             .font(state.deviceType.currentGlucoseFontSize)
                             .foregroundStyle(
-                                isWatchStateDated
-                                    ? Color.secondary
-                                    : state.currentGlucoseColorString.toColor()
+                                isReadingShown
+                                    ? state.currentGlucoseColorString.toColor()
+                                    : Color.secondary
                             )
                     }
                 }
