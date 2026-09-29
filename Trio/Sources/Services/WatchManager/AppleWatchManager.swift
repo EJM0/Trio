@@ -420,6 +420,9 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 watchState.maxProtein = self.settingsManager.settings.maxProtein
                 watchState.bolusIncrement = self.settingsManager.preferences.bolusIncrement
                 watchState.confirmBolusFaster = self.settingsManager.settings.confirmBolusFaster
+                // Reduced and super bolus are offered on the watch only when enabled in settings, as on the phone.
+                watchState.isReducedBolusAvailable = self.settingsManager.settings.fattyMeals
+                watchState.isSuperBolusAvailable = self.settingsManager.settings.sweetMeals
 
                 watchState.showForecast = self.settingsManager.settings.showForecastWatch
                 watchState.isForecastCone = self.settingsManager.settings.forecastDisplayType == .cone
@@ -763,6 +766,8 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         // Assigned rather than inlined above: this literal is already at the
         // edge of the type checker's budget for a single expression.
         dictionary[WatchMessageKeys.peripheralData] = peripheralsToDictionary(from: state)
+        dictionary[WatchMessageKeys.isReducedBolusAvailable] = state.isReducedBolusAvailable
+        dictionary[WatchMessageKeys.isSuperBolusAvailable] = state.isSuperBolusAvailable
 
         let glucoseReadings: [[String: Any]] = state.glucoseValues.map { value -> [String: Any] in
             [
@@ -1077,6 +1082,11 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
             if message[WatchMessageKeys.requestBolusRecommendation] as? Bool == true {
                 let carbs = message[WatchMessageKeys.carbs] as? Int ?? 0
+                // Honored only while the option is enabled in settings, as the phone's Treatments view offers it.
+                let useReducedBolus = message[WatchMessageKeys.useReducedBolus] as? Bool == true &&
+                    self.settingsManager.settings.fattyMeals
+                let useSuperBolus = !useReducedBolus && message[WatchMessageKeys.useSuperBolus] as? Bool == true &&
+                    self.settingsManager.settings.sweetMeals
 
                 var minPredBG: Decimal = 54
 
@@ -1108,8 +1118,8 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                     // Get recommendation from BolusCalculationManager
                     let result = await bolusCalculationManager.handleBolusCalculation(
                         carbs: Decimal(carbs),
-                        useFattyMealCorrection: false,
-                        useSuperBolus: false,
+                        useFattyMealCorrection: useReducedBolus,
+                        useSuperBolus: useSuperBolus,
                         lastLoopDate: apsManager.lastLoopDate,
                         minPredBG: minPredBG,
                         simulatedCOB: nil,

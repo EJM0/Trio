@@ -54,6 +54,14 @@ enum WatchMessageKeys {
     static let bolusIncrement = "bolusIncrement"
     static let confirmBolusFaster = "confirmBolusFaster"
 
+    // Bolus calculator options, mirroring the phone's Treatments view
+    /// Whether the options are enabled in the phone's settings ("fatty meals", "sweet meals").
+    static let isReducedBolusAvailable = "isReducedBolusAvailable"
+    static let isSuperBolusAvailable = "isSuperBolusAvailable"
+    /// Sent with `requestBolusRecommendation`; at most one of the two is set.
+    static let useReducedBolus = "useReducedBolus"
+    static let useSuperBolus = "useSuperBolus"
+
     // Notification Actions
     static let snoozeDuration = "snoozeDuration"
 

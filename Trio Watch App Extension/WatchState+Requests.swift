@@ -232,7 +232,9 @@ extension WatchState {
 
         let message: [String: Any] = [
             WatchMessageKeys.requestBolusRecommendation: true,
-            WatchMessageKeys.carbs: carbsAmount
+            WatchMessageKeys.carbs: carbsAmount,
+            WatchMessageKeys.useReducedBolus: useReducedBolus,
+            WatchMessageKeys.useSuperBolus: useSuperBolus
         ]
 
         session.sendMessage(message, replyHandler: nil) { error in

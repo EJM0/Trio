@@ -110,7 +110,11 @@ struct BolusInputView: View {
                     Text("Insulin")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                        .padding(.bottom)
+                        .padding(.bottom, state.isReducedBolusAvailable || state.isSuperBolusAvailable ? 4 : nil)
+
+                    if state.isReducedBolusAvailable || state.isSuperBolusAvailable {
+                        bolusOptions
+                    }
 
                     Spacer()
 
@@ -171,5 +175,52 @@ struct BolusInputView: View {
                 bolusAmount = Double(truncating: NSDecimalNumber(decimal: newValue))
             }
         }
+    }
+
+    // MARK: - Reduced and super bolus
+
+    /// The phone's "Reduced Bolus" and "Super Bolus" options, offered when enabled in its settings. Mutually
+    /// exclusive; each change asks the phone for a new recommendation, which then replaces the amount.
+    private var bolusOptions: some View {
+        HStack(spacing: 6) {
+            if state.isReducedBolusAvailable {
+                bolusOptionButton(
+                    String(localized: "Reduced Bolus"),
+                    isOn: state.useReducedBolus
+                ) {
+                    state.useReducedBolus.toggle()
+                    if state.useReducedBolus { state.useSuperBolus = false }
+                    state.requestBolusRecommendation()
+                }
+            }
+            if state.isSuperBolusAvailable {
+                bolusOptionButton(
+                    String(localized: "Super Bolus"),
+                    isOn: state.useSuperBolus
+                ) {
+                    state.useSuperBolus.toggle()
+                    if state.useSuperBolus { state.useReducedBolus = false }
+                    state.requestBolusRecommendation()
+                }
+            }
+        }
+        .padding(.horizontal)
+    }
+
+    private func bolusOptionButton(_ title: String, isOn: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .foregroundStyle(isOn ? Color.white : Color.primary)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
+                .frame(maxWidth: .infinity)
+                .background(isOn ? Color.insulin : Color.secondary.opacity(0.25), in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 }

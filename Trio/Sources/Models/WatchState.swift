@@ -25,6 +25,10 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var maxFat: Decimal = 250.0
     var maxProtein: Decimal = 250.0
 
+    // Bolus calculator options enabled in settings (reduced bolus: fatty meals, super bolus: sweet meals)
+    var isReducedBolusAvailable: Bool = false
+    var isSuperBolusAvailable: Bool = false
+
     // Pump specific dosing increment
     var bolusIncrement: Decimal = 0.05
     var confirmBolusFaster: Bool = false
