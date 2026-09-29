@@ -63,6 +63,7 @@ struct BolusInputView: View {
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundStyle(Color.orange)
+                            .padding(.top, 4) // clear of the toolbar
                     }
 
                     Spacer()
