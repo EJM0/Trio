@@ -207,8 +207,9 @@ struct BolusInputView: View {
                 } else {
                     Text(String(localized: "Recommended:", comment: "Recommended bolus on Watch"))
                     if isRecalculating {
-                        ProgressView()
-                            .controlSize(.mini)
+                        // An SF Symbol keeps its own size; a watchOS ProgressView takes the full width.
+                        Image(systemName: "ellipsis")
+                            .symbolEffect(.variableColor.iterative, options: .repeating)
                     } else {
                         Text(verbatim: "\(formattedAmount(amount)) \(insulinUnit)")
                             .monospacedDigit()
