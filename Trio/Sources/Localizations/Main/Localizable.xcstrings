@@ -264116,6 +264116,17 @@
         }
       }
     },
+    "Reduced" : {
+      "comment" : "Short bolus option label on the watch bolus screen",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reduziert"
+          }
+        }
+      }
+    },
     "Reduced Bolus" : {
       "comment" : "For the  Bolus View pop-up",
       "localizations" : {
@@ -301141,6 +301152,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "總覽"
+          }
+        }
+      }
+    },
+    "Super" : {
+      "comment" : "Short bolus option label on the watch bolus screen",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Super"
           }
         }
       }
