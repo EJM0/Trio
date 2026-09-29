@@ -146,14 +146,7 @@ struct BolusInputView: View {
         .background(trioBackgroundColor)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Image(systemName: "syringe.fill")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 14, height: 14)
-                    .padding()
-                    .background(Color.insulin)
-                    .foregroundStyle(.white)
-                    .clipShape(Circle())
+                OnBoardToolbarBadge(systemImage: "syringe.fill", value: state.iob, unit: insulinUnit, color: .insulin, state: state)
             }
         }
         .onAppear {
