@@ -50,12 +50,11 @@ struct BolusInputView: View {
                     .scenePadding()
                 } else {
                     if state.carbsAmount > 0 {
-                        // Display the current carb amount
-                        HStack {
-                            Text("Carbs:").bold().font(.subheadline).padding(.leading)
-                            Text("\(state.carbsAmount) g").font(.subheadline).foregroundStyle(Color.orange)
-                            Spacer()
-                        }
+                        // The current carb amount; the icon and color say what it is, so it needs no title.
+                        Label("\(state.carbsAmount) g", systemImage: "fork.knife")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Color.orange)
                     }
 
                     Spacer()
@@ -107,13 +106,9 @@ struct BolusInputView: View {
                         .disabled(bolusAmount >= effectiveBolusLimit)
                     }.padding(.horizontal)
 
-                    Text("Insulin")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .padding(.bottom, state.isReducedBolusAvailable || state.isSuperBolusAvailable ? 4 : nil)
-
                     if state.isReducedBolusAvailable || state.isSuperBolusAvailable {
                         bolusOptions
+                            .padding(.top, 4)
                     }
 
                     Spacer()
@@ -141,7 +136,7 @@ struct BolusInputView: View {
                     Text(String(
                         format: "\(String(localized: "Recommended:", comment: "Recommended bolus on Watch")) %.1f \(String(localized: "U", comment: "Insulin unit"))",
                         NSDecimalNumber(decimal: state.recommendedBolus).doubleValue
-                    ))
+                    ) + selectedBolusOptionSuffix)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -185,7 +180,9 @@ struct BolusInputView: View {
         HStack(spacing: 6) {
             if state.isReducedBolusAvailable {
                 bolusOptionButton(
-                    String(localized: "Reduced Bolus"),
+                    String(localized: "Reduced", comment: "Short bolus option label on the watch bolus screen"),
+                    systemImage: "arrow.down",
+                    accessibilityName: String(localized: "Reduced Bolus"),
                     isOn: state.useReducedBolus
                 ) {
                     state.useReducedBolus.toggle()
@@ -195,7 +192,9 @@ struct BolusInputView: View {
             }
             if state.isSuperBolusAvailable {
                 bolusOptionButton(
-                    String(localized: "Super Bolus"),
+                    String(localized: "Super", comment: "Short bolus option label on the watch bolus screen"),
+                    systemImage: "bolt.fill",
+                    accessibilityName: String(localized: "Super Bolus"),
                     isOn: state.useSuperBolus
                 ) {
                     state.useSuperBolus.toggle()
@@ -207,9 +206,27 @@ struct BolusInputView: View {
         .padding(.horizontal)
     }
 
-    private func bolusOptionButton(_ title: String, isOn: Bool, action: @escaping () -> Void) -> some View {
+    /// Names the active option after the recommendation, so it is clear the amount includes it.
+    private var selectedBolusOptionSuffix: String {
+        if state.useReducedBolus {
+            return " (\(String(localized: "Reduced", comment: "Short bolus option label on the watch bolus screen")))"
+        }
+        if state.useSuperBolus {
+            return " (\(String(localized: "Super", comment: "Short bolus option label on the watch bolus screen")))"
+        }
+        return ""
+    }
+
+    private func bolusOptionButton(
+        _ title: String,
+        systemImage: String,
+        accessibilityName: String,
+        isOn: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
-            Text(title)
+            Label(title, systemImage: systemImage)
+                .labelStyle(.titleAndIcon)
                 .font(.caption2)
                 .fontWeight(.semibold)
                 .lineLimit(1)
@@ -221,6 +238,7 @@ struct BolusInputView: View {
                 .background(isOn ? Color.insulin : Color.secondary.opacity(0.25), in: Capsule())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityName)
         .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 }
