@@ -24,7 +24,11 @@ struct BolusInputView: View {
 
     var body: some View {
         let bolusIncrement = Double(truncating: state.bolusIncrement as NSNumber)
-        let adjustedBolusAmount = floor(bolusAmount / bolusIncrement) * bolusIncrement
+        // The epsilon keeps floating point from flooring an exact step one increment down (0.3 / 0.1 = 2.999…).
+        let adjustedBolusAmount = floor(bolusAmount / bolusIncrement + 1e-9) * bolusIncrement
+        let recommendedAmount = min(effectiveBolusLimit, Double(truncating: NSDecimalNumber(decimal: state.recommendedBolus)))
+        // As on the phone, the recommendation pill grays out once its amount is the one entered, or when it is zero.
+        let isRecommendationTaken = recommendedAmount <= 0 || abs(adjustedBolusAmount - recommendedAmount) < bolusIncrement / 2
 
         // In the "Meal & Bolus" flow the user can dial insulin down to zero (or the
         // recommendation itself is zero). In that case there is nothing to bolus, so
@@ -135,10 +139,7 @@ struct BolusInputView: View {
 
                     // Tapping the recommendation takes it as the amount, as on the phone's Treatments view.
                     Button {
-                        bolusAmount = min(
-                            effectiveBolusLimit,
-                            Double(truncating: NSDecimalNumber(decimal: state.recommendedBolus))
-                        )
+                        bolusAmount = recommendedAmount
                         WKInterfaceDevice.current().play(.click)
                     } label: {
                         Text(String(
@@ -146,14 +147,19 @@ struct BolusInputView: View {
                             NSDecimalNumber(decimal: state.recommendedBolus).doubleValue
                         ) + selectedBolusOptionSuffix)
                             .font(.footnote)
-                            .foregroundStyle(Color.insulin)
+                            .foregroundStyle(isRecommendationTaken ? Color.secondary : Color.insulin)
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                             .padding(.vertical, 2)
                             .padding(.horizontal, 8)
-                            .background(Color.insulin.opacity(0.2), in: Capsule())
+                            .background(
+                                isRecommendationTaken ? Color.secondary.opacity(0.2) : Color.insulin.opacity(0.25),
+                                in: Capsule()
+                            )
                     }
                     .buttonStyle(.plain)
+                    .disabled(isRecommendationTaken)
+                    .animation(.easeInOut(duration: 0.2), value: isRecommendationTaken)
                 }
             }
         }
