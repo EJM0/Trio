@@ -117,6 +117,20 @@ import WatchConnectivity
 
     private static let syncingAnimationTimeout: TimeInterval = 10
 
+    // MARK: - Coalescing the updates on re-entry
+
+    /// Re-entering the app fires the scene activation and the reachability change on the watch, and the phone
+    /// pushes when it sees the watch reachable. Whichever arrives first is the update; the others are skipped
+    /// or applied without showing the syncing animation again.
+    private var isWatchStateRequestInFlight = false
+    private var watchStateRequestID = 0
+    /// When a state was last accepted, by the watch's clock (the payload's own date is the phone's).
+    private var lastStateReceivedAt: Date?
+    /// When the syncing animation was last switched on. Updates within `syncBurstWindow` of it belong to the
+    /// same sync and don't switch it on again.
+    private var syncingAnimationShownAt: Date?
+    private static let syncBurstWindow: TimeInterval = 5
+
     // MARK: - Glucose history sync
 
     enum GlucoseResync: Int, Comparable {
@@ -381,6 +395,7 @@ import WatchConnectivity
         }
 
         lastAcceptedStateDate = date
+        lastStateReceivedAt = Date()
         applyGlucoseHistory(from: payload)
 
         var uiPayload = payload
@@ -579,6 +594,16 @@ import WatchConnectivity
     ///
     /// it will request a new watch state update from the iPhone app and, if the request could be sent, show a syncing animation.
     private func forceConditionalWatchStateUpdate() {
+        if isWatchStateRequestInFlight {
+            Task { await WatchLogger.shared.log("⌚️ WatchState request already in flight — not sending another") }
+            return
+        }
+        // A push that just arrived is still being applied (`lastWatchStateUpdate` follows after the debounce).
+        if let receivedAt = lastStateReceivedAt, Date().timeIntervalSince(receivedAt) < 15 {
+            Task { await WatchLogger.shared.log("⌚️ WatchState just received — not requesting another") }
+            return
+        }
+
         guard let lastUpdateTimestamp = lastWatchStateUpdate else {
             Task {
                 await WatchLogger.shared.log("Forcing initial WatchState update")
@@ -603,16 +628,38 @@ import WatchConnectivity
     }
 
     private func requestWatchStateUpdateWithSyncingAnimation() {
-        guard requestWatchStateUpdate() else { return }
+        watchStateRequestID += 1
+        let requestID = watchStateRequestID
+        isWatchStateRequestInFlight = true
+        let sent = requestWatchStateUpdate { _ in
+            self.isWatchStateRequestInFlight = false
+        }
+        guard sent else {
+            isWatchStateRequestInFlight = false
+            return
+        }
 
-        showSyncingAnimation = true
+        showSyncingAnimationForNewSync()
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.syncingAnimationTimeout) {
+            // WatchConnectivity always calls the reply or the error handler; this only guards against it not doing so.
+            if self.watchStateRequestID == requestID {
+                self.isWatchStateRequestInFlight = false
+            }
             guard self.showSyncingAnimation, self.pendingData.isEmpty else { return }
             self.showSyncingAnimation = false
             Task {
                 await WatchLogger.shared.log("⌚️ No WatchState answer from iPhone — hiding syncing animation")
             }
         }
+    }
+
+    /// Shows the syncing animation, unless it was already shown for this sync: a request's reply and the phone's
+    /// push on re-entry arrive within seconds of each other and must not flash it twice.
+    private func showSyncingAnimationForNewSync() {
+        if showSyncingAnimation { return }
+        if let shownAt = syncingAnimationShownAt, Date().timeIntervalSince(shownAt) < Self.syncBurstWindow { return }
+        syncingAnimationShownAt = Date()
+        showSyncingAnimation = true
     }
 
     /// Handles incoming messages that either contain an acknowledgement or fresh watchState data  (<15 min)
@@ -671,9 +718,9 @@ import WatchConnectivity
             return
         }
 
-        // 1) Mark as syncing
+        // 1) Mark as syncing, once per sync
         DispatchQueue.main.async {
-            self.showSyncingAnimation = true
+            self.showSyncingAnimationForNewSync()
         }
 
         Task {

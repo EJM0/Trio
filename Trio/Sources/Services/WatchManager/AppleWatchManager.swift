@@ -52,6 +52,8 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     private var lastSentGlucoseSignature: String?
     /// False while the watch has turned delta sync off after a history failed its checksum.
     private var watchSupportsGlucoseDelta = false
+    /// When the watch last asked for a state (main queue). Its request answers the reachability change itself.
+    private var lastWatchStateRequestAt: Date?
 
     private static let contextGlucoseTail: TimeInterval = 2 * 60 * 60
     private var lastContextContent: NSDictionary?
@@ -1003,6 +1005,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 return
             }
 
+            self.lastWatchStateRequestAt = Date()
             self.watchSupportsGlucoseDelta = message[WatchMessageKeys.supportsGlucoseDelta] as? Bool == true
 
             guard let state = await self.setupWatchState(),
@@ -1192,9 +1195,20 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         debug(.watchManager, "📱 Phone reachability changed: \(session.isReachable)")
 
         if session.isReachable {
-            // Try to send data when connection is established
-            Task {
-                await self.pushWatchState()
+            // The watch requests a state itself when it sees the phone reachable, and gets it as the reply. Push only
+            // if no request came, e.g. from a watch app that is already open and missed its own reachability change.
+            let becameReachableAt = Date()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                guard let self else { return }
+                if let requestedAt = self.lastWatchStateRequestAt,
+                   requestedAt >= becameReachableAt.addingTimeInterval(-2)
+                {
+                    debug(.watchManager, "📱 Watch already requested a state — skipping the reachability push")
+                    return
+                }
+                Task {
+                    await self.pushWatchState()
+                }
             }
         } else {
             // Try to reconnect after a short delay
