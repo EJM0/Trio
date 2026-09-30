@@ -10,6 +10,7 @@ import UserNotifications
         // restores the watch's own link to the sensor
         _ = WatchCGMHost.shared
         WatchNotificationHandler.shared.configure()
+        OpenMealBolusIntent.onPerform = { WatchShortcut.openMealBolus() }
         WatchLogger.shared.info(.lifecycle, "App launched")
     }
 

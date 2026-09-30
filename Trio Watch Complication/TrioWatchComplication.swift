@@ -1,3 +1,4 @@
+import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -85,6 +86,9 @@ struct TrioAccessoryCircularView: View {
         TrioWatchComplication()
         #if os(watchOS)
             TrioMealBolusComplication()
+            if #available(watchOS 26.0, *) {
+                TrioMealBolusControl()
+            }
         #endif
     }
 }
@@ -128,6 +132,24 @@ struct TrioWatchComplication: Widget {
             .configurationDisplayName(String(localized: "Meal & Bolus", comment: "Watch App Treatment Option 'Meal & Bolus'"))
             .description("Opens Trio to log a meal and a bolus")
             .supportedFamilies([.accessoryCircular, .accessoryCorner, .accessoryInline])
+        }
+    }
+
+    /// The "Meal & Bolus" control for Control Center, the Smart Stack and the Action button (watchOS 26).
+    @available(watchOS 26.0, *)
+    struct TrioMealBolusControl: ControlWidget {
+        var body: some ControlWidgetConfiguration {
+            StaticControlConfiguration(kind: "TrioMealBolusControl") {
+                ControlWidgetButton(action: OpenMealBolusIntent()) {
+                    Label {
+                        Text("Meal & Bolus", comment: "Watch App Treatment Option 'Meal & Bolus'")
+                    } icon: {
+                        Image(systemName: "fork.knife")
+                    }
+                }
+            }
+            .displayName("Meal & Bolus")
+            .description("Opens Trio to log a meal and a bolus")
         }
     }
 

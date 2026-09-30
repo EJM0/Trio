@@ -23,19 +23,6 @@ enum WatchShortcut {
     }
 }
 
-/// Opens the watch app on the carbs entry of the "Meal & Bolus" flow. It only navigates: the bolus amount starts
-/// at 0 and still has to be confirmed as usual.
-struct OpenMealBolusIntent: AppIntent {
-    static var title: LocalizedStringResource = "Meal & Bolus"
-    static var description = IntentDescription("Opens Trio on the watch to log a meal and a bolus.")
-    static var openAppWhenRun = true
-
-    @MainActor func perform() async throws -> some IntentResult {
-        WatchShortcut.openMealBolus()
-        return .result()
-    }
-}
-
 struct TrioWatchShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
