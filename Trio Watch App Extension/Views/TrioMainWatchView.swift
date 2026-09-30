@@ -245,6 +245,13 @@ struct TrioMainWatchView: View {
                     continueToBolus = false
                 }
             }
+            // The "Meal & Bolus" complication or App Intent, on launch or while running.
+            .onAppear {
+                openMealBolusShortcutIfPending()
+            }
+            .onChange(of: state.isMealBolusShortcutPending) { _, isPending in
+                if isPending { openMealBolusShortcutIfPending() }
+            }
         }
         .ignoresSafeArea()
         .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { now = $0 }
@@ -267,6 +274,28 @@ struct TrioMainWatchView: View {
         default:
             rotationDegrees = 0
         }
+    }
+
+    /// Starts the "Meal & Bolus" flow from its first step, closing whatever was open, as if picked from the
+    /// treatment menu.
+    private func openMealBolusShortcutIfPending() {
+        guard state.isMealBolusShortcutPending else { return }
+        state.isMealBolusShortcutPending = false
+
+        showingTreatmentMenuSheet = false
+        showingOverrideSheet = false
+        showingTempTargetSheet = false
+
+        state.carbsAmount = 0
+        state.bolusAmount = 0
+        state.recommendedBolus = 0
+        state.useReducedBolus = false
+        state.useSuperBolus = false
+
+        continueToBolus = true
+        var path = NavigationPath()
+        path.append(NavigationDestinations.carbsInput)
+        navigationPath = path
     }
 
     private func handleTreatmentSelection() {

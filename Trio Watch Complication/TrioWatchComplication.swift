@@ -80,7 +80,16 @@ struct TrioAccessoryCircularView: View {
 
 // MARK: - Widget Configuration
 
-@main struct TrioWatchComplication: Widget {
+@main struct TrioWatchComplications: WidgetBundle {
+    var body: some Widget {
+        TrioWatchComplication()
+        #if os(watchOS)
+            TrioMealBolusComplication()
+        #endif
+    }
+}
+
+struct TrioWatchComplication: Widget {
     let kind: String = "TrioWatchComplication"
 
     var body: some WidgetConfiguration {
@@ -100,6 +109,64 @@ struct TrioAccessoryCircularView: View {
         #endif
     }
 }
+
+#if os(watchOS)
+    // MARK: - Meal & Bolus Complication
+
+    /// Opens the watch app on the carbs entry of the "Meal & Bolus" flow.
+    struct TrioMealBolusComplication: Widget {
+        let kind: String = "TrioMealBolusComplication"
+
+        /// Must match `WatchShortcut.mealBolusURL` in the watch app.
+        static let url = URL(string: "trio-watch://meal-bolus")!
+
+        var body: some WidgetConfiguration {
+            StaticConfiguration(kind: kind, provider: TrioWatchComplicationProvider()) { _ in
+                TrioMealBolusComplicationView()
+                    .widgetURL(Self.url)
+            }
+            .configurationDisplayName(String(localized: "Meal & Bolus", comment: "Watch App Treatment Option 'Meal & Bolus'"))
+            .description("Opens Trio to log a meal and a bolus")
+            .supportedFamilies([.accessoryCircular, .accessoryCorner, .accessoryInline])
+        }
+    }
+
+    struct TrioMealBolusComplicationView: View {
+        @Environment(\.widgetFamily) private var widgetFamily
+
+        var body: some View {
+            switch widgetFamily {
+            case .accessoryCorner:
+                Image(systemName: "fork.knife")
+                    .font(.title3)
+                    .widgetAccentable()
+                    .widgetLabel {
+                        Text("Meal & Bolus", comment: "Watch App Treatment Option 'Meal & Bolus'")
+                    }
+                    .widgetBackground(backgroundView: Color.clear)
+            case .accessoryInline:
+                Label {
+                    Text("Meal & Bolus", comment: "Watch App Treatment Option 'Meal & Bolus'")
+                } icon: {
+                    Image(systemName: "fork.knife")
+                }
+                .widgetBackground(backgroundView: Color.clear)
+            default:
+                ZStack {
+                    AccessoryWidgetBackground()
+                    VStack(spacing: 1) {
+                        Image(systemName: "fork.knife")
+                            .font(.system(size: 15, weight: .semibold))
+                        Image(systemName: "syringe.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .widgetAccentable()
+                }
+                .widgetBackground(backgroundView: Color.clear)
+            }
+        }
+    }
+#endif
 
 extension View {
     func widgetBackground(backgroundView: some View) -> some View {
