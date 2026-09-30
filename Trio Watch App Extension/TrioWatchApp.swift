@@ -7,6 +7,7 @@ import UserNotifications
     init() {
         _ = WatchState.shared
         WatchNotificationHandler.shared.configure()
+        OpenMealBolusIntent.onPerform = { WatchShortcut.openMealBolus() }
     }
 
     var body: some Scene {
