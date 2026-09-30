@@ -287,10 +287,15 @@ struct TrioMainWatchView: View {
         state.useReducedBolus = false
         state.useSuperBolus = false
 
-        continueToBolus = true
-        var path = NavigationPath()
-        path.append(NavigationDestinations.carbsInput)
-        navigationPath = path
+        navigationPath = NavigationPath()
+
+        // Push once the dismissals and the pop to root have settled: on a cold launch, or with a sheet still
+        // closing, a push in the same update is dropped and the app stays on the main screen.
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            continueToBolus = true
+            navigationPath.append(NavigationDestinations.carbsInput)
+        }
     }
 
     private func handleTreatmentSelection() {
