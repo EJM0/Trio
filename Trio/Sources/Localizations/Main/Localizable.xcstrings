@@ -239447,6 +239447,28 @@
         }
       }
     },
+    "Opens Trio on the watch to log a meal and a bolus." : {
+      "comment" : "Description of the watch 'Meal & Bolus' shortcut",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet Trio auf der Uhr, um eine Mahlzeit und einen Bolus einzutragen."
+          }
+        }
+      }
+    },
+    "Opens Trio to log a meal and a bolus" : {
+      "comment" : "Description of the watch 'Meal & Bolus' complication",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet Trio, um eine Mahlzeit und einen Bolus einzutragen"
+          }
+        }
+      }
+    },
     "OpenAPS main settings" : {
       "comment" : "Headers for settings -----------------------",
       "extractionState" : "manual",

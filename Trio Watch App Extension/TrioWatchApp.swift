@@ -12,6 +12,9 @@ import UserNotifications
     var body: some Scene {
         WindowGroup {
             TrioMainWatchView()
+                .onOpenURL { url in
+                    WatchShortcut.handle(url)
+                }
         }
         .onChange(of: scenePhase) { _, newScenePhase in
             if newScenePhase == .background {

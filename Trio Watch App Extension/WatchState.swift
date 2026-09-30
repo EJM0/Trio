@@ -103,6 +103,9 @@ import WatchConnectivity
 
     var recommendedBolus: Decimal = 0
 
+    /// Set by the "Meal & Bolus" complication or App Intent; the main view opens the flow and clears it.
+    var isMealBolusShortcutPending: Bool = false
+
     /// Snapshots older than this are dropped at the top of the WC delegate
     /// methods. Single source of truth for both `didReceiveMessage` and
     /// `didReceiveUserInfo`.
