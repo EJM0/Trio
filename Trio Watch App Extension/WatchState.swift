@@ -598,6 +598,11 @@ import WatchConnectivity
             Task { await WatchLogger.shared.log("⌚️ WatchState request already in flight — not sending another") }
             return
         }
+        // A running resync request brings the current state too.
+        guard !isGlucoseResyncInFlight else {
+            Task { await WatchLogger.shared.log("⌚️ Glucose resync in flight — not requesting another WatchState") }
+            return
+        }
         // A push that just arrived is still being applied (`lastWatchStateUpdate` follows after the debounce).
         if let receivedAt = lastStateReceivedAt, Date().timeIntervalSince(receivedAt) < 15 {
             Task { await WatchLogger.shared.log("⌚️ WatchState just received — not requesting another") }

@@ -47,11 +47,13 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     private static let maxLoopWait: TimeInterval = 30
 
     // Glucose history sync. Only accessed on the main actor.
-    /// The last payload sent: the base of the next delta.
+    /// The newest reading the watch got in a message or reply: the base of the next delta. The context doesn't
+    /// count, as the phone never learns whether the watch has received it.
     private var lastSentGlucoseNewest: TimeInterval?
     private var lastSentGlucoseSignature: String?
-    /// False while the watch has turned delta sync off after a history failed its checksum.
-    private var watchSupportsGlucoseDelta = false
+    /// False while the watch has turned delta sync off after a history failed its checksum. Watch and phone ship
+    /// together, so a watch is assumed to support it until its request says otherwise.
+    private var watchSupportsGlucoseDelta = true
     /// When the watch last asked for a state (main queue). Its request answers the reachability change itself.
     private var lastWatchStateRequestAt: Date?
 
@@ -825,9 +827,21 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         }
         logTransfer("message", [WatchMessageKeys.watchState: message])
 
+        let sentGlucoseNewest = WatchGlucoseSync.newestTimestamp(in: payload)
+        lastSentGlucoseNewest = sentGlucoseNewest
+        lastSentGlucoseSignature = state.glucoseSignature
+
         session.sendMessage([WatchMessageKeys.watchState: message], replyHandler: nil) { [weak self] error in
             debug(.watchManager, "❌ Error sending watch state: \(error)")
-            Task { @MainActor in self?.lastMessageContent = nil }
+            Task { @MainActor in
+                guard let self else { return }
+                self.lastMessageContent = nil
+                // Not delivered: the next delta builds on what the watch got before, unless something newer went out.
+                if self.lastSentGlucoseNewest == sentGlucoseNewest {
+                    self.lastSentGlucoseNewest = previousGlucoseNewest
+                    self.lastSentGlucoseSignature = previousGlucoseSignature
+                }
+            }
         }
     }
 
@@ -853,7 +867,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     @MainActor private func resetGlucoseSync() {
         lastSentGlucoseNewest = nil
         lastSentGlucoseSignature = nil
-        watchSupportsGlucoseDelta = false
+        watchSupportsGlucoseDelta = true
         lastContextContent = nil
         lastContextUpdate = nil
         lastMessageContent = nil
@@ -943,9 +957,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             }
         }
 
-        lastSentGlucoseNewest = WatchGlucoseSync.newestTimestamp(in: message)
-        lastSentGlucoseSignature = state.glucoseSignature
-
         return message
     }
 
@@ -1017,6 +1028,8 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             let reply = [WatchMessageKeys.watchState: self.replyPayload(payload, for: message, state: state)]
             self.logTransfer("reply", reply)
             replyHandler(reply)
+            self.lastSentGlucoseNewest = WatchGlucoseSync.newestTimestamp(in: payload)
+            self.lastSentGlucoseSignature = state.glucoseSignature
         }
     }
 
