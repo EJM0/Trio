@@ -1198,7 +1198,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             // The watch requests a state itself when it sees the phone reachable, and gets it as the reply. Push only
             // if no request came, e.g. from a watch app that is already open and missed its own reachability change.
             let becameReachableAt = Date()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
                 guard let self else { return }
                 if let requestedAt = self.lastWatchStateRequestAt,
                    requestedAt >= becameReachableAt.addingTimeInterval(-2)
