@@ -82,7 +82,9 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var mealManagerOnlyCarbs: Bool = false
     var openFoodFactsUsername: String = ""
     var openFoodFactsPassword: String = ""
-    var scaleIP: String = ""
+    /// CoreBluetooth identifier of the paired scale; empty when none is paired.
+    var scaleID: String = ""
+    var scaleName: String = ""
     var homeStatsPanelFace: HomeStatsPanelFace = .timeInRange
     var requireAdjustmentsConfirmation: Bool = false
 
@@ -493,8 +495,12 @@ extension TrioSettings: Decodable {
             settings.openFoodFactsPassword = openFoodFactsPassword
         }
 
-        if let scaleIP = try? container.decode(String.self, forKey: .scaleIP) {
-            settings.scaleIP = scaleIP
+        if let scaleID = try? container.decode(String.self, forKey: .scaleID) {
+            settings.scaleID = scaleID
+        }
+
+        if let scaleName = try? container.decode(String.self, forKey: .scaleName) {
+            settings.scaleName = scaleName
         }
 
         if let homeStatsPanelFace = try? container.decode(HomeStatsPanelFace.self, forKey: .homeStatsPanelFace) {

@@ -358,14 +358,15 @@ extension BolusCalculatorConfig {
                                     Text("Connect")
                                     Spacer()
                                     ZStack {
-                                        if !state.scaleIP.isEmpty {
-                                            Image(systemName: "network")
+                                        if !state.scaleID.isEmpty {
+                                            Image(systemName: "dot.radiowaves.left.and.right")
                                             Image(systemName: "checkmark.circle.fill").foregroundColor(.green).font(
                                                 .caption2
                                             )
                                             .offset(x: 9, y: 6)
                                         } else {
-                                            Image(systemName: "network.slash")
+                                            Image(systemName: "dot.radiowaves.left.and.right")
+                                                .foregroundStyle(.secondary)
                                         }
                                     }
                                 }

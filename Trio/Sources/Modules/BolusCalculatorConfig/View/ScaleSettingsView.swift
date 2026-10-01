@@ -14,21 +14,36 @@ struct ScaleSettingsView: View {
 
     var body: some View {
         List {
-            Section(
-                header: Text("Connect to Scale"),
-                content: {
-                    HStack {
-                        TextField("IP Address", text: $state.scaleIP)
-                            .disableAutocorrection(true)
-                            .autocapitalization(.none)
-                            .keyboardType(.numbersAndPunctuation)
-                        if state.scaleIP.isEmpty {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
+            if state.scaleID.isEmpty {
+                Section(
+                    header: Text("Pair a Scale"),
+                    footer: Text("Closest scale first. Each scale shows its code on its display when switched on.")
+                ) {
+                    if state.scaleCandidates.isEmpty {
+                        HStack {
+                            Text("Searching…")
+                            Spacer()
+                            ProgressView()
+                        }
+                    }
+                    ForEach(state.scaleCandidates) { candidate in
+                        Button {
+                            state.pairScale(candidate)
+                        } label: {
+                            Label(candidate.name, systemImage: "scalemass")
                         }
                     }
                 }
-            ).listRowBackground(Color.chart)
+                .listRowBackground(Color.chart)
+            } else {
+                Section(header: Text("Paired Scale")) {
+                    Label(state.scaleName, systemImage: "scalemass")
+                    Button("Forget Scale", role: .destructive) {
+                        state.forgetScale()
+                    }
+                }
+                .listRowBackground(Color.chart)
+            }
 
             Section(header: Text("Actions")) {
                 Button {
@@ -37,7 +52,7 @@ struct ScaleSettingsView: View {
                     Label("Tare Scale", systemImage: "arrow.counterclockwise")
                 }
                 .buttonStyle(.plain)
-                .disabled(state.scaleIP.isEmpty)
+                .disabled(state.scaleID.isEmpty)
 
                 VStack(alignment: .leading) {
                     HStack {
@@ -55,7 +70,7 @@ struct ScaleSettingsView: View {
                             .frame(maxWidth: .infinity, alignment: .center)
                     }
                     .buttonStyle(.bordered)
-                    .disabled(state.scaleIP.isEmpty)
+                    .disabled(state.scaleID.isEmpty)
                     .padding(.top, 5)
                 }
             }
@@ -67,7 +82,11 @@ struct ScaleSettingsView: View {
         .scrollContentBackground(.hidden)
         .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
         .onAppear {
+            state.startScaleScan()
             calibrationWeightString = formatter.string(from: state.calibrationWeight as NSNumber) ?? ""
+        }
+        .onDisappear {
+            state.stopScaleScan()
         }
         .onChange(of: calibrationWeightString) { newValue in
             if let val = formatter.number(from: newValue) {

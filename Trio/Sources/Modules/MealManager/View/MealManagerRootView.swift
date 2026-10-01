@@ -475,7 +475,7 @@ extension MealManager {
 
                 Spacer()
 
-                // Scale controls on the right - only if WebSocket connected and receiving data
+                // Scale controls on the right - only while the scale is connected
                 if let liveWeight = state.liveScaleWeight {
                     VStack(alignment: .trailing, spacing: 4) {
                         // Live weight display

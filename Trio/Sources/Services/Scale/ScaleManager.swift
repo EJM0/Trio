@@ -1,303 +1,233 @@
+import CoreBluetooth
 import Foundation
 import Swinject
 
-protocol ScaleManager {
-    /// Whether the live-weight websocket is currently up.
-    var isScaleConnected: Bool { get }
-
-    func tare(ip: String?)
-    func calibrate(weight: Decimal, ip: String?)
-    func fetchWeight(completion: @escaping (Double) -> Void)
-    func fetchBatteryLevel(completion: @escaping (Int?) -> Void)
-
-    func connectToWebSocket(
-        ip: String?, onMessage: @escaping (Double) -> Void, onConnectionChange: ((Bool) -> Void)?
-    )
-    func disconnectWebSocket()
+/// A scale seen while pairing.
+struct ScaleCandidate: Identifiable, Equatable {
+    let id: UUID
+    let name: String
+    let rssi: Int
 }
 
-final class BaseScaleManager: ScaleManager, Injectable {
-    @Injected() var settingsManager: SettingsManager!
-    private var webSocketTask: URLSessionWebSocketTask?
+protocol ScaleManager {
+    /// Reports every scale in range until `stopPairingScan()`, so settings can pick one.
+    func startPairingScan(onFound: @escaping (ScaleCandidate) -> Void)
+    func stopPairingScan()
 
-    // Reconnection state
-    private(set) var isScaleConnected = false
-    private var shouldReconnect = false
-    private var currentOnConnectionChange: ((Bool) -> Void)?
+    /// Streams weight and battery until `disconnect()`. Drops are reconnected on their own;
+    /// `onConnectionChange` only reports them.
+    func connect(
+        onWeight: @escaping (Double) -> Void,
+        onBattery: @escaping (Int) -> Void,
+        onConnectionChange: @escaping (Bool) -> Void
+    )
+    func disconnect()
+
+    func tare()
+    func calibrate(weight: Decimal)
+}
+
+/// The kitchen scale over BLE. Weight is a float32 LE notify, commands are ASCII writes,
+/// battery is the standard Battery Service. Only the scale paired in settings is ever connected,
+/// so several scales can share a kitchen.
+final class BaseScaleManager: NSObject, ScaleManager, Injectable {
+    @Injected() var settingsManager: SettingsManager!
+
+    // ponytail: keep in step with the UUIDs in scale.ino.
+    private static let scaleService = CBUUID(string: "0160D9AA-9E50-4E04-A6C7-2EE8C6F7BDF2")
+    private static let weightChar = CBUUID(string: "1640D36C-FB0F-4146-8686-A465B2183092")
+    private static let controlChar = CBUUID(string: "159939B1-30D1-40A3-B742-697D42E188B5")
+    private static let batteryService = CBUUID(string: "180F")
+    private static let batteryChar = CBUUID(string: "2A19")
+
+    /// How long a command waits for the scale to show up before it is dropped. A tare that
+    /// lands minutes later, whenever the scale happens to wake, would zero a loaded pan.
+    private static let commandTimeout: TimeInterval = 10
+
+    // Lazy so Bluetooth is not touched until the scale is actually used.
+    private lazy var central = CBCentralManager(delegate: self, queue: .main)
+    private var peripheral: CBPeripheral?
+    private var control: CBCharacteristic?
+    private var pendingCommands: [String] = []
+
+    private var onWeight: ((Double) -> Void)?
+    private var onBattery: ((Int) -> Void)?
+    private var onConnectionChange: ((Bool) -> Void)?
+    private var onFound: ((ScaleCandidate) -> Void)?
+    private var isStreaming: Bool { onWeight != nil }
+
+    private var pairedID: UUID? { UUID(uuidString: settingsManager.settings.scaleID) }
 
     init(resolver: Resolver) {
+        super.init()
         injectServices(resolver)
     }
 
-    func tare(ip: String? = nil) {
-        let ipToUse = ip ?? settingsManager.settings.scaleIP
-        guard !ipToUse.isEmpty, let url = URL(string: "http://\(ipToUse):8080/tare") else { return }
-
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 10
-        URLSession.shared.dataTask(with: request).resume()
+    func startPairingScan(onFound: @escaping (ScaleCandidate) -> Void) {
+        self.onFound = onFound
+        scanIfPossible()
     }
 
-    func calibrate(weight: Decimal, ip: String? = nil) {
-        let ipToUse = ip ?? settingsManager.settings.scaleIP
-        guard !ipToUse.isEmpty else { return }
-
-        let weightString = NSDecimalNumber(decimal: weight).description(
-            withLocale: Locale(identifier: "en_US")
-        )
-
-        guard let url = URL(string: "http://\(ipToUse):8080/calibrate?weight=\(weightString)") else {
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 10
-        URLSession.shared.dataTask(with: request).resume()
+    func stopPairingScan() {
+        onFound = nil
+        // Keep scanning only while the paired scale itself still has to be found that way.
+        let stillLooking = peripheral == nil && (isStreaming || !pendingCommands.isEmpty)
+        if !stillLooking { central.stopScan() }
     }
 
-    func fetchWeight(completion: @escaping (Double) -> Void) {
-        let ip = settingsManager.settings.scaleIP
-        debug(.service, "fetchWeight called with IP: \(ip)")
-        guard !ip.isEmpty, let url = URL(string: "http://\(ip):8080/read") else {
-            debug(.service, "IP is empty or invalid URL for weight")
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 10
-
-        URLSession.shared.dataTask(with: request) { data, _, error in
-            debug(
-                .service,
-                "Weight response received - error: \(error?.localizedDescription ?? "none"), data: \(data?.count ?? 0) bytes"
-            )
-
-            guard let data = data, error == nil else { return }
-
-            struct ScaleResponse: Decodable {
-                let weight: Decimal
-            }
-
-            if let response = try? JSONDecoder().decode(ScaleResponse.self, from: data) {
-                DispatchQueue.main.async {
-                    completion(NSDecimalNumber(decimal: response.weight).doubleValue)
-                }
-            }
-        }.resume()
-    }
-
-    func fetchBatteryLevel(completion: @escaping (Int?) -> Void) {
-        let ip = settingsManager.settings.scaleIP
-        debug(.service, "fetchBatteryLevel called with IP: \(ip)")
-        guard !ip.isEmpty, let url = URL(string: "http://\(ip):8080/battery") else {
-            debug(.service, "IP is empty or invalid URL")
-            completion(nil)
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 10
-
-        URLSession.shared.dataTask(with: request) { data, _, error in
-            debug(
-                .service,
-                "Battery response received - error: \(error?.localizedDescription ?? "none"), data: \(data?.count ?? 0) bytes"
-            )
-            guard let data = data, error == nil else {
-                DispatchQueue.main.async { completion(nil) }
-                return
-            }
-
-            // The firmware sends {"voltage":3.76,"percent":51}. Trio decoded "percentage",
-            // which never matched, so it always fell through to deriving its own number --
-            // the scale showed 51% while the phone showed something else entirely.
-            //
-            // Double, not Int: firmware reporting a fractional percent failed an Int decode
-            // and then fell through every branch to nil, showing no battery at all.
-            struct BatteryPercentageResponse: Decodable {
-                let percent: Double
-
-                enum CodingKeys: String, CodingKey {
-                    case percent
-                    case percentage
-                }
-
-                init(from decoder: Decoder) throws {
-                    let container = try decoder.container(keyedBy: CodingKeys.self)
-                    guard let value = try container.decodeIfPresent(Double.self, forKey: .percent)
-                        ?? container.decodeIfPresent(Double.self, forKey: .percentage)
-                    else {
-                        throw DecodingError.keyNotFound(
-                            CodingKeys.percent,
-                            .init(codingPath: container.codingPath, debugDescription: "no percent field")
-                        )
-                    }
-                    percent = value
-                }
-            }
-
-            struct BatteryVoltageResponse: Decodable {
-                let voltage: Double
-            }
-
-            // The scale's own number always wins, so Trio shows what the device shows.
-            if let response = try? JSONDecoder().decode(BatteryPercentageResponse.self, from: data) {
-                DispatchQueue.main.async {
-                    completion(Int(response.percent.rounded()))
-                }
-            }
-            // Voltage JSON format
-            else if let response = try? JSONDecoder().decode(BatteryVoltageResponse.self, from: data) {
-                DispatchQueue.main.async {
-                    completion(Self.batteryPercent(forVoltage: response.voltage))
-                }
-            }
-            // Plain text voltage format like "3.92V"
-            else if let text = String(data: data, encoding: .utf8)?.trimmingCharacters(
-                in: .whitespacesAndNewlines
-            ),
-                let voltage = Double(text.replacingOccurrences(of: "V", with: ""))
-            {
-                DispatchQueue.main.async {
-                    completion(Self.batteryPercent(forVoltage: voltage))
-                }
-            } else {
-                DispatchQueue.main.async {
-                    completion(nil)
-                }
-            }
-        }.resume()
-    }
-
-    /// Mirrors the scale firmware's own `battPercent()` so the two readings agree.
-    ///
-    /// Only reached when the scale sends volts without a percent; its own number is preferred,
-    /// and this exists so the fallback does not disagree with the device either.
-    ///
-    /// A straight line is not how a LiPo actually discharges -- it reads high through the middle
-    /// and falls off a cliff near the end. That is worth fixing, but in the firmware, which owns
-    /// the number shown on the scale's own display; Trio would then follow for free through
-    /// `percent`. Diverging here would only recreate the mismatch this replaced.
-    ///
-    /// ponytail: keep in step with BAT_EMPTY/BAT_FULL in scale.ino.
-    static func batteryPercent(forVoltage voltage: Double) -> Int {
-        let empty = 3.30
-        let full = 4.20
-        let ratio = (voltage - empty) / (full - empty) * 100
-        return Int(max(0, min(100, ratio.rounded())))
-    }
-
-    func connectToWebSocket(
-        ip: String? = nil,
-        onMessage: @escaping (Double) -> Void,
-        onConnectionChange: ((Bool) -> Void)? = nil
+    func connect(
+        onWeight: @escaping (Double) -> Void,
+        onBattery: @escaping (Int) -> Void,
+        onConnectionChange: @escaping (Bool) -> Void
     ) {
-        let ipToUse = ip ?? settingsManager.settings.scaleIP
-        debug(.service, "connectToWebSocket called with IP: \(ipToUse)")
-        guard !ipToUse.isEmpty else {
-            debug(.service, "IP is empty for WebSocket")
-            return
-        }
-
-        var wsPort = 8081
-        var host = ipToUse
-
-        // Handle explicit port in IP string (e.g. for emulator 192.168.1.1:8080)
-        let parts = ipToUse.split(separator: ":")
-        if parts.count == 2, let port = Int(parts[1]) {
-            host = String(parts[0])
-            wsPort = port
-        }
-
-        guard let url = URL(string: "ws://\(host):\(wsPort)") else {
-            debug(.service, "Invalid WebSocket URL")
-            return
-        }
-
-        debug(.service, "Connecting to WebSocket at \(url.absoluteString)")
-
-        // Store parameters for reconnection
-        currentOnConnectionChange = onConnectionChange
-        shouldReconnect = true
-
-        // Establish connection
-        connect(url: url, onMessage: onMessage)
+        self.onWeight = onWeight
+        self.onBattery = onBattery
+        self.onConnectionChange = onConnectionChange
+        start()
     }
 
-    private func connect(url: URL, onMessage: @escaping (Double) -> Void) {
-        webSocketTask?.cancel(with: .goingAway, reason: nil)
-        webSocketTask = URLSession.shared.webSocketTask(with: url)
-        webSocketTask?.resume()
-
-        isScaleConnected = true
-        DispatchQueue.main.async { [weak self] in
-            self?.currentOnConnectionChange?(true)
-        }
-        receiveMessage(onMessage: onMessage)
+    func disconnect() {
+        onWeight = nil
+        onBattery = nil
+        onConnectionChange = nil
+        stopIfIdle()
     }
 
-    private func receiveMessage(onMessage: @escaping (Double) -> Void) {
-        let currentTask = webSocketTask
-        webSocketTask?.receive { [weak self] result in
-            guard let self = self else { return }
-            // Only the active task speaks for the connection: an old task's cancellation
-            // arrives here too, and must not be reported as this connection dropping.
-            //
-            // Deliberately not also gated on `shouldReconnect`. It is cleared by
-            // disconnectWebSocket(), which the consumer calls from its own disconnect handler --
-            // so a genuine drop that landed here while it was false was swallowed, the consumer
-            // never heard "disconnected", and its reconnect polling never started. An
-            // intentional disconnect nils the task, which this check already covers.
-            guard self.webSocketTask === currentTask else { return }
+    func tare() { send("t") }
 
-            switch result {
-            case let .failure(error):
-                debug(.service, "WebSocket error: \(error)")
-                self.handleConnectionFailure()
+    func calibrate(weight: Decimal) {
+        send("c" + NSDecimalNumber(decimal: weight).description(withLocale: Locale(identifier: "en_US")))
+    }
 
-            case let .success(message):
-                // Connected successfully
+    // MARK: - Link
 
-                switch message {
-                case let .string(text):
-                    if let weight = Double(text) {
-                        // Clamp weight to valid range (0 or positive)
-                        let validWeight = max(0, weight)
-                        DispatchQueue.main.async {
-                            onMessage(validWeight)
-                        }
-                    }
-                case .data:
-                    break
-                @unknown default:
-                    break
-                }
+    private func send(_ command: String) {
+        if let control, let peripheral {
+            peripheral.writeValue(Data(command.utf8), for: control, type: .withResponse)
+            return
+        }
+        pendingCommands.append(command)
+        start()
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.commandTimeout) { [weak self] in
+            guard let self, self.control == nil else { return }
+            self.pendingCommands.removeAll()
+            self.stopIfIdle()
+        }
+    }
 
-                self.receiveMessage(onMessage: onMessage)
+    private func start() {
+        guard central.state == .poweredOn, let pairedID else { return } // didUpdateState picks it up
+        if peripheral?.identifier != pairedID {
+            // Paired with another scale since the last link: let the old one go.
+            if let peripheral { central.cancelPeripheralConnection(peripheral) }
+            peripheral = central.retrievePeripherals(withIdentifiers: [pairedID]).first
+            peripheral?.delegate = self
+            control = nil
+        }
+        if let peripheral {
+            // A pending connect never times out, so this also covers a scale that is asleep.
+            if peripheral.state == .disconnected { central.connect(peripheral) }
+        } else {
+            // iOS has forgotten it; find it by advertisement instead.
+            scanIfPossible()
+        }
+    }
+
+    private func scanIfPossible() {
+        guard central.state == .poweredOn, !central.isScanning else { return }
+        central.scanForPeripherals(withServices: [Self.scaleService])
+    }
+
+    private func stopIfIdle() {
+        guard !isStreaming, pendingCommands.isEmpty else { return }
+        if onFound == nil { central.stopScan() } // settings is still listing scales
+        if let peripheral { central.cancelPeripheralConnection(peripheral) }
+        control = nil
+    }
+}
+
+extension BaseScaleManager: CBCentralManagerDelegate {
+    func centralManagerDidUpdateState(_ central: CBCentralManager) {
+        guard central.state == .poweredOn else { return }
+        if isStreaming || !pendingCommands.isEmpty { start() }
+        if onFound != nil { scanIfPossible() }
+    }
+
+    func centralManager(
+        _ central: CBCentralManager,
+        didDiscover peripheral: CBPeripheral,
+        advertisementData: [String: Any],
+        rssi: NSNumber
+    ) {
+        let name = advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? peripheral.name ?? "scale"
+        onFound?(ScaleCandidate(id: peripheral.identifier, name: name, rssi: rssi.intValue))
+
+        guard peripheral.identifier == pairedID, self.peripheral == nil,
+              isStreaming || !pendingCommands.isEmpty else { return }
+        if onFound == nil { central.stopScan() }
+        self.peripheral = peripheral
+        peripheral.delegate = self
+        central.connect(peripheral)
+    }
+
+    func centralManager(_: CBCentralManager, didConnect peripheral: CBPeripheral) {
+        debug(.service, "Scale connected")
+        onConnectionChange?(true)
+        peripheral.discoverServices([Self.scaleService, Self.batteryService])
+    }
+
+    func centralManager(_: CBCentralManager, didFailToConnect _: CBPeripheral, error _: Error?) {
+        start()
+    }
+
+    func centralManager(_: CBCentralManager, didDisconnectPeripheral _: CBPeripheral, error: Error?) {
+        debug(.service, "Scale disconnected: \(error?.localizedDescription ?? "on request")")
+        control = nil
+        onConnectionChange?(false)
+        if isStreaming { start() }
+    }
+}
+
+extension BaseScaleManager: CBPeripheralDelegate {
+    func peripheral(_ peripheral: CBPeripheral, didDiscoverServices _: Error?) {
+        for service in peripheral.services ?? [] {
+            peripheral.discoverCharacteristics(nil, for: service)
+        }
+    }
+
+    func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error _: Error?) {
+        for characteristic in service.characteristics ?? [] {
+            switch characteristic.uuid {
+            case Self.batteryChar,
+                 Self.weightChar:
+                peripheral.readValue(for: characteristic)
+                peripheral.setNotifyValue(true, for: characteristic)
+            case Self.controlChar:
+                control = characteristic
+                let queued = pendingCommands
+                pendingCommands.removeAll()
+                queued.forEach(send)
+            default:
+                break
             }
         }
     }
 
-    private func handleConnectionFailure() {
-        // We no longer auto-reconnect at the socket layer.
-        // Instead, we just notify the consumer (StateModel) that connection is lost.
-        // The consumer is responsible for falling back to polling (battery check) and then reconnecting.
-        debug(.service, "WebSocket disconnected or error. Notifying consumer.")
-
-        isScaleConnected = false
-        DispatchQueue.main.async { [weak self] in
-            self?.currentOnConnectionChange?(false)
+    func peripheral(_: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error _: Error?) {
+        guard let data = characteristic.value else { return }
+        switch characteristic.uuid {
+        case Self.weightChar where data.count == 4:
+            let weight = Float(bitPattern: data.withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) }.littleEndian)
+            onWeight?(max(0, Double(weight)))
+        case Self.batteryChar where !data.isEmpty:
+            onBattery?(Int(data[data.startIndex]))
+        default:
+            break
         }
-
-        // Clean up connection
-        webSocketTask = nil
     }
 
-    func disconnectWebSocket() {
-        shouldReconnect = false
-        webSocketTask?.cancel(with: .goingAway, reason: nil)
-        webSocketTask = nil
-        isScaleConnected = false
-        // Do not notify listener here - this is an intentional disconnect initiated by the consumer
+    func peripheral(_: CBPeripheral, didWriteValueFor _: CBCharacteristic, error _: Error?) {
+        // A command sent from settings opened the link only for itself.
+        stopIfIdle()
     }
 }

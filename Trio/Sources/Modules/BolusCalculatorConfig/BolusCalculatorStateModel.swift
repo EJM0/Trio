@@ -17,15 +17,42 @@ extension BolusCalculatorConfig {
         @Published var isOpenFoodFactsLoginSuccessful: Bool = false
         @Published var isOpenFoodFactsLoginInProgress: Bool = false
         @Published var openFoodFactsLoginError: String?
-        @Published var scaleIP: String = ""
+        @Published var scaleID: String = ""
+        @Published var scaleName: String = ""
+        @Published var scaleCandidates: [ScaleCandidate] = []
         @Published var calibrationWeight: Decimal = 100
 
         func tareScale() {
-            provider.scaleManager.tare(ip: scaleIP)
+            provider.scaleManager.tare()
         }
 
         func calibrateScale() {
-            provider.scaleManager.calibrate(weight: calibrationWeight, ip: scaleIP)
+            provider.scaleManager.calibrate(weight: calibrationWeight)
+        }
+
+        func startScaleScan() {
+            scaleCandidates = []
+            provider.scaleManager.startPairingScan { [weak self] candidate in
+                guard let self else { return }
+                self.scaleCandidates.removeAll { $0.id == candidate.id }
+                self.scaleCandidates.append(candidate)
+                // Closest first: the scale on the counter in front of you is the one you mean.
+                self.scaleCandidates.sort { $0.rssi > $1.rssi }
+            }
+        }
+
+        func stopScaleScan() {
+            provider.scaleManager.stopPairingScan()
+        }
+
+        func pairScale(_ candidate: ScaleCandidate) {
+            scaleName = candidate.name
+            scaleID = candidate.id.uuidString
+        }
+
+        func forgetScale() {
+            scaleID = ""
+            scaleName = ""
         }
 
         func loginToOpenFoodFacts() {
@@ -95,7 +122,8 @@ extension BolusCalculatorConfig {
             subscribeSetting(\.openFoodFactsPassword, on: $openFoodFactsPassword) {
                 openFoodFactsPassword = $0
             }
-            subscribeSetting(\.scaleIP, on: $scaleIP) { scaleIP = $0 }
+            subscribeSetting(\.scaleName, on: $scaleName) { scaleName = $0 }
+            subscribeSetting(\.scaleID, on: $scaleID) { scaleID = $0 }
 
             Task { @MainActor in
                 await self.provider.openFoodFacts.setCredentials(

@@ -12,6 +12,7 @@ extension MealManager {
         @State private var amount: Double = 0
         @State private var isMlInput: Bool = false
         @State private var showQuickSelector: Bool = false
+        @State private var isWeighing = false
 
         // Built once: this was a computed property, so the body made a fresh one every render.
         private static let formatter: NumberFormatter = {
@@ -103,18 +104,27 @@ extension MealManager {
                         // Show scale button if connected
                         if isScaleConnected {
                             Button {
-                                state.fetchScaleWeight { weight in
-                                    let validWeight = max(0, weight)
-                                    updateAmount(validWeight)
+                                isWeighing = true
+                                Task {
+                                    if let weight = await state.averagedScaleWeight() {
+                                        updateAmount(weight)
+                                    }
+                                    isWeighing = false
                                 }
                             } label: {
-                                Image(systemName: "arrow.down.circle.fill")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 24, height: 24)
-                                    .foregroundColor(.accentColor)
+                                if isWeighing {
+                                    ProgressView()
+                                        .frame(width: 24, height: 24)
+                                } else {
+                                    Image(systemName: "arrow.down.circle.fill")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 24, height: 24)
+                                        .foregroundColor(.accentColor)
+                                }
                             }
                             .buttonStyle(.plain)
+                            .disabled(isWeighing)
                             .accessibilityLabel(String(localized: "Use scale reading"))
                         }
 

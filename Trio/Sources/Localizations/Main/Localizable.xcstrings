@@ -1619,6 +1619,7 @@
     },
     " - Manual Basal ⚠️" : {
       "comment" : "Manual Temp basal",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -8765,6 +8766,16 @@
         }
       }
     },
+    "%@ – %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ – %2$@"
+          }
+        }
+      }
+    },
     "%@ · %.1fg carbs" : {
       "localizations" : {
         "en" : {
@@ -11058,10 +11069,17 @@
         }
       }
     },
+    "%@ time in range" : {
+      "comment" : "Stats goal chart accessibility value for a day that missed the goal (1: the percentage)"
+    },
+    "%@ time in range, goal reached" : {
+      "comment" : "Stats goal chart accessibility value for a day that met the goal (1: the percentage)"
+    },
     "%@ times" : {
       "comment" : "Accessibility: multiplier value, as in 2 times"
     },
     "%@-%@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -24041,6 +24059,7 @@
       }
     },
     "< %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -24301,6 +24320,7 @@
       }
     },
     "> %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -102380,6 +102400,9 @@
         }
       }
     },
+    "Daily goals will appear here once glucose data is available." : {
+
+    },
     "Dana(RS/-i)" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -165744,6 +165767,18 @@
         }
       }
     },
+    "Goal" : {
+      "comment" : "Chart name on the Goals tab"
+    },
+    "Goal reached on %1$d of %2$d days." : {
+      "comment" : "Stats goal chart: how many days met the time-in-range goal (1: days met, 2: days total)"
+    },
+    "Goal: %@" : {
+      "comment" : "Stats goal chart: the button showing the current goal (1: the goal percentage)"
+    },
+    "Goals" : {
+      "comment" : "Title for the time-in-range goal statistics"
+    },
     "Got it!" : {
       "comment" : "Dismiss button for Quick-Pick Treatments info sheet\nDismiss button for the release notes sheet",
       "localizations" : {
@@ -186956,9 +186991,6 @@
           }
         }
       }
-    },
-    "IP Address" : {
-
     },
     "is running" : {
       "localizations" : {
@@ -223937,6 +223969,9 @@
         }
       }
     },
+    "No days with glucose data in this range." : {
+
+    },
     "No device data" : {
 
     },
@@ -239447,28 +239482,6 @@
         }
       }
     },
-    "Opens Trio on the watch to log a meal and a bolus." : {
-      "comment" : "Description of the watch 'Meal & Bolus' shortcut",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Öffnet Trio auf der Uhr, um eine Mahlzeit und einen Bolus einzutragen."
-          }
-        }
-      }
-    },
-    "Opens Trio to log a meal and a bolus" : {
-      "comment" : "Description of the watch 'Meal & Bolus' complication",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Öffnet Trio, um eine Mahlzeit und einen Bolus einzutragen"
-          }
-        }
-      }
-    },
     "OpenAPS main settings" : {
       "comment" : "Headers for settings -----------------------",
       "extractionState" : "manual",
@@ -241328,6 +241341,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "開啟延遲選項"
+          }
+        }
+      }
+    },
+    "Opens Trio on the watch to log a meal and a bolus." : {
+      "comment" : "Description of the watch 'Meal & Bolus' shortcut",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet Trio auf der Uhr, um eine Mahlzeit und einen Bolus einzutragen."
+          }
+        }
+      }
+    },
+    "Opens Trio to log a meal and a bolus" : {
+      "comment" : "Description of the watch 'Meal & Bolus' complication",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet Trio, um eine Mahlzeit und einen Bolus einzutragen"
           }
         }
       }
@@ -304593,6 +304628,9 @@
         }
       }
     },
+    "Tap a segment of the Time-in-Range bar to reveal more details." : {
+
+    },
     "Tap and hold a bar in the chart to reveal more details. Swipe to scroll through time." : {
       "localizations" : {
         "bg" : {
@@ -304854,6 +304892,7 @@
       }
     },
     "Tap and hold the AGP graph or Time-in-Range ring to reveal more details." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -304983,10 +305022,14 @@
         }
       }
     },
+    "Tap and hold the AGP graph, or tap a segment of the Time-in-Range bar, to reveal more details." : {
+
+    },
     "Tap and hold the selected date to return to today." : {
 
     },
     "Tap and hold the Time-in-Range ring to reveal more details." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -305245,6 +305288,9 @@
           }
         }
       }
+    },
+    "Tap the goal to change it. Days that reached it are filled in." : {
+
     },
     "Tap to add a fingerstick reading." : {
       "localizations" : {
@@ -327080,6 +327126,12 @@
           }
         }
       }
+    },
+    "Time in range goal" : {
+
+    },
+    "Time in Range Goal" : {
+
     },
     "Time in Range Type" : {
       "localizations" : {
@@ -350940,6 +350992,9 @@
           }
         }
       }
+    },
+    "Use Bluetooth Scale" : {
+
     },
     "Use calendar events to display current data." : {
       "localizations" : {

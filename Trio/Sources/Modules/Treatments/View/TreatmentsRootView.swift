@@ -646,6 +646,8 @@ extension Treatments {
                 Text("\(state.determinationFailureMessage)")
             }
             .sheet(isPresented: $showMealManager, onDismiss: {
+                // Here rather than on Done, so a swipe-down closes the scale link too.
+                mealManager.stopScaleStream()
                 mealManager.cancelEditing()
                 mealManager.isEditorPresentedAsSheet = false
             }) {

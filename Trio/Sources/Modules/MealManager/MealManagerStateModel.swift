@@ -59,10 +59,6 @@ extension MealManager {
         @Published var isUploadingNutritionCorrection = false
         @Published var nutritionUploadStatusMessage: String?
 
-        // Scale polling. Not private: used from MealManagerStateModel+Scale.swift, and Swift
-        // does not allow stored properties in extensions.
-        var scaleCheckTimer: Timer?
-        var isCheckingScaleConnection = false
         private var originalScannedNutriments: FoodItem.Nutriments?
 
         // MARK: - Private Properties
@@ -92,7 +88,7 @@ extension MealManager {
             }
 
             refreshCameraStatus()
-            startScalePolling()
+            startScaleStream()
 
             switch cameraStatus {
             case .notDetermined:
@@ -453,7 +449,6 @@ extension MealManager {
 
         /// Performs the dismissal of the barcode scanner module
         func performDismissal() {
-            stopScaleStream()
             if let onDismiss = onDismiss {
                 onDismiss()
             } else {

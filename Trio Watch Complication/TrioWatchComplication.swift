@@ -115,6 +115,7 @@ struct TrioWatchComplication: Widget {
 }
 
 #if os(watchOS)
+
     // MARK: - Meal & Bolus Complication
 
     /// Opens the watch app on the carbs entry of the "Meal & Bolus" flow.
@@ -136,8 +137,7 @@ struct TrioWatchComplication: Widget {
     }
 
     /// The "Meal & Bolus" control for Control Center, the Smart Stack and the Action button (watchOS 26).
-    @available(watchOS 26.0, *)
-    struct TrioMealBolusControl: ControlWidget {
+    @available(watchOS 26.0, *) struct TrioMealBolusControl: ControlWidget {
         var body: some ControlWidgetConfiguration {
             StaticControlConfiguration(kind: "TrioMealBolusControl") {
                 ControlWidgetButton(action: OpenMealBolusIntent()) {

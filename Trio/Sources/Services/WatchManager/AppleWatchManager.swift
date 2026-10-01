@@ -900,7 +900,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         )
     }
 
-    /// - Returns: The payload with the full glucose history, or `nil` if there is no usable watch session.
+    /// - Returns: The payload with the 2h glucose history, or `nil` if there is no usable watch session.
     @MainActor private func prepareWatchStatePayload(_ state: WatchState) -> [String: Any]? {
         guard let session = session else { return nil }
 

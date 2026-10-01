@@ -149,7 +149,13 @@ struct BolusInputView: View {
         .persistentSystemOverlays(.hidden)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                OnBoardToolbarBadge(systemImage: "syringe.fill", value: state.iob, unit: insulinUnit, color: .insulin, state: state)
+                OnBoardToolbarBadge(
+                    systemImage: "syringe.fill",
+                    value: state.iob,
+                    unit: insulinUnit,
+                    color: .insulin,
+                    state: state
+                )
             }
         }
         .onAppear {
@@ -183,7 +189,7 @@ struct BolusInputView: View {
     private func roundedDown(_ amount: Double) -> Double {
         let increment = Double(truncating: state.bolusIncrement as NSNumber)
         guard increment > 0 else { return amount }
-        return floor(amount / increment + 1e-9) * increment
+        return floor(amount / increment + 1E-9) * increment
     }
 
     /// Shows as many decimals as the bolus increment has (0.1 → 6.7, 0.05 → 6.65), at least one.
