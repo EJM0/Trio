@@ -1,5 +1,6 @@
 import Combine
 import CoreData
+import EversenseKit
 import Foundation
 import LoopKit
 import LoopKitUI
@@ -619,8 +620,7 @@ extension Home {
                     self.cgmDisplayState = displayState
                     self.cgmSensorExpiresAt = CGMSensorLifecycle.resolveSensorExpiresAt(
                         manager: manager,
-                        glucoseSource: source,
-                        lifecycle: progress
+                        glucoseSource: source
                     )
                     self.cgmWarmupEndsAt = CGMSensorLifecycle.resolveWarmupEndsAt(manager: manager)
                 }
@@ -646,8 +646,7 @@ extension Home {
                     self.cgmProgressHighlight = progress
                     self.cgmSensorExpiresAt = CGMSensorLifecycle.resolveSensorExpiresAt(
                         manager: self.fetchGlucoseManager.cgmManager,
-                        glucoseSource: self.fetchGlucoseManager.glucoseSource,
-                        lifecycle: progress
+                        glucoseSource: self.fetchGlucoseManager.glucoseSource
                     )
                     self.cgmWarmupEndsAt = CGMSensorLifecycle.resolveWarmupEndsAt(
                         manager: self.fetchGlucoseManager.cgmManager
