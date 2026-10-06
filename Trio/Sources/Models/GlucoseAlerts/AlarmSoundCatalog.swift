@@ -23,7 +23,12 @@ enum AlarmSoundCatalog {
         ("simple.caf", String(localized: "Simple")),
         ("synth.caf", String(localized: "Synth")),
         ("mood_synth.caf", String(localized: "Mood Synth")),
-        ("crying.caf", String(localized: "Crying"))
+        ("crying.caf", String(localized: "Crying")),
+        ("two_tone.caf", String(localized: "Two Tone")),
+        ("doorbell.caf", String(localized: "Doorbell")),
+        ("ascend.caf", String(localized: "Ascend")),
+        ("flutter.caf", String(localized: "Flutter")),
+        ("cascade.caf", String(localized: "Cascade"))
     ]
 
     static let allFilenames: [String] = catalog.map(\.filename)
