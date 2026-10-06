@@ -12,6 +12,7 @@ extension WatchState {
             Task {
                 await WatchLogger.shared.log("⌚️ Bolus request aborted: session unreachable")
             }
+            reportSendFailure(String(localized: "iPhone not reachable. Nothing was sent."))
             return
         }
 
@@ -27,6 +28,7 @@ extension WatchState {
             Task {
                 await WatchLogger.shared.log("Error sending bolus request: \(error)")
             }
+            self.reportSendFailure(String(localized: "Sending to iPhone failed. Please try again."))
         }
 
         // Display pending communication animation
@@ -45,6 +47,7 @@ extension WatchState {
             Task {
                 await WatchLogger.shared.log("⌚️ Carbs request aborted: session unreachable")
             }
+            reportSendFailure(String(localized: "iPhone not reachable. Nothing was sent."))
             return
         }
 
@@ -63,12 +66,20 @@ extension WatchState {
                 await WatchLogger.shared.log("⌚️ Saving logs to disk as fallback!")
                 await WatchLogger.shared.persistLogsLocally()
             }
+            self.reportSendFailure(String(localized: "Sending to iPhone failed. Please try again."))
         }
 
         // Display pending communication animation
         showCommsAnimation = true
         Task {
             await WatchLogger.shared.log("⌚️ showCommsAnimation = true")
+        }
+    }
+
+    /// Shows the failure on the pending screen; without it a request that never left the watch looks sent.
+    private func reportSendFailure(_ message: String) {
+        DispatchQueue.main.async {
+            self.handleAcknowledgment(success: false, message: message)
         }
     }
 

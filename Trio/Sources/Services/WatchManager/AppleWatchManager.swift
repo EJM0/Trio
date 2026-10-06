@@ -1279,6 +1279,9 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                     try context.save()
                     debug(.watchManager, "📱 Saved carbs from watch: \(amount)g at \(date)")
 
+                    // Carbs alone don't trigger a loop, so COB would wait for the next CGM reading
+                    Task { try? await self.apsManager.determineBasalSync() }
+
                     // Acknowledge success
                     self.sendAcknowledgment(
                         toWatch: true,
