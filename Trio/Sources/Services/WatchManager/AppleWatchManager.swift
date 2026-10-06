@@ -616,8 +616,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         state.cgmName = cgmManager?.localizedTitle
         state.cgmSensorExpiresAt = CGMSensorLifecycle.resolveSensorExpiresAt(
             manager: cgmManager,
-            glucoseSource: glucoseSource,
-            lifecycle: progress
+            glucoseSource: glucoseSource
         )
         state.cgmProgressPercent = progress?.percentComplete
         state.cgmProgressState = progress?.progressState.rawValue
