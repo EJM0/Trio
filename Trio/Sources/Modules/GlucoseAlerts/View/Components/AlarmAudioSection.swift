@@ -46,17 +46,17 @@ struct AlarmAudioSection: View {
                         }
 
                         if trim.mode.wrappedValue == .length {
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack {
-                                    Text("Length")
-                                    Spacer()
-                                    Text(AlarmSoundDurationRange.label(for: trim.seconds.wrappedValue))
-                                        .foregroundColor(.secondary)
-                                }
-                                Slider(
-                                    value: trim.seconds,
-                                    in: AlarmSoundDurationRange.bounds,
-                                    step: AlarmSoundDurationRange.step
+                            HStack {
+                                Text("Length")
+                                TextFieldWithToolBar(
+                                    text: Binding(
+                                        get: { Decimal(trim.seconds.wrappedValue) },
+                                        set: { trim.seconds.wrappedValue = NSDecimalNumber(decimal: $0).doubleValue }
+                                    ),
+                                    placeholder: "0",
+                                    maxValue: Decimal(AlarmSoundDurationRange.maximumSeconds),
+                                    numberFormatter: secondsFormatter,
+                                    unitsText: String(localized: "s", comment: "Alarm length in seconds")
                                 )
                             }
                         }
@@ -65,6 +65,12 @@ struct AlarmAudioSection: View {
             }
         }
         .listRowBackground(Color.chart)
+    }
+
+    private var secondsFormatter: NumberFormatter {
+        let formatter = NumberFormatter()
+        formatter.maximumFractionDigits = 1
+        return formatter
     }
 }
 

@@ -118,7 +118,8 @@ extension AlarmSoundPlayback {
         }
         switch trim {
         case .playOnce: self = .once
-        case .length: self = .seconds(seconds)
+        // The length field can be left empty (0) — never let that silence the alarm.
+        case .length: self = .seconds(min(max(seconds, AlarmSoundDurationRange.minimumSeconds), AlarmSoundDurationRange.maximumSeconds))
         }
     }
 }
@@ -129,31 +130,9 @@ extension DeviceAlertSeverityConfig {
     }
 }
 
-/// Bounds for the alarm-length slider, and the label that goes with a value.
+/// Bounds for the alarm-length field.
 enum AlarmSoundDurationRange {
     static let minimumSeconds: TimeInterval = 1
     static let maximumSeconds: TimeInterval = 300
-    /// One second, so the tone can be cut to a single blip. Coarser steps could
-    /// not express that at all, and the label carries the exact value anyway.
-    static let step: TimeInterval = 1
     static let defaultSeconds: TimeInterval = 60
-
-    static var bounds: ClosedRange<TimeInterval> { minimumSeconds ... maximumSeconds }
-
-    static func label(for seconds: TimeInterval) -> String {
-        let total = Int(seconds.rounded())
-        let minutes = total / 60
-        let remainder = total % 60
-        if minutes == 0 {
-            return String(format: String(localized: "%d s", comment: "Alarm length in seconds"), remainder)
-        }
-        if remainder == 0 {
-            return String(format: String(localized: "%d min", comment: "Alarm length in minutes"), minutes)
-        }
-        return String(
-            format: String(localized: "%1$d min %2$d s", comment: "Alarm length in minutes and seconds"),
-            minutes,
-            remainder
-        )
-    }
 }
