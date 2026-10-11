@@ -15,6 +15,13 @@ struct BasalProfile: Hashable {
     }
 }
 
+struct PreparedTempBasal: Equatable {
+    let start: Date
+    let end: Date
+    let rate: Double
+    let isScheduled: Bool
+}
+
 extension MainChartCanvas {
     var basalChart: some View {
         VStack {
@@ -45,10 +52,16 @@ extension MainChartCanvas {
     /// (drawn at `basalDomainMax - rate`), so the tallest rate spans the full strip height —
     /// matching the old rendering, which achieved the same look by rotating and mirroring
     /// the plot content.
-    var basalDomainMax: Double {
-        let tempMax = preparedTempBasals.map(\.rate).max() ?? 0
-        let profileMax = basalProfiles.map(\.amount).max() ?? 0
-        return max(tempMax, profileMax, 0.1)
+    @MainActor func recomputeBasalDomainMax() {
+        let tempMax = preparedTempBasals.lazy.map(\.rate).max() ?? 0
+        let profileMax = basalProfiles.lazy.map(\.amount).max() ?? 0
+        basalDomainMax = max(tempMax, profileMax, 0.1)
+    }
+
+    /// To be used instead of "now" for basal calculations so we can skip
+    /// redundant updates happening within the same second.
+    static func secondAnchoredNow() -> Date {
+        Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded(.down))
     }
 }
 
@@ -58,10 +71,7 @@ extension MainChartCanvas {
     func drawTempBasals() -> some ChartContent {
         // only bars overlapping the render window; the rest clip invisibly but still cost layout
         let visible = preparedTempBasals.filter { $0.end >= windowStart && $0.start <= windowEnd }
-        // Hoisted, like the windowed series in `mainChart`: `basalDomainMax` scans both rate
-        // arrays and allocates two of them per call, and the loop below asked for it four
-        // times per bar — once directly and three times through the `invertedY` helper this
-        // replaces. Top-anchored y is `domainMax - rate`; the bars hang from the plot's top.
+        // Top-anchored y is `domainMax - rate`; the bars hang from the plot's top.
         let domainMax = basalDomainMax
         // One stroked outline per contiguous run, rather than one for the whole strip. Left as a
         // single series, the line also spans the gaps *between* bars — a stretch nothing covered,
@@ -127,7 +137,7 @@ extension MainChartCanvas {
     /// A stretch of basal bars that abut one another end-to-start, and so belong to one outline.
     struct BasalRun: Identifiable {
         let id: String
-        let bars: [(start: Date, end: Date, rate: Double, isScheduled: Bool)]
+        let bars: [PreparedTempBasal]
 
         /// The outline as the points one stroked line walks, in x order.
         ///
@@ -168,11 +178,11 @@ extension MainChartCanvas {
     /// gap too narrow to render keeps its bars in one run rather than closing both sides on the
     /// baseline. Overlapping bars give a negative interval and stay in the same run either way.
     func contiguousBasalRuns(
-        _ bars: [(start: Date, end: Date, rate: Double, isScheduled: Bool)],
+        _ bars: [PreparedTempBasal],
         minimumGap: TimeInterval
     ) -> [BasalRun] {
         var runs: [BasalRun] = []
-        var current: [(start: Date, end: Date, rate: Double, isScheduled: Bool)] = []
+        var current: [PreparedTempBasal] = []
 
         func closeRun() {
             guard let first = current.first else { return }
@@ -252,7 +262,7 @@ extension MainChartCanvas {
 
 extension MainChartCanvas {
     @MainActor func calculateTempBasals() {
-        let now = Date()
+        let now = Self.secondAnchoredNow()
         let suspensionTimes = state.suspendAndResumeEvents.compactMap(\.timestamp)
 
         // Snapshot the managed-object fields once; plain values from here on.
@@ -272,7 +282,7 @@ extension MainChartCanvas {
         // paints what no temp basal covered.
         let deliveryEvents = events.filter { !$0.isScheduled }
 
-        var prepared = [(start: Date, end: Date, rate: Double, isScheduled: Bool)]()
+        var prepared = [PreparedTempBasal]()
         prepared.reserveCapacity(deliveryEvents.count)
 
         for (index, event) in deliveryEvents.enumerated() {
@@ -295,7 +305,7 @@ extension MainChartCanvas {
             let isInsulinSuspended = suspensionTimes.contains { $0 >= timestamp && $0 <= barEnd }
             let rate = Double(truncating: event.rate ?? 0) * (isInsulinSuspended ? 0 : 1)
 
-            prepared.append((timestamp, barEnd, rate, false))
+            prepared.append(PreparedTempBasal(start: timestamp, end: barEnd, rate: rate, isScheduled: false))
         }
 
         // gaps no event covers ran the pump's schedule; inferred in memory, drawn dimmed
@@ -313,14 +323,25 @@ extension MainChartCanvas {
             return ScheduledBasalInference.TimelineEvent(start: timestamp, kind: isSuspend ? .suspend : .resume)
         }
         for segment in ScheduledBasalInference.segments(events: timeline, profile: state.basalProfile, now: now) {
-            prepared.append((segment.start, segment.end, Double(truncating: segment.rate as NSNumber), true))
+            prepared.append(PreparedTempBasal(
+                start: segment.start,
+                end: segment.end,
+                rate: Double(truncating: segment.rate as NSNumber),
+                isScheduled: true
+            ))
         }
 
         // One line series strokes the whole outline: out-of-order bars backtrack across it,
         // and a zero-length bar leaves a stray point it then connects diagonally.
-        preparedTempBasals = prepared
+        let updated = prepared
             .filter { $0.end > $0.start }
             .sorted { $0.start < $1.start }
+
+        // Reassigning an identical value would invalidate the body and re-enter this method.
+        guard updated != preparedTempBasals else { return }
+
+        preparedTempBasals = updated
+        recomputeBasalDomainMax()
     }
 
     func findRegularBasalPoints(
@@ -434,7 +455,11 @@ extension MainChartCanvas {
             }
 
             await MainActor.run {
+                // Reassigning an identical value would invalidate the body and re-enter this method.
+                guard basals != basalProfiles else { return }
+
                 basalProfiles = basals
+                recomputeBasalDomainMax()
             }
         }
     }
