@@ -185,8 +185,8 @@ struct PeripheralsView: View {
         if reservoir == Self.reservoirAboveThreshold {
             return "50+ \(unit)"
         }
-        let whole = NSDecimalNumber(decimal: reservoir).intValue
-        return "\(whole) \(unit)"
+        // Rounds like the phone's `Formatter.integerFormatter`, so both show the same number
+        return "\(reservoir.formatted(.number.precision(.fractionLength(0)))) \(unit)"
     }
 
     /// Mirrors `PumpView.reservoirColor` on the phone.
