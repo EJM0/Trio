@@ -1,6 +1,7 @@
 import Combine
 import CoreData
 import Foundation
+import OmnipodKit
 import Swinject
 import UIKit
 import WatchConnectivity
@@ -602,9 +603,17 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         state.pumpStatusMessage = apsManager.pumpManager?.pumpStatusHighlight?.localizedMessage
 
         // Reservoir — same file the home header reads. The `0xDEAD_BEEF`
-        // "50+ U" sentinel is passed through untouched; the watch view
-        // interprets it exactly as `PumpView` does.
-        state.pumpReservoir = await fileStorage.retrieveAsync(OpenAPS.Monitor.reservoir, as: Decimal.self)
+        // "50+ U" sentinel is passed through; the watch view interprets it
+        // exactly as `PumpView` does. Omnipod swaps in its fill-based
+        // estimate here, display only, like the home header.
+        let reservoir = await fileStorage.retrieveAsync(OpenAPS.Monitor.reservoir, as: Decimal.self)
+        if reservoir == 0xDEAD_BEEF,
+           let estimate = (apsManager.pumpManager as? OmniPumpManager)?.state.estimatedReservoirLevel
+        {
+            state.pumpReservoir = Decimal(estimate)
+        } else {
+            state.pumpReservoir = reservoir
+        }
 
         state.pumpBatteryPercent = await fetchPumpBatteryPercent()
 

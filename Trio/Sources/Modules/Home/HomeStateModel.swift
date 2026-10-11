@@ -5,6 +5,7 @@ import Foundation
 import LoopKit
 import LoopKitUI
 import Observation
+import OmnipodKit
 import SwiftDate
 import SwiftUI
 
@@ -913,7 +914,14 @@ extension Home {
             Task {
                 let reservoir = await provider.pumpReservoir()
                 await MainActor.run {
-                    self.reservoir = reservoir
+                    // UI only: the stored value stays "50+", so nothing estimated gets uploaded
+                    if reservoir == 0xDEAD_BEEF,
+                       let estimate = (self.provider.deviceManager.pumpManager as? OmniPumpManager)?.state.estimatedReservoirLevel
+                    {
+                        self.reservoir = Decimal(estimate)
+                    } else {
+                        self.reservoir = reservoir
+                    }
                 }
             }
         }
