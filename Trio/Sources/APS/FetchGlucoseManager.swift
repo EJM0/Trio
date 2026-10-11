@@ -312,11 +312,6 @@ final class BaseFetchGlucoseManager: FetchGlucoseManager, Injectable {
             try await glucoseStorage.storeGlucose(calibrations)
         }
 
-        guard newGlucose.isNotEmpty else {
-            endBackgroundTaskSafely(&backgroundTaskID, taskName: "Glucose Store and Heartbeat Decision")
-            return
-        }
-
         let backfillGlucose = newGlucose.filter { $0.dateString <= syncDate }
         if backfillGlucose.isNotEmpty {
             debug(.deviceManager, "Backfilling glucose...")
@@ -330,18 +325,21 @@ final class BaseFetchGlucoseManager: FetchGlucoseManager, Injectable {
         filteredByDate = newGlucose.filter { $0.dateString > syncDate }
         filtered = glucoseStorage.filterTooFrequentGlucose(filteredByDate, at: syncDate)
 
-        guard filtered.isNotEmpty else {
-            endBackgroundTaskSafely(&backgroundTaskID, taskName: "Glucose Store and Heartbeat Decision")
-            return
+        if filtered.isNotEmpty {
+            debug(.deviceManager, "New glucose found")
+            try await glucoseStorage.storeGlucose(filtered)
         }
-        debug(.deviceManager, "New glucose found")
 
-        try await glucoseStorage.storeGlucose(filtered)
-
-        if settingsManager.settings.smoothGlucose {
+        // Smooth after calibrations and backfill too, not only after new readings
+        if settingsManager.settings.smoothGlucose, calibrations.isNotEmpty || newGlucose.isNotEmpty {
             let smoothingContext = CoreDataStack.shared.newTaskContext()
             smoothingContext.name = "exponentialSmoothingGlucose"
             await exponentialSmoothingGlucose(context: smoothingContext)
+        }
+
+        guard filtered.isNotEmpty else {
+            endBackgroundTaskSafely(&backgroundTaskID, taskName: "Glucose Store and Heartbeat Decision")
+            return
         }
 
         // Push the fresh reading schedule so the pump can align its BLE heartbeat
