@@ -7,11 +7,11 @@ import WatchConnectivity
 
 // MARK: - The loop
 
+/// As on the phone, only a new reading loops: its pump heartbeat and timers start no loop (`FetchGlucoseManager`
+/// heartbeats after storing a new reading, `pumpManagerBLEHeartbeatDidFire` does nothing).
 enum UntetheredLoopTrigger {
-    /// A new CGM reading: the loop, as on the phone.
+    /// A new CGM reading: the loop.
     case newGlucose
-    /// A timer or a wake: loops only when a reading was missed.
-    case fallback
     /// Carbs, a bolus, an override or a temp target changed what the algorithm reads: a determination for
     /// the screens without dosing, as the phone's `determineBasalSync`.
     case treatment
@@ -31,9 +31,6 @@ extension UntetheredWatchManager {
         case .newGlucose:
             // each reading loops once; the phone's last loop, carried over at the takeover, counts as one
             if let used = data.lastLoopGlucose, let newestGlucose, newestGlucose <= used { return }
-        case .fallback:
-            // the CGM drives the loop: a timer must not take the slot of the reading due any moment
-            if let lastLoop = data.lastLoopDate, lastLoop.addingTimeInterval(5.5 * 60) > Date() { return }
         case .treatment:
             break
         }
@@ -736,9 +733,8 @@ private struct WatchReservoir: ReservoirValue {
 }
 
 extension UntetheredWatchManager: PumpManagerDelegate {
-    func pumpManagerBLEHeartbeatDidFire(_: PumpManager) {
-        runLoop(.fallback)
-    }
+    /// As on the phone: the pod's heartbeat keeps the link, the CGM drives the loop.
+    func pumpManagerBLEHeartbeatDidFire(_: PumpManager) {}
 
     func pumpManagerMustProvideBLEHeartbeat(_: PumpManager) -> Bool { false }
 

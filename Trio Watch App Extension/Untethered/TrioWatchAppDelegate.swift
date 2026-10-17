@@ -26,8 +26,8 @@ final class TrioWatchAppDelegate: NSObject, WKApplicationDelegate {
             }
             heldBluetoothTask = task
             heldSince = Date()
+            // a reading in this wake loops through the CGM delegate; the wake itself only checks
             UntetheredWatchManager.shared.recheckCGM()
-            UntetheredWatchManager.shared.runLoop(.fallback)
             DispatchQueue.main.asyncAfter(deadline: .now() + Self.bluetoothHold) {
                 if self.heldBluetoothTask === task {
                     self.heldBluetoothTask = nil

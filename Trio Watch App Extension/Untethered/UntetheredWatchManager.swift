@@ -267,9 +267,9 @@ import WatchConnectivity
         if phase == .active {
             if loopTimer == nil {
                 // the CGM drives the loop; this covers a missed reading while the app runs
+                // no loop of its own: the sensor's acquisition and the alarms, for when no reading comes
                 loopTimer = Timer.scheduledTimer(withTimeInterval: 5 * 60, repeats: true) { [weak self] _ in
                     self?.recheckCGM()
-                    self?.runLoop(.fallback)
                 }
             }
         } else {
