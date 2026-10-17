@@ -165,6 +165,8 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     var isWatchInCharge: Bool { !state.session.isIdle }
     /// The start reads the pump before it offers it: the toggle shows a spinner meanwhile.
     @Published private(set) var isCheckingDevices = false
+    /// The returned pump has answered: what is left is the watch's last records and the audit.
+    @Published private(set) var pumpReturnAnswered = false
     /// How long the start waits for the pump to answer.
     private static let pumpCheckTimeout: TimeInterval = 30
 
@@ -598,6 +600,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             publish()
             return
         }
+        pumpReturnAnswered = false
         let control = apsManager.pumpManager as? ExclusiveDeviceControl
         control?.takeControl()
         debug(.watchManager, "Untethered: reading the pump back")
@@ -634,6 +637,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         }
         if bannerShown { setError(nil) }
         if !state.podEndedOnWatch {
+            pumpReturnAnswered = true
             debug(
                 .watchManager,
                 "Untethered: pump answered after \(Int(Date().timeIntervalSince(started))) s, \(attempts + 1) read(s); \(control?.connectionDiagnostics() ?? "")"

@@ -270,6 +270,8 @@ import WatchConnectivity
             resumeHandedOverTempBasal()
         }
         if wasActive != isActive { handOverAlertNotifications(toWatch: isActive) }
+        // the phone may have confirmed the last records while the hand-back was still open: nothing else says so
+        if wasActive, !isActive { finishSyncIfDone(epoch: epoch) }
         // after the devices are in place, so the Devices page shows them too
         if isActive { publishToWatchState() }
         updateTimers()
