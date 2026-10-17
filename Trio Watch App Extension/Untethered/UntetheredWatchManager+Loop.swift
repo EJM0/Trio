@@ -1213,25 +1213,17 @@ extension UntetheredWatchManager {
         }
         let dayAgo = Date().addingTimeInterval(-24 * 3600)
         let boluses = data.pumpHistory.filter { [.bolus, .smb].contains($0.type) && $0.timestamp >= dayAgo }
-            .compactMap { event in
-                event.amount.map {
-                    WatchTreatmentMarker(
-                        id: event.id,
-                        date: event.timestamp,
-                        kind: event.type == .smb || event.isSMB == true ? .smb : .bolus,
-                        amount: NSDecimalNumber(decimal: $0).doubleValue
-                    )
-                }
+            .map { event in
+                WatchTreatmentMarker(
+                    id: event.id,
+                    date: event.timestamp,
+                    kind: event.type == .smb || event.isSMB == true ? .smb : .bolus
+                )
             }
         let carbs = data.carbs.filter { ($0.actualDate ?? $0.createdAt) >= dayAgo && !($0.isFPU ?? false) && $0.carbs > 0 }
             .map { entry in
                 let date = entry.actualDate ?? entry.createdAt
-                return WatchTreatmentMarker(
-                    id: entry.id ?? "\(date.timeIntervalSince1970)",
-                    date: date,
-                    kind: .carbs,
-                    amount: NSDecimalNumber(decimal: entry.carbs).doubleValue
-                )
+                return WatchTreatmentMarker(id: entry.id ?? "\(date.timeIntervalSince1970)", date: date, kind: .carbs)
             }
         state.treatmentMarkers = boluses + carbs
         if let lastLoop = data.lastLoopDate {
