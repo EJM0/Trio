@@ -323,13 +323,14 @@ import Testing
         var state = UntetheredPhoneState()
         state.audit = UntetheredAuditPoint(epoch: 7, start: t0, startUnits: 10, end: t0.addingTimeInterval(3600), endUnits: 11.5)
         state.watchPendingDoses = [7: ["74656d70"]]
+        state.auditFinding = "The records show 0.87 U more insulin than the pump delivered."
         let decoded = try JSONDecoder().decode(UntetheredPhoneState.self, from: JSONEncoder().encode(state))
         #expect(decoded == state)
         #expect(decoded.audit?.delivered == 1.5)
         #expect(decoded.watchPendingDoseIdentifiers == ["74656d70"])
         // a file written before these fields existed still reads
         let old = try JSONDecoder().decode(UntetheredPhoneState.self, from: Data(#"{"pumpReturnPending":true}"#.utf8))
-        #expect(old.audit == nil && old.watchPendingDoses.isEmpty && old.pumpReturnPending)
+        #expect(old.audit == nil && old.auditFinding == nil && old.watchPendingDoses.isEmpty && old.pumpReturnPending)
     }
 
     @Test("smoothing: steady glucose stays put, a gap falls back to raw, 38 ends the window") func smoothing() {

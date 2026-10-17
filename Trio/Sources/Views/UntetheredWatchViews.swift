@@ -111,10 +111,11 @@ struct UntetheredOverrideButton: View {
 
 /// `content`, or the untethered notice while the watch has the pump. `banner` draws it in the home screen's
 /// own panel style; a tap offers ending untethered mode or taking the pump back, so the banner only shows it is
-/// tappable while there is something to offer.
+/// tappable while there is something to offer. `content` gets the last session's audit finding, so it updates
+/// with it.
 struct UntetheredBannerSlot<Content: View, Banner: View>: View {
     @ObservedObject var manager: UntetheredPhoneManager
-    @ViewBuilder let content: () -> Content
+    @ViewBuilder let content: (_ auditFinding: String?) -> Content
     let banner: (_ title: String, _ subtitle: String, _ isTappable: Bool, _ action: @escaping () -> Void) -> Banner
     @State private var showActions = false
     @State private var confirmForce = false
@@ -138,7 +139,7 @@ struct UntetheredBannerSlot<Content: View, Banner: View>: View {
             }
             .untetheredForceDialog(isPresented: $confirmForce, manager: manager)
         } else {
-            content()
+            content(manager.state.auditFinding)
         }
     }
 }
