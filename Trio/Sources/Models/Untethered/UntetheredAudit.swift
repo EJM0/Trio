@@ -6,6 +6,21 @@ enum UntetheredAudit {
     /// Below this the records explain the pump: pulse rounding and per-minute basal steps.
     static let tolerance: Decimal = 0.2
 
+    enum Verdict: Equatable {
+        case explained
+        /// The pump delivered this much that no record explains.
+        case unrecorded(Decimal)
+        /// The records claim this much more than the pump delivered.
+        case overstated(Decimal)
+    }
+
+    static func verdict(delivered: Decimal, expected: Decimal) -> Verdict {
+        let unexplained = delivered - expected
+        if unexplained > tolerance { return .unrecorded(unexplained) }
+        if unexplained < -tolerance { return .overstated(-unexplained) }
+        return .explained
+    }
+
     /// What `history` says the pump delivered between `start` and `end`: boluses, plus basal minute by
     /// minute from temp basals, suspensions and otherwise the scheduled profile.
     static func expectedDelivery(
@@ -53,4 +68,18 @@ enum UntetheredAudit {
         }
         return boluses + basal
     }
+}
+
+/// The pump's delivered total at a session's start and at its return. Kept until the watch's last records are in,
+/// so the complete history judges the same span again.
+struct UntetheredAuditPoint: Codable, Equatable {
+    let epoch: Int
+    let start: Date
+    let startUnits: Double
+    let end: Date
+    let endUnits: Double
+    /// The banner this audit raised, replaced only while it is still the one showing.
+    var message: String?
+
+    var delivered: Decimal { Decimal(endUnits - startUnits) }
 }

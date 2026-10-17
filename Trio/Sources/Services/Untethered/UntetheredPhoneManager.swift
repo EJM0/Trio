@@ -16,7 +16,14 @@ struct UntetheredPhoneState: Codable, Equatable {
     var podEndedOnWatch = false
     /// Per epoch, the latest version of each record already stored.
     var applied: [Int: [String: UntetheredSyncEntry]] = [:]
+    /// Per epoch, the sync identifiers of doses the watch last reported as still running. Only the watch's pump
+    /// manager can finalize them, so the phone's own pending reports must not purge them.
+    var watchPendingDoses: [Int: Set<String>] = [:]
+    /// The return's audit, judged again once the watch's last records are in.
+    var audit: UntetheredAuditPoint?
     var lastError: String?
+
+    var watchPendingDoseIdentifiers: Set<String> { watchPendingDoses.values.reduce(into: []) { $0.formUnion($1) } }
 }
 
 /// A field added since the file was written decodes to its default instead of failing the whole file, which would
@@ -29,6 +36,9 @@ extension UntetheredPhoneState {
         pumpReturnPending = try container.decodeIfPresent(Bool.self, forKey: .pumpReturnPending) ?? defaults.pumpReturnPending
         podEndedOnWatch = try container.decodeIfPresent(Bool.self, forKey: .podEndedOnWatch) ?? defaults.podEndedOnWatch
         applied = try container.decodeIfPresent([Int: [String: UntetheredSyncEntry]].self, forKey: .applied) ?? defaults.applied
+        watchPendingDoses = try container.decodeIfPresent([Int: Set<String>].self, forKey: .watchPendingDoses)
+            ?? defaults.watchPendingDoses
+        audit = try container.decodeIfPresent(UntetheredAuditPoint.self, forKey: .audit)
         lastError = try container.decodeIfPresent(String.self, forKey: .lastError)
     }
 }
@@ -600,49 +610,87 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             }
         }
         await audit(odometer)
+        // the last records may have come in while the audit read the history
+        if let point = state.audit, point.epoch == epoch, state.applied[epoch] == nil {
+            await judge(point, historyComplete: true)
+        }
         UntetheredGate.update { $0.pumpReturnPending = false }
         publish()
         debug(.watchManager, "Untethered: pump is back on the phone")
         apsManager.heartbeat(date: Date())
     }
 
-    /// Insulin the pump delivered that no record explains is booked now, as a bolus that the
-    /// watch's records replace once they arrive. Records claiming more than the pump delivered
-    /// only warn: that direction is safe.
+    /// Insulin the pump delivered that no record explains is booked now, as a bolus. Records claiming more than the
+    /// pump delivered only warn: that direction is safe. A history still missing the watch's last records is judged
+    /// again once they are in.
     @MainActor private func audit(_ odometer: PumpDeliveryOdometer) async {
         let session = state.session
         guard let start = session.startStatus, let startUnits = start.deliveredUnits,
               let current = odometer.deliveredUnits
         else { return }
+        let point = UntetheredAuditPoint(
+            epoch: session.epoch,
+            start: start.date,
+            startUnits: startUnits,
+            end: current.at,
+            endUnits: current.units
+        )
+        await judge(point, historyComplete: state.applied[session.epoch] == nil)
+    }
+
+    /// Judges the span between the pump's two readings against the history as it is now.
+    @MainActor private func judge(_ point: UntetheredAuditPoint, historyComplete: Bool) async {
+        // taken before the history is read, so the complete history judges it only once
+        UntetheredGate.update { $0.audit = historyComplete ? nil : point }
         do {
+            // an earlier verdict's booking is replaced, never counted as a record
+            await removeGap(epoch: point.epoch)
             let expected = UntetheredAudit.expectedDelivery(
-                from: start.date,
-                to: current.at,
+                from: point.start,
+                to: point.end,
                 history: try await openAPS.algorithmPumpHistory(),
                 basalProfile: storage.retrieve(OpenAPS.Settings.basalProfile, as: [BasalProfileEntry].self) ?? []
             )
-            let unexplained = Decimal(current.units - startUnits) - expected
-            debug(.watchManager, "Untethered: audit — pump \(current.units - startUnits) U, records \(expected) U")
-            if unexplained > UntetheredAudit.tolerance {
-                try await bookGap(unexplained, at: current.at, epoch: session.epoch)
-                setError(
-                    String(
-                        localized: "The pump delivered \(unexplained.formatted()) U the phone has no record of yet. It is counted as a bolus until the watch's records arrive."
+            debug(
+                .watchManager,
+                "Untethered: audit\(historyComplete ? "" : " (watch history incomplete)") — pump \(point.delivered) U, records \(expected) U"
+            )
+            let message: String?
+            switch UntetheredAudit.verdict(delivered: point.delivered, expected: expected) {
+            case let .unrecorded(units):
+                try await bookGap(units, at: point.end, epoch: point.epoch)
+                let amount = units.formatted(.number.precision(.fractionLength(0 ... 2)))
+                message = historyComplete
+                    ? String(localized: "The pump delivered \(amount) U that no record explains. It is counted as a bolus.")
+                    : String(
+                        localized: "The pump delivered \(amount) U the phone has no record of yet. It is counted as a bolus until the watch's records arrive."
                     )
-                )
-            } else if unexplained < -UntetheredAudit.tolerance {
-                setError(
-                    String(
+            case let .overstated(units):
+                let amount = units.formatted(.number.precision(.fractionLength(0 ... 2)))
+                message = historyComplete
+                    ? String(
+                        localized: "The records show \(amount) U more insulin than the pump delivered. Insulin on board may be overstated."
+                    )
+                    : String(
                         localized: "The records show more insulin than the pump delivered. Insulin on board may be overstated until the watch's records arrive."
                     )
-                )
+            case .explained:
+                message = nil
             }
+            // a finding always shows; an explained span only takes down the audit's own banner
+            if message != nil || state.lastError == point.message { setError(message) }
+            if !historyComplete { UntetheredGate.update { $0.audit?.message = message } }
         } catch {
             warning(.watchManager, "Untethered: audit failed: \(error.localizedDescription)")
         }
     }
 
     private static func gapIdentifier(_ epoch: Int) -> String { "untethered-gap-\(epoch)" }
+
+    /// `NewPumpEvent` replaces a dose's sync identifier with its raw data in hex; the row is stored under that.
+    private static func gapSyncIdentifier(_ epoch: Int) -> String {
+        Data(gapIdentifier(epoch).utf8).map { String(format: "%02hhx", $0) }.joined()
+    }
 
     private func bookGap(_ units: Decimal, at date: Date, epoch: Int) async throws {
         let identifier = Self.gapIdentifier(epoch)
@@ -661,12 +709,18 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
 
     private func removeGap(epoch: Int) async {
         let context = CoreDataStack.shared.newTaskContext()
-        await context.perform {
+        let uploaded: [String] = await context.perform {
             let request = PumpEventStored.fetchRequest() as NSFetchRequest<PumpEventStored>
-            request.predicate = NSPredicate(format: "syncIdentifier == %@", Self.gapIdentifier(epoch))
-            guard let rows = try? context.fetch(request), !rows.isEmpty else { return }
+            request.predicate = NSPredicate(format: "syncIdentifier == %@", Self.gapSyncIdentifier(epoch))
+            guard let rows = try? context.fetch(request), !rows.isEmpty else { return [] }
+            let ids = rows.filter(\.isUploadedToNS).compactMap(\.id)
             rows.forEach(context.delete)
             try? context.save()
+            return ids
+        }
+        // as the pump history withdraws a purged treatment
+        for id in uploaded {
+            await nightscoutManager.deleteInsulin(withID: id)
         }
     }
 
@@ -737,7 +791,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         var applied = state.applied[epoch] ?? [:]
         for record in records.sorted(by: { $0.date < $1.date }) where applied[record.key]?.id != record.id {
             do {
-                try await store(record)
+                try await store(record, epoch: epoch)
                 applied[record.key] = record.syncEntry
             } catch {
                 // left out of the applied set, so the next sync asks for it again
@@ -762,14 +816,22 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         return records.filter { applied[$0.key]?.id == $0.id }.map(\.id)
     }
 
-    private func store(_ record: UntetheredRecord) async throws {
+    private func store(_ record: UntetheredRecord, epoch: Int) async throws {
         switch record.kind {
         case let .pumpEvent(data):
             guard let raw = try PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? NewPumpEvent
                 .RawValue,
                 let event = NewPumpEvent(rawValue: raw)
             else { throw UntetheredError.unavailable("unreadable pump event") }
+            // held before the row exists, so no purge can fall in between; released once the row is final
+            let pendingDose = event.dose?.syncIdentifier.flatMap { $0.isEmpty ? nil : $0 }
+            if let pendingDose, event.dose?.isMutable == true {
+                UntetheredGate.update { $0.watchPendingDoses[epoch, default: []].insert(pendingDose) }
+            }
             try await pumpHistoryStorage.storePumpEvents([event], replacePendingEvents: false)
+            if let pendingDose, event.dose?.isMutable != true {
+                UntetheredGate.update { $0.watchPendingDoses[epoch]?.remove(pendingDose) }
+            }
         case let .pumpEventDropped(syncIdentifier):
             // as `storePumpEvents(replacePendingEvents: true)` purges an unasserted pending row
             let context = CoreDataStack.shared.newTaskContext()
@@ -780,6 +842,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 rows.forEach(context.delete)
                 try? context.save()
             }
+            UntetheredGate.update { $0.watchPendingDoses[epoch]?.remove(syncIdentifier) }
         case let .glucose(glucose):
             try await glucoseStorage.storeGlucose([glucose])
         case let .glucoseDeleted(date):
@@ -948,10 +1011,32 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     }
 
     @MainActor private func finishSync(epoch: Int) async {
-        await removeGap(epoch: epoch)
+        await freezeWatchDoses(epoch: epoch)
         UntetheredGate.update { $0.applied[epoch] = nil }
         publish()
         debug(.watchManager, "Untethered: history of session \(epoch) complete")
+        // a return audited before the history was complete is judged again; one still reading the pump does it itself
+        if !state.pumpReturnPending, let point = state.audit, point.epoch == epoch {
+            await judge(point, historyComplete: true)
+        }
+    }
+
+    /// The watch's last records are in, so it finalizes nothing more: a dose it last reported as running stays as
+    /// reported, final, and the phone's own pending reports leave it alone from here on.
+    @MainActor private func freezeWatchDoses(epoch: Int) async {
+        guard let identifiers = state.watchPendingDoses[epoch] else { return }
+        if !identifiers.isEmpty {
+            let context = CoreDataStack.shared.newTaskContext()
+            await context.perform {
+                let request = PumpEventStored.fetchRequest() as NSFetchRequest<PumpEventStored>
+                request.predicate = NSPredicate(format: "syncIdentifier IN %@ AND isMutable == YES", Array(identifiers))
+                guard let rows = try? context.fetch(request), !rows.isEmpty else { return }
+                rows.forEach { $0.isMutable = false }
+                try? context.save()
+            }
+            debug(.watchManager, "Untethered: \(identifiers.count) dose(s) the watch left running kept as it reported them")
+        }
+        UntetheredGate.update { $0.watchPendingDoses[epoch] = nil }
     }
 }
 

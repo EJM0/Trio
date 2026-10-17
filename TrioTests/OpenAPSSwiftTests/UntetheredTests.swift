@@ -295,6 +295,28 @@ import Testing
         #expect(abs(NSDecimalNumber(decimal: expected - 4.5).doubleValue) < 0.0001)
     }
 
+    @Test("audit: the verdict leaves the tolerance alone and names the difference") func auditVerdict() {
+        // in hundredths: a float literal would not be exact as a Decimal
+        func units(_ hundredths: Int) -> Decimal { Decimal(hundredths) / 100 }
+        #expect(UntetheredAudit.verdict(delivered: units(345), expected: units(357)) == .explained)
+        #expect(UntetheredAudit.verdict(delivered: units(300), expected: units(250)) == .unrecorded(units(50)))
+        // 16.45 U delivered, records 17.32 U: the 2026-10-17 return that lost the watch's zero temps
+        #expect(UntetheredAudit.verdict(delivered: units(1645), expected: units(1732)) == .overstated(units(87)))
+    }
+
+    @Test("audit: a return's point survives a relaunch until the complete history judges it") func auditPointPersistence() throws {
+        var state = UntetheredPhoneState()
+        state.audit = UntetheredAuditPoint(epoch: 7, start: t0, startUnits: 10, end: t0.addingTimeInterval(3600), endUnits: 11.5)
+        state.watchPendingDoses = [7: ["74656d70"]]
+        let decoded = try JSONDecoder().decode(UntetheredPhoneState.self, from: JSONEncoder().encode(state))
+        #expect(decoded == state)
+        #expect(decoded.audit?.delivered == 1.5)
+        #expect(decoded.watchPendingDoseIdentifiers == ["74656d70"])
+        // a file written before these fields existed still reads
+        let old = try JSONDecoder().decode(UntetheredPhoneState.self, from: Data(#"{"pumpReturnPending":true}"#.utf8))
+        #expect(old.audit == nil && old.watchPendingDoses.isEmpty && old.pumpReturnPending)
+    }
+
     @Test("smoothing: steady glucose stays put, a gap falls back to raw, 38 ends the window") func smoothing() {
         func series(_ values: [Int], every minutes: Double = 5) -> [(date: Date?, glucose: Int)] {
             values.enumerated().map { (date: t0.addingTimeInterval(Double($0.offset) * minutes * 60), glucose: $0.element) }
