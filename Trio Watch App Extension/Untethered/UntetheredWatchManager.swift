@@ -33,9 +33,9 @@ import WatchConnectivity
 
     /// Records travel in batches small enough for an interactive message.
     private static let recordsPerMessage = 40
-    /// While the watch holds the sensor link, a backlog goes this many batches at a time; the next burst waits
-    /// until the phone answered for every batch of the last, or this long at most.
-    private static let batchesPerBurst = 5
+    /// While the watch holds the sensor link, a backlog goes one batch at a time, each checked against the reading
+    /// window; the next waits until the phone answered for the last, or this long at most.
+    private static let batchesPerBurst = 1
     private static let burstTimeout: TimeInterval = 30
     /// After a batch failed with the phone in reach: no tight loop of sends that keep failing.
     private static let retryDelay: TimeInterval = 15
@@ -606,10 +606,10 @@ import WatchConnectivity
     /// does the watch drop it, so its backlog stays as small as the phone's reach allows.
     ///
     /// While the watch holds the sensor link the two share its radio: history then goes only to a reachable
-    /// phone, never around the next reading, and a few batches at a time, each burst once the phone has answered
-    /// for the last, so none piles up in WatchConnectivity and runs into the reading. Nothing is queued there either
-    /// while the phone is away, which would send the whole backlog at once whenever it came back. A hand-back lets
-    /// go of the sensor anyway and sends everything (`ignoringSensor`).
+    /// phone, never while the sensor's link is up or around the next reading, and one batch at a time, each once the
+    /// phone has answered for the last, so none piles up in WatchConnectivity and runs into the reading. Nothing is
+    /// queued there either while the phone is away, which would send the whole backlog at once whenever it came back.
+    /// A hand-back lets go of the sensor anyway and sends everything (`ignoringSensor`).
     func streamRecords(ignoringSensor: Bool = false) {
         streamTimer?.invalidate()
         streamTimer = nil
@@ -689,8 +689,10 @@ import WatchConnectivity
     }
 
     /// The end of the window around the watch's next sensor reading, or nil while clear of it or holding no sensor.
+    /// A link still up after its reading (backfill) holds it too, checked again shortly.
     func sensorWindowEnd(now: Date) -> Date? {
         guard holdsSensorLink else { return nil }
+        if watchCGMIsConnected(cgmManager) { return now.addingTimeInterval(5) }
         return UntetheredSensorWindow.end(now: now, lastReading: store.data.glucose.map(\.dateString).max())
     }
 

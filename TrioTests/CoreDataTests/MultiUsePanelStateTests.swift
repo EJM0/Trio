@@ -36,8 +36,10 @@ import Testing
             resolve(lastGlucoseDate: fresh, maxIOB: 0, dosingMode: .lowGlucoseSuspend, untetheredAuditFinding: finding)
                 == .untetheredAudit(finding)
         )
-        #expect(resolve(lastGlucoseDate: fresh, hasUnacknowledgedReleaseNotes: true, untetheredAuditFinding: finding)
-            == .untetheredAudit(finding))
+        #expect(
+            resolve(lastGlucoseDate: fresh, hasUnacknowledgedReleaseNotes: true, untetheredAuditFinding: finding)
+                == .untetheredAudit(finding)
+        )
         #expect(resolve(lastGlucoseDate: fresh, untetheredAuditFinding: nil) == .stats)
     }
 

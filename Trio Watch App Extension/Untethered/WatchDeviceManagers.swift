@@ -22,6 +22,11 @@ func watchCGMRecheckAcquisition(_ manager: CGMManager?) {
     (manager as? G7CGMManager)?.recheckAcquisition()
 }
 
+/// The sensor's link is up right now: a reading or its backfill is on the radio.
+func watchCGMIsConnected(_ manager: CGMManager?) -> Bool {
+    (manager as? G7CGMManager)?.isConnected ?? false
+}
+
 /// The Devices page as the phone fills it (`AppleWatchManager.gatherPeripherals`), from the watch's own
 /// pump and sensor, so it looks the same untethered.
 func publishWatchPeripherals(pump: PumpManager?, cgm: CGMManager?, reservoir: Decimal?, to state: WatchState) {

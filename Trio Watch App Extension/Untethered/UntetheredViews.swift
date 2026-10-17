@@ -444,7 +444,8 @@ struct UntetheredLoopStatusView: View {
                             ForEach(tags(determination), id: \.self) { AlgorithmPill(tag: $0) }
                         }
                         Text("Current Algorithm Reasoning").font(.footnote.bold()).padding(.top, 6)
-                        Text(determination.reasonConclusion.prefix(1).uppercased() + determination.reasonConclusion.dropFirst()).font(.caption2)
+                        Text(determination.reasonConclusion.prefix(1).uppercased() + determination.reasonConclusion.dropFirst())
+                            .font(.caption2)
                     } else {
                         Text("No recent oref algorithm determination.").font(.caption2).foregroundStyle(.secondary)
                     }
@@ -481,7 +482,10 @@ struct UntetheredLoopStatusView: View {
         var tags = determination.reasonParts.map { AlgorithmPill.formatted($0, isMmolL: isMmolL) }
         if data.grant?.smoothGlucose == true { tags.append("Smoothing: On") }
         if let tdd = data.tddRows.max(by: { $0.date < $1.date })?.total ?? data.grant?.tdd.currentTDD, tdd != 0 {
-            tags.append("TDD: \(NSDecimalNumber(decimal: tdd).doubleValue.formatted(.number.precision(.fractionLength(0 ... 1))))")
+            tags
+                .append(
+                    "TDD: \(NSDecimalNumber(decimal: tdd).doubleValue.formatted(.number.precision(.fractionLength(0 ... 1))))"
+                )
         }
         return tags
     }
@@ -494,8 +498,17 @@ private struct AlgorithmPill: View {
     private var color: Color {
         if tag.contains("SMB Delivery Ratio:") { return .UAM }
         if tag.contains("Bolus") { return .green }
-        if ["TDD:", "tdd_factor", "Sigmoid function", "Logarithmic formula", "AF:", "Autosens/Dynamic Limit:",
-            "Dynamic ISF/CR", "Basal ratio", "SMB Ratio"].contains(where: tag.contains) { return .ZT }
+        if [
+            "TDD:",
+            "tdd_factor",
+            "Sigmoid function",
+            "Logarithmic formula",
+            "AF:",
+            "Autosens/Dynamic Limit:",
+            "Dynamic ISF/CR",
+            "Basal ratio",
+            "SMB Ratio"
+        ].contains(where: tag.contains) { return .ZT }
         if tag.contains("Middleware:") { return .red }
         if tag.contains("Smoothing: On") { return .gray }
         return .insulin
@@ -511,7 +524,17 @@ private struct AlgorithmPill: View {
             .overlay(Capsule().stroke(color.opacity(0.4), lineWidth: 1.5))
     }
 
-    private static let glucoseNames = ["ISF", "Target", "Dev", "BGI", "minPredBG", "minGuardBG", "IOBpredBG", "COBpredBG", "UAMpredBG"]
+    private static let glucoseNames = [
+        "ISF",
+        "Target",
+        "Dev",
+        "BGI",
+        "minPredBG",
+        "minGuardBG",
+        "IOBpredBG",
+        "COBpredBG",
+        "UAMpredBG"
+    ]
 
     /// As `TagCloudView.formatGlucoseTags`: "minPredBG 150" reads "minPredBG: 150", and glucose values go to mmol/L.
     static func formatted(_ tag: String, isMmolL: Bool) -> String {
@@ -519,7 +542,8 @@ private struct AlgorithmPill: View {
         var values = String(tag.dropFirst(name.count)).trimmingCharacters(in: CharacterSet(charactersIn: ": "))
         if isMmolL, let regex = try? NSRegularExpression(pattern: "-?\\d+\\.?\\d*") {
             for match in regex.matches(in: values, range: NSRange(values.startIndex..., in: values)).reversed() {
-                guard let range = Range(match.range, in: values), let mgdl = Decimal(string: String(values[range])) else { continue }
+                guard let range = Range(match.range, in: values),
+                      let mgdl = Decimal(string: String(values[range])) else { continue }
                 values.replaceSubrange(range, with: mgdl.asMmolL.description)
             }
         }
@@ -533,7 +557,7 @@ private struct PillFlow: Layout {
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache _: inout ()) -> CGSize {
         let rows = rows(width: proposal.width ?? .infinity, subviews: subviews)
-        let height = rows.map { $0.map { $0.height }.max() ?? 0 }.reduce(0) { $0 + $1 } + spacing * CGFloat(max(rows.count - 1, 0))
+        let height = rows.map { $0.map(\.height).max() ?? 0 }.reduce(0) { $0 + $1 } + spacing * CGFloat(max(rows.count - 1, 0))
         return CGSize(width: proposal.width ?? rows.map { $0.reduce(0) { $0 + $1.width } }.max() ?? 0, height: height)
     }
 
