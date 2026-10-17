@@ -660,7 +660,7 @@ extension Home.RootView {
         .buttonStyle(.plain)
     }
 
-    var multiUsePanelState: MultiUsePanelState {
+    func multiUsePanelState(untetheredAuditFinding: String?) -> MultiUsePanelState {
         MultiUsePanelState.resolve(
             notificationsDisabled: notificationsDisabled,
             pumpTimeMismatch: state.pumpStatusBadgeImage != nil,
@@ -668,6 +668,7 @@ extension Home.RootView {
             maxIOB: state.maxIOB,
             hasUnacknowledgedReleaseNotes: releaseNotesService.hasUnacknowledgedNotes,
             dosingMode: state.dosingMode,
+            untetheredAuditFinding: untetheredAuditFinding,
             now: state.timerDate
         )
     }
@@ -723,8 +724,8 @@ extension Home.RootView {
     }
 
     /// One slot, highest-priority state wins; stats is the default face.
-    @ViewBuilder func multiUsePanel() -> some View {
-        switch multiUsePanelState {
+    @ViewBuilder func multiUsePanel(untetheredAuditFinding: String?) -> some View {
+        switch multiUsePanelState(untetheredAuditFinding: untetheredAuditFinding) {
         case .notificationsDisabled:
             panelBanner(
                 systemImage: "bell.slash.fill",
@@ -754,6 +755,22 @@ extension Home.RootView {
                 tint: .orange
             ) {
                 showManualGlucose = true
+            }
+        case let .untetheredAudit(finding):
+            panelBanner(
+                systemImage: "applewatch.slash",
+                title: String(localized: "Insulin Check After Untethered Mode"),
+                subtitle: String(localized: "Pump and records differ. Tap for details."),
+                tint: .orange
+            ) {
+                showUntetheredAuditFinding = true
+            }
+            .alert(String(localized: "Insulin Check After Untethered Mode"), isPresented: $showUntetheredAuditFinding) {
+                Button(String(localized: "OK"), role: .cancel) {
+                    resolver.resolve(UntetheredPhoneManager.self)?.acknowledgeAuditFinding()
+                }
+            } message: {
+                Text(finding)
             }
         case .maxIOBZero:
             panelBanner(
@@ -820,8 +837,8 @@ extension Home.RootView {
             .frame(height: HomeLayout.bottomPanelHeight)
             .animation(.easeInOut(duration: 0.2), value: state.bolusProgress != nil)
 
-            UntetheredBannerSlot(manager: resolver.resolve(UntetheredPhoneManager.self)!) {
-                multiUsePanel()
+            UntetheredBannerSlot(manager: resolver.resolve(UntetheredPhoneManager.self)!) { auditFinding in
+                multiUsePanel(untetheredAuditFinding: auditFinding)
             } banner: { title, subtitle, isTappable, action in
                 panelBanner(
                     systemImage: "applewatch.radiowaves.left.and.right",

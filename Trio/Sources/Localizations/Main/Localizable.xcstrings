@@ -182971,6 +182971,9 @@
         }
       }
     },
+    "Insulin Check After Untethered Mode" : {
+
+    },
     "Insulin Limit Reached" : {
       "localizations" : {
         "bg" : {
@@ -256061,6 +256064,9 @@
         }
       }
     },
+    "Pump and records differ. Tap for details." : {
+
+    },
     "Pump battery" : {
       "localizations" : {
         "bg" : {
@@ -314633,9 +314639,6 @@
     "The pump delivered %@ U that no record explains. It is counted as a bolus." : {
 
     },
-    "The pump delivered %@ U the phone has no record of yet. It is counted as a bolus until the watch's records arrive." : {
-
-    },
     "The pump doesn't answer. Keep the phone close to the pod and try again." : {
 
     },
@@ -314779,9 +314782,6 @@
       }
     },
     "The records show %@ U more insulin than the pump delivered. Insulin on board may be overstated." : {
-
-    },
-    "The records show more insulin than the pump delivered. Insulin on board may be overstated until the watch's records arrive." : {
 
     },
     "The Remaining Carbs Cap defines the upper limit for how many carbs the system will assume are absorbing over 4 hours, even when there's no clear sign of absorption from your glucose readings." : {

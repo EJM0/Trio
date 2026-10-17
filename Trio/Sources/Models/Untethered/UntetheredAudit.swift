@@ -78,8 +78,6 @@ struct UntetheredAuditPoint: Codable, Equatable {
     let startUnits: Double
     let end: Date
     let endUnits: Double
-    /// The banner this audit raised, replaced only while it is still the one showing.
-    var message: String?
 
     var delivered: Decimal { Decimal(endUnits - startUnits) }
 }

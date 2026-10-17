@@ -21,6 +21,8 @@ struct UntetheredPhoneState: Codable, Equatable {
     var watchPendingDoses: [Int: Set<String>] = [:]
     /// The return's audit, judged again once the watch's last records are in.
     var audit: UntetheredAuditPoint?
+    /// What the complete history still couldn't explain; on the home screen until acknowledged.
+    var auditFinding: String?
     var lastError: String?
 
     var watchPendingDoseIdentifiers: Set<String> { watchPendingDoses.values.reduce(into: []) { $0.formUnion($1) } }
@@ -39,6 +41,7 @@ extension UntetheredPhoneState {
         watchPendingDoses = try container.decodeIfPresent([Int: Set<String>].self, forKey: .watchPendingDoses)
             ?? defaults.watchPendingDoses
         audit = try container.decodeIfPresent(UntetheredAuditPoint.self, forKey: .audit)
+        auditFinding = try container.decodeIfPresent(String.self, forKey: .auditFinding)
         lastError = try container.decodeIfPresent(String.self, forKey: .lastError)
     }
 }
@@ -168,6 +171,8 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             return String(localized: "The phone is still taking the pump back from the last session.")
         }
         setError(nil)
+        // about the last session; this one is judged on its own
+        UntetheredGate.update { $0.auditFinding = nil }
         isCheckingDevices = true
         defer { isCheckingDevices = false }
         do {
@@ -193,6 +198,11 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
 
     @MainActor func forceTakeBack() async {
         await apply(.forceTakeBack)
+    }
+
+    @MainActor func acknowledgeAuditFinding() {
+        UntetheredGate.update { $0.auditFinding = nil }
+        publish()
     }
 
     // MARK: - From the watch
@@ -622,7 +632,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
 
     /// Insulin the pump delivered that no record explains is booked now, as a bolus. Records claiming more than the
     /// pump delivered only warn: that direction is safe. A history still missing the watch's last records is judged
-    /// again once they are in.
+    /// again once they are in, and only that second verdict is shown.
     @MainActor private func audit(_ odometer: PumpDeliveryOdometer) async {
         let session = state.session
         guard let start = session.startStatus, let startUnits = start.deliveredUnits,
@@ -655,31 +665,29 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 .watchManager,
                 "Untethered: audit\(historyComplete ? "" : " (watch history incomplete)") — pump \(point.delivered) U, records \(expected) U"
             )
-            let message: String?
-            switch UntetheredAudit.verdict(delivered: point.delivered, expected: expected) {
-            case let .unrecorded(units):
+            let verdict = UntetheredAudit.verdict(delivered: point.delivered, expected: expected)
+            // insulin no record explains counts at once, whatever the history still lacks: dosing must not go over it
+            if case let .unrecorded(units) = verdict {
                 try await bookGap(units, at: point.end, epoch: point.epoch)
+            }
+            // only the complete history speaks: what the watch's last records would explain is no finding
+            guard historyComplete else { return }
+            let finding: String?
+            switch verdict {
+            case let .unrecorded(units):
                 let amount = units.formatted(.number.precision(.fractionLength(0 ... 2)))
-                message = historyComplete
-                    ? String(localized: "The pump delivered \(amount) U that no record explains. It is counted as a bolus.")
-                    : String(
-                        localized: "The pump delivered \(amount) U the phone has no record of yet. It is counted as a bolus until the watch's records arrive."
-                    )
+                finding = String(localized: "The pump delivered \(amount) U that no record explains. It is counted as a bolus.")
             case let .overstated(units):
                 let amount = units.formatted(.number.precision(.fractionLength(0 ... 2)))
-                message = historyComplete
-                    ? String(
-                        localized: "The records show \(amount) U more insulin than the pump delivered. Insulin on board may be overstated."
-                    )
-                    : String(
-                        localized: "The records show more insulin than the pump delivered. Insulin on board may be overstated until the watch's records arrive."
-                    )
+                finding = String(
+                    localized: "The records show \(amount) U more insulin than the pump delivered. Insulin on board may be overstated."
+                )
             case .explained:
-                message = nil
+                finding = nil
             }
-            // a finding always shows; an explained span only takes down the audit's own banner
-            if message != nil || state.lastError == point.message { setError(message) }
-            if !historyComplete { UntetheredGate.update { $0.audit?.message = message } }
+            if let finding { warning(.watchManager, "Untethered: \(finding)") }
+            UntetheredGate.update { $0.auditFinding = finding }
+            publish()
         } catch {
             warning(.watchManager, "Untethered: audit failed: \(error.localizedDescription)")
         }
