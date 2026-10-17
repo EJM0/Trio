@@ -127,7 +127,7 @@ struct UntetheredStatusView: View {
 
     private var tiles: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 6) {
-            tile("Basal", systemImage: "chart.bar.fill", tint: .blue, value: data.lastDetermination?.rate.map {
+            tile("Basal", systemImage: "chart.bar.fill", tint: .blue, value: (manager.deliveredBasalRate ?? data.lastDetermination?.rate).map {
                 String(format: "%.2f U/h", NSDecimalNumber(decimal: $0).doubleValue)
             })
             // as the Devices page: the fill-based estimate above 50 U, or "50+" when there is none

@@ -480,7 +480,10 @@ extension UntetheredWatchManager {
             isf: determination?.isf ?? current(grant.insulinSensitivities.sensitivities.map { ($0.start, $0.sensitivity) }),
             carbRatio: determination?.carbRatio ?? current(grant.carbRatios.schedule.map { ($0.start, $0.ratio) }),
             iob: determination?.iob ?? 0,
-            cob: Int16(truncatingIfNeeded: NSDecimalNumber(decimal: (determination?.cob ?? 0).rounded(scale: 0, roundingMode: .down)).intValue),
+            cob: Int16(truncatingIfNeeded: NSDecimalNumber(
+                decimal: (determination?.cob ?? 0)
+                    .rounded(scale: 0, roundingMode: .down)
+            ).intValue),
             useFattyMealCorrectionFactor: useReducedBolus,
             fattyMealFactor: settings.fattyMealFactor,
             useSuperBolus: useSuperBolus,
@@ -1154,6 +1157,17 @@ extension UntetheredWatchManager {
         content.interruptionLevel = .timeSensitive
         let trigger = delay.flatMap { $0 > 0 ? UNTimeIntervalNotificationTrigger(timeInterval: $0, repeats: false) : nil }
         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+    }
+
+    /// What the pump delivers now, for the status page: the running temp, else the scheduled rate. A loop that keeps
+    /// the running temp sets no rate of its own, so its determination can't say.
+    var deliveredBasalRate: Decimal? {
+        guard let pump = pumpManager, let grant = data.grant else { return nil }
+        switch pump.status.basalDeliveryState {
+        case let .tempBasal(dose): return Decimal(dose.unitsPerHour)
+        case .active: return BolusCalculator.scheduleValue(grant.basalProfile.map { ($0.start, $0.rate) }, at: Date())
+        default: return nil
+        }
     }
 
     /// The main screens read `WatchState`; while untethered it shows the watch's own data.
