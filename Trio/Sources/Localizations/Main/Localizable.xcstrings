@@ -86384,6 +86384,9 @@
         }
       }
     },
+    "Checking the watch's records…" : {
+
+    },
     "Checking what the watch delivered before the phone doses again." : {
 
     },
@@ -182833,6 +182836,9 @@
         }
       }
     },
+    "Insulin Check After Untethered Mode" : {
+
+    },
     "Insulin curve" : {
       "comment" : "Insulin curve",
       "extractionState" : "manual",
@@ -182970,9 +182976,6 @@
           }
         }
       }
-    },
-    "Insulin Check After Untethered Mode" : {
-
     },
     "Insulin Limit Reached" : {
       "localizations" : {
@@ -314486,6 +314489,9 @@
 
     },
     "The phone doesn't dose. Bolus and carbs are entered on the watch." : {
+
+    },
+    "The phone doses again once it has checked the watch's records." : {
 
     },
     "The phone doses again once it has read the pump." : {
