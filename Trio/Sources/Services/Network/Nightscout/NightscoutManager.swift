@@ -20,6 +20,8 @@ protocol NightscoutManager: GlucoseSource {
     @discardableResult func uploadNoteTreatment(note: String) async -> Bool
     func importSettings() async -> ScheduledNightscoutProfile?
     var cgmURL: URL? { get }
+    /// Past loops, each as its own device status at its own time, so Nightscout's history shows their forecasts.
+    @discardableResult func uploadDeterminationHistory(_ determinations: [Determination]) async -> Bool
 }
 
 final class BaseNightscoutManager: NightscoutManager, Injectable {
@@ -685,7 +687,9 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
             device: NightscoutTreatment.local,
             openaps: openapsStatus,
             pump: pump,
-            uploader: uploader
+            uploader: uploader,
+            // the loop's own time: a backlog uploaded newest first still leaves Nightscout on the newest loop
+            created_at: fetchedEnactedDetermination?.timestamp ?? modifiedSuggestedDetermination?.deliverAt
         )
 
         do {
@@ -712,6 +716,62 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
         } catch {
             debug(.nightscout, String(describing: error))
         }
+    }
+
+    /// Past loops synced from the untethered watch. Each status carries that loop's IOB, reservoir and forecast and
+    /// its own time; the phone's current IOB, pump status and battery belong only to the live status.
+    @discardableResult func uploadDeterminationHistory(_ determinations: [Determination]) async -> Bool {
+        guard let nightscout = nightscoutAPI, isUploadEnabled else { return false }
+        let units = settingsManager.settings.units
+        let automates = settingsManager.settings.dosingMode.automation != .off
+        let bolusIncrement = settingsManager.preferences.bolusIncrement
+        for var determination in determinations.sorted(by: { ($0.deliverAt ?? .distantPast) < ($1.deliverAt ?? .distantPast) }) {
+            let enactedAt = determination.received == true ? determination.timestamp : nil
+            let time = enactedAt ?? determination.deliverAt ?? Date()
+            if units == .mmolL {
+                determination.reason = parseReasonGlucoseValuesToMmolL(determination.reason)
+                determination.current_target = determination.current_target?.asMmolL
+                determination.minGuardBG = determination.minGuardBG?.asMmolL
+                determination.minPredBG = determination.minPredBG?.asMmolL
+                determination.threshold = determination.threshold?.asMmolL
+            }
+            var suggested = determination
+            suggested.timestamp = determination.deliverAt
+            let iob = determination.iob.map {
+                IOBEntry(
+                    iob: $0, activity: 0, basaliob: 0, bolusiob: 0, netbasalinsulin: 0, bolusinsulin: 0,
+                    iobWithZeroTemp: nil, lastBolusTime: nil, lastTemp: nil, time: time
+                )
+            }
+            let status = NightscoutStatus(
+                device: NightscoutTreatment.local,
+                openaps: OpenAPSStatus(
+                    iob: iob,
+                    suggested: suggested,
+                    enacted: automates && enactedAt != nil ? determination : nil,
+                    version: Bundle.main.releaseVersionNumber ?? "Unknown",
+                    recommendedBolus: nil,
+                    dosingMode: settingsManager.settings.dosingMode.rawValue
+                ),
+                pump: NSPumpStatus(
+                    clock: time,
+                    battery: nil,
+                    reservoir: determination.reservoir,
+                    status: nil,
+                    bolusIncrement: bolusIncrement
+                ),
+                uploader: nil,
+                created_at: time
+            )
+            do {
+                try await nightscout.uploadDeviceStatus(status)
+            } catch {
+                debug(.nightscout, "Past device status upload failed: \(error)")
+                return false
+            }
+        }
+        debug(.nightscout, "Uploaded \(determinations.count) past device status(es)")
+        return true
     }
 
     private func updateOrefDeterminationAsUploaded(_ determination: [Determination]) async {
