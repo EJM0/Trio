@@ -668,5 +668,17 @@ import WatchConnectivity
             // also a copy an earlier build left, when it was sent regardless
             if !allow || !untetheredMode { DispatchQueue.main.async { UntetheredWatchManager.shared.dropStandingGrant() } }
         }
+
+        // the watch-face graph: readings and the target range from the phone
+        if message[WatchMessageKeys.glucoseValues] != nil {
+            ComplicationStore.update(
+                from: self,
+                isMmol: (message[WatchMessageKeys.units] as? String).map { $0 == "mmol/L" },
+                lowMgDL: message["complicationRangeLowMgDL"] as? Double,
+                highMgDL: message["complicationRangeHighMgDL"] as? Double,
+                colorScheme: message["complicationColorScheme"] as? String,
+                targetMgDL: message["complicationTargetMgDL"] as? Double
+            )
+        }
     }
 }

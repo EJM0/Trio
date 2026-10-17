@@ -1199,5 +1199,13 @@ extension UntetheredWatchManager {
         }
         state.maxBolus = grant.maxBolus
         state.maxCarbs = grant.maxCarbs
+        ComplicationStore.update(
+            from: state,
+            isMmol: units != .mgdL,
+            lowMgDL: NSDecimalNumber(decimal: grant.lowGlucose).doubleValue,
+            highMgDL: NSDecimalNumber(decimal: grant.highGlucose).doubleValue,
+            colorScheme: grant.glucoseColorScheme,
+            targetMgDL: NSDecimalNumber(decimal: target).doubleValue
+        )
     }
 }

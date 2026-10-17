@@ -14,6 +14,12 @@ protocol WatchManager {
 /// Handles bidirectional communication between iPhone and Apple Watch
 final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchManager {
     private var session: WCSession?
+    private var lastComplicationTransfer = Date.distantPast
+    private static let complicationTransferInterval: TimeInterval = 28 * 60
+    static let complicationRangeLowKey = "complicationRangeLowMgDL"
+    static let complicationRangeHighKey = "complicationRangeHighMgDL"
+    static let complicationColorSchemeKey = "complicationColorScheme"
+    static let complicationTargetKey = "complicationTargetMgDL"
 
     @Injected() var broadcaster: Broadcaster!
     @Injected() private var apsManager: APSManager!
@@ -599,6 +605,12 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         message[WatchMessageKeys.allowUntetheredStartWithoutPhoneWatch] = settingsManager.settings
             .allowUntetheredStartWithoutPhoneWatch
         message[WatchMessageKeys.untetheredModeWatch] = settingsManager.settings.untetheredModeWatch
+        // the target range the watch-face graph shades, as the Live Activity does
+        message[Self.complicationRangeLowKey] = NSDecimalNumber(decimal: lowGlucose).doubleValue
+        message[Self.complicationRangeHighKey] = NSDecimalNumber(decimal: highGlucose).doubleValue
+        // and the color scheme the graph's readings follow, as on the phone
+        message[Self.complicationColorSchemeKey] = glucoseColorScheme.rawValue
+        message[Self.complicationTargetKey] = NSDecimalNumber(decimal: currentGlucoseTarget).doubleValue
 
         // if session is reachable, it means watch App is in the foreground -> send watchState as message
         // if session is not reachable, it means it's in background -> send watchState as userInfo
@@ -606,6 +618,17 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             session.sendMessage([WatchMessageKeys.watchState: message], replyHandler: nil) { error in
                 debug(.watchManager, "❌ Error sending watch state: \(error)")
             }
+        } else if session.isComplicationEnabled, session.remainingComplicationUserInfoTransfers > 0,
+                  Date().timeIntervalSince(lastComplicationTransfer) >= Self.complicationTransferInterval
+        {
+            // With Trio on the active watch face this wakes the watch app at once so the face shows the new
+            // reading; watchOS allows about 50 a day, so at most one every 28 minutes, the rest as userInfo.
+            session.transferCurrentComplicationUserInfo([WatchMessageKeys.watchState: message])
+            lastComplicationTransfer = Date()
+            debug(
+                .watchManager,
+                "📤 Transferred new WatchState snapshot for the complication (\(session.remainingComplicationUserInfoTransfers) left today)"
+            )
         } else {
             session.transferUserInfo([WatchMessageKeys.watchState: message])
             debug(.watchManager, "📤 Transferred new WatchState snapshot via userInfo")
