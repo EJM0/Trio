@@ -82,7 +82,8 @@ extension UntetheredWatchData {
         localStates = try container.decodeIfPresent([String: Data].self, forKey: .localStates) ?? defaults.localStates
         pumpHistory = try container.decodeIfPresent([PumpHistoryEvent].self, forKey: .pumpHistory) ?? defaults.pumpHistory
         glucose = try container.decodeIfPresent([BloodGlucose].self, forKey: .glucose) ?? defaults.glucose
-        smoothedGlucose = try container.decodeIfPresent([String: Decimal].self, forKey: .smoothedGlucose) ?? defaults.smoothedGlucose
+        smoothedGlucose = try container.decodeIfPresent([String: Decimal].self, forKey: .smoothedGlucose) ?? defaults
+            .smoothedGlucose
         carbs = try container.decodeIfPresent([CarbsEntry].self, forKey: .carbs) ?? defaults.carbs
         tempTargets = try container.decodeIfPresent([TempTarget].self, forKey: .tempTargets) ?? defaults.tempTargets
         activeOverride = try container.decodeIfPresent(Override.self, forKey: .activeOverride)
@@ -90,8 +91,10 @@ extension UntetheredWatchData {
         activeTempTargetKey = try container.decodeIfPresent(String.self, forKey: .activeTempTargetKey)
         autosens = try container.decodeIfPresent(Autosens.self, forKey: .autosens)
         reservoir = try container.decodeIfPresent(Decimal.self, forKey: .reservoir)
-        tddPumpHistory = try container.decodeIfPresent([PumpHistoryEvent].self, forKey: .tddPumpHistory) ?? defaults.tddPumpHistory
-        mutablePumpEventIDs = try container.decodeIfPresent(Set<String>.self, forKey: .mutablePumpEventIDs) ?? defaults.mutablePumpEventIDs
+        tddPumpHistory = try container.decodeIfPresent([PumpHistoryEvent].self, forKey: .tddPumpHistory) ?? defaults
+            .tddPumpHistory
+        mutablePumpEventIDs = try container.decodeIfPresent(Set<String>.self, forKey: .mutablePumpEventIDs) ?? defaults
+            .mutablePumpEventIDs
         tddRows = try container.decodeIfPresent([UntetheredTDD].self, forKey: .tddRows) ?? defaults.tddRows
         tddTenDaySum = try container.decodeIfPresent(Decimal.self, forKey: .tddTenDaySum) ?? defaults.tddTenDaySum
         tddTenDayCount = try container.decodeIfPresent(Int.self, forKey: .tddTenDayCount) ?? defaults.tddTenDayCount
@@ -101,7 +104,8 @@ extension UntetheredWatchData {
         lastLoopError = try container.decodeIfPresent(String.self, forKey: .lastLoopError)
         lastError = try container.decodeIfPresent(String.self, forKey: .lastError)
         podEnded = try container.decodeIfPresent(Bool.self, forKey: .podEnded) ?? defaults.podEnded
-        pendingPumpAlerts = try container.decodeIfPresent([PendingPumpAlert].self, forKey: .pendingPumpAlerts) ?? defaults.pendingPumpAlerts
+        pendingPumpAlerts = try container.decodeIfPresent([PendingPumpAlert].self, forKey: .pendingPumpAlerts) ?? defaults
+            .pendingPumpAlerts
         pending = try container.decodeIfPresent([Int: [String: UntetheredRecord]].self, forKey: .pending) ?? defaults.pending
         entries = try container.decodeIfPresent([Int: [String: UntetheredSyncEntry]].self, forKey: .entries) ?? defaults.entries
         unsent = try container.decodeIfPresent(Set<UUID>.self, forKey: .unsent) ?? defaults.unsent

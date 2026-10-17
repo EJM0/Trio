@@ -1,4 +1,5 @@
 import SwiftUI
+import WatchConnectivity
 
 extension Color {
     /// Untethered watch mode, as on the phone.
@@ -10,6 +11,7 @@ extension Color {
 struct UntetheredStatusView: View {
     let manager: UntetheredWatchManager
     @State private var confirmEnd = false
+    @State private var phoneUnreachable = false
     @State private var confirmStop = false
     @State private var confirmDeactivate = false
     @State private var confirmDiscard = false
@@ -41,6 +43,11 @@ struct UntetheredStatusView: View {
         }
         .confirmationDialog("Hand the pump back to the phone?", isPresented: $confirmEnd) {
             Button("Hand Back") { manager.end() }
+        }
+        .alert("Phone Not Reachable", isPresented: $phoneUnreachable) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Bring the phone close and open Trio on it, then hand back again. Use Emergency Stop if it isn't coming back.")
         }
         .confirmationDialog(
             "Stop now? The watch lets go of the pump at once, cancels the temp basal and stops looping until the phone takes over.",
@@ -172,6 +179,11 @@ struct UntetheredStatusView: View {
 
     // MARK: - Actions
 
+    /// Checked at the press, not from the last reachability change, which can lag.
+    private func whenPhoneReachable(_ action: () -> Void) {
+        if WCSession.default.isReachable { action() } else { phoneUnreachable = true }
+    }
+
     @ViewBuilder private var actions: some View {
         if isDeactivating {
             HStack(spacing: 8) {
@@ -198,17 +210,16 @@ struct UntetheredStatusView: View {
                     note("Starts with the phone nearby and Trio open on it.")
                 }
             case .active where data.podEnded:
-                Button { manager.end() } label: {
+                Button { whenPhoneReachable { manager.end() } } label: {
                     Label("Hand Back", systemImage: "iphone")
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.blue)
-                .disabled(!isPhoneReachable)
                 if !isPhoneReachable {
                     note("Hands back by itself once the phone is nearby.")
                 }
             case .active:
-                Button { confirmEnd = true } label: {
+                Button { whenPhoneReachable { confirmEnd = true } } label: {
                     Label("Hand Back", systemImage: "iphone")
                 }
                 .buttonStyle(.borderedProminent)
