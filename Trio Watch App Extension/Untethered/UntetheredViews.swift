@@ -11,6 +11,10 @@ struct UntetheredStatusView: View {
     let manager: UntetheredWatchManager
     @State private var confirmEnd = false
     @State private var confirmStop = false
+    @State private var confirmDeactivate = false
+    @State private var confirmDiscard = false
+    @State private var isDeactivating = false
+    @State private var deactivateError: String?
 
     private var data: UntetheredWatchData { manager.data }
     private var phase: UntetheredSession.Phase { data.session.phase }
@@ -44,6 +48,28 @@ struct UntetheredStatusView: View {
         ) {
             Button("Emergency Stop", role: .destructive) { manager.emergencyStop() }
         }
+        .confirmationDialog(
+            "Deactivate the pod? It stops delivering insulin and its alarm ends. Remove it, then pair a new pod on the phone.",
+            isPresented: $confirmDeactivate
+        ) {
+            Button("Deactivate Pod", role: .destructive) {
+                isDeactivating = true
+                deactivateError = nil
+                manager.deactivatePod { error in
+                    isDeactivating = false
+                    deactivateError = error
+                }
+            }
+        }
+        .confirmationDialog(
+            "Discard the pod without reaching it? It may keep alarming until you remove it.",
+            isPresented: $confirmDiscard
+        ) {
+            Button("Discard Pod", role: .destructive) {
+                deactivateError = nil
+                manager.discardPod()
+            }
+        }
     }
 
     // MARK: - Header
@@ -69,6 +95,8 @@ struct UntetheredStatusView: View {
 
     private func look(now: Date) -> (symbol: String, tint: Color, title: LocalizedStringKey, subtitle: LocalizedStringKey) {
         switch phase {
+        case .active where data.podEnded:
+            return ("xmark.circle", .orange, "Pod Deactivated", "The phone pairs the next pod; hand back once it is nearby")
         case .active:
             if let lastLoop = data.lastLoopDate {
                 let minutes = max(0, Int(now.timeIntervalSince(lastLoop) / 60))
@@ -144,7 +172,13 @@ struct UntetheredStatusView: View {
     // MARK: - Actions
 
     @ViewBuilder private var actions: some View {
-        if manager.isBusy {
+        if isDeactivating {
+            HStack(spacing: 8) {
+                ProgressView().frame(width: 20)
+                Text("Deactivating the pod…").font(.footnote)
+            }
+            .padding(.top, 4)
+        } else if manager.isBusy {
             HStack(spacing: 8) {
                 ProgressView().frame(width: 20)
                 Text(phase == .ending ? "Handing back…" : "Starting…").font(.footnote)
@@ -162,6 +196,16 @@ struct UntetheredStatusView: View {
                 if !isPhoneReachable {
                     note("Starts with the phone nearby and Trio open on it.")
                 }
+            case .active where data.podEnded:
+                Button { manager.end() } label: {
+                    Label("Hand Back", systemImage: "iphone")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.blue)
+                .disabled(!isPhoneReachable)
+                if !isPhoneReachable {
+                    note("Hands back by itself once the phone is nearby.")
+                }
             case .active:
                 Button { confirmEnd = true } label: {
                     Label("Hand Back", systemImage: "iphone")
@@ -173,6 +217,21 @@ struct UntetheredStatusView: View {
                     note("A bolus is running. Hand back once it is done, or stop it with the treatment button.")
                 }
                 stopButton
+                // an alarming pod goes quiet when deactivated; the phone pairs the next one
+                if let deactivateError {
+                    card(tint: .orange) {
+                        Label(deactivateError, systemImage: "exclamationmark.triangle.fill").font(.footnote)
+                    }
+                    Button(role: .destructive) { confirmDiscard = true } label: {
+                        Label("Discard Pod", systemImage: "trash")
+                    }
+                    .tint(.red)
+                } else {
+                    Button(role: .destructive) { confirmDeactivate = true } label: {
+                        Label("Deactivate Pod", systemImage: "xmark.circle")
+                    }
+                    .tint(.orange)
+                }
             case .ending:
                 stopButton
             case .preparing,

@@ -88,3 +88,17 @@ private func g7LifecycleProgress(_ g7: G7CGMManager) -> (percentComplete: Double
         return nil
     }
 }
+
+/// Deactivates and forgets the pod, as the phone's deactivate screen does; false for a pump this can't do.
+func watchDeactivatePod(_ pump: PumpManager, completion: @escaping (Error?) -> Void) -> Bool {
+    guard let omni = pump as? OmniPumpManager else { return false }
+    omni.deactivateAndForgetPod(completion: completion)
+    return true
+}
+
+/// Forgets a pod that doesn't answer; false for a pump this can't do.
+func watchDiscardPod(_ pump: PumpManager, completion: @escaping () -> Void) -> Bool {
+    guard let omni = pump as? OmniPumpManager else { return false }
+    omni.discardPod(completion: completion)
+    return true
+}

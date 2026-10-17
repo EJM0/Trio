@@ -45,6 +45,8 @@ struct UntetheredWatchData: Codable {
     var lastLoopGlucose: Date?
     var lastLoopError: String?
     var lastError: String?
+    /// The pod was deactivated or discarded here: no loop until the phone, which pairs the next one, takes over.
+    var podEnded = false
     var pendingPumpAlerts: [PendingPumpAlert] = []
 
     // History on its way to the phone, per session.
