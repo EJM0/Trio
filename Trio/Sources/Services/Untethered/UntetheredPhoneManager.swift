@@ -811,19 +811,32 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         }
     }
 
-    /// Nightscout stamps a device status when it arrives, and the upload takes the newest determination not yet
-    /// uploaded, then the next older one: a session's backlog would end with Nightscout showing its oldest loop.
-    /// As a phone that loops live uploads, only the newest enacted and the newest suggested one go up.
+    /// Nightscout's live status is the newest loop; the upload takes the newest determination not yet uploaded, then
+    /// the next older one, each stamped on arrival, so a session's backlog would end with Nightscout showing its oldest
+    /// loop. The newest enacted and the newest suggested one stay for the live upload; the older ones go up as past
+    /// statuses at their own times, so Nightscout's history shows their forecasts.
     private func keepNewestDeterminationsForUpload() async {
         let context = CoreDataStack.shared.newTaskContext()
         context.name = "untetheredDeterminationUpload"
-        await context.perform {
+        let older: [NSManagedObjectID] = await context.perform {
             let request = OrefDetermination.fetchRequest() as NSFetchRequest<OrefDetermination>
             request.predicate = NSPredicate(format: "isUploadedToNS == NO")
             request.sortDescriptors = [NSSortDescriptor(key: "deliverAt", ascending: false)]
-            guard let rows = try? context.fetch(request), rows.count > 1 else { return }
-            for group in Dictionary(grouping: rows, by: \.enacted).values {
-                group.dropFirst().forEach { $0.isUploadedToNS = true }
+            guard let rows = try? context.fetch(request), rows.count > 1 else { return [] }
+            return Dictionary(grouping: rows, by: \.enacted).values.flatMap { $0.dropFirst().map(\.objectID) }
+        }
+        guard !older.isEmpty else { return }
+        var determinations: [Determination] = []
+        for objectID in older {
+            if let determination = await determinationStorage.getOrefDeterminationNotYetUploadedToNightscout([objectID]) {
+                determinations.append(determination)
+            }
+        }
+        // left for the live upload to retry if Nightscout can't be reached now
+        guard await nightscoutManager.uploadDeterminationHistory(determinations) else { return }
+        await context.perform {
+            for objectID in older {
+                (try? context.existingObject(with: objectID) as? OrefDetermination)?.isUploadedToNS = true
             }
             if context.hasChanges { try? context.save() }
         }

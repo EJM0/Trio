@@ -1,5 +1,10 @@
 import SwiftUI
 
+extension Color {
+    /// Untethered watch mode, as on the phone.
+    static let untethered = Color(red: 0x33 / 255, green: 0xE3 / 255, blue: 0xFF / 255)
+}
+
 /// The landing page while untethered: what the watch is doing, and the ways to stop it. Otherwise the
 /// place to start it from the wrist.
 struct UntetheredStatusView: View {
@@ -67,9 +72,9 @@ struct UntetheredStatusView: View {
         case .active:
             if let lastLoop = data.lastLoopDate {
                 let minutes = max(0, Int(now.timeIntervalSince(lastLoop) / 60))
-                return ("applewatch", .green, "Untethered", "Last loop \(minutes) min ago")
+                return ("applewatch", .untethered, "Untethered", "Last loop \(minutes) min ago")
             }
-            return ("applewatch", .green, "Untethered", "Looping on the watch")
+            return ("applewatch", .untethered, "Untethered", "Looping on the watch")
         case .preparing,
              .starting:
             return ("applewatch.radiowaves.left.and.right", .yellow, "Starting…", "Taking over the pump and sensor")
@@ -152,7 +157,7 @@ struct UntetheredStatusView: View {
                     Label("Start Untethered", systemImage: "applewatch")
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.green)
+                .tint(.untethered)
                 .disabled(!isPhoneReachable)
                 if !isPhoneReachable {
                     note("Starts with the phone nearby and Trio open on it.")
