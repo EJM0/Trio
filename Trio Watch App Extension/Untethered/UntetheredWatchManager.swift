@@ -50,7 +50,11 @@ import WatchConnectivity
     /// Every change reaches the screens at once, with the phone or without it.
     func refresh() {
         data = store.data
-        if isActive { publishToWatchState() }
+        if isActive {
+            publishToWatchState()
+        } else if !WatchState.shared.treatmentMarkers.isEmpty {
+            WatchState.shared.treatmentMarkers = []
+        }
     }
 
     func setError(_ message: String?) {

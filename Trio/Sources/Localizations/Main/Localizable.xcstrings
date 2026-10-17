@@ -75159,6 +75159,9 @@
         }
       }
     },
+    "Bring the phone close and open Trio on it, then hand back again. Use Emergency Stop if it isn't coming back." : {
+
+    },
     "Build Number" : {
       "localizations" : {
         "bg" : {
@@ -249319,6 +249322,9 @@
           }
         }
       }
+    },
+    "Phone Not Reachable" : {
+
     },
     "Pick a duration to mute every Trio alarm. Critical alerts (e.g. occlusion, urgent low) still pierce the snooze." : {
       "localizations" : {
