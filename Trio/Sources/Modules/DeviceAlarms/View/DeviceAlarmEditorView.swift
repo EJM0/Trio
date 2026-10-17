@@ -62,6 +62,7 @@ struct DeviceAlarmEditorView: View {
                 AlarmAudioSection(
                     playsSound: $working.playsSound,
                     soundFilename: $working.soundFilename,
+                    scope: .deviceTier(working.severity),
                     trim: AlarmTrimControls(
                         trimsSound: $working.trimsSound,
                         mode: $working.soundTrim,
