@@ -9880,6 +9880,9 @@
         }
       }
     },
+    "%@ can't be handed to the watch. Untethered mode supports Omnipod DASH." : {
+
+    },
     "%@ carbs" : {
       "comment" : "Accessibility: treatments face",
       "extractionState" : "stale",
@@ -12277,9 +12280,6 @@
         }
       }
     },
-    "%1$d min %2$d s" : {
-      "comment" : "Alarm length in minutes and seconds"
-    },
     "%d calibration points" : {
       "comment" : "Accessibility: calibration count",
       "localizations" : {
@@ -12545,9 +12545,6 @@
         }
       }
     },
-    "%d min" : {
-      "comment" : "Alarm length in minutes"
-    },
     "%d minutes" : {
       "comment" : "Accessibility: pod time",
       "localizations" : {
@@ -12809,9 +12806,6 @@
           }
         }
       }
-    },
-    "%d s" : {
-      "comment" : "Alarm length in seconds"
     },
     "%dh ago" : {
       "comment" : "A time ago string, in the format \"X hours ago\".",
@@ -13465,6 +13459,9 @@
           }
         }
       }
+    },
+    "%lld entries on the way to the phone" : {
+
     },
     "%lld g" : {
       "localizations" : {
@@ -30860,6 +30857,9 @@
         }
       }
     },
+    "A bolus is running. Hand back once it is done, or stop it with the treatment button." : {
+
+    },
     "A display of On/On indicates both Dynamic ISF and CR are enabled. On/Off indicates only Dynamic ISF is enabled. Dynamic CR cannot be enabled when Dynamic ISF is disabled." : {
       "localizations" : {
         "bg" : {
@@ -33214,6 +33214,9 @@
           }
         }
       }
+    },
+    "Acknowledge" : {
+
     },
     "Acknowledge all alerts" : {
       "extractionState" : "stale",
@@ -58036,6 +58039,9 @@
         }
       }
     },
+    "Ascend" : {
+
+    },
     "at least" : {
       "localizations" : {
         "bg" : {
@@ -63541,6 +63547,9 @@
           }
         }
       }
+    },
+    "Away" : {
+
     },
     "Axis" : {
       "extractionState" : "stale",
@@ -73829,6 +73838,9 @@
         }
       }
     },
+    "Bolus started." : {
+
+    },
     "Bolus statistics will appear here once data is available." : {
       "localizations" : {
         "bg" : {
@@ -78601,6 +78613,9 @@
         }
       }
     },
+    "Cancel the manual temp basal first." : {
+
+    },
     "Cannot Enable This Setting" : {
       "localizations" : {
         "bg" : {
@@ -80178,6 +80193,9 @@
           }
         }
       }
+    },
+    "Carbs logged on the watch." : {
+
     },
     "Carbs logged successfully." : {
       "comment" : "Success message sent to watch when carbs are logged successfully",
@@ -82275,6 +82293,9 @@
           }
         }
       }
+    },
+    "Cascade" : {
+
     },
     "Category" : {
       "localizations" : {
@@ -86360,6 +86381,9 @@
         }
       }
     },
+    "Checking what the watch delivered before the phone doses again." : {
+
+    },
     "Chime" : {
       "comment" : "Name of a sound file.",
       "localizations" : {
@@ -90280,6 +90304,9 @@
           }
         }
       }
+    },
+    "Closest scale first. Each scale shows its code on its display when switched on." : {
+
     },
     "COB" : {
       "localizations" : {
@@ -94623,9 +94650,6 @@
           }
         }
       }
-    },
-    "Connect to Scale" : {
-
     },
     "Connect to Tidepool" : {
       "localizations" : {
@@ -125577,6 +125601,9 @@
         }
       }
     },
+    "Doorbell" : {
+
+    },
     "Dosing Mode" : {
       "localizations" : {
         "bg" : {
@@ -130556,6 +130583,9 @@
           }
         }
       }
+    },
+    "Emergency Stop" : {
+
     },
     "Emoji or short text" : {
       "localizations" : {
@@ -139386,6 +139416,12 @@
         }
       }
     },
+    "End Untethered Mode" : {
+
+    },
+    "End untethered mode?" : {
+
+    },
     "Endpoint" : {
       "localizations" : {
         "bg" : {
@@ -139515,6 +139551,9 @@
           }
         }
       }
+    },
+    "Enter carbs and boluses on the watch. They come back to the phone with the watch's history." : {
+
     },
     "Enter Meal Preset Name" : {
       "extractionState" : "manual",
@@ -152493,6 +152532,9 @@
     "Flash" : {
 
     },
+    "Flutter" : {
+
+    },
     "Follows the phone's current color scheme setting at that time" : {
       "localizations" : {
         "bg" : {
@@ -155631,6 +155673,9 @@
           }
         }
       }
+    },
+    "Forget Scale" : {
+
     },
     "Formula" : {
       "comment" : "Which dyn ISF function to use",
@@ -161167,6 +161212,9 @@
           }
         }
       }
+    },
+    "Glucose data is stale: the most recent reading is more than 12 minutes old." : {
+
     },
     "Glucose data is stale. The most recent glucose reading is from more than 12 minutes ago." : {
       "localizations" : {
@@ -167232,6 +167280,18 @@
         }
       }
     },
+    "Hand Back" : {
+
+    },
+    "Hand the pump back to the phone?" : {
+
+    },
+    "Handing back…" : {
+
+    },
+    "Handing Back…" : {
+
+    },
     "Handled by CGM App" : {
       "localizations" : {
         "bg" : {
@@ -167361,6 +167421,9 @@
           }
         }
       }
+    },
+    "Hands the pump and the CGM to the Apple Watch, which loops on its own until the pump is handed back. Trio must be open on the watch." : {
+
     },
     "Hardware" : {
       "extractionState" : "manual",
@@ -186995,6 +187058,9 @@
         }
       }
     },
+    "iPhone not reachable. Nothing was sent." : {
+
+    },
     "is running" : {
       "localizations" : {
         "bg" : {
@@ -189609,6 +189675,9 @@
           }
         }
       }
+    },
+    "Last loop %lld min ago" : {
+
     },
     "last loop delayed" : {
       "comment" : "Accessibility: loop status",
@@ -199628,6 +199697,9 @@
           }
         }
       }
+    },
+    "Looping on the watch" : {
+
     },
     "Looping Performance" : {
       "localizations" : {
@@ -220442,6 +220514,9 @@
         }
       }
     },
+    "Nearby" : {
+
+    },
     "Neither the carbs nor the bolus could be saved. Please try again." : {
       "comment" : "Alert body when both carbs and bolus failed",
       "localizations" : {
@@ -223450,6 +223525,9 @@
         }
       }
     },
+    "No carbs" : {
+
+    },
     "No confidence reminders are used." : {
       "comment" : "Description for BeepPreference.silent",
       "extractionState" : "manual",
@@ -224114,6 +224192,9 @@
           }
         }
       }
+    },
+    "No glucose" : {
+
     },
     "No Glucose Alarm active" : {
       "comment" : "No Glucose Alarm active",
@@ -225145,6 +225226,9 @@
           }
         }
       }
+    },
+    "No insulin" : {
+
     },
     "No IOB data available; cannot determine basal." : {
       "localizations" : {
@@ -226207,6 +226291,9 @@
         }
       }
     },
+    "No pump is connected." : {
+
+    },
     "No recent determination." : {
       "localizations" : {
         "bg" : {
@@ -226872,6 +226959,9 @@
           }
         }
       }
+    },
+    "No Sensor Readings" : {
+
     },
     "No settings matching your search query" : {
       "localizations" : {
@@ -229655,6 +229745,9 @@
         }
       }
     },
+    "Not enough glucose data: at least three readings in the last hour are needed." : {
+
+    },
     "Not enough glucose data. You need at least three glucose readings in the last six hours to run the algorithm." : {
       "localizations" : {
         "bg" : {
@@ -229918,6 +230011,9 @@
           }
         }
       }
+    },
+    "Not Looping" : {
+
     },
     "Not looping." : {
       "localizations" : {
@@ -244011,6 +244107,12 @@
         }
       }
     },
+    "Override started." : {
+
+    },
+    "Override stopped." : {
+
+    },
     "Override Target" : {
       "localizations" : {
         "bg" : {
@@ -245329,6 +245431,9 @@
         }
       }
     },
+    "Pair a Scale" : {
+
+    },
     "Pair Pod" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -245862,6 +245967,9 @@
           }
         }
       }
+    },
+    "Paired Scale" : {
+
     },
     "Pairing Failed" : {
       "localizations" : {
@@ -249053,6 +249161,12 @@
           }
         }
       }
+    },
+    "Phone" : {
+
+    },
+    "Phone in Charge" : {
+
     },
     "Phone NFC required!" : {
       "extractionState" : "manual",
@@ -261682,6 +261796,9 @@
         }
       }
     },
+    "Reaching the pump…" : {
+
+    },
     "Read the full release notes" : {
       "comment" : "Link to the complete release notes on GitHub",
       "localizations" : {
@@ -268650,6 +268767,9 @@
         }
       }
     },
+    "Resumed" : {
+
+    },
     "Resuming insulin delivery..." : {
       "comment" : "Text for suspend resume button when insulin delivery is resuming",
       "extractionState" : "manual",
@@ -270758,6 +270878,9 @@
           }
         }
       }
+    },
+    "s" : {
+      "comment" : "Alarm length in seconds"
     },
     "Safety" : {
       "comment" : "Extra Safety Features when using dyn ISF",
@@ -274112,6 +274235,12 @@
     "Search your meal presets to add items." : {
 
     },
+    "Searching for sensor" : {
+
+    },
+    "Searching…" : {
+
+    },
     "Secondary Font Size" : {
       "localizations" : {
         "bg" : {
@@ -276843,6 +276972,9 @@
           }
         }
       }
+    },
+    "Sending to iPhone failed. Please try again." : {
+
     },
     "Sens Ratio" : {
       "comment" : "Name of the secondary attribute choice for the SwissAlpine watchface.",
@@ -284930,6 +285062,9 @@
         }
       }
     },
+    "Show Glucose Bubble on Watch" : {
+
+    },
     "Show Glucose Episodes" : {
 
     },
@@ -285601,6 +285736,9 @@
           }
         }
       }
+    },
+    "Show Untethered Watch Button" : {
+
     },
     "Show X-Axis Grid Lines" : {
       "localizations" : {
@@ -286645,6 +286783,9 @@
           }
         }
       }
+    },
+    "Shows the page with only the glucose bubble on the Apple Watch" : {
+
     },
     "Shows the portion stepper" : {
 
@@ -295972,6 +296113,12 @@
         }
       }
     },
+    "Start Untethered" : {
+
+    },
+    "Start Untethered Watch Mode" : {
+
+    },
     "Started Override \"%@\" successfully." : {
       "comment" : "Start override with override name",
       "localizations" : {
@@ -296371,6 +296518,9 @@
         }
       }
     },
+    "Starting…" : {
+
+    },
     "starts at" : {
       "comment" : "Accessibility: schedule entry start time",
       "localizations" : {
@@ -296631,6 +296781,9 @@
           }
         }
       }
+    },
+    "Starts with the phone nearby and Trio open on it." : {
+
     },
     "Startup Guide" : {
       "localizations" : {
@@ -298736,6 +298889,9 @@
           }
         }
       }
+    },
+    "Stop now? The watch lets go of the pump at once, cancels the temp basal and stops looping until the phone takes over." : {
+
     },
     "Stop override" : {
       "localizations" : {
@@ -303722,6 +303878,9 @@
         }
       }
     },
+    "Syncing History" : {
+
+    },
     "Synth" : {
       "comment" : "Display name for the synth alarm sound.",
       "localizations" : {
@@ -304373,7 +304532,19 @@
         }
       }
     },
+    "Take Back" : {
+
+    },
+    "Take Back the Pump Now" : {
+
+    },
+    "Take back the pump?" : {
+
+    },
     "Take Picture" : {
+
+    },
+    "Taking over the pump and sensor" : {
 
     },
     "Tap a bolus amount, a carb amount, or both, then slide to confirm. Face ID or Touch ID is always required before a bolus is enacted." : {
@@ -307558,6 +307729,12 @@
         }
       }
     },
+    "Temp target started." : {
+
+    },
+    "Temp target stopped." : {
+
+    },
     "Temp Target to Stop" : {
       "localizations" : {
         "bg" : {
@@ -309150,6 +309327,9 @@
         }
       }
     },
+    "The algorithm gave no result." : {
+
+    },
     "The app Garmin Connect must be installed to use for Trio.\n Go to App Store to download it" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -309416,6 +309596,12 @@
           }
         }
       }
+    },
+    "The Apple Watch is running the loop" : {
+
+    },
+    "The Apple Watch is running the loop. Enter carbs on the watch." : {
+
     },
     "The Autosens Ratio is used to calculate the amount of adjustment needed to basal rates, ISF, and CR." : {
       "localizations" : {
@@ -314263,6 +314449,24 @@
         }
       }
     },
+    "The phone can't reach the pump yet, so it doesn't dose. Keep the phone close to the pod; it keeps trying." : {
+
+    },
+    "The phone doesn't dose. Bolus and carbs are entered on the watch." : {
+
+    },
+    "The phone is still taking the pump back from the last session." : {
+
+    },
+    "The phone must be reachable to start untethered mode." : {
+
+    },
+    "The phone must be reachable to take the pump back. Use Emergency Stop if it isn't coming back." : {
+
+    },
+    "The pod was deactivated. Pair a new one on the phone." : {
+
+    },
     "the preset to apply" : {
       "localizations" : {
         "bg" : {
@@ -314393,6 +314597,18 @@
         }
       }
     },
+    "The pump delivered %@ U the phone has no record of yet. It is counted as a bolus until the watch's records arrive." : {
+
+    },
+    "The pump or CGM can't be handed to the watch." : {
+
+    },
+    "The pump's configuration could not be read." : {
+
+    },
+    "The pump's delivery is uncertain. Resolve it on the phone first." : {
+
+    },
     "The ratio of how sensitive or resistant to insulin you are in the current loop cycle. Baseline = 1.0, Sensitive < 1.0, Resistant > 1.0" : {
       "localizations" : {
         "bg" : {
@@ -314522,6 +314738,9 @@
           }
         }
       }
+    },
+    "The records show more insulin than the pump delivered. Insulin on board may be overstated until the watch's records arrive." : {
+
     },
     "The Remaining Carbs Cap defines the upper limit for how many carbs the system will assume are absorbing over 4 hours, even when there's no clear sign of absorption from your glucose readings." : {
       "localizations" : {
@@ -314782,6 +315001,9 @@
           }
         }
       }
+    },
+    "The sensor refuses this watch's Bluetooth pairing. On the watch, open Settings › Bluetooth, forget the DXCM device and wait for the next reading." : {
+
     },
     "The settings in this section typically do not require ANY modifications. Do not alter them without a solid understanding of what you are changing and the full impact it will have on the algorithm." : {
       "localizations" : {
@@ -315298,6 +315520,12 @@
         }
       }
     },
+    "The start took too long." : {
+
+    },
+    "The therapy settings are incomplete." : {
+
+    },
     "The time it takes to complete one full cycle from high to low and back to high." : {
       "localizations" : {
         "bg" : {
@@ -315687,6 +315915,57 @@
           }
         }
       }
+    },
+    "The watch can take over pump and sensor" : {
+
+    },
+    "The watch could not reach the pump." : {
+
+    },
+    "The watch could not set up the CGM." : {
+
+    },
+    "The watch could not set up the pump." : {
+
+    },
+    "The watch did not answer. Open Trio on the watch and try again." : {
+
+    },
+    "The watch did not take over the pump." : {
+
+    },
+    "The watch doesn't have the pump." : {
+
+    },
+    "The watch hands the pump back as soon as it is reachable." : {
+
+    },
+    "The watch has had no glucose reading for %lld minutes. Keep it near the sensor; it keeps trying." : {
+
+    },
+    "The watch has the pump and loops on its own." : {
+
+    },
+    "The watch hasn't looped for 20 minutes." : {
+
+    },
+    "The watch is in charge of the pump" : {
+
+    },
+    "The watch is not reachable. Open Trio on the watch and try again." : {
+
+    },
+    "The watch is still running an earlier untethered session." : {
+
+    },
+    "The watch is still taking over the pump. Trio on the phone shows when it has." : {
+
+    },
+    "The watch reached the pump too late." : {
+
+    },
+    "The watch runs the loop with its own connection to the pump and the CGM while the phone is away. While it does, the phone shows glucose but doesn't dose." : {
+
     },
     "Therapy" : {
       "comment" : "Therapy menu item in the Settings main view.",
@@ -316208,6 +316487,9 @@
           }
         }
       }
+    },
+    "There is no recent glucose reading." : {
+
     },
     "There is no undo" : {
       "extractionState" : "manual",
@@ -317908,6 +318190,12 @@
           }
         }
       }
+    },
+    "This CGM can't be read by the watch yet." : {
+
+    },
+    "This CGM can't be read by the watch. Untethered mode supports Dexcom G7." : {
+
     },
     "This could be useful for fast absorbing meals like sugary cereal." : {
       "localizations" : {
@@ -323723,6 +324011,9 @@
           }
         }
       }
+    },
+    "This pump can't be run by the watch yet." : {
+
     },
     "This PumpManager has not been configured with a maximum basal rate because it was added before manual temp basal was a feature. Please go to therapy settings -> delivery limits and set a new maximum basal rate." : {
       "comment" : "Alert format string for missing temp basal configuration.",
@@ -331054,6 +331345,9 @@
           }
         }
       }
+    },
+    "To Sync" : {
+
     },
     "today" : {
       "comment" : "Stats banner scope",
@@ -338911,6 +339205,9 @@
         }
       }
     },
+    "Trio is not installed on a paired Apple Watch." : {
+
+    },
     "Trio is still fully functional and will adapt quickly — but your awareness right now helps it keep you safer." : {
       "localizations" : {
         "bg" : {
@@ -343348,6 +343645,9 @@
     "Turn one off to keep its notification but drop the tone. Which alarms land in this tier cannot be changed." : {
 
     },
+    "Turn this off to drop the page that shows only the large glucose bubble. The combined page with the bubble and the chart stays." : {
+
+    },
     "Turn this setting on to give basal adjustments more agility. Keep this setting off if your basal needs are not highly variable." : {
       "localizations" : {
         "bg" : {
@@ -343867,6 +344167,9 @@
           }
         }
       }
+    },
+    "Two Tone" : {
+
     },
     "Type" : {
       "comment" : "Type of CGM or glucose source",
@@ -347306,6 +347609,15 @@
           }
         }
       }
+    },
+    "Untethered" : {
+
+    },
+    "Untethered on Apple Watch" : {
+
+    },
+    "Untethered Watch Mode" : {
+
     },
     "Until %@" : {
       "localizations" : {
@@ -351005,9 +351317,6 @@
         }
       }
     },
-    "Use Bluetooth Scale" : {
-
-    },
     "Use calendar events to display current data." : {
       "localizations" : {
         "bg" : {
@@ -352455,6 +352764,9 @@
           }
         }
       }
+    },
+    "Use this when the watch can't hand the pump back, for example when it is lost or out of battery. The phone takes the pump without waiting for the watch, and counts insulin it has no record of until the watch's history arrives." : {
+
     },
     "Use your Tidepool credentials to log in. If you don't have a Tidepool account, you can sign up on the login page.\n\nWhen connected, Trio uploads your glucose, carb entries, insulin (bolus and basal), pump settings, and therapy settings to Tidepool.\n\nTherapy settings include basal schedules, carb ratios, insulin sensitivities, and glucose targets." : {
       "localizations" : {
@@ -355349,6 +355661,12 @@
         }
       }
     },
+    "Wait for the bolus to finish, or stop it, before handing back." : {
+
+    },
+    "Wait for the bolus to finish." : {
+
+    },
     "Wait please" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -355485,6 +355803,9 @@
           }
         }
       }
+    },
+    "Waiting for the phone to take the pump" : {
+
     },
     "Want a hand? You can open our full Startup Guide here:" : {
       "localizations" : {
@@ -363479,6 +363800,9 @@
           }
         }
       }
+    },
+    "While this override runs, a watch button next to its cancel button hands the loop to the Apple Watch. Untethered mode ends with the override." : {
+
     },
     "While upgrading Trio to the new version, we ran into an issue transferring some of your historical data." : {
       "localizations" : {

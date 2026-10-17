@@ -107,7 +107,8 @@ extension Adjustments.StateModel {
                 start: start,
                 end: end,
                 smbMinutes: smbMinutes,
-                uamMinutes: uamMinutes
+                uamMinutes: uamMinutes,
+                showUntetheredButton: showUntetheredButton
             )
 
             // First disable all Overrides
@@ -154,7 +155,8 @@ extension Adjustments.StateModel {
                 start: start,
                 end: end,
                 smbMinutes: smbMinutes,
-                uamMinutes: uamMinutes
+                uamMinutes: uamMinutes,
+                showUntetheredButton: showUntetheredButton
             )
 
             async let storeOverride: () = overrideStorage.storeOverride(override: preset)
@@ -312,6 +314,7 @@ extension Adjustments.StateModel {
         overridePercentage = 100
         advancedSettings = false
         smbIsOff = false
+        showUntetheredButton = false
         overrideName = ""
         shouldOverrideTarget = false
         isf = true

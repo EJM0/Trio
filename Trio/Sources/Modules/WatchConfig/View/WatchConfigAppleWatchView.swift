@@ -64,6 +64,29 @@ struct WatchConfigAppleWatchView: BaseView {
                 headerText: String(localized: "Apple Watch Configuration")
             )
 
+            SettingInputSection(
+                decimalValue: $decimalPlaceholder,
+                booleanValue: $state.showGlucoseBubbleWatch,
+                shouldDisplayHint: $shouldDisplayHint,
+                selectedVerboseHint: Binding(
+                    get: { selectedVerboseHint },
+                    set: {
+                        selectedVerboseHint = $0.map { AnyView($0) }
+                        hintLabel = String(localized: "Show Glucose Bubble on Watch")
+                    }
+                ),
+                units: state.units,
+                type: .boolean,
+                label: String(localized: "Show Glucose Bubble on Watch"),
+                miniHint: String(localized: "Shows the page with only the glucose bubble on the Apple Watch"),
+                verboseHint: Text(
+                    "Turn this off to drop the page that shows only the large glucose bubble. The combined page with the bubble and the chart stays."
+                ),
+                headerText: String(localized: "Apple Watch Configuration")
+            )
+
+            UntetheredSettingsSection(manager: resolver.resolve(UntetheredPhoneManager.self)!)
+
             Section(
                 header: Text("Contact Image"),
                 content: {

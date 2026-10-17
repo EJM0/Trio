@@ -85,6 +85,7 @@ enum WatchMessageKeys {
 
     // Forecast
     static let showForecastWatch = "showForecastWatch"
+    static let showGlucoseBubbleWatch = "showGlucoseBubbleWatch"
     static let isForecastCone = "isForecastCone"
     static let forecastData = "forecastData"
     static let forecastStartDate = "forecastStartDate"
@@ -233,8 +234,12 @@ struct WatchGlucoseChecksum {
     private var sum: UInt64 = 0
 
     mutating func add(timestamp: TimeInterval, glucose: Double) {
+        add(timestamp.bitPattern, glucose.bitPattern)
+    }
+
+    mutating func add(_ first: UInt64, _ second: UInt64) {
         count += 1
-        sum &+= Self.mix(timestamp.bitPattern ^ Self.mix(glucose.bitPattern))
+        sum &+= Self.mix(first ^ Self.mix(second))
     }
 
     /// Property lists only hold signed integers.

@@ -79,9 +79,21 @@ import WatchConnectivity
     /// tell "still loading" apart from "phone says there is nothing to show".
     var hasReceivedPeripheralData: Bool = false
 
-    // Forecast options
-    var showForecast: Bool = false
-    var isForecastCone: Bool = false
+    /// The page with only the glucose bubble; kept across launches, the phone's setting decides.
+    var showGlucoseBubble: Bool = UserDefaults.standard.object(forKey: WatchMessageKeys.showGlucoseBubbleWatch) as? Bool ?? true {
+        didSet { UserDefaults.standard.set(showGlucoseBubble, forKey: WatchMessageKeys.showGlucoseBubbleWatch) }
+    }
+
+    // Forecast options; kept across launches like the bubble page: untethered with the phone off, no update
+    // brings them back after watchOS ended the app
+    var showForecast: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.showForecastWatch) {
+        didSet { UserDefaults.standard.set(showForecast, forKey: WatchMessageKeys.showForecastWatch) }
+    }
+
+    var isForecastCone: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.isForecastCone) {
+        didSet { UserDefaults.standard.set(isForecastCone, forKey: WatchMessageKeys.isForecastCone) }
+    }
+
     var forecastStartDate: Date?
     var forecastConeMin: [Double] = []
     var forecastConeMax: [Double] = []
@@ -295,7 +307,23 @@ import WatchConnectivity
     }
 
     /// Handles incoming messages from the paired iPhone when Phone is in the foreground
+    func session(_: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+        if message[UntetheredChunks.key] != nil {
+            UntetheredWatchManager.shared.receiveChunk(message, replyHandler: replyHandler)
+            return
+        }
+        guard message[UntetheredEnvelope.key] != nil else {
+            replyHandler([:])
+            return
+        }
+        UntetheredWatchManager.shared.receive(message, replyHandler: replyHandler)
+    }
+
     func session(_: WCSession, didReceiveMessage message: [String: Any]) {
+        if message[UntetheredEnvelope.key] != nil {
+            UntetheredWatchManager.shared.receive(message, replyHandler: nil)
+            return
+        }
         Task {
             await WatchLogger.shared.log("⌚️ Watch received data: \(message)")
         }
@@ -334,6 +362,10 @@ import WatchConnectivity
     }
 
     func session(_: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        if userInfo[UntetheredEnvelope.key] != nil {
+            UntetheredWatchManager.shared.receive(userInfo, replyHandler: nil)
+            return
+        }
         if handlePeripheralPayload(userInfo) { return }
 
         handleIncomingWatchStatePayload(userInfo)
@@ -368,6 +400,7 @@ import WatchConnectivity
     /// Doesn't end the syncing animation when a payload is rejected: a stale or duplicate payload can
     /// arrive while a request is still in flight.
     @discardableResult func acceptWatchStatePayload(_ dictionary: [String: Any]) -> Bool {
+        guard !UntetheredWatchManager.shared.isActive else { return false }
         guard let payload = dictionary[WatchMessageKeys.watchState] as? [String: Any],
               let timestamp = payload[WatchMessageKeys.date] as? TimeInterval
         else {
@@ -575,8 +608,9 @@ import WatchConnectivity
             }
 
             self.isReachable = session.isReachable
+            UntetheredWatchManager.shared.reachabilityChanged()
 
-            if session.isReachable {
+            if session.isReachable, !UntetheredWatchManager.shared.isActive {
                 self.forceConditionalWatchStateUpdate()
 
                 // reset input amounts
@@ -598,6 +632,11 @@ import WatchConnectivity
     ///
     /// it will request a new watch state update from the iPhone app and, if the request could be sent, show a syncing animation.
     private func forceConditionalWatchStateUpdate() {
+        // an untethered watch shows its own data, restored from disk on launch
+        if UntetheredWatchManager.shared.isActive {
+            UntetheredWatchManager.shared.publishToWatchState()
+            return
+        }
         if isWatchStateRequestInFlight {
             Task { await WatchLogger.shared.log("⌚️ WatchState request already in flight — not sending another") }
             return
@@ -927,11 +966,17 @@ import WatchConnectivity
             if !isSuperBolusAvailable { useSuperBolus = false }
         }
 
-        if let showForecast = message[WatchMessageKeys.showForecastWatch] as? Bool {
+        if let showForecast = message[WatchMessageKeys.showForecastWatch] as? Bool, showForecast != self.showForecast {
             self.showForecast = showForecast
         }
 
-        if let isForecastCone = message[WatchMessageKeys.isForecastCone] as? Bool {
+        if let showGlucoseBubble = message[WatchMessageKeys.showGlucoseBubbleWatch] as? Bool,
+           showGlucoseBubble != self.showGlucoseBubble
+        {
+            self.showGlucoseBubble = showGlucoseBubble
+        }
+
+        if let isForecastCone = message[WatchMessageKeys.isForecastCone] as? Bool, isForecastCone != self.isForecastCone {
             self.isForecastCone = isForecastCone
         }
 
