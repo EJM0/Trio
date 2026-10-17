@@ -710,7 +710,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             let expected = UntetheredAudit.expectedDelivery(
                 from: point.start,
                 to: point.end,
-                history: try await openAPS.algorithmPumpHistory(),
+                history: try await pumpHistoryStorage.getPumpHistory(),
                 basalProfile: storage.retrieve(OpenAPS.Settings.basalProfile, as: [BasalProfileEntry].self) ?? []
             )
             debug(

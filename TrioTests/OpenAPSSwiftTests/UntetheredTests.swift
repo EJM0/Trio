@@ -297,8 +297,7 @@ import Testing
             PumpHistoryEvent(id: "b", type: .bolus, timestamp: at(10), amount: 1.5),
             PumpHistoryEvent(id: "s", type: .smb, timestamp: at(20), amount: 0.3, deliveredUnits: 0.25),
             // 3 U/h for 30 min from 0:30, cut short by a suspend at 0:45 that resumes at 0:50
-            PumpHistoryEvent(id: "t", type: .tempBasalDuration, timestamp: at(30), durationMin: 30),
-            PumpHistoryEvent(id: "_t", type: .tempBasal, timestamp: at(30), rate: 3),
+            PumpHistoryEvent(id: "t", type: .tempBasal, timestamp: at(30), amount: 3, duration: 30),
             PumpHistoryEvent(id: "p", type: .pumpSuspend, timestamp: at(45)),
             PumpHistoryEvent(id: "r", type: .pumpResume, timestamp: at(50)),
             PumpHistoryEvent(id: "old", type: .bolus, timestamp: at(-5), amount: 9)
@@ -313,6 +312,27 @@ import Testing
         // boluses 1.75; basal 0:00–0:30 at 1 = 0.5; temp 0:30–0:45 at 3 = 0.75; suspended 5 min;
         // temp 0:50–1:00 at 3 = 0.5; scheduled 1:00–1:30 at 2 = 1
         #expect(abs(NSDecimalNumber(decimal: expected - 4.5).doubleValue) < 0.0001)
+    }
+
+    @Test("audit: a finalized temp counts what the pump reported, in proportion where the span cuts it")
+    func auditReportedTemps() {
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let midnight = utc.startOfDay(for: t0)
+        func at(_ minutes: Double) -> Date { midnight.addingTimeInterval(minutes * 60) }
+        // 2.1 U/h replaced after 5 min: 0.175 U by its rate, the pod reported 0.15 (2026-10-18, 01:29)
+        let history = [
+            PumpHistoryEvent(id: "a", type: .tempBasal, timestamp: at(0), amount: 2.1, duration: 30, deliveredUnits: 0.15),
+            PumpHistoryEvent(id: "b", type: .tempBasal, timestamp: at(5), amount: 0, duration: 30)
+        ]
+        let profile = [BasalProfileEntry(start: "00:00", minutes: 0, rate: 1)]
+        func expected(from start: Double) -> Double {
+            NSDecimalNumber(decimal: UntetheredAudit.expectedDelivery(
+                from: at(start), to: at(10), history: history, basalProfile: profile, calendar: utc
+            )).doubleValue
+        }
+        #expect(abs(expected(from: 0) - 0.15) < 0.0001)
+        #expect(abs(expected(from: 2.5) - 0.075) < 0.0001)
     }
 
     @Test("audit: the verdict leaves the tolerance alone and names the difference") func auditVerdict() {

@@ -21,8 +21,10 @@ enum UntetheredAudit {
         return .explained
     }
 
-    /// What `history` says the pump delivered between `start` and `end`: boluses, plus basal minute by
-    /// minute from temp basals, suspensions and otherwise the scheduled profile.
+    /// What `history` (`PumpHistoryStorage.getPumpHistory`'s shape, as TDD reads it) says the pump delivered between
+    /// `start` and `end`: boluses; a finalized temp basal by the total the pump reported, its pulse rounding included,
+    /// in proportion where the span cuts it; otherwise basal minute by minute from running temps, suspensions and the
+    /// scheduled profile.
     static func expectedDelivery(
         from start: Date,
         to end: Date,
@@ -36,16 +38,18 @@ enum UntetheredAudit {
             .filter { [.bolus, .smb].contains($0.type) && $0.timestamp >= start && $0.timestamp < end }
             .reduce(Decimal(0)) { $0 + ($1.deliveredUnits ?? $1.amount ?? 0) }
 
-        let durations = Dictionary(
-            events.filter { $0.type == .tempBasalDuration }.map { ($0.timestamp, $0.durationMin ?? 0) },
-            uniquingKeysWith: { $1 }
-        )
-        let temps = events.filter { $0.type == .tempBasal }.map { event in
-            (
-                start: event.timestamp,
-                end: event.timestamp.addingTimeInterval(Double(durations[event.timestamp] ?? 0) * 60),
-                rate: event.rate ?? 0
-            )
+        let tempEvents = events.filter { $0.type == .tempBasal && $0.isScheduledBasal != true }
+        // a temp runs to its own end or until the next one starts, whichever comes first
+        let temps = tempEvents.enumerated().map { index, event in
+            let ownEnd = event.timestamp.addingTimeInterval(Double(event.duration ?? 0) * 60)
+            let next = index + 1 < tempEvents.count ? tempEvents[index + 1].timestamp : ownEnd
+            return (start: event.timestamp, end: min(ownEnd, next), rate: event.amount ?? 0, reported: event.deliveredUnits)
+        }
+        let reportedTemps = temps.reduce(Decimal(0)) { sum, temp in
+            guard let reported = temp.reported, temp.end > temp.start else { return sum }
+            let overlap = min(temp.end, end).timeIntervalSince(max(temp.start, start))
+            guard overlap > 0 else { return sum }
+            return sum + reported * Decimal(overlap / temp.end.timeIntervalSince(temp.start))
         }
         let suspensions = events.filter { $0.type == .pumpSuspend || $0.type == .pumpResume }
         let profile = basalProfile.sorted { $0.minutes < $1.minutes }
@@ -58,7 +62,8 @@ enum UntetheredAudit {
             if suspensions.last(where: { $0.timestamp <= time })?.type == .pumpSuspend {
                 rate = 0
             } else if let temp = temps.last(where: { $0.start <= time }), time < temp.end {
-                rate = temp.rate
+                // a reported temp is counted by its total
+                rate = temp.reported == nil ? temp.rate : 0
             } else {
                 let minute = calendar.component(.hour, from: time) * 60 + calendar.component(.minute, from: time)
                 rate = profile.last(where: { $0.minutes <= minute })?.rate ?? profile.first?.rate ?? 0
@@ -66,7 +71,7 @@ enum UntetheredAudit {
             basal += rate * Decimal(step) / 3600
             time = time.addingTimeInterval(step)
         }
-        return boluses + basal
+        return boluses + reportedTemps + basal
     }
 }
 
