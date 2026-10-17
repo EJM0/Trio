@@ -7,16 +7,12 @@ struct WatchTreatmentMarker: Identifiable {
     let id: String
     let date: Date
     let kind: Kind
-    /// U or g
-    let amount: Double
 }
 
 /// As on the phone's main chart: a blue triangle above the reading for insulin, an orange dot below it for carbs.
 struct TreatmentMarks: ChartContent {
     let markers: [WatchTreatmentMarker]
     let glucose: [(date: Date, glucose: Double, color: Color)]
-    /// Amounts beside boluses and carbs, on the full-screen chart.
-    let showsAmounts: Bool
 
     private struct Placed: Identifiable {
         let marker: WatchTreatmentMarker
@@ -37,13 +33,6 @@ struct TreatmentMarks: ChartContent {
                             .offset(y: -8)
                     case .carbs:
                         Circle().fill(Color.orange).frame(width: 7, height: 7).offset(y: 8)
-                    }
-                }
-                .annotation(position: placed.marker.kind == .carbs ? .bottom : .top, spacing: 8) {
-                    if showsAmounts, placed.marker.kind != .smb {
-                        Text(placed.marker.kind == .carbs ? "\(Int(placed.marker.amount))g" : String(format: "%.1f", placed.marker.amount))
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(placed.marker.kind == .carbs ? Color.orange : Color.insulin)
                     }
                 }
         }
@@ -212,7 +201,7 @@ struct GlucoseChartView: View {
                         .symbolSize(glucosePointSize)
                     }
 
-                    TreatmentMarks(markers: state.treatmentMarkers, glucose: filteredValues, showsAmounts: true)
+                    TreatmentMarks(markers: state.treatmentMarkers, glucose: filteredValues)
 
                     if state.showForecast {
                         if state.isForecastCone {

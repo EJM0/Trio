@@ -296,7 +296,7 @@ struct MinimizedGlucoseChartView: View {
                     .symbolSize(glucosePointSize)
                 }
 
-                TreatmentMarks(markers: state.treatmentMarkers, glucose: filteredValues, showsAmounts: false)
+                TreatmentMarks(markers: state.treatmentMarkers, glucose: filteredValues)
 
                 if state.showForecast {
                     if state.isForecastCone {
