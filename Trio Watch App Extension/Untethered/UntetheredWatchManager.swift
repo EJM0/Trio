@@ -33,6 +33,10 @@ import WatchConnectivity
 
     /// Records travel in batches small enough for an interactive message.
     private static let recordsPerMessage = 40
+    /// While the watch holds the sensor link, a backlog goes this many batches at a time, this far apart.
+    private static let batchesPerBurst = 5
+    private static let burstInterval: TimeInterval = 3
+    @ObservationIgnored private var streamTimer: Timer?
     private static let takeoverReadInterval: UInt64 = 8_000_000_000
 
     var isActive: Bool { data.session.phase == .active || data.session.phase == .ending }
@@ -298,11 +302,15 @@ import WatchConnectivity
         replyHandler((try? UntetheredEnvelope(epoch: epoch, message: message).payload()) ?? [:])
     }
 
-    /// Interactive when the phone is reachable; what must arrive in any case is also queued.
-    func send(_ message: UntetheredMessage, epoch: Int) {
+    /// Interactive when the phone is reachable; what must arrive in any case is also queued, unless `queueing`
+    /// says otherwise. `onFailure` runs once, on the main queue, when the message reached neither way.
+    func send(_ message: UntetheredMessage, epoch: Int, queueing: Bool? = nil, onFailure: (() -> Void)? = nil) {
         guard WCSession.isSupported(), WCSession.default.activationState == .activated,
               let payload = try? UntetheredEnvelope(epoch: epoch, message: message).payload()
-        else { return }
+        else {
+            if let onFailure { DispatchQueue.main.async(execute: onFailure) }
+            return
+        }
         let session = WCSession.default
 
         // what must reach the phone even if it is away right now; the rest is resent by its own retry
@@ -312,14 +320,19 @@ import WatchConnectivity
              .released,
              .syncDone,
              .takeoverComplete,
-             .takeoverFailed: queued = true
-        default: queued = false
+             .takeoverFailed: queued = queueing ?? true
+        default: queued = queueing ?? false
         }
         guard session.isReachable else {
-            if queued { session.transferUserInfo(payload) }
+            if queued {
+                session.transferUserInfo(payload)
+            } else {
+                if let onFailure { DispatchQueue.main.async(execute: onFailure) }
+            }
             return
         }
         var queuedAfterFailure = false
+        var failureReported = false
         for part in UntetheredChunks.split(payload) ?? [payload] {
             session.sendMessage(part, replyHandler: { [weak self] reply in
                 guard reply[UntetheredEnvelope.key] != nil else { return }
@@ -327,9 +340,14 @@ import WatchConnectivity
             }, errorHandler: { error in
                 Task { await WatchLogger.shared.log("⌚️ Untethered: sending failed: \(error.localizedDescription)") }
                 // the whole envelope goes queued once, whichever part failed
-                if queued, !queuedAfterFailure {
-                    queuedAfterFailure = true
-                    session.transferUserInfo(payload)
+                DispatchQueue.main.async {
+                    if queued, !queuedAfterFailure {
+                        queuedAfterFailure = true
+                        session.transferUserInfo(payload)
+                    } else if !queued, !failureReported {
+                        failureReported = true
+                        onFailure?()
+                    }
                 }
             })
         }
@@ -544,7 +562,8 @@ import WatchConnectivity
             while self.isLooping || self.isBolusing { try? await Task.sleep(nanoseconds: 500_000_000) }
             self.expireAdjustments(now: Date())
             let status = await self.pumpManager.asyncMap { await self.readPump($0) } ?? nil
-            self.streamRecords()
+            // the sensor is let go next: nothing left to make room for
+            self.streamRecords(ignoringSensor: true)
             self.releasePump()
             self.apply(.handbackReady(status))
         }
@@ -561,7 +580,7 @@ import WatchConnectivity
                 _ = try? await pump.enactTempBasal(unitsPerHour: 0, for: 0)
                 status = await self.readPump(pump)
             }
-            self.streamRecords()
+            self.streamRecords(ignoringSensor: true)
             self.apply(.emergencyStop(status))
         }
     }
@@ -570,18 +589,81 @@ import WatchConnectivity
 
     /// Hands every new version to WatchConnectivity. The phone confirms what it stored, and only then
     /// does the watch drop it, so its backlog stays as small as the phone's reach allows.
-    func streamRecords() {
+    ///
+    /// While the watch holds the sensor link the two share its radio: history then goes only to a reachable
+    /// phone, never around the next reading, and a few batches at a time. Nothing is queued in WatchConnectivity
+    /// meanwhile, which would send the whole backlog at once whenever the phone came back. A hand-back lets go of
+    /// the sensor anyway and sends everything (`ignoringSensor`).
+    func streamRecords(ignoringSensor: Bool = false) {
+        streamTimer?.invalidate()
+        streamTimer = nil
         let unsent = store.data.unsent
         guard !unsent.isEmpty else { return }
-        for (epoch, records) in store.data.pending {
+        let pending = store.data.pending.sorted { $0.key < $1.key }
+        var batches: [(epoch: Int, records: [UntetheredRecord])] = []
+        for (epoch, records) in pending {
             let batch = records.values.filter { unsent.contains($0.id) }.sorted { $0.date < $1.date }
-            for chunk in stride(from: 0, to: batch.count, by: Self.recordsPerMessage)
-                .map({ Array(batch[$0 ..< min($0 + Self.recordsPerMessage, batch.count)]) })
-            {
-                send(.records(chunk), epoch: epoch)
+            for start in stride(from: 0, to: batch.count, by: Self.recordsPerMessage) {
+                batches.append((epoch, Array(batch[start ..< min(start + Self.recordsPerMessage, batch.count)])))
             }
         }
-        store.update { $0.unsent = [] }
+        let paced = holdsSensorLink && !ignoringSensor
+        var sending = batches
+        if paced, !batches.isEmpty {
+            // the next loop or the phone's return tries again
+            guard WCSession.default.isReachable else { return }
+            if let clear = sensorWindowEnd(now: Date()) {
+                scheduleStream(at: clear)
+                return
+            }
+            sending = Array(batches.prefix(Self.batchesPerBurst))
+        }
+        for batch in sending {
+            let ids = batch.records.map(\.id)
+            send(
+                .records(batch.records),
+                epoch: batch.epoch,
+                queueing: paced ? false : nil,
+                onFailure: paced ? { [weak self] in self?.resend(ids) } : nil
+            )
+        }
+        // what is no longer pending was confirmed meanwhile and needs no sending
+        let pendingIDs = Set(pending.flatMap { $0.value.values.map(\.id) })
+        let sent = Set(sending.flatMap { $0.records.map(\.id) })
+        store.update { $0.unsent = $0.unsent.subtracting(sent).intersection(pendingIDs) }
+        if sending.count < batches.count {
+            scheduleStream(at: Date().addingTimeInterval(Self.burstInterval))
+        }
+    }
+
+    /// The end of the window around the watch's next sensor reading, or nil while clear of it or holding no sensor.
+    func sensorWindowEnd(now: Date) -> Date? {
+        guard holdsSensorLink else { return nil }
+        return UntetheredSensorWindow.end(now: now, lastReading: store.data.glucose.map(\.dateString).max())
+    }
+
+    /// The watch reads the sensor itself, in an untethered session.
+    var holdsSensorLink: Bool { cgmManager != nil }
+
+    /// Bulk traffic to the phone, the watch's log included, may go now: always without a sensor link, with one
+    /// only to a reachable phone and clear of the next reading.
+    var mayStreamToPhone: Bool {
+        guard holdsSensorLink else { return true }
+        return WCSession.default.isReachable && sensorWindowEnd(now: Date()) == nil
+    }
+
+    /// Runs only while the app does; a suspended app picks up at its next loop.
+    private func scheduleStream(at date: Date) {
+        streamTimer?.invalidate()
+        streamTimer = Timer.scheduledTimer(withTimeInterval: max(1, date.timeIntervalSinceNow), repeats: false) {
+            [weak self] _ in self?.streamRecords()
+        }
+    }
+
+    /// A batch that reached the phone neither way goes again with the next one, unless confirmed meanwhile.
+    private func resend(_ ids: [UUID]) {
+        let pendingIDs = Set(store.data.pending.values.flatMap { $0.values.map(\.id) })
+        store.update { $0.unsent.formUnion(Set(ids).intersection(pendingIDs)) }
     }
 
     /// The phone's checksums against ours: what it misses is resent; a finished session whose every

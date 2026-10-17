@@ -119,7 +119,9 @@ actor WatchLogger {
         }
     }
 
-    func flushPersistedLogs() async {
+    /// `queued` hands the log to WatchConnectivity even with the phone reachable: a log kept back while the
+    /// phone was away can be too large for an interactive message.
+    func flushPersistedLogs(queued: Bool = false) async {
         let logDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
             .appendingPathComponent("logs", isDirectory: true)
         let logFile = logDir.appendingPathComponent("watch_log.txt")
@@ -135,7 +137,7 @@ actor WatchLogger {
             session.activate()
         }
 
-        if session.isReachable {
+        if session.isReachable, !queued {
             session.sendMessage(payload, replyHandler: nil) { _ in
                 Task {
                     await self.persistLogsLocally()
