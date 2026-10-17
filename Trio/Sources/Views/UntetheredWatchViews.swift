@@ -14,6 +14,13 @@ extension UntetheredPhoneManager {
     }
 }
 
+extension UntetheredPhoneManager {
+    /// While the pump comes back: reaching it, then waiting for the watch's last records and the audit.
+    var pumpReturnTitle: String {
+        pumpReturnAnswered ? String(localized: "Checking the watch's records…") : String(localized: "Reaching the pump…")
+    }
+}
+
 /// The toggle in Settings › Apple Watch. It only stays on once the watch has taken the pump.
 struct UntetheredSettingsSection: View {
     @ObservedObject var manager: UntetheredPhoneManager
@@ -124,7 +131,7 @@ struct UntetheredBannerSlot<Content: View, Banner: View>: View {
         if manager.isWatchInCharge || manager.state.pumpReturnPending {
             banner(
                 manager.state.pumpReturnPending
-                    ? String(localized: "Reaching the pump…")
+                    ? manager.pumpReturnTitle
                     : String(localized: "Untethered on Apple Watch"),
                 manager.state.pumpReturnPending
                     ? manager.state.lastError
@@ -168,12 +175,20 @@ struct UntetheredTreatmentGate<Content: View>: View {
                     .accessibilityHidden(true)
 
                 VStack(spacing: 8) {
-                    Text(manager.state.pumpReturnPending ? "Reaching the pump…" : "The Apple Watch is looping")
-                        .font(.title3).fontWeight(.semibold)
+                    Text(
+                        manager.state.pumpReturnPending ? manager
+                            .pumpReturnTitle : String(localized: "The Apple Watch is looping")
+                    )
+                    .font(.title3).fontWeight(.semibold)
                     Text(
                         manager.state.pumpReturnPending
-                            ? "The phone doses again once it has read the pump."
-                            : "Enter carbs and boluses on the watch. They come back to the phone with the watch's history."
+                            ? manager.pumpReturnAnswered
+                            ? String(localized: "The phone doses again once it has checked the watch's records.")
+                            : String(localized: "The phone doses again once it has read the pump.")
+                            :
+                            String(
+                                localized: "Enter carbs and boluses on the watch. They come back to the phone with the watch's history."
+                            )
                     )
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
