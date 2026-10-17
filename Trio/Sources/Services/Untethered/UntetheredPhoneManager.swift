@@ -372,16 +372,9 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 String(localized: "This CGM can't be read by the watch. Untethered mode supports Dexcom G7.")
             )
         }
-        // the CGM itself, not a reading from Nightscout or another app: the watch reads the same sensor
+        // the watch reads the same sensor; it links only around each reading, so its last contact proves nothing
         guard cgm.cgmManagerStatus.hasValidSensorSession else {
             throw UntetheredError.unavailable(String(localized: "The CGM has no active sensor."))
-        }
-        guard let lastReading = cgm.cgmManagerStatus.lastCommunicationDate,
-              Date().timeIntervalSince(lastReading) < Self.maxGlucoseAge
-        else {
-            throw UntetheredError.unavailable(
-                String(localized: "The CGM hasn't delivered a reading in the last 12 minutes. Wait for the next one.")
-            )
         }
         let status = pump.status
         guard case .noBolus = status.bolusState else {
