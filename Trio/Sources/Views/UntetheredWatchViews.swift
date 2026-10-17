@@ -1,8 +1,9 @@
 import SwiftUI
 
 extension UntetheredPhoneManager {
-    /// Handing over, handing back or reading the pump after its return.
+    /// Checking the devices, handing over, handing back or reading the pump after its return.
     var isBusy: Bool {
+        if isCheckingDevices { return true }
         switch state.session.phase {
         case .ending,
              .preparing,
