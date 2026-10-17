@@ -676,7 +676,10 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         UntetheredGate.update { $0.pumpReturnPending = false }
         publish()
         debug(.watchManager, "Untethered: pump is back on the phone")
-        apsManager.heartbeat(date: Date())
+        // each reading loops once, as on the watch: one the watch's last loop dosed on waits for the next
+        if (glucoseStorage.lastGlucoseDate() ?? .distantPast) > apsManager.lastLoopDate {
+            apsManager.heartbeat(date: Date())
+        }
     }
 
     /// Insulin the pump delivered that no record explains is booked now, as a bolus. Records claiming more than the
