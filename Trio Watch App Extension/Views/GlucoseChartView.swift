@@ -26,25 +26,24 @@ struct TreatmentMarks: ChartContent {
 
     var body: some ChartContent {
         ForEach(placed) { placed in
-            let marker = placed.marker
-            PointMark(x: .value("Time", marker.date), y: .value("Glucose", placed.y))
+            PointMark(x: .value("Time", placed.marker.date), y: .value("Glucose", placed.y))
                 .symbol {
-                    switch marker.kind {
+                    switch placed.marker.kind {
                     case .bolus,
                          .smb:
                         Image(systemName: "arrowtriangle.down.fill")
-                            .font(.system(size: marker.kind == .smb ? 6 : 9))
+                            .font(.system(size: placed.marker.kind == .smb ? 6 : 9))
                             .foregroundStyle(Color.insulin)
                             .offset(y: -8)
                     case .carbs:
                         Circle().fill(Color.orange).frame(width: 7, height: 7).offset(y: 8)
                     }
                 }
-                .annotation(position: marker.kind == .carbs ? .bottom : .top, spacing: 8) {
-                    if showsAmounts, marker.kind != .smb {
-                        Text(marker.kind == .carbs ? "\(Int(marker.amount))g" : String(format: "%.1f", marker.amount))
+                .annotation(position: placed.marker.kind == .carbs ? .bottom : .top, spacing: 8) {
+                    if showsAmounts, placed.marker.kind != .smb {
+                        Text(placed.marker.kind == .carbs ? "\(Int(placed.marker.amount))g" : String(format: "%.1f", placed.marker.amount))
                             .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(marker.kind == .carbs ? Color.orange : Color.insulin)
+                            .foregroundStyle(placed.marker.kind == .carbs ? Color.orange : Color.insulin)
                     }
                 }
         }
