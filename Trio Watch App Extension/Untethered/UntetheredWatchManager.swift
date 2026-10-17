@@ -130,6 +130,11 @@ import WatchConnectivity
             replyHandler?([:])
             answerSync(epoch: envelope.epoch, bucketStart: bucketStart, checksums: checksums)
 
+        case let .commit(handover):
+            apply(.received(envelope.message, epoch: envelope.epoch), reply: replyHandler) {
+                if $0.session.phase == .starting, $0.session.epoch == envelope.epoch { $0.handover = handover }
+            }
+
         case let .startRefused(reason):
             replyHandler?([:])
             isBusy = false
@@ -252,7 +257,8 @@ import WatchConnectivity
                 handback()
             case let .failed(reason):
                 setError(reason)
-            case .reconcile,
+            case .commit,
+                 .reconcile,
                  .takePump:
                 break
             }
@@ -261,6 +267,7 @@ import WatchConnectivity
         // the grant's sensor, in case it changed since the phone's last update
         if !wasActive, store.data.session.phase == .active {
             startCGM()
+            resumeHandedOverTempBasal()
         }
         if wasActive != isActive { handOverAlertNotifications(toWatch: isActive) }
         // after the devices are in place, so the Devices page shows them too
@@ -371,7 +378,8 @@ import WatchConnectivity
     // MARK: - Taking the pump
 
     private func takeover() {
-        guard let grant = data.grant, let configuration = Self.configuration(grant.pumpConfiguration),
+        guard let grant = data.grant,
+              let configuration = Self.configuration(data.handover?.pumpConfiguration ?? grant.pumpConfiguration),
               let type = watchPumpManagers[configuration.managerIdentifier],
               let pump = type.init(adopting: configuration, localState: localState(for: configuration.managerIdentifier))
         else {
@@ -532,6 +540,17 @@ import WatchConnectivity
         }
     }
 
+    /// The temp basal the phone cancelled at its release goes on as the watch's own. A loop already running
+    /// decides for itself.
+    private func resumeHandedOverTempBasal() {
+        guard let pump = pumpManager, let tempBasal = data.handover?.tempBasal, !isLooping else { return }
+        Task { @MainActor in
+            if let error = await pump.resumeTempBasal(tempBasal) {
+                await WatchLogger.shared.log("⌚️ Untethered: the phone's temp basal could not be set again: \(error)", force: true)
+            }
+        }
+    }
+
     // MARK: - Starting from the wrist
 
     /// Asks the phone to start, as its settings toggle does; the phone's answer is the usual prepare.
@@ -576,7 +595,10 @@ import WatchConnectivity
             // a hand-back asked for by the phone also waits for a running bolus
             while self.isLooping || self.isBolusing { try? await Task.sleep(nanoseconds: 500_000_000) }
             self.expireAdjustments(now: Date())
-            let status = await self.pumpManager.asyncMap { await self.readPump($0) } ?? nil
+            // its record ends here and goes with the last ones; the phone sets what was left again
+            let tempBasal = await self.pumpManager.asyncMap { await $0.cancelTempBasalForHandover() } ?? nil
+            var status = await self.pumpManager.asyncMap { await self.readPump($0) } ?? nil
+            status?.tempBasal = tempBasal
             // the sensor is let go next: nothing left to make room for
             self.streamRecords(ignoringSensor: true)
             self.releasePump()

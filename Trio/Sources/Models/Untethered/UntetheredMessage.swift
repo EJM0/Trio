@@ -1,11 +1,12 @@
 import Foundation
+import LoopKit
 
 /// What the phone and the watch tell each other about untethered watch mode.
 enum UntetheredMessage: Codable, Equatable {
     case prepare(UntetheredGrant)
     case prepared
     case rejected(reason: String)
-    case commit
+    case commit(UntetheredHandover)
     case takeoverComplete(UntetheredPodStatus)
     case takeoverFailed(reason: String)
     case records([UntetheredRecord])
@@ -39,6 +40,51 @@ struct UntetheredPodStatus: Codable, Equatable {
     let date: Date
     let deliveredUnits: Double?
     let reservoir: Double?
+    /// Hand-back: the temp basal the watch cancelled before letting go.
+    var tempBasal: UntetheredTempBasal? = nil
+}
+
+/// The pump as the phone let go of it, a moment before the commit: the grant's configuration is older, and a temp
+/// basal set since would reach the watch as a dose in flight that the pod no longer runs.
+struct UntetheredHandover: Codable, Equatable {
+    let pumpConfiguration: Data?
+    let tempBasal: UntetheredTempBasal?
+}
+
+/// A temp basal handed over: the side letting go cancels it, so its record ends where the pod stopped it; the side
+/// taking over sets it again for what was left, as its own dose, which it tracks and later ends itself.
+struct UntetheredTempBasal: Codable, Equatable {
+    let unitsPerHour: Double
+    let endsAt: Date
+
+    /// What was left, nil once over. Omnipod takes 30 min to 12 h in half hours, so it is rounded up: the new
+    /// owner's next loop sets its own well before the extra time runs.
+    func remainingDuration(at now: Date) -> TimeInterval? {
+        let left = endsAt.timeIntervalSince(now)
+        guard left > 0 else { return nil }
+        let halfHour: TimeInterval = 30 * 60
+        return min(24 * halfHour, (left / halfHour).rounded(.up) * halfHour)
+    }
+}
+
+extension PumpManager {
+    /// Cancels the running temp basal for a hand-over: what was left of it, or nil when none ran or the pump
+    /// didn't take the cancel, which leaves it running as before.
+    func cancelTempBasalForHandover() async -> UntetheredTempBasal? {
+        guard case let .tempBasal(dose) = status.basalDeliveryState, dose.endDate > Date() else { return nil }
+        let cancelled = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            enactTempBasal(unitsPerHour: 0, for: 0) { continuation.resume(returning: $0 == nil) }
+        }
+        return cancelled ? UntetheredTempBasal(unitsPerHour: dose.unitsPerHour, endsAt: dose.endDate) : nil
+    }
+
+    /// Sets a handed-over temp basal again for what was left: the pump's error, or nil when set or already over.
+    func resumeTempBasal(_ temp: UntetheredTempBasal) async -> PumpManagerError? {
+        guard let duration = temp.remainingDuration(at: Date()) else { return nil }
+        return await withCheckedContinuation { continuation in
+            enactTempBasal(unitsPerHour: temp.unitsPerHour, for: duration) { continuation.resume(returning: $0) }
+        }
+    }
 }
 
 /// Everything the watch needs to run the loop: the pump and CGM, therapy settings and 24 h of history.
