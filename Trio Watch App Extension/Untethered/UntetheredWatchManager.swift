@@ -192,7 +192,8 @@ import WatchConnectivity
         data.tddRows = grant.tddRecentRows
         data.tddTenDaySum = grant.tddTenDaySum
         data.tddTenDayCount = grant.tddTenDayCount
-        data.reservoir = grant.reservoir
+        // the phone's "50+ U" marker is no amount: above 50 U the pod doesn't measure
+        data.reservoir = grant.reservoir.flatMap { $0 == Decimal(UInt32(0xDEAD_BEEF)) ? nil : $0 }
         // the phone's last loop stands until the watch's own first one
         data.lastDetermination = grant.lastDetermination
         data.lastLoopDate = grant.lastLoopDate

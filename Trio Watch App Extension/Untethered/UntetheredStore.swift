@@ -68,6 +68,46 @@ struct UntetheredWatchData: Codable {
     }
 }
 
+/// A field added since the file was written decodes to its default instead of failing the whole file: a failed
+/// decode would start over and lose the sensor's pairing and the history not yet on the phone.
+extension UntetheredWatchData {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = UntetheredWatchData()
+        session = try container.decodeIfPresent(UntetheredSession.self, forKey: .session) ?? defaults.session
+        grant = try container.decodeIfPresent(UntetheredGrant.self, forKey: .grant)
+        pumpRawValue = try container.decodeIfPresent(Data.self, forKey: .pumpRawValue)
+        cgmRawValue = try container.decodeIfPresent(Data.self, forKey: .cgmRawValue)
+        cgmBuiltFrom = try container.decodeIfPresent(Data.self, forKey: .cgmBuiltFrom)
+        localStates = try container.decodeIfPresent([String: Data].self, forKey: .localStates) ?? defaults.localStates
+        pumpHistory = try container.decodeIfPresent([PumpHistoryEvent].self, forKey: .pumpHistory) ?? defaults.pumpHistory
+        glucose = try container.decodeIfPresent([BloodGlucose].self, forKey: .glucose) ?? defaults.glucose
+        smoothedGlucose = try container.decodeIfPresent([String: Decimal].self, forKey: .smoothedGlucose) ?? defaults.smoothedGlucose
+        carbs = try container.decodeIfPresent([CarbsEntry].self, forKey: .carbs) ?? defaults.carbs
+        tempTargets = try container.decodeIfPresent([TempTarget].self, forKey: .tempTargets) ?? defaults.tempTargets
+        activeOverride = try container.decodeIfPresent(Override.self, forKey: .activeOverride)
+        activeOverrideKey = try container.decodeIfPresent(String.self, forKey: .activeOverrideKey)
+        activeTempTargetKey = try container.decodeIfPresent(String.self, forKey: .activeTempTargetKey)
+        autosens = try container.decodeIfPresent(Autosens.self, forKey: .autosens)
+        reservoir = try container.decodeIfPresent(Decimal.self, forKey: .reservoir)
+        tddPumpHistory = try container.decodeIfPresent([PumpHistoryEvent].self, forKey: .tddPumpHistory) ?? defaults.tddPumpHistory
+        mutablePumpEventIDs = try container.decodeIfPresent(Set<String>.self, forKey: .mutablePumpEventIDs) ?? defaults.mutablePumpEventIDs
+        tddRows = try container.decodeIfPresent([UntetheredTDD].self, forKey: .tddRows) ?? defaults.tddRows
+        tddTenDaySum = try container.decodeIfPresent(Decimal.self, forKey: .tddTenDaySum) ?? defaults.tddTenDaySum
+        tddTenDayCount = try container.decodeIfPresent(Int.self, forKey: .tddTenDayCount) ?? defaults.tddTenDayCount
+        lastDetermination = try container.decodeIfPresent(Determination.self, forKey: .lastDetermination)
+        lastLoopDate = try container.decodeIfPresent(Date.self, forKey: .lastLoopDate)
+        lastLoopGlucose = try container.decodeIfPresent(Date.self, forKey: .lastLoopGlucose)
+        lastLoopError = try container.decodeIfPresent(String.self, forKey: .lastLoopError)
+        lastError = try container.decodeIfPresent(String.self, forKey: .lastError)
+        podEnded = try container.decodeIfPresent(Bool.self, forKey: .podEnded) ?? defaults.podEnded
+        pendingPumpAlerts = try container.decodeIfPresent([PendingPumpAlert].self, forKey: .pendingPumpAlerts) ?? defaults.pendingPumpAlerts
+        pending = try container.decodeIfPresent([Int: [String: UntetheredRecord]].self, forKey: .pending) ?? defaults.pending
+        entries = try container.decodeIfPresent([Int: [String: UntetheredSyncEntry]].self, forKey: .entries) ?? defaults.entries
+        unsent = try container.decodeIfPresent(Set<UUID>.self, forKey: .unsent) ?? defaults.unsent
+    }
+}
+
 final class UntetheredStore {
     private let url: URL
     private(set) var data: UntetheredWatchData
@@ -76,8 +116,19 @@ final class UntetheredStore {
         let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         url = directory.appendingPathComponent(fileName)
-        data = (try? Data(contentsOf: url)).flatMap { try? JSONDecoder().decode(UntetheredWatchData.self, from: $0) }
-            ?? UntetheredWatchData()
+        guard let saved = try? Data(contentsOf: url) else {
+            data = UntetheredWatchData()
+            return
+        }
+        do {
+            data = try JSONDecoder().decode(UntetheredWatchData.self, from: saved)
+        } catch {
+            // kept aside rather than overwritten by the next save, so nothing is lost silently
+            try? FileManager.default.removeItem(at: url.appendingPathExtension("unreadable"))
+            try? FileManager.default.moveItem(at: url, to: url.appendingPathExtension("unreadable"))
+            data = UntetheredWatchData()
+            Task { await WatchLogger.shared.log("⌚️ Untethered: saved state unreadable, kept aside: \(error)", force: true) }
+        }
     }
 
     @discardableResult func update<T>(_ change: (inout UntetheredWatchData) -> T) -> T {

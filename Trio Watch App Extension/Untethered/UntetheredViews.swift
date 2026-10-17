@@ -123,8 +123,9 @@ struct UntetheredStatusView: View {
             tile("Basal", systemImage: "chart.bar.fill", tint: .blue, value: data.lastDetermination?.rate.map {
                 String(format: "%.2f U/h", NSDecimalNumber(decimal: $0).doubleValue)
             })
-            tile("Reservoir", systemImage: "drop.fill", tint: .blue, value: data.reservoir.map {
-                "\(NSDecimalNumber(decimal: $0).intValue) U"
+            // as the Devices page: the fill-based estimate above 50 U, or "50+" when there is none
+            tile("Reservoir", systemImage: "drop.fill", tint: .blue, value: WatchState.shared.pumpReservoir.map {
+                $0 == Decimal(UInt32(0xDEAD_BEEF)) ? "50+ U" : "\(NSDecimalNumber(decimal: $0).intValue) U"
             })
             tile(
                 "Phone",
