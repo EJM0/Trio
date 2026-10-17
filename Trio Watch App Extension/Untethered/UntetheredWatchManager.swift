@@ -33,10 +33,16 @@ import WatchConnectivity
 
     /// Records travel in batches small enough for an interactive message.
     private static let recordsPerMessage = 40
-    /// While the watch holds the sensor link, a backlog goes this many batches at a time, this far apart.
+    /// While the watch holds the sensor link, a backlog goes this many batches at a time; the next burst waits
+    /// until the phone answered for every batch of the last, or this long at most.
     private static let batchesPerBurst = 5
-    private static let burstInterval: TimeInterval = 3
+    private static let burstTimeout: TimeInterval = 30
+    /// After a batch failed with the phone in reach: no tight loop of sends that keep failing.
+    private static let retryDelay: TimeInterval = 15
     @ObservationIgnored private var streamTimer: Timer?
+    /// The paced burst on its way, how many of its batches the phone has yet to answer for, and whether one failed.
+    @ObservationIgnored private var burst: (id: Int, startedAt: Date, outstanding: Int, failed: Bool)?
+    @ObservationIgnored private var burstCount = 0
     private static let takeoverReadInterval: UInt64 = 8_000_000_000
 
     var isActive: Bool { data.session.phase == .active || data.session.phase == .ending }
@@ -303,8 +309,15 @@ import WatchConnectivity
     }
 
     /// Interactive when the phone is reachable; what must arrive in any case is also queued, unless `queueing`
-    /// says otherwise. `onFailure` runs once, on the main queue, when the message reached neither way.
-    func send(_ message: UntetheredMessage, epoch: Int, queueing: Bool? = nil, onFailure: (() -> Void)? = nil) {
+    /// says otherwise. On the main queue, after the reply is handled, `onReply` runs when the phone answered with an
+    /// envelope; `onFailure` runs once when the message reached neither way.
+    func send(
+        _ message: UntetheredMessage,
+        epoch: Int,
+        queueing: Bool? = nil,
+        onReply: (() -> Void)? = nil,
+        onFailure: (() -> Void)? = nil
+    ) {
         guard WCSession.isSupported(), WCSession.default.activationState == .activated,
               let payload = try? UntetheredEnvelope(epoch: epoch, message: message).payload()
         else {
@@ -337,6 +350,8 @@ import WatchConnectivity
             session.sendMessage(part, replyHandler: { [weak self] reply in
                 guard reply[UntetheredEnvelope.key] != nil else { return }
                 self?.receive(reply, replyHandler: nil)
+                // queued behind the reply's own handling, which `receive` puts on the main queue
+                if let onReply { DispatchQueue.main.async(execute: onReply) }
             }, errorHandler: { error in
                 Task { await WatchLogger.shared.log("⌚️ Untethered: sending failed: \(error.localizedDescription)") }
                 // the whole envelope goes queued once, whichever part failed
@@ -591,12 +606,23 @@ import WatchConnectivity
     /// does the watch drop it, so its backlog stays as small as the phone's reach allows.
     ///
     /// While the watch holds the sensor link the two share its radio: history then goes only to a reachable
-    /// phone, never around the next reading, and a few batches at a time. Nothing is queued in WatchConnectivity
-    /// meanwhile, which would send the whole backlog at once whenever the phone came back. A hand-back lets go of
-    /// the sensor anyway and sends everything (`ignoringSensor`).
+    /// phone, never around the next reading, and a few batches at a time, each burst once the phone has answered
+    /// for the last, so none piles up in WatchConnectivity and runs into the reading. Nothing is queued there either
+    /// while the phone is away, which would send the whole backlog at once whenever it came back. A hand-back lets
+    /// go of the sensor anyway and sends everything (`ignoringSensor`).
     func streamRecords(ignoringSensor: Bool = false) {
         streamTimer?.invalidate()
         streamTimer = nil
+        let paced = holdsSensorLink && !ignoringSensor
+        if paced, let burst {
+            let overdue = burst.startedAt.addingTimeInterval(Self.burstTimeout)
+            // the phone's last answer continues the stream; a burst it never answered for stops holding it
+            guard Date() >= overdue else {
+                scheduleStream(at: overdue)
+                return
+            }
+        }
+        burst = nil
         let unsent = store.data.unsent
         guard !unsent.isEmpty else { return }
         let pending = store.data.pending.sorted { $0.key < $1.key }
@@ -607,7 +633,6 @@ import WatchConnectivity
                 batches.append((epoch, Array(batch[start ..< min(start + Self.recordsPerMessage, batch.count)])))
             }
         }
-        let paced = holdsSensorLink && !ignoringSensor
         var sending = batches
         if paced, !batches.isEmpty {
             // the next loop or the phone's return tries again
@@ -617,23 +642,50 @@ import WatchConnectivity
                 return
             }
             sending = Array(batches.prefix(Self.batchesPerBurst))
+            burstCount += 1
+            burst = (burstCount, Date(), sending.count, false)
+            scheduleStream(at: Date().addingTimeInterval(Self.burstTimeout))
         }
+        let burstID = burst?.id
         for batch in sending {
             let ids = batch.records.map(\.id)
+            // the phone's answer or the failure, whichever comes, settles the batch once
+            var settled = false
+            let settle: (_ delivered: Bool) -> Void = { [weak self] delivered in
+                guard !settled else { return }
+                settled = true
+                if !delivered { self?.resend(ids) }
+                if let burstID { self?.batchSettled(inBurst: burstID, delivered: delivered) }
+            }
             send(
                 .records(batch.records),
                 epoch: batch.epoch,
                 queueing: paced ? false : nil,
-                onFailure: paced ? { [weak self] in self?.resend(ids) } : nil
+                onReply: paced ? { settle(true) } : nil,
+                onFailure: paced ? { settle(false) } : nil
             )
         }
         // what is no longer pending was confirmed meanwhile and needs no sending
         let pendingIDs = Set(pending.flatMap { $0.value.values.map(\.id) })
         let sent = Set(sending.flatMap { $0.records.map(\.id) })
         store.update { $0.unsent = $0.unsent.subtracting(sent).intersection(pendingIDs) }
-        if sending.count < batches.count {
-            scheduleStream(at: Date().addingTimeInterval(Self.burstInterval))
+    }
+
+    /// The last batch the phone answered for, or that failed, sends the next burst: at once, or after a pause
+    /// when one failed.
+    private func batchSettled(inBurst id: Int, delivered: Bool) {
+        guard let current = burst, current.id == id else { return }
+        let failed = current.failed || !delivered
+        guard current.outstanding > 1 else {
+            burst = nil
+            if failed {
+                scheduleStream(at: Date().addingTimeInterval(Self.retryDelay))
+            } else {
+                streamRecords()
+            }
+            return
         }
+        burst = (current.id, current.startedAt, current.outstanding - 1, failed)
     }
 
     /// The end of the window around the watch's next sensor reading, or nil while clear of it or holding no sensor.
