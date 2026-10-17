@@ -5,6 +5,7 @@ import HealthKit
 import LoopKit
 import OmnipodKit
 import Swinject
+import UIKit
 import WatchConnectivity
 
 /// What the phone persists of untethered watch mode.
@@ -125,6 +126,10 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     private var endRequestTimer: Timer?
     /// How long a normal hand-back waits for the watch's last records before the audit judges the pump.
     private static let historyWait: TimeInterval = 60
+    /// Between reads of a returned pump: each read already waits up to 45 s for the link.
+    private static let pumpReadRetry: UInt64 = 2_000_000_000
+    /// A returned pump with no link by then is searched for by its address (`escalateTakeControl`).
+    private static let pumpEscalateAfter: UInt64 = 12_000_000_000
     private var linkedOverrideTimer: Timer?
     /// What ran on the phone at the last change, so a cancel made here can be told to the watch.
     private var runningOverrideStart: Date?
@@ -593,23 +598,47 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             publish()
             return
         }
-        (apsManager.pumpManager as? ExclusiveDeviceControl)?.takeControl()
+        let control = apsManager.pumpManager as? ExclusiveDeviceControl
+        control?.takeControl()
         debug(.watchManager, "Untethered: reading the pump back")
+        // the reconnect keeps running with the phone in a pocket, rather than waiting for the next wake
+        var backgroundTask = UIBackgroundTaskIdentifier.invalid
+        backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Untethered pump return") {
+            UIApplication.shared.endBackgroundTask(backgroundTask)
+            backgroundTask = .invalid
+        }
+        defer { if backgroundTask != .invalid { UIApplication.shared.endBackgroundTask(backgroundTask) } }
+        let escalation = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: Self.pumpEscalateAfter)
+            guard !Task.isCancelled, let control, !control.isControlReady else { return }
+            let outcome = control.escalateTakeControl() ?? "nothing to escalate"
+            debug(.watchManager, "Untethered: no pump link after 12 s, escalating: \(outcome)")
+        }
+        defer { escalation.cancel() }
+        let started = Date()
         var attempts = 0
+        var bannerShown = false
         while !state.podEndedOnWatch, !(await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
             odometer.refreshDeliveredUnits { continuation.resume(returning: $0) }
         }) {
             attempts += 1
             debug(.watchManager, "Untethered: the pump did not answer yet (attempt \(attempts)), retrying")
             // dosing stays held until the pump is read; after a minute the banner says why
-            if attempts == 3 {
+            if !bannerShown, Date().timeIntervalSince(started) >= 60 {
+                bannerShown = true
                 setError(String(
                     localized: "The phone can't reach the pump yet, so it doesn't dose. Keep the phone close to the pod; it keeps trying."
                 ))
             }
-            try? await Task.sleep(nanoseconds: 20_000_000_000)
+            try? await Task.sleep(nanoseconds: Self.pumpReadRetry)
         }
-        if attempts >= 3 { setError(nil) }
+        if bannerShown { setError(nil) }
+        if !state.podEndedOnWatch {
+            debug(
+                .watchManager,
+                "Untethered: pump answered after \(Int(Date().timeIntervalSince(started))) s, \(attempts + 1) read(s); \(control?.connectionDiagnostics() ?? "")"
+            )
+        }
         // the temp basal the watch cancelled goes on as the phone's own, before the loop is let go
         if !state.podEndedOnWatch, let tempBasal = state.session.returnedTempBasal,
            let error = await apsManager.pumpManager?.resumeTempBasal(tempBasal)
