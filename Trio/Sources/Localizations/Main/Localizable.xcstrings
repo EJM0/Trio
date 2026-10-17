@@ -314630,6 +314630,9 @@
         }
       }
     },
+    "The pump delivered %@ U that no record explains. It is counted as a bolus." : {
+
+    },
     "The pump delivered %@ U the phone has no record of yet. It is counted as a bolus until the watch's records arrive." : {
 
     },
@@ -314774,6 +314777,9 @@
           }
         }
       }
+    },
+    "The records show %@ U more insulin than the pump delivered. Insulin on board may be overstated." : {
+
     },
     "The records show more insulin than the pump delivered. Insulin on board may be overstated until the watch's records arrive." : {
 
