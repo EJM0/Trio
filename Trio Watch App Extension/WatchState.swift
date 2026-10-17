@@ -98,6 +98,8 @@ import WatchConnectivity
     var forecastConeMin: [Double] = []
     var forecastConeMax: [Double] = []
     var forecastLines: [String: [Double]] = [:] // "iob" / "cob" / "uam" / "zt" -> values
+    /// Boluses and carbs on the chart, untethered only: the watch has its own history then.
+    var treatmentMarkers: [WatchTreatmentMarker] = []
 
     // Acknowlegement handling
     var showCommsAnimation: Bool = false
