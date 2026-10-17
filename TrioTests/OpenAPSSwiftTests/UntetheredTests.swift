@@ -304,6 +304,21 @@ import Testing
         #expect(UntetheredAudit.verdict(delivered: units(1645), expected: units(1732)) == .overstated(units(87)))
     }
 
+    @Test("sensor window: history waits around each due reading, never after one arrived") func sensorWindow() {
+        // 19:59:09 the reading's own time (linked 19:59:15, age 6); 20:04:09 is due
+        let reading = t0
+        func end(after seconds: TimeInterval) -> Date? {
+            UntetheredSensorWindow.end(now: reading.addingTimeInterval(seconds), lastReading: reading)
+        }
+        #expect(end(after: 15) == nil, "right after the loop: clear")
+        #expect(end(after: 269) == nil, "until shortly before the next one")
+        #expect(end(after: 270) == reading.addingTimeInterval(340))
+        #expect(end(after: 310) == reading.addingTimeInterval(340), "the link comes up a few seconds after the reading's time")
+        #expect(end(after: 341) == nil, "a reading that didn't come doesn't hold history back")
+        #expect(end(after: 575) == reading.addingTimeInterval(640), "the one after that is due on the same beat")
+        #expect(UntetheredSensorWindow.end(now: reading, lastReading: nil) == nil)
+    }
+
     @Test("audit: a return's point survives a relaunch until the complete history judges it") func auditPointPersistence() throws {
         var state = UntetheredPhoneState()
         state.audit = UntetheredAuditPoint(epoch: 7, start: t0, startUnits: 10, end: t0.addingTimeInterval(3600), endUnits: 11.5)

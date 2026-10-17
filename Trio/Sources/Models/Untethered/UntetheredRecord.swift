@@ -90,3 +90,23 @@ struct UntetheredSyncEntry: Codable, Equatable {
         string.utf8.reduce(0xCBF2_9CE4_8422_2325) { ($0 ^ UInt64($1)) &* 0x0000_0100_0000_01B3 }
     }
 }
+
+/// The watch's own sensor link comes up around each 5-minute G7 reading and shares the watch's one radio with
+/// WatchConnectivity. History sent meanwhile can make the link miss the sensor (2026-10-17: the readings at 20:04
+/// and 20:09 went missing while the phone came back and the backlog went over), so it waits the window out.
+enum UntetheredSensorWindow {
+    static let cycle: TimeInterval = 5 * 60
+    /// Before a reading is due: the sensor advertises then, and a batch must not still be on its way.
+    static let lead: TimeInterval = 30
+    /// After it: the link comes up a few seconds after the reading's own time and stays a few more.
+    static let tail: TimeInterval = 40
+
+    /// When the window around the next due reading ends, or nil while `now` is clear of it.
+    static func end(now: Date, lastReading: Date?) -> Date? {
+        guard let lastReading, now > lastReading else { return nil }
+        let cycles = max(1, (now.timeIntervalSince(lastReading) / cycle).rounded())
+        let due = lastReading.addingTimeInterval(cycles * cycle)
+        guard now >= due.addingTimeInterval(-lead), now <= due.addingTimeInterval(tail) else { return nil }
+        return due.addingTimeInterval(tail)
+    }
+}
