@@ -196,7 +196,7 @@ enum GlucoseUnits: String, JSON, Equatable, CaseIterable, Identifiable {
 
 extension Int {
     var asMmolL: Decimal {
-        Trio.rounded(Decimal(self) * GlucoseUnits.exchangeRate, scale: 1, roundingMode: .plain)
+        (Decimal(self) * GlucoseUnits.exchangeRate).rounded(scale: 1, roundingMode: .plain)
     }
 
     var formattedAsMmolL: String {
@@ -218,11 +218,11 @@ extension Decimal {
     }
 
     var asMmolL: Decimal {
-        Trio.rounded(self * GlucoseUnits.exchangeRate, scale: 1, roundingMode: .plain)
+        (self * GlucoseUnits.exchangeRate).rounded(scale: 1, roundingMode: .plain)
     }
 
     var asMgdL: Decimal {
-        Trio.rounded(self / GlucoseUnits.exchangeRate, scale: 0, roundingMode: .plain)
+        (self / GlucoseUnits.exchangeRate).rounded(scale: 0, roundingMode: .plain)
     }
 
     var formattedAsMmolL: String {
@@ -244,11 +244,11 @@ extension Double {
     }
 
     var asMmolL: Decimal {
-        Trio.rounded(Decimal(self) * GlucoseUnits.exchangeRate, scale: 1, roundingMode: .plain)
+        (Decimal(self) * GlucoseUnits.exchangeRate).rounded(scale: 1, roundingMode: .plain)
     }
 
     var asMgdL: Decimal {
-        Trio.rounded(Decimal(self) / GlucoseUnits.exchangeRate, scale: 0, roundingMode: .plain)
+        (Decimal(self) / GlucoseUnits.exchangeRate).rounded(scale: 0, roundingMode: .plain)
     }
 
     var formattedAsMmolL: String {

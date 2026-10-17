@@ -119,7 +119,8 @@ extension AlarmSoundPlayback {
         switch trim {
         case .playOnce: self = .once
         // The length field can be left empty (0) — never let that silence the alarm.
-        case .length: self = .seconds(min(max(seconds, AlarmSoundDurationRange.minimumSeconds), AlarmSoundDurationRange.maximumSeconds))
+        case .length: self =
+            .seconds(min(max(seconds, AlarmSoundDurationRange.minimumSeconds), AlarmSoundDurationRange.maximumSeconds))
         }
     }
 }

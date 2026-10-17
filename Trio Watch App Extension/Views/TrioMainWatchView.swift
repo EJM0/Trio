@@ -4,6 +4,21 @@ import WatchKit
 
 struct TrioMainWatchView: View {
     @State private var state = WatchState.shared
+    @State private var untethered = UntetheredWatchManager.shared
+
+    // Pages in order; the bubble page is a phone setting, the history page exists while untethered and while
+    // its history still syncs, the status page (where untethered mode starts from the wrist) always.
+    private var bubblePage: Int? { state.showGlucoseBubble ? 1 : nil }
+    private var chartPage: Int { bubblePage.map { $0 + 1 } ?? 1 }
+    private var peripheralsPage: Int { chartPage + 1 }
+    private var historyPage: Int? { showsHistory ? peripheralsPage + 1 : nil }
+    private var statusPage: Int { (historyPage ?? peripheralsPage) + 1 }
+
+    private var showsHistory: Bool {
+        untethered.data.session.phase != .idle || untethered.data.pending.values.contains { !$0.isEmpty }
+    }
+
+    @State private var historyKind = UntetheredHistoryView.Kind.glucose
 
     // misc
     @State private var currentPage: Int = 0
@@ -32,6 +47,11 @@ struct TrioMainWatchView: View {
         }
         guard let lastUpdateTimestamp = state.lastWatchStateUpdate else { return true }
         return now.timeIntervalSince1970 - lastUpdateTimestamp > 5 * 60
+    }
+
+    /// Treatments and IOB/COB rely on the phone's data, unless the watch runs the loop itself.
+    private var isPhoneDataUnusable: Bool {
+        !untethered.isActive && (isWatchStateDated || isSessionUnreachable)
     }
 
     var isSessionUnreachable: Bool {
@@ -72,44 +92,62 @@ struct TrioMainWatchView: View {
                     isWatchStateDated: isWatchStateDated || isSessionUnreachable
                 )
                 .tag(0)
-                // Page 2: Current glucose trend in "BG bobble"
-                ZStack {
-                    GlucoseTrendView(
-                        state: state,
-                        rotationDegrees: rotationDegrees,
-                        isWatchStateDated: isWatchStateDated || isSessionUnreachable
-                    )
+                // Page 2: Current glucose trend in "BG bobble", unless turned off on the phone
+                if let bubblePage {
+                    ZStack {
+                        GlucoseTrendView(
+                            state: state,
+                            rotationDegrees: rotationDegrees,
+                            isWatchStateDated: isWatchStateDated || isSessionUnreachable
+                        )
 
-                    if state.showSyncingAnimation {
-                        Image(systemName: "iphone.radiowaves.left.and.right")
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(Color.primary, Color.tabBar, Color.clear)
-                            .symbolEffect(
-                                .variableColor.iterative,
-                                options: .repeating,
-                                value: state.showSyncingAnimation
-                            )
-                            .position(
-                                x: 20,
-                                y: (WKInterfaceDevice.current().screenBounds.height / 4) -
-                                    7 // Font .body == 14, so half of default size for the SF Symbol image
-                            )
-                    }
-                }.tag(1)
+                        if state.showSyncingAnimation {
+                            Image(systemName: "iphone.radiowaves.left.and.right")
+                                .symbolRenderingMode(.palette)
+                                .foregroundStyle(Color.primary, Color.tabBar, Color.clear)
+                                .symbolEffect(
+                                    .variableColor.iterative,
+                                    options: .repeating,
+                                    value: state.showSyncingAnimation
+                                )
+                                .position(
+                                    x: 20,
+                                    y: (WKInterfaceDevice.current().screenBounds.height / 4) -
+                                        7 // Font .body == 14, so half of default size for the SF Symbol image
+                                )
+                        }
+                    }.tag(bubblePage)
+                }
 
                 // Page 3: Glucose chart
                 GlucoseChartView(
                     state: state,
                     glucoseValues: state.glucoseValues
                 )
-                .tag(2)
+                .tag(chartPage)
 
                 // Page 4: Pump and CGM peripheral info
                 PeripheralsView(
                     state: state,
                     isWatchStateDated: isWatchStateDated || isSessionUnreachable
                 )
-                .tag(3)
+                .tag(peripheralsPage)
+
+                if let historyPage {
+                    UntetheredHistoryView(manager: untethered, kind: historyKind, page: $currentPage, lastPage: statusPage)
+                        .tag(historyPage)
+                }
+                UntetheredStatusView(manager: untethered).tag(statusPage)
+            }
+            .onChange(of: untethered.isActive) { _, isActive in
+                if isActive { currentPage = statusPage }
+            }
+            // the history page goes once its records are on the phone; stay on the status page, not on none
+            .onChange(of: showsHistory) { _, _ in
+                if currentPage > statusPage { currentPage = statusPage }
+            }
+            .onChange(of: state.showGlucoseBubble) { _, _ in
+                if currentPage > statusPage { currentPage = statusPage }
             }
             .onAppear {
                 /// Hard reset variables when main view appears
@@ -122,7 +160,7 @@ struct TrioMainWatchView: View {
             }
             .background(trioBackgroundColor)
             .tabViewStyle(.verticalPage)
-            .digitalCrownRotation($currentPage.doubleBinding(), from: 0, through: 3, by: 1)
+            .digitalCrownRotation($currentPage.doubleBinding(), from: 0, through: Double(statusPage), by: 1)
             .onChange(of: state.trend) { _, newTrend in
                 withAnimation {
                     updateRotation(for: newTrend)
@@ -134,7 +172,7 @@ struct TrioMainWatchView: View {
                         Image(systemName: "syringe.fill")
                             .foregroundStyle(Color.insulin)
 
-                        Text(isWatchStateDated || isSessionUnreachable ? "--" : state.iob ?? "--")
+                        Text(isPhoneDataUnusable ? "--" : state.iob ?? "--")
                             .foregroundStyle(isWatchStateDated ? Color.secondary : Color.white)
                             .frame(alignment: .leading)
                             .minimumScaleFactor(0.5)
@@ -146,41 +184,61 @@ struct TrioMainWatchView: View {
                         Image(systemName: "fork.knife")
                             .foregroundStyle(Color.orange)
 
-                        Text(isWatchStateDated || isSessionUnreachable ? "--" : state.cob ?? "--")
-                            .foregroundStyle(isWatchStateDated || isSessionUnreachable ? Color.secondary : Color.white)
+                        Text(isPhoneDataUnusable ? "--" : state.cob ?? "--")
+                            .foregroundStyle(isPhoneDataUnusable ? Color.secondary : Color.white)
                             .frame(alignment: .trailing)
                             .minimumScaleFactor(0.5)
                     }.font(.caption2)
                 }
 
                 ToolbarItemGroup(placement: .bottomBar) {
-                    Button {
-                        showingOverrideSheet = true
-                    } label: {
-                        Image(systemName: "clock.arrow.2.circlepath")
-                            .foregroundStyle(Color.primary, isOverrideActive ? Color.primary : Color.purple)
-                    }
-                    .tint(isOverrideActive ? Color.purple : nil)
-                    .disabled(isWatchStateDated || isSessionUnreachable)
+                    if currentPage == historyPage {
+                        // what the history page lists
+                        ForEach(UntetheredHistoryView.Kind.allCases, id: \.self) { kind in
+                            Button { historyKind = kind } label: {
+                                Image(systemName: kind.symbol)
+                                    .foregroundStyle(historyKind == kind ? Color.primary : kind.color)
+                            }
+                            .tint(historyKind == kind ? kind.color : nil)
+                        }
+                    } else if currentPage != peripheralsPage, currentPage != statusPage {
+                        // the Devices and status pages have no treatment controls
+                        Button {
+                            showingOverrideSheet = true
+                        } label: {
+                            Image(systemName: "clock.arrow.2.circlepath")
+                                .foregroundStyle(Color.primary, isOverrideActive ? Color.primary : Color.purple)
+                        }
+                        .tint(isOverrideActive ? Color.purple : nil)
+                        .disabled(isPhoneDataUnusable)
 
-                    Button {
-                        showingTreatmentMenuSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .foregroundStyle(Color.bgDarkerDarkBlue)
-                    }
-                    .controlSize(.large)
-                    .buttonStyle(WatchOSButtonStyle(deviceType: state.deviceType))
-                    .disabled(isWatchStateDated || isSessionUnreachable)
+                        // while the watch's pump delivers a bolus, the button stops it
+                        Button {
+                            if untethered.isBolusing {
+                                untethered.cancelBolus()
+                            } else {
+                                showingTreatmentMenuSheet = true
+                            }
+                        } label: {
+                            Image(systemName: untethered.isBolusing ? "square.fill" : "plus")
+                                .foregroundStyle(Color.bgDarkerDarkBlue)
+                        }
+                        .controlSize(.large)
+                        .buttonStyle(WatchOSButtonStyle(deviceType: state.deviceType))
+                        .overlay {
+                            if untethered.isBolusing { BolusProgressRing(window: untethered.bolusWindow) }
+                        }
+                        .disabled(!untethered.isBolusing && isPhoneDataUnusable)
 
-                    Button {
-                        showingTempTargetSheet = true
-                    } label: {
-                        Image(systemName: "target")
-                            .foregroundStyle(isTempTargetActive ? Color.primary : Color.loopGreen.opacity(0.75))
+                        Button {
+                            showingTempTargetSheet = true
+                        } label: {
+                            Image(systemName: "target")
+                                .foregroundStyle(isTempTargetActive ? Color.primary : Color.loopGreen.opacity(0.75))
+                        }
+                        .tint(isTempTargetActive ? Color.loopGreen.opacity(0.75) : nil)
+                        .disabled(isPhoneDataUnusable)
                     }
-                    .tint(isTempTargetActive ? Color.loopGreen.opacity(0.75) : nil)
-                    .disabled(isWatchStateDated || isSessionUnreachable)
                 }
             }
             .fullScreenCover(isPresented: $showingTreatmentMenuSheet) {

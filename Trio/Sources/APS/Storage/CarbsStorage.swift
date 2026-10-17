@@ -294,7 +294,8 @@ final class BaseCarbsStorage: CarbsStorage, Injectable {
             newItem.fat = Double(truncating: NSDecimalNumber(decimal: entry.fat ?? 0))
             newItem.protein = Double(truncating: NSDecimalNumber(decimal: entry.protein ?? 0))
             newItem.note = entry.note
-            newItem.id = UUID()
+            // keeps the identity of an entry made elsewhere (the untethered watch), so it can be matched later
+            newItem.id = entry.id.flatMap(UUID.init(uuidString:)) ?? UUID()
             newItem.isFPU = false
             newItem.isUploadedToNS = areFetchedFromRemote ? true : false
             newItem.isUploadedToHealth = false

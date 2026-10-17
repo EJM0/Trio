@@ -1,5 +1,5 @@
 {
-  "originHash" : "e8856122860d80172cdf3e35b03ec858b2c7bc37efa7e072833e862066b5dcbc",
+  "originHash" : "d3cbb1b3585d8dabb413f89c6dd0b6ada3e007e37aa01cbba6d6630c5360f3bd",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -168,8 +168,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Kitura/KituraContracts.git",
       "state" : {
-        "revision" : "6edf7ac3dd2b3a2c61284778d430bbad7d8a6f23",
-        "version" : "2.0.1"
+        "revision" : "b98f087943d308e2e4331def11d7bbbe46a76dcd",
+        "version" : "2.1.0"
       }
     },
     {
@@ -186,8 +186,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Kitura/LoggerAPI.git",
       "state" : {
-        "revision" : "4e6b45e850ffa275e8e26a24c6454fd709d5b6ac",
-        "version" : "2.0.0"
+        "revision" : "c26d5ef0009fbc0945326933e0f790bd33fe9062",
+        "version" : "2.1.0"
       }
     },
     {
