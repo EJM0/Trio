@@ -19,6 +19,20 @@ struct UntetheredPhoneState: Codable, Equatable {
     var lastError: String?
 }
 
+/// A field added since the file was written decodes to its default instead of failing the whole file, which would
+/// start over and forget a session the watch is still running.
+extension UntetheredPhoneState {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = UntetheredPhoneState()
+        session = try container.decodeIfPresent(UntetheredSession.self, forKey: .session) ?? defaults.session
+        pumpReturnPending = try container.decodeIfPresent(Bool.self, forKey: .pumpReturnPending) ?? defaults.pumpReturnPending
+        podEndedOnWatch = try container.decodeIfPresent(Bool.self, forKey: .podEndedOnWatch) ?? defaults.podEndedOnWatch
+        applied = try container.decodeIfPresent([Int: [String: UntetheredSyncEntry]].self, forKey: .applied) ?? defaults.applied
+        lastError = try container.decodeIfPresent(String.self, forKey: .lastError)
+    }
+}
+
 /// Read by the loop, bolus and watch paths without resolving any service, so a relaunch holds
 /// dosing from its first loop on.
 enum UntetheredGate {

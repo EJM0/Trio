@@ -105310,6 +105310,12 @@
         }
       }
     },
+    "Deactivate the pod? It stops delivering insulin and its alarm ends. Remove it, then pair a new pod on the phone." : {
+
+    },
+    "Deactivating the pod…" : {
+
+    },
     "Deactivating..." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -120546,6 +120552,12 @@
           }
         }
       }
+    },
+    "Discard Pod" : {
+
+    },
+    "Discard the pod without reaching it? It may keep alarming until you remove it." : {
+
     },
     "DISCLAIMER" : {
       "localizations" : {
@@ -167421,6 +167433,9 @@
           }
         }
       }
+    },
+    "Hands back by itself once the phone is nearby." : {
+
     },
     "Hands the pump and the CGM to the Apple Watch, which loops on its own until the pump is handed back. Trio must be open on the watch." : {
 
@@ -251553,6 +251568,9 @@
         }
       }
     },
+    "Pod Deactivated" : {
+
+    },
     "Pod expiration" : {
       "localizations" : {
         "bg" : {
@@ -310258,6 +310276,9 @@
         }
       }
     },
+    "The CGM has no active sensor." : {
+
+    },
     "The current version has a critical issue and should be updated as soon as possible." : {
       "comment" : "Message for critical update alert",
       "localizations" : {
@@ -314467,6 +314488,9 @@
     "The phone must be reachable to take the pump back. Use Emergency Stop if it isn't coming back." : {
 
     },
+    "The phone pairs the next pod; hand back once it is nearby" : {
+
+    },
     "The pod was deactivated. Pair a new one on the phone." : {
 
     },
@@ -314601,6 +314625,9 @@
       }
     },
     "The pump delivered %@ U the phone has no record of yet. It is counted as a bolus until the watch's records arrive." : {
+
+    },
+    "The pump doesn't answer. Keep the phone close to the pod and try again." : {
 
     },
     "The pump or CGM can't be handed to the watch." : {
@@ -315920,6 +315947,9 @@
       }
     },
     "The watch can take over pump and sensor" : {
+
+    },
+    "The watch can't deactivate this pump." : {
 
     },
     "The watch could not reach the pump." : {
