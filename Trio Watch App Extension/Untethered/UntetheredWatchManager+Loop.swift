@@ -258,7 +258,8 @@ extension UntetheredWatchManager {
             guard smoothing, reading.sgv != nil, let smoothed = data.smoothedGlucose[reading.id], smoothed != 0 else {
                 return reading
             }
-            let value = NSDecimalNumber(decimal: smoothed).intValue
+            // rounded first, as the phone does: `intValue` misreads long fractions
+            let value = NSDecimalNumber(decimal: smoothed.rounded(scale: 0)).intValue
             return BloodGlucose(
                 id: reading.id, sgv: value, direction: reading.direction, date: reading.date,
                 dateString: reading.dateString, unfiltered: reading.unfiltered, filtered: reading.filtered,
@@ -479,7 +480,7 @@ extension UntetheredWatchManager {
             isf: determination?.isf ?? current(grant.insulinSensitivities.sensitivities.map { ($0.start, $0.sensitivity) }),
             carbRatio: determination?.carbRatio ?? current(grant.carbRatios.schedule.map { ($0.start, $0.ratio) }),
             iob: determination?.iob ?? 0,
-            cob: Int16(truncatingIfNeeded: NSDecimalNumber(decimal: determination?.cob ?? 0).intValue),
+            cob: Int16(truncatingIfNeeded: NSDecimalNumber(decimal: (determination?.cob ?? 0).rounded(scale: 0, roundingMode: .down)).intValue),
             useFattyMealCorrectionFactor: useReducedBolus,
             fattyMealFactor: settings.fattyMealFactor,
             useSuperBolus: useSuperBolus,
@@ -1193,7 +1194,7 @@ extension UntetheredWatchManager {
         }
         if let determination = data.lastDetermination {
             state.iob = determination.iob.map { String(format: "%.2f", NSDecimalNumber(decimal: $0).doubleValue) }
-            state.cob = determination.cob.map { "\(NSDecimalNumber(decimal: $0).intValue)" }
+            state.cob = determination.cob.map { $0.formatted(.number.precision(.fractionLength(0))) }
             // as `AppleWatchManager`: two hours of each line, or the cone between them
             let series = [
                 "iob": determination.predictions?.iob, "cob": determination.predictions?.cob,
