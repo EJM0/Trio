@@ -131,6 +131,10 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     }
 
     var isWatchInCharge: Bool { !state.session.isIdle }
+    /// The start reads the pump before it offers it: the toggle shows a spinner meanwhile.
+    @Published private(set) var isCheckingDevices = false
+    /// How long the start waits for the pump to answer.
+    private static let pumpCheckTimeout: TimeInterval = 30
 
     // MARK: - User actions
 
@@ -140,8 +144,16 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             return String(localized: "The phone is still taking the pump back from the last session.")
         }
         setError(nil)
+        isCheckingDevices = true
+        defer { isCheckingDevices = false }
         do {
             try preflight()
+            // a pump the phone can't reach now is one the watch can't reach after the hand-over either
+            guard await pumpAnswers() else {
+                throw UntetheredError.unavailable(
+                    String(localized: "The pump doesn't answer. Keep the phone close to the pod and try again.")
+                )
+            }
             let grant = try await makeGrant(linkedOverrideID: linkedOverrideID)
             await apply(.start(grant))
             return nil
@@ -355,9 +367,20 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 String(localized: "\(pump.localizedTitle) can't be handed to the watch. Untethered mode supports Omnipod DASH.")
             )
         }
-        guard fetchGlucoseManager.cgmManager is DeviceConfigurationSharing else {
+        guard let cgm = fetchGlucoseManager.cgmManager, cgm is DeviceConfigurationSharing else {
             throw UntetheredError.unavailable(
                 String(localized: "This CGM can't be read by the watch. Untethered mode supports Dexcom G7.")
+            )
+        }
+        // the CGM itself, not a reading from Nightscout or another app: the watch reads the same sensor
+        guard cgm.cgmManagerStatus.hasValidSensorSession else {
+            throw UntetheredError.unavailable(String(localized: "The CGM has no active sensor."))
+        }
+        guard let lastReading = cgm.cgmManagerStatus.lastCommunicationDate,
+              Date().timeIntervalSince(lastReading) < Self.maxGlucoseAge
+        else {
+            throw UntetheredError.unavailable(
+                String(localized: "The CGM hasn't delivered a reading in the last 12 minutes. Wait for the next one.")
             )
         }
         let status = pump.status
@@ -373,6 +396,25 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         }
         if let inoperable = pump.localizedInoperableDescription {
             throw UntetheredError.unavailable(inoperable)
+        }
+    }
+
+    /// A live read of the pump's delivered total, or false when it doesn't answer within the timeout.
+    @MainActor private func pumpAnswers() async -> Bool {
+        guard let odometer = apsManager.pumpManager as? PumpDeliveryOdometer else { return false }
+        return await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            // whichever comes first answers; the other finds it answered
+            let lock = NSLock()
+            var answered = false
+            func answer(_ result: Bool) {
+                lock.lock()
+                defer { lock.unlock() }
+                guard !answered else { return }
+                answered = true
+                continuation.resume(returning: result)
+            }
+            odometer.refreshDeliveredUnits { answer($0) }
+            DispatchQueue.main.asyncAfter(deadline: .now() + Self.pumpCheckTimeout) { answer(false) }
         }
     }
 

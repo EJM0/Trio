@@ -506,8 +506,8 @@ import WatchConnectivity
         setError(nil)
         isBusy = true
         send(.startRequest, epoch: data.session.epoch)
-        // the phone's prepare, or its refusal, comes within seconds; this only frees the button
-        DispatchQueue.main.asyncAfter(deadline: .now() + 30) {
+        // the phone's prepare, or its refusal, comes once it has read the pump (up to 30 s); this only frees the button
+        DispatchQueue.main.asyncAfter(deadline: .now() + 60) {
             if self.data.session.phase == .idle { self.isBusy = false }
         }
     }
