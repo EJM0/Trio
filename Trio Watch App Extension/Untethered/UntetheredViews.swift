@@ -410,3 +410,159 @@ struct BolusProgressRing: View {
         .allowsHitTesting(false)
     }
 }
+
+// MARK: - Loop status
+
+/// The phone's Loop Status sheet, from the watch's own loop: how recent it is, the dosing mode, oref's values as
+/// the same pills, and its reasoning.
+struct UntetheredLoopStatusView: View {
+    let manager: UntetheredWatchManager
+
+    private var data: UntetheredWatchData { manager.data }
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 30)) { context in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Current Loop Status").font(.headline)
+                    let status = status(now: context.date)
+                    Text(status.title)
+                        .font(.footnote.bold())
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .foregroundStyle(status.color == .secondary ? Color.white : Color.bgDarkerDarkBlue)
+                        .background(status.color, in: Capsule())
+                    if let mode = data.grant?.dosingMode {
+                        Label(mode.displayName, systemImage: mode.icon).font(.footnote.bold())
+                    }
+                    if let error = data.lastLoopError {
+                        Text(error).font(.caption2).foregroundStyle(Color.loopRed)
+                    }
+                    if let determination = data.lastDetermination {
+                        Text("Latest Raw Algorithm Output").font(.footnote.bold()).padding(.top, 6)
+                        PillFlow(spacing: 4) {
+                            ForEach(tags(determination), id: \.self) { AlgorithmPill(tag: $0) }
+                        }
+                        Text("Current Algorithm Reasoning").font(.footnote.bold()).padding(.top, 6)
+                        Text(determination.reasonConclusion.prefix(1).uppercased() + determination.reasonConclusion.dropFirst()).font(.caption2)
+                    } else {
+                        Text("No recent oref algorithm determination.").font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 4)
+            }
+        }
+    }
+
+    /// As the phone's sheet: enacted within 5 minutes green, within 10 yellow, then red.
+    private func status(now: Date) -> (title: String, color: Color) {
+        guard let deliverAt = data.lastDetermination?.deliverAt else {
+            return (String(localized: "Not looping."), .secondary)
+        }
+        let isOpenLoop = data.grant?.dosingMode.automation == .off
+        let age = now.timeIntervalSince(data.lastLoopDate ?? deliverAt) - 30
+        let color: Color = age <= 5 * 60 ? .loopGreen : age <= 10 * 60 ? .loopYellow : .loopRed
+        guard deliverAt >= now.addingTimeInterval(-5 * 60) else {
+            let minutes = Int((now.timeIntervalSince(deliverAt) / 60).rounded())
+            return (
+                isOpenLoop
+                    ? String(localized: "Trio has not run in \(minutes) minutes.")
+                    : String(localized: "Trio has not looped in \(minutes) minutes."),
+                color
+            )
+        }
+        let time = deliverAt.formatted(date: .omitted, time: .shortened)
+        return (isOpenLoop ? String(localized: "Determined at \(time)") : String(localized: "Enacted at \(time)"), color)
+    }
+
+    private func tags(_ determination: Determination) -> [String] {
+        let isMmolL = data.grant?.units == .mmolL
+        var tags = determination.reasonParts.map { AlgorithmPill.formatted($0, isMmolL: isMmolL) }
+        if data.grant?.smoothGlucose == true { tags.append("Smoothing: On") }
+        if let tdd = data.tddRows.max(by: { $0.date < $1.date })?.total ?? data.grant?.tdd.currentTDD, tdd != 0 {
+            tags.append("TDD: \(NSDecimalNumber(decimal: tdd).doubleValue.formatted(.number.precision(.fractionLength(0 ... 1))))")
+        }
+        return tags
+    }
+}
+
+/// One of the phone's `TagCloudView` pills, in its colors.
+private struct AlgorithmPill: View {
+    let tag: String
+
+    private var color: Color {
+        if tag.contains("SMB Delivery Ratio:") { return .UAM }
+        if tag.contains("Bolus") { return .green }
+        if ["TDD:", "tdd_factor", "Sigmoid function", "Logarithmic formula", "AF:", "Autosens/Dynamic Limit:",
+            "Dynamic ISF/CR", "Basal ratio", "SMB Ratio"].contains(where: tag.contains) { return .ZT }
+        if tag.contains("Middleware:") { return .red }
+        if tag.contains("Smoothing: On") { return .gray }
+        return .insulin
+    }
+
+    var body: some View {
+        Text(tag)
+            .font(.system(size: 11, weight: .semibold))
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .foregroundStyle(color)
+            .background(color.opacity(0.15), in: Capsule())
+            .overlay(Capsule().stroke(color.opacity(0.4), lineWidth: 1.5))
+    }
+
+    private static let glucoseNames = ["ISF", "Target", "Dev", "BGI", "minPredBG", "minGuardBG", "IOBpredBG", "COBpredBG", "UAMpredBG"]
+
+    /// As `TagCloudView.formatGlucoseTags`: "minPredBG 150" reads "minPredBG: 150", and glucose values go to mmol/L.
+    static func formatted(_ tag: String, isMmolL: Bool) -> String {
+        guard let name = glucoseNames.first(where: { tag.hasPrefix($0 + ":") || tag.hasPrefix($0 + " ") }) else { return tag }
+        var values = String(tag.dropFirst(name.count)).trimmingCharacters(in: CharacterSet(charactersIn: ": "))
+        if isMmolL, let regex = try? NSRegularExpression(pattern: "-?\\d+\\.?\\d*") {
+            for match in regex.matches(in: values, range: NSRange(values.startIndex..., in: values)).reversed() {
+                guard let range = Range(match.range, in: values), let mgdl = Decimal(string: String(values[range])) else { continue }
+                values.replaceSubrange(range, with: mgdl.asMmolL.description)
+            }
+        }
+        return "\(name): \(values)"
+    }
+}
+
+/// Lays its pills out in rows, wrapping like the phone's tag cloud.
+private struct PillFlow: Layout {
+    let spacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache _: inout ()) -> CGSize {
+        let rows = rows(width: proposal.width ?? .infinity, subviews: subviews)
+        let height = rows.map { $0.map { $0.height }.max() ?? 0 }.reduce(0) { $0 + $1 } + spacing * CGFloat(max(rows.count - 1, 0))
+        return CGSize(width: proposal.width ?? rows.map { $0.reduce(0) { $0 + $1.width } }.max() ?? 0, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal _: ProposedViewSize, subviews: Subviews, cache _: inout ()) {
+        var index = 0
+        var y = bounds.minY
+        for row in rows(width: bounds.width, subviews: subviews) {
+            var x = bounds.minX
+            for size in row {
+                subviews[index].place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+                x += size.width + spacing
+                index += 1
+            }
+            y += (row.map(\.height).max() ?? 0) + spacing
+        }
+    }
+
+    private func rows(width: CGFloat, subviews: Subviews) -> [[CGSize]] {
+        var rows: [[CGSize]] = [[]]
+        var x: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(ProposedViewSize(width: width, height: nil))
+            if x > 0, x + size.width > width {
+                rows.append([])
+                x = 0
+            }
+            rows[rows.count - 1].append(size)
+            x += size.width + spacing
+        }
+        return rows
+    }
+}

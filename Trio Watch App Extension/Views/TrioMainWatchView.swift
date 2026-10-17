@@ -13,6 +13,9 @@ struct TrioMainWatchView: View {
     private var peripheralsPage: Int { chartPage + 1 }
     private var historyPage: Int? { showsHistory ? peripheralsPage + 1 : nil }
     private var statusPage: Int { (historyPage ?? peripheralsPage) + 1 }
+    /// The watch's own loop status, while it loops.
+    private var loopPage: Int? { untethered.isActive ? statusPage + 1 : nil }
+    private var lastPage: Int { loopPage ?? statusPage }
 
     private var showsHistory: Bool {
         untethered.data.session.phase != .idle || untethered.data.pending.values.contains { !$0.isEmpty }
@@ -134,20 +137,23 @@ struct TrioMainWatchView: View {
                 .tag(peripheralsPage)
 
                 if let historyPage {
-                    UntetheredHistoryView(manager: untethered, kind: historyKind, page: $currentPage, lastPage: statusPage)
+                    UntetheredHistoryView(manager: untethered, kind: historyKind, page: $currentPage, lastPage: lastPage)
                         .tag(historyPage)
                 }
                 UntetheredStatusView(manager: untethered).tag(statusPage)
+                if let loopPage {
+                    UntetheredLoopStatusView(manager: untethered).tag(loopPage)
+                }
             }
             .onChange(of: untethered.isActive) { _, isActive in
-                if isActive { currentPage = statusPage }
+                if isActive || currentPage > statusPage { currentPage = statusPage }
             }
             // the history page goes once its records are on the phone; stay on the status page, not on none
             .onChange(of: showsHistory) { _, _ in
-                if currentPage > statusPage { currentPage = statusPage }
+                if currentPage > lastPage { currentPage = lastPage }
             }
             .onChange(of: state.showGlucoseBubble) { _, _ in
-                if currentPage > statusPage { currentPage = statusPage }
+                if currentPage > lastPage { currentPage = lastPage }
             }
             .onAppear {
                 /// Hard reset variables when main view appears
@@ -160,7 +166,7 @@ struct TrioMainWatchView: View {
             }
             .background(trioBackgroundColor)
             .tabViewStyle(.verticalPage)
-            .digitalCrownRotation($currentPage.doubleBinding(), from: 0, through: Double(statusPage), by: 1)
+            .digitalCrownRotation($currentPage.doubleBinding(), from: 0, through: Double(lastPage), by: 1)
             .onChange(of: state.trend) { _, newTrend in
                 withAnimation {
                     updateRotation(for: newTrend)
@@ -201,8 +207,8 @@ struct TrioMainWatchView: View {
                             }
                             .tint(historyKind == kind ? kind.color : nil)
                         }
-                    } else if currentPage != peripheralsPage, currentPage != statusPage {
-                        // the Devices and status pages have no treatment controls
+                    } else if currentPage != peripheralsPage, currentPage != statusPage, currentPage != loopPage {
+                        // the Devices, status and loop pages have no treatment controls
                         Button {
                             showingOverrideSheet = true
                         } label: {
