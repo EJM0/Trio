@@ -5,6 +5,8 @@ import Foundation
 struct UntetheredWatchData: Codable {
     var session = UntetheredSession()
     var grant: UntetheredGrant?
+    /// The pump as the phone released it, from the commit.
+    var handover: UntetheredHandover?
 
     /// The device managers as LoopKit saves them (`managerIdentifier` + `state`), binary property lists.
     var pumpRawValue: Data?
@@ -76,6 +78,7 @@ extension UntetheredWatchData {
         let defaults = UntetheredWatchData()
         session = try container.decodeIfPresent(UntetheredSession.self, forKey: .session) ?? defaults.session
         grant = try container.decodeIfPresent(UntetheredGrant.self, forKey: .grant)
+        handover = try container.decodeIfPresent(UntetheredHandover.self, forKey: .handover)
         pumpRawValue = try container.decodeIfPresent(Data.self, forKey: .pumpRawValue)
         cgmRawValue = try container.decodeIfPresent(Data.self, forKey: .cgmRawValue)
         cgmBuiltFrom = try container.decodeIfPresent(Data.self, forKey: .cgmBuiltFrom)

@@ -16,6 +16,8 @@ struct UntetheredSession: Codable, Equatable {
 
     enum Effect: Equatable {
         case send(UntetheredMessage)
+        /// Phone: release the pump, then send the commit with it as released.
+        case commit
         case releasePump
         /// Phone: take the pump back, read it and audit. Watch: retake it after a refused handback.
         case takePump
@@ -59,6 +61,8 @@ struct UntetheredSession: Codable, Equatable {
     private(set) var statusQueried = false
     /// The pump as the watch found it at takeover; the insulin audit counts from here.
     private(set) var startStatus: UntetheredPodStatus?
+    /// Phone: the temp basal the watch cancelled at its hand-back, set again once the pump is read.
+    private(set) var returnedTempBasal: UntetheredTempBasal?
     private(set) var linkedOverrideID: String?
     /// The last session ended by an emergency stop or a take-back.
     private(set) var forced = false
@@ -84,7 +88,7 @@ struct UntetheredSession: Codable, Equatable {
 
         case (.preparing, .received(.prepared, _)):
             phase = .starting
-            return [.releasePump, .send(.commit)]
+            return [.commit]
 
         case let (.preparing, .received(.rejected(reason), _)):
             phase = .idle
@@ -112,10 +116,11 @@ struct UntetheredSession: Codable, Equatable {
             phase = .ending
             return [.send(.endRequest)]
 
-        case (.active, .received(.handback, _)),
-             (.ending, .received(.handback, _)):
+        case let (.active, .received(.handback(status), _)),
+             let (.ending, .received(.handback(status), _)):
             phase = .idle
             forced = false
+            returnedTempBasal = status?.tempBasal
             return [.takePump, .send(.handbackAck), .reconcile]
 
         case (.idle, .received(.handback, _)):

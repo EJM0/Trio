@@ -271,17 +271,20 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         let epoch = UntetheredGate.state.session.epoch
         publish()
         var reply = reply
+        func deliver(_ message: UntetheredMessage) {
+            if let replyHandler = reply, let payload = try? UntetheredEnvelope(epoch: epoch, message: message).payload() {
+                replyHandler(payload)
+                reply = nil
+            } else {
+                send(message, epoch: epoch)
+            }
+        }
         for effect in effects {
             switch effect {
             case let .send(message):
-                if let replyHandler = reply, let payload = try? UntetheredEnvelope(epoch: epoch, message: message).payload() {
-                    replyHandler(payload)
-                    reply = nil
-                } else {
-                    send(message, epoch: epoch)
-                }
-            case .releasePump:
-                await releasePump()
+                deliver(message)
+            case .commit:
+                deliver(.commit(await releasePump()))
             case .takePump:
                 takePump()
             case .reconcile:
@@ -290,6 +293,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             case let .failed(reason):
                 setError(reason)
             case .handback,
+                 .releasePump,
                  .takeover:
                 break
             }
@@ -465,10 +469,6 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             throw UntetheredError.unavailable(String(localized: "There is no recent glucose reading."))
         }
 
-        func plist(_ configuration: SharedDeviceConfiguration) throws -> Data {
-            try PropertyListSerialization.data(fromPropertyList: configuration.rawValue, format: .binary, options: 0)
-        }
-
         let context = CoreDataStack.shared.newTaskContext()
         context.name = "untetheredGrant"
         let (tdd, tddRows, activeOverride, overridePresets, tempTargetPresets) = try await context.perform {
@@ -504,8 +504,8 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
 
         return UntetheredGrant(
             leaseExpiresAt: now.addingTimeInterval(Self.leaseLength),
-            pumpConfiguration: try plist(pump.exportConfiguration()),
-            cgmConfiguration: try plist(cgm.exportConfiguration()),
+            pumpConfiguration: try Self.plist(pump.exportConfiguration()),
+            cgmConfiguration: try Self.plist(cgm.exportConfiguration()),
             pumpSettings: settingsManager.pumpSettings,
             bgTargets: storage.retrieve(OpenAPS.Settings.bgTargets, as: BGTargets.self)
                 ?? BGTargets(units: .mgdL, userPreferredUnits: .mgdL, targets: []),
@@ -557,13 +557,23 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         )
     }
 
-    /// The watch loops from here on; a loop already running finishes first.
-    @MainActor private func releasePump() async {
+    private static func plist(_ configuration: SharedDeviceConfiguration) throws -> Data {
+        try PropertyListSerialization.data(fromPropertyList: configuration.rawValue, format: .binary, options: 0)
+    }
+
+    /// The watch loops from here on; a loop already running finishes first. A running temp basal is cancelled and
+    /// goes to the watch to set again, and the pump is exported as released, after anything that loop enacted.
+    @MainActor private func releasePump() async -> UntetheredHandover {
         for _ in 0 ..< 60 where apsManager.isLooping.value {
             try? await Task.sleep(nanoseconds: 500_000_000)
         }
-        (apsManager.pumpManager as? ExclusiveDeviceControl)?.releaseControl()
+        let tempBasal = await apsManager.pumpManager?.cancelTempBasalForHandover()
+        let pump = apsManager.pumpManager as? ExclusiveDeviceControl
+        let configuration = pump.flatMap { try? Self.plist($0.exportConfiguration()) }
+        pump?.releaseControl()
         debug(.watchManager, "Untethered: pump released to the watch")
+        if let tempBasal { debug(.watchManager, "Untethered: temp basal \(tempBasal.unitsPerHour) U/h handed to the watch") }
+        return UntetheredHandover(pumpConfiguration: configuration, tempBasal: tempBasal)
     }
 
     // MARK: - Taking the pump back
@@ -600,6 +610,12 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             try? await Task.sleep(nanoseconds: 20_000_000_000)
         }
         if attempts >= 3 { setError(nil) }
+        // the temp basal the watch cancelled goes on as the phone's own, before the loop is let go
+        if !state.podEndedOnWatch, let tempBasal = state.session.returnedTempBasal,
+           let error = await apsManager.pumpManager?.resumeTempBasal(tempBasal)
+        {
+            warning(.watchManager, "Untethered: the watch's temp basal could not be set again: \(error.localizedDescription)")
+        }
         if state.podEndedOnWatch {
             // nothing to read or audit: the watch's records carry the pod's doses up to its end
             (apsManager.pumpManager as? OmniPumpManager)?.forgetPodEndedElsewhere()

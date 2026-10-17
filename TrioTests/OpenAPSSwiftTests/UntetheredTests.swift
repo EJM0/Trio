@@ -62,6 +62,7 @@ import Testing
     }
 
     let podStatus = UntetheredPodStatus(date: Date(timeIntervalSince1970: 1_800_000_010), deliveredUnits: 42.5, reservoir: 80)
+    let handover = UntetheredHandover(pumpConfiguration: Data([3]), tempBasal: nil)
 
     /// Phone and watch both active on the same epoch.
     func started() -> (phone: UntetheredSession, watch: UntetheredSession) {
@@ -71,8 +72,8 @@ import Testing
         #expect(phone.phone(.start(grant), now: t0) == [.send(.prepare(grant))])
         let epoch = phone.epoch
         #expect(watch.watch(.received(.prepare(grant), epoch: epoch), now: t0) == [.send(.prepared)])
-        #expect(phone.phone(.received(.prepared, epoch: epoch), now: t0) == [.releasePump, .send(.commit)])
-        #expect(watch.watch(.received(.commit, epoch: epoch), now: t0) == [.takeover])
+        #expect(phone.phone(.received(.prepared, epoch: epoch), now: t0) == [.commit])
+        #expect(watch.watch(.received(.commit(handover), epoch: epoch), now: t0) == [.takeover])
         #expect(watch.watch(.takeoverSucceeded(podStatus), now: t0 + 30) == [.send(.takeoverComplete(podStatus))])
         #expect(phone.phone(.received(.takeoverComplete(podStatus), epoch: epoch), now: t0 + 31) == [])
         return (phone, watch)
@@ -110,7 +111,7 @@ import Testing
         _ = phone.phone(.start(grant), now: t0)
         _ = watch.watch(.received(.prepare(grant), epoch: phone.epoch), now: t0)
         _ = phone.phone(.received(.prepared, epoch: phone.epoch), now: t0)
-        _ = watch.watch(.received(.commit, epoch: phone.epoch), now: t0)
+        _ = watch.watch(.received(.commit(handover), epoch: phone.epoch), now: t0)
 
         let effects = watch.watch(.tick, now: t0 + 61)
         #expect(effects.first == .releasePump)
@@ -127,7 +128,7 @@ import Testing
     @Test("start: a commit after the lease is refused") func lateCommit() {
         var watch = UntetheredSession()
         _ = watch.watch(.received(.prepare(grant(lease: 60)), epoch: 7), now: t0)
-        let effects = watch.watch(.received(.commit, epoch: 7), now: t0 + 61)
+        let effects = watch.watch(.received(.commit(handover), epoch: 7), now: t0 + 61)
         #expect(watch.phase == .idle)
         #expect(!effects.contains(.takeover))
     }
@@ -185,6 +186,25 @@ import Testing
         #expect(phone.phase == .idle)
         #expect(watch.phase == .idle)
         #expect(!phone.forced)
+    }
+
+    @Test("end: the temp basal the watch cancelled at its handback is kept for the phone") func handbackTempBasal() {
+        var (phone, watch) = started()
+        let tempBasal = UntetheredTempBasal(unitsPerHour: 2.5, endsAt: t0 + 110)
+        var status = podStatus
+        status.tempBasal = tempBasal
+        _ = watch.watch(.received(.endRequest, epoch: watch.epoch), now: t0 + 100)
+        #expect(watch.watch(.handbackReady(status), now: t0 + 100) == [.send(.handback(status))])
+        _ = phone.phone(.received(.handback(status), epoch: phone.epoch), now: t0 + 101)
+        #expect(phone.returnedTempBasal == tempBasal)
+    }
+
+    @Test("handover: a temp basal goes on for what was left, in Omnipod's half hours") func remainingTempBasal() {
+        let tempBasal = UntetheredTempBasal(unitsPerHour: 1, endsAt: t0 + 12 * 60)
+        #expect(tempBasal.remainingDuration(at: t0) == 30 * 60)
+        #expect(tempBasal.remainingDuration(at: t0 + 12 * 60) == nil)
+        #expect(UntetheredTempBasal(unitsPerHour: 1, endsAt: t0 + 31 * 60).remainingDuration(at: t0) == 60 * 60)
+        #expect(UntetheredTempBasal(unitsPerHour: 1, endsAt: t0 + 24 * 3600).remainingDuration(at: t0) == 12 * 3600)
     }
 
     @Test("end: an unacknowledged handback is offered again, never taken back") func lostAck() {
@@ -437,7 +457,7 @@ import Testing
         var assembled: [String: Any]?
         for part in parts.reversed() { assembled = assembler.add(part) ?? assembled }
         #expect(try UntetheredEnvelope.decode(try #require(assembled)) == UntetheredEnvelope(epoch: 1, message: .prepare(full)))
-        #expect(UntetheredChunks.split(try UntetheredEnvelope(epoch: 1, message: .commit).payload()) == nil)
+        #expect(UntetheredChunks.split(try UntetheredEnvelope(epoch: 1, message: .commit(handover)).payload()) == nil)
     }
 
     @Test("TDD summary matches the phone's averaging") func tdd() {
