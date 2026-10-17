@@ -209,7 +209,12 @@ struct UntetheredTreatmentGate<Content: View>: View {
         }
     }
 
-    private func gateButton(_ title: LocalizedStringKey, systemImage: String, tint: Color, action: @escaping () -> Void) -> some View {
+    private func gateButton(
+        _ title: LocalizedStringKey,
+        systemImage: String,
+        tint: Color,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             HStack(spacing: 12) {
                 Image(systemName: systemImage)

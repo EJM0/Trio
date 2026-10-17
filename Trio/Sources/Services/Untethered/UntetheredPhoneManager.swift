@@ -3,6 +3,7 @@ import CoreData
 import Foundation
 import HealthKit
 import LoopKit
+import OmnipodKit
 import Swinject
 import WatchConnectivity
 
@@ -11,6 +12,8 @@ struct UntetheredPhoneState: Codable, Equatable {
     var session = UntetheredSession()
     /// The pump came back from the watch but hasn't been read and audited yet: dosing stays held.
     var pumpReturnPending = false
+    /// The watch ended the pod; the phone forgets it instead of reading it back.
+    var podEndedOnWatch = false
     /// Per epoch, the latest version of each record already stored.
     var applied: [Int: [String: UntetheredSyncEntry]] = [:]
     var lastError: String?
@@ -514,7 +517,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         (apsManager.pumpManager as? ExclusiveDeviceControl)?.takeControl()
         debug(.watchManager, "Untethered: reading the pump back")
         var attempts = 0
-        while !(await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+        while !state.podEndedOnWatch, !(await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
             odometer.refreshDeliveredUnits { continuation.resume(returning: $0) }
         }) {
             attempts += 1
@@ -528,6 +531,17 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             try? await Task.sleep(nanoseconds: 20_000_000_000)
         }
         if attempts >= 3 { setError(nil) }
+        if state.podEndedOnWatch {
+            // nothing to read or audit: the watch's records carry the pod's doses up to its end
+            (apsManager.pumpManager as? OmniPumpManager)?.forgetPodEndedElsewhere()
+            UntetheredGate.update {
+                $0.podEndedOnWatch = false
+                $0.pumpReturnPending = false
+            }
+            publish()
+            debug(.watchManager, "Untethered: the watch ended the pod; the phone is ready for a new one")
+            return
+        }
         // after a hand-back the watch's last records are on their way; judge the pump once they're in
         let epoch = state.session.epoch
         if !state.session.forced {
@@ -793,6 +807,8 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             if (autosens.timestamp ?? .distantPast) > (stored?.timestamp ?? .distantPast) {
                 storage.save(autosens, as: OpenAPS.Settings.autosense)
             }
+        case .podEnded:
+            UntetheredGate.update { $0.podEndedOnWatch = true }
         case let .loopCompleted(date):
             // the loop's age and the interval to the next loop go on from the watch's last loop
             await MainActor.run { self.apsManager.adoptLoop(at: date) }

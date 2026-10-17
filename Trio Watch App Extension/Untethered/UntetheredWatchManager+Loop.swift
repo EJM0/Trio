@@ -20,7 +20,7 @@ enum UntetheredLoopTrigger {
 extension UntetheredWatchManager {
     /// One cycle, as the phone's `APSManager.loop()`: refresh the pump, determine, enact, record.
     func runLoop(_ trigger: UntetheredLoopTrigger) {
-        guard data.session.phase == .active, let pump = pumpManager, let grant = data.grant else { return }
+        guard data.session.phase == .active, !data.podEnded, let pump = pumpManager, let grant = data.grant else { return }
         guard !isLooping else {
             // as `determineBasalSync`, which waits for a loop in flight: run once it is done
             if trigger == .treatment { isDeterminationPending = true }
@@ -521,6 +521,48 @@ extension UntetheredWatchManager {
                 completion(false, error.localizedDescription)
             }
         }
+    }
+
+    // MARK: Ending the pod
+
+    /// Deactivates the pod, e.g. one that alarms: it stops delivering, goes quiet and must come off. The watch can't
+    /// pair the next one, so it hands back to the phone as soon as the phone is reachable.
+    func deactivatePod(completion: @escaping (_ error: String?) -> Void) {
+        guard let pump = pumpManager else { return completion(UntetheredWatchError.noPump.localizedDescription) }
+        let started = watchDeactivatePod(pump) { error in
+            DispatchQueue.main.async {
+                if let error {
+                    completion(error.localizedDescription)
+                } else {
+                    self.podDidEnd()
+                    completion(nil)
+                }
+            }
+        }
+        if !started { completion(String(localized: "The watch can't deactivate this pump.")) }
+    }
+
+    /// For a pod that doesn't answer: forgotten without its last word. It may go on alarming until it is removed.
+    func discardPod() {
+        guard let pump = pumpManager else { return }
+        _ = watchDiscardPod(pump) { DispatchQueue.main.async { self.podDidEnd() } }
+    }
+
+    private func podDidEnd() {
+        let now = Date()
+        store.update {
+            $0.podEnded = true
+            $0.pendingPumpAlerts.removeAll { $0.managerIdentifier == self.pumpManager?.pluginIdentifier }
+        }
+        store.record(
+            UntetheredRecord(key: UntetheredRecord.podEndedKey, date: now, kind: .podEnded(now)),
+            epoch: data.session.epoch
+        )
+        savePumpState()
+        refresh()
+        streamRecords()
+        Task { await WatchLogger.shared.log("⌚️ Untethered: pod ended on the watch", force: true) }
+        if WCSession.default.isReachable { end() }
     }
 
     func cancelBolus() {
@@ -1089,7 +1131,9 @@ extension UntetheredWatchManager {
                 every: 30 * 60
             )
         }
-        if let lastLoop = data.lastLoopDate ?? data.session.startStatus?.date, now.timeIntervalSince(lastLoop) > 20 * 60 {
+        if !data.podEnded, let lastLoop = data.lastLoopDate ?? data.session.startStatus?.date,
+           now.timeIntervalSince(lastLoop) > 20 * 60
+        {
             alarm(
                 "loop",
                 title: String(localized: "Not Looping"),

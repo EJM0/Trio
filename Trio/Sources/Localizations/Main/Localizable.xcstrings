@@ -309597,7 +309597,7 @@
         }
       }
     },
-    "The Apple Watch is running the loop" : {
+    "The Apple Watch is looping" : {
 
     },
     "The Apple Watch is running the loop. Enter carbs on the watch." : {
@@ -314453,6 +314453,9 @@
 
     },
     "The phone doesn't dose. Bolus and carbs are entered on the watch." : {
+
+    },
+    "The phone doses again once it has read the pump." : {
 
     },
     "The phone is still taking the pump back from the last session." : {

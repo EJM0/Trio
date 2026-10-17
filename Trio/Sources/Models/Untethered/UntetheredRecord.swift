@@ -24,6 +24,8 @@ struct UntetheredRecord: Codable, Equatable, Identifiable {
         case autosens(Autosens)
         /// The watch's last completed loop; after the hand-back the phone counts its loop age from it.
         case loopCompleted(Date)
+        /// The watch deactivated or discarded the pod: the phone forgets it when it takes the pump back.
+        case podEnded(Date)
     }
 
     let key: String
@@ -51,6 +53,7 @@ struct UntetheredRecord: Codable, Equatable, Identifiable {
     static func autosensKey(_ date: Date) -> String { "autosens:\(Int(date.timeIntervalSince1970))" }
     /// One key: only the newest loop matters.
     static let loopCompletedKey = "loop"
+    static let podEndedKey = "podEnded"
 }
 
 /// What both sides checksum: the latest version of each key, in 30-minute buckets by date.
