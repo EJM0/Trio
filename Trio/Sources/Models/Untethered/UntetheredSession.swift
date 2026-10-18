@@ -68,8 +68,15 @@ struct UntetheredSession: Codable, Equatable {
     private(set) var linkedOverrideID: String?
     /// The last session ended by an emergency stop or a take-back.
     private(set) var forced = false
-    /// Watch: the released pump as offered to the phone, resent until acknowledged.
+    /// Watch: the pump as offered to the phone, resent until acknowledged.
     private(set) var handbackStatus: UntetheredPodStatus??
+    /// Watch: when the hand-back was offered; the pod is held until the phone acknowledges, or this long at most.
+    private(set) var handbackOfferedAt: Date?
+    /// Watch: let go of the pod although no acknowledgement came, offered still.
+    private(set) var handbackLetGo = false
+
+    /// Without an acknowledgement the pod is let go anyway, and runs its schedule until the phone takes it.
+    static let handbackAckWait: TimeInterval = 60
 
     var isIdle: Bool { phase == .idle }
 
@@ -206,22 +213,30 @@ struct UntetheredSession: Codable, Equatable {
              (.active, .received(.endRequest, _)):
             phase = .ending
             handbackStatus = nil
+            handbackOfferedAt = nil
+            handbackLetGo = false
             return [.handback]
 
-        // Once released the watch never takes the pump back on its own: a lost acknowledgement
-        // must not leave both devices dosing. A free pump runs its scheduled basal.
+        // The pod is held until the phone acknowledges, so its standing connect lands as the watch lets go
+        // (LoopKit/Loop#2545). Once let go the watch never takes the pump back on its own: a lost
+        // acknowledgement must not leave both devices dosing. A free pump runs its scheduled basal.
         case let (.ending, .handbackReady(status)):
             handbackStatus = .some(status)
+            handbackOfferedAt = now
             return [.send(.handback(status))]
 
         case (.ending, .tick):
             guard let status = handbackStatus else { return [] }
+            if !handbackLetGo, let offered = handbackOfferedAt, now > offered.addingTimeInterval(Self.handbackAckWait) {
+                handbackLetGo = true
+                return [.releasePump, .send(.handback(status))]
+            }
             return [.send(.handback(status))]
 
         case (.ending, .received(.handbackAck, _)):
             phase = .idle
             forced = false
-            return []
+            return handbackLetGo ? [] : [.releasePump]
 
         case (.preparing, .received(.revoke, _)):
             phase = .idle

@@ -20,7 +20,10 @@ enum UntetheredLoopTrigger {
 extension UntetheredWatchManager {
     /// One cycle, as the phone's `APSManager.loop()`: refresh the pump, determine, enact, record.
     func runLoop(_ trigger: UntetheredLoopTrigger) {
-        guard data.session.phase == .active, !data.podEnded, let pump = pumpManager, let grant = data.grant else { return }
+        // a hand-back doses on while its history drains, until its last stage
+        let phase = data.session.phase
+        guard phase == .active || (phase == .ending && !isFinalizing), !data.podEnded, let pump = pumpManager,
+              let grant = data.grant else { return }
         guard !isLooping else {
             // as `determineBasalSync`, which waits for a loop in flight: run once it is done
             if trigger == .treatment { isDeterminationPending = true }
@@ -510,7 +513,7 @@ extension UntetheredWatchManager {
 
 extension UntetheredWatchManager {
     func bolus(_ units: Decimal, completion: @escaping (Bool, String) -> Void) {
-        guard let pump = pumpManager, let grant = data.grant else {
+        guard !isFinalizing, let pump = pumpManager, let grant = data.grant else {
             return completion(false, UntetheredWatchError.noPump.localizedDescription)
         }
         let amount = min(units, grant.maxBolus)
