@@ -104,6 +104,7 @@ extension UntetheredWatchManager {
                         $0.lastLoopError = nil
                     }
                     self.scheduleNotLoopingAlert(from: now)
+                    self.recordPumpStatus()
                     self.store.record(
                         UntetheredRecord(key: UntetheredRecord.loopCompletedKey, date: now, kind: .loopCompleted(now)),
                         epoch: self.data.session.epoch
@@ -1141,6 +1142,27 @@ extension UntetheredWatchManager {
         {
             alarm("loop", title: Self.notLoopingTitle, body: Self.notLoopingBody, every: 30 * 60)
         }
+    }
+
+    /// The pod as the Devices page shows it, for the phone's home screen while the watch has the pump. One key, so
+    /// only the newest goes home.
+    func recordPumpStatus() {
+        guard isActive else { return }
+        publishToWatchState()
+        let state = WatchState.shared
+        var isSuspended = false
+        if case .suspended = pumpManager?.status.basalDeliveryState { isSuspended = true }
+        let now = Date()
+        let status = UntetheredPumpStatus(
+            date: now,
+            reservoir: state.pumpReservoir,
+            expiresAt: state.pumpExpiresAt,
+            isSuspended: isSuspended
+        )
+        store.record(
+            UntetheredRecord(key: UntetheredRecord.pumpStatusKey, date: now, kind: .pumpStatus(status)),
+            epoch: data.session.epoch
+        )
     }
 
     static let notLoopingID = "untethered.loop"
