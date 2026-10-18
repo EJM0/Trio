@@ -171,20 +171,21 @@ struct UntetheredSpansView: ChartContent {
     }
 }
 
+/// What the home screen's pump shows. Outside the generic gate, so its content closure can be inferred.
+enum UntetheredPumpDisplay {
+    /// The phone has the pump: its own figures and messages.
+    case phone
+    case watch(UntetheredPumpStatus)
+    /// The watch has the pump, and nothing recent came from it.
+    case away
+}
+
 /// The home screen's pump while the watch has it: the watch's own figures while they are recent, otherwise what is
 /// going on, never the connection error of the phone's own pump manager, which handed the pod over.
 struct UntetheredPumpGate<Content: View>: View {
-    enum Display {
-        /// The phone has the pump: its own figures and messages.
-        case phone
-        case watch(UntetheredPumpStatus)
-        /// The watch has the pump, and nothing recent came from it.
-        case away
-    }
-
     @ObservedObject var manager: UntetheredPhoneManager
     let now: Date
-    @ViewBuilder let content: (Display) -> Content
+    @ViewBuilder let content: (UntetheredPumpDisplay) -> Content
 
     /// Three of the watch's loops: older figures may no longer be what the pod does.
     static var recent: TimeInterval { 15 * 60 }
