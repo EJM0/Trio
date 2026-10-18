@@ -399,7 +399,8 @@ import WatchConnectivity
 
     /// After a hand-back given up: the pod saw another controller's session, so the phone took it after all.
     func phoneTookAbandonedPump() -> Bool {
-        guard handbackAbandonedAt != nil, data.session.phase == .active, data.session.handbackOfferedAt != nil,
+        // the session's kept offer, not `handbackAbandonedAt`: it outlives a relaunch
+        guard data.session.phase == .active, data.session.handbackOfferedAt != nil,
               let pump = pumpManager, let since = pump.refusesForeignSessionsSince,
               let foreign = pump.lastForeignSessionAt, foreign > since
         else { return false }
@@ -470,13 +471,13 @@ import WatchConnectivity
         // what must reach the phone even if it is away right now; the rest is resent by its own retry
         let queued: Bool
         switch message {
-        case .records,
+        case .handback,
+             .records,
              .released,
              .syncDone,
              .takeoverComplete,
-             .takeoverFailed,
              // the phone takes the pump on it: a wake later, not never
-             .handback: queued = queueing ?? true
+             .takeoverFailed: queued = queueing ?? true
         default: queued = queueing ?? false
         }
         // resent until answered: only the newest of these waits in the queue
@@ -722,14 +723,16 @@ import WatchConnectivity
         WatchState.shared.fallbackLoop && WatchState.shared.allowUntetheredStartWithoutPhone
     }
 
-    /// Between sessions the link is built from the standing grant, and let go once the fallback loop is off.
+    /// Between sessions the link is built from the standing grant, or the last session's, the same sensor, which a
+    /// relaunch right after a session must go on with (2026-10-19: no standing grant yet, no readings for half an hour);
+    /// let go once the fallback loop is off.
     func updateStandbySensor() {
         guard data.session.phase == .idle else { return }
         if !keepsStandbySensor {
             stopCGM()
             disarmFallback()
             if !data.standbyGlucose.isEmpty { store.update { $0.standbyGlucose = [] } }
-        } else if let grant = data.standingGrant, rejection(of: grant) == nil {
+        } else if let grant = data.standingGrant ?? data.grant, rejection(of: grant) == nil {
             startCGM(from: grant)
         }
     }
@@ -773,7 +776,9 @@ import WatchConnectivity
             : nil
         if let blocker {
             disarmFallback()
-            Task { await WatchLogger.shared.log("⌚️ Untethered: \(missed) readings without the phone, no fallback: \(blocker)") }
+            Task {
+                await WatchLogger.shared.log("⌚️ Untethered: \(missed) readings without the phone, no fallback: \(blocker)", force: true)
+            }
             return
         }
         guard let armedAt = fallbackArmedAt else {
