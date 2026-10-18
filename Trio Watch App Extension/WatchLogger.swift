@@ -75,9 +75,11 @@ actor WatchLogger {
         }
 
         if session.isReachable {
+            // the buffer is empty by the time a send fails: what failed is kept, not the empty buffer
+            let sent = logs
             session.sendMessage(payload, replyHandler: nil) { _ in
                 Task {
-                    await self.persistLogsLocally()
+                    await self.persistLogsLocally(sent)
                 }
             }
         } else {
@@ -88,7 +90,7 @@ actor WatchLogger {
         logs.removeAll()
     }
 
-    func persistLogsLocally() async {
+    func persistLogsLocally(_ entries: [String]? = nil) async {
         let logDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
             .appendingPathComponent("logs", isDirectory: true)
 
@@ -107,7 +109,7 @@ actor WatchLogger {
             FileManager.default.createFile(atPath: logFile.path, contents: nil, attributes: [.creationDate: startOfDay])
         }
 
-        let fullLog = logs.joined(separator: "\n") + "\n"
+        let fullLog = (entries ?? logs).joined(separator: "\n") + "\n"
         if let data = fullLog.data(using: .utf8) {
             if let handle = try? FileHandle(forWritingTo: logFile) {
                 try? handle.seekToEnd()
@@ -140,7 +142,7 @@ actor WatchLogger {
         if session.isReachable, !queued {
             session.sendMessage(payload, replyHandler: nil) { _ in
                 Task {
-                    await self.persistLogsLocally()
+                    await self.persistLogsLocally(logString.components(separatedBy: "\n"))
                 }
             }
             try? FileManager.default.removeItem(at: logFile)

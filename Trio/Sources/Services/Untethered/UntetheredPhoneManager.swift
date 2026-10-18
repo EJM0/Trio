@@ -126,7 +126,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     private var endRequestTimer: Timer?
     /// How long a normal hand-back waits for the watch's last records before the audit judges the pump.
     private static let historyWait: TimeInterval = 60
-    /// Between reads of a returned pump: each read already waits up to 45 s for the link.
+    /// Between reads of a returned pump: each read already waits for the link (20 s, 45 s with the eager connect).
     private static let pumpReadRetry: UInt64 = 2_000_000_000
     /// A returned pump with no link by then is searched for by its address (`escalateTakeControl`).
     private static let pumpEscalateAfter: UInt64 = 12_000_000_000
