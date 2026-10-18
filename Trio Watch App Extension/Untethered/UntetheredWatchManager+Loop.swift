@@ -15,6 +15,8 @@ enum UntetheredLoopTrigger {
     /// Carbs, a bolus, an override or a temp target changed what the algorithm reads: a determination for
     /// the screens without dosing, as the phone's `determineBasalSync`.
     case treatment
+    /// A dosing mode changed: determine and enact again with that mode's constraints on the current readings.
+    case modeChanged
 }
 
 extension UntetheredWatchManager {
@@ -27,6 +29,7 @@ extension UntetheredWatchManager {
         guard !isLooping else {
             // as `determineBasalSync`, which waits for a loop in flight: run once it is done
             if trigger == .treatment { isDeterminationPending = true }
+            if trigger == .modeChanged { isModeChangePending = true }
             return
         }
         let newestGlucose = data.glucose.map(\.dateString).max()
@@ -36,6 +39,8 @@ extension UntetheredWatchManager {
             if let used = data.lastLoopGlucose, let newestGlucose, newestGlucose <= used { return }
         case .treatment:
             break
+        case .modeChanged:
+            break
         }
         let enacts = trigger != .treatment
         isLooping = true
@@ -43,7 +48,10 @@ extension UntetheredWatchManager {
         Task { @MainActor in
             defer {
                 self.isLooping = false
-                if self.isDeterminationPending {
+                if self.isModeChangePending {
+                    self.isModeChangePending = false
+                    self.runLoop(.modeChanged)
+                } else if self.isDeterminationPending {
                     self.isDeterminationPending = false
                     self.runLoop(.treatment)
                 }
@@ -96,22 +104,39 @@ extension UntetheredWatchManager {
                 }
                 if enacts {
                     do {
-                        try await self.enact(determination, pump: pump, dosingMode: grant.dosingMode)
+                        // A selection made while this determination was running invalidates its old permissions.
+                        guard self.data.grant?.dosingMode == grant.dosingMode else {
+                            record(enactedAt: nil)
+                            return
+                        }
+                        if grant.dosingMode.automation == .off {
+                            record(enactedAt: nil)
+                            self.store.update {
+                                $0.lastLoopDate = now
+                                $0.lastLoopError = nil
+                            }
+                        } else {
+                            try await self.enact(determination, pump: pump, dosingMode: grant.dosingMode)
+                            record(enactedAt: Date())
+                            self.store.update {
+                                $0.lastLoopDate = now
+                                $0.lastLoopError = nil
+                            }
+                            self.scheduleNotLoopingAlert(from: now)
+                            self.recordPumpStatus()
+                            self.store.record(
+                                UntetheredRecord(
+                                    key: UntetheredRecord.loopCompletedKey,
+                                    date: now,
+                                    kind: .loopCompleted(now)
+                                ),
+                                epoch: self.data.session.epoch
+                            )
+                        }
                     } catch {
                         record(enactedAt: nil)
                         throw error
                     }
-                    record(enactedAt: Date())
-                    self.store.update {
-                        $0.lastLoopDate = now
-                        $0.lastLoopError = nil
-                    }
-                    self.scheduleNotLoopingAlert(from: now)
-                    self.recordPumpStatus()
-                    self.store.record(
-                        UntetheredRecord(key: UntetheredRecord.loopCompletedKey, date: now, kind: .loopCompleted(now)),
-                        epoch: self.data.session.epoch
-                    )
                     let rate = determination.rate.map { "\($0) U/h" } ?? "-"
                     let smb = determination.units.map { "\($0) U" } ?? "-"
                     Task {
@@ -373,6 +398,7 @@ extension UntetheredWatchManager {
 
     /// The phone's `APSManager.enactDetermination`.
     private func enact(_ determination: Determination, pump: PumpManager, dosingMode: DosingMode) async throws {
+        guard data.grant?.dosingMode == dosingMode else { return }
         guard dosingMode.automation != .off else { return }
         if case .suspended = pump.status.basalDeliveryState { return }
         if let rate = determination.rate, let duration = determination.duration {
@@ -382,7 +408,9 @@ extension UntetheredWatchManager {
             )
         }
         // as the phone: no SMB on top of a bolus still running, e.g. the meal bolus just started
-        if let units = determination.units, units > 0, pump.status.bolusState == .noBolus {
+        if data.grant?.dosingMode == dosingMode, let units = determination.units, units > 0,
+           pump.status.bolusState == .noBolus
+        {
             try await pump.enactBolus(units: units.nearestDouble, automatic: true)
         }
     }
@@ -928,7 +956,7 @@ extension UntetheredWatchManager: PumpManagerDelegate {
 
     var detectedSystemTimeOffset: TimeInterval { 0 }
 
-    var automaticDosingEnabled: Bool { data.grant?.dosingMode == .closed }
+    var automaticDosingEnabled: Bool { data.grant.map { $0.dosingMode.automation != .off } ?? false }
 
     func pumpManager(_: PumpManager, didUpdate status: PumpManagerStatus, oldStatus _: PumpManagerStatus) {
         updateBolusState(status)

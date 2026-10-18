@@ -20,6 +20,8 @@ import WatchConnectivity
     @ObservationIgnored var isLooping = false
     /// A treatment came in while a loop ran; its determination follows.
     @ObservationIgnored var isDeterminationPending = false
+    /// A mode changed while a loop ran; its constrained determination and enactment follow.
+    @ObservationIgnored var isModeChangePending = false
     @ObservationIgnored private var ticker: Timer?
     @ObservationIgnored private let assembler = UntetheredChunks.Assembler()
     @ObservationIgnored var loopTimer: Timer?
@@ -83,6 +85,35 @@ import WatchConnectivity
         if let message { Task { await WatchLogger.shared.log("⌚️ Untethered: \(message)", force: true) } }
         store.update { $0.lastError = message }
         refresh()
+    }
+
+    /// Changes the algorithm and its pump permissions for the watch-owned session.
+    func setDosingMode(_ mode: DosingMode, notifyPhone: Bool = true) {
+        guard data.session.phase == .active, let currentMode = data.grant?.dosingMode, currentMode != mode else { return }
+        store.update { $0.grant?.dosingMode = mode }
+        refresh()
+        if notifyPhone {
+            send(.dosingModeChanged(mode), epoch: data.session.epoch, queueing: true)
+        }
+        let shouldClearTempForBasalTesting = mode == .basalTesting && (pumpManager.map { pump in
+            if case let .tempBasal(dose) = pump.status.basalDeliveryState { return dose.automatic ?? true }
+            return false
+        } ?? false)
+        if shouldClearTempForBasalTesting, let pump = pumpManager {
+            Task { @MainActor in
+                do {
+                    try await pump.enactTempBasal(unitsPerHour: 0, for: 0)
+                    self.recordPumpStatus()
+                } catch {
+                    self.setError(String(
+                        localized: "Couldn't cancel the automatic temp basal for basal testing: \(error.localizedDescription)"
+                    ))
+                }
+                self.runLoop(.modeChanged)
+            }
+        } else {
+            runLoop(.modeChanged)
+        }
     }
 
     // MARK: - Messages from the phone
@@ -176,6 +207,11 @@ import WatchConnectivity
                     endTempTarget(at: date)
                 }
             }
+
+        case let .dosingModeChanged(mode):
+            replyHandler?([:])
+            guard data.session.phase == .active, envelope.epoch == data.session.epoch else { return }
+            setDosingMode(mode, notifyPhone: false)
 
         default:
             apply(.received(envelope.message, epoch: envelope.epoch), reply: replyHandler)

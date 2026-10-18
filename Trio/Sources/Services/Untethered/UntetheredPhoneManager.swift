@@ -443,6 +443,13 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 if let reason = await self.start() {
                     self.send(.startRefused(reason: reason), epoch: envelope.epoch)
                 }
+            case let .dosingModeChanged(mode):
+                replyHandler?([:])
+                guard envelope.epoch >= self.state.session.epoch else { return }
+                var settings = self.settingsManager.settings
+                guard settings.dosingMode != mode else { return }
+                settings.dosingMode = mode
+                self.settingsManager.settings = settings
             default:
                 await self.apply(.received(envelope.message, epoch: envelope.epoch), reply: replyHandler)
             }
@@ -597,6 +604,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
 
         switch message {
         case .adjustmentCancelled,
+             .dosingModeChanged,
              .revoke:
             // queued as well: the watch must hear it whenever it comes back
             session.transferUserInfo(payload)
@@ -1464,7 +1472,13 @@ private extension Date {
 extension UntetheredPhoneManager: SettingsObserver, PreferencesObserver, PumpSettingsObserver, BasalProfileObserver,
     InsulinSensitivitiesObserver, CarbRatiosObserver, BGTargetsObserver
 {
-    func settingsDidChange(_: TrioSettings) { scheduleStandingGrant(settingsChanged: true) }
+    func settingsDidChange(_ settings: TrioSettings) {
+        scheduleStandingGrant(settingsChanged: true)
+        if !state.session.isIdle {
+            send(.dosingModeChanged(settings.dosingMode), epoch: state.session.epoch)
+        }
+    }
+
     func preferencesDidChange(_: Preferences) { scheduleStandingGrant(settingsChanged: true) }
     func pumpSettingsDidChange(_: PumpSettings) { scheduleStandingGrant(settingsChanged: true) }
     func basalProfileDidChange(_: [BasalProfileEntry]) { scheduleStandingGrant(settingsChanged: true) }
