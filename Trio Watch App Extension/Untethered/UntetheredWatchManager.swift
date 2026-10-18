@@ -60,6 +60,9 @@ import WatchConnectivity
     @ObservationIgnored private var fallbackTimer: Timer?
     /// The phone's newest reading when the fallback last tried: once per outage, until the phone sends again.
     @ObservationIgnored private var fallbackTriedAfter: Date?
+    /// A missing standing grant is asked for at most this often, the standby link's readings asking again.
+    private static let standingGrantRequestInterval: TimeInterval = 5 * 60
+    @ObservationIgnored private var standingGrantRequestedAt: Date?
 
     var isActive: Bool { data.session.phase == .active || data.session.phase == .ending }
 
@@ -686,6 +689,8 @@ import WatchConnectivity
             data.standbyGlucose.removeAll { $0.dateString < dayAgo }
         }
         checkFallback()
+        // the readings wake the app in the background too, where no reachability change arrives to ask on
+        requestStandingGrantIfMissing()
     }
 
     /// Two of the watch's readings the phone never sent, the phone shown as away (`WatchState.isReachable`, as on the
@@ -766,13 +771,21 @@ import WatchConnectivity
         return fallbackArmedAt.map { .starting(at: $0.addingTimeInterval(Self.fallbackGrace)) } ?? .watching
     }
 
-    /// No standing grant young enough to start from, as after a session, whose start dropped it: asked for while the
-    /// phone is in reach, which otherwise sends the next only when something changed or half an hour passed.
+    /// No standing grant young enough to start from, as after a session, whose start dropped it: asked for, as the
+    /// phone otherwise sends the next only when something changed or half an hour passed.
     func requestStandingGrantIfMissing() {
-        guard data.session.phase == .idle, WCSession.default.isReachable, standingGrantAge == nil,
-              WatchState.shared.allowUntetheredStartWithoutPhone
+        let now = Date()
+        guard data.session.phase == .idle, standingGrantAge == nil, WatchState.shared.allowUntetheredStartWithoutPhone,
+              (standingGrantRequestedAt ?? .distantPast).addingTimeInterval(Self.standingGrantRequestInterval) < now
         else { return }
-        send(.standingGrantRequest, epoch: data.session.epoch)
+        standingGrantRequestedAt = now
+        // queued, so a phone out of reach or asleep answers once it can; only the newest request waits
+        for transfer in WCSession.default.outstandingUserInfoTransfers
+            where (try? UntetheredEnvelope.decode(transfer.userInfo))?.message == .standingGrantRequest
+        {
+            transfer.cancel()
+        }
+        send(.standingGrantRequest, epoch: data.session.epoch, queueing: true)
     }
 
     /// Why there is no start without the phone, for the status page; nil when one can start.
