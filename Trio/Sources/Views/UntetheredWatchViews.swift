@@ -203,6 +203,44 @@ struct UntetheredPumpGate<Content: View>: View {
 
 /// Bolus and carbs are entered on the watch while it has the pump: in their place, what is going on and the ways
 /// back, in the app's own background and glass panels.
+/// The settings the watch doses with, while it has the pump: they came with the grant, and a change here would never
+/// reach it. Locked until the hand-back, as LoopKit/Loop#2545 locks Settings during a loan.
+struct UntetheredSettingsGate<Content: View>: View {
+    @ObservedObject var manager: UntetheredPhoneManager
+    @ViewBuilder let content: () -> Content
+    @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        if manager.isWatchInCharge {
+            VStack(spacing: 24) {
+                Spacer()
+                Image(systemName: "applewatch.radiowaves.left.and.right")
+                    .font(.system(size: 34, weight: .semibold))
+                    .foregroundStyle(Color.untethered)
+                    .frame(width: 76, height: 76)
+                    .background(Circle().fill(Color.untethered.opacity(0.18)))
+                    .accessibilityHidden(true)
+                VStack(spacing: 8) {
+                    Text("Locked While the Watch Loops").font(.title3).fontWeight(.semibold)
+                    Text("The watch doses with these settings. Hand back to change them.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.horizontal, 8)
+                Spacer()
+                Spacer()
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
+        } else {
+            content()
+        }
+    }
+}
+
 struct UntetheredTreatmentGate<Content: View>: View {
     @ObservedObject var manager: UntetheredPhoneManager
     @ViewBuilder let content: () -> Content
