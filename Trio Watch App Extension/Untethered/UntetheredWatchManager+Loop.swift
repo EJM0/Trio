@@ -33,15 +33,8 @@ extension UntetheredWatchManager {
             return
         }
         let newestGlucose = data.glucose.map(\.dateString).max()
-        switch trigger {
-        case .newGlucose:
-            // each reading loops once; the phone's last loop, carried over at the takeover, counts as one
-            if let used = data.lastLoopGlucose, let newestGlucose, newestGlucose <= used { return }
-        case .treatment:
-            break
-        case .modeChanged:
-            break
-        }
+        // each reading loops once; the phone's last loop, carried over at the takeover, counts as one
+        if trigger == .newGlucose, let used = data.lastLoopGlucose, let newestGlucose, newestGlucose <= used { return }
         let enacts = trigger != .treatment
         isLooping = true
         if enacts { store.update { $0.lastLoopGlucose = newestGlucose } }
@@ -76,7 +69,9 @@ extension UntetheredWatchManager {
                 if enacts { self.calculateTDD(pump: pump, grant: grant, now: now) }
                 let previousAutosens = self.store.data.autosens?.timestamp
                 let inputs = self.loopInputs(pump: pump, grant: grant, now: now)
-                let (determination, autosens) = try await Task.detached { try Self.determine(inputs) }.value
+                guard let result = try await Task.detached(operation: { try UntetheredAlgorithm.determine(inputs) }).value
+                else { throw UntetheredWatchError.noDetermination }
+                let (determination, autosens) = result
                 if let autosens, let timestamp = autosens.timestamp, timestamp != previousAutosens {
                     // the phone continues from it after the hand-back
                     self.store.record(
@@ -102,6 +97,12 @@ extension UntetheredWatchManager {
                         epoch: epoch
                     )
                 }
+                func looped() {
+                    self.store.update {
+                        $0.lastLoopDate = now
+                        $0.lastLoopError = nil
+                    }
+                }
                 if enacts {
                     do {
                         // A selection made while this determination was running invalidates its old permissions.
@@ -111,17 +112,11 @@ extension UntetheredWatchManager {
                         }
                         if grant.dosingMode.automation == .off {
                             record(enactedAt: nil)
-                            self.store.update {
-                                $0.lastLoopDate = now
-                                $0.lastLoopError = nil
-                            }
+                            looped()
                         } else {
                             try await self.enact(determination, pump: pump, dosingMode: grant.dosingMode)
                             record(enactedAt: Date())
-                            self.store.update {
-                                $0.lastLoopDate = now
-                                $0.lastLoopError = nil
-                            }
+                            looped()
                             self.scheduleNotLoopingAlert(from: now)
                             self.recordPumpStatus()
                             self.store.record(
@@ -160,23 +155,7 @@ extension UntetheredWatchManager {
         }
     }
 
-    struct LoopInputs {
-        let grant: UntetheredGrant
-        let pumpHistory: [PumpHistoryEvent]
-        let glucose: [BloodGlucose]
-        var carbs: [CarbsEntry]
-        let tempTargets: [TempTarget]
-        let activeTempTarget: TempTarget?
-        let override: Override?
-        let autosens: Autosens?
-        let tdd: OrefPipeline.TDDSummary
-        let currentTemp: TempBasal
-        let supportedBasalRates: [Decimal]
-        let reservoir: Decimal
-        let now: Date
-    }
-
-    func loopInputs(pump: PumpManager, grant: UntetheredGrant, now: Date) -> LoopInputs {
+    func loopInputs(pump: PumpManager, grant: UntetheredGrant, now: Date) -> UntetheredAlgorithm.Inputs {
         let data = store.data
         let currentTemp: TempBasal
         switch pump.status.basalDeliveryState {
@@ -190,50 +169,28 @@ extension UntetheredWatchManager {
         case .active:
             currentTemp = TempBasal(duration: 0, rate: 0, temp: .absolute, timestamp: now)
         default:
-            currentTemp = Self.historyTempBasal(data.pumpHistory, now: now)
+            currentTemp = UntetheredAlgorithm.historyTempBasal(data.pumpHistory, now: now)
         }
-        return LoopInputs(
+        return UntetheredAlgorithm.Inputs(
             grant: grant,
-            pumpHistory: Self.withoutOrphanedResumes(data.pumpHistory).sorted { $0.timestamp > $1.timestamp },
-            glucose: Self.algorithmGlucose(data, smoothing: grant.smoothGlucose),
+            pumpHistory: UntetheredAlgorithm.withoutOrphanedResumes(data.pumpHistory).sorted { $0.timestamp > $1.timestamp },
+            glucose: UntetheredAlgorithm.algorithmGlucose(
+                data.glucose,
+                smoothed: data.smoothedGlucose,
+                smoothing: grant.smoothGlucose
+            ),
             carbs: data.carbs,
             tempTargets: data.tempTargets,
             activeTempTarget: activeTempTarget(at: now),
             override: activeOverride(at: now),
             autosens: data.autosens,
-            tdd: Self.tddSummary(data, now: now) ?? grant.tdd,
+            tdd: UntetheredAlgorithm.tddSummary(rows: data.tddRows, hours: data.tddHours, now: now) ?? grant.tdd,
+            hasSufficientTDD: UntetheredAlgorithm.hasSufficientTDD(hours: data.tddHours, now: now) ?? grant.hasSufficientTDD,
             currentTemp: currentTemp,
             supportedBasalRates: pump.supportedBasalRates.map { Decimal($0) },
             reservoir: data.reservoir ?? 100,
             now: now
         )
-    }
-
-    /// As `APSManager.fetchCurrentTempBasal` when the pump's state doesn't say: the newest pump event, if it is
-    /// a temp basal, for what is left of it.
-    static func historyTempBasal(_ history: [PumpHistoryEvent], now: Date) -> TempBasal {
-        guard let newest = history.max(by: { $0.timestamp < $1.timestamp }),
-              newest.type == .tempBasal || newest.type == .tempBasalDuration,
-              let rate = history.first(where: { $0.type == .tempBasal && $0.timestamp == newest.timestamp })?.rate,
-              let minutes = history.first(where: { $0.type == .tempBasalDuration && $0.timestamp == newest.timestamp })?
-              .durationMin
-        else { return TempBasal(duration: 0, rate: 0, temp: .absolute, timestamp: now) }
-        let elapsed = Int((now.timeIntervalSince1970 - newest.timestamp.timeIntervalSince1970) / 60)
-        return TempBasal(duration: max(0, minutes - elapsed), rate: rate, temp: .absolute, timestamp: now)
-    }
-
-    /// As `OpenAPS.fetchOrphanedResumes`: a resume without its suspend in the last day would end a suspension
-    /// that never started, and oref would read negative IOB from it.
-    static func withoutOrphanedResumes(_ history: [PumpHistoryEvent]) -> [PumpHistoryEvent] {
-        let pairs = history.filter { $0.type == .pumpSuspend || $0.type == .pumpResume }.sorted { $0.timestamp < $1.timestamp }
-        var orphaned = Set<String>()
-        if let first = pairs.first, first.type == .pumpResume { orphaned.insert(first.id) }
-        for (previous, current) in zip(pairs, pairs.dropFirst()) where current.type == .pumpResume {
-            if previous.type != .pumpSuspend || current.timestamp.timeIntervalSince(previous.timestamp) > 24 * 60 * 60 {
-                orphaned.insert(current.id)
-            }
-        }
-        return orphaned.isEmpty ? history : history.filter { !orphaned.contains($0.id) }
     }
 
     /// As `APSManager.calculateAndStoreTDD`: a TDD row from the last day of pump history, kept for the
@@ -245,18 +202,13 @@ extension UntetheredWatchManager {
             now: now,
             roundToSupportedBasalRate: pump.roundToSupportedBasalRate
         )
-        // as `BaseTDDStorage.calculateWeightedAverage`, which defaults the weight to 0.65 and counts zeros
         let data = store.data
-        let recent = data.tddRows.filter { $0.date >= now.addingTimeInterval(-2 * 60 * 60) }
-        let tenDays = UntetheredTDDHour.inWindow(data.tddHours, now: now)
-        let tenDayCount = tenDays.reduce(0) { $0 + $1.count }
-        let weight = grant.preferences.weightPercentage
-        let weightedAverage: Decimal? = tenDayCount > 0
-            ? (
-                weight * (recent.reduce(0) { $0 + $1.total } / max(Decimal(recent.count), 1))
-                    + (1 - weight) * tenDays.reduce(0) { $0 + $1.total } / Decimal(tenDayCount)
-            ).truncated(toPlaces: 3)
-            : 0
+        let weightedAverage = UntetheredAlgorithm.weightedAverage(
+            rows: data.tddRows,
+            hours: data.tddHours,
+            weight: grant.preferences.weightPercentage,
+            now: now
+        )
         let row = UntetheredTDD(
             date: now,
             total: result.total,
@@ -271,36 +223,6 @@ extension UntetheredWatchManager {
             $0.tddHours = UntetheredTDDHour.inWindow($0.tddHours, now: now)
         }
         store.record(UntetheredRecord(key: UntetheredRecord.tddKey(now), date: now, kind: .tdd(row)), epoch: data.session.epoch)
-    }
-
-    /// `OpenAPS.tddSummary` over the phone's rows and the watch's own.
-    static func tddSummary(_ data: UntetheredWatchData, now: Date) -> OrefPipeline.TDDSummary? {
-        let tenDays = UntetheredTDDHour.inWindow(data.tddHours, now: now)
-        guard let latest = data.tddRows.last(where: { $0.total > 0 }), !tenDays.isEmpty else { return nil }
-        let recent = data.tddRows.filter { $0.total > 0 && $0.date >= now.addingTimeInterval(-2 * 60 * 60) }
-        let tenDayPositive = tenDays.reduce(0) { $0 + $1.positive }
-        return OrefPipeline.TDDSummary(
-            currentTDD: latest.total,
-            averageLastTenDays: tenDays.reduce(0) { $0 + $1.total } / Decimal(max(tenDayPositive, 1)),
-            averageLastTwoHours: recent.reduce(0) { $0 + $1.total } / Decimal(max(recent.count, 1))
-        )
-    }
-
-    /// As `GlucoseStorage.algorithmGlucoseValue`: a CGM reading's smoothed value when smoothing is on and one
-    /// exists, otherwise the raw value. Newest first.
-    static func algorithmGlucose(_ data: UntetheredWatchData, smoothing: Bool) -> [BloodGlucose] {
-        data.glucose.sorted { $0.dateString > $1.dateString }.map { reading in
-            guard smoothing, reading.sgv != nil, let smoothed = data.smoothedGlucose[reading.id], smoothed != 0 else {
-                return reading
-            }
-            // rounded first, as the phone does: `intValue` misreads long fractions
-            let value = NSDecimalNumber(decimal: smoothed.rounded(scale: 0)).intValue
-            return BloodGlucose(
-                id: reading.id, sgv: value, direction: reading.direction, date: reading.date,
-                dateString: reading.dateString, unfiltered: reading.unfiltered, filtered: reading.filtered,
-                noise: reading.noise, glucose: value, type: reading.type
-            )
-        }
     }
 
     /// The phone's `exponentialSmoothingGlucose` over the watch's readings: CGM only, the last day, at most
@@ -320,91 +242,8 @@ extension UntetheredWatchManager {
         }
     }
 
-    /// The phone's `OpenAPS.createProfiles`, `autosense` and `determineBasal`, on the watch's data.
-    static func determine(_ inputs: LoopInputs) throws -> (Determination, Autosens?) {
-        let grant = inputs.grant
-        let now = inputs.now
-        let profilePreferences = OrefPipeline.profilePreferences(
-            grant.preferences,
-            activeTempTarget: inputs.activeTempTarget.flatMap { tempTarget in
-                tempTarget.targetBottom.map { (target: $0, halfBasalTarget: tempTarget.halfBasalTarget) }
-            }
-        ).clamped(for: grant.dosingMode)
-
-        var profile = try ProfileGenerator.generate(
-            pumpSettings: grant.pumpSettings,
-            bgTargets: grant.bgTargets,
-            basalProfile: grant.basalProfile,
-            isf: grant.insulinSensitivities,
-            preferences: profilePreferences,
-            carbRatios: grant.carbRatios,
-            tempTargets: inputs.tempTargets,
-            clock: now
-        )
-
-        var autosens = inputs.autosens
-        if (autosens?.timestamp ?? .distantPast).addingTimeInterval(30 * 60) < now {
-            var fresh = try OrefPipeline.autosens(
-                glucose: inputs.glucose,
-                pumpHistory: inputs.pumpHistory,
-                basalProfile: grant.basalProfile,
-                profile: profile,
-                carbs: inputs.carbs,
-                tempTargets: inputs.tempTargets,
-                clock: now
-            )
-            fresh.timestamp = now
-            autosens = fresh
-        }
-
-        profile.supportedBasalRates = inputs.supportedBasalRates
-        profile.suspendOnly = grant.dosingMode.automation == .hypoSuspendOnly
-
-        var preferences = grant.preferences.clamped(for: grant.dosingMode)
-        if !grant.hasSufficientTDD, preferences.useNewFormula || (preferences.useNewFormula && preferences.sigmoid) {
-            preferences.useNewFormula = false
-            preferences.sigmoid = false
-        }
-        let window = Double(truncating: (preferences.maxMealAbsorptionTime + 0.5) as NSNumber) * 3600
-        let glucose = inputs.glucose.filter { $0.dateString >= now.addingTimeInterval(-window) }
-
-        let meal = try OrefPipeline.meal(
-            pumpHistory: inputs.pumpHistory,
-            profile: profile,
-            basalProfile: grant.basalProfile,
-            clock: now,
-            carbs: inputs.carbs,
-            glucose: glucose
-        )
-        let iob = try OrefPipeline.iob(pumpHistory: inputs.pumpHistory, profile: profile, clock: now, autosens: autosens)
-        guard var determination = try OrefPipeline.determineBasal(
-            glucose: glucose,
-            currentTemp: inputs.currentTemp,
-            iob: iob,
-            profile: profile,
-            autosens: autosens,
-            meal: meal,
-            microBolusAllowed: true,
-            reservoir: inputs.reservoir,
-            preferences: preferences,
-            trioCustomOrefVariables: OrefPipeline.customOrefVariables(
-                override: inputs.override,
-                tdd: inputs.tdd,
-                preferences: grant.preferences,
-                now: now
-            ),
-            clock: now
-        ), let deliverAt = determination.deliverAt else {
-            throw UntetheredWatchError.noDetermination
-        }
-        determination.timestamp = deliverAt
-        return (determination, autosens)
-    }
-
     /// The phone's `APSManager.enactDetermination`.
     private func enact(_ determination: Determination, pump: PumpManager, dosingMode: DosingMode) async throws {
-        guard data.grant?.dosingMode == dosingMode else { return }
-        guard dosingMode.automation != .off else { return }
         if case .suspended = pump.status.basalDeliveryState { return }
         if let rate = determination.rate, let duration = determination.duration {
             try await pump.enactTempBasal(
@@ -497,7 +336,9 @@ extension UntetheredWatchManager {
                 id: UUID().uuidString, createdAt: now, actualDate: now, carbs: Decimal(carbs), fat: 0, protein: 0,
                 note: nil, enteredBy: CarbsEntry.local, isFPU: false, fpuID: nil
             ))
-            if let simulated = try? await Task.detached(operation: { try Self.determine(inputs) }).value.0.minPredBGFromReason {
+            if let simulated = try? await Task.detached(operation: { try UntetheredAlgorithm.determine(inputs) }).value?.0
+                .minPredBGFromReason
+            {
                 minPredBG = simulated
             }
         }
@@ -821,10 +662,7 @@ extension UntetheredWatchManager: PumpManagerDelegate {
             let asserted = Set(identifiers)
             let dropped = store.data.mutablePumpEventIDs.subtracting(asserted)
             store.update {
-                $0.pumpHistory
-                    .removeAll { dropped.contains($0.id) || ($0.id.hasPrefix("_") && dropped.contains(String($0.id.dropFirst())))
-                    }
-                $0.tddPumpHistory.removeAll { dropped.contains($0.id) }
+                $0.removePumpEvents(dropped)
                 $0.mutablePumpEventIDs = []
             }
             for id in dropped {
@@ -839,16 +677,13 @@ extension UntetheredWatchManager: PumpManagerDelegate {
                 data.mutablePumpEventIDs.insert(id)
             }
         }
-        for event in events {
-            let identifier = event.dose?.syncIdentifier.flatMap { $0.isEmpty ? nil : $0 }
-                ?? event.raw.map { String(format: "%02x", $0) }.joined()
-            let converted = Self.historyEvents(event, id: identifier, bolusIncrement: increment)
-            let tddEvent = Self.tddEvent(event, id: identifier, bolusIncrement: increment)
+        for (event, identifier) in zip(events, identifiers) {
             store.update {
-                $0.pumpHistory.removeAll { $0.id == identifier || $0.id == "_" + identifier }
-                $0.pumpHistory += converted
-                $0.tddPumpHistory.removeAll { $0.id == identifier }
-                if let tddEvent { $0.tddPumpHistory.append(tddEvent) }
+                $0.upsertPumpEvent(
+                    id: identifier,
+                    history: UntetheredAlgorithm.historyEvents(event, id: identifier, bolusIncrement: increment),
+                    tdd: UntetheredAlgorithm.tddEvent(event, id: identifier, bolusIncrement: increment)
+                )
             }
             if let raw = try? PropertyListSerialization.data(fromPropertyList: event.rawValue, format: .binary, options: 0) {
                 store.record(
@@ -860,79 +695,6 @@ extension UntetheredWatchManager: PumpManagerDelegate {
         refresh()
         completion(nil)
         if bolusFinalized { DispatchQueue.main.async { self.runLoop(.treatment) } }
-    }
-
-    /// The phone's `PumpHistoryStorage.storePumpEvents` + `PumpEventStored.toPumpHistoryEvents`, without the
-    /// database. Scheduled basal stays out, as `pumpHistoryLast1440Minutes` leaves it out.
-    static func historyEvents(_ event: NewPumpEvent, id: String, bolusIncrement: Decimal) -> [PumpHistoryEvent] {
-        let timestamp = min(event.date, Date())
-        switch event.type {
-        case .bolus:
-            guard let dose = event.dose else { return [] }
-            let increment = NSDecimalNumber(decimal: bolusIncrement).doubleValue
-            let amount = (dose.unitsInDeliverableIncrements / increment).rounded() * increment
-            return [PumpHistoryEvent(
-                id: id,
-                type: .bolus,
-                timestamp: timestamp,
-                amount: Decimal(algorithmValue: amount),
-                duration: 0,
-                isSMB: dose.automatic ?? true,
-                isExternal: dose.manuallyEntered
-            )]
-        case .tempBasal:
-            guard let dose = event.dose else { return [] }
-            return [
-                PumpHistoryEvent(
-                    id: id,
-                    type: .tempBasalDuration,
-                    timestamp: timestamp,
-                    durationMin: Int((dose.endDate.timeIntervalSince(dose.startDate) / 60).rounded())
-                ),
-                PumpHistoryEvent(
-                    id: "_" + id,
-                    type: .tempBasal,
-                    timestamp: timestamp,
-                    rate: Decimal(algorithmValue: dose.unitsPerHour),
-                    temp: .absolute
-                )
-            ]
-        case .suspend:
-            return [PumpHistoryEvent(id: id, type: .pumpSuspend, timestamp: timestamp)]
-        case .resume:
-            return [PumpHistoryEvent(id: id, type: .pumpResume, timestamp: timestamp)]
-        default:
-            return []
-        }
-    }
-
-    /// `PumpHistoryStorage.getPumpHistory`'s shape: a temp basal keeps its rate in `amount`, its minutes in
-    /// `duration` and the pump's delivered total; scheduled basal rows are flagged.
-    static func tddEvent(_ event: NewPumpEvent, id: String, bolusIncrement: Decimal) -> PumpHistoryEvent? {
-        let timestamp = min(event.date, Date())
-        switch event.type {
-        case .bolus:
-            return historyEvents(event, id: id, bolusIncrement: bolusIncrement).first
-        case .basal,
-             .tempBasal:
-            guard let dose = event.dose else { return nil }
-            let isScheduledBasal = event.type == .basal
-            return PumpHistoryEvent(
-                id: id,
-                type: .tempBasal,
-                timestamp: timestamp,
-                amount: Decimal(dose.unitsPerHour),
-                duration: isScheduledBasal ? 0 : Int((dose.endDate.timeIntervalSince(dose.startDate) / 60).rounded()),
-                isScheduledBasal: isScheduledBasal,
-                deliveredUnits: dose.deliveredUnits.map { Decimal($0) }
-            )
-        case .suspend:
-            return PumpHistoryEvent(id: id, type: .pumpSuspend, timestamp: timestamp)
-        case .resume:
-            return PumpHistoryEvent(id: id, type: .pumpResume, timestamp: timestamp)
-        default:
-            return nil
-        }
     }
 
     func pumpManager(
@@ -1186,12 +948,12 @@ extension UntetheredWatchManager {
             }
         }
         // two missed readings on the sensor's 5-minute grid
-        if let newest = latest?.dateString, now.timeIntervalSince(newest) > 11 * 60 {
+        if let newest = latest?.dateString, now.timeIntervalSince(newest) > Self.noReadingsAfter {
             let minutes = Int(now.timeIntervalSince(newest) / 60)
             alarm("sensor", title: Self.noReadingsTitle, body: Self.noReadingsBody(minutes: minutes), every: 30 * 60)
         }
         if !data.podEnded, let lastLoop = data.lastLoopDate ?? data.session.startStatus?.date,
-           now.timeIntervalSince(lastLoop) > 20 * 60
+           now.timeIntervalSince(lastLoop) > Self.notLoopingAfter
         {
             alarm("loop", title: Self.notLoopingTitle, body: Self.notLoopingBody, every: 30 * 60)
         }
@@ -1240,6 +1002,7 @@ extension UntetheredWatchManager {
     }
 
     static let notLoopingID = "untethered.loop"
+    private static let notLoopingAfter: TimeInterval = 20 * 60
     private static var notLoopingTitle: String { String(localized: "Not Looping") }
     private static var notLoopingBody: String { String(localized: "The watch hasn't looped for 20 minutes.") }
 
@@ -1250,7 +1013,7 @@ extension UntetheredWatchManager {
             id: Self.notLoopingID,
             title: Self.notLoopingTitle,
             body: Self.notLoopingBody,
-            after: lastLoop.addingTimeInterval(20 * 60).timeIntervalSinceNow
+            after: lastLoop.addingTimeInterval(Self.notLoopingAfter).timeIntervalSinceNow
         )
     }
 

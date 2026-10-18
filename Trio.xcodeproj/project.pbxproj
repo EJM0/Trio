@@ -1044,6 +1044,7 @@
 		546709CF93D2E4E4801B0C55 /* G7SensorKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA75E2D8DBD690069D5B8 /* G7SensorKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		7A1E00D1C0FFEE0000000002 /* UntetheredPhoneState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1E00D1C0FFEE0000000001 /* UntetheredPhoneState.swift */; };
 		54A5A239E3E68EB227C2E3BF /* UntetheredAudit.swift in Sources */ = {isa = PBXBuildFile; fileRef = A815925DB49E34B07E469B9A /* UntetheredAudit.swift */; };
+		4B0108B581F216EC2F9AF807 /* UntetheredAlgorithm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C393F93D669F4F89FA5ADCA /* UntetheredAlgorithm.swift */; };
 		5C9DB84442E2BAE6AD00DB28 /* BloodGlucose.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3870FF4225EC13F40088248F /* BloodGlucose.swift */; };
 		5E0C8163C8EDE464AF97F80C /* IobGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B1C5C262D68E1E3004E9273 /* IobGenerator.swift */; };
 		5EB438A9342B23346377051A /* TempBasalFunctions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BAC929C2E56A84E00B853DA /* TempBasalFunctions.swift */; };
@@ -1067,6 +1068,7 @@
 		820F14AC35C20EE8A4097C5B /* ComputedPumpHistoryEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B1C5C2D2D68E220004E9273 /* ComputedPumpHistoryEvent.swift */; };
 		82885259927416F457B75CA5 /* LoopKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3818AA4C274C26A300843DB3 /* LoopKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		82BEF5A4EE93B49EFA536B2C /* UntetheredAudit.swift in Sources */ = {isa = PBXBuildFile; fileRef = A815925DB49E34B07E469B9A /* UntetheredAudit.swift */; };
+		54B35D984BB1B2E45DF5BA6D /* UntetheredAlgorithm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C393F93D669F4F89FA5ADCA /* UntetheredAlgorithm.swift */; };
 		83ECA26CCD64F7F084C15753 /* Isf.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5CD2932D4AEA3C00CE213C /* Isf.swift */; };
 		853C9A0122E4DE83BE6F6D71 /* IobError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B1C5C252D68E1E3004E9273 /* IobError.swift */; };
 		856C846DA69A2E2ED2410C24 /* ProfileGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5CD2952D4AEA3C00CE213C /* ProfileGenerator.swift */; };
@@ -2243,6 +2245,7 @@
 		61789ED90A7D300F20DD6D50 /* UntetheredSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UntetheredSession.swift; sourceTree = "<group>"; };
 		71217E2B7E28E30291910EDF /* WatchDeviceManagers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchDeviceManagers.swift; sourceTree = "<group>"; };
 		A815925DB49E34B07E469B9A /* UntetheredAudit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UntetheredAudit.swift; sourceTree = "<group>"; };
+		7C393F93D669F4F89FA5ADCA /* UntetheredAlgorithm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UntetheredAlgorithm.swift; sourceTree = "<group>"; };
 		7A1E00D1C0FFEE0000000001 /* UntetheredPhoneState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UntetheredPhoneState.swift; sourceTree = "<group>"; };
 		B34245E04814390E7536BC5D /* UntetheredTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UntetheredTests.swift; sourceTree = "<group>"; };
 		D5ED52A29E0C748FDC7625AA /* UntetheredMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UntetheredMessage.swift; sourceTree = "<group>"; };
@@ -5019,6 +5022,7 @@
 				14C973E733E528B7A9E70D90 /* UntetheredRecord.swift */,
 				61789ED90A7D300F20DD6D50 /* UntetheredSession.swift */,
 				A815925DB49E34B07E469B9A /* UntetheredAudit.swift */,
+				7C393F93D669F4F89FA5ADCA /* UntetheredAlgorithm.swift */,
 				7A1E00D1C0FFEE0000000001 /* UntetheredPhoneState.swift */,
 			);
 			path = Untethered;
@@ -5469,6 +5473,7 @@
 				B3AC54122218A0D2BB8E1D96 /* BolusCalculator.swift in Sources */,
 				CC832AEC357717199C9F22E3 /* UntetheredWatchViews.swift in Sources */,
 				54A5A239E3E68EB227C2E3BF /* UntetheredAudit.swift in Sources */,
+				4B0108B581F216EC2F9AF807 /* UntetheredAlgorithm.swift in Sources */,
 				7A1E00D1C0FFEE0000000002 /* UntetheredPhoneState.swift in Sources */,
 				805AF9EBA259FA8EC3E9943B /* UntetheredPhoneManager.swift in Sources */,
 				F706371F56FB551EC8600342 /* UntetheredSession.swift in Sources */,
@@ -6374,6 +6379,7 @@
 				D7C0FFEE0000000000000036 /* TrioWatchAppDelegate.swift in Sources */,
 				87C557E1A947A277DB2BC4CA /* UntetheredStore.swift in Sources */,
 				82BEF5A4EE93B49EFA536B2C /* UntetheredAudit.swift in Sources */,
+				54B35D984BB1B2E45DF5BA6D /* UntetheredAlgorithm.swift in Sources */,
 				6DDFAFFB531286D235C18C08 /* JavascriptOptional.swift in Sources */,
 				A25B789D062D930624D4B9F7 /* Targets.swift in Sources */,
 				856C846DA69A2E2ED2410C24 /* ProfileGenerator.swift in Sources */,

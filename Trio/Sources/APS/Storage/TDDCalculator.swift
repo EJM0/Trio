@@ -3,6 +3,23 @@ import Foundation
 /// The total daily dose from 24 h of pump history (`PumpHistoryStorage.getPumpHistory` shape: temp basals
 /// carry rate in `amount` and minutes in `duration`). Shared by the phone and the untethered watch.
 enum TDDCalculator {
+    /// Rows above 0 in the last seven days that make the dynamic formula usable: three quarters of a week of loops.
+    static let sufficientRowCount = Int(Double(7 * 288) * 0.75)
+
+    /// weightedTDD = (weight × recent average) + ((1 − weight) × ten-day average); 0 without ten-day rows.
+    static func weightedAverage(
+        recentTotal: Decimal,
+        recentCount: Int,
+        tenDayTotal: Decimal,
+        tenDayCount: Int,
+        weight: Decimal
+    ) -> Decimal {
+        guard tenDayCount > 0 else { return 0 }
+        let averageLastTwoHours = recentTotal / max(Decimal(recentCount), 1)
+        let averageLastTenDays = tenDayTotal / Decimal(tenDayCount)
+        return (weight * averageLastTwoHours + (1 - weight) * averageLastTenDays).truncated(toPlaces: 3)
+    }
+
     struct Result: Codable, Equatable {
         let total: Decimal
         let bolus: Decimal

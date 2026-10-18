@@ -1,4 +1,5 @@
 import Foundation
+import LoopKit
 import Testing
 @testable import Trio
 
@@ -662,5 +663,136 @@ import Testing
         #expect(empty.weightedAverage == 1)
         #expect(empty.smbMinutes == 30)
         #expect(!empty.useOverride)
+    }
+
+    @Test("algorithm: a resume without its suspend in the last day is dropped") func orphanedResumes() {
+        let resume = PumpHistoryEvent(id: "r0", type: .pumpResume, timestamp: t0)
+        let oldSuspend = PumpHistoryEvent(id: "s1", type: .pumpSuspend, timestamp: t0 + 3600)
+        let lateResume = PumpHistoryEvent(id: "r1", type: .pumpResume, timestamp: t0 + 3600 + 25 * 3600)
+        let suspend = PumpHistoryEvent(id: "s2", type: .pumpSuspend, timestamp: t0 + 30 * 3600)
+        let pairedResume = PumpHistoryEvent(id: "r2", type: .pumpResume, timestamp: t0 + 31 * 3600)
+        let kept = UntetheredAlgorithm.withoutOrphanedResumes([resume, oldSuspend, lateResume, suspend, pairedResume])
+        #expect(kept.map(\.id) == ["s1", "s2", "r2"])
+    }
+
+    @Test("algorithm: the newest temp basal runs for what is left of it") func historyTempBasal() {
+        let history = [
+            PumpHistoryEvent(id: "t", type: .tempBasalDuration, timestamp: t0, durationMin: 30),
+            PumpHistoryEvent(id: "_t", type: .tempBasal, timestamp: t0, rate: 1.5, temp: .absolute)
+        ]
+        let running = UntetheredAlgorithm.historyTempBasal(history, now: t0 + 10 * 60)
+        #expect(running.rate == 1.5)
+        #expect(running.duration == 20)
+        #expect(UntetheredAlgorithm.historyTempBasal([], now: t0).duration == 0)
+    }
+
+    @Test("algorithm: pump events in the algorithm's shape and the TDD's") func pumpEventShapes() {
+        // in the past: events from the future are booked at the current time
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let temp = NewPumpEvent(
+            date: start,
+            dose: DoseEntry(
+                type: .tempBasal, startDate: start, endDate: start + 30 * 60, value: 2, unit: .unitsPerHour,
+                deliveredUnits: 0.6, syncIdentifier: "t"
+            ),
+            raw: Data([1]),
+            title: "temp",
+            type: .tempBasal
+        )
+        let rows = UntetheredAlgorithm.historyEvents(temp, id: "t", bolusIncrement: 0.05)
+        #expect(rows.map(\.id) == ["t", UntetheredAlgorithm.rateID("t")])
+        #expect(rows.map(\.type) == [.tempBasalDuration, .tempBasal])
+        #expect(rows.first?.durationMin == 30)
+        #expect(rows.last?.rate == 2)
+        let tdd = UntetheredAlgorithm.tddEvent(temp, id: "t", bolusIncrement: 0.05)
+        #expect(tdd?.type == .tempBasal && tdd?.amount == 2 && tdd?.duration == 30)
+        #expect(tdd?.deliveredUnits == Decimal(0.6 as Double))
+
+        let bolus = NewPumpEvent(
+            date: start,
+            dose: DoseEntry(type: .bolus, startDate: start, value: 1.27, unit: .units, deliveredUnits: 1.27, automatic: false),
+            raw: Data([2]),
+            title: "bolus",
+            type: .bolus
+        )
+        let booked = UntetheredAlgorithm.historyEvents(bolus, id: "b", bolusIncrement: 0.05)
+        #expect(booked.first?.amount == 1.25)
+        #expect(booked.first?.isSMB == false)
+        #expect(UntetheredAlgorithm.tddEvent(bolus, id: "b", bolusIncrement: 0.05) == booked.first)
+    }
+
+    @Test("TDD: the watch's weighted average is the phone's formula, zeros counted") func weightedAverage() {
+        func row(_ minutesAgo: Double, _ total: Decimal) -> UntetheredTDD {
+            UntetheredTDD(
+                date: t0.addingTimeInterval(-minutesAgo * 60),
+                total: total, bolus: 0, tempBasal: 0, scheduledBasal: 0, weightedAverage: nil
+            )
+        }
+        let rows = [row(30, 40), row(10, 0)]
+        let hours = UntetheredTDDHour.hours(rows + [row(3 * 24 * 60, 50)])
+        let watch = UntetheredAlgorithm.weightedAverage(rows: rows, hours: hours, weight: 0.65, now: t0)
+        let phone = TDDCalculator.weightedAverage(recentTotal: 40, recentCount: 2, tenDayTotal: 90, tenDayCount: 3, weight: 0.65)
+        #expect(watch == phone)
+        #expect(phone == 23.5)
+        #expect(UntetheredAlgorithm.weightedAverage(rows: [], hours: [], weight: 0.65, now: t0) == 0)
+    }
+
+    @Test("TDD: enough rows for the dynamic formula, at the phone's threshold") func sufficientTDD() {
+        let threshold = TDDCalculator.sufficientRowCount
+        func hours(_ positive: Int) -> [UntetheredTDDHour] {
+            [UntetheredTDDHour(start: t0 - 3600, total: 400, positive: positive, count: positive)]
+        }
+        #expect(UntetheredAlgorithm.hasSufficientTDD(hours: hours(threshold), now: t0) == true)
+        #expect(UntetheredAlgorithm.hasSufficientTDD(hours: hours(threshold - 1), now: t0) == false)
+        // only the last seven days count
+        #expect(UntetheredAlgorithm.hasSufficientTDD(hours: hours(threshold), now: t0 + 8 * 24 * 3600) == false)
+        #expect(UntetheredAlgorithm.hasSufficientTDD(hours: [], now: t0) == nil)
+    }
+
+    @Test("algorithm: no dynamic formula without enough TDD, clamped for the dosing mode") func determinationPreferences() {
+        var preferences = Preferences()
+        preferences.useNewFormula = true
+        preferences.sigmoid = true
+        preferences.maxIOB = 5
+        let without = OrefPipeline.determinationPreferences(preferences, dosingMode: .closed, hasSufficientTDD: false)
+        #expect(!without.useNewFormula && !without.sigmoid && without.maxIOB == 5)
+        let with = OrefPipeline.determinationPreferences(preferences, dosingMode: .closed, hasSufficientTDD: true)
+        #expect(with.useNewFormula && with.sigmoid)
+        let suspendOnly = OrefPipeline.determinationPreferences(preferences, dosingMode: .lowGlucoseSuspend, hasSufficientTDD: true)
+        #expect(suspendOnly.maxIOB == 0)
+    }
+
+    @Test("algorithm: the watch determines from its own readings") func determine() throws {
+        let grant = grant()
+        let now = t0
+        let glucose = (0 ..< 288).map { index -> BloodGlucose in
+            let date = now.addingTimeInterval(Double(-index) * 300)
+            return BloodGlucose(
+                sgv: 120, direction: .flat, date: Decimal(Int(date.timeIntervalSince1970 * 1000)),
+                dateString: date, unfiltered: 120, glucose: 120, type: "sgv"
+            )
+        }
+        var autosens = Autosens(ratio: 1, newisf: nil)
+        autosens.timestamp = now
+        let inputs = UntetheredAlgorithm.Inputs(
+            grant: grant,
+            pumpHistory: [],
+            glucose: glucose,
+            carbs: [],
+            tempTargets: [],
+            activeTempTarget: nil,
+            override: nil,
+            autosens: autosens,
+            tdd: grant.tdd,
+            hasSufficientTDD: true,
+            currentTemp: TempBasal(duration: 0, rate: 0, temp: .absolute, timestamp: now),
+            supportedBasalRates: (0 ... 60).map { Decimal($0) * 0.05 },
+            reservoir: 100,
+            now: now
+        )
+        let (determination, used) = try #require(try UntetheredAlgorithm.determine(inputs))
+        #expect(determination.deliverAt != nil)
+        #expect(determination.timestamp == determination.deliverAt)
+        #expect(used?.timestamp == now)
     }
 }

@@ -74,6 +74,21 @@ struct UntetheredWatchData: Codable {
     }
 }
 
+/// The pump history is kept in two shapes, the algorithm's and the TDD's: both change together.
+extension UntetheredWatchData {
+    mutating func upsertPumpEvent(id: String, history: [PumpHistoryEvent], tdd: PumpHistoryEvent?) {
+        removePumpEvents([id])
+        pumpHistory += history
+        if let tdd { tddPumpHistory.append(tdd) }
+    }
+
+    mutating func removePumpEvents(_ ids: Set<String>) {
+        let rows = ids.union(ids.map(UntetheredAlgorithm.rateID))
+        pumpHistory.removeAll { rows.contains($0.id) }
+        tddPumpHistory.removeAll { ids.contains($0.id) }
+    }
+}
+
 /// A field added since the file was written decodes to its default instead of failing the whole file: a failed
 /// decode would start over and lose the sensor's pairing and the history not yet on the phone.
 extension UntetheredWatchData {
