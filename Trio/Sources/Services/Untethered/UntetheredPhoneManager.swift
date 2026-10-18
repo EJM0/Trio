@@ -169,6 +169,10 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in Task { await self?.forwardCancellations() } }
             .store(in: &subscriptions)
+        glucoseStorage.updatePublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.scheduleWatchWake() }
+            .store(in: &subscriptions)
         Task { @MainActor in
             await self.forwardCancellations()
             if self.state.pumpReturnPending { await self.finishPumpReturn() }
@@ -178,6 +182,27 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     }
 
     var isWatchInCharge: Bool { !state.session.isIdle }
+
+    /// After the phone's own reading, clear of the watch's: the two read the same sensor, and the watch's link to it
+    /// comes up around the reading and stays some 40 s.
+    private static let watchWakeDelay: TimeInterval = 45
+    /// The publisher also fires as the watch's own readings are stored: one wake per reading cycle at most.
+    private static let watchWakeInterval: TimeInterval = 4 * 60
+    private var lastWatchWake: Date?
+
+    /// While the watch has the pump, a small application context after each reading wakes its app, which re-checks
+    /// its sensor and sends its history: a lost Bluetooth callback otherwise left it without readings until it was
+    /// opened (2026-10-18, 09:24 to 10:39). As LoopKit/Loop#2545 does with every phone cycle.
+    private func scheduleWatchWake() {
+        guard isWatchInCharge, Date().timeIntervalSince(lastWatchWake ?? .distantPast) >= Self.watchWakeInterval else { return }
+        lastWatchWake = Date()
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.watchWakeDelay) { [weak self] in
+            guard let self, self.isWatchInCharge else { return }
+            let session = WCSession.default
+            guard WCSession.isSupported(), session.activationState == .activated, session.isWatchAppInstalled else { return }
+            try? session.updateApplicationContext([WatchMessageKeys.untetheredWake: Date().timeIntervalSince1970])
+        }
+    }
     /// The start reads the pump before it offers it: the toggle shows a spinner meanwhile.
     @Published private(set) var isCheckingDevices = false
     /// A take-back reaching for the pod before it tells the watch.

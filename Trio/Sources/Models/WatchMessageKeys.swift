@@ -73,6 +73,8 @@ enum WatchMessageKeys {
     static let peripheralsUpdatedAt = "peripheralsUpdatedAt"
     static let pumpName = "pumpName"
     static let pumpReservoir = "pumpReservoir"
+    /// The phone's application context while the watch has the pump: only wakes the watch app.
+    static let untetheredWake = "untetheredWake"
     static let pumpBatteryPercent = "pumpBatteryPercent"
     static let pumpExpiresAt = "pumpExpiresAt"
     static let pumpActivatedAt = "pumpActivatedAt"

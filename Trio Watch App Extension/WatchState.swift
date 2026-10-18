@@ -376,6 +376,10 @@ import WatchConnectivity
     }
 
     func session(_: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        if applicationContext[WatchMessageKeys.untetheredWake] != nil {
+            UntetheredWatchManager.shared.phoneWake()
+            return
+        }
         handleIncomingWatchStatePayload(applicationContext)
     }
 
