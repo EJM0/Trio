@@ -402,3 +402,14 @@ import Testing
         Self.expectMatches(watch, phone)
     }
 }
+
+@Suite("Watch log parts") struct WatchLogPartsTests {
+    @Test("a long log goes in whole lines, no part over the limit, nothing lost") func parts() {
+        let lines = (0 ..< 2000).map { "[2026-10-18T09:\($0 % 60)] line \($0) " + String(repeating: "x", count: $0 % 97) }
+        let parts = WatchLogger.parts(of: lines.joined(separator: "\n"), maxBytes: 4000)
+        #expect(parts.count > 1)
+        #expect(parts.allSatisfy { $0.utf8.count <= 4000 && $0.hasSuffix("\n") })
+        #expect(parts.joined().split(separator: "\n").map(String.init) == lines)
+        #expect(WatchLogger.parts(of: "") == [])
+    }
+}
