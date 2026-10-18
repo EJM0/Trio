@@ -6,22 +6,15 @@ struct TrioMainWatchView: View {
     @State private var state = WatchState.shared
     @State private var untethered = UntetheredWatchManager.shared
 
-    // Pages in order; the bubble page is a phone setting, the history page exists while untethered and while
-    // its history still syncs, the status page (where untethered mode starts from the wrist) always.
+    // Pages in order; the bubble page is a phone setting, the status page (where untethered mode starts from the
+    // wrist, and its history opens) always.
     private var bubblePage: Int? { state.showGlucoseBubble ? 1 : nil }
     private var chartPage: Int { bubblePage.map { $0 + 1 } ?? 1 }
     private var peripheralsPage: Int { chartPage + 1 }
-    private var historyPage: Int? { showsHistory ? peripheralsPage + 1 : nil }
-    private var statusPage: Int { (historyPage ?? peripheralsPage) + 1 }
+    private var statusPage: Int { peripheralsPage + 1 }
     /// The watch's own loop status, while it loops.
     private var loopPage: Int? { untethered.isActive ? statusPage + 1 : nil }
     private var lastPage: Int { loopPage ?? statusPage }
-
-    private var showsHistory: Bool {
-        untethered.data.session.phase != .idle || untethered.data.pending.values.contains { !$0.isEmpty }
-    }
-
-    @State private var historyKind = UntetheredHistoryView.Kind.glucose
 
     // misc
     @State private var currentPage: Int = 0
@@ -136,10 +129,6 @@ struct TrioMainWatchView: View {
                 )
                 .tag(peripheralsPage)
 
-                if let historyPage {
-                    UntetheredHistoryView(manager: untethered, kind: historyKind, page: $currentPage, lastPage: lastPage)
-                        .tag(historyPage)
-                }
                 UntetheredStatusView(manager: untethered).tag(statusPage)
                 if let loopPage {
                     UntetheredLoopStatusView(manager: untethered).tag(loopPage)
@@ -147,10 +136,6 @@ struct TrioMainWatchView: View {
             }
             .onChange(of: untethered.isActive) { _, isActive in
                 if isActive || currentPage > statusPage { currentPage = statusPage }
-            }
-            // the history page goes once its records are on the phone; stay on the status page, not on none
-            .onChange(of: showsHistory) { _, _ in
-                if currentPage > lastPage { currentPage = lastPage }
             }
             .onChange(of: state.showGlucoseBubble) { _, _ in
                 if currentPage > lastPage { currentPage = lastPage }
@@ -198,16 +183,7 @@ struct TrioMainWatchView: View {
                 }
 
                 ToolbarItemGroup(placement: .bottomBar) {
-                    if currentPage == historyPage {
-                        // what the history page lists
-                        ForEach(UntetheredHistoryView.Kind.allCases, id: \.self) { kind in
-                            Button { historyKind = kind } label: {
-                                Image(systemName: kind.symbol)
-                                    .foregroundStyle(historyKind == kind ? Color.primary : kind.color)
-                            }
-                            .tint(historyKind == kind ? kind.color : nil)
-                        }
-                    } else if currentPage != peripheralsPage, currentPage != statusPage, currentPage != loopPage {
+                    if currentPage != peripheralsPage, currentPage != statusPage, currentPage != loopPage {
                         // the Devices, status and loop pages have no treatment controls
                         Button {
                             showingOverrideSheet = true

@@ -14113,6 +14113,9 @@
         }
       }
     },
+    "%lld to sync" : {
+
+    },
     "%lld x" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -40080,6 +40083,7 @@
     },
     "Add widget" : {
       "comment" : "A label displayed as a button to add a widget.",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -40210,6 +40214,7 @@
       }
     },
     "Add Widget" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -41010,6 +41015,9 @@
           }
         }
       }
+    },
+    "Adds this widget to the layout" : {
+
     },
     "Adds Transmitter Battery" : {
       "extractionState" : "manual",
@@ -49590,6 +49598,9 @@
           }
         }
       }
+    },
+    "Already in the layout" : {
+
     },
     "Already set for Day & Night. Change the alarm time window to add a second alarm for the same type." : {
       "localizations" : {
@@ -63024,6 +63035,9 @@
           }
         }
       }
+    },
+    "Available Widgets" : {
+
     },
     "Average" : {
       "comment" : "Average BG =",
@@ -85072,6 +85086,9 @@
           }
         }
       }
+    },
+    "Changes the size of the current glucose reading and its trend arrow on the Simple Lock Screen widget. The delta and the time of the last reading are not affected." : {
+
     },
     "Chapter %1$d of %2$d, %3$@" : {
       "comment" : "Accessibility: onboarding progress",
@@ -110188,6 +110205,9 @@
         }
       }
     },
+    "Default: Large" : {
+
+    },
     "Default: OFF" : {
       "localizations" : {
         "bg" : {
@@ -126537,6 +126557,9 @@
         }
       }
     },
+    "Drag a widget to move it. Drag one up from Available Widgets to add it, or drop it back onto the list to remove it." : {
+
+    },
     "Drives the outer-ring + tag on the home screen's glucose bobble." : {
       "localizations" : {
         "bg" : {
@@ -130870,6 +130893,9 @@
           }
         }
       }
+    },
+    "Empty widget slot" : {
+
     },
     "Enable" : {
       "comment" : "Enable FPU",
@@ -146073,6 +146099,9 @@
         }
       }
     },
+    "Extra Large" : {
+      "comment" : "Live Activity glucose reading font size"
+    },
     "Extracting calibrationdata from sensor" : {
       "comment" : "Extracting calibrationdata from sensor",
       "extractionState" : "manual",
@@ -159780,8 +159809,15 @@
         }
       }
     },
+    "Glucose and Trend" : {
+      "comment" : "Live Activity widget icon label for Glucose and Trend in the default text color"
+    },
+    "Glucose and Trend (Colored)" : {
+      "comment" : "Live Activity widget icon label for Glucose and Trend in the glucose color"
+    },
     "Glucose and Trend, no Delta" : {
       "comment" : "Live Activity widget icon label for Glucose and Trend, no Delta",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -163455,6 +163491,9 @@
         }
       }
     },
+    "Glucose Reading Font" : {
+
+    },
     "Glucose Settings" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -165566,6 +165605,15 @@
           }
         }
       }
+    },
+    "Glucose, Trend, Delta (Colored)" : {
+      "comment" : "Live Activity widget icon label for Glucose, Trend, Delta in the glucose color"
+    },
+    "Glucose, Trend, Delta (Double Width, Colored)" : {
+      "comment" : "Live Activity widget icon label for the double-width Glucose, Trend, Delta item in the glucose color"
+    },
+    "Glucose, Trend, Delta (Double Width)" : {
+      "comment" : "Live Activity widget icon label for the double-width Glucose, Trend, Delta item in the default text color"
     },
     "Glucose: %@" : {
       "comment" : "Glucose: %@",
@@ -188647,6 +188695,9 @@
         }
       }
     },
+    "Its Widget Configuration lets you set the size of the glucose reading." : {
+
+    },
     "Jump to now" : {
 
     },
@@ -189039,6 +189090,9 @@
           }
         }
       }
+    },
+    "Large" : {
+      "comment" : "Live Activity glucose reading font size"
     },
     "Largest basal rate allowed." : {
       "localizations" : {
@@ -195640,6 +195694,9 @@
           }
         }
       }
+    },
+    "Lock Screen widget preview" : {
+
     },
     "Lock Screen Widget Style" : {
       "localizations" : {
@@ -213269,6 +213326,9 @@
         }
       }
     },
+    "Medium" : {
+      "comment" : "Live Activity glucose reading font size"
+    },
     "Medtronic" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -219736,6 +219796,9 @@
           }
         }
       }
+    },
+    "More information about Glucose Reading Font" : {
+
     },
     "More options" : {
       "extractionState" : "manual",
@@ -229900,6 +229963,9 @@
           }
         }
       }
+    },
+    "Not enough room" : {
+
     },
     "Not enough SMB data" : {
 
@@ -251849,6 +251915,16 @@
         }
       }
     },
+    "Position %lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Position %1$lld of %2$lld"
+          }
+        }
+      }
+    },
     "Prediction Type" : {
       "localizations" : {
         "bg" : {
@@ -253026,6 +253102,9 @@
           }
         }
       }
+    },
+    "Preview" : {
+
     },
     "Preview Contact Image" : {
       "localizations" : {
@@ -265513,6 +265592,9 @@
         }
       }
     },
+    "Remove %@" : {
+
+    },
     "Remove All" : {
       "localizations" : {
         "bg" : {
@@ -265909,6 +265991,7 @@
 
     },
     "Remove widget" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -266039,6 +266122,7 @@
       }
     },
     "Remove Widget" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -266698,6 +266782,9 @@
     },
     "Requires Allow Uploading to Nightscout. Supported for Dexcom G6 and G7." : {
 
+    },
+    "Reserved" : {
+      "comment" : "Live Activity widget icon label for the slot taken by a double-width item"
     },
     "Reservoir" : {
       "localizations" : {
@@ -281545,6 +281632,9 @@
         }
       }
     },
+    "Set the size of the glucose reading." : {
+
+    },
     "Set the value enableSMB_high_bg will compare against to enable SMB. If BG > than this value, SMBs should enable." : {
       "comment" : "... When Blood Glucose Is Over (mg/dl):",
       "extractionState" : "manual",
@@ -287993,6 +288083,9 @@
         }
       }
     },
+    "Sizes follow your iPhone's text size setting, so the reading keeps scaling if you change the text size in iOS Settings." : {
+
+    },
     "Skip Bolus screen after carbs" : {
       "comment" : "Do you want to show bolus screen after added carbs?",
       "extractionState" : "manual",
@@ -289177,6 +289270,9 @@
           }
         }
       }
+    },
+    "Small" : {
+      "comment" : "Live Activity glucose reading font size"
     },
     "Smaller iPhone Screens" : {
       "comment" : "UI/UX option",
@@ -331007,6 +331103,7 @@
       }
     },
     "To re-order widgets, remove them and re-add them in the desired order." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -331395,9 +331492,6 @@
           }
         }
       }
-    },
-    "To Sync" : {
-
     },
     "today" : {
       "comment" : "Stats banner scope",

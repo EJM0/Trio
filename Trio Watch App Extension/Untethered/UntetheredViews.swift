@@ -35,6 +35,8 @@ struct UntetheredStatusView: View {
                         }
                     }
                     if manager.isActive { tiles }
+                    if manager.isActive || unsynced > 0 { historyButton }
+                    if manager.isActive { phoneTile }
                     alerts(now: context.date)
                     actions
                 }
@@ -126,23 +128,53 @@ struct UntetheredStatusView: View {
     // MARK: - Figures
 
     private var tiles: some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 6) {
-            tile("Basal", systemImage: "chart.bar.fill", tint: .blue, value: (manager.deliveredBasalRate ?? data.lastDetermination?.rate).map {
-                String(format: "%.2f U/h", NSDecimalNumber(decimal: $0).doubleValue)
-            })
+        HStack(spacing: 6) {
+            tile(
+                "Basal",
+                systemImage: "chart.bar.fill",
+                tint: .blue,
+                value: (manager.deliveredBasalRate ?? data.lastDetermination?.rate).map {
+                    String(format: "%.2f U/h", NSDecimalNumber(decimal: $0).doubleValue)
+                }
+            )
             // as the Devices page: the fill-based estimate above 50 U, or "50+" when there is none
             tile("Reservoir", systemImage: "drop.fill", tint: .blue, value: WatchState.shared.pumpReservoir.map {
                 // not `NSDecimalNumber.intValue`: it misreads long fractions such as the fill-based estimate's
                 $0 == Decimal(UInt32(0xDEAD_BEEF)) ? "50+ U" : "\($0.formatted(.number.precision(.fractionLength(0)))) U"
             })
-            tile(
-                "Phone",
-                systemImage: isPhoneReachable ? "iphone" : "iphone.slash",
-                tint: isPhoneReachable ? .green : .secondary,
-                value: isPhoneReachable ? String(localized: "Nearby") : String(localized: "Away")
-            )
-            tile("To Sync", systemImage: "arrow.triangle.2.circlepath", tint: .secondary, value: "\(unsynced)")
         }
+    }
+
+    private var phoneTile: some View {
+        tile(
+            "Phone",
+            systemImage: isPhoneReachable ? "iphone" : "iphone.slash",
+            tint: isPhoneReachable ? .green : .secondary,
+            value: isPhoneReachable ? String(localized: "Nearby") : String(localized: "Away")
+        )
+    }
+
+    /// The watch's own history, on its own screen: as a page it would trap the pager in its list and shift the pages
+    /// after it whenever a session starts or ends. Two tiles wide, with what is left to sync; also after a session while
+    /// records still sync.
+    private var historyButton: some View {
+        NavigationLink { UntetheredHistoryView(manager: manager) } label: {
+            HStack {
+                Label("History", systemImage: "list.bullet")
+                    .font(.footnote.weight(.semibold))
+                Spacer()
+                if unsynced > 0 {
+                    Text("\(unsynced) to sync").font(.caption2).foregroundStyle(.secondary)
+                }
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(8)
+            .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
     }
 
     private func tile(_ label: LocalizedStringKey, systemImage: String, tint: Color, value: String?) -> some View {
@@ -281,11 +313,7 @@ struct UntetheredStatusView: View {
 struct UntetheredHistoryView: View {
     let manager: UntetheredWatchManager
     /// Picked in the bottom bar.
-    let kind: Kind
-    /// The crown keeps turning the pages here; the list scrolls by touch.
-    @Binding var page: Int
-    let lastPage: Int
-    @FocusState private var hasCrown: Bool
+    @State private var kind = Kind.glucose
 
     enum Kind: CaseIterable {
         case glucose
@@ -312,19 +340,24 @@ struct UntetheredHistoryView: View {
     private var since: Date { Date().addingTimeInterval(-6 * 60 * 60) }
 
     var body: some View {
-        ZStack {
-            List {
-                switch kind {
-                case .glucose: glucoseRows
-                case .carbs: carbRows
-                case .insulin: insulinRows
+        List {
+            switch kind {
+            case .glucose: glucoseRows
+            case .carbs: carbRows
+            case .insulin: insulinRows
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .bottomBar) {
+                ForEach(Kind.allCases, id: \.self) { kind in
+                    Button { self.kind = kind } label: {
+                        Image(systemName: kind.symbol)
+                            .foregroundStyle(self.kind == kind ? Color.primary : kind.color)
+                    }
+                    .tint(self.kind == kind ? kind.color : nil)
                 }
             }
         }
-        .focusable()
-        .focused($hasCrown)
-        .digitalCrownRotation($page.doubleBinding(), from: 0, through: Double(lastPage), by: 1)
-        .onAppear { hasCrown = true }
     }
 
     @ViewBuilder private var glucoseRows: some View {
