@@ -655,11 +655,11 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         switch message {
         case .adjustmentCancelled,
              .dosingModeChanged,
-             .revoke,
-             .statusQuery,
-             // a watch asleep in the background still hands back, and lets go, once it hears them
              .endRequest,
-             .handbackAck:
+             .handbackAck,
+             // a watch asleep in the background still hands back, and lets go, once it hears them
+             .revoke,
+             .statusQuery:
             // queued as well: the watch must hear it whenever it comes back
             if message.isResentUntilAnswered {
                 for transfer in session.outstandingUserInfoTransfers
@@ -1011,6 +1011,9 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         UntetheredGate.update { $0.pumpReturnPending = false }
         publish()
         debug(.watchManager, "Untethered: pump is back on the phone")
+        // the session's start dropped the watch's copy: a phone gone again right after leaves it none to fall back on
+        // (2026-10-19, back for a minute after a fallback session)
+        scheduleStandingGrant(settingsChanged: true, immediately: true)
         // each reading loops once, as on the watch: one the watch's last loop dosed on waits for the next
         if (glucoseStorage.lastGlucoseDate() ?? .distantPast) > apsManager.lastLoopDate {
             apsManager.heartbeat(date: Date())

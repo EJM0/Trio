@@ -206,8 +206,9 @@ import Testing
         #expect(watch.phase == .idle)
     }
 
-    @Test("end: the fallback's unanswered hand-back goes back to dosing; a late acknowledgement still lets go")
-    func unansweredFallbackHandback() {
+    @Test(
+        "end: the fallback's unanswered hand-back goes back to dosing; a late acknowledgement still lets go"
+    )  func unansweredFallbackHandback() {
         var (_, watch) = started()
         _ = watch.watch(.end, now: t0 + 100)
         _ = watch.watch(.handbackReady(podStatus), now: t0 + 100)

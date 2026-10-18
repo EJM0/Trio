@@ -148518,6 +148518,15 @@
         }
       }
     },
+    "Fallback Loop" : {
+
+    },
+    "Fallback Loop can't start: %@" : {
+
+    },
+    "Fallback Loop ready with the iPhone's copy of %lld min ago: starts by itself if its readings stop" : {
+
+    },
     "falling" : {
       "comment" : "Accessibility: glucose trend",
       "localizations" : {
@@ -187141,6 +187150,9 @@
     "iPhone not reachable. Nothing was sent." : {
 
     },
+    "iPhone Unavailable" : {
+
+    },
     "is running" : {
       "localizations" : {
         "bg" : {
@@ -223899,6 +223911,9 @@
           }
         }
       }
+    },
+    "No copy from the phone to start from yet. It sends one while it has the pump." : {
+
     },
     "No Data" : {
       "localizations" : {
@@ -296274,6 +296289,9 @@
     "Start Without Phone" : {
 
     },
+    "Started by the fallback loop. Hands back by itself once the iPhone is back." : {
+
+    },
     "Started Override \"%@\" successfully." : {
       "comment" : "Start override with override name",
       "localizations" : {
@@ -313169,6 +313187,12 @@
         }
       }
     },
+    "The iPhone's readings stopped. Starting %@…" : {
+
+    },
+    "The iPhone's readings stopped. The watch is taking over the loop." : {
+
+    },
     "The lowest forecasted glucose during the remaining duration of insulin action (DIA)." : {
       "localizations" : {
         "bg" : {
@@ -314629,6 +314653,9 @@
 
     },
     "The phone pairs the next pod; hand back once it is nearby" : {
+
+    },
+    "The phone's copy is %lld h old, older than the insulin's action time: too much is unknown to start from it." : {
 
     },
     "The pod was deactivated. Pair a new one on the phone." : {
@@ -316116,6 +316143,9 @@
     "The watch hands the pump back as soon as it is reachable." : {
 
     },
+    "The watch hands the pump back to the iPhone." : {
+
+    },
     "The watch has had no glucose reading for %lld minutes. Keep it near the sensor; it keeps trying." : {
 
     },
@@ -316137,6 +316167,9 @@
     "The watch is still taking over the pump. Trio on the phone shows when it has." : {
 
     },
+    "The watch loops on its own when the iPhone's readings stop" : {
+
+    },
     "The watch reached the pump too late." : {
 
     },
@@ -316144,6 +316177,9 @@
 
     },
     "The watch started without the phone; the phone stopped dosing." : {
+
+    },
+    "The watch stays connected to the sensor all the time, which costs watch battery. When two readings reach the watch but not from the iPhone, and the iPhone is out of reach, the watch waits 10 seconds for it and then starts untethered mode from the saved grant. One of them uses the pod at a time: once the watch has it, the iPhone stops dosing until the watch hands back." : {
 
     },
     "The watch still has the pump. Hand back on its status page when you're ready." : {
