@@ -180,6 +180,10 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     var isWatchInCharge: Bool { !state.session.isIdle }
     /// The start reads the pump before it offers it: the toggle shows a spinner meanwhile.
     @Published private(set) var isCheckingDevices = false
+    /// A take-back reaching for the pod before it tells the watch.
+    @Published private(set) var isReachingPod = false
+    /// Short: a pod in reach answers within a second or two, and a refusal costs one more tap.
+    private static let takeBackLinkLimit: TimeInterval = 5
     /// The returned pump has answered: what is left is the watch's last records and the audit.
     @Published private(set) var pumpReturnAnswered = false
     /// How long the start waits for the pump to answer.
@@ -221,7 +225,30 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         await apply(.end)
     }
 
+    /// Reaches for the pod before the watch is told to stop: a phone that can't reach it leaves the watch dosing,
+    /// instead of taking a pump that then neither side doses.
     @MainActor func forceTakeBack() async {
+        guard let control = apsManager.pumpManager as? ExclusiveDeviceControl else {
+            await apply(.forceTakeBack)
+            return
+        }
+        isReachingPod = true
+        defer { isReachingPod = false }
+        setError(nil)
+        control.takeControl()
+        let deadline = Date().addingTimeInterval(Self.takeBackLinkLimit)
+        while !control.isControlReady, Date() < deadline {
+            try? await Task.sleep(nanoseconds: 250_000_000)
+        }
+        guard control.isControlReady else {
+            control.releaseControl()
+            debug(.watchManager, "Untethered: take-back refused, no pod link after \(Int(Self.takeBackLinkLimit)) s")
+            setError(String(
+                localized: "Couldn't reach the pod. The watch keeps running; bring the phone close to the pod and try again."
+            ))
+            return
+        }
+        debug(.watchManager, "Untethered: take-back, pod link up — telling the watch to stop")
         await apply(.forceTakeBack)
     }
 
