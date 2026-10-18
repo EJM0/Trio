@@ -142,4 +142,30 @@ import Testing
         )
         #expect(watchTotal == phoneTotal)
     }
+
+    @Test("start without the phone: the phone's bolus after the watch's copy survives the take-back")
+    func keepsInFlight() async throws {
+        let start = Date().addingTimeInterval(-3600)
+        func bolus(_ minutes: Double, _ id: String) -> NewPumpEvent {
+            NewPumpEvent(
+                date: start + minutes * 60,
+                dose: DoseEntry(
+                    type: .bolus, startDate: start + minutes * 60, endDate: start + minutes * 60 + 266, value: 6.65,
+                    unit: .units, syncIdentifier: id, automatic: false, isMutable: true
+                ),
+                raw: Data(id.utf8),
+                title: "bolus",
+                type: .bolus
+            )
+        }
+        // one the copy held, which the watch reports, and one after it, which nobody does
+        try await storage.storePumpEvents([bolus(0, "in-copy"), bolus(10, "after-copy")], replacePendingEvents: false)
+        #expect(try await storage.keepInFlightDoses(startedAfter: start + 5 * 60) == 1)
+        // the take-back's pending report asserts neither
+        try await storage.storePumpEvents([], replacePendingEvents: true)
+        let kept = try await storage.getPumpHistory().filter { $0.type == .bolus }
+        #expect(kept.count == 1)
+        // as programmed, to the bolus increment
+        #expect(abs(NSDecimalNumber(decimal: (kept.first?.amount ?? 0) - 6.65).doubleValue) <= 0.1)
+    }
 }
