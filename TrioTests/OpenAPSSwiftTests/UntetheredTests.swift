@@ -199,6 +199,25 @@ import Testing
         #expect(phone.returnedTempBasal == tempBasal)
     }
 
+    @Test("end: a high temp the watch left running is kept for the phone to cancel") func handbackHighTemp() {
+        var (phone, watch) = started()
+        let high = UntetheredTempBasal(unitsPerHour: 3.4, endsAt: t0 + 1200, syncIdentifier: "74656d70")
+        var status = podStatus
+        status.runningHighTemp = high
+        _ = watch.watch(.received(.endRequest, epoch: watch.epoch), now: t0 + 100)
+        _ = watch.watch(.handbackReady(status), now: t0 + 100)
+        _ = phone.phone(.received(.handback(status), epoch: phone.epoch), now: t0 + 101)
+        #expect(phone.returnedHighTemp == high)
+        #expect(phone.returnedTempBasal == nil)
+    }
+
+    @Test("handover: only a rate above the schedule is a high temp") func highTemp() {
+        func temp(_ rate: Double) -> UntetheredTempBasal { UntetheredTempBasal(unitsPerHour: rate, endsAt: t0) }
+        #expect(temp(3.4).isHigh(scheduledRate: 1.4))
+        #expect(!temp(1.4).isHigh(scheduledRate: 1.4))
+        #expect(!temp(0).isHigh(scheduledRate: 1.4))
+    }
+
     @Test("handover: a temp basal goes on for what was left, in Omnipod's half hours") func remainingTempBasal() {
         let tempBasal = UntetheredTempBasal(unitsPerHour: 1, endsAt: t0 + 12 * 60)
         #expect(tempBasal.remainingDuration(at: t0) == 30 * 60)

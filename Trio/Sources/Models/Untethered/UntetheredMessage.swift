@@ -42,6 +42,8 @@ struct UntetheredPodStatus: Codable, Equatable {
     let reservoir: Double?
     /// Hand-back: the temp basal the watch cancelled before letting go.
     var tempBasal: UntetheredTempBasal? = nil
+    /// Hand-back: a high temp the watch left running, for the phone to cancel once it has the pod.
+    var runningHighTemp: UntetheredTempBasal? = nil
 }
 
 /// The pump as the phone let go of it, a moment before the commit: the grant's configuration is older, and a temp
@@ -52,10 +54,19 @@ struct UntetheredHandover: Codable, Equatable {
 }
 
 /// A temp basal handed over: the side letting go cancels it, so its record ends where the pod stopped it; the side
-/// taking over sets it again for what was left, as its own dose, which it tracks and later ends itself.
+/// taking over sets it again for what was left, as its own dose, which it tracks and later ends itself. A high one is
+/// never set again (`handOverTempBasal`).
 struct UntetheredTempBasal: Codable, Equatable {
     let unitsPerHour: Double
     let endsAt: Date
+    /// Of the dose as recorded, so the phone can end the watch's record of a temp it cancelled.
+    var syncIdentifier: String? = nil
+
+    /// Above the scheduled rate. Set again on the other side it would run at least Omnipod's 30 minutes, longer than
+    /// it had left, should that side not loop.
+    func isHigh(scheduledRate: Decimal) -> Bool {
+        Decimal(unitsPerHour) > scheduledRate
+    }
 
     /// What was left, nil once over. Omnipod takes 30 min to 12 h in half hours, so it is rounded up: the new
     /// owner's next loop sets its own well before the extra time runs.
@@ -68,14 +79,27 @@ struct UntetheredTempBasal: Codable, Equatable {
 }
 
 extension PumpManager {
-    /// Cancels the running temp basal for a hand-over: what was left of it, or nil when none ran or the pump
-    /// didn't take the cancel, which leaves it running as before.
-    func cancelTempBasalForHandover() async -> UntetheredTempBasal? {
-        guard case let .tempBasal(dose) = status.basalDeliveryState, dose.endDate > Date() else { return nil }
-        let cancelled = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
-            enactTempBasal(unitsPerHour: 0, for: 0) { continuation.resume(returning: $0 == nil) }
+    /// The running temp basal at a hand-over. A low or zero one is cancelled and returned to be set again on the other
+    /// side. A high one is never set again: cancelled here when `cancellingHigh`, otherwise left running and returned
+    /// as `leftRunning` for the phone to cancel once it has the pod, as LoopKit/Loop#2545 does. Both nil when none ran,
+    /// or when the pump didn't take the cancel, which leaves it running as before.
+    func handOverTempBasal(
+        scheduledRate: Decimal,
+        cancellingHigh: Bool
+    ) async -> (resume: UntetheredTempBasal?, leftRunning: UntetheredTempBasal?) {
+        guard case let .tempBasal(dose) = status.basalDeliveryState, dose.endDate > Date() else { return (nil, nil) }
+        let temp = UntetheredTempBasal(unitsPerHour: dose.unitsPerHour, endsAt: dose.endDate, syncIdentifier: dose.syncIdentifier)
+        let isHigh = temp.isHigh(scheduledRate: scheduledRate)
+        if isHigh, !cancellingHigh { return (nil, temp) }
+        guard await cancelTempBasal() == nil else { return (nil, nil) }
+        return (isHigh ? nil : temp, nil)
+    }
+
+    /// Cancels whatever temp basal the pod runs, one this controller set or another's.
+    func cancelTempBasal() async -> PumpManagerError? {
+        await withCheckedContinuation { continuation in
+            enactTempBasal(unitsPerHour: 0, for: 0) { continuation.resume(returning: $0) }
         }
-        return cancelled ? UntetheredTempBasal(unitsPerHour: dose.unitsPerHour, endsAt: dose.endDate) : nil
     }
 
     /// Sets a handed-over temp basal again for what was left: the pump's error, or nil when set or already over.

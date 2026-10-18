@@ -63,6 +63,8 @@ struct UntetheredSession: Codable, Equatable {
     private(set) var startStatus: UntetheredPodStatus?
     /// Phone: the temp basal the watch cancelled at its hand-back, set again once the pump is read.
     private(set) var returnedTempBasal: UntetheredTempBasal?
+    /// Phone: a high temp the watch left running at its hand-back, cancelled once the pump is read.
+    private(set) var returnedHighTemp: UntetheredTempBasal?
     private(set) var linkedOverrideID: String?
     /// The last session ended by an emergency stop or a take-back.
     private(set) var forced = false
@@ -121,6 +123,7 @@ struct UntetheredSession: Codable, Equatable {
             phase = .idle
             forced = false
             returnedTempBasal = status?.tempBasal
+            returnedHighTemp = status?.runningHighTemp
             return [.takePump, .send(.handbackAck), .reconcile]
 
         case (.idle, .received(.handback, _)):

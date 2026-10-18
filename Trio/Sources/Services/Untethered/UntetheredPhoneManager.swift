@@ -628,13 +628,15 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         try PropertyListSerialization.data(fromPropertyList: configuration.rawValue, format: .binary, options: 0)
     }
 
-    /// The watch loops from here on; a loop already running finishes first. A running temp basal is cancelled and
-    /// goes to the watch to set again, and the pump is exported as released, after anything that loop enacted.
+    /// The watch loops from here on; a loop already running finishes first. A running temp basal is cancelled; a low
+    /// one goes to the watch to set again, a high one ends here. The pump is exported as released, after anything
+    /// that loop enacted.
     @MainActor private func releasePump() async -> UntetheredHandover {
         for _ in 0 ..< 60 where apsManager.isLooping.value {
             try? await Task.sleep(nanoseconds: 500_000_000)
         }
-        let tempBasal = await apsManager.pumpManager?.cancelTempBasalForHandover()
+        let tempBasal = await apsManager.pumpManager?.handOverTempBasal(scheduledRate: scheduledBasalRate(), cancellingHigh: true)
+            .resume
         let pump = apsManager.pumpManager as? ExclusiveDeviceControl
         let configuration = pump.flatMap { try? Self.plist($0.exportConfiguration()) }
         pump?.releaseControl()
@@ -709,6 +711,16 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         {
             warning(.watchManager, "Untethered: the watch's temp basal could not be set again: \(error.localizedDescription)")
         }
+        // a high temp the watch left running ends here, now the phone has the pod; the schedule runs until its loop
+        var endedHighTemp: (temp: UntetheredTempBasal, at: Date)?
+        if !state.podEndedOnWatch, let high = state.session.returnedHighTemp, high.endsAt > Date() {
+            if let error = await apsManager.pumpManager?.cancelTempBasal() {
+                warning(.watchManager, "Untethered: the watch's high temp could not be cancelled: \(error.localizedDescription)")
+            } else {
+                endedHighTemp = (high, Date())
+                debug(.watchManager, "Untethered: the watch's high temp \(high.unitsPerHour) U/h cancelled")
+            }
+        }
         if state.podEndedOnWatch {
             // nothing to read or audit: the watch's records carry the pod's doses up to its end
             (apsManager.pumpManager as? OmniPumpManager)?.forgetPodEndedElsewhere()
@@ -728,6 +740,8 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
             }
         }
+        // once the watch's records are in, so its record of that temp ends where the phone stopped it
+        if let endedHighTemp { await endWatchTemp(endedHighTemp.temp, at: endedHighTemp.at) }
         await audit(odometer)
         // the last records may have come in while the audit read the history
         if let point = state.audit, point.epoch == epoch, state.applied[epoch] == nil {
@@ -740,6 +754,33 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         if (glucoseStorage.lastGlucoseDate() ?? .distantPast) > apsManager.lastLoopDate {
             apsManager.heartbeat(date: Date())
         }
+    }
+
+    /// The scheduled basal rate now, as the hand-over's "high temp" test reads it.
+    private func scheduledBasalRate() -> Decimal {
+        let profile = storage.retrieve(OpenAPS.Settings.basalProfile, as: [BasalProfileEntry].self) ?? []
+        return BolusCalculator.scheduleValue(profile.map { ($0.start, $0.rate) }, at: Date())
+    }
+
+    /// The watch reported a temp it left running as running to its planned end; the phone cancelled it. Its record
+    /// ends where the phone stopped it, final, so IOB and the audit don't count the rest.
+    @MainActor private func endWatchTemp(_ temp: UntetheredTempBasal, at end: Date) async {
+        guard let identifier = temp.syncIdentifier else { return }
+        let context = CoreDataStack.shared.newTaskContext()
+        let ended: Bool = await context.perform {
+            let request = PumpEventStored.fetchRequest() as NSFetchRequest<PumpEventStored>
+            request.predicate = NSPredicate(format: "syncIdentifier == %@", identifier)
+            guard let row = (try? context.fetch(request))?.first, let start = row.timestamp, let tempBasal = row.tempBasal
+            else { return false }
+            tempBasal.duration = Int16(max(0, (end.timeIntervalSince(start) / 60).rounded()))
+            tempBasal.endDate = end
+            row.isMutable = false
+            row.isUploadedToNS = false
+            try? context.save()
+            return true
+        }
+        UntetheredGate.update { state in state.watchPendingDoses[state.session.epoch]?.remove(identifier) }
+        if !ended { warning(.watchManager, "Untethered: no record of the watch's cancelled high temp to end") }
     }
 
     /// Insulin the pump delivered that no record explains is booked now, as a bolus. Records claiming more than the
