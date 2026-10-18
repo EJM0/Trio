@@ -603,10 +603,18 @@ import WatchConnectivity
             // a hand-back asked for by the phone also waits for a running bolus
             while self.isLooping || self.isBolusing { try? await Task.sleep(nanoseconds: 500_000_000) }
             self.expireAdjustments(now: Date())
-            // its record ends here and goes with the last ones; the phone sets what was left again
-            let tempBasal = await self.pumpManager.asyncMap { await $0.cancelTempBasalForHandover() } ?? nil
+            // a low temp ends here and goes with the last records, for the phone to set again; a high one runs on
+            // until the phone, having the pod, cancels it
+            let scheduled = BolusCalculator.scheduleValue(
+                (self.data.grant?.basalProfile ?? []).map { ($0.start, $0.rate) },
+                at: Date()
+            )
+            let handed = await self.pumpManager.asyncMap {
+                await $0.handOverTempBasal(scheduledRate: scheduled, cancellingHigh: false)
+            }
             var status = await self.pumpManager.asyncMap { await self.readPump($0) } ?? nil
-            status?.tempBasal = tempBasal
+            status?.tempBasal = handed?.resume
+            status?.runningHighTemp = handed?.leftRunning
             // the sensor is let go next: nothing left to make room for
             self.streamRecords(ignoringSensor: true)
             self.releasePump()
