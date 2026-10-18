@@ -684,10 +684,7 @@ import WatchConnectivity
             isExternal: false
         )
         // the TDD counts it too, as it does every bolus
-        store.update {
-            $0.pumpHistory.append(bolus)
-            $0.tddPumpHistory.append(bolus)
-        }
+        store.update { $0.upsertPumpEvent(id: bolus.id, history: [bolus], tdd: bolus) }
         Task {
             await WatchLogger.shared
                 .log("⌚️ Untethered: \(units) U the standing grant had no record of, counted as a bolus", force: true) }
