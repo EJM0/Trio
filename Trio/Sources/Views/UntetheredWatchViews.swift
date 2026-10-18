@@ -4,7 +4,7 @@ import SwiftUI
 extension UntetheredPhoneManager {
     /// Checking the devices, handing over, handing back or reading the pump after its return.
     var isBusy: Bool {
-        if isCheckingDevices { return true }
+        if isCheckingDevices || isReachingPod { return true }
         switch state.session.phase {
         case .ending,
              .preparing,
@@ -316,7 +316,7 @@ private extension View {
             Button("Take Back", role: .destructive) { Task { await manager.forceTakeBack() } }
         } message: {
             Text(
-                "Use this when the watch can't hand the pump back, for example when it is lost or out of battery. The phone takes the pump without waiting for the watch, and counts insulin it has no record of until the watch's history arrives."
+                "Use this when the watch can't hand the pump back, for example when it is lost or out of battery. The phone first reaches for the pod; if it can't, nothing changes and the watch keeps running. Otherwise it takes the pump without waiting for the watch, and counts insulin it has no record of until the watch's history arrives."
             )
         }
     }
