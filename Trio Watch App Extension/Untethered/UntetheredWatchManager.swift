@@ -610,7 +610,8 @@ import WatchConnectivity
     /// With the phone off or out of reach, from the phone's standing grant: the ordinary takeover, with a fresh lease
     /// and an epoch of the watch's own. The phone stands aside once it hears from the watch. As LoopKit/Loop#2545.
     func startWithoutPhone() {
-        guard data.session.phase == .idle, !isBusy, !WCSession.default.isReachable, standingGrantAge != nil,
+        guard WatchState.shared.allowUntetheredStartWithoutPhone,
+              data.session.phase == .idle, !isBusy, !WCSession.default.isReachable, standingGrantAge != nil,
               let grant = data.standingGrant
         else { return }
         setError(nil)
@@ -649,7 +650,9 @@ import WatchConnectivity
                 isExternal: false
             ))
         }
-        Task { await WatchLogger.shared.log("⌚️ Untethered: \(units) U the standing grant had no record of, counted as a bolus", force: true) }
+        Task {
+            await WatchLogger.shared
+                .log("⌚️ Untethered: \(units) U the standing grant had no record of, counted as a bolus", force: true) }
     }
 
     /// The phone back during a session started without it: told at once that the watch has the pump, so it stops

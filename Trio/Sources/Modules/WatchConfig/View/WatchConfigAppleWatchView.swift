@@ -85,6 +85,27 @@ struct WatchConfigAppleWatchView: BaseView {
                 headerText: String(localized: "Apple Watch Configuration")
             )
 
+            SettingInputSection(
+                decimalValue: $decimalPlaceholder,
+                booleanValue: $state.allowUntetheredStartWithoutPhoneWatch,
+                shouldDisplayHint: $shouldDisplayHint,
+                selectedVerboseHint: Binding(
+                    get: { selectedVerboseHint },
+                    set: {
+                        selectedVerboseHint = $0.map { AnyView($0) }
+                        hintLabel = String(localized: "Allow Start Without iPhone")
+                    }
+                ),
+                units: state.units,
+                type: .boolean,
+                label: String(localized: "Allow Start Without iPhone"),
+                miniHint: String(localized: "Let the watch start untethered mode while the iPhone is unavailable"),
+                verboseHint: Text(
+                    "When this is off, the watch hides Start Without Phone and won't take over from a saved grant while the iPhone is unavailable."
+                ),
+                headerText: String(localized: "Apple Watch Configuration")
+            )
+
             UntetheredSettingsSection(manager: resolver.resolve(UntetheredPhoneManager.self)!)
 
             Section(

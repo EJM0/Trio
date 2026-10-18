@@ -285199,6 +285199,15 @@
     "Show Glucose Bubble on Watch" : {
 
     },
+    "Allow Start Without iPhone" : {
+
+    },
+    "Let the watch start untethered mode while the iPhone is unavailable" : {
+
+    },
+    "When this is off, the watch hides Start Without Phone and won't take over from a saved grant while the iPhone is unavailable." : {
+
+    },
     "Show Glucose Episodes" : {
 
     },

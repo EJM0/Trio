@@ -84,6 +84,19 @@ import WatchConnectivity
         didSet { UserDefaults.standard.set(showGlucoseBubble, forKey: WatchMessageKeys.showGlucoseBubbleWatch) }
     }
 
+    /// Whether the saved phone grant can start a session while the phone is unavailable.
+    /// Persisted locally so the choice still applies when the phone cannot sync settings.
+    var allowUntetheredStartWithoutPhone: Bool = UserDefaults.standard
+        .object(forKey: WatchMessageKeys.allowUntetheredStartWithoutPhoneWatch) as? Bool ?? true
+    {
+        didSet {
+            UserDefaults.standard.set(
+                allowUntetheredStartWithoutPhone,
+                forKey: WatchMessageKeys.allowUntetheredStartWithoutPhoneWatch
+            )
+        }
+    }
+
     // Forecast options; kept across launches like the bubble page: untethered with the phone off, no update
     // brings them back after watchOS ended the app
     var showForecast: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.showForecastWatch) {
@@ -984,6 +997,12 @@ import WatchConnectivity
            showGlucoseBubble != self.showGlucoseBubble
         {
             self.showGlucoseBubble = showGlucoseBubble
+        }
+
+        if let allowStartWithoutPhone = message[WatchMessageKeys.allowUntetheredStartWithoutPhoneWatch] as? Bool,
+           allowStartWithoutPhone != self.allowUntetheredStartWithoutPhone
+        {
+            self.allowUntetheredStartWithoutPhone = allowStartWithoutPhone
         }
 
         if let isForecastCone = message[WatchMessageKeys.isForecastCone] as? Bool, isForecastCone != self.isForecastCone {
