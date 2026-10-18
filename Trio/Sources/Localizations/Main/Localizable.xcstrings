@@ -48004,6 +48004,9 @@
         }
       }
     },
+    "Allow Start Without iPhone" : {
+
+    },
     "Allow the creation of saved, preset meals." : {
       "localizations" : {
         "bg" : {
@@ -191864,6 +191867,9 @@
         }
       }
     },
+    "Let the watch start untethered mode while the iPhone is unavailable" : {
+
+    },
     "Let's go through a few quick steps to ensure Trio works optimally for you." : {
       "localizations" : {
         "bg" : {
@@ -285202,15 +285208,6 @@
     "Show Glucose Bubble on Watch" : {
 
     },
-    "Allow Start Without iPhone" : {
-
-    },
-    "Let the watch start untethered mode while the iPhone is unavailable" : {
-
-    },
-    "When this is off, the watch hides Start Without Phone and won't take over from a saved grant while the iPhone is unavailable." : {
-
-    },
     "Show Glucose Episodes" : {
 
     },
@@ -363181,6 +363178,9 @@
           }
         }
       }
+    },
+    "When this is off, the watch hides Start Without Phone and won't take over from a saved grant while the iPhone is unavailable." : {
+
     },
     "When true, raises BG target when autosens detects sensitivity" : {
       "comment" : "”Sensitivity Raises Target\"",

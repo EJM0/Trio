@@ -12,6 +12,7 @@ extension WatchConfig {
         @Published var showForecastWatch = false
         @Published var showGlucoseBubbleWatch = true
         @Published var allowUntetheredStartWithoutPhoneWatch = true
+        @Published var fallbackLoopWatch = false
 
         /// Garmin watch settings containing all watch-related configuration
         @Published var garminSettings = GarminWatchSettings()
@@ -30,6 +31,7 @@ extension WatchConfig {
             subscribeSetting(\.allowUntetheredStartWithoutPhoneWatch, on: $allowUntetheredStartWithoutPhoneWatch) {
                 allowUntetheredStartWithoutPhoneWatch = $0
             }
+            subscribeSetting(\.fallbackLoopWatch, on: $fallbackLoopWatch) { fallbackLoopWatch = $0 }
 
             devices = garmin.devices
         }

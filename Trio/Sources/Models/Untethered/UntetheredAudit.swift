@@ -28,7 +28,8 @@ enum UntetheredAudit {
     ) -> Decimal? {
         guard let copyUnits, let podUnits, podAt > copyAt, podUnits >= copyUnits else { return nil }
         let expected = expectedDelivery(from: copyAt, to: podAt, history: history, basalProfile: basalProfile, calendar: calendar)
-        guard case let .unrecorded(units) = verdict(delivered: Decimal(podUnits - copyUnits), expected: expected) else { return nil }
+        guard case let .unrecorded(units) = verdict(delivered: Decimal(podUnits - copyUnits), expected: expected)
+        else { return nil }
         return units
     }
 

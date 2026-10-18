@@ -434,6 +434,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 watchState.showGlucoseBubble = self.settingsManager.settings.showGlucoseBubbleWatch
                 watchState.allowUntetheredStartWithoutPhone = self.settingsManager.settings
                     .allowUntetheredStartWithoutPhoneWatch
+                watchState.fallbackLoop = self.settingsManager.settings.fallbackLoopWatch
                 watchState.isForecastCone = self.settingsManager.settings.forecastDisplayType == .cone
 
                 // Forecast data comes from OrefDetermination's `forecasts` CoreData
@@ -786,6 +787,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         dictionary[WatchMessageKeys.isSuperBolusAvailable] = state.isSuperBolusAvailable
         dictionary[WatchMessageKeys.showGlucoseBubbleWatch] = state.showGlucoseBubble
         dictionary[WatchMessageKeys.allowUntetheredStartWithoutPhoneWatch] = state.allowUntetheredStartWithoutPhone
+        dictionary[WatchMessageKeys.fallbackLoopWatch] = state.fallbackLoop
 
         let glucoseReadings: [[String: Any]] = state.glucoseValues.map { value -> [String: Any] in
             [

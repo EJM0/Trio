@@ -106,6 +106,29 @@ struct WatchConfigAppleWatchView: BaseView {
                 headerText: String(localized: "Apple Watch Configuration")
             )
 
+            if state.allowUntetheredStartWithoutPhoneWatch {
+                SettingInputSection(
+                    decimalValue: $decimalPlaceholder,
+                    booleanValue: $state.fallbackLoopWatch,
+                    shouldDisplayHint: $shouldDisplayHint,
+                    selectedVerboseHint: Binding(
+                        get: { selectedVerboseHint },
+                        set: {
+                            selectedVerboseHint = $0.map { AnyView($0) }
+                            hintLabel = String(localized: "Fallback Loop")
+                        }
+                    ),
+                    units: state.units,
+                    type: .boolean,
+                    label: String(localized: "Fallback Loop"),
+                    miniHint: String(localized: "The watch loops on its own when the iPhone's readings stop"),
+                    verboseHint: Text(
+                        "The watch stays connected to the sensor all the time, which costs watch battery. When two readings reach the watch but not from the iPhone, and the iPhone is out of reach, the watch waits 10 seconds for it and then starts untethered mode from the saved grant. One of them uses the pod at a time: once the watch has it, the iPhone stops dosing until the watch hands back."
+                    ),
+                    headerText: String(localized: "Apple Watch Configuration")
+                )
+            }
+
             UntetheredSettingsSection(manager: resolver.resolve(UntetheredPhoneManager.self)!)
 
             Section(
