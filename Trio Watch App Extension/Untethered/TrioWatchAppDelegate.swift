@@ -14,6 +14,11 @@ final class TrioWatchAppDelegate: NSObject, WKApplicationDelegate {
     private var heldSince: Date?
 
     func handle(_ backgroundTasks: Set<WKRefreshBackgroundTask>) {
+        // not always on main: a Bluetooth task can arrive on CoreBluetooth's queue, and all below is main-only
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { self.handle(backgroundTasks) }
+            return
+        }
         for task in backgroundTasks {
             guard task is WKBluetoothAlertRefreshBackgroundTask else {
                 complete(task)
@@ -25,17 +30,30 @@ final class TrioWatchAppDelegate: NSObject, WKApplicationDelegate {
                 continue
             }
             heldBluetoothTask = task
-            heldSince = Date()
+            let since = Date()
+            heldSince = since
+            // the system may grant less than the hold: the task ends then, not later, and the grant is logged
+            task.expirationHandler = { [weak self, weak task] in
+                let expire = {
+                    let granted = Date().timeIntervalSince(since)
+                    Task { await WatchLogger.shared.log(String(format: "⌚️ Bluetooth wake expired by the system after %.1f s", granted)) }
+                    if let task { self?.release(task) }
+                }
+                if Thread.isMainThread { expire() } else { DispatchQueue.main.sync(execute: expire) }
+            }
             // a reading in this wake loops through the CGM delegate; the wake itself only checks
             UntetheredWatchManager.shared.recheckCGM()
-            DispatchQueue.main.asyncAfter(deadline: .now() + Self.bluetoothHold) {
-                if self.heldBluetoothTask === task {
-                    self.heldBluetoothTask = nil
-                    self.heldSince = nil
-                }
-                self.complete(task)
-            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + Self.bluetoothHold) { self.release(task) }
         }
+    }
+
+    /// Ends a held wake, by the hold or by the system's expiry, whichever comes first.
+    private func release(_ task: WKRefreshBackgroundTask) {
+        if heldBluetoothTask === task {
+            heldBluetoothTask = nil
+            heldSince = nil
+        }
+        complete(task)
     }
 
     private func complete(_ task: WKRefreshBackgroundTask) {
