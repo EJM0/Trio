@@ -152,8 +152,8 @@ struct UntetheredBannerSlot<Content: View, Banner: View>: View {
     }
 }
 
-/// When the watch had the pump: a band across the top of the glucose chart, in the mode's colour, like the override
-/// and temp target bands. One still running reaches now.
+/// When the watch had the pump: a band in the mode's colour at the target, drawn as the override and temp target
+/// bands are, stronger while it runs. One still running reaches now.
 struct UntetheredSpansView: ChartContent {
     let y: Decimal
     let now: Date
@@ -165,7 +165,7 @@ struct UntetheredSpansView: ChartContent {
                 xEnd: .value("End", span.end ?? now, unit: .second),
                 y: .value("Value", y)
             )
-            .foregroundStyle(Color.untethered.opacity(0.4))
+            .foregroundStyle(Color.untethered.opacity(span.end == nil ? 0.4 : 0.25))
             .lineStyle(.init(lineWidth: 8))
         }
     }
