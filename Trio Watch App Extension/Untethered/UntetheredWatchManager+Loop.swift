@@ -1166,7 +1166,9 @@ extension UntetheredWatchManager {
     private static let noReadingsAfter: TimeInterval = 11 * 60
     private static var noReadingsTitle: String { String(localized: "No Sensor Readings") }
     private static func noReadingsBody(minutes: Int) -> String {
-        String(localized: "The watch has had no glucose reading for \(minutes) minutes. Keep it near the sensor; it keeps trying.")
+        String(
+            localized: "The watch has had no glucose reading for \(minutes) minutes. Keep it near the sensor; it keeps trying."
+        )
     }
 
     /// Booked after every new reading, and at the takeover: it sounds when nothing wakes the watch app any more, as

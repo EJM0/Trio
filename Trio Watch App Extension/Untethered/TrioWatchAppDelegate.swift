@@ -36,7 +36,9 @@ final class TrioWatchAppDelegate: NSObject, WKApplicationDelegate {
             task.expirationHandler = { [weak self, weak task] in
                 let expire = {
                     let granted = Date().timeIntervalSince(since)
-                    Task { await WatchLogger.shared.log(String(format: "⌚️ Bluetooth wake expired by the system after %.1f s", granted)) }
+                    Task {
+                        await WatchLogger.shared
+                            .log(String(format: "⌚️ Bluetooth wake expired by the system after %.1f s", granted)) }
                     if let task { self?.release(task) }
                 }
                 if Thread.isMainThread { expire() } else { DispatchQueue.main.sync(execute: expire) }
