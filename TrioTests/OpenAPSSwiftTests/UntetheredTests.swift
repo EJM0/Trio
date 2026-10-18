@@ -182,10 +182,24 @@ import Testing
             phone.phone(.received(.handback(podStatus), epoch: phone.epoch), now: t0 + 101) ==
                 [.takePump, .send(.handbackAck), .reconcile]
         )
-        #expect(watch.watch(.received(.handbackAck, epoch: watch.epoch), now: t0 + 101) == [])
+        // the pod is held until the phone acknowledges
+        #expect(watch.watch(.received(.handbackAck, epoch: watch.epoch), now: t0 + 101) == [.releasePump])
         #expect(phone.phase == .idle)
         #expect(watch.phase == .idle)
         #expect(!phone.forced)
+    }
+
+    @Test("end: without an acknowledgement the pod is let go after a minute, and offered still") func unacknowledgedHandback() {
+        var (_, watch) = started()
+        _ = watch.watch(.end, now: t0 + 100)
+        _ = watch.watch(.handbackReady(podStatus), now: t0 + 100)
+        #expect(watch.watch(.tick, now: t0 + 130) == [.send(.handback(podStatus))])
+        #expect(watch.watch(.tick, now: t0 + 161) == [.releasePump, .send(.handback(podStatus))])
+        #expect(watch.watch(.tick, now: t0 + 191) == [.send(.handback(podStatus))])
+        #expect(watch.phase == .ending)
+        // let go already: the late acknowledgement only ends the session
+        #expect(watch.watch(.received(.handbackAck, epoch: watch.epoch), now: t0 + 200) == [])
+        #expect(watch.phase == .idle)
     }
 
     @Test("end: the temp basal the watch cancelled at its handback is kept for the phone") func handbackTempBasal() {

@@ -40,6 +40,12 @@ import WatchConnectivity
     /// After a batch failed with the phone in reach: no tight loop of sends that keep failing.
     private static let retryDelay: TimeInterval = 15
     @ObservationIgnored private var streamTimer: Timer?
+    /// The hand-back's last stage: no loop or bolus between the pod's last read and the phone taking it.
+    @ObservationIgnored var isFinalizing = false
+    /// How long the hand-back's backlog may take before the rest goes with the last records.
+    private static let drainLimit: TimeInterval = 3 * 60
+    /// How long the last records may take to be confirmed before the pump is offered anyway.
+    private static let finalConfirmLimit: TimeInterval = 30
     /// The paced burst on its way, how many of its batches the phone has yet to answer for, and whether one failed.
     @ObservationIgnored private var burst: (id: Int, startedAt: Date, outstanding: Int, failed: Bool)?
     @ObservationIgnored private var burstCount = 0
@@ -52,6 +58,10 @@ import WatchConnectivity
         DispatchQueue.main.async {
             self.restoreDevices()
             self.updateTimers()
+            // a hand-back the last process left: the pump offered stays without loops; one still draining goes on
+            if self.data.session.phase == .ending {
+                if self.data.session.handbackStatus == nil { self.handback() } else { self.isFinalizing = true }
+            }
             // what the last process handed over it can no longer follow; it goes once the phone link is up
             self.requeueUnconfirmed(stream: false)
             // the saved state, background loops included, is on screen at once, not after the phone link is up
@@ -454,6 +464,7 @@ import WatchConnectivity
     }
 
     func releasePump() {
+        isFinalizing = false
         if let pump = pumpManager {
             pump.releaseControl()
             savePumpState()
@@ -605,10 +616,23 @@ import WatchConnectivity
         apply(.end)
     }
 
+    /// Two-phase, as LoopKit/Loop#2545: the watch doses on while its history drains, so the phone has all of it
+    /// before the pod changes hands; then it stops dosing, reads the pod, sends its last records and offers the
+    /// pump, which it lets go only once the phone acknowledges (`UntetheredSession`).
     private func handback() {
         isBusy = true
+        let epoch = data.session.epoch
         Task { @MainActor in
             defer { self.isBusy = false }
+            // a phone that doesn't confirm the backlog in time gets the rest with the last records
+            let drainUntil = Date().addingTimeInterval(Self.drainLimit)
+            while self.hasUnconfirmedRecords(epoch), Date() < drainUntil, self.data.session.phase == .ending {
+                self.streamRecords()
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+            }
+            guard self.data.session.phase == .ending else { return }
+            // from here no loop or bolus: the last read is the last command to the pod
+            self.isFinalizing = true
             // a hand-back asked for by the phone also waits for a running bolus
             while self.isLooping || self.isBolusing { try? await Task.sleep(nanoseconds: 500_000_000) }
             self.expireAdjustments(now: Date())
@@ -624,11 +648,20 @@ import WatchConnectivity
             var status = await self.pumpManager.asyncMap { await self.readPump($0) } ?? nil
             status?.tempBasal = handed?.resume
             status?.runningHighTemp = handed?.leftRunning
-            // the sensor is let go next: nothing left to make room for
+            self.recordPumpStatus()
+            // only these few records are left: no pacing around the sensor for them
             self.streamRecords(ignoringSensor: true)
-            self.releasePump()
+            let confirmUntil = Date().addingTimeInterval(Self.finalConfirmLimit)
+            while self.hasUnconfirmedRecords(epoch), Date() < confirmUntil {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+            }
+            // the pod stays held until the phone acknowledges: its connect is standing as the watch lets go
             self.apply(.handbackReady(status))
         }
+    }
+
+    private func hasUnconfirmedRecords(_ epoch: Int) -> Bool {
+        !(store.data.pending[epoch] ?? [:]).isEmpty
     }
 
     /// Lets go of the pump at once, with the phone or without it. A running temp basal is cancelled
