@@ -305,3 +305,26 @@ struct UntetheredSession: Codable, Equatable {
 
     init() {}
 }
+
+extension UntetheredSession {
+    /// Field by field, as the stores decode: a field added later must not make a saved session unreadable, which
+    /// reset the watch's whole state and with it the sensor's pairing (2026-10-18).
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init()
+        phase = try container.decodeIfPresent(Phase.self, forKey: .phase) ?? phase
+        epoch = try container.decodeIfPresent(Int.self, forKey: .epoch) ?? epoch
+        leaseExpiresAt = try container.decodeIfPresent(Date.self, forKey: .leaseExpiresAt)
+        prepareDeadline = try container.decodeIfPresent(Date.self, forKey: .prepareDeadline)
+        statusQueried = try container.decodeIfPresent(Bool.self, forKey: .statusQueried) ?? statusQueried
+        startStatus = try container.decodeIfPresent(UntetheredPodStatus.self, forKey: .startStatus)
+        returnedTempBasal = try container.decodeIfPresent(UntetheredTempBasal.self, forKey: .returnedTempBasal)
+        returnedHighTemp = try container.decodeIfPresent(UntetheredTempBasal.self, forKey: .returnedHighTemp)
+        linkedOverrideID = try container.decodeIfPresent(String.self, forKey: .linkedOverrideID)
+        forced = try container.decodeIfPresent(Bool.self, forKey: .forced) ?? forced
+        startedWithoutPhone = try container.decodeIfPresent(Bool.self, forKey: .startedWithoutPhone) ?? startedWithoutPhone
+        handbackStatus = try container.decodeIfPresent(UntetheredPodStatus?.self, forKey: .handbackStatus)
+        handbackOfferedAt = try container.decodeIfPresent(Date.self, forKey: .handbackOfferedAt)
+        handbackLetGo = try container.decodeIfPresent(Bool.self, forKey: .handbackLetGo) ?? handbackLetGo
+    }
+}

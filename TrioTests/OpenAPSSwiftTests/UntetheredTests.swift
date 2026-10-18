@@ -333,6 +333,15 @@ import Testing
         #expect(try JSONDecoder().decode(UntetheredSession.self, from: data) == phone)
     }
 
+    @Test("a session saved before a field was added still restores") func persistenceOlderSave() throws {
+        let (phone, _) = started()
+        var saved = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(phone)) as? [String: Any])
+        saved["startedWithoutPhone"] = nil
+        saved["handbackLetGo"] = nil
+        let restored = try JSONDecoder().decode(UntetheredSession.self, from: JSONSerialization.data(withJSONObject: saved))
+        #expect(restored == phone)
+    }
+
     @Test("wire: an envelope survives the transport") func transport() throws {
         let envelope = UntetheredEnvelope(epoch: 42, message: .prepare(grant(linked: "override-1")))
         let payload = try envelope.payload()
