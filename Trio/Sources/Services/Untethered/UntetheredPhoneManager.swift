@@ -147,6 +147,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
 
     private var openAPS: OpenAPS!
     private var ticker: Timer?
+    private var lastHandledForeignSessionAt: Date?
     private let assembler = UntetheredChunks.Assembler()
     private var endRequestTimer: Timer?
     /// How long a normal hand-back waits for the watch's last records before the audit judges the pump.
@@ -194,7 +195,12 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         .store(in: &subscriptions)
         apsManager.lastLoopDateSubject
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in Task { @MainActor in await self?.checkPodGap() } }
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.checkForeignSession()
+                    await self?.checkPodGap()
+                }
+            }
             .store(in: &subscriptions)
         broadcaster.register(SettingsObserver.self, observer: self)
         broadcaster.register(PreferencesObserver.self, observer: self)
@@ -403,11 +409,15 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             // a session the watch started without the phone: taken on before its records are stored, which would
             // otherwise be confirmed and dropped as a finished session's. Queued messages arrive in order, so its
             // end comes after.
-            if self.state.session.isIdle, envelope.epoch > self.state.session.epoch {
+            if (self.state.session.isIdle || self.state.session.phase == .starting),
+               envelope.epoch > self.state.session.epoch
+            {
                 switch envelope.message {
                 case let .statusReport(holding: .some(status)),
                      let .takeoverComplete(status):
                     await self.apply(.watchHoldsPump(epoch: envelope.epoch, status: status))
+                case .statusReport(holding: nil) where self.state.session.phase == .starting:
+                    await self.apply(.watchHoldsPump(epoch: envelope.epoch, status: nil))
                 case .records:
                     await self.apply(.watchHoldsPump(epoch: envelope.epoch, status: nil))
                 default: break
@@ -555,6 +565,28 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         Task { await scheduleLinkedOverrideCheck() }
     }
 
+    /// A refused pod command exposes the watch's newer EAP session before WatchConnectivity
+    /// delivers its ownership message. Ask the watch while dosing stays held; if it cannot answer,
+    /// the state machine takes the pod back and audits its delivery history.
+    @MainActor private func checkForeignSession() async {
+        guard state.session.isIdle,
+              let control = apsManager.pumpManager as? ExclusiveDeviceControl,
+              control.isControlReleased,
+              let foreignAt = control.lastForeignSessionAt,
+              foreignAt > (lastHandledForeignSessionAt ?? .distantPast)
+        else { return }
+        lastHandledForeignSessionAt = foreignAt
+        debug(.watchManager, "Untethered: pod reports a foreign controller session; querying watch ownership")
+        let previous = state.podReading
+        let currentPod = (apsManager.pumpManager as? OmniPumpManager)?.state.podState?.activatedAt
+        let startStatus = previous.flatMap { reading in
+            reading.pod == currentPod
+                ? UntetheredPodStatus(date: reading.at, deliveredUnits: reading.units, reservoir: nil)
+                : nil
+        }
+        await apply(.foreignSessionDetected(startStatus))
+    }
+
     // MARK: - Transport
 
     private func send(_ message: UntetheredMessage, epoch: Int) {
@@ -658,7 +690,10 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         }
     }
 
-    private func makeGrant(linkedOverrideID: String?, leaseLength: TimeInterval = UntetheredPhoneManager.leaseLength) async throws -> UntetheredGrant {
+    private func makeGrant(
+        linkedOverrideID: String?,
+        leaseLength: TimeInterval = UntetheredPhoneManager.leaseLength
+    ) async throws -> UntetheredGrant {
         guard let pump = apsManager.pumpManager as? ExclusiveDeviceControl,
               let cgm = fetchGlucoseManager.cgmManager as? DeviceConfigurationSharing
         else { throw UntetheredError.unavailable(String(localized: "The pump or CGM can't be handed to the watch.")) }
@@ -1020,7 +1055,10 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             end: current.at,
             endUnits: current.units
         )
-        debug(.watchManager, "Untethered: \(Int(current.at.timeIntervalSince(previous.at) / 60)) min between pod readings, checking")
+        debug(
+            .watchManager,
+            "Untethered: \(Int(current.at.timeIntervalSince(previous.at) / 60)) min between pod readings, checking"
+        )
         await judge(point, historyComplete: true)
     }
 

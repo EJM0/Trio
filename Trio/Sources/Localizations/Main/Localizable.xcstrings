@@ -98228,6 +98228,9 @@
         }
       }
     },
+    "Couldn't reach the pod. The watch keeps running; bring the phone close to the pod and try again." : {
+
+    },
     "Count" : {
       "localizations" : {
         "bg" : {
@@ -187129,6 +187132,9 @@
         }
       }
     },
+    "iPhone Is Back" : {
+
+    },
     "iPhone not reachable. Nothing was sent." : {
 
     },
@@ -195827,6 +195833,9 @@
           }
         }
       }
+    },
+    "Locked While the Watch Loops" : {
+
     },
     "Log ${carbQuantity} at ${dateAdded}" : {
       "localizations" : {
@@ -295439,6 +295448,9 @@
         }
       }
     },
+    "Start from the phone's copy of %lld min ago? Only if the phone is off or out of reach; it stops dosing once it hears from the watch." : {
+
+    },
     "Start new Profile" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -296248,6 +296260,9 @@
 
     },
     "Start Untethered Watch Mode" : {
+
+    },
+    "Start Without Phone" : {
 
     },
     "Started Override \"%@\" successfully." : {
@@ -316086,6 +316101,9 @@
     "The watch doesn't have the pump." : {
 
     },
+    "The watch doses with these settings. Hand back to change them." : {
+
+    },
     "The watch hands the pump back as soon as it is reachable." : {
 
     },
@@ -316114,6 +316132,12 @@
 
     },
     "The watch runs the loop with its own connection to the pump and the CGM while the phone is away. While it does, the phone shows glucose but doesn't dose." : {
+
+    },
+    "The watch started without the phone; the phone stopped dosing." : {
+
+    },
+    "The watch still has the pump. Hand back on its status page when you're ready." : {
 
     },
     "Therapy" : {
@@ -352912,7 +352936,7 @@
         }
       }
     },
-    "Use this when the watch can't hand the pump back, for example when it is lost or out of battery. The phone takes the pump without waiting for the watch, and counts insulin it has no record of until the watch's history arrives." : {
+    "Use this when the watch can't hand the pump back, for example when it is lost or out of battery. The phone first reaches for the pod; if it can't, nothing changes and the watch keeps running. Otherwise it takes the pump without waiting for the watch, and counts insulin it has no record of until the watch's history arrives." : {
 
     },
     "Use your Tidepool credentials to log in. If you don't have a Tidepool account, you can sign up on the login page.\n\nWhen connected, Trio uploads your glucose, carb entries, insulin (bolus and basal), pump settings, and therapy settings to Tidepool.\n\nTherapy settings include basal schedules, carb ratios, insulin sensitivities, and glucose targets." : {

@@ -38,6 +38,8 @@ struct UntetheredSession: Codable, Equatable {
         case tick
         /// The watch reports the pump for a newer session the phone never granted: it started without the phone.
         case watchHoldsPump(epoch: Int, status: UntetheredPodStatus?)
+        /// The pod reported a foreign controller before the watch's message arrived.
+        case foreignSessionDetected(UntetheredPodStatus?)
     }
 
     enum WatchEvent: Equatable {
@@ -59,6 +61,8 @@ struct UntetheredSession: Codable, Equatable {
     static let takeoverWithoutPhoneLease: TimeInterval = 5 * 60
     /// After the lease the phone asks once whether the watch holds the pump.
     static let statusQueryGrace: TimeInterval = 10
+    /// If the watch cannot answer the ownership query, read the pod and recover control after this wait.
+    static let statusQueryResponseTimeout: TimeInterval = 3 * 60
 
     private(set) var phase = Phase.idle
     private(set) var epoch = 0
@@ -106,6 +110,23 @@ struct UntetheredSession: Codable, Equatable {
             startStatus = status
             startedWithoutPhone = true
             return [.releasePump]
+
+        case let (.starting, .watchHoldsPump(watchEpoch, status)) where watchEpoch > epoch:
+            guard status != nil else {
+                phase = .idle
+                return [.takePump]
+            }
+            self = UntetheredSession(phase: .active, epoch: watchEpoch)
+            startStatus = status
+            startedWithoutPhone = true
+            return [.releasePump]
+
+        case let (.idle, .foreignSessionDetected(status)):
+            phase = .starting
+            leaseExpiresAt = now
+            statusQueried = true
+            startStatus = status
+            return [.send(.statusQuery)]
 
         case let (_, .received(_, messageEpoch)) where messageEpoch != epoch:
             return []
@@ -177,10 +198,16 @@ struct UntetheredSession: Codable, Equatable {
             return [.failed(String(localized: "The watch did not answer. Open Trio on the watch and try again."))]
 
         case (.starting, .tick):
-            guard !statusQueried, let leaseExpiresAt, now > leaseExpiresAt.addingTimeInterval(Self.statusQueryGrace)
-            else { return [] }
-            statusQueried = true
-            return [.send(.statusQuery)]
+            guard let leaseExpiresAt else { return [] }
+            if !statusQueried, now > leaseExpiresAt.addingTimeInterval(Self.statusQueryGrace) {
+                statusQueried = true
+                return [.send(.statusQuery)]
+            }
+            let responseDeadline = leaseExpiresAt
+                .addingTimeInterval(Self.statusQueryGrace + Self.statusQueryResponseTimeout)
+            guard statusQueried, now > responseDeadline else { return [] }
+            phase = .idle
+            return [.takePump]
 
         default:
             return []
@@ -209,6 +236,11 @@ struct UntetheredSession: Codable, Equatable {
             startedWithoutPhone = true
             return [.takeover]
 
+        // The phone may have an older epoch after a restart. A status query is deliberately
+        // epoch independent; its reply carries the watch's current epoch.
+        case (_, .received(.statusQuery, _)):
+            return [.send(.statusReport(holding: phase == .active || phase == .ending ? startStatus : nil))]
+
         case let (_, .received(_, messageEpoch)) where messageEpoch != epoch:
             return []
 
@@ -232,9 +264,6 @@ struct UntetheredSession: Codable, Equatable {
         case let (.starting, .takeoverFailed(reason)):
             phase = .idle
             return [.releasePump, .send(.takeoverFailed(reason: reason))]
-
-        case (_, .received(.statusQuery, _)):
-            return [.send(.statusReport(holding: phase == .active || phase == .ending ? startStatus : nil))]
 
         case (.active, .end),
              (.active, .received(.endRequest, _)):
