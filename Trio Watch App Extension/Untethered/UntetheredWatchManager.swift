@@ -55,7 +55,8 @@ import WatchConnectivity
     /// The fallback loop: armed when the phone missed this many of the watch's readings, started after the grace.
     private static let fallbackMissedReadings = 2
     private static let fallbackGrace: TimeInterval = 10
-    @ObservationIgnored private var fallbackArmedAt: Date?
+    /// Observed: the status page shows the fallback about to start.
+    private var fallbackArmedAt: Date?
     @ObservationIgnored private var fallbackTimer: Timer?
     /// The phone's newest reading when the fallback last tried: once per outage, until the phone sends again.
     @ObservationIgnored private var fallbackTriedAfter: Date?
@@ -67,6 +68,7 @@ import WatchConnectivity
         DispatchQueue.main.async {
             self.restoreDevices()
             self.updateStandbySensor()
+            self.requestStandingGrantIfMissing()
             self.updateTimers()
             // a hand-back the last process left: the pump offered stays without loops; one still draining goes on
             if self.data.session.phase == .ending {
@@ -231,6 +233,7 @@ import WatchConnectivity
         DispatchQueue.main.async {
             self.checkFallback()
             guard WCSession.default.isReachable else { return }
+            self.requestStandingGrantIfMissing()
             self.streamRecords()
             if self.data.session.phase == .ending { self.apply(.tick) }
             // the phone pairs the next pod
@@ -350,6 +353,8 @@ import WatchConnectivity
         if wasActive != isActive { handOverAlertNotifications(toWatch: isActive) }
         // the phone may have confirmed the last records while the hand-back was still open: nothing else says so
         if wasActive, !isActive { finishSyncIfDone(epoch: epoch) }
+        // the session's start dropped the copy, and the phone sends the next only when something changed
+        if store.data.session.phase == .idle { requestStandingGrantIfMissing() }
         // after the devices are in place, so the Devices page shows them too
         if isActive { publishToWatchState() }
         updateTimers()
@@ -745,6 +750,42 @@ import WatchConnectivity
         let age = Date().timeIntervalSince(issuedAt)
         let actionTime = NSDecimalNumber(decimal: grant.pumpSettings.insulinActionCurve).doubleValue * 60 * 60
         return age < actionTime ? age : nil
+    }
+
+    /// The fallback loop as the status page shows it, between sessions.
+    enum FallbackStatus: Equatable {
+        case off
+        /// The watch keeps the sensor and watches for the phone's readings to stop.
+        case watching
+        /// Two readings came without the phone: it starts at this time unless the phone answers.
+        case starting(at: Date)
+    }
+
+    var fallbackStatus: FallbackStatus {
+        guard keepsStandbySensor else { return .off }
+        return fallbackArmedAt.map { .starting(at: $0.addingTimeInterval(Self.fallbackGrace)) } ?? .watching
+    }
+
+    /// No standing grant young enough to start from, as after a session, whose start dropped it: asked for while the
+    /// phone is in reach, which otherwise sends the next only when something changed or half an hour passed.
+    func requestStandingGrantIfMissing() {
+        guard data.session.phase == .idle, WCSession.default.isReachable, standingGrantAge == nil,
+              WatchState.shared.allowUntetheredStartWithoutPhone
+        else { return }
+        send(.standingGrantRequest, epoch: data.session.epoch)
+    }
+
+    /// Why there is no start without the phone, for the status page; nil when one can start.
+    var startWithoutPhoneUnavailable: String? {
+        guard let grant = data.standingGrant, let issuedAt = data.standingGrantIssuedAt else {
+            return String(localized: "No copy from the phone to start from yet. It sends one while it has the pump.")
+        }
+        if let rejection = rejection(of: grant) { return rejection }
+        guard standingGrantAge == nil else { return nil }
+        let hours = Int(Date().timeIntervalSince(issuedAt) / 3600)
+        return String(
+            localized: "The phone's copy is \(hours) h old, older than the insulin's action time: too much is unknown to start from it."
+        )
     }
 
     /// With the phone off or out of reach, from the phone's standing grant: the ordinary takeover, with a fresh lease

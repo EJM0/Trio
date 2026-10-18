@@ -838,6 +838,8 @@ import WatchConnectivity
     /// Tracks the scene phase; on leaving the foreground, applies a debounced state before the app is suspended.
     func setAppActive(_ isActive: Bool) {
         isAppActive = isActive
+        // a change while the app was suspended never arrived: the status page shows the phone as it is now
+        if isActive, WCSession.default.activationState == .activated { isReachable = WCSession.default.isReachable }
         guard !isActive, finalizeWorkItem != nil else { return }
         finalizeWorkItem?.cancel()
         finalizeWorkItem = nil
