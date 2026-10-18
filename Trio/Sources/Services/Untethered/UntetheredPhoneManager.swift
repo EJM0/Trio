@@ -26,9 +26,19 @@ struct UntetheredPhoneState: Codable, Equatable {
     var auditFinding: String?
     /// The pod as the watch last reported it, for the home screen while the watch has the pump.
     var watchPump: UntetheredPumpStatus?
+    /// When the watch had the pump, the last three days: the chart's band and Nightscout's note.
+    var spans: [UntetheredSpan] = []
     var lastError: String?
 
     var watchPendingDoseIdentifiers: Set<String> { watchPendingDoses.values.reduce(into: []) { $0.formUnion($1) } }
+}
+
+/// A time the watch had the pump: from its takeover until it let go, open while it still has it.
+struct UntetheredSpan: Codable, Equatable {
+    let start: Date
+    var end: Date?
+    /// The note with its duration is on Nightscout.
+    var uploaded: Bool
 }
 
 /// A field added since the file was written decodes to its default instead of failing the whole file, which would
@@ -46,6 +56,7 @@ extension UntetheredPhoneState {
         audit = try container.decodeIfPresent(UntetheredAuditPoint.self, forKey: .audit)
         auditFinding = try container.decodeIfPresent(String.self, forKey: .auditFinding)
         watchPump = try container.decodeIfPresent(UntetheredPumpStatus.self, forKey: .watchPump)
+        spans = try container.decodeIfPresent([UntetheredSpan].self, forKey: .spans) ?? defaults.spans
         lastError = try container.decodeIfPresent(String.self, forKey: .lastError)
     }
 }
@@ -161,6 +172,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         Task { @MainActor in
             await self.forwardCancellations()
             if self.state.pumpReturnPending { await self.finishPumpReturn() }
+            await self.uploadSpans()
             self.updateTimers()
         }
     }
@@ -280,7 +292,22 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     // MARK: - State machine
 
     @MainActor private func apply(_ event: UntetheredSession.PhoneEvent, reply: (([String: Any]) -> Void)? = nil) async {
-        let effects = UntetheredGate.update { $0.session.phone(event, now: Date()) }
+        let now = Date()
+        let (effects, spanEnded) = UntetheredGate.update { state -> ([UntetheredSession.Effect], Bool) in
+            let held = state.session.phase == .active || state.session.phase == .ending
+            let effects = state.session.phone(event, now: now)
+            let holds = state.session.phase == .active || state.session.phase == .ending
+            var ended = false
+            if !held, holds {
+                state.spans.append(UntetheredSpan(start: state.session.startStatus?.date ?? now, end: nil, uploaded: false))
+            } else if held, !holds, let last = state.spans.indices.last, state.spans[last].end == nil {
+                state.spans[last].end = now
+                ended = true
+            }
+            state.spans.removeAll { ($0.end ?? now) < now.addingTimeInterval(-3 * 24 * 60 * 60) }
+            return (effects, ended)
+        }
+        if spanEnded { Task { await self.uploadSpans() } }
         let epoch = UntetheredGate.state.session.epoch
         publish()
         var reply = reply
@@ -787,6 +814,16 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         // as the pump history withdraws a purged treatment
         for id in uploaded {
             await nightscoutManager.deleteInsulin(withID: id)
+        }
+    }
+
+    /// Each finished span as a Nightscout note with its duration; one that didn't go goes with the next, or at launch.
+    @MainActor private func uploadSpans() async {
+        for span in state.spans where !span.uploaded {
+            guard let end = span.end, await nightscoutManager.uploadUntetheredSession(from: span.start, to: end) else { continue }
+            UntetheredGate.update { state in
+                if let index = state.spans.firstIndex(where: { $0.start == span.start }) { state.spans[index].uploaded = true }
+            }
         }
     }
 

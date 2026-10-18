@@ -1,3 +1,4 @@
+import Charts
 import SwiftUI
 
 extension UntetheredPhoneManager {
@@ -147,6 +148,25 @@ struct UntetheredBannerSlot<Content: View, Banner: View>: View {
             .untetheredForceDialog(isPresented: $confirmForce, manager: manager)
         } else {
             content(manager.state.auditFinding)
+        }
+    }
+}
+
+/// When the watch had the pump: a band across the top of the glucose chart, in the mode's colour, like the override
+/// and temp target bands. One still running reaches now.
+struct UntetheredSpansView: ChartContent {
+    let y: Decimal
+    let now: Date
+
+    var body: some ChartContent {
+        ForEach(UntetheredGate.state.spans, id: \.start) { span in
+            RuleMark(
+                xStart: .value("Start", span.start, unit: .second),
+                xEnd: .value("End", span.end ?? now, unit: .second),
+                y: .value("Value", y)
+            )
+            .foregroundStyle(Color.untethered.opacity(0.4))
+            .lineStyle(.init(lineWidth: 8))
         }
     }
 }
