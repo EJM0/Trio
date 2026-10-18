@@ -37,6 +37,7 @@ struct UntetheredStatusView: View {
                     }
                     if manager.isActive { tiles }
                     if manager.isActive || unsynced > 0 { historyButton }
+                    if manager.isActive, let mode = data.grant?.dosingMode { loopModePicker(mode) }
                     if manager.isActive { phoneTile }
                     alerts(now: context.date)
                     actions
@@ -162,26 +163,58 @@ struct UntetheredStatusView: View {
     }
 
     /// The watch's own history, on its own screen: as a page it would trap the pager in its list and shift the pages
-    /// after it whenever a session starts or ends. Two tiles wide, with what is left to sync; also after a session while
-    /// records still sync.
+    /// after it whenever a session starts or ends. The second row shows the number of records still to sync.
     private var historyButton: some View {
         NavigationLink { UntetheredHistoryView(manager: manager) } label: {
-            HStack {
-                Label("History", systemImage: "list.bullet")
-                    .font(.footnote.weight(.semibold))
-                Spacer()
-                if unsynced > 0 {
-                    Text("\(unsynced) to sync").font(.caption2).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    Label("History", systemImage: "list.bullet")
+                        .font(.caption2)
+                        .foregroundStyle(.blue)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
-                Image(systemName: "chevron.right")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                Text("\(unsynced)")
+                    .font(.system(.footnote, design: .rounded).weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(8)
             .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
+    }
+
+    private func loopModePicker(_ mode: DosingMode) -> some View {
+        NavigationLink {
+            UntetheredLoopModeSelectionView(manager: manager)
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    Label("Loop Mode", systemImage: mode.icon)
+                        .font(.caption2)
+                        .foregroundStyle(Color.untethered)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Text(mode.displayName)
+                    .font(.system(.footnote, design: .rounded).weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(8)
+            .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+        .disabled(data.session.phase != .active)
     }
 
     private func tile(_ label: LocalizedStringKey, systemImage: String, tint: Color, value: String?) -> some View {
@@ -462,8 +495,55 @@ struct BolusProgressRing: View {
 
 // MARK: - Loop status
 
-/// The phone's Loop Status sheet, from the watch's own loop: how recent it is, the dosing mode, oref's values as
-/// the same pills, and its reasoning.
+private struct UntetheredLoopModeSelectionView: View {
+    let manager: UntetheredWatchManager
+    @Environment(\.dismiss) private var dismiss
+
+    private var currentMode: DosingMode? { manager.data.grant?.dosingMode }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Loop Mode")
+                    .font(.headline)
+                    .padding(.bottom, 2)
+                ForEach(DosingMode.userSelectable) { mode in
+                    Button {
+                        manager.setDosingMode(mode)
+                        dismiss()
+                    } label: {
+                        VStack(alignment: .leading, spacing: 5) {
+                            HStack(spacing: 8) {
+                                Label(mode.displayName, systemImage: mode.icon)
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(Color.untethered)
+                                Spacer(minLength: 0)
+                                if mode == currentMode {
+                                    Image(systemName: "checkmark")
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(Color.untethered)
+                                }
+                            }
+                            Text(mode.miniHint)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding(8)
+                        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(manager.data.session.phase != .active)
+                }
+            }
+            .padding(.horizontal, 4)
+        }
+        .navigationTitle("Loop Mode")
+    }
+}
+
+/// The phone's Loop Status sheet, from the watch's own loop: how recent it is, oref's values in
+/// pills, and its reasoning.
 struct UntetheredLoopStatusView: View {
     let manager: UntetheredWatchManager
 
@@ -481,9 +561,6 @@ struct UntetheredLoopStatusView: View {
                         .padding(.vertical, 4)
                         .foregroundStyle(status.color == .secondary ? Color.white : Color.bgDarkerDarkBlue)
                         .background(status.color, in: Capsule())
-                    if let mode = data.grant?.dosingMode {
-                        Label(mode.displayName, systemImage: mode.icon).font(.footnote.bold())
-                    }
                     if let error = data.lastLoopError {
                         Text(error).font(.caption2).foregroundStyle(Color.loopRed)
                     }

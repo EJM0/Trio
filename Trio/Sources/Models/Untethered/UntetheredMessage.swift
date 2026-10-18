@@ -29,6 +29,8 @@ enum UntetheredMessage: Codable, Equatable {
     case startRefused(reason: String)
     /// Cancelled on the phone: the override or temp target that started at `start` ends at `at` on the watch too.
     case adjustmentCancelled(UntetheredAdjustment, start: Date, at: Date)
+    /// The active dosing mode changed on either side while the watch owns the pump.
+    case dosingModeChanged(DosingMode)
     /// The grant the watch starts from without the phone: issued expired while the phone has the pump, refreshed
     /// as the phone doses and its settings change. Only the newest is kept.
     case standingGrant(UntetheredGrant, issuedAt: Date)
@@ -127,7 +129,7 @@ struct UntetheredGrant: Codable, Equatable {
     let insulinSensitivities: InsulinSensitivities
     let carbRatios: CarbRatios
     let preferences: Preferences
-    let dosingMode: DosingMode
+    var dosingMode: DosingMode
     let smoothGlucose: Bool
     let units: GlucoseUnits
     let tdd: OrefPipeline.TDDSummary

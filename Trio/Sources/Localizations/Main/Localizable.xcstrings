@@ -14113,9 +14113,6 @@
         }
       }
     },
-    "%lld to sync" : {
-
-    },
     "%lld x" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -98227,6 +98224,9 @@
           }
         }
       }
+    },
+    "Couldn't cancel the automatic temp basal for basal testing: %@" : {
+
     },
     "Couldn't reach the pod. The watch keeps running; bring the phone close to the pod and try again." : {
 
@@ -198732,6 +198732,9 @@
           }
         }
       }
+    },
+    "Loop Mode" : {
+
     },
     "loop overdue" : {
       "comment" : "Accessibility: loop status",

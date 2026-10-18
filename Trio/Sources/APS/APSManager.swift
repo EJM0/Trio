@@ -1528,6 +1528,8 @@ extension BaseAPSManager: SettingsObserver {
 
         // Only basal testing clears a running temp. Elsewhere it may be protecting against a low,
         // and dropping back to scheduled basal would remove that protection.
+        // If the watch owns the pump, its loop performs this cleanup on the watch instead.
+        guard UntetheredGate.phoneMayDose else { return }
         guard settings.dosingMode == .basalTesting, previous != .basalTesting else { return }
 
         Task { await cancelAutomaticTempBasal() }
