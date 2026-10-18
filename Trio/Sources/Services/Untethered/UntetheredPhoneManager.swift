@@ -314,9 +314,9 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         guard !Task.isCancelled,
               standingGrantSettingsChanged || fingerprint != standingGrantFingerprint
               || now.timeIntervalSince(standingGrantSentAt ?? .distantPast) >= Self.standingGrantInterval,
-            UntetheredGate.phoneMayDose,
-            var payload = try? UntetheredEnvelope(epoch: state.session.epoch, message: .standingGrant(grant, issuedAt: now))
-            .payload()
+              UntetheredGate.phoneMayDose,
+              var payload = try? UntetheredEnvelope(epoch: state.session.epoch, message: .standingGrant(grant, issuedAt: now))
+              .payload()
         else { return }
         payload[Self.standingGrantMarker] = true
         for transfer in session.outstandingUserInfoTransfers where transfer.userInfo[Self.standingGrantMarker] != nil {
@@ -481,6 +481,19 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 self.settingsManager.settings = settings
             default:
                 await self.apply(.received(envelope.message, epoch: envelope.epoch), reply: replyHandler)
+            }
+            // the fallback loop's session comes back as soon as the watch reaches the phone again: its report shows
+            // the phone's app is running
+            switch envelope.message {
+            case let .statusReport(holding: .some(status)),
+                 let .takeoverComplete(status):
+                guard status.byFallback == true, self.state.session.phase == .active,
+                      self.state.session.epoch == envelope.epoch
+                else { break }
+                debug(.watchManager, "Untethered: the watch's fallback session ends, the phone is back")
+                await self.end()
+            default:
+                break
             }
         }
     }

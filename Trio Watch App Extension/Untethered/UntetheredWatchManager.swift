@@ -712,7 +712,7 @@ import WatchConnectivity
             title: String(localized: "iPhone Unavailable"),
             body: String(localized: "The iPhone's readings stopped. The watch is taking over the loop.")
         )
-        startWithoutPhone()
+        startWithoutPhone(byFallback: true)
     }
 
     private func disarmFallback() {
@@ -735,7 +735,7 @@ import WatchConnectivity
 
     /// With the phone off or out of reach, from the phone's standing grant: the ordinary takeover, with a fresh lease
     /// and an epoch of the watch's own. The phone stands aside once it hears from the watch. As LoopKit/Loop#2545.
-    func startWithoutPhone() {
+    func startWithoutPhone(byFallback: Bool = false) {
         guard WatchState.shared.allowUntetheredStartWithoutPhone,
               data.session.phase == .idle, !isBusy, !WatchState.shared.isReachable, standingGrantAge != nil,
               let grant = data.standingGrant
@@ -748,6 +748,7 @@ import WatchConnectivity
             // the standing grant's pump, not an earlier session's hand-over
             $0.handover = nil
             $0.phoneReturnNoted = false
+            $0.startedByFallback = byFallback
         }
     }
 
@@ -760,6 +761,7 @@ import WatchConnectivity
         bookUnexplainedSinceCopy(status, copy: copy, pump: pump as? PumpDeliveryOdometer)
         var status = status
         status.copyAsOf = copy.asOf
+        if data.startedByFallback { status.byFallback = true }
         return status
     }
 
@@ -815,7 +817,10 @@ import WatchConnectivity
         notify(
             id: "untethered.phoneBack",
             title: String(localized: "iPhone Is Back"),
-            body: String(localized: "The watch still has the pump. Hand back on its status page when you're ready.")
+            body: data.startedByFallback
+                // the phone asks for it once it has the report, which shows its app is running
+                ? String(localized: "The watch hands the pump back to the iPhone.")
+                : String(localized: "The watch still has the pump. Hand back on its status page when you're ready.")
         )
     }
 
