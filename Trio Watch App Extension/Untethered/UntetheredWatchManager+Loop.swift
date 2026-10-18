@@ -610,7 +610,12 @@ extension UntetheredWatchManager {
     func cancelBolus() {
         pumpManager?.cancelBolus { result in
             DispatchQueue.main.async {
-                if case let .failure(error) = result { self.setError(error.localizedDescription) }
+                if case let .failure(error) = result {
+                    self.setError(error.localizedDescription)
+                } else {
+                    // in case the pod books the cancelled bolus only later: what it delivered so far counts now
+                    self.runLoop(.treatment)
+                }
             }
         }
     }
@@ -807,6 +812,11 @@ extension UntetheredWatchManager: PumpManagerDelegate {
         let identifiers = events.map { event in
             event.dose?.syncIdentifier.flatMap { $0.isEmpty ? nil : $0 } ?? event.raw.map { String(format: "%02x", $0) }.joined()
         }
+        // a bolus that ends, or is cancelled, is booked with what it delivered: IOB and the forecast follow at once
+        let wasMutable = store.data.mutablePumpEventIDs
+        let bolusFinalized = zip(events, identifiers).contains { event, id in
+            event.type == .bolus && event.dose?.isMutable == false && wasMutable.contains(id)
+        }
         if replacePendingEvents {
             let asserted = Set(identifiers)
             let dropped = store.data.mutablePumpEventIDs.subtracting(asserted)
@@ -849,6 +859,7 @@ extension UntetheredWatchManager: PumpManagerDelegate {
         }
         refresh()
         completion(nil)
+        if bolusFinalized { DispatchQueue.main.async { self.runLoop(.treatment) } }
     }
 
     /// The phone's `PumpHistoryStorage.storePumpEvents` + `PumpEventStored.toPumpHistoryEvents`, without the
