@@ -103,6 +103,7 @@ extension UntetheredWatchManager {
                         $0.lastLoopDate = now
                         $0.lastLoopError = nil
                     }
+                    self.scheduleNotLoopingAlert(from: now)
                     self.store.record(
                         UntetheredRecord(key: UntetheredRecord.loopCompletedKey, date: now, kind: .loopCompleted(now)),
                         epoch: self.data.session.epoch
@@ -555,6 +556,8 @@ extension UntetheredWatchManager {
             $0.podEnded = true
             $0.pendingPumpAlerts.removeAll { $0.managerIdentifier == self.pumpManager?.pluginIdentifier }
         }
+        // no loop follows until the phone pairs the next pod
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [Self.notLoopingID])
         store.record(
             UntetheredRecord(key: UntetheredRecord.podEndedKey, date: now, kind: .podEnded(now)),
             epoch: data.session.epoch
@@ -984,9 +987,11 @@ extension UntetheredWatchManager: PumpManagerDelegate {
     func handOverAlertNotifications(toWatch: Bool) {
         let alerts = data.pendingPumpAlerts
         guard toWatch else {
-            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: alerts.map(\.id))
+            UNUserNotificationCenter.current()
+                .removePendingNotificationRequests(withIdentifiers: alerts.map(\.id) + [Self.notLoopingID])
             return
         }
+        scheduleNotLoopingAlert(from: data.lastLoopDate ?? Date())
         for alert in alerts {
             guard let due = alert.due, due > Date() else { continue }
             notify(id: alert.id, title: alert.title, body: alert.body, after: due.timeIntervalSinceNow)
@@ -1134,13 +1139,23 @@ extension UntetheredWatchManager {
         if !data.podEnded, let lastLoop = data.lastLoopDate ?? data.session.startStatus?.date,
            now.timeIntervalSince(lastLoop) > 20 * 60
         {
-            alarm(
-                "loop",
-                title: String(localized: "Not Looping"),
-                body: String(localized: "The watch hasn't looped for 20 minutes."),
-                every: 30 * 60
-            )
+            alarm("loop", title: Self.notLoopingTitle, body: Self.notLoopingBody, every: 30 * 60)
         }
+    }
+
+    static let notLoopingID = "untethered.loop"
+    private static var notLoopingTitle: String { String(localized: "Not Looping") }
+    private static var notLoopingBody: String { String(localized: "The watch hasn't looped for 20 minutes.") }
+
+    /// Booked 20 minutes ahead after every loop, and at the takeover: it sounds even when nothing wakes the watch app
+    /// to check. The next loop books it again; a hand-back or a pod ended on the watch takes it back.
+    func scheduleNotLoopingAlert(from lastLoop: Date) {
+        notify(
+            id: Self.notLoopingID,
+            title: Self.notLoopingTitle,
+            body: Self.notLoopingBody,
+            after: lastLoop.addingTimeInterval(20 * 60).timeIntervalSinceNow
+        )
     }
 
     private func alarm(_ kind: String, title: String, body: String, every interval: TimeInterval) {
