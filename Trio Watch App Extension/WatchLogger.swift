@@ -133,22 +133,43 @@ actor WatchLogger {
               !logString.isEmpty
         else { return }
 
-        let payload: [String: Any] = ["watchLogs": logString]
-
         if session.activationState != .activated {
             session.activate()
         }
 
-        if session.isReachable, !queued {
-            session.sendMessage(payload, replyHandler: nil) { _ in
-                Task {
-                    await self.persistLogsLocally(logString.components(separatedBy: "\n"))
+        // hours kept back while the phone was away are far over what one transfer takes ("payload too large"): in
+        // parts, each of which the phone appends
+        for part in Self.parts(of: logString) {
+            let payload: [String: Any] = ["watchLogs": part]
+            if session.isReachable, !queued {
+                session.sendMessage(payload, replyHandler: nil) { _ in
+                    Task {
+                        await self.persistLogsLocally(part.split(separator: "\n").map(String.init))
+                    }
                 }
+            } else {
+                _ = session.transferUserInfo(payload)
             }
-            try? FileManager.default.removeItem(at: logFile)
-        } else {
-            _ = session.transferUserInfo(payload)
-            try? FileManager.default.removeItem(at: logFile)
         }
+        try? FileManager.default.removeItem(at: logFile)
+    }
+
+    /// WatchConnectivity refuses a payload a little over 64 KB; whole lines, at most `maxBytes` each part.
+    static func parts(of log: String, maxBytes: Int = 48000) -> [String] {
+        var parts: [String] = []
+        var current = ""
+        var size = 0
+        for line in log.split(separator: "\n") {
+            let lineSize = line.utf8.count + 1
+            if size > 0, size + lineSize > maxBytes {
+                parts.append(current)
+                current = ""
+                size = 0
+            }
+            current += line + "\n"
+            size += lineSize
+        }
+        if !current.isEmpty { parts.append(current) }
+        return parts
     }
 }
