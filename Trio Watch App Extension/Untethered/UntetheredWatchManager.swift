@@ -777,7 +777,10 @@ import WatchConnectivity
         if let blocker {
             disarmFallback()
             Task {
-                await WatchLogger.shared.log("⌚️ Untethered: \(missed) readings without the phone, no fallback: \(blocker)", force: true)
+                await WatchLogger.shared.log(
+                    "⌚️ Untethered: \(missed) readings without the phone, no fallback: \(blocker)",
+                    force: true
+                )
             }
             return
         }
