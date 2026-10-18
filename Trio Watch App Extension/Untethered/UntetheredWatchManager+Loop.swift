@@ -989,10 +989,11 @@ extension UntetheredWatchManager: PumpManagerDelegate {
         let alerts = data.pendingPumpAlerts
         guard toWatch else {
             UNUserNotificationCenter.current()
-                .removePendingNotificationRequests(withIdentifiers: alerts.map(\.id) + [Self.notLoopingID])
+                .removePendingNotificationRequests(withIdentifiers: alerts.map(\.id) + [Self.notLoopingID, Self.noReadingsID])
             return
         }
         scheduleNotLoopingAlert(from: data.lastLoopDate ?? Date())
+        scheduleNoReadingsAlert(from: data.glucose.map(\.dateString).max() ?? Date())
         for alert in alerts {
             guard let due = alert.due, due > Date() else { continue }
             notify(id: alert.id, title: alert.title, body: alert.body, after: due.timeIntervalSinceNow)
@@ -1074,6 +1075,7 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         smoothGlucose()
         refresh()
         checkAlarms()
+        scheduleNoReadingsAlert(from: lastDate)
         publishToWatchState()
         runLoop(.newGlucose)
     }
@@ -1128,14 +1130,7 @@ extension UntetheredWatchManager {
         // two missed readings on the sensor's 5-minute grid
         if let newest = latest?.dateString, now.timeIntervalSince(newest) > 11 * 60 {
             let minutes = Int(now.timeIntervalSince(newest) / 60)
-            alarm(
-                "sensor",
-                title: String(localized: "No Sensor Readings"),
-                body: String(
-                    localized: "The watch has had no glucose reading for \(minutes) minutes. Keep it near the sensor; it keeps trying."
-                ),
-                every: 30 * 60
-            )
+            alarm("sensor", title: Self.noReadingsTitle, body: Self.noReadingsBody(minutes: minutes), every: 30 * 60)
         }
         if !data.podEnded, let lastLoop = data.lastLoopDate ?? data.session.startStatus?.date,
            now.timeIntervalSince(lastLoop) > 20 * 60
@@ -1162,6 +1157,26 @@ extension UntetheredWatchManager {
         store.record(
             UntetheredRecord(key: UntetheredRecord.pumpStatusKey, date: now, kind: .pumpStatus(status)),
             epoch: data.session.epoch
+        )
+    }
+
+    /// The sensor alarm's own identifier, so the booked one and the one `checkAlarms` raises are one notification.
+    static let noReadingsID = "untethered.sensor"
+    /// Two readings missed on the sensor's 5-minute grid.
+    private static let noReadingsAfter: TimeInterval = 11 * 60
+    private static var noReadingsTitle: String { String(localized: "No Sensor Readings") }
+    private static func noReadingsBody(minutes: Int) -> String {
+        String(localized: "The watch has had no glucose reading for \(minutes) minutes. Keep it near the sensor; it keeps trying.")
+    }
+
+    /// Booked after every new reading, and at the takeover: it sounds when nothing wakes the watch app any more, as
+    /// when a lost Bluetooth callback leaves no connect standing; opening the app is what puts that right.
+    func scheduleNoReadingsAlert(from lastReading: Date) {
+        notify(
+            id: Self.noReadingsID,
+            title: Self.noReadingsTitle,
+            body: Self.noReadingsBody(minutes: Int(Self.noReadingsAfter / 60)),
+            after: lastReading.addingTimeInterval(Self.noReadingsAfter).timeIntervalSinceNow
         )
     }
 
