@@ -28,6 +28,8 @@ struct UntetheredPhoneState: Codable, Equatable {
     var watchPump: UntetheredPumpStatus?
     /// When the watch had the pump, the last three days: the chart's band and Nightscout's note.
     var spans: [UntetheredSpan] = []
+    /// The pod's total at the phone's last loop, checked at the next one after a gap.
+    var podReading: UntetheredPodReading?
     var lastError: String?
 
     var watchPendingDoseIdentifiers: Set<String> { watchPendingDoses.values.reduce(into: []) { $0.formUnion($1) } }
@@ -57,6 +59,7 @@ extension UntetheredPhoneState {
         auditFinding = try container.decodeIfPresent(String.self, forKey: .auditFinding)
         watchPump = try container.decodeIfPresent(UntetheredPumpStatus.self, forKey: .watchPump)
         spans = try container.decodeIfPresent([UntetheredSpan].self, forKey: .spans) ?? defaults.spans
+        podReading = try container.decodeIfPresent(UntetheredPodReading.self, forKey: .podReading)
         lastError = try container.decodeIfPresent(String.self, forKey: .lastError)
     }
 }
@@ -97,6 +100,13 @@ enum UntetheredGate {
 extension Notification.Name {
     static let untetheredSessionDidChange = Notification.Name("untetheredSessionDidChange")
     static let untetheredGateDidChange = Notification.Name("untetheredGateDidChange")
+}
+
+struct UntetheredPodReading: Codable, Equatable {
+    /// Which pod: its activation.
+    let pod: Date?
+    let at: Date
+    let units: Double
 }
 
 enum UntetheredError: LocalizedError {
@@ -182,6 +192,10 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         .receive(on: DispatchQueue.main)
         .sink { [weak self] _ in self?.scheduleStandingGrant() }
         .store(in: &subscriptions)
+        apsManager.lastLoopDateSubject
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in Task { @MainActor in await self?.checkPodGap() } }
+            .store(in: &subscriptions)
         broadcaster.register(SettingsObserver.self, observer: self)
         broadcaster.register(PreferencesObserver.self, observer: self)
         broadcaster.register(PumpSettingsObserver.self, observer: self)
@@ -781,7 +795,11 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     // MARK: - Taking the pump back
 
     @MainActor private func takePump() {
-        UntetheredGate.update { $0.pumpReturnPending = true }
+        UntetheredGate.update {
+            $0.pumpReturnPending = true
+            // the return's audit judges the session; the gap check starts over after it
+            $0.podReading = nil
+        }
         publish()
         (apsManager.pumpManager as? ExclusiveDeviceControl)?.takeControl()
         Task { await self.finishPumpReturn() }
@@ -977,6 +995,33 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         } catch {
             warning(.watchManager, "Untethered: audit failed: \(error.localizedDescription)")
         }
+    }
+
+    /// Loops come every five minutes; a longer pause may hide a controller the phone doesn't know of.
+    private static let podGapCheck: TimeInterval = 10 * 60
+
+    /// After a pause in the phone's own loops, what the pod delivered and no record explains, booked and shown as an
+    /// audit finding: a watch that started without the phone and then failed leaves exactly this (LoopKit/Loop#2545).
+    @MainActor private func checkPodGap() async {
+        guard UntetheredGate.phoneMayDose, state.audit == nil,
+              let current = (apsManager.pumpManager as? PumpDeliveryOdometer)?.deliveredUnits
+        else { return }
+        let pod = (apsManager.pumpManager as? OmniPumpManager)?.state.podState?.activatedAt
+        let previous = state.podReading
+        guard previous?.at != current.at else { return }
+        UntetheredGate.update { $0.podReading = UntetheredPodReading(pod: pod, at: current.at, units: current.units) }
+        guard let previous, previous.pod == pod, current.at.timeIntervalSince(previous.at) >= Self.podGapCheck,
+              current.units >= previous.units
+        else { return }
+        let point = UntetheredAuditPoint(
+            epoch: Int(current.at.timeIntervalSince1970),
+            start: previous.at,
+            startUnits: previous.units,
+            end: current.at,
+            endUnits: current.units
+        )
+        debug(.watchManager, "Untethered: \(Int(current.at.timeIntervalSince(previous.at) / 60)) min between pod readings, checking")
+        await judge(point, historyComplete: true)
     }
 
     private static func gapIdentifier(_ epoch: Int) -> String { "untethered-gap-\(epoch)" }
