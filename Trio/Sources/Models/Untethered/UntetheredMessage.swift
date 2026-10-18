@@ -139,11 +139,10 @@ struct UntetheredGrant: Codable, Equatable {
     let tdd: OrefPipeline.TDDSummary
     /// Without enough days of TDD the dynamic ISF formulas stay off, as on the phone.
     let hasSufficientTDD: Bool
-    /// The phone's TDD rows of the last two hours, and the sum and count of the last ten days, so the watch
-    /// keeps the averages moving with its own rows.
+    /// The phone's TDD rows of the last two hours, zeros included, and its ten days of rows by the hour, so the
+    /// watch keeps the averages moving with its own rows. Optional only so a grant saved before it still reads.
     let tddRecentRows: [UntetheredTDD]
-    let tddTenDaySum: Decimal
-    let tddTenDayCount: Int
+    let tddHours: [UntetheredTDDHour]?
     /// The last day of pump history in the shape TDD is calculated from (`PumpHistoryStorage.getPumpHistory`).
     let tddPumpHistory: [PumpHistoryEvent]
     let autosens: Autosens?
@@ -182,6 +181,42 @@ struct UntetheredTDD: Codable, Equatable {
     let tempBasal: Decimal
     let scheduledBasal: Decimal
     let weightedAverage: Decimal?
+}
+
+/// The TDD rows of one hour: the ten-day averages drop each hour as it leaves the window, as the phone's drop each row.
+struct UntetheredTDDHour: Codable, Equatable {
+    let start: Date
+    var total: Decimal
+    /// Rows above 0, which the algorithm's averages count (`OpenAPS.tddSummary`).
+    var positive: Int
+    /// Every row, which the stored weighted average counts (`BaseTDDStorage.calculateWeightedAverage`).
+    var count: Int
+
+    static let window: TimeInterval = 10 * 24 * 60 * 60
+
+    static func hours(_ rows: [UntetheredTDD]) -> [UntetheredTDDHour] {
+        var hours: [UntetheredTDDHour] = []
+        for row in rows.sorted(by: { $0.date < $1.date }) {
+            add(row, to: &hours)
+        }
+        return hours
+    }
+
+    static func add(_ row: UntetheredTDD, to hours: inout [UntetheredTDDHour]) {
+        let start = Date(timeIntervalSince1970: (row.date.timeIntervalSince1970 / 3600).rounded(.down) * 3600)
+        if let last = hours.indices.last, hours[last].start == start {
+            hours[last].total += row.total
+            hours[last].positive += row.total > 0 ? 1 : 0
+            hours[last].count += 1
+        } else {
+            hours.append(UntetheredTDDHour(start: start, total: row.total, positive: row.total > 0 ? 1 : 0, count: 1))
+        }
+    }
+
+    /// The hours of the last ten days; the oldest counts while most of it is inside, half an hour off at most.
+    static func inWindow(_ hours: [UntetheredTDDHour], now: Date) -> [UntetheredTDDHour] {
+        hours.filter { $0.start.addingTimeInterval(30 * 60) > now.addingTimeInterval(-window) }
+    }
 }
 
 /// The phone's bolus calculator settings, so the watch recommends what the phone would.

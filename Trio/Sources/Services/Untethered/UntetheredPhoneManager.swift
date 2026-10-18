@@ -684,8 +684,9 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         let (tdd, tddRows, activeOverride, overridePresets, tempTargetPresets) = try await context.perform {
             let tdd = try self.openAPS.tddSummary(now: now, on: context)
             let tddRequest = TDDStored.fetchRequest() as NSFetchRequest<TDDStored>
+            // zeros too: the stored weighted average counts them, the algorithm's averages don't
             tddRequest.predicate = NSPredicate(
-                format: "date > %@ AND total > 0",
+                format: "date > %@ AND total != nil",
                 now.addingTimeInterval(-10 * 24 * 60 * 60) as NSDate
             )
             let tddRows = try context.fetch(tddRequest).compactMap { row -> UntetheredTDD? in
@@ -731,8 +732,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             tdd: tdd,
             hasSufficientTDD: try await tddStorage.hasSufficientTDD(),
             tddRecentRows: tddRows.filter { $0.date >= now.addingTimeInterval(-2 * 60 * 60) },
-            tddTenDaySum: tddRows.reduce(0) { $0 + $1.total },
-            tddTenDayCount: tddRows.count,
+            tddHours: UntetheredTDDHour.hours(tddRows),
             tddPumpHistory: try await pumpHistoryStorage.getPumpHistory(),
             autosens: storage.retrieve(OpenAPS.Settings.autosense, as: Autosens.self),
             reservoir: storage.retrieve(OpenAPS.Monitor.reservoir, as: Decimal.self),

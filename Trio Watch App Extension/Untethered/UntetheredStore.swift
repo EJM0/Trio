@@ -37,8 +37,7 @@ struct UntetheredWatchData: Codable {
     var mutablePumpEventIDs: Set<String> = []
     /// TDD rows of the last two hours (the phone's, then the watch's own) and the running ten-day sum and count.
     var tddRows: [UntetheredTDD] = []
-    var tddTenDaySum: Decimal = 0
-    var tddTenDayCount = 0
+    var tddHours: [UntetheredTDDHour] = []
 
     // What the screens show.
     var lastDetermination: Determination?
@@ -104,8 +103,7 @@ extension UntetheredWatchData {
         mutablePumpEventIDs = try container.decodeIfPresent(Set<String>.self, forKey: .mutablePumpEventIDs) ?? defaults
             .mutablePumpEventIDs
         tddRows = try container.decodeIfPresent([UntetheredTDD].self, forKey: .tddRows) ?? defaults.tddRows
-        tddTenDaySum = try container.decodeIfPresent(Decimal.self, forKey: .tddTenDaySum) ?? defaults.tddTenDaySum
-        tddTenDayCount = try container.decodeIfPresent(Int.self, forKey: .tddTenDayCount) ?? defaults.tddTenDayCount
+        tddHours = try container.decodeIfPresent([UntetheredTDDHour].self, forKey: .tddHours) ?? defaults.tddHours
         lastDetermination = try container.decodeIfPresent(Determination.self, forKey: .lastDetermination)
         lastLoopDate = try container.decodeIfPresent(Date.self, forKey: .lastLoopDate)
         lastLoopGlucose = try container.decodeIfPresent(Date.self, forKey: .lastLoopGlucose)

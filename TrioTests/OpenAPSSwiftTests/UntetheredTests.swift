@@ -30,8 +30,7 @@ import Testing
             tdd: OrefPipeline.TDDSummary(currentTDD: 40, averageLastTenDays: 38, averageLastTwoHours: 2),
             hasSufficientTDD: true,
             tddRecentRows: [],
-            tddTenDaySum: 380,
-            tddTenDayCount: 10,
+            tddHours: [UntetheredTDDHour(start: t0, total: 380, positive: 10, count: 10)],
             tddPumpHistory: [],
             autosens: Autosens(ratio: 1.1, newisf: nil),
             reservoir: 120,
@@ -580,7 +579,13 @@ import Testing
                 scheduledBasal: 10.5,
                 weightedAverage: 41.2
             ) },
-            tddTenDaySum: 120_000, tddTenDayCount: 2880, tddPumpHistory: tddEvents,
+            tddHours: (0 ..< 240).map { UntetheredTDDHour(
+                start: t0.addingTimeInterval(Double(-$0) * 3600),
+                total: 500,
+                positive: 12,
+                count: 12
+            ) },
+            tddPumpHistory: tddEvents,
             autosens: base.autosens, reservoir: base.reservoir, maxBolus: base.maxBolus, maxCarbs: base.maxCarbs,
             bolusCalculator: base.bolusCalculator, glucoseColorScheme: "dynamicColor", lastDetermination: nil,
             lastLoopDate: t0, lowGlucose: 70, highGlucose: 180,
@@ -612,6 +617,28 @@ import Testing
         for part in parts.reversed() { assembled = assembler.add(part) ?? assembled }
         #expect(try UntetheredEnvelope.decode(try #require(assembled)) == UntetheredEnvelope(epoch: 1, message: .prepare(full)))
         #expect(UntetheredChunks.split(try UntetheredEnvelope(epoch: 1, message: .commit(handover)).payload()) == nil)
+    }
+
+    @Test("TDD: the ten days slide by the hour, zeros count only where the phone counts them") func tddHours() {
+        func row(_ hoursAgo: Double, _ total: Decimal) -> UntetheredTDD {
+            UntetheredTDD(
+                date: t0.addingTimeInterval(-hoursAgo * 3600),
+                total: total,
+                bolus: 0,
+                tempBasal: 0,
+                scheduledBasal: 0,
+                weightedAverage: nil
+            )
+        }
+        let hours = UntetheredTDDHour.hours([row(0.1, 40), row(0.2, 0), row(5, 30), row(10 * 24 - 2, 90)])
+        #expect(hours.count == 3)
+        let now = UntetheredTDDHour.inWindow(hours, now: t0)
+        #expect(now.reduce(0) { $0 + $1.total } == 160)
+        #expect(now.reduce(0) { $0 + $1.positive } == 3)
+        #expect(now.reduce(0) { $0 + $1.count } == 4)
+        // three hours on, the oldest has left the window
+        let later = UntetheredTDDHour.inWindow(hours, now: t0.addingTimeInterval(3 * 3600))
+        #expect(later.reduce(0) { $0 + $1.total } == 70)
     }
 
     @Test("TDD summary matches the phone's averaging") func tdd() {

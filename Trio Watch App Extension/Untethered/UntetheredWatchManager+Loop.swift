@@ -245,14 +245,16 @@ extension UntetheredWatchManager {
             now: now,
             roundToSupportedBasalRate: pump.roundToSupportedBasalRate
         )
-        // as `BaseTDDStorage.calculateWeightedAverage`, which defaults the weight to 0.65
+        // as `BaseTDDStorage.calculateWeightedAverage`, which defaults the weight to 0.65 and counts zeros
         let data = store.data
         let recent = data.tddRows.filter { $0.date >= now.addingTimeInterval(-2 * 60 * 60) }
+        let tenDays = UntetheredTDDHour.inWindow(data.tddHours, now: now)
+        let tenDayCount = tenDays.reduce(0) { $0 + $1.count }
         let weight = grant.preferences.weightPercentage
-        let weightedAverage: Decimal? = data.tddTenDayCount > 0
+        let weightedAverage: Decimal? = tenDayCount > 0
             ? (
                 weight * (recent.reduce(0) { $0 + $1.total } / max(Decimal(recent.count), 1))
-                    + (1 - weight) * data.tddTenDaySum / Decimal(data.tddTenDayCount)
+                    + (1 - weight) * tenDays.reduce(0) { $0 + $1.total } / Decimal(tenDayCount)
             ).truncated(toPlaces: 3)
             : 0
         let row = UntetheredTDD(
@@ -265,21 +267,21 @@ extension UntetheredWatchManager {
         )
         store.update {
             $0.tddRows.append(row)
-            if row.total > 0 {
-                $0.tddTenDaySum += row.total
-                $0.tddTenDayCount += 1
-            }
+            UntetheredTDDHour.add(row, to: &$0.tddHours)
+            $0.tddHours = UntetheredTDDHour.inWindow($0.tddHours, now: now)
         }
         store.record(UntetheredRecord(key: UntetheredRecord.tddKey(now), date: now, kind: .tdd(row)), epoch: data.session.epoch)
     }
 
     /// `OpenAPS.tddSummary` over the phone's rows and the watch's own.
     static func tddSummary(_ data: UntetheredWatchData, now: Date) -> OrefPipeline.TDDSummary? {
-        guard let latest = data.tddRows.last(where: { $0.total > 0 }) else { return nil }
+        let tenDays = UntetheredTDDHour.inWindow(data.tddHours, now: now)
+        guard let latest = data.tddRows.last(where: { $0.total > 0 }), !tenDays.isEmpty else { return nil }
         let recent = data.tddRows.filter { $0.total > 0 && $0.date >= now.addingTimeInterval(-2 * 60 * 60) }
+        let tenDayPositive = tenDays.reduce(0) { $0 + $1.positive }
         return OrefPipeline.TDDSummary(
             currentTDD: latest.total,
-            averageLastTenDays: data.tddTenDaySum / Decimal(max(data.tddTenDayCount, 1)),
+            averageLastTenDays: tenDays.reduce(0) { $0 + $1.total } / Decimal(max(tenDayPositive, 1)),
             averageLastTwoHours: recent.reduce(0) { $0 + $1.total } / Decimal(max(recent.count, 1))
         )
     }
