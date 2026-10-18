@@ -202,6 +202,12 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 }
             }
             .store(in: &subscriptions)
+        // a command the pod refused ends the loop with an error, and no loop date follows
+        apsManager.lastError
+            .compactMap { $0 }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in Task { @MainActor in await self?.checkForeignSession() } }
+            .store(in: &subscriptions)
         broadcaster.register(SettingsObserver.self, observer: self)
         broadcaster.register(PreferencesObserver.self, observer: self)
         broadcaster.register(PumpSettingsObserver.self, observer: self)
@@ -274,8 +280,13 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     @MainActor private func sendStandingGrant() async {
         let session = WCSession.default
         guard UntetheredGate.phoneMayDose, WCSession.isSupported(), session.activationState == .activated,
-              session.isWatchAppInstalled, (apsManager.pumpManager as? ExclusiveDeviceControl)?.isControlReleased == false
+              session.isWatchAppInstalled, let control = apsManager.pumpManager as? ExclusiveDeviceControl,
+              !control.isControlReleased
         else { return }
+        // the watch may start from it while the phone still holds the pod (phone off, out of reach): from now on a
+        // command after another controller's session is refused (2026-10-18, a SMB after a reboot). Taking control
+        // back clears it; this sets it again.
+        if control.refusesForeignSessionsSince == nil { control.refusesForeignSessionsSince = Date() }
         guard let grant = try? await makeGrant(linkedOverrideID: nil, leaseLength: 0) else { return }
         // what a start would miss most: carbs, boluses and adjustments; temps and readings wait for the interval
         let encoder = JSONEncoder()
@@ -409,7 +420,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             // a session the watch started without the phone: taken on before its records are stored, which would
             // otherwise be confirmed and dropped as a finished session's. Queued messages arrive in order, so its
             // end comes after.
-            if (self.state.session.isIdle || self.state.session.phase == .starting),
+            if self.state.session.isIdle || self.state.session.phase == .starting,
                envelope.epoch > self.state.session.epoch
             {
                 switch envelope.message {
@@ -578,11 +589,13 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     @MainActor private func checkForeignSession() async {
         guard state.session.isIdle,
               let control = apsManager.pumpManager as? ExclusiveDeviceControl,
-              control.isControlReleased,
-              let foreignAt = control.lastForeignSessionAt,
+              let since = control.refusesForeignSessionsSince,
+              let foreignAt = control.lastForeignSessionAt, foreignAt > since,
               foreignAt > (lastHandledForeignSessionAt ?? .distantPast)
         else { return }
         lastHandledForeignSessionAt = foreignAt
+        // a phone that still holds the pod lets go of it, so the watch reaches it
+        if !control.isControlReleased { control.releaseControl() }
         debug(.watchManager, "Untethered: pod reports a foreign controller session; querying watch ownership")
         let previous = state.podReading
         let currentPod = (apsManager.pumpManager as? OmniPumpManager)?.state.podState?.activatedAt
