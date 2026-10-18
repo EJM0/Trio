@@ -314,8 +314,7 @@ import Testing
         #expect(abs(NSDecimalNumber(decimal: expected - 4.5).doubleValue) < 0.0001)
     }
 
-    @Test("audit: a finalized temp counts what the pump reported, in proportion where the span cuts it")
-    func auditReportedTemps() {
+    @Test("audit: a finalized temp counts what the pump reported, in proportion where the span cuts it") func auditReportedTemps() {
         var utc = Calendar(identifier: .gregorian)
         utc.timeZone = TimeZone(identifier: "UTC")!
         let midnight = utc.startOfDay(for: t0)
