@@ -467,6 +467,10 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             case .syncDone:
                 replyHandler?([:])
                 await self.finishSync(epoch: envelope.epoch)
+            case .standingGrantRequest:
+                replyHandler?([:])
+                // whatever the fingerprint says: the watch has none
+                self.scheduleStandingGrant(settingsChanged: true, immediately: true)
             case .startRequest:
                 replyHandler?([:])
                 if let reason = await self.start() {

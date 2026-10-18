@@ -281,15 +281,19 @@ struct UntetheredStatusView: View {
                 .disabled(!isPhoneReachable)
                 if !isPhoneReachable {
                     note("Starts with the phone nearby and Trio open on it.")
-                    if manager.standingGrantAge != nil,
-                       WatchState.shared.allowUntetheredStartWithoutPhone
-                    {
-                        Button { confirmStartWithoutPhone = true } label: {
-                            Label("Start Without Phone", systemImage: "iphone.slash")
+                    if WatchState.shared.allowUntetheredStartWithoutPhone {
+                        if let unavailable = manager.startWithoutPhoneUnavailable {
+                            // with the fallback on, its note below says why
+                            if manager.fallbackStatus == .off { note(verbatim: unavailable) }
+                        } else {
+                            Button { confirmStartWithoutPhone = true } label: {
+                                Label("Start Without Phone", systemImage: "iphone.slash")
+                            }
+                            .tint(.untethered)
                         }
-                        .tint(.untethered)
                     }
                 }
+                fallbackNote
             case .active where data.podEnded:
                 Button { whenPhoneReachable { manager.end() } } label: {
                     Label("Hand Back", systemImage: "iphone")
@@ -300,6 +304,9 @@ struct UntetheredStatusView: View {
                     note("Hands back by itself once the phone is nearby.")
                 }
             case .active:
+                if data.startedByFallback {
+                    note("Started by the fallback loop. Hands back by itself once the iPhone is back.")
+                }
                 Button { whenPhoneReachable { confirmEnd = true } } label: {
                     Label("Hand Back", systemImage: "iphone")
                 }
@@ -342,7 +349,50 @@ struct UntetheredStatusView: View {
     }
 
     private func note(_ text: LocalizedStringKey) -> some View {
-        Text(text)
+        note(Text(text))
+    }
+
+    @ViewBuilder private var fallbackNote: some View {
+        switch manager.fallbackStatus {
+        case .off:
+            EmptyView()
+        case .watching:
+            // whether there is a copy to start from, which the fallback needs as much as the button
+            if let age = manager.standingGrantAge {
+                Label(
+                    "Fallback Loop ready with the iPhone's copy of \(Int(age / 60)) min ago: starts by itself if its readings stop",
+                    systemImage: "antenna.radiowaves.left.and.right"
+                )
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            } else {
+                Label {
+                    Text("Fallback Loop can't start: \(manager.startWithoutPhoneUnavailable ?? "")")
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle")
+                }
+                .font(.caption2)
+                .foregroundStyle(.orange)
+            }
+        case let .starting(at):
+            card(tint: .orange) {
+                Label {
+                    Text("The iPhone's readings stopped. Starting \(at, style: .relative)…")
+                } icon: {
+                    Image(systemName: "iphone.slash")
+                }
+                .font(.footnote)
+            }
+        }
+    }
+
+    /// Text the manager localized already.
+    private func note(verbatim text: String) -> some View {
+        note(Text(verbatim: text))
+    }
+
+    private func note(_ text: Text) -> some View {
+        text
             .font(.caption2)
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
