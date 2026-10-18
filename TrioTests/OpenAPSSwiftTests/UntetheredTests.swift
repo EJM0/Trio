@@ -243,10 +243,10 @@ import Testing
 
     @Test("handover: a temp basal goes on for what was left, in Omnipod's half hours") func remainingTempBasal() {
         let tempBasal = UntetheredTempBasal(unitsPerHour: 1, endsAt: t0 + 12 * 60)
-        #expect(tempBasal.remainingDuration(at: t0) == 30 * 60)
+        #expect(tempBasal.remainingDuration(at: t0) == TimeInterval(30 * 60))
         #expect(tempBasal.remainingDuration(at: t0 + 12 * 60) == nil)
-        #expect(UntetheredTempBasal(unitsPerHour: 1, endsAt: t0 + 31 * 60).remainingDuration(at: t0) == 60 * 60)
-        #expect(UntetheredTempBasal(unitsPerHour: 1, endsAt: t0 + 24 * 3600).remainingDuration(at: t0) == 12 * 3600)
+        #expect(UntetheredTempBasal(unitsPerHour: 1, endsAt: t0 + 31 * 60).remainingDuration(at: t0) == TimeInterval(60 * 60))
+        #expect(UntetheredTempBasal(unitsPerHour: 1, endsAt: t0 + 24 * 3600).remainingDuration(at: t0) == TimeInterval(12 * 3600))
     }
 
     @Test("end: an unacknowledged handback is offered again, never taken back") func lostAck() {

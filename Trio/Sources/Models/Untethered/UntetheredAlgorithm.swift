@@ -153,20 +153,31 @@ enum UntetheredAlgorithm {
     /// The id of a temp basal's rate row; its duration row has the pump event's own.
     static func rateID(_ id: String) -> String { "_" + id }
 
+    /// A bolus as `PumpHistoryStorage.storePumpEvents` stores it: rounded to the increment in `Double`, kept as the
+    /// `Decimal` of that `Double`.
+    static func storedBolus(_ dose: DoseEntry, bolusIncrement: Decimal) -> Decimal {
+        let increment = NSDecimalNumber(decimal: bolusIncrement).doubleValue
+        return Decimal((dose.unitsInDeliverableIncrements / increment).rounded() * increment)
+    }
+
+    /// What `PumpEventStored.toPumpHistoryEvents` reads back from a stored amount or rate.
+    static func algorithmValue(_ stored: Decimal) -> Decimal {
+        Decimal(algorithmValue: NSDecimalNumber(decimal: stored).doubleValue)
+    }
+
     /// The phone's `PumpHistoryStorage.storePumpEvents` + `PumpEventStored.toPumpHistoryEvents`, without the
-    /// database. Scheduled basal stays out, as `pumpHistoryLast1440Minutes` leaves it out.
+    /// database, through the same `Double` and `Decimal` steps. Scheduled basal stays out, as
+    /// `pumpHistoryLast1440Minutes` leaves it out.
     static func historyEvents(_ event: NewPumpEvent, id: String, bolusIncrement: Decimal) -> [PumpHistoryEvent] {
         let timestamp = min(event.date, Date())
         switch event.type {
         case .bolus:
             guard let dose = event.dose else { return [] }
-            let increment = NSDecimalNumber(decimal: bolusIncrement).doubleValue
-            let amount = (dose.unitsInDeliverableIncrements / increment).rounded() * increment
             return [PumpHistoryEvent(
                 id: id,
                 type: .bolus,
                 timestamp: timestamp,
-                amount: Decimal(algorithmValue: amount),
+                amount: algorithmValue(storedBolus(dose, bolusIncrement: bolusIncrement)),
                 duration: 0,
                 isSMB: dose.automatic ?? true,
                 isExternal: dose.manuallyEntered
@@ -184,7 +195,7 @@ enum UntetheredAlgorithm {
                     id: rateID(id),
                     type: .tempBasal,
                     timestamp: timestamp,
-                    rate: Decimal(algorithmValue: dose.unitsPerHour),
+                    rate: algorithmValue(Decimal(dose.unitsPerHour)),
                     temp: .absolute
                 )
             ]
@@ -203,7 +214,17 @@ enum UntetheredAlgorithm {
         let timestamp = min(event.date, Date())
         switch event.type {
         case .bolus:
-            return historyEvents(event, id: id, bolusIncrement: bolusIncrement).first
+            // `getPumpHistory` reads the stored amount as it is
+            guard let dose = event.dose else { return nil }
+            return PumpHistoryEvent(
+                id: id,
+                type: .bolus,
+                timestamp: timestamp,
+                amount: storedBolus(dose, bolusIncrement: bolusIncrement),
+                duration: 0,
+                isSMB: dose.automatic ?? true,
+                isExternal: dose.manuallyEntered
+            )
         case .basal,
              .tempBasal:
             guard let dose = event.dose else { return nil }

@@ -1091,6 +1091,8 @@
 		BEFF8624F9C614B466DF20B6 /* TempTargetCalculations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49239B422EEA27AD00469145 /* TempTargetCalculations.swift */; };
 		C59BB00A1EAD1BA9C3229ECF /* ForecastGenerator+Forecasts.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD30B9CD2E062AA300DA677C /* ForecastGenerator+Forecasts.swift */; };
 		C61BF93A63804BE071D04789 /* UntetheredTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B34245E04814390E7536BC5D /* UntetheredTests.swift */; };
+		336BF83AC46756579D7DDFFA /* UntetheredPumpHistoryParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C9D3742188075FAB6535FDF /* UntetheredPumpHistoryParityTests.swift */; };
+		DD5FE13409741BDD93B7EFCC /* UntetheredParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28235655C8A6621A69BAAB68 /* UntetheredParityTests.swift */; };
 		C8B418741996FD85E05FBD86 /* String+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E98A3625F5509500C0CED0 /* String+Extensions.swift */; };
 		C8E03AC9821A5AD6C3E2389E /* DoubleApproximateMatching.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5F45B52D6A239000F70982 /* DoubleApproximateMatching.swift */; };
 		CB3DBDBC1D06884B40C7BD0F /* Basal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5CD2912D4AEA3C00CE213C /* Basal.swift */; };
@@ -2248,6 +2250,8 @@
 		7C393F93D669F4F89FA5ADCA /* UntetheredAlgorithm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UntetheredAlgorithm.swift; sourceTree = "<group>"; };
 		7A1E00D1C0FFEE0000000001 /* UntetheredPhoneState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UntetheredPhoneState.swift; sourceTree = "<group>"; };
 		B34245E04814390E7536BC5D /* UntetheredTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UntetheredTests.swift; sourceTree = "<group>"; };
+		6C9D3742188075FAB6535FDF /* UntetheredPumpHistoryParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UntetheredPumpHistoryParityTests.swift; sourceTree = "<group>"; };
+		28235655C8A6621A69BAAB68 /* UntetheredParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UntetheredParityTests.swift; sourceTree = "<group>"; };
 		D5ED52A29E0C748FDC7625AA /* UntetheredMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UntetheredMessage.swift; sourceTree = "<group>"; };
 		F8535A7C77C96A85512D5319 /* UntetheredWatchManager+Loop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UntetheredWatchManager+Loop.swift"; sourceTree = "<group>"; };
 		B448CF467188976CDCE24F8E /* GlucoseSmoothing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseSmoothing.swift; sourceTree = "<group>"; };
@@ -3568,6 +3572,7 @@
 			isa = PBXGroup;
 			children = (
 				B34245E04814390E7536BC5D /* UntetheredTests.swift */,
+				28235655C8A6621A69BAAB68 /* UntetheredParityTests.swift */,
 				3B1C5C3C2D68E269004E9273 /* json */,
 				FAB1E00000000000000000A0 /* Parity */,
 				3B1C5C3F2D68E269004E9273 /* utils */,
@@ -4103,6 +4108,7 @@
 			isa = PBXGroup;
 			children = (
 				BD8FC0562D66188700B95AED /* PumpHistoryStorageTests.swift */,
+				6C9D3742188075FAB6535FDF /* UntetheredPumpHistoryParityTests.swift */,
 				7A11AC0DE00000000000000C /* ScheduledBasalInferenceTests.swift */,
 				7A11AC0DE000000000000009 /* PumpEventFinalizationTests.swift */,
 				7A11AC0DE00000000000001D /* PumpEventPredicateTests.swift */,
@@ -6236,6 +6242,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C61BF93A63804BE071D04789 /* UntetheredTests.swift in Sources */,
+				DD5FE13409741BDD93B7EFCC /* UntetheredParityTests.swift in Sources */,
 				3B5CD2C92D4AECD500CE213C /* ProfileCarbsTests.swift in Sources */,
 				3BEDC9932EEB27B600AC6492 /* IobConsecutiveEventsTests.swift in Sources */,
 				3B1DB90F2E63C14C00BD814B /* DetermineBasalLowEventualGlucoseTests.swift in Sources */,
@@ -6253,6 +6260,7 @@
 				3BEF6AB32D97316F0076089D /* MealTotalTests.swift in Sources */,
 				3BEF6AB12D9731660076089D /* MealHistoryTests.swift in Sources */,
 				BD8FC0572D66188700B95AED /* PumpHistoryStorageTests.swift in Sources */,
+				336BF83AC46756579D7DDFFA /* UntetheredPumpHistoryParityTests.swift in Sources */,
 				7A11AC0DE00000000000010C /* ScheduledBasalInferenceTests.swift in Sources */,
 				7A11AC0DE000000000000109 /* PumpEventFinalizationTests.swift in Sources */,
 				7A11AC0DE00000000000011D /* PumpEventPredicateTests.swift in Sources */,
