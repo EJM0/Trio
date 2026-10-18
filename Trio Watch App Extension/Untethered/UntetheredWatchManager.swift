@@ -507,6 +507,15 @@ import WatchConnectivity
         saveCGMState()
     }
 
+    /// The phone's wake after its reading: the sensor is re-checked and the history goes, the phone being in reach.
+    func phoneWake() {
+        DispatchQueue.main.async {
+            guard self.isActive else { return }
+            self.recheckCGM()
+            self.streamRecords()
+        }
+    }
+
     /// Looking at the watch, the loop timer and Bluetooth wakes are the times no reading came: the sensor's
     /// acquisition puts itself right, and the loop and sensor alarms are checked.
     func recheckCGM() {

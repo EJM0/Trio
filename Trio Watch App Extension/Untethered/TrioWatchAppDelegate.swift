@@ -1,3 +1,4 @@
+import WatchConnectivity
 import WatchKit
 
 /// The pump and the CGM wake the app through Bluetooth; each wake is held long enough for one loop
@@ -12,6 +13,9 @@ final class TrioWatchAppDelegate: NSObject, WKApplicationDelegate {
     /// pairs. The rest are completed on arrival.
     private var heldBluetoothTask: WKRefreshBackgroundTask?
     private var heldSince: Date?
+    private var connectivityTasks: [WKWatchConnectivityRefreshBackgroundTask] = []
+    private var isWaitingForDelivery = false
+    private static let deliveryHold: TimeInterval = 20
 
     func handle(_ backgroundTasks: Set<WKRefreshBackgroundTask>) {
         // not always on main: a Bluetooth task can arrive on CoreBluetooth's queue, and all below is main-only
@@ -20,6 +24,10 @@ final class TrioWatchAppDelegate: NSObject, WKApplicationDelegate {
             return
         }
         for task in backgroundTasks {
+            if let task = task as? WKWatchConnectivityRefreshBackgroundTask {
+                holdUntilDelivered(task)
+                continue
+            }
             guard task is WKBluetoothAlertRefreshBackgroundTask else {
                 complete(task)
                 continue
@@ -47,6 +55,32 @@ final class TrioWatchAppDelegate: NSObject, WKApplicationDelegate {
             UntetheredWatchManager.shared.recheckCGM()
             DispatchQueue.main.asyncAfter(deadline: .now() + Self.bluetoothHold) { self.release(task) }
         }
+    }
+
+    /// A phone message woke the app: held until WatchConnectivity has delivered what it brought, so its callbacks run
+    /// before the app is suspended again, as LoopKit/Loop#2545 does. At most 20 s, and never past the system's expiry.
+    private func holdUntilDelivered(_ task: WKWatchConnectivityRefreshBackgroundTask) {
+        connectivityTasks.append(task)
+        task.expirationHandler = { [weak self, weak task] in
+            let expire = { if let task { self?.complete(task) } }
+            if Thread.isMainThread { expire() } else { DispatchQueue.main.sync(execute: expire) }
+        }
+        guard !isWaitingForDelivery else { return }
+        isWaitingForDelivery = true
+        waitForDelivery(since: Date())
+    }
+
+    private func waitForDelivery(since: Date) {
+        let session = WCSession.default
+        if session.activationState != .activated { session.activate() }
+        let delivered = session.activationState == .activated && !session.hasContentPending
+        guard delivered || Date().timeIntervalSince(since) >= Self.deliveryHold else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.waitForDelivery(since: since) }
+            return
+        }
+        connectivityTasks.forEach(complete)
+        connectivityTasks.removeAll()
+        isWaitingForDelivery = false
     }
 
     /// Ends a held wake, by the hold or by the system's expiry, whichever comes first.
