@@ -19,6 +19,8 @@ protocol PumpHistoryStorage {
     func getPumpHistoryNotYetUploadedToNightscout() async throws -> [NightscoutTreatment]
     func getPumpHistoryNotYetUploadedToHealth() async throws -> [PumpHistoryEvent]
     func getPumpHistoryNotYetUploadedToTidepool() async throws -> [PumpHistoryEvent]
+    /// Finalizes the doses still in flight that started after `date` (all of them without one), as programmed.
+    @discardableResult func keepInFlightDoses(startedAfter date: Date?) async throws -> Int
 }
 
 final class BasePumpHistoryStorage: PumpHistoryStorage, Injectable {
@@ -223,6 +225,30 @@ final class BasePumpHistoryStorage: PumpHistoryStorage, Injectable {
                 throw error
             }
             return purgedUploadedIds
+        }
+    }
+
+    /// The phone's doses in flight when the watch started without it, after the copy it started from: its pump manager
+    /// gave them away at the release, the watch never had them, so nobody would report them again and the take-back's
+    /// pending report would purge them (2026-10-18, a 6.65 U bolus). Kept as programmed; a bolus the watch can't
+    /// cancel runs to its end, a temp is cut short by the watch's next.
+    @discardableResult func keepInFlightDoses(startedAfter date: Date?) async throws -> Int {
+        let context = makeContext()
+        context.name = "keepInFlightDoses"
+        return try await context.perform {
+            let heldByWatch = UntetheredGate.state.watchPendingDoseIdentifiers
+            let request = PumpEventStored.fetchRequest() as NSFetchRequest<PumpEventStored>
+            request.predicate = date.map { NSPredicate(format: "isMutable == YES AND timestamp > %@", $0 as NSDate) }
+                ?? NSPredicate(format: "isMutable == YES")
+            let rows = try context.fetch(request).filter { !heldByWatch.contains($0.syncIdentifier ?? "") }
+            for row in rows {
+                row.isMutable = false
+                debug(.coreData, "Kept in-flight \(row.type ?? "?") \(row.syncIdentifier ?? row.id ?? "-") as programmed")
+            }
+            guard context.hasChanges else { return 0 }
+            try context.save()
+            self.updateSubject.send(())
+            return rows.count
         }
     }
 
