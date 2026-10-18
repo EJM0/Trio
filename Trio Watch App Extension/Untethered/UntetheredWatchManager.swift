@@ -687,12 +687,26 @@ import WatchConnectivity
     /// status page): ten seconds more for it, then the watch starts without it. Once per outage; the phone's next
     /// reading allows the next. Checked on each reading too, in case the timer didn't run in the background.
     func checkFallback(now: Date = Date()) {
+        // the screens' value, read afresh: a reachability change while the app was suspended never reached it, and the
+        // phone that left meanwhile still showed as nearby until the app was opened again
+        let reachable = WCSession.default.isReachable
+        if WatchState.shared.isReachable != reachable { WatchState.shared.isReachable = reachable }
         let phoneNewest = WatchState.shared.phoneNewestReading ?? .distantPast
         // the phone's reading of the same sensor arrives a little after the watch's own
         let missed = data.standbyGlucose.filter { $0.dateString > phoneNewest.addingTimeInterval(60) }.count
-        guard keepsStandbySensor, data.session.phase == .idle, !isBusy, !WatchState.shared.isReachable,
-              standingGrantAge != nil, missed >= Self.fallbackMissedReadings, fallbackTriedAfter != phoneNewest
-        else { return disarmFallback() }
+        guard missed >= Self.fallbackMissedReadings else { return disarmFallback() }
+        let blocker: String? = !keepsStandbySensor ? "fallback off"
+            : data.session.phase != .idle ? "session \(data.session.phase)"
+            : isBusy ? "busy"
+            : reachable ? "phone reachable"
+            : standingGrantAge == nil ? "no standing grant young enough"
+            : fallbackTriedAfter == phoneNewest ? "tried already this outage"
+            : nil
+        if let blocker {
+            disarmFallback()
+            Task { await WatchLogger.shared.log("⌚️ Untethered: \(missed) readings without the phone, no fallback: \(blocker)") }
+            return
+        }
         guard let armedAt = fallbackArmedAt else {
             fallbackArmedAt = now
             fallbackTimer = Timer.scheduledTimer(withTimeInterval: Self.fallbackGrace, repeats: false) { [weak self] _ in
