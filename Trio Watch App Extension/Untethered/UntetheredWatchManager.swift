@@ -52,6 +52,8 @@ import WatchConnectivity
         DispatchQueue.main.async {
             self.restoreDevices()
             self.updateTimers()
+            // what the last process handed over it can no longer follow; it goes once the phone link is up
+            self.requeueUnconfirmed(stream: false)
             // the saved state, background loops included, is on screen at once, not after the phone link is up
             if self.isActive { self.publishToWatchState() }
         }
@@ -640,6 +642,8 @@ import WatchConnectivity
     func streamRecords(ignoringSensor: Bool = false) {
         streamTimer?.invalidate()
         streamTimer = nil
+        // before activation nothing can go, not even queued: what left `unsent` now would never be sent
+        guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return }
         let paced = holdsSensorLink && !ignoringSensor
         if paced, let burst {
             let overdue = burst.startedAt.addingTimeInterval(Self.burstTimeout)
@@ -739,6 +743,13 @@ import WatchConnectivity
         streamTimer = Timer.scheduledTimer(withTimeInterval: max(1, date.timeIntervalSinceNow), repeats: false) {
             [weak self] _ in self?.streamRecords()
         }
+    }
+
+    /// Every version the phone hasn't confirmed goes again: after a relaunch, whose process lost the replies and
+    /// failures it waited for, and after a queued transfer failed. The phone stores each version once.
+    func requeueUnconfirmed(stream: Bool = true) {
+        store.update { $0.unsent = Set($0.pending.values.flatMap { $0.values.map(\.id) }) }
+        if stream { streamRecords() }
     }
 
     /// A batch that reached the phone neither way goes again with the next one, unless confirmed meanwhile.

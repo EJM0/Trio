@@ -1000,6 +1000,8 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
         debug(.watchManager, "📱 Phone session activated with state: \(activationState.rawValue)")
         debug(.watchManager, "📱 Phone isReachable after activation: \(session.isReachable)")
+        // a relaunch with the watch already in reach brings no reachability change: ask for the history here too
+        Task { @MainActor [untethered] in untethered?.reachabilityChanged() }
 
         // Try to send initial data after activation
         Task {

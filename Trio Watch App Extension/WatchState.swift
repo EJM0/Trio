@@ -299,6 +299,8 @@ import WatchConnectivity
         }
 
         forceConditionalWatchStateUpdate()
+        // a relaunch with the phone already in reach brings no reachability change: the history goes from here too
+        UntetheredWatchManager.shared.reachabilityChanged()
     }
 
     func refreshIfNeeded() {
@@ -593,6 +595,8 @@ import WatchConnectivity
 
     func session(_: WCSession, didFinish _: WCSessionUserInfoTransfer, error: (any Error)?) {
         if let error = error {
+            // untethered history among it would otherwise wait for the phone's next sync request
+            DispatchQueue.main.async { UntetheredWatchManager.shared.requeueUnconfirmed() }
             Task {
                 await WatchLogger.shared.log("⌚️ transferUserInfo failed with error: \(error)")
                 await WatchLogger.shared.log("⌚️ Saving logs to disk as fallback!")
