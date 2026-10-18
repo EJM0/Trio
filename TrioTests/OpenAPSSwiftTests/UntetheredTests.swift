@@ -206,6 +206,19 @@ import Testing
         #expect(watch.phase == .idle)
     }
 
+    @Test("end: the fallback's unanswered hand-back goes back to dosing; a late acknowledgement still lets go")
+    func unansweredFallbackHandback() {
+        var (_, watch) = started()
+        _ = watch.watch(.end, now: t0 + 100)
+        _ = watch.watch(.handbackReady(podStatus), now: t0 + 100)
+        #expect(watch.watch(.handbackUnanswered, now: t0 + 161) == [])
+        #expect(watch.phase == .active)
+        // nothing offered any more, the pod kept
+        #expect(watch.watch(.tick, now: t0 + 191) == [])
+        #expect(watch.watch(.received(.handbackAck, epoch: watch.epoch), now: t0 + 400) == [.releasePump])
+        #expect(watch.phase == .idle)
+    }
+
     @Test("end: the temp basal the watch cancelled at its handback is kept for the phone") func handbackTempBasal() {
         var (phone, watch) = started()
         let tempBasal = UntetheredTempBasal(unitsPerHour: 2.5, endsAt: t0 + 110)

@@ -656,8 +656,18 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         case .adjustmentCancelled,
              .dosingModeChanged,
              .revoke,
-             .statusQuery:
+             .statusQuery,
+             // a watch asleep in the background still hands back, and lets go, once it hears them
+             .endRequest,
+             .handbackAck:
             // queued as well: the watch must hear it whenever it comes back
+            if message.isResentUntilAnswered {
+                for transfer in session.outstandingUserInfoTransfers
+                    where (try? UntetheredEnvelope.decode(transfer.userInfo))?.message == message
+                {
+                    transfer.cancel()
+                }
+            }
             session.transferUserInfo(payload)
         case .recordsStored:
             session.transferUserInfo(payload)

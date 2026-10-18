@@ -38,6 +38,20 @@ enum UntetheredMessage: Codable, Equatable {
     case standingGrantRequest
 }
 
+extension UntetheredMessage {
+    /// Sent again and again until answered: queued, only the newest need wait.
+    var isResentUntilAnswered: Bool {
+        switch self {
+        case .endRequest,
+             .handback,
+             .handbackAck,
+             .standingGrantRequest,
+             .statusReport: return true
+        default: return false
+        }
+    }
+}
+
 enum UntetheredAdjustment: String, Codable {
     case override
     case tempTarget
