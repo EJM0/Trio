@@ -270,6 +270,63 @@ import Testing
         #expect(phone.forced)
     }
 
+    @Test("without phone: the watch starts on an epoch of its own, the phone stands aside on its word") func startWithoutPhone() {
+        var watch = UntetheredSession()
+        #expect(watch.watch(.startWithoutPhone, now: t0) == [.takeover])
+        #expect(watch.phase == .starting)
+        #expect(watch.startedWithoutPhone)
+        #expect(watch.epoch >= Int(t0.timeIntervalSince1970))
+        #expect(watch.watch(.takeoverSucceeded(podStatus), now: t0 + 30) == [.send(.takeoverComplete(podStatus))])
+
+        // its records may come first: the phone stands aside, and the start status follows
+        var phone = UntetheredSession()
+        #expect(phone.phone(.watchHoldsPump(epoch: watch.epoch, status: nil), now: t0 + 600) == [.releasePump])
+        #expect(phone.phase == .active)
+        #expect(phone.epoch == watch.epoch)
+        #expect(phone.startedWithoutPhone)
+        #expect(phone.phone(.watchHoldsPump(epoch: watch.epoch, status: podStatus), now: t0 + 601) == [])
+        #expect(phone.phone(.received(.takeoverComplete(podStatus), epoch: watch.epoch), now: t0 + 602) == [])
+        #expect(phone.startStatus == podStatus)
+
+        // an older session's word changes nothing
+        var newer = UntetheredSession()
+        _ = newer.phone(.watchHoldsPump(epoch: watch.epoch, status: podStatus), now: t0)
+        var stale = newer
+        _ = stale.phone(.forceTakeBack, now: t0 + 1)
+        #expect(stale.phone(.watchHoldsPump(epoch: watch.epoch - 1, status: podStatus), now: t0 + 2) == [])
+    }
+
+    @Test("without phone: a pod out of reach for five minutes ends the start") func startWithoutPhoneTimeout() {
+        var watch = UntetheredSession()
+        _ = watch.watch(.startWithoutPhone, now: t0)
+        #expect(watch.watch(.tick, now: t0 + 60) == [])
+        let effects = watch.watch(.tick, now: t0 + UntetheredSession.takeoverWithoutPhoneLease + 1)
+        #expect(effects.first == .releasePump)
+        #expect(watch.phase == .idle)
+    }
+
+    @Test("without phone: what the pod delivered past the copy's history is booked") func unexplainedSinceCopy() {
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let midnight = utc.startOfDay(for: t0)
+        let profile = [BasalProfileEntry(start: "00:00", minutes: 0, rate: 0.4)]
+        func unexplained(_ podUnits: Double, at hours: Double = 1) -> Decimal? {
+            UntetheredAudit.unexplainedSinceCopy(
+                copyUnits: 10,
+                copyAt: midnight,
+                podUnits: podUnits,
+                podAt: midnight.addingTimeInterval(hours * 60 * 60),
+                history: [],
+                basalProfile: profile,
+                calendar: utc
+            )
+        }
+        // 1.0 U delivered, 0.4 U of it the scheduled basal
+        #expect(unexplained(11).map { abs(NSDecimalNumber(decimal: $0 - 0.6).doubleValue) < 0.0001 } == true)
+        #expect(unexplained(10.45) == nil)
+        #expect(unexplained(11, at: -1) == nil)
+    }
+
     @Test("a relaunch restores the session") func persistence() throws {
         let (phone, _) = started()
         let data = try JSONEncoder().encode(phone)

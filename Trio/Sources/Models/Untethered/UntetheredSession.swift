@@ -36,6 +36,8 @@ struct UntetheredSession: Codable, Equatable {
         case end
         case forceTakeBack
         case tick
+        /// The watch reports the pump for a newer session the phone never granted: it started without the phone.
+        case watchHoldsPump(epoch: Int, status: UntetheredPodStatus?)
     }
 
     enum WatchEvent: Equatable {
@@ -48,9 +50,13 @@ struct UntetheredSession: Codable, Equatable {
         case handbackReady(UntetheredPodStatus?)
         case emergencyStop(UntetheredPodStatus?)
         case tick
+        /// From the standing grant, with the phone out of reach.
+        case startWithoutPhone
     }
 
     static let prepareTimeout: TimeInterval = 15
+    /// A start without the phone has this long to reach the pump.
+    static let takeoverWithoutPhoneLease: TimeInterval = 5 * 60
     /// After the lease the phone asks once whether the watch holds the pump.
     static let statusQueryGrace: TimeInterval = 10
 
@@ -68,6 +74,8 @@ struct UntetheredSession: Codable, Equatable {
     private(set) var linkedOverrideID: String?
     /// The last session ended by an emergency stop or a take-back.
     private(set) var forced = false
+    /// The watch started it from the standing grant, without the phone.
+    private(set) var startedWithoutPhone = false
     /// Watch: the pump as offered to the phone, resent until acknowledged.
     private(set) var handbackStatus: UntetheredPodStatus??
     /// Watch: when the hand-back was offered; the pod is held until the phone acknowledges, or this long at most.
@@ -92,7 +100,19 @@ struct UntetheredSession: Codable, Equatable {
             linkedOverrideID = grant.linkedOverrideID
             return [.send(.prepare(grant))]
 
+        // the phone stands aside on the watch's word, never on evidence from the pod (LoopKit/Loop#2545)
+        case let (.idle, .watchHoldsPump(watchEpoch, status)) where watchEpoch > epoch:
+            self = UntetheredSession(phase: .active, epoch: watchEpoch)
+            startStatus = status
+            startedWithoutPhone = true
+            return [.releasePump]
+
         case let (_, .received(_, messageEpoch)) where messageEpoch != epoch:
+            return []
+
+        // adopted from the watch's records before its takeover report: the audit counts from that report
+        case let (.active, .received(.takeoverComplete(status), _)) where startStatus == nil:
+            startStatus = status
             return []
 
         case (.preparing, .received(.prepared, _)):
@@ -181,6 +201,13 @@ struct UntetheredSession: Codable, Equatable {
 
         case (_, .received(.prepare, _)):
             return [.send(.rejected(reason: String(localized: "The watch is still running an earlier untethered session.")))]
+
+        case (.idle, .startWithoutPhone):
+            // seconds since 1970, as the phone's: newer than any session it granted
+            self = UntetheredSession(phase: .starting, epoch: max(epoch + 1, Int(now.timeIntervalSince1970)))
+            leaseExpiresAt = now.addingTimeInterval(Self.takeoverWithoutPhoneLease)
+            startedWithoutPhone = true
+            return [.takeover]
 
         case let (_, .received(_, messageEpoch)) where messageEpoch != epoch:
             return []

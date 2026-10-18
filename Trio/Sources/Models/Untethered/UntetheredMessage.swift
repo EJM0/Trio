@@ -29,6 +29,9 @@ enum UntetheredMessage: Codable, Equatable {
     case startRefused(reason: String)
     /// Cancelled on the phone: the override or temp target that started at `start` ends at `at` on the watch too.
     case adjustmentCancelled(UntetheredAdjustment, start: Date, at: Date)
+    /// The grant the watch starts from without the phone: issued expired while the phone has the pump, refreshed
+    /// as the phone doses and its settings change. Only the newest is kept.
+    case standingGrant(UntetheredGrant, issuedAt: Date)
 }
 
 enum UntetheredAdjustment: String, Codable {

@@ -11,6 +11,7 @@ extension Color {
 struct UntetheredStatusView: View {
     let manager: UntetheredWatchManager
     @State private var confirmEnd = false
+    @State private var confirmStartWithoutPhone = false
     @State private var phoneUnreachable = false
     @State private var confirmStop = false
     @State private var confirmDeactivate = false
@@ -45,6 +46,12 @@ struct UntetheredStatusView: View {
         }
         .confirmationDialog("Hand the pump back to the phone?", isPresented: $confirmEnd) {
             Button("Hand Back") { manager.end() }
+        }
+        .confirmationDialog(
+            "Start from the phone's copy of \(Int((manager.standingGrantAge ?? 0) / 60)) min ago? Only if the phone is off or out of reach; it stops dosing once it hears from the watch.",
+            isPresented: $confirmStartWithoutPhone
+        ) {
+            Button("Start Without Phone") { manager.startWithoutPhone() }
         }
         .alert("Phone Not Reachable", isPresented: $phoneUnreachable) {
             Button("OK", role: .cancel) {}
@@ -241,6 +248,12 @@ struct UntetheredStatusView: View {
                 .disabled(!isPhoneReachable)
                 if !isPhoneReachable {
                     note("Starts with the phone nearby and Trio open on it.")
+                    if manager.standingGrantAge != nil {
+                        Button { confirmStartWithoutPhone = true } label: {
+                            Label("Start Without Phone", systemImage: "iphone.slash")
+                        }
+                        .tint(.untethered)
+                    }
                 }
             case .active where data.podEnded:
                 Button { whenPhoneReachable { manager.end() } } label: {

@@ -14,6 +14,24 @@ enum UntetheredAudit {
         case overstated(Decimal)
     }
 
+    /// At a start without the phone: what the pod delivered since the standing grant's copy that its history and the
+    /// schedule don't explain, the phone having dosed on after the copy went. Nil within the tolerance, or without
+    /// both readings. The amount is right, its time is not: booked as now, IOB errs high and dosing low.
+    static func unexplainedSinceCopy(
+        copyUnits: Double?,
+        copyAt: Date,
+        podUnits: Double?,
+        podAt: Date,
+        history: [PumpHistoryEvent],
+        basalProfile: [BasalProfileEntry],
+        calendar: Calendar = .current
+    ) -> Decimal? {
+        guard let copyUnits, let podUnits, podAt > copyAt, podUnits >= copyUnits else { return nil }
+        let expected = expectedDelivery(from: copyAt, to: podAt, history: history, basalProfile: basalProfile, calendar: calendar)
+        guard case let .unrecorded(units) = verdict(delivered: Decimal(podUnits - copyUnits), expected: expected) else { return nil }
+        return units
+    }
+
     static func verdict(delivered: Decimal, expected: Decimal) -> Verdict {
         let unexplained = delivered - expected
         if unexplained > tolerance { return .unrecorded(unexplained) }

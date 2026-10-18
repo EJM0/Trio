@@ -122,6 +122,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     @Injected() private var pumpHistoryStorage: PumpHistoryStorage!
     @Injected() private var adjustmentManager: AdjustmentManager!
     @Injected() private var determinationStorage: DeterminationStorage!
+    @Injected() private var broadcaster: Broadcaster!
     @Injected() private var nightscoutManager: NightscoutManager!
     @Injected() private var healthkitManager: HealthKitManager!
     @Injected() private var tidepoolManager: TidepoolManager!
@@ -173,6 +174,21 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.scheduleWatchWake() }
             .store(in: &subscriptions)
+        Publishers.Merge3(
+            apsManager.lastLoopDateSubject.map { _ in () },
+            carbsStorage.updatePublisher,
+            pumpHistoryStorage.updatePublisher
+        )
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] _ in self?.scheduleStandingGrant() }
+        .store(in: &subscriptions)
+        broadcaster.register(SettingsObserver.self, observer: self)
+        broadcaster.register(PreferencesObserver.self, observer: self)
+        broadcaster.register(PumpSettingsObserver.self, observer: self)
+        broadcaster.register(BasalProfileObserver.self, observer: self)
+        broadcaster.register(InsulinSensitivitiesObserver.self, observer: self)
+        broadcaster.register(CarbRatiosObserver.self, observer: self)
+        broadcaster.register(BGTargetsObserver.self, observer: self)
         Task { @MainActor in
             await self.forwardCancellations()
             if self.state.pumpReturnPending { await self.finishPumpReturn() }
@@ -203,6 +219,73 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             try? session.updateApplicationContext([WatchMessageKeys.untetheredWake: Date().timeIntervalSince1970])
         }
     }
+
+    // MARK: - Standing grant
+
+    /// Changes come in bursts (a loop stores its temp, a meal its carbs and bolus): one grant after them.
+    private static let standingGrantFloor: TimeInterval = 30
+    /// Sent at least this often, so its glucose stays young enough to start from.
+    private static let standingGrantInterval: TimeInterval = 30 * 60
+    private static let standingGrantMarker = "untetheredStandingGrant"
+    private var standingGrantTask: Task<Void, Never>?
+    private var standingGrantSentAt: Date?
+    private var standingGrantFingerprint: Int?
+    /// The settings changed: sent whatever the fingerprint says.
+    private var standingGrantSettingsChanged = false
+
+    /// The observers call from their own queues.
+    private func scheduleStandingGrant(settingsChanged: Bool = false) {
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { self.scheduleStandingGrant(settingsChanged: settingsChanged) }
+            return
+        }
+        if settingsChanged { standingGrantSettingsChanged = true }
+        guard standingGrantTask == nil else { return }
+        standingGrantTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(Self.standingGrantFloor * 1_000_000_000))
+            await self?.sendStandingGrant()
+            self?.standingGrantTask = nil
+        }
+    }
+
+    /// While the phone has the pump, the grant the watch starts from without it (LoopKit/Loop#2545): issued expired,
+    /// so it never starts a session on its own, and resent as the settings, carbs or doses change. Only the newest
+    /// stays queued.
+    @MainActor private func sendStandingGrant() async {
+        let session = WCSession.default
+        guard UntetheredGate.phoneMayDose, WCSession.isSupported(), session.activationState == .activated,
+              session.isWatchAppInstalled, (apsManager.pumpManager as? ExclusiveDeviceControl)?.isControlReleased == false
+        else { return }
+        guard let grant = try? await makeGrant(linkedOverrideID: nil, leaseLength: 0) else { return }
+        // what a start would miss most: carbs, boluses and adjustments; temps and readings wait for the interval
+        let encoder = JSONEncoder()
+        var hasher = Hasher()
+        for part in [
+            try? encoder.encode(grant.carbs), try? encoder.encode(grant.tempTargets),
+            try? encoder.encode(grant.activeOverride),
+            try? encoder.encode(grant.tddPumpHistory.filter { $0.type == .bolus }.map(\.id))
+        ] {
+            hasher.combine(part)
+        }
+        let fingerprint = hasher.finalize()
+        let now = Date()
+        guard standingGrantSettingsChanged || fingerprint != standingGrantFingerprint
+            || now.timeIntervalSince(standingGrantSentAt ?? .distantPast) >= Self.standingGrantInterval,
+            UntetheredGate.phoneMayDose,
+            var payload = try? UntetheredEnvelope(epoch: state.session.epoch, message: .standingGrant(grant, issuedAt: now))
+            .payload()
+        else { return }
+        payload[Self.standingGrantMarker] = true
+        for transfer in session.outstandingUserInfoTransfers where transfer.userInfo[Self.standingGrantMarker] != nil {
+            transfer.cancel()
+        }
+        session.transferUserInfo(payload)
+        standingGrantSettingsChanged = false
+        standingGrantFingerprint = fingerprint
+        standingGrantSentAt = now
+        debug(.watchManager, "Untethered: standing grant sent")
+    }
+
     /// The start reads the pump before it offers it: the toggle shows a spinner meanwhile.
     @Published private(set) var isCheckingDevices = false
     /// A take-back reaching for the pod before it tells the watch.
@@ -303,6 +386,19 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             return
         }
         Task { @MainActor in
+            // a session the watch started without the phone: taken on before its records are stored, which would
+            // otherwise be confirmed and dropped as a finished session's. Queued messages arrive in order, so its
+            // end comes after.
+            if self.state.session.isIdle, envelope.epoch > self.state.session.epoch {
+                switch envelope.message {
+                case let .statusReport(holding: .some(status)),
+                     let .takeoverComplete(status):
+                    await self.apply(.watchHoldsPump(epoch: envelope.epoch, status: status))
+                case .records:
+                    await self.apply(.watchHoldsPump(epoch: envelope.epoch, status: nil))
+                default: break
+                }
+            }
             switch envelope.message {
             case let .records(records):
                 let stored = await self.ingest(records, epoch: envelope.epoch)
@@ -384,8 +480,15 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 requestSync(epoch: epoch)
             case let .failed(reason):
                 setError(reason)
+            case .releasePump:
+                // the watch started without the phone and has the pod: the phone stops reaching for it
+                for _ in 0 ..< 60 where apsManager.isLooping.value {
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                }
+                (apsManager.pumpManager as? ExclusiveDeviceControl)?.releaseControl()
+                UntetheredGate.update { $0.pumpReturnPending = false }
+                setError(String(localized: "The watch started without the phone; the phone stopped dosing."))
             case .handback,
-                 .releasePump,
                  .takeover:
                 break
             }
@@ -541,7 +644,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         }
     }
 
-    private func makeGrant(linkedOverrideID: String?) async throws -> UntetheredGrant {
+    private func makeGrant(linkedOverrideID: String?, leaseLength: TimeInterval = UntetheredPhoneManager.leaseLength) async throws -> UntetheredGrant {
         guard let pump = apsManager.pumpManager as? ExclusiveDeviceControl,
               let cgm = fetchGlucoseManager.cgmManager as? DeviceConfigurationSharing
         else { throw UntetheredError.unavailable(String(localized: "The pump or CGM can't be handed to the watch.")) }
@@ -595,7 +698,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         }
 
         return UntetheredGrant(
-            leaseExpiresAt: now.addingTimeInterval(Self.leaseLength),
+            leaseExpiresAt: now.addingTimeInterval(leaseLength),
             pumpConfiguration: try Self.plist(pump.exportConfiguration()),
             cgmConfiguration: try Self.plist(cgm.exportConfiguration()),
             pumpSettings: settingsManager.pumpSettings,
@@ -665,6 +768,11 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         let pump = apsManager.pumpManager as? ExclusiveDeviceControl
         let configuration = pump.flatMap { try? Self.plist($0.exportConfiguration()) }
         pump?.releaseControl()
+        for transfer in WCSession.default.outstandingUserInfoTransfers
+            where transfer.userInfo[Self.standingGrantMarker] != nil
+        {
+            transfer.cancel()
+        }
         debug(.watchManager, "Untethered: pump released to the watch")
         if let tempBasal { debug(.watchManager, "Untethered: temp basal \(tempBasal.unitsPerHour) U/h handed to the watch") }
         return UntetheredHandover(pumpConfiguration: configuration, tempBasal: tempBasal)
@@ -1267,4 +1375,17 @@ private extension TempTargetStored {
 private extension Date {
     /// Whole seconds: dates that went through JSON and Core Data compare equal.
     var rounded: Date { Date(timeIntervalSince1970: timeIntervalSince1970.rounded()) }
+}
+
+// The standing grant follows the settings it carries.
+extension UntetheredPhoneManager: SettingsObserver, PreferencesObserver, PumpSettingsObserver, BasalProfileObserver,
+    InsulinSensitivitiesObserver, CarbRatiosObserver, BGTargetsObserver
+{
+    func settingsDidChange(_: TrioSettings) { scheduleStandingGrant(settingsChanged: true) }
+    func preferencesDidChange(_: Preferences) { scheduleStandingGrant(settingsChanged: true) }
+    func pumpSettingsDidChange(_: PumpSettings) { scheduleStandingGrant(settingsChanged: true) }
+    func basalProfileDidChange(_: [BasalProfileEntry]) { scheduleStandingGrant(settingsChanged: true) }
+    func insulinSensitivitiesDidChange(_: InsulinSensitivities) { scheduleStandingGrant(settingsChanged: true) }
+    func carbRatiosDidChange(_: CarbRatios) { scheduleStandingGrant(settingsChanged: true) }
+    func bgTargetsDidChange(_: BGTargets) { scheduleStandingGrant(settingsChanged: true) }
 }

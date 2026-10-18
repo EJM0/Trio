@@ -147,6 +147,16 @@ import WatchConnectivity
                 if $0.session.phase == .starting, $0.session.epoch == envelope.epoch { $0.handover = handover }
             }
 
+        case let .standingGrant(grant, issuedAt):
+            replyHandler?([:])
+            // a late copy from before a session would miss what the session dosed
+            guard data.session.phase == .idle else { return }
+            store.update {
+                $0.standingGrant = grant
+                $0.standingGrantIssuedAt = issuedAt
+            }
+            refresh()
+
         case let .startRefused(reason):
             replyHandler?([:])
             isBusy = false
@@ -179,6 +189,7 @@ import WatchConnectivity
             if self.data.session.phase == .ending { self.apply(.tick) }
             // the phone pairs the next pod
             if self.data.podEnded, self.data.session.phase == .active { self.end() }
+            self.notePhoneReturn()
             self.checkLinkedOverride()
         }
     }
@@ -234,6 +245,9 @@ import WatchConnectivity
         data.lastError = nil
         data.pendingPumpAlerts = []
         data.podEnded = false
+        // from before this session: its pod state and history miss what the session doses
+        data.standingGrant = nil
+        data.standingGrantIssuedAt = nil
     }
 
     // MARK: - State machine
@@ -409,6 +423,8 @@ import WatchConnectivity
             defer { self.isBusy = false }
             while self.data.session.phase == .starting, self.data.session.epoch == epoch {
                 if let status = await self.readPump(pump) {
+                    // before the first loop, which must count what the phone dosed after its copy
+                    if self.data.session.startedWithoutPhone { self.bookUnexplainedSinceCopy(status) }
                     // the phone's last loop stays on screen; the next CGM reading starts the watch's own
                     self.apply(.takeoverSucceeded(status))
                     return
@@ -577,6 +593,77 @@ import WatchConnectivity
                 self.streamRecords()
             }
         }
+    }
+
+    // MARK: - Starting without the phone
+
+    /// The standing grant's age, while one is stored and young enough to start from: older than insulin's action time
+    /// its history has too large a gap, and what the pod delivered meanwhile too much to book as one dose.
+    var standingGrantAge: TimeInterval? {
+        guard let grant = data.standingGrant, let issuedAt = data.standingGrantIssuedAt, rejection(of: grant) == nil
+        else { return nil }
+        let age = Date().timeIntervalSince(issuedAt)
+        let actionTime = NSDecimalNumber(decimal: grant.pumpSettings.insulinActionCurve).doubleValue * 60 * 60
+        return age < actionTime ? age : nil
+    }
+
+    /// With the phone off or out of reach, from the phone's standing grant: the ordinary takeover, with a fresh lease
+    /// and an epoch of the watch's own. The phone stands aside once it hears from the watch. As LoopKit/Loop#2545.
+    func startWithoutPhone() {
+        guard data.session.phase == .idle, !isBusy, !WCSession.default.isReachable, standingGrantAge != nil,
+              let grant = data.standingGrant
+        else { return }
+        setError(nil)
+        Task { await WatchLogger.shared.log("⌚️ Untethered: starting without the phone", force: true) }
+        apply(.startWithoutPhone) {
+            guard $0.session.phase == .starting else { return }
+            Self.seed(&$0, with: grant)
+            // the standing grant's pump, not an earlier session's hand-over
+            $0.handover = nil
+            $0.phoneReturnNoted = false
+        }
+    }
+
+    /// What the pod delivered since the standing grant's copy that its history can't explain, booked as a bolus in
+    /// the watch's own history only: the phone has the real records of it.
+    private func bookUnexplainedSinceCopy(_ status: UntetheredPodStatus) {
+        guard let grant = data.grant, let copy = Self.configuration(grant.pumpConfiguration),
+              let units = UntetheredAudit.unexplainedSinceCopy(
+                  copyUnits: copy.deliveredUnits,
+                  copyAt: copy.asOf,
+                  podUnits: status.deliveredUnits,
+                  podAt: status.date,
+                  history: grant.tddPumpHistory,
+                  basalProfile: grant.basalProfile
+              )
+        else { return }
+        let epoch = data.session.epoch
+        store.update {
+            $0.pumpHistory.append(PumpHistoryEvent(
+                id: "untethered-copy-gap-\(epoch)",
+                type: .bolus,
+                timestamp: status.date,
+                amount: units,
+                duration: 0,
+                isSMB: false,
+                isExternal: false
+            ))
+        }
+        Task { await WatchLogger.shared.log("⌚️ Untethered: \(units) U the standing grant had no record of, counted as a bolus", force: true) }
+    }
+
+    /// The phone back during a session started without it: told at once that the watch has the pump, so it stops
+    /// dosing; the wrist is asked once whether to hand back. Never handed back on its own.
+    private func notePhoneReturn() {
+        guard isActive, data.session.startedWithoutPhone, WCSession.default.isReachable else { return }
+        send(.statusReport(holding: data.session.startStatus), epoch: data.session.epoch)
+        guard !data.phoneReturnNoted else { return }
+        store.update { $0.phoneReturnNoted = true }
+        notify(
+            id: "untethered.phoneBack",
+            title: String(localized: "iPhone Is Back"),
+            body: String(localized: "The watch still has the pump. Hand back on its status page when you're ready.")
+        )
     }
 
     // MARK: - Starting from the wrist
