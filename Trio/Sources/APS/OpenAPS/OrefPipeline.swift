@@ -80,6 +80,37 @@ enum OrefPipeline {
         return adjusted
     }
 
+    /// The preferences determineBasal runs with: clamped for the dosing mode, and no dynamic formula without
+    /// enough TDD for it.
+    static func determinationPreferences(
+        _ preferences: Preferences,
+        dosingMode: DosingMode,
+        hasSufficientTDD: Bool
+    ) -> Preferences {
+        var adjusted = preferences.clamped(for: dosingMode)
+        if !hasSufficientTDD, adjusted.useNewFormula || (adjusted.useNewFormula && adjusted.sigmoid) {
+            adjusted.useNewFormula = false
+            adjusted.sigmoid = false
+        }
+        return adjusted
+    }
+
+    /// Pump capability and the dosing mode, injected into the profile rather than persisted.
+    static func prepareForDosing(_ profile: inout Profile, supportedBasalRates: [Decimal], dosingMode: DosingMode) {
+        profile.supportedBasalRates = supportedBasalRates
+        profile.suspendOnly = dosingMode.automation == .hypoSuspendOnly
+    }
+
+    /// The glucose determineBasal reads: the longest meal absorption plus half an hour.
+    static func glucoseHours(_ preferences: Preferences) -> Decimal {
+        preferences.maxMealAbsorptionTime + 0.5
+    }
+
+    /// Autosens runs again once its last result is half an hour old.
+    static func autosensIsCurrent(_ autosens: Autosens?, now: Date) -> Bool {
+        (autosens?.timestamp ?? .distantPast).addingTimeInterval(30 * 60) > now
+    }
+
     static func iob(
         pumpHistory: [PumpHistoryEvent],
         profile: Profile,

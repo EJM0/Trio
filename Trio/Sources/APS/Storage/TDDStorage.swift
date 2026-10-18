@@ -200,24 +200,17 @@ final class BaseTDDStorage: TDDStorage, Injectable {
             let recent = try Self.aggregateTDD(from: twoHoursAgo, in: context)
             let historical = try Self.aggregateTDD(from: tenDaysAgo, in: context)
 
-            // Extract into locals so SwiftFormat's isEmpty rule doesn't
-            // mis-rewrite the tuple member access into `!tuple.isEmpty`
-            let historicalCount = historical.count
-            let recentCount = recent.count
-            guard historicalCount > 0 else { return 0 }
-
-            let averageTDDLastTwoHours = recent.total / max(Decimal(recentCount), 1)
-            let averageTDDLastTenDays = historical.total / Decimal(historicalCount)
-
             // Get weight percentage from preferences (default 0.65 if not set)
             let userPreferences = self.storage.retrieve(OpenAPS.Settings.preferences, as: Preferences.self)
             let weightPercentage = userPreferences?.weightPercentage ?? Decimal(0.65) // why is this 1 as default in trio-oref??
 
-            // weightedTDD = (weightPercentage × recent_average) + ((1 - weightPercentage) × historical_average)
-            let weightedTDD = weightPercentage * averageTDDLastTwoHours +
-                (1 - weightPercentage) * averageTDDLastTenDays
-
-            return weightedTDD.truncated(toPlaces: 3)
+            return TDDCalculator.weightedAverage(
+                recentTotal: recent.total,
+                recentCount: recent.count,
+                tenDayTotal: historical.total,
+                tenDayCount: historical.count,
+                weight: weightPercentage
+            )
         }
     }
 
@@ -279,8 +272,7 @@ final class BaseTDDStorage: TDDStorage, Injectable {
             fetchRequest.resultType = .countResultType
 
             let count = try context.count(for: fetchRequest)
-            let threshold = Int(Double(7 * 288) * 0.75)
-            return count >= threshold
+            return count >= TDDCalculator.sufficientRowCount
         }
     }
 }

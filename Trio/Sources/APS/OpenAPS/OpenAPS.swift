@@ -271,12 +271,10 @@ final class OpenAPS {
         )
 
         // second, independent read into the algorithm; needs the same clamp as the profile
-        var preferences = (await storage.retrieveAsync(OpenAPS.Settings.preferences, as: Preferences.self) ?? Preferences())
-            .clamped(for: dosingMode)
-        let glucoseFetchHours = preferences.maxMealAbsorptionTime + 0.5 // MMAT + half hour buffer
+        let storedPreferences = await storage.retrieveAsync(OpenAPS.Settings.preferences, as: Preferences.self) ?? Preferences()
         async let glucoseFetch = glucoseStorage.getGlucoseForAlgorithm(
             shouldSmoothGlucose: shouldSmoothGlucose,
-            fetchHours: glucoseFetchHours
+            fetchHours: OrefPipeline.glucoseHours(storedPreferences)
         )
 
         async let prepareTrioCustomOrefVariables = prepareTrioCustomOrefVariables(on: context)
@@ -311,10 +309,9 @@ final class OpenAPS {
 
         // Decode the JSON-at-rest inputs into native models at the call boundary.
         var profile = try JSONBridge.profile(from: rawProfile)
-        // pump capability is injected here rather than persisted, so it can never go stale
-        profile.supportedBasalRates = supportedBasalRates
-        // derived here, not baked into profile.json, which the JS parity goldens compare
-        profile.suspendOnly = dosingMode.automation == .hypoSuspendOnly
+        // injected here rather than baked into profile.json, so it can never go stale and the JS parity goldens
+        // compare what they always did
+        OrefPipeline.prepareForDosing(&profile, supportedBasalRates: supportedBasalRates, dosingMode: dosingMode)
         let basalProfile = try JSONBridge.basalProfile(from: rawBasalProfile)
         let autosens = try JSONBridge.autosens(from: rawAutosens.isEmpty ? .null : rawAutosens)
         let reservoir = Decimal(string: rawReservoir) ?? 100
@@ -343,11 +340,11 @@ final class OpenAPS {
             storage.save(iob, as: Monitor.iob)
         }
 
-        if !hasSufficientTdd, preferences.useNewFormula || (preferences.useNewFormula && preferences.sigmoid) {
-            debug(.openAPS, "Insufficient TDD for dynamic formula; disabling for determine basal run.")
-            preferences.useNewFormula = false
-            preferences.sigmoid = false
-        }
+        let preferences = OrefPipeline.determinationPreferences(
+            storedPreferences,
+            dosingMode: dosingMode,
+            hasSufficientTDD: hasSufficientTdd
+        )
 
         // Determine basal
         let orefDetermination = try OrefPipeline.determineBasal(
