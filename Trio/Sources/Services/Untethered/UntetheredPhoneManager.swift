@@ -423,6 +423,12 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             if self.state.session.isIdle || self.state.session.phase == .starting,
                envelope.epoch > self.state.session.epoch
             {
+                let unknownWatchSince = self.state.session.unknownWatchSince
+                defer {
+                    if let unknownWatchSince, self.state.session.epoch == envelope.epoch {
+                        Task { await self.adoptProvisionalAudit(of: unknownWatchSince, epoch: envelope.epoch) }
+                    }
+                }
                 switch envelope.message {
                 case let .statusReport(holding: .some(status)),
                      let .takeoverComplete(status):
@@ -618,7 +624,8 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         switch message {
         case .adjustmentCancelled,
              .dosingModeChanged,
-             .revoke:
+             .revoke,
+             .statusQuery:
             // queued as well: the watch must hear it whenever it comes back
             session.transferUserInfo(payload)
         case .recordsStored:
@@ -998,14 +1005,35 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         guard let start = session.startStatus, let startUnits = start.deliveredUnits,
               let current = odometer.deliveredUnits
         else { return }
+        // after a silent watch, booked under an epoch of its own until the watch's records say what it delivered
+        let provisional = session.unknownWatchSince.map { Self.provisionalEpoch($0) }
         let point = UntetheredAuditPoint(
-            epoch: session.epoch,
+            epoch: provisional ?? session.epoch,
             start: start.date,
             startUnits: startUnits,
             end: current.at,
             endUnits: current.units
         )
-        await judge(point, historyComplete: state.applied[session.epoch] == nil)
+        await judge(point, historyComplete: provisional == nil && state.applied[session.epoch] == nil)
+    }
+
+    private static func provisionalEpoch(_ since: Date) -> Int { Int(since.timeIntervalSince1970) }
+
+    /// The silent watch spoke: its booking moves to its epoch and is judged again once its history is in.
+    @MainActor private func adoptProvisionalAudit(of since: Date, epoch: Int) async {
+        let provisional = Self.provisionalEpoch(since)
+        guard let point = state.audit, point.epoch == provisional else { return }
+        await removeGap(epoch: provisional)
+        await judge(
+            UntetheredAuditPoint(
+                epoch: epoch,
+                start: point.start,
+                startUnits: point.startUnits,
+                end: point.end,
+                endUnits: point.endUnits
+            ),
+            historyComplete: false
+        )
     }
 
     /// Judges the span between the pump's two readings against the history as it is now.

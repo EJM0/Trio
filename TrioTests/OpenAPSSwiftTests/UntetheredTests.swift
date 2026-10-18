@@ -296,6 +296,32 @@ import Testing
         #expect(stale.phone(.watchHoldsPump(epoch: watch.epoch - 1, status: podStatus), now: t0 + 2) == [])
     }
 
+    @Test("foreign session: a silent watch loses the pod, and ends once it speaks") func foreignSessionSilentWatch() {
+        var phone = UntetheredSession()
+        #expect(phone.phone(.foreignSessionDetected(podStatus), now: t0) == [.send(.statusQuery)])
+        #expect(!phone.isIdle)
+        let deadline = UntetheredSession.statusQueryGrace + UntetheredSession.statusQueryResponseTimeout
+        #expect(phone.phone(.tick, now: t0 + deadline - 1) == [])
+        #expect(phone.phone(.tick, now: t0 + deadline + 1) == [.takePump])
+        #expect(phone.isIdle)
+        #expect(phone.unknownWatchSince != nil)
+
+        // the watch, started without the phone, reports later: it is told to stop and its history comes over
+        var watch = UntetheredSession()
+        _ = watch.watch(.startWithoutPhone, now: t0)
+        _ = watch.watch(.takeoverSucceeded(podStatus), now: t0 + 30)
+        #expect(phone.phone(.watchHoldsPump(epoch: watch.epoch, status: podStatus), now: t0 + 600) == [
+            .send(.revoke),
+            .reconcile
+        ])
+        #expect(phone.isIdle)
+        #expect(phone.epoch == watch.epoch)
+        #expect(phone.forced)
+        #expect(phone.unknownWatchSince == nil)
+        #expect(watch.watch(.received(.revoke, epoch: phone.epoch), now: t0 + 601) == [.releasePump])
+        #expect(watch.isIdle)
+    }
+
     @Test("without phone: a pod out of reach for five minutes ends the start") func startWithoutPhoneTimeout() {
         var watch = UntetheredSession()
         _ = watch.watch(.startWithoutPhone, now: t0)

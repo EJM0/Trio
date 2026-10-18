@@ -80,6 +80,8 @@ struct UntetheredSession: Codable, Equatable {
     private(set) var forced = false
     /// The watch started it from the standing grant, without the phone.
     private(set) var startedWithoutPhone = false
+    /// Phone: took the pod back after the watch left the foreign-session query unanswered; its epoch is unknown.
+    private(set) var unknownWatchSince: Date?
     /// Watch: the pump as offered to the phone, resent until acknowledged.
     private(set) var handbackStatus: UntetheredPodStatus??
     /// Watch: when the hand-back was offered; the pod is held until the phone acknowledges, or this long at most.
@@ -103,6 +105,13 @@ struct UntetheredSession: Codable, Equatable {
             prepareDeadline = now.addingTimeInterval(Self.prepareTimeout)
             linkedOverrideID = grant.linkedOverrideID
             return [.send(.prepare(grant))]
+
+        // the phone dosed again after the watch stayed silent: the watch ends as after a take-back, never gets the pod
+        // back, and its history comes over
+        case let (.idle, .watchHoldsPump(watchEpoch, _)) where watchEpoch > epoch && unknownWatchSince != nil:
+            self = UntetheredSession(phase: .idle, epoch: watchEpoch)
+            forced = true
+            return [.send(.revoke), .reconcile]
 
         // the phone stands aside on the watch's word, never on evidence from the pod (LoopKit/Loop#2545)
         case let (.idle, .watchHoldsPump(watchEpoch, status)) where watchEpoch > epoch:
@@ -207,6 +216,8 @@ struct UntetheredSession: Codable, Equatable {
                 .addingTimeInterval(Self.statusQueryGrace + Self.statusQueryResponseTimeout)
             guard statusQueried, now > responseDeadline else { return [] }
             phase = .idle
+            forced = true
+            unknownWatchSince = now
             return [.takePump]
 
         default:
@@ -352,6 +363,7 @@ extension UntetheredSession {
         linkedOverrideID = try container.decodeIfPresent(String.self, forKey: .linkedOverrideID)
         forced = try container.decodeIfPresent(Bool.self, forKey: .forced) ?? forced
         startedWithoutPhone = try container.decodeIfPresent(Bool.self, forKey: .startedWithoutPhone) ?? startedWithoutPhone
+        unknownWatchSince = try container.decodeIfPresent(Date.self, forKey: .unknownWatchSince)
         handbackStatus = try container.decodeIfPresent(UntetheredPodStatus?.self, forKey: .handbackStatus)
         handbackOfferedAt = try container.decodeIfPresent(Date.self, forKey: .handbackOfferedAt)
         handbackLetGo = try container.decodeIfPresent(Bool.self, forKey: .handbackLetGo) ?? handbackLetGo
