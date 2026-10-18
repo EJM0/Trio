@@ -848,6 +848,13 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
 
     /// Returns the record versions now stored, including ones stored before.
     @MainActor private func ingest(_ records: [UntetheredRecord], epoch: Int) async -> [UUID] {
+        // a session whose history is complete takes nothing more: a late copy (a queued transfer, a resend after a
+        // relaunch) would store its carbs and doses a second time. Confirmed, so the watch lets go of it.
+        let session = state.session
+        guard state.applied[epoch] != nil || (epoch == session.epoch && !session.isIdle) else {
+            debug(.watchManager, "Untethered: \(records.count) record(s) of finished session \(epoch) ignored")
+            return records.map(\.id)
+        }
         var applied = state.applied[epoch] ?? [:]
         for record in records.sorted(by: { $0.date < $1.date }) where applied[record.key]?.id != record.id {
             do {
