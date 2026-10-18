@@ -49,6 +49,11 @@ struct UntetheredWatchData: Codable {
     var lastError: String?
     /// The pod was deactivated or discarded here: no loop until the phone, which pairs the next one, takes over.
     var podEnded = false
+    /// The phone's standing grant, the newest, for a start without it.
+    var standingGrant: UntetheredGrant?
+    var standingGrantIssuedAt: Date?
+    /// In a session started without the phone: its return was announced once.
+    var phoneReturnNoted = false
     var pendingPumpAlerts: [PendingPumpAlert] = []
 
     // History on its way to the phone, per session.
@@ -107,6 +112,9 @@ extension UntetheredWatchData {
         lastLoopError = try container.decodeIfPresent(String.self, forKey: .lastLoopError)
         lastError = try container.decodeIfPresent(String.self, forKey: .lastError)
         podEnded = try container.decodeIfPresent(Bool.self, forKey: .podEnded) ?? defaults.podEnded
+        standingGrant = try container.decodeIfPresent(UntetheredGrant.self, forKey: .standingGrant)
+        standingGrantIssuedAt = try container.decodeIfPresent(Date.self, forKey: .standingGrantIssuedAt)
+        phoneReturnNoted = try container.decodeIfPresent(Bool.self, forKey: .phoneReturnNoted) ?? defaults.phoneReturnNoted
         pendingPumpAlerts = try container.decodeIfPresent([PendingPumpAlert].self, forKey: .pendingPumpAlerts) ?? defaults
             .pendingPumpAlerts
         pending = try container.decodeIfPresent([Int: [String: UntetheredRecord]].self, forKey: .pending) ?? defaults.pending
