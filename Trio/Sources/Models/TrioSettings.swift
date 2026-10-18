@@ -68,6 +68,8 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var showGlucoseBubbleWatch: Bool = true
     /// Lets the watch start from its saved grant while the iPhone is unavailable.
     var allowUntetheredStartWithoutPhoneWatch: Bool = true
+    /// The watch keeps its own sensor link and starts on its own when the iPhone's readings stop.
+    var fallbackLoopWatch: Bool = false
     var overrideFactor: Decimal = 0.8
     var fattyMeals: Bool = false
     var fattyMealFactor: Decimal = 0.7
@@ -442,6 +444,10 @@ extension TrioSettings: Decodable {
             forKey: .allowUntetheredStartWithoutPhoneWatch
         ) {
             settings.allowUntetheredStartWithoutPhoneWatch = allowUntetheredStartWithoutPhoneWatch
+        }
+
+        if let fallbackLoopWatch = try? container.decode(Bool.self, forKey: .fallbackLoopWatch) {
+            settings.fallbackLoopWatch = fallbackLoopWatch
         }
 
         if let displayPresets = try? container.decode(Bool.self, forKey: .displayPresets) {

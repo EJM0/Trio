@@ -838,31 +838,14 @@ extension UntetheredWatchManager: PumpManagerDelegate {
 
 extension UntetheredWatchManager: CGMManagerDelegate {
     func startDateToFilterNewData(for _: CGMManager) -> Date? {
-        data.glucose.map(\.dateString).max()
+        (data.glucose + data.standbyGlucose).map(\.dateString).max()
     }
 
     func cgmManager(_: CGMManager, hasNew readingResult: CGMReadingResult) {
-        // outside a session the link only stays warm; the phone reads the same sensor
-        guard isActive, case let .newData(samples) = readingResult, !samples.isEmpty else { return }
-        let known = Set(data.glucose.map { Int($0.dateString.timeIntervalSince1970 / 30) })
-        // as `GlucoseStorage.filterTooFrequentGlucose`: a new reading within 3.5 min of the previous one is
-        // dropped; older readings are backfill and only need to be new
-        var lastDate = data.glucose.map(\.dateString).max() ?? .distantPast
-        var fresh: [NewGlucoseSample] = []
-        for sample in samples.sorted(by: { $0.date < $1.date })
-            where !sample.wasUserEntered && !known.contains(Int(sample.date.timeIntervalSince1970 / 30))
-        {
-            if sample.date > lastDate {
-                guard sample.date.addingTimeInterval(-3.5 * 60) > lastDate else { continue }
-                lastDate = sample.date
-            }
-            fresh.append(sample)
-        }
-        guard !fresh.isEmpty else { return }
-        let epoch = data.session.epoch
-        for sample in fresh {
+        guard case let .newData(samples) = readingResult else { return }
+        let readings = samples.filter { !$0.wasUserEntered }.map { sample in
             let value = Int(sample.quantity.doubleValue(for: HKUnit(from: "mg/dL")))
-            let glucose = BloodGlucose(
+            return BloodGlucose(
                 id: UUID().uuidString,
                 sgv: value,
                 direction: .untethered(sample.trend),
@@ -872,9 +855,37 @@ extension UntetheredWatchManager: CGMManagerDelegate {
                 glucose: value,
                 type: "sgv"
             )
+        }
+        guard !readings.isEmpty else { return }
+        if isActive { ingest(readings) } else { holdStandby(readings) }
+    }
+
+    /// New readings for the loop and the phone.
+    func ingest(_ readings: [BloodGlucose]) {
+        let known = Set(data.glucose.map { Int($0.dateString.timeIntervalSince1970 / 30) })
+        // as `GlucoseStorage.filterTooFrequentGlucose`: a new reading within 3.5 min of the previous one is
+        // dropped; older readings are backfill and only need to be new
+        var lastDate = data.glucose.map(\.dateString).max() ?? .distantPast
+        var fresh: [BloodGlucose] = []
+        for reading in readings.sorted(by: { $0.dateString < $1.dateString })
+            where !known.contains(Int(reading.dateString.timeIntervalSince1970 / 30))
+        {
+            if reading.dateString > lastDate {
+                guard reading.dateString.addingTimeInterval(-3.5 * 60) > lastDate else { continue }
+                lastDate = reading.dateString
+            }
+            fresh.append(reading)
+        }
+        guard !fresh.isEmpty else { return }
+        let epoch = data.session.epoch
+        for glucose in fresh {
             store.update { $0.glucose.append(glucose) }
             store.record(
-                UntetheredRecord(key: UntetheredRecord.glucoseKey(sample.date), date: sample.date, kind: .glucose(glucose)),
+                UntetheredRecord(
+                    key: UntetheredRecord.glucoseKey(glucose.dateString),
+                    date: glucose.dateString,
+                    kind: .glucose(glucose)
+                ),
                 epoch: epoch
             )
         }

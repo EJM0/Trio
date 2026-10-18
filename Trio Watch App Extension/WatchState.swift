@@ -97,6 +97,18 @@ import WatchConnectivity
         }
     }
 
+    /// The watch keeps its own sensor link and starts untethered on its own when the phone's readings stop. Persisted
+    /// locally like the start without the phone, which it needs.
+    var fallbackLoop: Bool = UserDefaults.standard.object(forKey: WatchMessageKeys.fallbackLoopWatch) as? Bool ?? false {
+        didSet {
+            UserDefaults.standard.set(fallbackLoop, forKey: WatchMessageKeys.fallbackLoopWatch)
+            if fallbackLoop != oldValue { UntetheredWatchManager.shared.updateStandbySensor() }
+        }
+    }
+
+    /// The newest reading the phone has sent.
+    var phoneNewestReading: Date? { glucoseHistory.newestTimestamp.map(Date.init(timeIntervalSince1970:)) }
+
     // Forecast options; kept across launches like the bubble page: untethered with the phone off, no update
     // brings them back after watchOS ended the app
     var showForecast: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.showForecastWatch) {
@@ -1000,9 +1012,14 @@ import WatchConnectivity
         }
 
         if let allowStartWithoutPhone = message[WatchMessageKeys.allowUntetheredStartWithoutPhoneWatch] as? Bool,
-           allowStartWithoutPhone != self.allowUntetheredStartWithoutPhone
+           allowStartWithoutPhone != allowUntetheredStartWithoutPhone
         {
-            self.allowUntetheredStartWithoutPhone = allowStartWithoutPhone
+            allowUntetheredStartWithoutPhone = allowStartWithoutPhone
+            UntetheredWatchManager.shared.updateStandbySensor()
+        }
+
+        if let fallbackLoop = message[WatchMessageKeys.fallbackLoopWatch] as? Bool, fallbackLoop != self.fallbackLoop {
+            self.fallbackLoop = fallbackLoop
         }
 
         if let isForecastCone = message[WatchMessageKeys.isForecastCone] as? Bool, isForecastCone != self.isForecastCone {

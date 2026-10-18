@@ -52,6 +52,13 @@ import WatchConnectivity
     @ObservationIgnored private var burst: (id: Int, startedAt: Date, outstanding: Int, failed: Bool)?
     @ObservationIgnored private var burstCount = 0
     private static let takeoverReadInterval: UInt64 = 8_000_000_000
+    /// The fallback loop: armed when the phone missed this many of the watch's readings, started after the grace.
+    private static let fallbackMissedReadings = 2
+    private static let fallbackGrace: TimeInterval = 10
+    @ObservationIgnored private var fallbackArmedAt: Date?
+    @ObservationIgnored private var fallbackTimer: Timer?
+    /// The phone's newest reading when the fallback last tried: once per outage, until the phone sends again.
+    @ObservationIgnored private var fallbackTriedAfter: Date?
 
     var isActive: Bool { data.session.phase == .active || data.session.phase == .ending }
 
@@ -59,6 +66,7 @@ import WatchConnectivity
         data = store.data
         DispatchQueue.main.async {
             self.restoreDevices()
+            self.updateStandbySensor()
             self.updateTimers()
             // a hand-back the last process left: the pump offered stays without loops; one still draining goes on
             if self.data.session.phase == .ending {
@@ -186,6 +194,7 @@ import WatchConnectivity
                 $0.standingGrant = grant
                 $0.standingGrantIssuedAt = issuedAt
             }
+            updateStandbySensor()
             refresh()
 
         case let .startRefused(reason):
@@ -220,6 +229,7 @@ import WatchConnectivity
 
     func reachabilityChanged() {
         DispatchQueue.main.async {
+            self.checkFallback()
             guard WCSession.default.isReachable else { return }
             self.streamRecords()
             if self.data.session.phase == .ending { self.apply(.tick) }
@@ -330,6 +340,12 @@ import WatchConnectivity
             startCGM()
             resumeHandedOverTempBasal()
             recordPumpStatus()
+            // what the standby link read since the copy, the phone's readings having stopped
+            let standby = store.data.standbyGlucose
+            if !standby.isEmpty {
+                store.update { $0.standbyGlucose = [] }
+                ingest(standby)
+            }
         }
         if wasActive != isActive { handOverAlertNotifications(toWatch: isActive) }
         // the phone may have confirmed the last records while the hand-back was still open: nothing else says so
@@ -523,7 +539,8 @@ import WatchConnectivity
         pumpManager = nil
         updateBolusState(nil)
         store.update { $0.pumpRawValue = nil }
-        stopCGM()
+        // the fallback loop's link stays for the next outage
+        if !keepsStandbySensor { stopCGM() }
         refresh()
     }
 
@@ -532,10 +549,13 @@ import WatchConnectivity
     /// The watch reads the sensor in its own display slot only while untethered. Its saved state (key and
     /// Bluetooth handle) outlives the session, so the next takeover reconnects with the same pairing
     /// instead of pairing afresh; a different sensor or code starts over.
-    private func startCGM() {
-        guard let grant = data.grant, let configuration = Self.configuration(grant.cgmConfiguration) else { return }
+    private func startCGM(from grant: UntetheredGrant? = nil) {
+        guard let grant = grant ?? data.grant, let configuration = Self.configuration(grant.cgmConfiguration) else { return }
         let sameSensor = Self.dictionary(store.data.cgmBuiltFrom)
             .map { NSDictionary(dictionary: $0).isEqual(to: configuration.state) } ?? false
+        // the fallback loop's standby link goes on into the session
+        if sameSensor, cgmManager != nil { return }
+        stopCGM()
         if sameSensor, let restored = restoredCGM() {
             install(restored)
         } else if let type = watchCGMManagers[configuration.managerIdentifier],
@@ -630,6 +650,79 @@ import WatchConnectivity
         }
     }
 
+    // MARK: - The fallback loop
+
+    /// With the fallback loop on, the watch reads the sensor between sessions too.
+    var keepsStandbySensor: Bool {
+        WatchState.shared.fallbackLoop && WatchState.shared.allowUntetheredStartWithoutPhone
+    }
+
+    /// Between sessions the link is built from the standing grant, and let go once the fallback loop is off.
+    func updateStandbySensor() {
+        guard data.session.phase == .idle else { return }
+        if !keepsStandbySensor {
+            stopCGM()
+            disarmFallback()
+            if !data.standbyGlucose.isEmpty { store.update { $0.standbyGlucose = [] } }
+        } else if let grant = data.standingGrant, rejection(of: grant) == nil {
+            startCGM(from: grant)
+        }
+    }
+
+    /// The standby link's readings, kept for the next session: it starts with them, nothing being left to backfill.
+    func holdStandby(_ readings: [BloodGlucose]) {
+        guard keepsStandbySensor else { return }
+        let dayAgo = Date().addingTimeInterval(-24 * 60 * 60)
+        store.update { data in
+            var known = Set(data.standbyGlucose.map { Int($0.dateString.timeIntervalSince1970 / 30) })
+            for reading in readings where reading.dateString >= dayAgo
+                && known.insert(Int(reading.dateString.timeIntervalSince1970 / 30)).inserted
+            {
+                data.standbyGlucose.append(reading)
+            }
+            data.standbyGlucose.removeAll { $0.dateString < dayAgo }
+        }
+        checkFallback()
+    }
+
+    /// Two of the watch's readings the phone never sent, the phone shown as away (`WatchState.isReachable`, as on the
+    /// status page): ten seconds more for it, then the watch starts without it. Once per outage; the phone's next
+    /// reading allows the next. Checked on each reading too, in case the timer didn't run in the background.
+    func checkFallback(now: Date = Date()) {
+        let phoneNewest = WatchState.shared.phoneNewestReading ?? .distantPast
+        // the phone's reading of the same sensor arrives a little after the watch's own
+        let missed = data.standbyGlucose.filter { $0.dateString > phoneNewest.addingTimeInterval(60) }.count
+        guard keepsStandbySensor, data.session.phase == .idle, !isBusy, !WatchState.shared.isReachable,
+              standingGrantAge != nil, missed >= Self.fallbackMissedReadings, fallbackTriedAfter != phoneNewest
+        else { return disarmFallback() }
+        guard let armedAt = fallbackArmedAt else {
+            fallbackArmedAt = now
+            fallbackTimer = Timer.scheduledTimer(withTimeInterval: Self.fallbackGrace, repeats: false) { [weak self] _ in
+                self?.checkFallback()
+            }
+            Task {
+                await WatchLogger.shared.log("⌚️ Untethered: \(missed) readings without the phone, fallback in 10 s", force: true)
+            }
+            return
+        }
+        guard now >= armedAt.addingTimeInterval(Self.fallbackGrace) else { return }
+        disarmFallback()
+        fallbackTriedAfter = phoneNewest
+        Task { await WatchLogger.shared.log("⌚️ Untethered: fallback loop, the phone's readings stopped", force: true) }
+        notify(
+            id: "untethered.fallback",
+            title: String(localized: "iPhone Unavailable"),
+            body: String(localized: "The iPhone's readings stopped. The watch is taking over the loop.")
+        )
+        startWithoutPhone()
+    }
+
+    private func disarmFallback() {
+        fallbackTimer?.invalidate()
+        fallbackTimer = nil
+        fallbackArmedAt = nil
+    }
+
     // MARK: - Starting without the phone
 
     /// The standing grant's age, while one is stored and young enough to start from: older than insulin's action time
@@ -646,7 +739,7 @@ import WatchConnectivity
     /// and an epoch of the watch's own. The phone stands aside once it hears from the watch. As LoopKit/Loop#2545.
     func startWithoutPhone() {
         guard WatchState.shared.allowUntetheredStartWithoutPhone,
-              data.session.phase == .idle, !isBusy, !WCSession.default.isReachable, standingGrantAge != nil,
+              data.session.phase == .idle, !isBusy, !WatchState.shared.isReachable, standingGrantAge != nil,
               let grant = data.standingGrant
         else { return }
         setError(nil)

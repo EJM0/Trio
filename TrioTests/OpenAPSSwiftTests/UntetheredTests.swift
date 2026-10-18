@@ -748,7 +748,11 @@ import Testing
         #expect(!without.useNewFormula && !without.sigmoid && without.maxIOB == 5)
         let with = OrefPipeline.determinationPreferences(preferences, dosingMode: .closed, hasSufficientTDD: true)
         #expect(with.useNewFormula && with.sigmoid)
-        let suspendOnly = OrefPipeline.determinationPreferences(preferences, dosingMode: .lowGlucoseSuspend, hasSufficientTDD: true)
+        let suspendOnly = OrefPipeline.determinationPreferences(
+            preferences,
+            dosingMode: .lowGlucoseSuspend,
+            hasSufficientTDD: true
+        )
         #expect(suspendOnly.maxIOB == 0)
     }
 
