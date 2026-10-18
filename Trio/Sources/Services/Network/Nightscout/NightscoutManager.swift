@@ -19,6 +19,8 @@ protocol NightscoutManager: GlucoseSource {
     func uploadTempTargets() async
     func uploadProfiles() async throws
     @discardableResult func uploadNoteTreatment(note: String) async -> Bool
+    /// The time the Apple Watch looped, as a note with its duration.
+    @discardableResult func uploadUntetheredSession(from start: Date, to end: Date) async -> Bool
     func importSettings() async -> ScheduledNightscoutProfile?
     var cgmURL: URL? { get }
     /// Past loops, each as its own device status at its own time, so Nightscout's history shows their forecasts.
@@ -1405,6 +1407,21 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
                 )
             }
         }
+    }
+
+    /// A note rather than an override's "Exercise": Nightscout shows it as a band for its duration, and nothing reads it
+    /// as a running override.
+    @discardableResult func uploadUntetheredSession(from start: Date, to end: Date) async -> Bool {
+        let note = NightscoutTreatment(
+            duration: max(1, Int((end.timeIntervalSince(start) / 60).rounded())),
+            eventType: .nsNote,
+            createdAt: start,
+            enteredBy: NightscoutTreatment.local,
+            notes: String(localized: "Untethered on Apple Watch"),
+            targetTop: nil,
+            targetBottom: nil
+        )
+        return await uploadNonCoreDataTreatments([note])
     }
 
     // TODO: have this checked; this has never actually written anything to file; the entire logic of this function seems broken
