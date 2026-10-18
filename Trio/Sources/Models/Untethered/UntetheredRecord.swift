@@ -26,6 +26,8 @@ struct UntetheredRecord: Codable, Equatable, Identifiable {
         case loopCompleted(Date)
         /// The watch deactivated or discarded the pod: the phone forgets it when it takes the pump back.
         case podEnded(Date)
+        /// The pod as the watch last saw it, for the phone's home screen meanwhile.
+        case pumpStatus(UntetheredPumpStatus)
     }
 
     let key: String
@@ -54,6 +56,18 @@ struct UntetheredRecord: Codable, Equatable, Identifiable {
     /// One key: only the newest loop matters.
     static let loopCompletedKey = "loop"
     static let podEndedKey = "podEnded"
+    /// One key: only the newest status matters.
+    static let pumpStatusKey = "pumpStatus"
+}
+
+/// The pod as the watch's Devices page shows it, sent home with the history while the watch has the pump.
+struct UntetheredPumpStatus: Codable, Equatable {
+    let date: Date
+    /// As the phone's reservoir file and the watch's Devices page: the fill-based estimate above 50 U, else the
+    /// `0xDEAD_BEEF` "50+" marker.
+    let reservoir: Decimal?
+    let expiresAt: Date?
+    let isSuspended: Bool
 }
 
 /// What both sides checksum: the latest version of each key, in 30-minute buckets by date.

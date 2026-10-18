@@ -270,6 +270,7 @@ import WatchConnectivity
         if !wasActive, store.data.session.phase == .active {
             startCGM()
             resumeHandedOverTempBasal()
+            recordPumpStatus()
         }
         if wasActive != isActive { handOverAlertNotifications(toWatch: isActive) }
         // the phone may have confirmed the last records while the hand-back was still open: nothing else says so

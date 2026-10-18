@@ -24,6 +24,8 @@ struct UntetheredPhoneState: Codable, Equatable {
     var audit: UntetheredAuditPoint?
     /// What the complete history still couldn't explain; on the home screen until acknowledged.
     var auditFinding: String?
+    /// The pod as the watch last reported it, for the home screen while the watch has the pump.
+    var watchPump: UntetheredPumpStatus?
     var lastError: String?
 
     var watchPendingDoseIdentifiers: Set<String> { watchPendingDoses.values.reduce(into: []) { $0.formUnion($1) } }
@@ -43,6 +45,7 @@ extension UntetheredPhoneState {
             ?? defaults.watchPendingDoses
         audit = try container.decodeIfPresent(UntetheredAuditPoint.self, forKey: .audit)
         auditFinding = try container.decodeIfPresent(String.self, forKey: .auditFinding)
+        watchPump = try container.decodeIfPresent(UntetheredPumpStatus.self, forKey: .watchPump)
         lastError = try container.decodeIfPresent(String.self, forKey: .lastError)
     }
 }
@@ -179,7 +182,10 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         }
         setError(nil)
         // about the last session; this one is judged on its own
-        UntetheredGate.update { $0.auditFinding = nil }
+        UntetheredGate.update {
+            $0.auditFinding = nil
+            $0.watchPump = nil
+        }
         isCheckingDevices = true
         defer { isCheckingDevices = false }
         do {
@@ -988,6 +994,9 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             }
         case .podEnded:
             UntetheredGate.update { $0.podEndedOnWatch = true }
+        case let .pumpStatus(status):
+            UntetheredGate.update { if ($0.watchPump?.date ?? .distantPast) < status.date { $0.watchPump = status } }
+            publish()
         case let .loopCompleted(date):
             // the loop's age and the interval to the next loop go on from the watch's last loop
             await MainActor.run { self.apsManager.adoptLoop(at: date) }

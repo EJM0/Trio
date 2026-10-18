@@ -151,6 +151,35 @@ struct UntetheredBannerSlot<Content: View, Banner: View>: View {
     }
 }
 
+/// The home screen's pump while the watch has it: the watch's own figures while they are recent, otherwise what is
+/// going on, never the connection error of the phone's own pump manager, which handed the pod over.
+struct UntetheredPumpGate<Content: View>: View {
+    enum Display {
+        /// The phone has the pump: its own figures and messages.
+        case phone
+        case watch(UntetheredPumpStatus)
+        /// The watch has the pump, and nothing recent came from it.
+        case away
+    }
+
+    @ObservedObject var manager: UntetheredPhoneManager
+    let now: Date
+    @ViewBuilder let content: (Display) -> Content
+
+    /// Three of the watch's loops: older figures may no longer be what the pod does.
+    static var recent: TimeInterval { 15 * 60 }
+
+    var body: some View {
+        if !manager.isWatchInCharge {
+            content(.phone)
+        } else if let status = manager.state.watchPump, now.timeIntervalSince(status.date) < Self.recent {
+            content(.watch(status))
+        } else {
+            content(.away)
+        }
+    }
+}
+
 /// Bolus and carbs are entered on the watch while it has the pump: in their place, what is going on and the ways
 /// back, in the app's own background and glass panels.
 struct UntetheredTreatmentGate<Content: View>: View {
