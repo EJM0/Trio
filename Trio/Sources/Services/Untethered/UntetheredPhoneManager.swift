@@ -1033,7 +1033,6 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             UntetheredGate.update { $0.podEndedOnWatch = true }
         case let .pumpStatus(status):
             UntetheredGate.update { if ($0.watchPump?.date ?? .distantPast) < status.date { $0.watchPump = status } }
-            publish()
         case let .loopCompleted(date):
             // the loop's age and the interval to the next loop go on from the watch's last loop
             await MainActor.run { self.apsManager.adoptLoop(at: date) }
