@@ -63,6 +63,12 @@ import WatchConnectivity
     /// A missing standing grant is asked for at most this often, the standby link's readings asking again.
     private static let standingGrantRequestInterval: TimeInterval = 5 * 60
     @ObservationIgnored private var standingGrantRequestedAt: Date?
+    /// The fallback loop's session reports to the phone with its readings, at most this often.
+    @ObservationIgnored private var fallbackReportedAt: Date?
+    /// An unanswered automatic hand-back was given up then: the phone's next asks wait this long, so a phone that never
+    /// acknowledges doesn't keep the watch from dosing.
+    @ObservationIgnored private var handbackAbandonedAt: Date?
+    private static let handbackRetryDelay: TimeInterval = 10 * 60
 
     var isActive: Bool { data.session.phase == .active || data.session.phase == .ending }
 
@@ -222,6 +228,10 @@ import WatchConnectivity
                 }
             }
 
+        case .endRequest where data.startedByFallback && data.session.phase == .active
+            && (handbackAbandonedAt.map { Date().timeIntervalSince($0) < Self.handbackRetryDelay } ?? false):
+            replyHandler?([:])
+
         case let .dosingModeChanged(mode):
             replyHandler?([:])
             guard data.session.phase == .active, envelope.epoch == data.session.epoch else { return }
@@ -363,11 +373,47 @@ import WatchConnectivity
         updateTimers()
     }
 
+    /// The fallback loop's hand-back isn't let go unanswered: the watch doses on, the temp it ended for the phone set
+    /// again, and tries once the phone asks again after `handbackRetryDelay`.
+    private func tick() {
+        let session = data.session
+        guard data.startedByFallback, session.phase == .ending, !session.handbackLetGo,
+              let offered = session.handbackOfferedAt,
+              Date() > offered.addingTimeInterval(UntetheredSession.handbackAckWait)
+        else { return apply(.tick) }
+        let handedTemp = session.handbackStatus??.tempBasal
+        apply(.handbackUnanswered)
+        isFinalizing = false
+        handbackAbandonedAt = Date()
+        // should the phone have taken the pod after all, the pod refuses the watch's next command rather than let
+        // both dose; `phoneTookAbandonedPump` then lets go
+        pumpManager?.refusesForeignSessionsSince = Date()
+        for transfer in WCSession.default.outstandingUserInfoTransfers {
+            if case .handback = (try? UntetheredEnvelope.decode(transfer.userInfo))?.message { transfer.cancel() }
+        }
+        Task { await WatchLogger.shared.log("⌚️ Untethered: the phone didn't acknowledge the hand-back, dosing on", force: true) }
+        if let pump = pumpManager, let handedTemp {
+            Task { @MainActor in _ = await pump.resumeTempBasal(handedTemp) }
+        }
+    }
+
+    /// After a hand-back given up: the pod saw another controller's session, so the phone took it after all.
+    func phoneTookAbandonedPump() -> Bool {
+        guard handbackAbandonedAt != nil, data.session.phase == .active, data.session.handbackOfferedAt != nil,
+              let pump = pumpManager, let since = pump.refusesForeignSessionsSince,
+              let foreign = pump.lastForeignSessionAt, foreign > since
+        else { return false }
+        Task { await WatchLogger.shared.log("⌚️ Untethered: the phone has the pod after all, letting go", force: true) }
+        handbackAbandonedAt = nil
+        apply(.received(.handbackAck, epoch: data.session.epoch))
+        return true
+    }
+
     private func updateTimers() {
         let phase = data.session.phase
         if phase == .preparing || phase == .starting || phase == .ending {
             if ticker == nil {
-                ticker = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in self?.apply(.tick) }
+                ticker = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in self?.tick() }
             }
         } else {
             ticker?.invalidate()
@@ -428,12 +474,25 @@ import WatchConnectivity
              .released,
              .syncDone,
              .takeoverComplete,
-             .takeoverFailed: queued = queueing ?? true
+             .takeoverFailed,
+             // the phone takes the pump on it: a wake later, not never
+             .handback: queued = queueing ?? true
         default: queued = queueing ?? false
+        }
+        // resent until answered: only the newest of these waits in the queue
+        let queue = { (payload: [String: Any]) in
+            if message.isResentUntilAnswered {
+                for transfer in session.outstandingUserInfoTransfers
+                    where (try? UntetheredEnvelope.decode(transfer.userInfo))?.message == message
+                {
+                    transfer.cancel()
+                }
+            }
+            session.transferUserInfo(payload)
         }
         guard session.isReachable else {
             if queued {
-                session.transferUserInfo(payload)
+                queue(payload)
             } else {
                 if let onFailure { DispatchQueue.main.async(execute: onFailure) }
             }
@@ -453,7 +512,7 @@ import WatchConnectivity
                 DispatchQueue.main.async {
                     if queued, !queuedAfterFailure {
                         queuedAfterFailure = true
-                        session.transferUserInfo(payload)
+                        queue(payload)
                     } else if !queued, !failureReported {
                         failureReported = true
                         onFailure?()
@@ -771,6 +830,17 @@ import WatchConnectivity
         return fallbackArmedAt.map { .starting(at: $0.addingTimeInterval(Self.fallbackGrace)) } ?? .watching
     }
 
+    /// The fallback loop's session reports to the phone with its readings as well: in the background the reachability
+    /// change rarely arrives, and the phone takes the pump back on the report. Queued, the newest only.
+    func reportFallbackSession() {
+        let now = Date()
+        guard data.startedByFallback, data.session.phase == .active,
+              (fallbackReportedAt ?? .distantPast).addingTimeInterval(Self.standingGrantRequestInterval) < now
+        else { return }
+        fallbackReportedAt = now
+        send(.statusReport(holding: data.session.startStatus), epoch: data.session.epoch, queueing: true)
+    }
+
     /// No standing grant young enough to start from, as after a session, whose start dropped it: asked for, as the
     /// phone otherwise sends the next only when something changed or half an hour passed.
     func requestStandingGrantIfMissing() {
@@ -780,11 +850,6 @@ import WatchConnectivity
         else { return }
         standingGrantRequestedAt = now
         // queued, so a phone out of reach or asleep answers once it can; only the newest request waits
-        for transfer in WCSession.default.outstandingUserInfoTransfers
-            where (try? UntetheredEnvelope.decode(transfer.userInfo))?.message == .standingGrantRequest
-        {
-            transfer.cancel()
-        }
         send(.standingGrantRequest, epoch: data.session.epoch, queueing: true)
     }
 
