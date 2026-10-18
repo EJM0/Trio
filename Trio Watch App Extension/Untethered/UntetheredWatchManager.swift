@@ -268,8 +268,7 @@ import WatchConnectivity
         data.autosens = grant.autosens
         data.tddPumpHistory = grant.tddPumpHistory
         data.tddRows = grant.tddRecentRows
-        data.tddTenDaySum = grant.tddTenDaySum
-        data.tddTenDayCount = grant.tddTenDayCount
+        data.tddHours = grant.tddHours ?? []
         // the phone's "50+ U" marker is no amount: above 50 U the pod doesn't measure
         data.reservoir = grant.reservoir.flatMap { $0 == Decimal(UInt32(0xDEAD_BEEF)) ? nil : $0 }
         // the phone's last loop stands until the watch's own first one
@@ -675,16 +674,19 @@ import WatchConnectivity
               )
         else { return }
         let epoch = data.session.epoch
+        let bolus = PumpHistoryEvent(
+            id: "untethered-copy-gap-\(epoch)",
+            type: .bolus,
+            timestamp: status.date,
+            amount: units,
+            duration: 0,
+            isSMB: false,
+            isExternal: false
+        )
+        // the TDD counts it too, as it does every bolus
         store.update {
-            $0.pumpHistory.append(PumpHistoryEvent(
-                id: "untethered-copy-gap-\(epoch)",
-                type: .bolus,
-                timestamp: status.date,
-                amount: units,
-                duration: 0,
-                isSMB: false,
-                isExternal: false
-            ))
+            $0.pumpHistory.append(bolus)
+            $0.tddPumpHistory.append(bolus)
         }
         Task {
             await WatchLogger.shared
