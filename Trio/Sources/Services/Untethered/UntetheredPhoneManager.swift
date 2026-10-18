@@ -122,14 +122,16 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.scheduleWatchWake() }
             .store(in: &subscriptions)
-        Publishers.Merge3(
-            apsManager.lastLoopDateSubject.map { _ in () },
-            carbsStorage.updatePublisher,
-            pumpHistoryStorage.updatePublisher
-        )
-        .receive(on: DispatchQueue.main)
-        .sink { [weak self] _ in self?.scheduleStandingGrant() }
-        .store(in: &subscriptions)
+        Publishers.Merge(apsManager.lastLoopDateSubject.map { _ in () }, carbsStorage.updatePublisher)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.scheduleStandingGrant() }
+            .store(in: &subscriptions)
+        // a bolus goes at once, not after the burst: the phone may be gone in seconds, and a copy without the bolus
+        // leaves its rest unknown to a watch that starts without it (2026-10-18, app restarted 16 s into 6.65 U)
+        pumpHistoryStorage.updatePublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.scheduleStandingGrant(immediately: true) }
+            .store(in: &subscriptions)
         apsManager.lastLoopDateSubject
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -196,15 +198,23 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     private var standingGrantSettingsChanged = false
 
     /// The observers call from their own queues.
-    private func scheduleStandingGrant(settingsChanged: Bool = false) {
+    private func scheduleStandingGrant(settingsChanged: Bool = false, immediately: Bool = false) {
         guard Thread.isMainThread else {
-            DispatchQueue.main.async { self.scheduleStandingGrant(settingsChanged: settingsChanged) }
+            DispatchQueue.main.async { self.scheduleStandingGrant(settingsChanged: settingsChanged, immediately: immediately) }
             return
         }
         if settingsChanged { standingGrantSettingsChanged = true }
-        guard standingGrantTask == nil else { return }
+        if immediately {
+            // the burst's grant comes with this one
+            standingGrantTask?.cancel()
+        } else if standingGrantTask != nil {
+            return
+        }
         standingGrantTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(Self.standingGrantFloor * 1_000_000_000))
+            if !immediately {
+                try? await Task.sleep(nanoseconds: UInt64(Self.standingGrantFloor * 1_000_000_000))
+                guard !Task.isCancelled else { return }
+            }
             await self?.sendStandingGrant()
             self?.standingGrantTask = nil
         }
@@ -238,8 +248,10 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         }
         let fingerprint = hasher.finalize()
         let now = Date()
-        guard standingGrantSettingsChanged || fingerprint != standingGrantFingerprint
-            || now.timeIntervalSince(standingGrantSentAt ?? .distantPast) >= Self.standingGrantInterval,
+        // a newer grant took over while this one was being made
+        guard !Task.isCancelled,
+              standingGrantSettingsChanged || fingerprint != standingGrantFingerprint
+              || now.timeIntervalSince(standingGrantSentAt ?? .distantPast) >= Self.standingGrantInterval,
             UntetheredGate.phoneMayDose,
             var payload = try? UntetheredEnvelope(epoch: state.session.epoch, message: .standingGrant(grant, issuedAt: now))
             .payload()
@@ -472,6 +484,8 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                     try? await Task.sleep(nanoseconds: 500_000_000)
                 }
                 (apsManager.pumpManager as? ExclusiveDeviceControl)?.releaseControl()
+                // what the phone started after the watch's copy stays the phone's
+                _ = try? await pumpHistoryStorage.keepInFlightDoses(startedAfter: state.session.startStatus?.copyAsOf)
                 UntetheredGate.update { $0.pumpReturnPending = false }
                 setError(String(localized: "The watch started without the phone; the phone stopped dosing."))
             case .handback,
@@ -802,8 +816,14 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             $0.podReading = nil
         }
         publish()
-        (apsManager.pumpManager as? ExclusiveDeviceControl)?.takeControl()
-        Task { await self.finishPumpReturn() }
+        // a silent watch never said what its copy held: before the take-back's pending report, the phone's own doses
+        // in flight stay rather than being purged as given away
+        let keepInFlight = state.session.unknownWatchSince != nil
+        Task {
+            if keepInFlight { _ = try? await self.pumpHistoryStorage.keepInFlightDoses(startedAfter: nil) }
+            (self.apsManager.pumpManager as? ExclusiveDeviceControl)?.takeControl()
+            await self.finishPumpReturn()
+        }
     }
 
     /// Reads the pump until it answers, then audits its delivered total against the history before
@@ -985,7 +1005,8 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 from: point.start,
                 to: point.end,
                 history: try await pumpHistoryStorage.getPumpHistory(),
-                basalProfile: storage.retrieve(OpenAPS.Settings.basalProfile, as: [BasalProfileEntry].self) ?? []
+                basalProfile: storage.retrieve(OpenAPS.Settings.basalProfile, as: [BasalProfileEntry].self) ?? [],
+                bolusDeliveryRate: (apsManager.pumpManager as? PumpDeliveryOdometer)?.bolusDeliveryRate ?? 0
             )
             debug(
                 .watchManager,

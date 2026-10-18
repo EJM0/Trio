@@ -24,11 +24,20 @@ enum UntetheredAudit {
         podAt: Date,
         history: [PumpHistoryEvent],
         basalProfile: [BasalProfileEntry],
+        bolusDeliveryRate: Double,
         calendar: Calendar = .current
     ) -> Decimal? {
         guard let copyUnits, let podUnits, podAt > copyAt, podUnits >= copyUnits else { return nil }
-        let expected = expectedDelivery(from: copyAt, to: podAt, history: history, basalProfile: basalProfile, calendar: calendar)
-        guard case let .unrecorded(units) = verdict(delivered: Decimal(podUnits - copyUnits), expected: expected) else { return nil }
+        let expected = expectedDelivery(
+            from: copyAt,
+            to: podAt,
+            history: history,
+            basalProfile: basalProfile,
+            bolusDeliveryRate: bolusDeliveryRate,
+            calendar: calendar
+        )
+        guard case let .unrecorded(units) = verdict(delivered: Decimal(podUnits - copyUnits), expected: expected)
+        else { return nil }
         return units
     }
 
@@ -40,21 +49,28 @@ enum UntetheredAudit {
     }
 
     /// What `history` (`PumpHistoryStorage.getPumpHistory`'s shape, as TDD reads it) says the pump delivered between
-    /// `start` and `end`: boluses; a finalized temp basal by the total the pump reported, its pulse rounding included,
-    /// in proportion where the span cuts it; otherwise basal minute by minute from running temps, suspensions and the
-    /// scheduled profile.
+    /// `start` and `end`: boluses, for the part of their delivery inside the span at the pump's `bolusDeliveryRate`
+    /// (units per second; 0 counts each at its start); a finalized temp basal by the total the pump reported, its pulse
+    /// rounding included, in proportion where the span cuts it; otherwise basal minute by minute from running temps,
+    /// suspensions and the scheduled profile.
     static func expectedDelivery(
         from start: Date,
         to end: Date,
         history: [PumpHistoryEvent],
         basalProfile: [BasalProfileEntry],
+        bolusDeliveryRate: Double,
         calendar: Calendar = .current
     ) -> Decimal {
         let events = history.sorted { $0.timestamp < $1.timestamp }
 
-        let boluses = events
-            .filter { [.bolus, .smb].contains($0.type) && $0.timestamp >= start && $0.timestamp < end }
-            .reduce(Decimal(0)) { $0 + ($1.deliveredUnits ?? $1.amount ?? 0) }
+        // one still running at either edge, as one the phone started just before the watch took over without it
+        let boluses = events.filter { [.bolus, .smb].contains($0.type) }.reduce(Decimal(0)) { sum, bolus in
+            let units = bolus.deliveredUnits ?? bolus.amount ?? 0
+            let length = bolusDeliveryRate > 0 ? NSDecimalNumber(decimal: units).doubleValue / bolusDeliveryRate : 0
+            guard length > 0 else { return bolus.timestamp >= start && bolus.timestamp < end ? sum + units : sum }
+            let overlap = min(bolus.timestamp.addingTimeInterval(length), end).timeIntervalSince(max(bolus.timestamp, start))
+            return overlap > 0 ? sum + units * Decimal(overlap / length) : sum
+        }
 
         let tempEvents = events.filter { $0.type == .tempBasal && $0.isScheduledBasal != true }
         // a temp runs to its own end or until the next one starts, whichever comes first

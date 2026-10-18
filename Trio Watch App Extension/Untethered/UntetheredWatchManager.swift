@@ -463,10 +463,8 @@ import WatchKit
             defer { self.isBusy = false }
             while self.data.session.phase == .starting, self.data.session.epoch == epoch {
                 if let status = await self.readPump(pump) {
-                    // before the first loop, which must count what the phone dosed after its copy
-                    if self.data.session.startedWithoutPhone { self.bookUnexplainedSinceCopy(status) }
                     // the phone's last loop stays on screen; the next CGM reading starts the watch's own
-                    self.apply(.takeoverSucceeded(status))
+                    self.apply(.takeoverSucceeded(self.startStatus(status, pump: pump)))
                     return
                 }
                 try? await Task.sleep(nanoseconds: Self.takeoverReadInterval)
@@ -613,7 +611,7 @@ import WatchKit
         Task { @MainActor in
             while self.data.session.phase == .starting, self.data.session.epoch == epoch {
                 if let status = await self.readPump(pump) {
-                    self.apply(.takeoverSucceeded(status))
+                    self.apply(.takeoverSucceeded(self.startStatus(status, pump: pump)))
                     return
                 }
                 try? await Task.sleep(nanoseconds: Self.takeoverReadInterval)
@@ -675,19 +673,39 @@ import WatchKit
         }
     }
 
-    /// What the pod delivered since the standing grant's copy that its history can't explain, booked as a bolus in
+    /// The takeover's reading; started without the phone, before the first loop, with what the phone dosed after its
+    /// copy booked and the copy's time for the phone.
+    private func startStatus(_ status: UntetheredPodStatus, pump: PumpManager) -> UntetheredPodStatus {
+        guard data.session.startedWithoutPhone, let grant = data.grant,
+              let copy = Self.configuration(grant.pumpConfiguration)
+        else { return status }
+        bookUnexplainedSinceCopy(status, copy: copy, pump: pump as? PumpDeliveryOdometer)
+        var status = status
+        status.copyAsOf = copy.asOf
+        return status
+    }
+
+    /// What the pod delivered since the standing grant's copy that its history can't explain, and the rest of a bolus
+    /// the phone started after it (the pump manager doesn't track another controller's bolus), booked as a bolus in
     /// the watch's own history only: the phone has the real records of it.
-    private func bookUnexplainedSinceCopy(_ status: UntetheredPodStatus) {
-        guard let grant = data.grant, let copy = Self.configuration(grant.pumpConfiguration),
-              let units = UntetheredAudit.unexplainedSinceCopy(
-                  copyUnits: copy.deliveredUnits,
-                  copyAt: copy.asOf,
-                  podUnits: status.deliveredUnits,
-                  podAt: status.date,
-                  history: grant.tddPumpHistory,
-                  basalProfile: grant.basalProfile
-              )
-        else { return }
+    private func bookUnexplainedSinceCopy(
+        _ status: UntetheredPodStatus,
+        copy: SharedDeviceConfiguration,
+        pump: PumpDeliveryOdometer?
+    ) {
+        guard let grant = data.grant else { return }
+        let untrackedBolus = pump?.untrackedBolusRemaining ?? 0
+        let unexplained = UntetheredAudit.unexplainedSinceCopy(
+            copyUnits: copy.deliveredUnits,
+            copyAt: copy.asOf,
+            podUnits: status.deliveredUnits,
+            podAt: status.date,
+            history: grant.tddPumpHistory,
+            basalProfile: grant.basalProfile,
+            bolusDeliveryRate: pump?.bolusDeliveryRate ?? 0
+        ) ?? 0
+        let units = unexplained + Decimal(untrackedBolus).rounded(scale: 2)
+        guard units > UntetheredAudit.tolerance else { return }
         let epoch = data.session.epoch
         let bolus = PumpHistoryEvent(
             id: "untethered-copy-gap-\(epoch)",
@@ -702,7 +720,11 @@ import WatchKit
         store.update { $0.upsertPumpEvent(id: bolus.id, history: [bolus], tdd: bolus) }
         Task {
             await WatchLogger.shared
-                .log("⌚️ Untethered: \(units) U the standing grant had no record of, counted as a bolus", force: true) }
+                .log(
+                    "⌚️ Untethered: \(units) U the standing grant had no record of (\(untrackedBolus) U still running), a bolus",
+                    force: true
+                )
+        }
     }
 
     /// The phone back during a session started without it: told at once that the watch has the pump, so it stops

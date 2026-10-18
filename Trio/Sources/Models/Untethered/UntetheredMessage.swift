@@ -51,6 +51,9 @@ struct UntetheredPodStatus: Codable, Equatable {
     var tempBasal: UntetheredTempBasal? = nil
     /// Hand-back: a high temp the watch left running, for the phone to cancel once it has the pod.
     var runningHighTemp: UntetheredTempBasal? = nil
+    /// Start without the phone: when the standing grant's pump copy was taken. The phone's doses started after it
+    /// never reached the watch, which doesn't take them over.
+    var copyAsOf: Date? = nil
 }
 
 /// The pump as the phone let go of it, a moment before the commit: the grant's configuration is older, and a temp
@@ -69,19 +72,18 @@ struct UntetheredTempBasal: Codable, Equatable {
     /// Of the dose as recorded, so the phone can end the watch's record of a temp it cancelled.
     var syncIdentifier: String? = nil
 
-    /// Above the scheduled rate. Set again on the other side it would run at least Omnipod's 30 minutes, longer than
+    /// Above the scheduled rate. Set again on the other side it would run at least the pump's shortest temp, longer than
     /// it had left, should that side not loop.
     func isHigh(scheduledRate: Decimal) -> Bool {
         Decimal(unitsPerHour) > scheduledRate
     }
 
-    /// What was left, nil once over. Omnipod takes 30 min to 12 h in half hours, so it is rounded up: the new
-    /// owner's next loop sets its own well before the extra time runs.
-    func remainingDuration(at now: Date) -> TimeInterval? {
+    /// What was left, nil once over, rounded up to a duration the pump takes (`supportedTempBasalDurations`, shortest
+    /// first; the longest at most): the new owner's next loop sets its own well before the extra time runs.
+    func remainingDuration(at now: Date, supportedDurations: [TimeInterval]) -> TimeInterval? {
         let left = endsAt.timeIntervalSince(now)
         guard left > 0 else { return nil }
-        let halfHour: TimeInterval = 30 * 60
-        return min(24 * halfHour, (left / halfHour).rounded(.up) * halfHour)
+        return supportedDurations.first { $0 >= left } ?? supportedDurations.last
     }
 }
 
@@ -112,7 +114,9 @@ extension PumpManager {
 
     /// Sets a handed-over temp basal again for what was left: the pump's error, or nil when set or already over.
     func resumeTempBasal(_ temp: UntetheredTempBasal) async -> PumpManagerError? {
-        guard let duration = temp.remainingDuration(at: Date()) else { return nil }
+        guard let durations = (self as? PumpDeliveryOdometer)?.supportedTempBasalDurations,
+              let duration = temp.remainingDuration(at: Date(), supportedDurations: durations)
+        else { return nil }
         return await withCheckedContinuation { continuation in
             enactTempBasal(unitsPerHour: temp.unitsPerHour, for: duration) { continuation.resume(returning: $0) }
         }

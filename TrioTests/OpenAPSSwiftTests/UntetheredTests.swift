@@ -61,6 +61,10 @@ import Testing
         )
     }
 
+    /// Omnipod DASH as `OmniPumpManager` reports it: 0.05 U every 2 s, temps of 30 min to 12 h in half hours.
+    let bolusDeliveryRate = 0.025
+    let tempBasalDurations = (1 ... 24).map { TimeInterval($0) * 30 * 60 }
+
     let podStatus = UntetheredPodStatus(date: Date(timeIntervalSince1970: 1_800_000_010), deliveredUnits: 42.5, reservoir: 80)
     let handover = UntetheredHandover(pumpConfiguration: Data([3]), tempBasal: nil)
 
@@ -243,10 +247,13 @@ import Testing
 
     @Test("handover: a temp basal goes on for what was left, in Omnipod's half hours") func remainingTempBasal() {
         let tempBasal = UntetheredTempBasal(unitsPerHour: 1, endsAt: t0 + 12 * 60)
-        #expect(tempBasal.remainingDuration(at: t0) == TimeInterval(30 * 60))
-        #expect(tempBasal.remainingDuration(at: t0 + 12 * 60) == nil)
-        #expect(UntetheredTempBasal(unitsPerHour: 1, endsAt: t0 + 31 * 60).remainingDuration(at: t0) == TimeInterval(60 * 60))
-        #expect(UntetheredTempBasal(unitsPerHour: 1, endsAt: t0 + 24 * 3600).remainingDuration(at: t0) == TimeInterval(12 * 3600))
+        func left(_ temp: UntetheredTempBasal, at now: Date) -> TimeInterval? {
+            temp.remainingDuration(at: now, supportedDurations: tempBasalDurations)
+        }
+        #expect(left(tempBasal, at: t0) == TimeInterval(30 * 60))
+        #expect(left(tempBasal, at: t0 + 12 * 60) == nil)
+        #expect(left(UntetheredTempBasal(unitsPerHour: 1, endsAt: t0 + 31 * 60), at: t0) == TimeInterval(60 * 60))
+        #expect(left(UntetheredTempBasal(unitsPerHour: 1, endsAt: t0 + 24 * 3600), at: t0) == TimeInterval(12 * 3600))
     }
 
     @Test("end: an unacknowledged handback is offered again, never taken back") func lostAck() {
@@ -353,6 +360,7 @@ import Testing
                 podAt: midnight.addingTimeInterval(hours * 60 * 60),
                 history: [],
                 basalProfile: profile,
+                bolusDeliveryRate: bolusDeliveryRate,
                 calendar: utc
             )
         }
@@ -434,13 +442,15 @@ import Testing
             PumpHistoryEvent(id: "t", type: .tempBasal, timestamp: at(30), amount: 3, duration: 30),
             PumpHistoryEvent(id: "p", type: .pumpSuspend, timestamp: at(45)),
             PumpHistoryEvent(id: "r", type: .pumpResume, timestamp: at(50)),
-            PumpHistoryEvent(id: "old", type: .bolus, timestamp: at(-5), amount: 9)
+            // 9 U take 6 minutes: over before the span starts
+            PumpHistoryEvent(id: "old", type: .bolus, timestamp: at(-7), amount: 9)
         ]
         let expected = UntetheredAudit.expectedDelivery(
             from: at(0),
             to: at(90),
             history: history,
             basalProfile: profile,
+            bolusDeliveryRate: bolusDeliveryRate,
             calendar: utc
         )
         // boluses 1.75; basal 0:00–0:30 at 1 = 0.5; temp 0:30–0:45 at 3 = 0.75; suspended 5 min;
@@ -448,8 +458,23 @@ import Testing
         #expect(abs(NSDecimalNumber(decimal: expected - 4.5).doubleValue) < 0.0001)
     }
 
-    @Test("audit: a finalized temp counts what the pump reported, in proportion where the span cuts it")
-    func auditReportedTemps() {
+    @Test("audit: a bolus running at an edge counts for its part inside the span") func auditBolusAtEdge() {
+        // a 6.65 U bolus that started 160 s before the watch took over: 2.65 U of it falls after
+        let start = t0
+        let history = [PumpHistoryEvent(id: "b", type: .bolus, timestamp: t0 - 160, amount: 6.65)]
+        func expected(from: Date, to: Date) -> Decimal {
+            UntetheredAudit.expectedDelivery(
+                from: from, to: to, history: history, basalProfile: [], bolusDeliveryRate: bolusDeliveryRate
+            )
+        }
+        let inside = expected(from: start, to: start + 3600)
+        #expect(abs(NSDecimalNumber(decimal: inside - 2.65).doubleValue) < 0.0001)
+        // and the 4 U before it, of a span ending as the watch took over
+        let before = expected(from: start - 3600, to: start)
+        #expect(abs(NSDecimalNumber(decimal: before - 4).doubleValue) < 0.0001)
+    }
+
+    @Test("audit: a finalized temp counts what the pump reported, in proportion where the span cuts it") func auditReportedTemps() {
         var utc = Calendar(identifier: .gregorian)
         utc.timeZone = TimeZone(identifier: "UTC")!
         let midnight = utc.startOfDay(for: t0)
@@ -462,7 +487,8 @@ import Testing
         let profile = [BasalProfileEntry(start: "00:00", minutes: 0, rate: 1)]
         func expected(from start: Double) -> Double {
             NSDecimalNumber(decimal: UntetheredAudit.expectedDelivery(
-                from: at(start), to: at(10), history: history, basalProfile: profile, calendar: utc
+                from: at(start), to: at(10), history: history, basalProfile: profile,
+                bolusDeliveryRate: bolusDeliveryRate, calendar: utc
             )).doubleValue
         }
         #expect(abs(expected(from: 0) - 0.15) < 0.0001)
