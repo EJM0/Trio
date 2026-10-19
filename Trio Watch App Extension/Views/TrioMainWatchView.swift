@@ -11,10 +11,12 @@ struct TrioMainWatchView: View {
     private var bubblePage: Int? { state.showGlucoseBubble ? 1 : nil }
     private var chartPage: Int { bubblePage.map { $0 + 1 } ?? 1 }
     private var peripheralsPage: Int { chartPage + 1 }
+    /// Untethered mode off on the phone: no status page, but a session still running keeps it.
+    private var showsUntethered: Bool { state.untetheredMode || untethered.isActive }
     private var statusPage: Int { peripheralsPage + 1 }
     /// The watch's own loop status, while it loops.
     private var loopPage: Int? { untethered.isActive ? statusPage + 1 : nil }
-    private var lastPage: Int { loopPage ?? statusPage }
+    private var lastPage: Int { showsUntethered ? loopPage ?? statusPage : peripheralsPage }
 
     // misc
     @State private var currentPage: Int = 0
@@ -129,7 +131,9 @@ struct TrioMainWatchView: View {
                 )
                 .tag(peripheralsPage)
 
-                UntetheredStatusView(manager: untethered).tag(statusPage)
+                if showsUntethered {
+                    UntetheredStatusView(manager: untethered).tag(statusPage)
+                }
                 if let loopPage {
                     UntetheredLoopStatusView(manager: untethered).tag(loopPage)
                 }
@@ -138,6 +142,9 @@ struct TrioMainWatchView: View {
                 if isActive || currentPage > statusPage { currentPage = statusPage }
             }
             .onChange(of: state.showGlucoseBubble) { _, _ in
+                if currentPage > lastPage { currentPage = lastPage }
+            }
+            .onChange(of: showsUntethered) { _, _ in
                 if currentPage > lastPage { currentPage = lastPage }
             }
             .onAppear {

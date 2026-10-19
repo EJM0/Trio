@@ -289,7 +289,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     /// stays queued.
     @MainActor private func sendStandingGrant() async {
         let session = WCSession.default
-        guard UntetheredGate.phoneMayDose, WCSession.isSupported(), session.activationState == .activated,
+        guard isEnabled, UntetheredGate.phoneMayDose, WCSession.isSupported(), session.activationState == .activated,
               session.isWatchAppInstalled, let control = apsManager.pumpManager as? ExclusiveDeviceControl,
               !control.isControlReleased
         else { return }
@@ -314,9 +314,9 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         guard !Task.isCancelled,
               standingGrantSettingsChanged || fingerprint != standingGrantFingerprint
               || now.timeIntervalSince(standingGrantSentAt ?? .distantPast) >= Self.standingGrantInterval,
-            UntetheredGate.phoneMayDose,
-            var payload = try? UntetheredEnvelope(epoch: state.session.epoch, message: .standingGrant(grant, issuedAt: now))
-            .payload()
+              UntetheredGate.phoneMayDose,
+              var payload = try? UntetheredEnvelope(epoch: state.session.epoch, message: .standingGrant(grant, issuedAt: now))
+              .payload()
         else { return }
         payload[Self.standingGrantMarker] = true
         for transfer in session.outstandingUserInfoTransfers where transfer.userInfo[Self.standingGrantMarker] != nil {
@@ -677,7 +677,13 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
 
     // MARK: - Starting
 
+    /// Untethered mode offered at all (Settings › Apple Watch).
+    var isEnabled: Bool { settingsManager.settings.untetheredModeWatch }
+
     @MainActor private func preflight() throws {
+        guard isEnabled else {
+            throw UntetheredError.unavailable(String(localized: "Untethered mode is off in Settings › Apple Watch."))
+        }
         guard WCSession.isSupported(), WCSession.default.isPaired, WCSession.default.isWatchAppInstalled else {
             throw UntetheredError.unavailable(String(localized: "Trio is not installed on a paired Apple Watch."))
         }
@@ -1544,6 +1550,10 @@ extension UntetheredPhoneManager: SettingsObserver, PreferencesObserver, PumpSet
         scheduleStandingGrant(settingsChanged: true)
         if !state.session.isIdle {
             send(.dosingModeChanged(settings.dosingMode), epoch: state.session.epoch)
+        }
+        // turned off with the watch in charge: it hands back, as from the mode's own toggle
+        if !settings.untetheredModeWatch, state.session.phase == .active {
+            Task { @MainActor in await self.end() }
         }
     }
 

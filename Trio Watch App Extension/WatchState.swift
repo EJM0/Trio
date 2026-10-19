@@ -97,6 +97,11 @@ import WatchConnectivity
         }
     }
 
+    /// Untethered mode offered at all, the phone's setting; persisted, as the start without the phone needs it most.
+    var untetheredMode: Bool = UserDefaults.standard.object(forKey: WatchMessageKeys.untetheredModeWatch) as? Bool ?? true {
+        didSet { UserDefaults.standard.set(untetheredMode, forKey: WatchMessageKeys.untetheredModeWatch) }
+    }
+
     // Forecast options; kept across launches like the bubble page: untethered with the phone off, no update
     // brings them back after watchOS ended the app
     var showForecast: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.showForecastWatch) {
@@ -1005,6 +1010,10 @@ import WatchConnectivity
            allowStartWithoutPhone != allowUntetheredStartWithoutPhone
         {
             allowUntetheredStartWithoutPhone = allowStartWithoutPhone
+        }
+
+        if let untetheredMode = message[WatchMessageKeys.untetheredModeWatch] as? Bool, untetheredMode != self.untetheredMode {
+            self.untetheredMode = untetheredMode
         }
 
         if let isForecastCone = message[WatchMessageKeys.isForecastCone] as? Bool, isForecastCone != self.isForecastCone {

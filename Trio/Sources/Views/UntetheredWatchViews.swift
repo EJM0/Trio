@@ -29,14 +29,14 @@ struct UntetheredSettingsSection: View {
     @State private var confirmForce = false
 
     var body: some View {
+        // under the Untethered Mode switch in Settings › Apple Watch: this one starts and ends a session
         Section(
-            header: Text("Untethered Watch Mode"),
             footer: Text(
                 "The watch runs the loop with its own connection to the pump and the CGM while the phone is away. While it does, the phone shows glucose but doesn't dose."
             )
         ) {
             HStack {
-                Text("Untethered Watch Mode")
+                Text("Watch Runs the Loop")
                 Spacer()
                 if manager.isBusy {
                     ProgressView()

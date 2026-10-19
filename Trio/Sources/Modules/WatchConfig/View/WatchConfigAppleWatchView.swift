@@ -22,27 +22,7 @@ struct WatchConfigAppleWatchView: BaseView {
 
     var body: some View {
         List {
-            SettingInputSection(
-                decimalValue: $decimalPlaceholder,
-                booleanValue: $state.confirmBolusFaster,
-                shouldDisplayHint: $shouldDisplayHint,
-                selectedVerboseHint: Binding(
-                    get: { selectedVerboseHint },
-                    set: {
-                        selectedVerboseHint = $0.map { AnyView($0) }
-                        hintLabel = String(localized: "Confirm Bolus Faster")
-                    }
-                ),
-                units: state.units,
-                type: .boolean,
-                label: String(localized: "Confirm Bolus Faster"),
-                miniHint: String(localized: "Reduce the number of crown rotations required for bolus confirmation."),
-                verboseHint: Text(
-                    "Enabling this feature lowers the number of turns on the crown dial required when confirming a bolus."
-                ),
-                headerText: String(localized: "Apple Watch Configuration")
-            )
-
+            // what the watch shows
             SettingInputSection(
                 decimalValue: $decimalPlaceholder,
                 booleanValue: $state.showForecastWatch,
@@ -51,7 +31,7 @@ struct WatchConfigAppleWatchView: BaseView {
                     get: { selectedVerboseHint },
                     set: {
                         selectedVerboseHint = $0.map { AnyView($0) }
-                        hintLabel = String(localized: "Show forecast on Watch")
+                        hintLabel = String(localized: "Show Forecast on Watch")
                     }
                 ),
                 units: state.units,
@@ -61,7 +41,7 @@ struct WatchConfigAppleWatchView: BaseView {
                 verboseHint: Text(
                     "Enable this feature to show the forecast on the Apple Watch"
                 ),
-                headerText: String(localized: "Apple Watch Configuration")
+                headerText: String(localized: "Display")
             )
 
             SettingInputSection(
@@ -82,31 +62,77 @@ struct WatchConfigAppleWatchView: BaseView {
                 verboseHint: Text(
                     "Turn this off to drop the page that shows only the large glucose bubble. The combined page with the bubble and the chart stays."
                 ),
-                headerText: String(localized: "Apple Watch Configuration")
+                headerText: nil
             )
 
+            // treatments from the wrist
             SettingInputSection(
                 decimalValue: $decimalPlaceholder,
-                booleanValue: $state.allowUntetheredStartWithoutPhoneWatch,
+                booleanValue: $state.confirmBolusFaster,
                 shouldDisplayHint: $shouldDisplayHint,
                 selectedVerboseHint: Binding(
                     get: { selectedVerboseHint },
                     set: {
                         selectedVerboseHint = $0.map { AnyView($0) }
-                        hintLabel = String(localized: "Allow Start Without iPhone")
+                        hintLabel = String(localized: "Confirm Bolus Faster")
                     }
                 ),
                 units: state.units,
                 type: .boolean,
-                label: String(localized: "Allow Start Without iPhone"),
-                miniHint: String(localized: "Let the watch start untethered mode while the iPhone is unavailable"),
+                label: String(localized: "Confirm Bolus Faster"),
+                miniHint: String(localized: "Reduce the number of crown rotations required for bolus confirmation."),
                 verboseHint: Text(
-                    "When this is off, the watch hides Start Without Phone and won't take over from a saved grant while the iPhone is unavailable."
+                    "Enabling this feature lowers the number of turns on the crown dial required when confirming a bolus."
                 ),
-                headerText: String(localized: "Apple Watch Configuration")
+                headerText: String(localized: "Treatments")
             )
 
-            UntetheredSettingsSection(manager: resolver.resolve(UntetheredPhoneManager.self)!)
+            // the watch running the loop: the switch, then what it allows and the session itself
+            SettingInputSection(
+                decimalValue: $decimalPlaceholder,
+                booleanValue: $state.untetheredModeWatch,
+                shouldDisplayHint: $shouldDisplayHint,
+                selectedVerboseHint: Binding(
+                    get: { selectedVerboseHint },
+                    set: {
+                        selectedVerboseHint = $0.map { AnyView($0) }
+                        hintLabel = String(localized: "Untethered Mode")
+                    }
+                ),
+                units: state.units,
+                type: .boolean,
+                label: String(localized: "Untethered Mode"),
+                miniHint: String(localized: "Let the watch run the loop with its own pump and CGM connection"),
+                verboseHint: Text(
+                    "When this is off, neither the iPhone nor the watch starts untethered mode, the watch hides its status page and the iPhone stops sending it the copy to start without it. A session still running hands back."
+                ),
+                headerText: String(localized: "Untethered Mode")
+            )
+
+            if state.untetheredModeWatch {
+                SettingInputSection(
+                    decimalValue: $decimalPlaceholder,
+                    booleanValue: $state.allowUntetheredStartWithoutPhoneWatch,
+                    shouldDisplayHint: $shouldDisplayHint,
+                    selectedVerboseHint: Binding(
+                        get: { selectedVerboseHint },
+                        set: {
+                            selectedVerboseHint = $0.map { AnyView($0) }
+                            hintLabel = String(localized: "Allow Start Without iPhone")
+                        }
+                    ),
+                    units: state.units,
+                    type: .boolean,
+                    label: String(localized: "Allow Start Without iPhone"),
+                    miniHint: String(localized: "Let the watch start untethered mode while the iPhone is unavailable"),
+                    verboseHint: Text(
+                        "When this is off, the watch hides Start Without Phone and won't take over from a saved grant while the iPhone is unavailable."
+                    ),
+                    headerText: nil
+                )
+
+                UntetheredSettingsSection(manager: resolver.resolve(UntetheredPhoneManager.self)!)
+            }
 
             Section(
                 header: Text("Contact Image"),
