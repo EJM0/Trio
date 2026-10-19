@@ -107,6 +107,7 @@ extension UntetheredWatchManager {
                         $0.lastLoopDate = now
                         $0.lastLoopError = nil
                     }
+                    self.podLinkRecovered(pump)
                 }
                 if enacts {
                     do {
@@ -886,6 +887,13 @@ extension UntetheredWatchManager: CGMManagerDelegate {
               now.timeIntervalSince(lastLoop) > Self.podLinkStallLimit,
               now.timeIntervalSince(lastPodLinkReset ?? .distantPast) > Self.podLinkResetInterval
         else { return }
+        if lastPodLinkReset == nil {
+            notify(
+                id: Self.podLinkID,
+                title: Self.podLinkTitle,
+                body: Self.podLinkBody(minutes: Int(Self.podLinkStallLimit / 60))
+            )
+        }
         lastPodLinkReset = now
         let releaseHold = Self.holdProcess(reason: "Untethered pod reconnect", upTo: Self.loopHoldLimit)
         let minutes = Int(now.timeIntervalSince(lastLoop) / 60)
@@ -898,6 +906,22 @@ extension UntetheredWatchManager: CGMManagerDelegate {
             )
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.loopHoldLimit) { releaseHold() }
+    }
+
+    /// A loop reached the pod again: the search an escalation started ends, and so does its notice.
+    func podLinkRecovered(_ pump: PumpManager & ExclusiveDeviceControl) {
+        guard lastPodLinkReset != nil else { return }
+        lastPodLinkReset = nil
+        pump.endTakeEscalation()
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [Self.podLinkID])
+    }
+
+    static let podLinkID = "untethered.podLink"
+    private static var podLinkTitle: String { String(localized: "Pod Not Reachable") }
+    private static func podLinkBody(minutes: Int) -> String {
+        String(
+            localized: "The watch hasn't reached the pod for \(minutes) minutes. Open Trio on the watch: it reconnects there."
+        )
     }
 
     func cgmManager(_: CGMManager, hasNew readingResult: CGMReadingResult) {

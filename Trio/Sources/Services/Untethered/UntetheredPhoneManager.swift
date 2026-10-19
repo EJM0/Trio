@@ -889,6 +889,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             try? await Task.sleep(nanoseconds: Self.pumpReadRetry)
         }
         if bannerShown { setError(nil) }
+        control?.endTakeEscalation()
         if !state.podEndedOnWatch {
             pumpReturnAnswered = true
             debug(
