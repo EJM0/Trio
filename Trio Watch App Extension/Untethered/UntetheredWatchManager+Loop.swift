@@ -22,7 +22,6 @@ enum UntetheredLoopTrigger {
 extension UntetheredWatchManager {
     /// One cycle, as the phone's `APSManager.loop()`: refresh the pump, determine, enact, record.
     func runLoop(_ trigger: UntetheredLoopTrigger) {
-        if phoneTookAbandonedPump() { return }
         // a hand-back doses on while its history drains, until its last stage
         let phase = data.session.phase
         guard phase == .active || (phase == .ending && !isFinalizing), !data.podEnded, let pump = pumpManager,
@@ -839,7 +838,7 @@ extension UntetheredWatchManager: PumpManagerDelegate {
 
 extension UntetheredWatchManager: CGMManagerDelegate {
     func startDateToFilterNewData(for _: CGMManager) -> Date? {
-        (data.glucose + data.standbyGlucose).map(\.dateString).max()
+        data.glucose.map(\.dateString).max()
     }
 
     func cgmManager(_: CGMManager, hasNew readingResult: CGMReadingResult) {
@@ -857,8 +856,9 @@ extension UntetheredWatchManager: CGMManagerDelegate {
                 type: "sgv"
             )
         }
-        guard !readings.isEmpty else { return }
-        if isActive { ingest(readings) } else { holdStandby(readings) }
+        // outside a session the link only stays warm; the phone reads the same sensor
+        guard isActive, !readings.isEmpty else { return }
+        ingest(readings)
     }
 
     /// New readings for the loop and the phone.
@@ -896,7 +896,6 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         scheduleNoReadingsAlert(from: lastDate)
         publishToWatchState()
         runLoop(.newGlucose)
-        reportFallbackSession()
     }
 
     func cgmManager(_: CGMManager, hasNew _: [PersistedCgmEvent]) {}

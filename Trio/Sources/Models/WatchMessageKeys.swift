@@ -89,7 +89,6 @@ enum WatchMessageKeys {
     static let showForecastWatch = "showForecastWatch"
     static let showGlucoseBubbleWatch = "showGlucoseBubbleWatch"
     static let allowUntetheredStartWithoutPhoneWatch = "allowUntetheredStartWithoutPhoneWatch"
-    static let fallbackLoopWatch = "fallbackLoopWatch"
     static let isForecastCone = "isForecastCone"
     static let forecastData = "forecastData"
     static let forecastStartDate = "forecastStartDate"
