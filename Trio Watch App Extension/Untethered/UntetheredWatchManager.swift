@@ -651,7 +651,8 @@ import WatchConnectivity
     /// phone otherwise sends the next only when something changed or half an hour passed.
     func requestStandingGrantIfMissing() {
         let now = Date()
-        guard data.session.phase == .idle, standingGrantAge == nil, WatchState.shared.allowUntetheredStartWithoutPhone,
+        guard data.session.phase == .idle, standingGrantAge == nil, WatchState.shared.untetheredMode,
+              WatchState.shared.allowUntetheredStartWithoutPhone,
               (standingGrantRequestedAt ?? .distantPast).addingTimeInterval(Self.standingGrantRequestInterval) < now
         else { return }
         standingGrantRequestedAt = now
@@ -680,7 +681,7 @@ import WatchConnectivity
     /// With the phone off or out of reach, from the phone's standing grant: the ordinary takeover, with a fresh lease
     /// and an epoch of the watch's own. The phone stands aside once it hears from the watch. As LoopKit/Loop#2545.
     func startWithoutPhone() {
-        guard WatchState.shared.allowUntetheredStartWithoutPhone,
+        guard WatchState.shared.untetheredMode, WatchState.shared.allowUntetheredStartWithoutPhone,
               data.session.phase == .idle, !isBusy, !WatchState.shared.isReachable, standingGrantAge != nil,
               let grant = data.standingGrant
         else { return }
@@ -767,7 +768,7 @@ import WatchConnectivity
 
     /// Asks the phone to start, as its settings toggle does; the phone's answer is the usual prepare.
     func requestStart() {
-        guard data.session.phase == .idle, !isBusy else { return }
+        guard WatchState.shared.untetheredMode, data.session.phase == .idle, !isBusy else { return }
         guard WCSession.default.isReachable else {
             setError(String(localized: "The phone must be reachable to start untethered mode."))
             return
