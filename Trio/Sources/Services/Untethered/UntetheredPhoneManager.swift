@@ -127,7 +127,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             .sink { [weak self] _ in self?.scheduleStandingGrant() }
             .store(in: &subscriptions)
         // a bolus goes at once, not after the burst: the phone may be gone in seconds, and a copy without the bolus
-        // leaves its rest unknown to a watch that starts without it (2026-10-18, app restarted 16 s into 6.65 U)
+        // leaves its rest unknown to a watch that starts without it
         pumpHistoryStorage.updatePublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.scheduleStandingGrant(immediately: true) }

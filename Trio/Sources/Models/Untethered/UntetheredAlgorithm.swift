@@ -1,5 +1,7 @@
 import Foundation
-import LoopKit
+#if canImport(LoopKit)
+    import LoopKit
+#endif
 
 /// The watch's loop without its state: what it reads and how it determines, shared so the tests reach it.
 enum UntetheredAlgorithm {
@@ -153,16 +155,18 @@ enum UntetheredAlgorithm {
     /// The id of a temp basal's rate row; its duration row has the pump event's own.
     static func rateID(_ id: String) -> String { "_" + id }
 
+    /// What `PumpEventStored.toPumpHistoryEvents` reads back from a stored amount or rate.
+    static func algorithmValue(_ stored: Decimal) -> Decimal {
+        Decimal(algorithmValue: NSDecimalNumber(decimal: stored).doubleValue)
+    }
+
+    // LoopKit's pump events: in the app and on the watch, not in the algorithm package.
+    #if canImport(LoopKit)
     /// A bolus as `PumpHistoryStorage.storePumpEvents` stores it: rounded to the increment in `Double`, kept as the
     /// `Decimal` of that `Double`.
     static func storedBolus(_ dose: DoseEntry, bolusIncrement: Decimal) -> Decimal {
         let increment = NSDecimalNumber(decimal: bolusIncrement).doubleValue
         return Decimal((dose.unitsInDeliverableIncrements / increment).rounded() * increment)
-    }
-
-    /// What `PumpEventStored.toPumpHistoryEvents` reads back from a stored amount or rate.
-    static func algorithmValue(_ stored: Decimal) -> Decimal {
-        Decimal(algorithmValue: NSDecimalNumber(decimal: stored).doubleValue)
     }
 
     /// The phone's `PumpHistoryStorage.storePumpEvents` + `PumpEventStored.toPumpHistoryEvents`, without the
@@ -246,6 +250,7 @@ enum UntetheredAlgorithm {
             return nil
         }
     }
+    #endif
 
     // MARK: TDD
 

@@ -230,7 +230,7 @@ final class BasePumpHistoryStorage: PumpHistoryStorage, Injectable {
 
     /// The phone's doses in flight when the watch started without it, after the copy it started from: its pump manager
     /// gave them away at the release, the watch never had them, so nobody would report them again and the take-back's
-    /// pending report would purge them (2026-10-18, a 6.65 U bolus). Kept as programmed; a bolus the watch can't
+    /// pending report would purge them. Kept as programmed; a bolus the watch can't
     /// cancel runs to its end, a temp is cut short by the watch's next.
     @discardableResult func keepInFlightDoses(startedAfter date: Date?) async throws -> Int {
         let context = makeContext()

@@ -1,5 +1,7 @@
 import Foundation
-import LoopKit
+#if canImport(LoopKit)
+    import LoopKit
+#endif
 import Testing
 @testable import Trio
 
@@ -712,6 +714,7 @@ import Testing
         #expect(UntetheredAlgorithm.historyTempBasal([], now: t0).duration == 0)
     }
 
+    #if canImport(LoopKit)
     @Test("algorithm: pump events in the algorithm's shape and the TDD's") func pumpEventShapes() {
         // in the past: events from the future are booked at the current time
         let start = Date(timeIntervalSince1970: 1_700_000_000)
@@ -746,6 +749,7 @@ import Testing
         #expect(booked.first?.isSMB == false)
         #expect(UntetheredAlgorithm.tddEvent(bolus, id: "b", bolusIncrement: 0.05) == booked.first)
     }
+    #endif
 
     @Test("TDD: the watch's weighted average is the phone's formula, zeros counted") func weightedAverage() {
         func row(_ minutesAgo: Double, _ total: Decimal) -> UntetheredTDD {
