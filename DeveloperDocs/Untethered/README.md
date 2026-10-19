@@ -39,7 +39,7 @@ After a hand-back the phone reads the pod, compares what the pod says it deliver
 
 **Settings › Apple Watch › Allow Start Without iPhone** is for the day you leave without starting untethered mode. While it is on, the phone keeps a copy of your settings, carbs and doses on the watch, renewed at least every 30 minutes. If the iPhone is then out of reach (off, forgotten at home), the watch's untethered page offers **Start Without Phone**. The watch never starts by itself; you have to tap and confirm.
 
-The copy is only used while it is younger than your insulin's action time. Anything the pod delivered after the copy that the copy doesn't know about is counted as a bolus before the watch's first loop. When the phone comes back, it sees that the watch has the pod and stops dosing.
+The copy is only used while it is younger than your insulin's action time. The phone sends a fresh copy at once after every pump event, so a bolus reaches the watch within seconds. Anything the pod delivered after the copy that the copy doesn't know about is counted as a bolus before the watch's first loop; a bolus that was still running then is counted once, by both devices. When the phone comes back, it sees that the watch has the pod and stops dosing.
 
 Turning the setting off deletes the copy on the watch and hides the button.
 
@@ -58,7 +58,8 @@ Turning the setting off deletes the copy on the watch and hides the button.
 | `Trio/Sources/Models/Untethered/UntetheredSession.swift` | The hand-over protocol as a pure state machine, one per device. All transitions are unit tested. |
 | `Trio/Sources/Models/Untethered/UntetheredMessage.swift` | The messages and the grant (everything the watch needs to loop: settings, history, device configurations). |
 | `Trio/Sources/Models/Untethered/UntetheredRecord.swift` | What the watch records while it loops, and the checksums used to sync it back. |
-| `Trio/Sources/Models/Untethered/UntetheredAudit.swift` | Compares what the pod delivered with what the records explain. |
+| `Trio/Sources/Models/Untethered/UntetheredAudit.swift` | Compares what the pod delivered with what the records explain. A bolus that was still running at the start or end of the compared stretch counts only with the part delivered inside it. |
+| `Trio/Sources/Models/Untethered/UntetheredAlgorithm.swift` | The watch's loop without its state: how it builds the algorithm's inputs, turns pump events into history rows the way the phone stores them, and calculates TDD. Kept separate so the tests can run it next to the phone's code. |
 | `Trio/Sources/Services/Untethered/UntetheredPhoneManager.swift` | The phone's side: starts sessions, holds its own dosing, takes the pump back, stores the watch's history, runs the audit. |
 | `Trio Watch App Extension/Untethered/` | The watch's side: device managers, the loop, history, alarms, screens. |
 | `Trio/Sources/APS/OpenAPS/OrefPipeline.swift`, `GlucoseSmoothing.swift`, `Storage/TDDCalculator.swift`, `BolusCalculator/BolusCalculator.swift` | Code moved out of the phone-only services so the watch runs exactly the same steps. The phone calls the same functions as before. |
@@ -89,6 +90,12 @@ The phone sends a **standing grant** (issued already expired, so it can't start 
 - While a standing grant is out, the phone's pod connection refuses to command the pod once it sees that another controller has used it (OmniPodKit's foreign-session check). It then asks the watch, and stands aside on the watch's word.
 - After any pause of 10 minutes or more in its own loops, the phone compares the pod's delivered total with its records and books what it can't explain.
 
+### Same results as the phone
+
+The watch runs the phone's own oref code (`OrefPipeline`), not a copy. What differs is how the inputs reach it: the phone reads them from Core Data, the watch from the grant and its own records. `UntetheredAlgorithm` rebuilds the inputs the way the phone's storage would hand them over, down to the same rounding of bolus amounts. Parity tests feed both paths the same history and expect the same determination.
+
+The ten-day TDD average moves forward by the hour on the watch, as the phone's does with its rows, so a long session doesn't drift from what the phone would have calculated.
+
 ### History
 
 The watch records pump events, glucose, carbs, adjustments, determinations, TDD and autosens. Records go to the phone in small batches, paced around the sensor's reading window (watch Bluetooth is shared with WatchConnectivity). The phone compares 30-minute checksums with the watch and asks again for anything missing, so a session's history ends up complete even after relaunches or lost transfers.
@@ -97,14 +104,18 @@ The watch records pump events, glucose, carbs, adjustments, determinations, TDD 
 
 This needs changes in four submodules. All commits are reachable through the loopandlearn forks:
 
-- **LoopKit**: device hand-off protocols (`ExclusiveDeviceControl`, `DeviceConfigurationSharing`, `PumpDeliveryOdometer`) and the foreign-session refusal.
-- **OmnipodKit**: pod hand-off, a watchOS target, deactivating a pod on the watch, refusing commands after foreign control.
+- **LoopKit**: device hand-off protocols (`ExclusiveDeviceControl`, `DeviceConfigurationSharing`, `PumpDeliveryOdometer`), the foreign-session refusal, and the bolus rate, temp basal durations and untracked bolus the audit needs.
+- **OmnipodKit**: pod hand-off, a watchOS target, deactivating a pod on the watch, refusing commands after foreign control, reporting what the audit needs.
 - **RileyLinkKit**: watchOS targets.
-- **G7SensorKit**: reading the sensor in its watch display slot, rebonding, and telling an unfinished pairing apart from a wrong code.
+- **G7SensorKit**: reading the sensor in its watch display slot, rebonding, reconnecting to a sensor restored mid-disconnect, and telling an unfinished pairing apart from a wrong code.
 
 ### Tests
 
-`TrioTests/OpenAPSSwiftTests/UntetheredTests.swift` covers the state machine (start, end, lost acknowledgements, emergency paths, start without the phone, foreign sessions), the audit, the history checksums and the temp basal hand-over. They run with the algorithm package: `swift test --package-path AlgorithmPackage --filter Untethered`.
+- `TrioTests/OpenAPSSwiftTests/UntetheredTests.swift`: the state machine (start, end, lost acknowledgements, emergency paths, start without the phone, foreign sessions), the audit, the history checksums, the temp basal hand-over and the TDD averages.
+- `TrioTests/OpenAPSSwiftTests/UntetheredParityTests.swift`: the watch's loop against the phone's, on the same inputs.
+- `TrioTests/CoreDataTests/UntetheredPumpHistoryParityTests.swift`: the watch's pump history rows against what the phone's storage makes of the same pump events (needs the app's test target).
+
+The first two run with the algorithm package: `swift test --package-path AlgorithmPackage --filter Untethered`. The few tests that need LoopKit's pump events run only in the app's test target.
 
 ## Credits
 
