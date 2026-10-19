@@ -4,6 +4,7 @@ import LoopKit
 import SwiftUI
 import UserNotifications
 import WatchConnectivity
+import WatchKit
 
 // MARK: - The loop
 
@@ -1072,10 +1073,16 @@ extension UntetheredWatchManager {
         )
     }
 
+    /// Every untethered notification's identifier starts with it, so they show with Trio open on the wrist too.
+    static let notificationPrefix = "untethered."
+
     private func alarm(_ kind: String, title: String, body: String, every interval: TimeInterval) {
         guard (Self.lastAlarm[kind] ?? .distantPast).addingTimeInterval(interval) < Date() else { return }
         Self.lastAlarm[kind] = Date()
-        notify(id: "untethered." + kind, title: title, body: body)
+        notify(id: Self.notificationPrefix + kind, title: title, body: body)
+        // felt at once while the app runs, as the watch's G7 reader alerts; the notification may wait for the screen
+        WKInterfaceDevice.current().play(kind == "high" ? .notification : .failure)
+        Task { await WatchLogger.shared.log("⌚️ Untethered alarm: \(title) \(body)", force: true) }
     }
 
     func notify(id: String, title: String, body: String, after delay: TimeInterval? = nil) {
@@ -1083,9 +1090,15 @@ extension UntetheredWatchManager {
         content.title = title
         content.body = body
         content.sound = .default
-        content.interruptionLevel = .timeSensitive
+        // not time-sensitive: the watch app has no entitlement for it; plain, as the reader's alerts that do arrive
         let trigger = delay.flatMap { $0 > 0 ? UNTimeIntervalNotificationTrigger(timeInterval: $0, repeats: false) : nil }
-        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request) { error in
+            guard let error else { return }
+            Task {
+                await WatchLogger.shared.log("⌚️ Untethered: notification \(id) failed: \(error.localizedDescription)", force: true)
+            }
+        }
     }
 
     /// What the pump delivers now, for the status page: the running temp, else the scheduled rate. A loop that keeps

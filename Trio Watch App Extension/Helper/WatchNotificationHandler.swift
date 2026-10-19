@@ -28,6 +28,20 @@ final class WatchNotificationHandler: NSObject, UNUserNotificationCenterDelegate
         }
     }
 
+    /// Shows untethered mode's alarms even when Trio is open on the wrist: while the watch loops they are the only
+    /// ones. Everything else keeps the system's default handling.
+    func userNotificationCenter(
+        _: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        if notification.request.identifier.hasPrefix(UntetheredWatchManager.notificationPrefix) {
+            completionHandler([.banner, .list, .sound])
+        } else {
+            completionHandler([])
+        }
+    }
+
     /// UNUserNotificationCenterDelegate method called when user interacts with a notification on watch.
     /// This can be called off the main thread. WCSession.transferUserInfo is thread-safe.
     func userNotificationCenter(
