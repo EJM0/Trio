@@ -60,6 +60,8 @@ struct TrioSettings: JSON, Equatable, Encodable {
     /// Lets the watch start untethered mode from the phone's saved grant while the iPhone is unavailable. Off until
     /// chosen: the watch would dose from a copy of the phone's state that may be some time old.
     var allowUntetheredStartWithoutPhoneWatch: Bool = false
+    /// Untethered watch mode offered at all: off, neither the phone nor the watch starts it.
+    var untetheredModeWatch: Bool = true
     var overrideFactor: Decimal = 0.8
     var fattyMeals: Bool = false
     var fattyMealFactor: Decimal = 0.7
@@ -325,6 +327,10 @@ extension TrioSettings: Decodable {
 
         if let showForecastWatch = try? container.decode(Bool.self, forKey: .showForecastWatch) {
             settings.showForecastWatch = showForecastWatch
+        }
+
+        if let untetheredModeWatch = try? container.decode(Bool.self, forKey: .untetheredModeWatch) {
+            settings.untetheredModeWatch = untetheredModeWatch
         }
 
         if let displayPresets = try? container.decode(Bool.self, forKey: .displayPresets) {

@@ -36,6 +36,8 @@ enum UntetheredMessage: Codable, Equatable {
     /// The grant the watch starts from without the phone: issued expired while the phone has the pump, refreshed
     /// as the phone doses and its settings change. Only the newest is kept.
     case standingGrant(UntetheredGrant, issuedAt: Date)
+    /// The watch has no standing grant young enough to start from: the phone sends one at once.
+    case standingGrantRequest
 }
 
 enum UntetheredAdjustment: String, Codable {

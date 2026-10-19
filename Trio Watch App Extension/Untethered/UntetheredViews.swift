@@ -282,13 +282,15 @@ struct UntetheredStatusView: View {
                 .disabled(!isPhoneReachable)
                 if !isPhoneReachable {
                     note("Starts with the phone nearby and Trio open on it.")
-                    if manager.standingGrantAge != nil, WatchState.shared.allowUntetheredStartWithoutPhone {
+                    // without a copy the note below says why
+                    if WatchState.shared.allowUntetheredStartWithoutPhone, manager.startWithoutPhoneUnavailable == nil {
                         Button { confirmStartWithoutPhone = true } label: {
                             Label("Start Without Phone", systemImage: "iphone.slash")
                         }
                         .tint(.untethered)
                     }
                 }
+                copyNote
             case .active where data.podEnded:
                 Button { whenPhoneReachable { manager.end() } } label: {
                     Label("Hand Back", systemImage: "iphone")
@@ -341,7 +343,33 @@ struct UntetheredStatusView: View {
     }
 
     private func note(_ text: LocalizedStringKey) -> some View {
-        Text(text)
+        note(Text(text))
+    }
+
+    /// Whether a copy from the phone is stored to start without it, and how old, or why not.
+    @ViewBuilder private var copyNote: some View {
+        if WatchState.shared.allowUntetheredStartWithoutPhone {
+            if let age = manager.standingGrantAge {
+                Label(
+                    "The iPhone's copy of \(Int(age / 60)) min ago is ready to start without it",
+                    systemImage: "checkmark.circle"
+                )
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            } else {
+                Label {
+                    Text("Can't start without the iPhone: \(manager.startWithoutPhoneUnavailable ?? "")")
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle")
+                }
+                .font(.caption2)
+                .foregroundStyle(.orange)
+            }
+        }
+    }
+
+    private func note(_ text: Text) -> some View {
+        text
             .font(.caption2)
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)

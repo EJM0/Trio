@@ -10,9 +10,11 @@ Supported devices: Omnipod DASH and Dexcom G7. Other pumps and CGMs are refused 
 
 ### Starting
 
-Any of these starts untethered mode. All of them need the watch app to be reachable and the phone close to the pod.
+**Settings › Apple Watch › Untethered Mode** turns the whole feature on or off (on by default). When it is off, neither the phone nor the watch starts a session, the watch hides its untethered page and the phone sends no copy for starting without it. A session that is still running when you turn it off hands back.
 
-- **Settings › Apple Watch › Untethered Watch Mode** (the switch).
+With the mode on, any of these starts a session. All of them need the watch app to be reachable and the phone close to the pod.
+
+- **Settings › Apple Watch › Watch Runs the Loop** (the switch below Untethered Mode).
 - **Start Untethered** on the watch's untethered page.
 - **An override** that has *Show Untethered Watch Button* turned on. Starting the override shows a watch button next to it; untethered mode started that way ends when the override ends.
 - **The Shortcuts action** *Start Untethered Mode*.
@@ -29,7 +31,7 @@ Before handing over, the phone checks that the pod answers, that there is a rece
 ### Ending
 
 - **On the watch:** *Hand Back*. The watch finishes sending its history, reads the pod one last time and gives it back.
-- **On the phone:** turn the switch off. The watch hands back as soon as it can be reached.
+- **On the phone:** turn *Watch Runs the Loop* off. The watch hands back as soon as it can be reached.
 - **Take Back the Pump Now** (phone) is the emergency path: the phone takes the pod immediately, if it can reach it, and the watch stops.
 - **Emergency Stop** (watch) lets go of the pod at once.
 
@@ -40,6 +42,8 @@ After a hand-back the phone reads the pod, compares what the pod says it deliver
 **Settings › Apple Watch › Allow Start Without iPhone** is for the day you leave without starting untethered mode. While it is on, the phone keeps a copy of your settings, carbs and doses on the watch, renewed at least every 30 minutes. If the iPhone is then out of reach (off, forgotten at home), the watch's untethered page offers **Start Without Phone**. The watch never starts by itself; you have to tap and confirm.
 
 The copy is only used while it is younger than your insulin's action time. The phone sends a fresh copy at once after every pump event, so a bolus reaches the watch within seconds. Anything the pod delivered after the copy that the copy doesn't know about is counted as a bolus before the watch's first loop; a bolus that was still running then is counted once, by both devices. When the phone comes back, it sees that the watch has the pod and stops dosing.
+
+The watch's untethered page says whether a copy is stored and how old it is, or why the watch can't start without the phone (no copy yet, or one older than your insulin's action time). After a session, or whenever the watch has no usable copy, it asks the phone for a new one, at most every 5 minutes; a phone out of reach answers once it is back.
 
 Turning the setting off deletes the copy on the watch and hides the button.
 

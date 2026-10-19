@@ -24,27 +24,6 @@ struct WatchConfigAppleWatchView: BaseView {
         List {
             SettingInputSection(
                 decimalValue: $decimalPlaceholder,
-                booleanValue: $state.confirmBolusFaster,
-                shouldDisplayHint: $shouldDisplayHint,
-                selectedVerboseHint: Binding(
-                    get: { selectedVerboseHint },
-                    set: {
-                        selectedVerboseHint = $0.map { AnyView($0) }
-                        hintLabel = String(localized: "Confirm Bolus Faster")
-                    }
-                ),
-                units: state.units,
-                type: .boolean,
-                label: String(localized: "Confirm Bolus Faster"),
-                miniHint: String(localized: "Reduce the number of crown rotations required for bolus confirmation."),
-                verboseHint: Text(
-                    "Enabling this feature lowers the number of turns on the crown dial required when confirming a bolus."
-                ),
-                headerText: String(localized: "Apple Watch Configuration")
-            )
-
-            SettingInputSection(
-                decimalValue: $decimalPlaceholder,
                 booleanValue: $state.showForecastWatch,
                 shouldDisplayHint: $shouldDisplayHint,
                 selectedVerboseHint: Binding(
@@ -61,31 +40,75 @@ struct WatchConfigAppleWatchView: BaseView {
                 verboseHint: Text(
                     "Enable this feature to show the forecast on the Apple Watch"
                 ),
-                headerText: String(localized: "Apple Watch Configuration")
+                headerText: String(localized: "Display")
             )
-
-            UntetheredSettingsSection(manager: resolver.resolve(UntetheredPhoneManager.self)!)
 
             SettingInputSection(
                 decimalValue: $decimalPlaceholder,
-                booleanValue: $state.allowUntetheredStartWithoutPhoneWatch,
+                booleanValue: $state.confirmBolusFaster,
                 shouldDisplayHint: $shouldDisplayHint,
                 selectedVerboseHint: Binding(
                     get: { selectedVerboseHint },
                     set: {
                         selectedVerboseHint = $0.map { AnyView($0) }
-                        hintLabel = String(localized: "Allow Start Without iPhone")
+                        hintLabel = String(localized: "Confirm Bolus Faster")
                     }
                 ),
                 units: state.units,
                 type: .boolean,
-                label: String(localized: "Allow Start Without iPhone"),
-                miniHint: String(localized: "Let the watch start untethered mode while the iPhone is unavailable"),
+                label: String(localized: "Confirm Bolus Faster"),
+                miniHint: String(localized: "Reduce the number of crown rotations required for bolus confirmation."),
                 verboseHint: Text(
-                    "For when you leave without starting untethered mode. While this is on, the phone keeps a copy of your settings, carbs and doses on the watch, renewed at least every 30 minutes. With the iPhone out of reach, and that copy younger than your insulin's action time, the watch offers Start Without Phone on its untethered page; it never starts by itself. The watch first books insulin the pod delivered that the copy doesn't know of, and the phone stops dosing as soon as it hears from the watch. When this is off, the phone sends no copy and the watch hides the button."
+                    "Enabling this feature lowers the number of turns on the crown dial required when confirming a bolus."
+                ),
+                headerText: String(localized: "Treatments")
+            )
+
+            SettingInputSection(
+                decimalValue: $decimalPlaceholder,
+                booleanValue: $state.untetheredModeWatch,
+                shouldDisplayHint: $shouldDisplayHint,
+                selectedVerboseHint: Binding(
+                    get: { selectedVerboseHint },
+                    set: {
+                        selectedVerboseHint = $0.map { AnyView($0) }
+                        hintLabel = String(localized: "Untethered Mode")
+                    }
+                ),
+                units: state.units,
+                type: .boolean,
+                label: String(localized: "Untethered Mode"),
+                miniHint: String(localized: "Let the watch run the loop with its own pump and CGM connection"),
+                verboseHint: Text(
+                    "When this is off, neither the iPhone nor the watch starts untethered mode, the watch hides its status page and the iPhone sends it no copy to start without it. A session still running hands back."
                 ),
                 headerText: String(localized: "Untethered Mode")
             )
+
+            if state.untetheredModeWatch {
+                SettingInputSection(
+                    decimalValue: $decimalPlaceholder,
+                    booleanValue: $state.allowUntetheredStartWithoutPhoneWatch,
+                    shouldDisplayHint: $shouldDisplayHint,
+                    selectedVerboseHint: Binding(
+                        get: { selectedVerboseHint },
+                        set: {
+                            selectedVerboseHint = $0.map { AnyView($0) }
+                            hintLabel = String(localized: "Allow Start Without iPhone")
+                        }
+                    ),
+                    units: state.units,
+                    type: .boolean,
+                    label: String(localized: "Allow Start Without iPhone"),
+                    miniHint: String(localized: "Let the watch start untethered mode while the iPhone is unavailable"),
+                    verboseHint: Text(
+                        "For when you leave without starting untethered mode. While this is on, the phone keeps a copy of your settings, carbs and doses on the watch, renewed at least every 30 minutes. With the iPhone out of reach, and that copy younger than your insulin's action time, the watch offers Start Without Phone on its untethered page; it never starts by itself. The watch first books insulin the pod delivered that the copy doesn't know of, and the phone stops dosing as soon as it hears from the watch. When this is off, the phone sends no copy and the watch hides the button."
+                    ),
+                    headerText: nil
+                )
+
+                UntetheredSettingsSection(manager: resolver.resolve(UntetheredPhoneManager.self)!)
+            }
 
             Section(
                 header: Text("Contact Image"),

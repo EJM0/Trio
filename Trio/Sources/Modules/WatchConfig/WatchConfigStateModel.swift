@@ -11,6 +11,7 @@ extension WatchConfig {
         @Published var confirmBolusFaster = false
         @Published var showForecastWatch = false
         @Published var allowUntetheredStartWithoutPhoneWatch = false
+        @Published var untetheredModeWatch = true
 
         /// Garmin watch settings containing all watch-related configuration
         @Published var garminSettings = GarminWatchSettings()
@@ -28,6 +29,7 @@ extension WatchConfig {
             subscribeSetting(\.allowUntetheredStartWithoutPhoneWatch, on: $allowUntetheredStartWithoutPhoneWatch) {
                 allowUntetheredStartWithoutPhoneWatch = $0
             }
+            subscribeSetting(\.untetheredModeWatch, on: $untetheredModeWatch) { untetheredModeWatch = $0 }
 
             devices = garmin.devices
         }

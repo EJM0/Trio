@@ -8,8 +8,10 @@ struct TrioMainWatchView: View {
 
     // Pages: glucose, chart, untethered mode's status page, and while the watch loops, its loop status.
     private let statusPage = 2
+    /// Untethered mode off on the phone: no status page, but a session still running keeps it.
+    private var showsUntethered: Bool { state.untetheredMode || untethered.isActive }
     private var loopPage: Int? { untethered.isActive ? statusPage + 1 : nil }
-    private var lastPage: Int { loopPage ?? statusPage }
+    private var lastPage: Int { showsUntethered ? loopPage ?? statusPage : 1 }
 
     // misc
     @State private var currentPage: Int = 0
@@ -105,7 +107,9 @@ struct TrioMainWatchView: View {
                 )
                 .tag(1)
 
-                UntetheredStatusView(manager: untethered).tag(statusPage)
+                if showsUntethered {
+                    UntetheredStatusView(manager: untethered).tag(statusPage)
+                }
                 if let loopPage {
                     UntetheredLoopStatusView(manager: untethered).tag(loopPage)
                 }
@@ -115,6 +119,9 @@ struct TrioMainWatchView: View {
             }
             // the loop page goes with the session; stay on the status page, not on none
             .onChange(of: lastPage) { _, _ in
+                if currentPage > lastPage { currentPage = lastPage }
+            }
+            .onChange(of: showsUntethered) { _, _ in
                 if currentPage > lastPage { currentPage = lastPage }
             }
             .onAppear {

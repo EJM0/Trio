@@ -225,8 +225,9 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     /// stays queued.
     @MainActor private func sendStandingGrant() async {
         let session = WCSession.default
-        // only when chosen in Settings › Apple Watch: without a copy the watch can't start on its own
-        guard settingsManager.settings.allowUntetheredStartWithoutPhoneWatch,
+        // only with the mode on and the start without the phone chosen in Settings › Apple Watch: without a copy
+        // the watch can't start on its own
+        guard isEnabled, settingsManager.settings.allowUntetheredStartWithoutPhoneWatch,
               UntetheredGate.phoneMayDose, WCSession.isSupported(), session.activationState == .activated,
               session.isWatchAppInstalled, let control = apsManager.pumpManager as? ExclusiveDeviceControl,
               !control.isControlReleased
@@ -252,9 +253,9 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         guard !Task.isCancelled,
               standingGrantSettingsChanged || fingerprint != standingGrantFingerprint
               || now.timeIntervalSince(standingGrantSentAt ?? .distantPast) >= Self.standingGrantInterval,
-            UntetheredGate.phoneMayDose,
-            var payload = try? UntetheredEnvelope(epoch: state.session.epoch, message: .standingGrant(grant, issuedAt: now))
-            .payload()
+              UntetheredGate.phoneMayDose,
+              var payload = try? UntetheredEnvelope(epoch: state.session.epoch, message: .standingGrant(grant, issuedAt: now))
+              .payload()
         else { return }
         payload[Self.standingGrantMarker] = true
         for transfer in session.outstandingUserInfoTransfers where transfer.userInfo[Self.standingGrantMarker] != nil {
@@ -405,6 +406,10 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             case .syncDone:
                 replyHandler?([:])
                 await self.finishSync(epoch: envelope.epoch)
+            case .standingGrantRequest:
+                replyHandler?([:])
+                // whatever the fingerprint says: the watch has none
+                self.scheduleStandingGrant(settingsChanged: true, immediately: true)
             case .startRequest:
                 replyHandler?([:])
                 if let reason = await self.start() {
@@ -611,7 +616,13 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
 
     // MARK: - Starting
 
+    /// Untethered mode offered at all (Settings › Apple Watch).
+    var isEnabled: Bool { settingsManager.settings.untetheredModeWatch }
+
     @MainActor private func preflight() throws {
+        guard isEnabled else {
+            throw UntetheredError.unavailable(String(localized: "Untethered mode is off in Settings › Apple Watch."))
+        }
         guard WCSession.isSupported(), WCSession.default.isPaired, WCSession.default.isWatchAppInstalled else {
             throw UntetheredError.unavailable(String(localized: "Trio is not installed on a paired Apple Watch."))
         }
@@ -922,6 +933,8 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         UntetheredGate.update { $0.pumpReturnPending = false }
         publish()
         debug(.watchManager, "Untethered: pump is back on the phone")
+        // the session's start dropped the watch's copy: a phone gone again right after leaves it none to start from
+        scheduleStandingGrant(settingsChanged: true, immediately: true)
         // each reading loops once, as on the watch: one the watch's last loop dosed on waits for the next
         if (glucoseStorage.lastGlucoseDate() ?? .distantPast) > apsManager.lastLoopDate {
             apsManager.heartbeat(date: Date())
@@ -1047,7 +1060,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     /// audit finding: a watch that started without the phone and then failed leaves exactly this (LoopKit/Loop#2545).
     @MainActor private func checkPodGap() async {
         // only a watch that may start without the phone can dose unseen
-        guard settingsManager.settings.allowUntetheredStartWithoutPhoneWatch,
+        guard isEnabled, settingsManager.settings.allowUntetheredStartWithoutPhoneWatch,
               UntetheredGate.phoneMayDose, state.audit == nil,
               let current = (apsManager.pumpManager as? PumpDeliveryOdometer)?.deliveredUnits
         else { return }
@@ -1477,7 +1490,7 @@ extension UntetheredPhoneManager: SettingsObserver, PreferencesObserver, PumpSet
     func settingsDidChange(_ settings: TrioSettings) {
         scheduleStandingGrant(settingsChanged: true)
         // with the start without the phone off, no other controller may use the pod: the guard set for it goes
-        if !settings.allowUntetheredStartWithoutPhoneWatch, UntetheredGate.phoneMayDose {
+        if !settings.untetheredModeWatch || !settings.allowUntetheredStartWithoutPhoneWatch, UntetheredGate.phoneMayDose {
             DispatchQueue.main.async { [weak self] in
                 guard let control = self?.apsManager.pumpManager as? ExclusiveDeviceControl,
                       control.refusesForeignSessionsSince != nil else { return }
@@ -1486,6 +1499,10 @@ extension UntetheredPhoneManager: SettingsObserver, PreferencesObserver, PumpSet
         }
         if !state.session.isIdle {
             send(.dosingModeChanged(settings.dosingMode), epoch: state.session.epoch)
+        }
+        // turned off with the watch in charge: it hands back, as from the mode's own toggle
+        if !settings.untetheredModeWatch, state.session.phase == .active {
+            Task { @MainActor in await self.end() }
         }
     }
 

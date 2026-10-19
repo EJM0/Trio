@@ -332,8 +332,10 @@ extension Home.RootView {
     }
 
     @ViewBuilder func untetheredOverrideButton() -> some View {
-        if let override = latestOverride.first, override.showUntetheredButton {
-            UntetheredOverrideButton(manager: resolver.resolve(UntetheredPhoneManager.self)!, overrideID: override.id)
+        if let override = latestOverride.first, override.showUntetheredButton,
+           let manager = resolver.resolve(UntetheredPhoneManager.self), manager.isEnabled || manager.isWatchInCharge
+        {
+            UntetheredOverrideButton(manager: manager, overrideID: override.id)
         }
     }
 

@@ -50,6 +50,12 @@ import WatchConnectivity
     var bolusIncrement: Decimal = 0.05
     var confirmBolusFaster: Bool = false
 
+    /// Settings › Apple Watch › Untethered Mode, as the phone last sent it; kept, so it holds while the phone is away.
+    /// On until the phone says otherwise.
+    var untetheredMode: Bool = UserDefaults.standard.object(forKey: WatchMessageKeys.untetheredModeWatch) as? Bool ?? true {
+        didSet { UserDefaults.standard.set(untetheredMode, forKey: WatchMessageKeys.untetheredModeWatch) }
+    }
+
     // Forecast options
     // Kept across launches: untethered with the phone away, no update brings them back after watchOS ended the app.
     var showForecast: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.showForecastWatch) {
@@ -652,10 +658,15 @@ import WatchConnectivity
             forecastConeMax = forecastPayload[WatchMessageKeys.forecastConeMax] as? [Double] ?? []
             forecastLines = forecastPayload[WatchMessageKeys.forecastLines] as? [String: [Double]] ?? [:]
         }
+
+        if let mode = message[WatchMessageKeys.untetheredModeWatch] as? Bool, mode != untetheredMode {
+            untetheredMode = mode
+        }
+
         if let allow = message[WatchMessageKeys.allowUntetheredStartWithoutPhoneWatch] as? Bool {
             if allow != allowUntetheredStartWithoutPhone { allowUntetheredStartWithoutPhone = allow }
             // also a copy an earlier build left, when it was sent regardless
-            if !allow { DispatchQueue.main.async { UntetheredWatchManager.shared.dropStandingGrant() } }
+            if !allow || !untetheredMode { DispatchQueue.main.async { UntetheredWatchManager.shared.dropStandingGrant() } }
         }
     }
 }

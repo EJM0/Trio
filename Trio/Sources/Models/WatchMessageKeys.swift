@@ -60,6 +60,7 @@ enum WatchMessageKeys {
 
     // Forecast
     static let showForecastWatch = "showForecastWatch"
+    static let untetheredModeWatch = "untetheredModeWatch"
     static let isForecastCone = "isForecastCone"
     static let forecastData = "forecastData"
     static let forecastStartDate = "forecastStartDate"
