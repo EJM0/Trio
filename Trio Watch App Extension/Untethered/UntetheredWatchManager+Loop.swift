@@ -38,8 +38,12 @@ extension UntetheredWatchManager {
         let enacts = trigger != .treatment
         isLooping = true
         if enacts { store.update { $0.lastLoopGlucose = newestGlucose } }
+        // A Bluetooth wake often comes with almost no time from watchOS; without time of its own the app can be
+        // suspended in the middle of reaching the pod, and the loop stalls until the app is opened.
+        let releaseHold = Self.holdProcess(reason: "Untethered loop", upTo: Self.loopHoldLimit)
         Task { @MainActor in
             defer {
+                releaseHold()
                 self.isLooping = false
                 if self.isModeChangePending {
                     self.isModeChangePending = false
@@ -845,6 +849,56 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         data.glucose.map(\.dateString).max()
     }
 
+    /// The most a loop holds the app awake: a pod command, retries included, is done well within it.
+    static let loopHoldLimit: TimeInterval = 30
+
+    /// Keeps the app running until `release` is called, `wait` has passed, or watchOS ends it, whichever comes first.
+    static func holdProcess(reason: String, upTo wait: TimeInterval) -> () -> Void {
+        let gate = DispatchSemaphore(value: 0)
+        DispatchQueue.global(qos: .userInitiated).async {
+            ProcessInfo.processInfo.performExpiringActivity(withReason: reason) { expired in
+                if expired { return }
+                _ = gate.wait(timeout: .now() + wait)
+            }
+        }
+        let once = NSLock()
+        var released = false
+        return {
+            once.lock()
+            defer { once.unlock() }
+            guard !released else { return }
+            released = true
+            gate.signal()
+        }
+    }
+
+    /// Readings arrive but no loop got through for this long: the pod link is presumed stuck.
+    static let podLinkStallLimit: TimeInterval = 15 * 60
+    /// At most one reconnect per this interval, so a pod that is really out of reach isn't hammered.
+    static let podLinkResetInterval: TimeInterval = 10 * 60
+
+    /// A loop that keeps failing to reach the pod while readings come in usually has a stuck connection, which
+    /// otherwise only opening the app clears. The link is torn down and searched for afresh.
+    func checkPodLink(now: Date = Date()) {
+        guard data.session.phase == .active, !isLooping, !isBolusing, let pump = pumpManager,
+              let lastLoop = data.lastLoopDate ?? data.session.startStatus?.date,
+              now.timeIntervalSince(lastLoop) > Self.podLinkStallLimit,
+              now.timeIntervalSince(lastPodLinkReset ?? .distantPast) > Self.podLinkResetInterval
+        else { return }
+        lastPodLinkReset = now
+        let releaseHold = Self.holdProcess(reason: "Untethered pod reconnect", upTo: Self.loopHoldLimit)
+        let minutes = Int(now.timeIntervalSince(lastLoop) / 60)
+        let outcome = pump.escalateTakeControl() ?? "nothing to escalate"
+        let diagnostics = pump.connectionDiagnostics() ?? ""
+        Task {
+            await WatchLogger.shared.log(
+                "⌚️ Untethered: no loop for \(minutes) min, reconnecting the pod: \(outcome) \(diagnostics)",
+                force: true
+            )
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.loopHoldLimit) { releaseHold() }
+    }
+
     func cgmManager(_: CGMManager, hasNew readingResult: CGMReadingResult) {
         // outside a session the link only stays warm; the phone reads the same sensor
         guard isActive, case let .newData(samples) = readingResult, !samples.isEmpty else { return }
@@ -887,6 +941,7 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         checkAlarms()
         scheduleNoReadingsAlert(from: lastDate)
         publishToWatchState()
+        checkPodLink()
         runLoop(.newGlucose)
     }
 
