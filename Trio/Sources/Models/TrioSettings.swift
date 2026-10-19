@@ -57,6 +57,9 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var maxProtein: Decimal = 250
     var confirmBolusFaster: Bool = false
     var showForecastWatch: Bool = false
+    /// Lets the watch start untethered mode from the phone's saved grant while the iPhone is unavailable. Off until
+    /// chosen: the watch would dose from a copy of the phone's state that may be some time old.
+    var allowUntetheredStartWithoutPhoneWatch: Bool = false
     var overrideFactor: Decimal = 0.8
     var fattyMeals: Bool = false
     var fattyMealFactor: Decimal = 0.7
@@ -314,6 +317,10 @@ extension TrioSettings: Decodable {
 
         if let confirmBolusFaster = try? container.decode(Bool.self, forKey: .confirmBolusFaster) {
             settings.confirmBolusFaster = confirmBolusFaster
+        }
+
+        if let allowStart = try? container.decode(Bool.self, forKey: .allowUntetheredStartWithoutPhoneWatch) {
+            settings.allowUntetheredStartWithoutPhoneWatch = allowStart
         }
 
         if let showForecastWatch = try? container.decode(Bool.self, forKey: .showForecastWatch) {

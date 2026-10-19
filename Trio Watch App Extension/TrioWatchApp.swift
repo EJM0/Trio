@@ -1,10 +1,16 @@
 import SwiftUI
 import UserNotifications
+import WatchKit
 
 @main struct TrioWatchApp: App {
+    @WKApplicationDelegateAdaptor(TrioWatchAppDelegate.self) private var appDelegate
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        // the phone link is up at every launch, also the silent background ones
+        _ = WatchState.shared
+        // restores a running untethered session and its devices
+        _ = UntetheredWatchManager.shared
         WatchNotificationHandler.shared.configure()
     }
 
@@ -14,9 +20,19 @@ import UserNotifications
         }
         .onChange(of: scenePhase) { _, newScenePhase in
             if newScenePhase == .background {
-                Task {
-                    await WatchLogger.shared.flushPersistedLogs()
+                // with the watch's own sensor link the log waits for the phone and a moment clear of the reading,
+                // rather than queue up while the phone is away and go over with the rest when it returns
+                let untethered = UntetheredWatchManager.shared
+                if !untethered.holdsSensorLink {
+                    Task { await WatchLogger.shared.flushPersistedLogs() }
+                } else if untethered.mayStreamToPhone {
+                    Task { await WatchLogger.shared.flushPersistedLogs(queued: true) }
                 }
+            } else if newScenePhase == .active {
+                // with the phone away, looking at the watch is the one wake left
+                UntetheredWatchManager.shared.recheckCGM()
+                // what loops in the background did, without waiting for the phone link
+                UntetheredWatchManager.shared.refresh()
             }
         }
     }

@@ -8,6 +8,13 @@ extension WatchState {
     /// - Parameters:
     ///   - amount: The insulin amount to be delivered
     func sendBolusRequest(_ amount: Decimal) {
+        if UntetheredWatchManager.shared.isActive {
+            showCommsAnimation = true
+            UntetheredWatchManager.shared.bolus(amount) { success, message in
+                DispatchQueue.main.async { self.handleAcknowledgment(success: success, message: message) }
+            }
+            return
+        }
         guard let session = session, session.isReachable else {
             Task {
                 await WatchLogger.shared.log("⌚️ Bolus request aborted: session unreachable")
@@ -40,7 +47,14 @@ extension WatchState {
     /// - Parameters:
     ///   - amount: The amount of carbs in grams
     ///   - date: The timestamp for the carb entry (defaults to current time)
-    func sendCarbsRequest(_ amount: Int, _ date: Date = Date()) {
+    /// - Parameter acknowledge: false when a bolus follows at once; untethered, its answer is the only one, as the
+    ///   phone's combo answers once.
+    func sendCarbsRequest(_ amount: Int, _ date: Date = Date(), acknowledge: Bool = true) {
+        if UntetheredWatchManager.shared.isActive {
+            UntetheredWatchManager.shared.addCarbs(amount, fat: fatAmount, protein: proteinAmount, at: date)
+            if acknowledge { handleAcknowledgment(success: true, message: String(localized: "Carbs logged on the watch.")) }
+            return
+        }
         guard let session = session, session.isReachable else {
             Task {
                 await WatchLogger.shared.log("⌚️ Carbs request aborted: session unreachable")
@@ -74,6 +88,11 @@ extension WatchState {
 
     /// Sends a request to cancel the current override preset to the paired iPhone
     func sendCancelOverrideRequest() {
+        if UntetheredWatchManager.shared.isActive {
+            UntetheredWatchManager.shared.endOverride()
+            handleAcknowledgment(success: true, message: String(localized: "Override stopped."))
+            return
+        }
         guard let session = session, session.isReachable else {
             Task {
                 await WatchLogger.shared.log("⌚️ Cancel override request aborted: session unreachable")
@@ -107,6 +126,11 @@ extension WatchState {
     /// Sends a request to activate an override preset to the paired iPhone
     /// - Parameter presetName: The name of the override preset to activate
     func sendActivateOverrideRequest(presetName: String) {
+        if UntetheredWatchManager.shared.isActive {
+            UntetheredWatchManager.shared.activateOverride(named: presetName)
+            handleAcknowledgment(success: true, message: String(localized: "Override started."))
+            return
+        }
         guard let session = session, session.isReachable else {
             Task {
                 await WatchLogger.shared.log("⌚️ Activate override request aborted: session unreachable")
@@ -139,6 +163,11 @@ extension WatchState {
 
     /// Sends a request to cancel the current temporary target to the paired iPhone
     func sendCancelTempTargetRequest() {
+        if UntetheredWatchManager.shared.isActive {
+            UntetheredWatchManager.shared.endTempTarget()
+            handleAcknowledgment(success: true, message: String(localized: "Temp target stopped."))
+            return
+        }
         guard let session = session, session.isReachable else {
             Task {
                 await WatchLogger.shared.log("⌚️ Cancel temp target request aborted: session unreachable")
@@ -172,6 +201,11 @@ extension WatchState {
     /// Sends a request to activate a temporary target preset to the paired iPhone
     /// - Parameter presetName: The name of the temporary target preset to activate
     func sendActivateTempTargetRequest(presetName: String) {
+        if UntetheredWatchManager.shared.isActive {
+            UntetheredWatchManager.shared.activateTempTarget(named: presetName)
+            handleAcknowledgment(success: true, message: String(localized: "Temp target started."))
+            return
+        }
         guard let session = session, session.isReachable else {
             Task {
                 await WatchLogger.shared.log("⌚️ Activate temp target request aborted: session unreachable")
@@ -204,6 +238,20 @@ extension WatchState {
 
     /// Sends a request to calculate a bolus recommendation based on the current carbs amount
     func requestBolusRecommendation() {
+        if UntetheredWatchManager.shared.isActive {
+            showBolusCalculationProgress = true
+            // this watch app has no reduced or super bolus switch
+            let carbs = carbsAmount
+            Task { @MainActor in
+                self.recommendedBolus = await UntetheredWatchManager.shared.recommendBolus(
+                    carbs: carbs,
+                    useReducedBolus: false,
+                    useSuperBolus: false
+                )
+                self.showBolusCalculationProgress = false
+            }
+            return
+        }
         guard let session = session, session.isReachable else {
             Task {
                 await WatchLogger.shared.log("⌚️ Bolus recommendation request aborted: session unreachable")

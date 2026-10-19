@@ -27,6 +27,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     @Injected() private var bolusCalculationManager: BolusCalculationManager!
     @Injected() private var iobService: IOBService!
     @Injected() private var notificationsManager: UserNotificationsManager!
+    @Injected() private var untethered: UntetheredPhoneManager!
 
     private var units: GlucoseUnits = .mgdL
     private var glucoseColorScheme: GlucoseColorScheme = .staticColor
@@ -567,6 +568,8 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     /// - Parameter state: Current WatchState containing glucose data to be sent
     @MainActor func sendDataToWatch(_ state: WatchState) async {
         guard let session = session else { return }
+        // an untethered watch shows its own data
+        guard UntetheredGate.state.session.isIdle else { return }
 
         guard session.isPaired else {
             debug(.watchManager, "⌚️❌ No Watch is paired")
@@ -592,7 +595,9 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         var state = state
         state.date = Date()
 
-        let message: [String: Any] = watchStateToDictionary(from: state)
+        var message: [String: Any] = watchStateToDictionary(from: state)
+        message[WatchMessageKeys.allowUntetheredStartWithoutPhoneWatch] = settingsManager.settings
+            .allowUntetheredStartWithoutPhoneWatch
 
         // if session is reachable, it means watch App is in the foreground -> send watchState as message
         // if session is not reachable, it means it's in background -> send watchState as userInfo
@@ -634,6 +639,8 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
         debug(.watchManager, "📱 Phone session activated with state: \(activationState.rawValue)")
         debug(.watchManager, "📱 Phone isReachable after activation: \(session.isReachable)")
+        // a relaunch with the watch already in reach brings no reachability change: ask for the history here too
+        Task { @MainActor [untethered] in untethered?.reachabilityChanged() }
 
         // Try to send initial data after activation
         Task {
@@ -642,10 +649,35 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         }
     }
 
+    /// Untethered mode's interactive messages from the watch; every path must call `replyHandler`,
+    /// or the watch only finds out through a delivery timeout.
+    func session(
+        _ session: WCSession,
+        didReceiveMessage message: [String: Any],
+        replyHandler: @escaping ([String: Any]) -> Void
+    ) {
+        if message[UntetheredEnvelope.key] != nil {
+            untethered.receive(message, replyHandler: replyHandler)
+            return
+        }
+        if message[UntetheredChunks.key] != nil {
+            untethered.receiveChunk(message, replyHandler: replyHandler)
+            return
+        }
+        replyHandler([:])
+        self.session(session, didReceiveMessage: message)
+    }
+
     func session(_: WCSession, didReceiveMessage message: [String: Any]) {
+        if message[UntetheredEnvelope.key] != nil {
+            untethered.receive(message, replyHandler: nil)
+            return
+        }
         // Handle logs first - doesn't need self, so it can run even during teardown
         if let logs = message["watchLogs"] as? String {
             SimpleLogReporter.appendToWatchLog(logs)
+            // logs alone are no request: answering them with a failure put an error banner on the watch
+            if message.count == 1 { return }
         }
 
         Task { @MainActor [weak self] in
@@ -784,6 +816,10 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     }
 
     func session(_: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        if userInfo[UntetheredEnvelope.key] != nil {
+            untethered.receive(userInfo, replyHandler: nil)
+            return
+        }
         if let logs = userInfo["watchLogs"] as? String {
             SimpleLogReporter.appendToWatchLog(logs)
         }
@@ -806,6 +842,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
     func sessionReachabilityDidChange(_ session: WCSession) {
         debug(.watchManager, "📱 Phone reachability changed: \(session.isReachable)")
+        Task { @MainActor [untethered] in untethered?.reachabilityChanged() }
 
         if session.isReachable {
             // Try to send data when connection is established

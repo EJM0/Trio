@@ -75,9 +75,11 @@ actor WatchLogger {
         }
 
         if session.isReachable {
+            // the buffer is empty by the time a send fails: what failed is kept, not the empty buffer
+            let sent = logs
             session.sendMessage(payload, replyHandler: nil) { _ in
                 Task {
-                    await self.persistLogsLocally()
+                    await self.persistLogsLocally(sent)
                 }
             }
         } else {
@@ -88,7 +90,7 @@ actor WatchLogger {
         logs.removeAll()
     }
 
-    func persistLogsLocally() async {
+    func persistLogsLocally(_ entries: [String]? = nil) async {
         let logDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
             .appendingPathComponent("logs", isDirectory: true)
 
@@ -107,7 +109,7 @@ actor WatchLogger {
             FileManager.default.createFile(atPath: logFile.path, contents: nil, attributes: [.creationDate: startOfDay])
         }
 
-        let fullLog = logs.joined(separator: "\n") + "\n"
+        let fullLog = (entries ?? logs).joined(separator: "\n") + "\n"
         if let data = fullLog.data(using: .utf8) {
             if let handle = try? FileHandle(forWritingTo: logFile) {
                 try? handle.seekToEnd()
@@ -119,7 +121,9 @@ actor WatchLogger {
         }
     }
 
-    func flushPersistedLogs() async {
+    /// `queued` hands the log to WatchConnectivity even with the phone reachable: a log kept back while the
+    /// phone was away can be too large for an interactive message.
+    func flushPersistedLogs(queued: Bool = false) async {
         let logDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
             .appendingPathComponent("logs", isDirectory: true)
         let logFile = logDir.appendingPathComponent("watch_log.txt")
@@ -129,22 +133,43 @@ actor WatchLogger {
               !logString.isEmpty
         else { return }
 
-        let payload: [String: Any] = ["watchLogs": logString]
-
         if session.activationState != .activated {
             session.activate()
         }
 
-        if session.isReachable {
-            session.sendMessage(payload, replyHandler: nil) { _ in
-                Task {
-                    await self.persistLogsLocally()
+        // hours kept back while the phone was away are far over what one transfer takes ("payload too large"): in
+        // parts, each of which the phone appends
+        for part in Self.parts(of: logString) {
+            let payload: [String: Any] = ["watchLogs": part]
+            if session.isReachable, !queued {
+                session.sendMessage(payload, replyHandler: nil) { _ in
+                    Task {
+                        await self.persistLogsLocally(part.split(separator: "\n").map(String.init))
+                    }
                 }
+            } else {
+                _ = session.transferUserInfo(payload)
             }
-            try? FileManager.default.removeItem(at: logFile)
-        } else {
-            _ = session.transferUserInfo(payload)
-            try? FileManager.default.removeItem(at: logFile)
         }
+        try? FileManager.default.removeItem(at: logFile)
+    }
+
+    /// WatchConnectivity refuses a payload a little over 64 KB; whole lines, at most `maxBytes` each part.
+    static func parts(of log: String, maxBytes: Int = 48000) -> [String] {
+        var parts: [String] = []
+        var current = ""
+        var size = 0
+        for line in log.split(separator: "\n") {
+            let lineSize = line.utf8.count + 1
+            if size > 0, size + lineSize > maxBytes {
+                parts.append(current)
+                current = ""
+                size = 0
+            }
+            current += line + "\n"
+            size += lineSize
+        }
+        if !current.isEmpty { parts.append(current) }
+        return parts
     }
 }

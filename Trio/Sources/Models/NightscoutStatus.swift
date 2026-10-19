@@ -4,7 +4,10 @@ struct NightscoutStatus: JSON {
     let device: String
     let openaps: OpenAPSStatus
     let pump: NSPumpStatus
-    let uploader: Uploader
+    /// nil for a past loop, whose phone battery isn't known.
+    let uploader: Uploader?
+    /// The loop's own time; without it Nightscout stamps the status when it arrives.
+    var created_at: Date? = nil
 }
 
 struct OpenAPSStatus: JSON {

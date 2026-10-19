@@ -55,6 +55,9 @@ enum WatchMessageKeys {
     // Notification Actions
     static let snoozeDuration = "snoozeDuration"
 
+    static let untetheredWake = "untetheredWake"
+    static let allowUntetheredStartWithoutPhoneWatch = "allowUntetheredStartWithoutPhoneWatch"
+
     // Forecast
     static let showForecastWatch = "showForecastWatch"
     static let isForecastCone = "isForecastCone"

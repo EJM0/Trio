@@ -191,11 +191,16 @@ final class BasePumpHistoryStorage: PumpHistoryStorage, Injectable {
 
             // Mutable rows are the pump's assertions (LoopKit contract): a
             // complete pending report supersedes any it no longer contains.
+            // Doses the watch ran in untethered mode are its pump manager's
+            // assertions, not this one's: this report can't withdraw them.
             var purgedUploadedIds: [String] = []
             if replacePendingEvents {
+                let heldByWatch = UntetheredGate.state.watchPendingDoseIdentifiers
                 let request = PumpEventStored.fetchRequest() as NSFetchRequest<PumpEventStored>
                 request.predicate = NSPredicate(format: "isMutable == YES")
-                for orphan in try context.fetch(request) where !assertedRows.contains(orphan.objectID) {
+                for orphan in try context.fetch(request)
+                    where !assertedRows.contains(orphan.objectID) && !heldByWatch.contains(orphan.syncIdentifier ?? "")
+                {
                     debug(
                         .coreData,
                         "Purging unasserted mutable event \(orphan.syncIdentifier ?? orphan.id ?? "-") (\(orphan.type ?? "?")), uploaded to NS: \(orphan.isUploadedToNS)"
