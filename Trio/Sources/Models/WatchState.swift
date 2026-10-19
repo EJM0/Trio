@@ -57,7 +57,6 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var isForecastCone: Bool = false
     var showGlucoseBubble: Bool = true
     var allowUntetheredStartWithoutPhone: Bool = true
-    var fallbackLoop: Bool = false
     var forecastStartDate: Date? = nil
     var forecastConeMin: [Double] = []
     var forecastConeMax: [Double] = []
@@ -99,7 +98,6 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         let forecastIsEqual = lhs.showForecast == rhs.showForecast &&
             lhs.showGlucoseBubble == rhs.showGlucoseBubble &&
             lhs.allowUntetheredStartWithoutPhone == rhs.allowUntetheredStartWithoutPhone &&
-            lhs.fallbackLoop == rhs.fallbackLoop &&
             lhs.isForecastCone == rhs.isForecastCone &&
             lhs.forecastStartDate == rhs.forecastStartDate &&
             lhs.forecastConeMin == rhs.forecastConeMin &&
@@ -150,7 +148,6 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(showForecast)
         hasher.combine(showGlucoseBubble)
         hasher.combine(allowUntetheredStartWithoutPhone)
-        hasher.combine(fallbackLoop)
         hasher.combine(isForecastCone)
         hasher.combine(forecastStartDate)
         hasher.combine(forecastConeMin)

@@ -38,20 +38,6 @@ enum UntetheredMessage: Codable, Equatable {
     case standingGrantRequest
 }
 
-extension UntetheredMessage {
-    /// Sent again and again until answered: queued, only the newest need wait.
-    var isResentUntilAnswered: Bool {
-        switch self {
-        case .endRequest,
-             .handback,
-             .handbackAck,
-             .standingGrantRequest,
-             .statusReport: return true
-        default: return false
-        }
-    }
-}
-
 enum UntetheredAdjustment: String, Codable {
     case override
     case tempTarget
@@ -68,9 +54,6 @@ struct UntetheredPodStatus: Codable, Equatable {
     /// Start without the phone: when the standing grant's pump copy was taken. The phone's doses started after it
     /// never reached the watch, which doesn't take them over.
     var copyAsOf: Date? = nil
-    /// Start without the phone: the fallback loop started it, the phone's readings having stopped. The phone takes the
-    /// pump back as soon as it hears from the watch.
-    var byFallback: Bool? = nil
 }
 
 /// The pump as the phone let go of it, a moment before the commit: the grant's configuration is older, and a temp

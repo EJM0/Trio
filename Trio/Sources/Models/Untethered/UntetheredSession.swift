@@ -54,9 +54,6 @@ struct UntetheredSession: Codable, Equatable {
         case tick
         /// From the standing grant, with the phone out of reach.
         case startWithoutPhone
-        /// The offered pump unacknowledged for `handbackAckWait`, in a session the fallback loop started: the watch keeps
-        /// it and doses on, rather than let it go to a phone that may never have heard of the hand-back.
-        case handbackUnanswered
     }
 
     static let prepareTimeout: TimeInterval = 15
@@ -302,19 +299,6 @@ struct UntetheredSession: Codable, Equatable {
                 return [.releasePump, .send(.handback(status))]
             }
             return [.send(.handback(status))]
-
-        // the offer's time stays: a late acknowledgement still ends the session
-        case (.ending, .handbackUnanswered) where handbackStatus != nil && !handbackLetGo:
-            phase = .active
-            handbackStatus = nil
-            return []
-
-        // the phone took the pump after all, its acknowledgement late or the pod showing its session: the watch lets go
-        case (.active, .received(.handbackAck, _)) where handbackOfferedAt != nil:
-            phase = .idle
-            forced = false
-            handbackOfferedAt = nil
-            return [.releasePump]
 
         case (.ending, .received(.handbackAck, _)):
             phase = .idle
