@@ -97,6 +97,10 @@ enum WatchMessageKeys {
     static let glucoseRangeHigh = "glucoseRangeHigh"
     static let glucoseRangeTarget = "glucoseRangeTarget"
     static let glucoseColorScheme = "glucoseColorScheme"
+    /// mg/dL of the phone's glucose alarms that are on, the most cautious of each; 0: none.
+    static let glucoseAlarmUrgentLow = "glucoseAlarmUrgentLow"
+    static let glucoseAlarmLow = "glucoseAlarmLow"
+    static let glucoseAlarmHigh = "glucoseAlarmHigh"
     static let fallbackLoopWatch = "fallbackLoopWatch"
     static let isForecastCone = "isForecastCone"
     static let forecastData = "forecastData"

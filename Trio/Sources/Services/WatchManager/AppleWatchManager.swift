@@ -820,6 +820,14 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         dictionary[WatchMessageKeys.glucoseRangeHigh] = NSDecimalNumber(decimal: state.glucoseRangeHigh).doubleValue
         dictionary[WatchMessageKeys.glucoseRangeTarget] = NSDecimalNumber(decimal: state.glucoseRangeTarget).doubleValue
         dictionary[WatchMessageKeys.glucoseColorScheme] = state.glucoseColorScheme
+        // the phone's glucose alarms, for the watch's own while it loops: the highest low, the lowest high that is on
+        let alerts = GlucoseAlertsStore.shared.alerts
+        func thresholds(_ type: GlucoseAlertType) -> [Double] {
+            alerts.filter { $0.type == type && $0.shouldEvaluate }.map { NSDecimalNumber(decimal: $0.thresholdMgDL).doubleValue }
+        }
+        dictionary[WatchMessageKeys.glucoseAlarmUrgentLow] = thresholds(.urgentLow).max() ?? 54
+        dictionary[WatchMessageKeys.glucoseAlarmLow] = thresholds(.low).max() ?? 0
+        dictionary[WatchMessageKeys.glucoseAlarmHigh] = thresholds(.high).min() ?? 0
         dictionary[WatchMessageKeys.fallbackLoopWatch] = state.fallbackLoop
 
         let glucoseReadings: [[String: Any]] = state.glucoseValues.map { value -> [String: Any] in
