@@ -366,7 +366,9 @@ struct TrioAccessoryRectangularView: View {
 
 /// What the on-board complications show: IOB, COB or both.
 enum OnBoardContent {
-    case iob, cob, both
+    case iob
+    case cob
+    case both
 }
 
 extension TrioWatchComplicationEntry {
