@@ -890,12 +890,22 @@ extension UntetheredWatchManager: CGMManagerDelegate {
               let newest = data.glucose.map(\.dateString).max(), now.timeIntervalSince(newest) < 11 * 60
         else { return }
         let minutes = Int(now.timeIntervalSince(lastLoop) / 60)
+        // with the phone in reach it takes the pump back, and its own alerts take over from here
+        if handBackForPodStall(minutes: minutes) {
+            lastPodLinkNotice = now
+            return
+        }
         // Every 10 minutes while it lasts, not only once: once was easy to miss (2026-10-20, 12:25 went unnoticed),
         // and opening Trio is what cleared the stall (13:32). Removed and posted again so it alerts each time.
         lastPodLinkNotice = now
+        podLinkNoticeCount += 1
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [Self.podLinkID])
         notify(id: Self.podLinkID, title: Self.podLinkTitle, body: Self.podLinkBody(minutes: minutes))
-        WKInterfaceDevice.current().play(.failure)
+        // from the second notice on, three strong taps a second apart, as long as the app runs to play them
+        let taps = podLinkNoticeCount >= 2 ? 3 : 1
+        for tap in 0 ..< taps {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(tap)) { WKInterfaceDevice.current().play(.failure) }
+        }
         Task { await WatchLogger.shared.log("⌚️ Untethered alarm: \(Self.podLinkTitle) after \(minutes) min", force: true) }
         // The reconnect itself waits for a loop or bolus in flight; the notice above doesn't. A loop waiting on the
         // pod held on for 41 minutes (2026-10-20, 12:20 to 13:01), and nothing else ran for the stall meanwhile.
@@ -919,6 +929,7 @@ extension UntetheredWatchManager: CGMManagerDelegate {
     func podLinkRecovered(_ pump: PumpManager & ExclusiveDeviceControl) {
         guard lastPodLinkReset != nil || lastPodLinkNotice != nil else { return }
         lastPodLinkNotice = nil
+        podLinkNoticeCount = 0
         if lastPodLinkReset != nil {
             lastPodLinkReset = nil
             pump.endTakeEscalation()

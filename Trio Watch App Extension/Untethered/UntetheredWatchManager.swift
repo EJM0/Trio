@@ -37,6 +37,8 @@ import WatchKit
     @ObservationIgnored var lastPodLinkReset: Date?
     /// When the user was last told the pod can't be reached; repeated while the stall lasts.
     @ObservationIgnored var lastPodLinkNotice: Date?
+    /// How many Pod Not Reachable notices this stall has brought; from the second on the watch vibrates harder.
+    @ObservationIgnored var podLinkNoticeCount = 0
 
     /// Records travel in batches small enough for an interactive message.
     private static let recordsPerMessage = 40
@@ -53,6 +55,9 @@ import WatchKit
     private static let drainLimit: TimeInterval = 3 * 60
     /// How long the last records may take to be confirmed before the pump is offered anyway.
     private static let finalConfirmLimit: TimeInterval = 30
+    /// The hand-back's own pod commands and its wait for a loop in flight end after this: in a stall they wait on a
+    /// pod the watch can't reach (2026-10-20: one loop waited 41 minutes), and the phone reads the pod itself anyway.
+    private static let handbackPodLimit: TimeInterval = 60
     /// The paced burst on its way, how many of its batches the phone has yet to answer for, and whether one failed.
     @ObservationIgnored private var burst: (id: Int, startedAt: Date, outstanding: Int, failed: Bool)?
     @ObservationIgnored private var burstCount = 0
@@ -860,8 +865,14 @@ import WatchKit
             guard self.data.session.phase == .ending else { return }
             // from here no loop or bolus: the last read is the last command to the pod
             self.isFinalizing = true
-            // a hand-back asked for by the phone also waits for a running bolus
-            while self.isLooping || self.isBolusing { try? await Task.sleep(nanoseconds: 500_000_000) }
+            // a hand-back asked for by the phone also waits for a running bolus; a loop only so long
+            let loopWaitUntil = Date().addingTimeInterval(Self.handbackPodLimit)
+            while self.isBolusing || (self.isLooping && Date() < loopWaitUntil) {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+            }
+            if self.isLooping {
+                Task { await WatchLogger.shared.log("⌚️ Untethered: hand-back goes on past a loop waiting on the pump", force: true) }
+            }
             self.expireAdjustments(now: Date())
             // a low temp ends here and goes with the last records, for the phone to set again; a high one runs on
             // until the phone, having the pod, cancels it
@@ -869,10 +880,17 @@ import WatchKit
                 (self.data.grant?.basalProfile ?? []).map { ($0.start, $0.rate) },
                 at: Date()
             )
-            let handed = await self.pumpManager.asyncMap {
-                await $0.handOverTempBasal(scheduledRate: scheduled, cancellingHigh: false)
+            let handed = await Self.withTimeout(Self.handbackPodLimit) {
+                await self.pumpManager.asyncMap {
+                    await $0.handOverTempBasal(scheduledRate: scheduled, cancellingHigh: false)
+                }
             }
-            var status = await self.pumpManager.asyncMap { await self.readPump($0) } ?? nil
+            var status = await Self.withTimeout(Self.handbackPodLimit) {
+                (await self.pumpManager.asyncMap { await self.readPump($0) }) ?? nil
+            }
+            if status == nil {
+                Task { await WatchLogger.shared.log("⌚️ Untethered: hand-back without a last pod read; the phone reads it", force: true) }
+            }
             status?.tempBasal = handed?.resume
             status?.runningHighTemp = handed?.leftRunning
             self.recordPumpStatus()
@@ -885,6 +903,50 @@ import WatchKit
             // the pod stays held until the phone acknowledges: its connect is standing as the watch lets go
             self.apply(.handbackReady(status))
         }
+    }
+
+    /// The value of `operation`, or nil once `seconds` have passed without one. The operation isn't stopped, only
+    /// no longer waited for.
+    @MainActor static func withTimeout<T>(
+        _ seconds: TimeInterval,
+        _ operation: @escaping @MainActor () async -> T?
+    ) async -> T? {
+        // both sides run on the main queue, so the flag needs no lock; a box, as a captured var can't change in a Task
+        final class Once { var done = false }
+        let once = Once()
+        return await withCheckedContinuation { (continuation: CheckedContinuation<T?, Never>) in
+            Task { @MainActor in
+                let value = await operation()
+                guard !once.done else { return }
+                once.done = true
+                continuation.resume(returning: value)
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
+                guard !once.done else { return }
+                once.done = true
+                continuation.resume(returning: nil)
+            }
+        }
+    }
+
+    /// The watch can't reach the pod while readings come in and the phone answers: the phone takes the pump back
+    /// rather than nobody looping. On 20 October stalls of 41, 80 and 26 minutes ended only when someone opened Trio
+    /// or handed back; the phone had the pod again within seconds each time.
+    @discardableResult func handBackForPodStall(minutes: Int) -> Bool {
+        guard data.session.phase == .active, !isBolusing, WCSession.default.isReachable else { return false }
+        Task {
+            await WatchLogger.shared.log("⌚️ Untethered: no loop for \(minutes) min, the phone answers: handing the pump back", force: true)
+        }
+        notify(
+            id: Self.podLinkID,
+            title: String(localized: "Pump Back on the Phone"),
+            body: String(
+                localized: "The watch couldn't reach the pod for \(minutes) minutes, so it gave the pump back to the phone. Start untethered mode again when you want."
+            )
+        )
+        podLinkNoticeCount = 0
+        apply(.end)
+        return true
     }
 
     private func hasUnconfirmedRecords(_ epoch: Int) -> Bool {
