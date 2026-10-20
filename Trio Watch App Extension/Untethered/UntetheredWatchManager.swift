@@ -912,8 +912,7 @@ import WatchKit
         _ operation: @escaping @MainActor () async -> T?
     ) async -> T? {
         // both sides run on the main queue, so the flag needs no lock; a box, as a captured var can't change in a Task
-        final class Once { var done = false }
-        let once = Once()
+        let once = TimeoutOnce()
         return await withCheckedContinuation { (continuation: CheckedContinuation<T?, Never>) in
             Task { @MainActor in
                 let value = await operation()
@@ -1222,6 +1221,13 @@ extension UntetheredWatchManager {
         }
         Task { await WatchLogger.shared.log(line, force: true) }
     }
+}
+
+/// The one-shot flag of `UntetheredWatchManager.withTimeout`. At file scope: a class declared inside the generic
+/// function had no initializer the compiler would accept.
+private final class TimeoutOnce {
+    var done = false
+    init() {}
 }
 
 extension Optional {
