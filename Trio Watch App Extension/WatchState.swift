@@ -1104,7 +1104,11 @@ import WatchConnectivity
                 high: Decimal(high),
                 target: (message[WatchMessageKeys.glucoseRangeTarget] as? Double).map { Decimal($0) } ?? glucoseRange.target,
                 colorScheme: message[WatchMessageKeys.glucoseColorScheme] as? String ?? glucoseRange.colorScheme,
-                isMmol: message[WatchMessageKeys.units] as? String == "mmol/L"
+                isMmol: message[WatchMessageKeys.units] as? String == "mmol/L",
+                urgentLowAlarm: (message[WatchMessageKeys.glucoseAlarmUrgentLow] as? Double).map { Decimal($0) } ?? 54,
+                // 0: no such alarm on
+                lowAlarm: (message[WatchMessageKeys.glucoseAlarmLow] as? Double).flatMap { $0 > 0 ? Decimal($0) : nil },
+                highAlarm: (message[WatchMessageKeys.glucoseAlarmHigh] as? Double).flatMap { $0 > 0 ? Decimal($0) : nil }
             )
             if range != glucoseRange { glucoseRange = range }
             let configuration = message[WatchMessageKeys.watchSensorConfiguration] as? Data
@@ -1208,6 +1212,44 @@ struct WatchGlucoseRange: Codable, Equatable {
     var target: Decimal = 100
     var colorScheme: String = GlucoseColorScheme.staticColor.rawValue
     var isMmol = false
+    /// The phone's glucose alarms, the most cautious that is on: untethered mode alarms by them.
+    var urgentLowAlarm: Decimal = 54
+    var lowAlarm: Decimal?
+    var highAlarm: Decimal?
+
+    init(
+        low: Decimal = 70,
+        high: Decimal = 180,
+        target: Decimal = 100,
+        colorScheme: String = GlucoseColorScheme.staticColor.rawValue,
+        isMmol: Bool = false,
+        urgentLowAlarm: Decimal = 54,
+        lowAlarm: Decimal? = nil,
+        highAlarm: Decimal? = nil
+    ) {
+        self.low = low
+        self.high = high
+        self.target = target
+        self.colorScheme = colorScheme
+        self.isMmol = isMmol
+        self.urgentLowAlarm = urgentLowAlarm
+        self.lowAlarm = lowAlarm
+        self.highAlarm = highAlarm
+    }
+
+    /// Field by field: a value an earlier build saved keeps what it had.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = WatchGlucoseRange()
+        low = try container.decodeIfPresent(Decimal.self, forKey: .low) ?? defaults.low
+        high = try container.decodeIfPresent(Decimal.self, forKey: .high) ?? defaults.high
+        target = try container.decodeIfPresent(Decimal.self, forKey: .target) ?? defaults.target
+        colorScheme = try container.decodeIfPresent(String.self, forKey: .colorScheme) ?? defaults.colorScheme
+        isMmol = try container.decodeIfPresent(Bool.self, forKey: .isMmol) ?? defaults.isMmol
+        urgentLowAlarm = try container.decodeIfPresent(Decimal.self, forKey: .urgentLowAlarm) ?? defaults.urgentLowAlarm
+        lowAlarm = try container.decodeIfPresent(Decimal.self, forKey: .lowAlarm)
+        highAlarm = try container.decodeIfPresent(Decimal.self, forKey: .highAlarm)
+    }
 
     func display(_ mgdl: Int) -> Double {
         isMmol ? NSDecimalNumber(decimal: Decimal(mgdl).asMmolL).doubleValue : Double(mgdl)

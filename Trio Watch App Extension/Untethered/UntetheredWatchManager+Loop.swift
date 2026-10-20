@@ -1107,11 +1107,19 @@ extension UntetheredWatchManager {
         let now = Date()
         let latest = data.glucose.max(by: { $0.dateString < $1.dateString })
         // a reading old enough to be stale doesn't sound as low or high again
+        // the thresholds of the phone's glucose alarms (urgent low included), in the units shown; the glucose range
+        // only where the phone has no such alarm turned on (kristinkand/Trio 2b6bacba)
         if let latest, let value = latest.glucose ?? latest.sgv, now.timeIntervalSince(latest.dateString) < 12 * 60 {
-            if Decimal(value) <= grant.lowGlucose {
-                alarm("low", title: String(localized: "Low Glucose"), body: "\(value) mg/dL", every: 15 * 60)
-            } else if Decimal(value) >= grant.highGlucose {
-                alarm("high", title: String(localized: "High Glucose"), body: "\(value) mg/dL", every: 60 * 60)
+            let range = WatchState.shared.glucoseRange
+            let mgdl = Decimal(value)
+            let formatted = grant.units == .mgdL ? "\(value) mg/dL" : "\(Decimal(value).formattedAsMmolL) mmol/L"
+            let body = [formatted, Self.arrow(latest.direction)].filter { !$0.isEmpty }.joined(separator: " ")
+            if mgdl <= range.urgentLowAlarm {
+                alarm("urgentLow", title: String(localized: "Urgent Low"), body: body, every: 5 * 60)
+            } else if mgdl <= range.lowAlarm ?? grant.lowGlucose {
+                alarm("low", title: String(localized: "Low Glucose"), body: body, every: 15 * 60)
+            } else if mgdl >= range.highAlarm ?? grant.highGlucose {
+                alarm("high", title: String(localized: "High Glucose"), body: body, every: 60 * 60)
             }
         }
         // two missed readings on the sensor's 5-minute grid
@@ -1185,10 +1193,29 @@ extension UntetheredWatchManager {
         )
     }
 
+    /// Every untethered notification's identifier starts with it, so they show with Trio open on the wrist too.
+    static let notificationPrefix = "untethered."
+
+    private static func arrow(_ direction: BloodGlucose.Direction?) -> String {
+        switch direction?.rawValue {
+        case "DoubleUp": return "⇈"
+        case "SingleUp": return "↑"
+        case "FortyFiveUp": return "↗"
+        case "Flat": return "→"
+        case "FortyFiveDown": return "↘"
+        case "SingleDown": return "↓"
+        case "DoubleDown": return "⇊"
+        default: return ""
+        }
+    }
+
     private func alarm(_ kind: String, title: String, body: String, every interval: TimeInterval) {
         guard (Self.lastAlarm[kind] ?? .distantPast).addingTimeInterval(interval) < Date() else { return }
         Self.lastAlarm[kind] = Date()
-        notify(id: "untethered." + kind, title: title, body: body)
+        notify(id: Self.notificationPrefix + kind, title: title, body: body)
+        // felt at once while the app runs; the notification may wait for the screen
+        WKInterfaceDevice.current().play(kind == "high" ? .notification : .failure)
+        Task { await WatchLogger.shared.log("⌚️ Untethered alarm: \(title) \(body)", force: true) }
     }
 
     func notify(id: String, title: String, body: String, after delay: TimeInterval? = nil) {
@@ -1196,9 +1223,15 @@ extension UntetheredWatchManager {
         content.title = title
         content.body = body
         content.sound = .default
-        content.interruptionLevel = .timeSensitive
+        // not time-sensitive: the watch app has no entitlement for it
         let trigger = delay.flatMap { $0 > 0 ? UNTimeIntervalNotificationTrigger(timeInterval: $0, repeats: false) : nil }
-        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request) { error in
+            guard let error else { return }
+            Task {
+                await WatchLogger.shared.log("⌚️ Untethered: notification \(id) failed: \(error.localizedDescription)", force: true)
+            }
+        }
     }
 
     /// What the pump delivers now, for the status page: the running temp, else the scheduled rate. A loop that keeps
