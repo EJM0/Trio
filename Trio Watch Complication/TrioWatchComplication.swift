@@ -485,27 +485,59 @@ struct TrioOnBoardView: View {
     }
 }
 
-struct TrioOnBoardComplication: Widget {
-    let kind: String
-    let content: OnBoardContent
-    let name: String
-    let summary: String
-
-    var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: TrioWatchComplicationProvider()) { entry in
-            TrioOnBoardView(entry: entry, content: content)
-        }
-        .configurationDisplayName(name)
-        .description(summary)
-        .supportedFamilies(families)
+/// One configuration for the three: WidgetKit builds each widget with `init()`, so each is its own type.
+private func onBoardConfiguration(
+    kind: String,
+    content: OnBoardContent,
+    name: String,
+    summary: String
+) -> some WidgetConfiguration {
+    StaticConfiguration(kind: kind, provider: TrioWatchComplicationProvider()) { entry in
+        TrioOnBoardView(entry: entry, content: content)
     }
+    .configurationDisplayName(name)
+    .description(summary)
+    .supportedFamilies(onBoardFamilies)
+}
 
-    private var families: [WidgetFamily] {
-        #if os(watchOS)
-            return [.accessoryCircular, .accessoryCorner, .accessoryInline]
-        #else
-            return [.accessoryCircular, .accessoryInline]
-        #endif
+private var onBoardFamilies: [WidgetFamily] {
+    #if os(watchOS)
+        return [.accessoryCircular, .accessoryCorner, .accessoryInline]
+    #else
+        return [.accessoryCircular, .accessoryInline]
+    #endif
+}
+
+struct TrioIOBComplication: Widget {
+    var body: some WidgetConfiguration {
+        onBoardConfiguration(
+            kind: "TrioIOBComplication",
+            content: .iob,
+            name: String(localized: "Insulin on Board"),
+            summary: String(localized: "Trio's insulin on board")
+        )
+    }
+}
+
+struct TrioCOBComplication: Widget {
+    var body: some WidgetConfiguration {
+        onBoardConfiguration(
+            kind: "TrioCOBComplication",
+            content: .cob,
+            name: String(localized: "Carbs on Board"),
+            summary: String(localized: "Trio's carbs on board")
+        )
+    }
+}
+
+struct TrioOnBoardComplication: Widget {
+    var body: some WidgetConfiguration {
+        onBoardConfiguration(
+            kind: "TrioOnBoardComplication",
+            content: .both,
+            name: String(localized: "Insulin & Carbs"),
+            summary: String(localized: "Trio's insulin and carbs on board")
+        )
     }
 }
 
@@ -514,24 +546,9 @@ struct TrioOnBoardComplication: Widget {
 @main struct TrioWatchComplications: WidgetBundle {
     var body: some Widget {
         TrioWatchComplication()
-        TrioOnBoardComplication(
-            kind: "TrioIOBComplication",
-            content: .iob,
-            name: String(localized: "Insulin on Board"),
-            summary: String(localized: "Trio's insulin on board")
-        )
-        TrioOnBoardComplication(
-            kind: "TrioCOBComplication",
-            content: .cob,
-            name: String(localized: "Carbs on Board"),
-            summary: String(localized: "Trio's carbs on board")
-        )
-        TrioOnBoardComplication(
-            kind: "TrioOnBoardComplication",
-            content: .both,
-            name: String(localized: "Insulin & Carbs"),
-            summary: String(localized: "Trio's insulin and carbs on board")
-        )
+        TrioIOBComplication()
+        TrioCOBComplication()
+        TrioOnBoardComplication()
         #if os(watchOS)
             TrioMealBolusComplication()
             if #available(watchOS 26.0, *) {
