@@ -58,13 +58,8 @@ import WatchKit
     @ObservationIgnored private var burst: (id: Int, startedAt: Date, outstanding: Int, failed: Bool)?
     @ObservationIgnored private var burstCount = 0
     private static let takeoverReadInterval: UInt64 = 8_000_000_000
-    /// The fallback loop: armed when the phone missed this many of the watch's readings, started after the grace.
+    /// The fallback starts as soon as the phone has missed this many of the watch's readings.
     private static let fallbackMissedReadings = 2
-    private static let fallbackGrace: TimeInterval = 10
-    /// Observed: the status page shows the fallback about to start.
-    private var fallbackArmedAt: Date?
-    @ObservationIgnored private var fallbackTimer: Timer?
-    @ObservationIgnored private var fallbackKeepAlive: FallbackGraceKeepAlive?
     /// The phone's newest reading when the fallback last tried: once per outage, until the phone sends again.
     @ObservationIgnored private var fallbackTriedAfter: Date?
     /// A missing standing grant is asked for at most this often, the standby link's readings asking again.
@@ -781,7 +776,6 @@ import WatchKit
         guard data.session.phase == .idle else { return }
         updateStandingSensor()
         if !holdsSensorLink, !data.standbyGlucose.isEmpty { store.update { $0.standbyGlucose = [] } }
-        if !keepsStandbySensor { disarmFallback() }
     }
 
     /// The sensor link's readings between sessions, kept for the next one: it starts with them, nothing being left to
@@ -803,10 +797,9 @@ import WatchKit
         requestStandingGrantIfMissing()
     }
 
-    /// Two of the watch's readings the phone never sent, the phone shown as away (`WatchState.isReachable`, as on the
-    /// status page): ten seconds more for it, then the watch starts without it. Once per outage; the phone's next
-    /// reading allows the next. Checked on each reading too, in case the timer didn't run in the background.
-    func checkFallback(now: Date = Date()) {
+    /// Two of the watch's readings the phone never sent, and the phone unavailable for live messaging: start at once.
+    /// Once per outage; the phone's next reading allows the next.
+    func checkFallback() {
         // the screens' value, read afresh: a reachability change while the app was suspended never reached it, and the
         // phone that left meanwhile still showed as nearby until the app was opened again
         let reachable = WCSession.default.isReachable
@@ -814,7 +807,7 @@ import WatchKit
         let phoneNewest = WatchState.shared.phoneNewestReading ?? .distantPast
         // the phone's reading of the same sensor arrives a little after the watch's own
         let missed = data.standbyGlucose.filter { $0.dateString > phoneNewest.addingTimeInterval(60) }.count
-        guard missed >= Self.fallbackMissedReadings else { return disarmFallback() }
+        guard missed >= Self.fallbackMissedReadings else { return }
         let blocker: String? = !keepsStandbySensor ? "fallback off"
             : data.session.phase != .idle ? "session \(data.session.phase)"
             : isBusy ? "busy"
@@ -823,7 +816,6 @@ import WatchKit
             : fallbackTriedAfter == phoneNewest ? "tried already this outage"
             : nil
         if let blocker {
-            disarmFallback()
             Task {
                 await WatchLogger.shared.log(
                     "⌚️ Untethered: \(missed) readings without the phone, no fallback: \(blocker)",
@@ -832,40 +824,19 @@ import WatchKit
             }
             return
         }
-        guard let armedAt = fallbackArmedAt else {
-            fallbackArmedAt = now
-            fallbackTimer = Timer.scheduledTimer(withTimeInterval: Self.fallbackGrace, repeats: false) { [weak self] _ in
-                self?.checkFallback()
-            }
-            let keepAlive = FallbackGraceKeepAlive { [weak self] reason in
-                Task { await WatchLogger.shared.log("⌚️ Untethered: fallback grace wake ended (\(reason))") }
-                self?.fallbackKeepAlive = nil
-            }
-            fallbackKeepAlive = keepAlive
-            keepAlive.start()
-            Task {
-                await WatchLogger.shared.log("⌚️ Untethered: \(missed) readings without the phone, fallback in 10 s", force: true)
-            }
-            return
-        }
-        guard now >= armedAt.addingTimeInterval(Self.fallbackGrace) else { return }
-        disarmFallback()
         fallbackTriedAfter = phoneNewest
-        Task { await WatchLogger.shared.log("⌚️ Untethered: fallback loop, the phone's readings stopped", force: true) }
+        Task {
+            await WatchLogger.shared.log(
+                "⌚️ Untethered: starting fallback loop immediately; the phone's readings stopped",
+                force: true
+            )
+        }
         notify(
             id: "untethered.fallback",
             title: String(localized: "iPhone Unavailable"),
             body: String(localized: "The iPhone's readings stopped. The watch is taking over the loop.")
         )
         startWithoutPhone(byFallback: true)
-    }
-
-    private func disarmFallback() {
-        fallbackTimer?.invalidate()
-        fallbackTimer = nil
-        fallbackKeepAlive?.stop()
-        fallbackKeepAlive = nil
-        fallbackArmedAt = nil
     }
 
     // MARK: - Starting without the phone
@@ -885,13 +856,11 @@ import WatchKit
         case off
         /// The watch keeps the sensor and watches for the phone's readings to stop.
         case watching
-        /// Two readings came without the phone: it starts at this time unless the phone answers.
-        case starting(at: Date)
     }
 
     var fallbackStatus: FallbackStatus {
         guard keepsStandbySensor else { return .off }
-        return fallbackArmedAt.map { .starting(at: $0.addingTimeInterval(Self.fallbackGrace)) } ?? .watching
+        return .watching
     }
 
     /// The fallback loop's session reports to the phone with its readings as well: in the background the reachability

@@ -383,15 +383,6 @@ struct UntetheredStatusView: View {
                 .font(.caption2)
                 .foregroundStyle(.orange)
             }
-        case let .starting(at):
-            card(tint: .orange) {
-                Label {
-                    Text("The iPhone's readings stopped. Starting \(at, style: .relative)…")
-                } icon: {
-                    Image(systemName: "iphone.slash")
-                }
-                .font(.footnote)
-            }
         }
     }
 
