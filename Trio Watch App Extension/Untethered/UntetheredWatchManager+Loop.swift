@@ -885,7 +885,9 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         guard data.session.phase == .active, !isLooping, !isBolusing, let pump = pumpManager,
               let lastLoop = data.lastLoopDate ?? data.session.startStatus?.date,
               now.timeIntervalSince(lastLoop) > Self.podLinkStallLimit,
-              now.timeIntervalSince(lastPodLinkReset ?? .distantPast) > Self.podLinkResetInterval
+              now.timeIntervalSince(lastPodLinkReset ?? .distantPast) > Self.podLinkResetInterval,
+              // without readings the sensor is what's missing, and its own alarm says so (2026-10-19 18:04)
+              let newest = data.glucose.map(\.dateString).max(), now.timeIntervalSince(newest) < 11 * 60
         else { return }
         if lastPodLinkReset == nil {
             notify(
