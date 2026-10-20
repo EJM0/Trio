@@ -1378,34 +1378,3 @@ final class SensorPairingKeepAlive: NSObject, WKExtendedRuntimeSessionDelegate {
         DispatchQueue.main.async { self.onEnd(text) }
     }
 }
-
-/// Keeps the fallback's ten-second grace timer running across wrist-down while the second missed reading wakes Trio.
-final class FallbackGraceKeepAlive: NSObject, WKExtendedRuntimeSessionDelegate {
-    private let session = WKExtendedRuntimeSession()
-    private let onEnd: (String) -> Void
-
-    init(onEnd: @escaping (String) -> Void) {
-        self.onEnd = onEnd
-        super.init()
-        session.delegate = self
-    }
-
-    func start() { session.start() }
-
-    func stop() {
-        if session.state == .running { session.invalidate() }
-    }
-
-    func extendedRuntimeSessionDidStart(_: WKExtendedRuntimeSession) {}
-
-    func extendedRuntimeSessionWillExpire(_: WKExtendedRuntimeSession) {}
-
-    func extendedRuntimeSession(
-        _: WKExtendedRuntimeSession,
-        didInvalidateWith reason: WKExtendedRuntimeSessionInvalidationReason,
-        error: Error?
-    ) {
-        let text = error.map { "\(reason.rawValue): \($0.localizedDescription)" } ?? "\(reason.rawValue)"
-        DispatchQueue.main.async { self.onEnd(text) }
-    }
-}
