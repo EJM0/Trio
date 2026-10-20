@@ -290,15 +290,19 @@ struct UntetheredStatusView: View {
                 .disabled(!isPhoneReachable)
                 if !isPhoneReachable {
                     note("Starts with the phone nearby and Trio open on it.")
-                    // without a copy the note below says why
-                    if WatchState.shared.allowUntetheredStartWithoutPhone, manager.startWithoutPhoneUnavailable == nil {
-                        Button { confirmStartWithoutPhone = true } label: {
-                            Label("Start Without Phone", systemImage: "iphone.slash")
+                    if WatchState.shared.allowUntetheredStartWithoutPhone {
+                        if let unavailable = manager.startWithoutPhoneUnavailable {
+                            // with the fallback on, its note below says why
+                            if manager.fallbackStatus == .off { note(verbatim: unavailable) }
+                        } else {
+                            Button { confirmStartWithoutPhone = true } label: {
+                                Label("Start Without Phone", systemImage: "iphone.slash")
+                            }
+                            .tint(.untethered)
                         }
-                        .tint(.untethered)
                     }
                 }
-                copyNote
+                fallbackNote
             case .active where data.podEnded:
                 Button { whenPhoneReachable { manager.end() } } label: {
                     Label("Hand Back", systemImage: "iphone")
@@ -309,6 +313,9 @@ struct UntetheredStatusView: View {
                     note("Hands back by itself once the phone is nearby.")
                 }
             case .active:
+                if data.startedByFallback {
+                    note("Started by the fallback loop. Hands back by itself once the iPhone is back.")
+                }
                 Button { whenPhoneReachable { confirmEnd = true } } label: {
                     Label("Hand Back", systemImage: "iphone")
                 }
@@ -354,26 +361,43 @@ struct UntetheredStatusView: View {
         note(Text(text))
     }
 
-    /// Whether a copy from the phone is stored to start without it, and how old, or why not.
-    @ViewBuilder private var copyNote: some View {
-        if WatchState.shared.allowUntetheredStartWithoutPhone {
+    @ViewBuilder private var fallbackNote: some View {
+        switch manager.fallbackStatus {
+        case .off:
+            EmptyView()
+        case .watching:
+            // whether there is a copy to start from, which the fallback needs as much as the button
             if let age = manager.standingGrantAge {
                 Label(
-                    "The iPhone's copy of \(Int(age / 60)) min ago is ready to start without it",
-                    systemImage: "checkmark.circle"
+                    "Fallback Loop ready with the iPhone's copy of \(Int(age / 60)) min ago: starts by itself if its readings stop",
+                    systemImage: "antenna.radiowaves.left.and.right"
                 )
                 .font(.caption2)
                 .foregroundStyle(.secondary)
             } else {
                 Label {
-                    Text("Can't start without the iPhone: \(manager.startWithoutPhoneUnavailable ?? "")")
+                    Text("Fallback Loop can't start: \(manager.startWithoutPhoneUnavailable ?? "")")
                 } icon: {
                     Image(systemName: "exclamationmark.triangle")
                 }
                 .font(.caption2)
                 .foregroundStyle(.orange)
             }
+        case let .starting(at):
+            card(tint: .orange) {
+                Label {
+                    Text("The iPhone's readings stopped. Starting \(at, style: .relative)…")
+                } icon: {
+                    Image(systemName: "iphone.slash")
+                }
+                .font(.footnote)
+            }
         }
+    }
+
+    /// Text the manager localized already.
+    private func note(verbatim text: String) -> some View {
+        note(Text(verbatim: text))
     }
 
     private func note(_ text: Text) -> some View {

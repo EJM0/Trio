@@ -53,6 +53,11 @@ struct UntetheredWatchData: Codable {
     var standingGrantIssuedAt: Date?
     /// In a session started without the phone: its return was announced once.
     var phoneReturnNoted = false
+    /// The session started without the phone was the fallback loop's: it goes back to the phone on its return.
+    var startedByFallback = false
+    /// The fallback loop's readings between sessions, from the watch's own sensor link: the next session starts with
+    /// them, the link having nothing left to backfill.
+    var standbyGlucose: [BloodGlucose] = []
     var pendingPumpAlerts: [PendingPumpAlert] = []
 
     // History on its way to the phone, per session.
@@ -128,6 +133,8 @@ extension UntetheredWatchData {
         standingGrant = try container.decodeIfPresent(UntetheredGrant.self, forKey: .standingGrant)
         standingGrantIssuedAt = try container.decodeIfPresent(Date.self, forKey: .standingGrantIssuedAt)
         phoneReturnNoted = try container.decodeIfPresent(Bool.self, forKey: .phoneReturnNoted) ?? defaults.phoneReturnNoted
+        startedByFallback = try container.decodeIfPresent(Bool.self, forKey: .startedByFallback) ?? defaults.startedByFallback
+        standbyGlucose = try container.decodeIfPresent([BloodGlucose].self, forKey: .standbyGlucose) ?? defaults.standbyGlucose
         pendingPumpAlerts = try container.decodeIfPresent([PendingPumpAlert].self, forKey: .pendingPumpAlerts) ?? defaults
             .pendingPumpAlerts
         pending = try container.decodeIfPresent([Int: [String: UntetheredRecord]].self, forKey: .pending) ?? defaults.pending

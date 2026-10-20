@@ -97,6 +97,7 @@ enum WatchMessageKeys {
     static let glucoseRangeHigh = "glucoseRangeHigh"
     static let glucoseRangeTarget = "glucoseRangeTarget"
     static let glucoseColorScheme = "glucoseColorScheme"
+    static let fallbackLoopWatch = "fallbackLoopWatch"
     static let isForecastCone = "isForecastCone"
     static let forecastData = "forecastData"
     static let forecastStartDate = "forecastStartDate"
