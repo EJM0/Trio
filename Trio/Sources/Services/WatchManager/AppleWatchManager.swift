@@ -816,6 +816,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         dictionary[WatchMessageKeys.showGlucoseBubbleWatch] = state.showGlucoseBubble
         dictionary[WatchMessageKeys.allowUntetheredStartWithoutPhoneWatch] = state.allowUntetheredStartWithoutPhone
         dictionary[WatchMessageKeys.untetheredModeWatch] = state.untetheredMode
+        dictionary[WatchMessageKeys.useCriticalAlertsWatch] = settingsManager.settings.useCriticalAlerts
         dictionary[WatchMessageKeys.watchSensorConfiguration] = state.watchSensorConfiguration
         dictionary[WatchMessageKeys.watchReadsSensor] = state.watchReadsSensor
         dictionary[WatchMessageKeys.glucoseRangeLow] = NSDecimalNumber(decimal: state.glucoseRangeLow).doubleValue

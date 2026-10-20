@@ -58,6 +58,8 @@ struct NotificationsView: BaseView {
                     notificationsEnabledStatus
 
                     manageNotifications
+
+                    criticalAlertsToggle
                 }
             ).listRowBackground(Color.chart)
 
@@ -118,10 +120,23 @@ struct NotificationsView: BaseView {
         .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
         .navigationTitle("Notifications")
         .navigationBarTitleDisplayMode(.automatic)
+        .onAppear(perform: configureView)
     }
 }
 
 extension NotificationsView {
+    private var criticalAlertsToggle: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Toggle("Critical Alerts", isOn: $state.useCriticalAlerts)
+                .onChange(of: state.useCriticalAlerts) { _, enabled in
+                    if enabled { state.requestCriticalAlertsPermission() }
+                }
+            Text("Lets urgent Trio alarms sound even when the phone or watch is muted or in Do Not Disturb.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
     func notificationReminder() -> Alert {
         Alert(
             title: Text("\u{2757} Notifications are Required"),

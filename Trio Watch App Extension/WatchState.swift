@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UserNotifications
 import WatchConnectivity
 
 /// WatchState manages the communication between the Watch app and the iPhone app using WatchConnectivity.
@@ -82,6 +83,18 @@ import WatchConnectivity
     /// The page with only the glucose bubble; kept across launches, the phone's setting decides.
     var showGlucoseBubble: Bool = UserDefaults.standard.object(forKey: WatchMessageKeys.showGlucoseBubbleWatch) as? Bool ?? true {
         didSet { UserDefaults.standard.set(showGlucoseBubble, forKey: WatchMessageKeys.showGlucoseBubbleWatch) }
+    }
+
+    /// Cached from the phone so the setting still applies while the phone is away.
+    var useCriticalAlerts: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.useCriticalAlertsWatch) {
+        didSet {
+            UserDefaults.standard.set(useCriticalAlerts, forKey: WatchMessageKeys.useCriticalAlertsWatch)
+            if useCriticalAlerts {
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .criticalAlert]) { granted, _ in
+                    Task { await WatchLogger.shared.log("⌚️ Critical alerts on: watch notifications allowed=\(granted)", force: true) }
+                }
+            }
+        }
     }
 
     /// Whether the saved phone grant can start a session while the phone is unavailable.
@@ -1110,6 +1123,10 @@ import WatchConnectivity
 
         if let untetheredMode = message[WatchMessageKeys.untetheredModeWatch] as? Bool, untetheredMode != self.untetheredMode {
             self.untetheredMode = untetheredMode
+        }
+
+        if let critical = message[WatchMessageKeys.useCriticalAlertsWatch] as? Bool, critical != useCriticalAlerts {
+            useCriticalAlerts = critical
         }
 
         let watchReadsSensorDidChange: Bool

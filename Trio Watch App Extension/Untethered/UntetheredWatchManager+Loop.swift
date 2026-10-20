@@ -1218,11 +1218,18 @@ extension UntetheredWatchManager {
         Task { await WatchLogger.shared.log("⌚️ Untethered alarm: \(title) \(body)", force: true) }
     }
 
+    /// Safety alarms that should bypass Silent Mode when Critical Alerts are enabled.
+    static let criticalAlarmIDs: Set<String> = [
+        notificationPrefix + "urgentLow", notLoopingID, noReadingsID, podLinkID
+    ]
+
     func notify(id: String, title: String, body: String, after delay: TimeInterval? = nil) {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
-        content.sound = .default
+        let critical = Self.criticalAlarmIDs.contains(id)
+            && UserDefaults.standard.bool(forKey: WatchMessageKeys.useCriticalAlertsWatch)
+        content.sound = critical ? .defaultCritical : .default
         // not time-sensitive: the watch app has no entitlement for it
         let trigger = delay.flatMap { $0 > 0 ? UNTimeIntervalNotificationTrigger(timeInterval: $0, repeats: false) : nil }
         let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
