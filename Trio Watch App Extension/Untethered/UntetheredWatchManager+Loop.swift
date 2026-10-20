@@ -1229,7 +1229,10 @@ extension UntetheredWatchManager {
         UNUserNotificationCenter.current().add(request) { error in
             guard let error else { return }
             Task {
-                await WatchLogger.shared.log("⌚️ Untethered: notification \(id) failed: \(error.localizedDescription)", force: true)
+                await WatchLogger.shared.log(
+                    "⌚️ Untethered: notification \(id) failed: \(error.localizedDescription)",
+                    force: true
+                )
             }
         }
     }
