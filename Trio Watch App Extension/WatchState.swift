@@ -104,10 +104,9 @@ import WatchConnectivity
     }
 
     /// The phone's range and color scheme, for the watch's own readings and the complication; persisted with them.
-    var glucoseRange: WatchGlucoseRange = UserDefaults.standard.data(forKey: WatchGlucoseRange.storageKey)
-        .flatMap { try? JSONDecoder().decode(WatchGlucoseRange.self, from: $0) } ?? WatchGlucoseRange {
-            didSet { UserDefaults.standard.set(try? JSONEncoder().encode(glucoseRange), forKey: WatchGlucoseRange.storageKey) }
-        }
+    var glucoseRange: WatchGlucoseRange = .saved {
+        didSet { glucoseRange.save() }
+    }
 
     /// When the loop last ran, from the phone's "N min" or the watch's own loop; for the complication's ring.
     var lastLoopDate: Date?
@@ -1176,7 +1175,16 @@ import WatchConnectivity
 
 /// The phone's glucose range and color scheme, in mg/dL, as `BaseWatchManager` colors the readings it sends.
 struct WatchGlucoseRange: Codable, Equatable {
-    static let storageKey = "watchGlucoseRange"
+    private static let storageKey = "watchGlucoseRange"
+
+    static var saved: WatchGlucoseRange {
+        UserDefaults.standard.data(forKey: storageKey)
+            .flatMap { try? JSONDecoder().decode(WatchGlucoseRange.self, from: $0) } ?? WatchGlucoseRange()
+    }
+
+    func save() {
+        UserDefaults.standard.set(try? JSONEncoder().encode(self), forKey: Self.storageKey)
+    }
 
     var low: Decimal = 70
     var high: Decimal = 180
