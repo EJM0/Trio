@@ -98,6 +98,8 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var scaleName: String = ""
     var homeStatsPanelFace: HomeStatsPanelFace = .timeInRange
     var requireAdjustmentsConfirmation: Bool = false
+    /// Enables Critical Alerts for safety alarms on the phone and watch.
+    var useCriticalAlerts: Bool = false
 
     // MARK: - Fehlende Eigenschaften im Haupt-Struct ergänzt
 
@@ -441,6 +443,10 @@ extension TrioSettings: Decodable {
 
         if let showGlucoseBubbleWatch = try? container.decode(Bool.self, forKey: .showGlucoseBubbleWatch) {
             settings.showGlucoseBubbleWatch = showGlucoseBubbleWatch
+        }
+
+        if let useCriticalAlerts = try? container.decode(Bool.self, forKey: .useCriticalAlerts) {
+            settings.useCriticalAlerts = useCriticalAlerts
         }
 
         if let allowUntetheredStartWithoutPhoneWatch = try? container.decode(

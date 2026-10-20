@@ -14,12 +14,14 @@ extension Settings {
         @Injected() var fetchCgmManager: FetchGlucoseManager!
         @Injected() private var storage: FileStorage!
         @Injected() var overrideStorage: OverrideStorage!
+        @Injected() var userNotificationsManager: UserNotificationsManager!
 
         @Published var units: GlucoseUnits = .mgdL
         @Published var dosingMode: DosingMode = .open
         @Published var debugOptions = false
         @Published var serviceUIType: ServiceUI.Type?
         @Published var setupTidepool = false
+        @Published var useCriticalAlerts = false
 
         private(set) var buildNumber = ""
         private(set) var versionNumber = ""
@@ -31,6 +33,7 @@ extension Settings {
 
             subscribeSetting(\.debugOptions, on: $debugOptions) { debugOptions = $0 }
             subscribeSetting(\.dosingMode, on: $dosingMode) { dosingMode = $0 }
+            subscribeSetting(\.useCriticalAlerts, on: $useCriticalAlerts) { useCriticalAlerts = $0 }
             broadcaster.register(SettingsObserver.self, observer: self)
 
             buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
@@ -62,6 +65,10 @@ extension Settings {
             hideModal()
         }
 
+        func requestCriticalAlertsPermission() {
+            userNotificationsManager.requestNotificationPermissions { _ in }
+        }
+
         // Commenting this out for now, as not needed and possibly dangerous for users to be able to nuke their pump pairing informations via the debug menu
         // Leaving it in here, as it may be a handy functionality for further testing or developers.
         // See https://github.com/nightscout/Trio/pull/277 for more information
@@ -90,6 +97,7 @@ extension Settings.StateModel: SettingsObserver {
     func settingsDidChange(_ settings: TrioSettings) {
         dosingMode = settings.dosingMode
         debugOptions = settings.debugOptions
+        useCriticalAlerts = settings.useCriticalAlerts
     }
 }
 
