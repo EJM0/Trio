@@ -49,7 +49,8 @@ Turning the setting off deletes the copy on the watch and hides the button.
 
 ### Good to know
 
-- A sensor the watch has never read before has to be paired with the watch first. Keep Trio open on the watch until the first glucose value shows, and accept the Bluetooth pairing request if one appears.
+- A sensor the watch has never read before has to be paired with the watch first. The last step is a Bluetooth pairing request that watchOS only shows while Trio is on the watch screen. When a pairing is due, the watch says so on its untethered page (or in a notification, if Trio isn't open), keeps Trio in front for up to 10 minutes once it is open, and vibrates as the request comes. Keep Trio open until the first glucose value shows. If the pairing didn't finish, the watch tells you at once and pairs again at the next reading.
+- If no loop gets through for 15 minutes while readings still arrive, the watch shows **Pod Not Reachable** and searches for the pod again. Opening Trio on the watch usually reconnects it.
 - The watch's battery drains faster while it loops. The untethered page shows the battery and the log records it at the start and end.
 - This is new, experimental code. Test it while awake, with the phone nearby, and check insulin on board after each session.
 

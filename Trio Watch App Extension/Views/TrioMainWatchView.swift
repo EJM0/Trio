@@ -117,6 +117,10 @@ struct TrioMainWatchView: View {
             .onChange(of: untethered.isActive) { _, isActive in
                 if isActive || currentPage > statusPage { currentPage = statusPage }
             }
+            // the pairing note is on the status page
+            .onChange(of: untethered.isPairingSensor) { _, isPairing in
+                if isPairing { currentPage = statusPage }
+            }
             // the loop page goes with the session; stay on the status page, not on none
             .onChange(of: lastPage) { _, _ in
                 if currentPage > lastPage { currentPage = lastPage }

@@ -39,6 +39,9 @@ import WatchKit
     @ObservationIgnored var lastPodLinkNotice: Date?
     /// How many Pod Not Reachable notices this stall has brought; from the second on the watch vibrates harder.
     @ObservationIgnored var podLinkNoticeCount = 0
+    /// A sensor pairing is due: Trio has to be in front for its Bluetooth pairing request.
+    var isPairingSensor = false
+    @ObservationIgnored var pairingKeepAlive: SensorPairingKeepAlive?
 
     /// Records travel in batches small enough for an interactive message.
     private static let recordsPerMessage = 40
@@ -565,6 +568,7 @@ import WatchKit
                   let cgm = type.init(adopting: configuration, localState: localState(for: configuration.managerIdentifier))
         {
             Task { await WatchLogger.shared.log("⌚️ Untethered: new sensor, pairing the watch afresh", force: true) }
+            sensorPairingDue()
             store.update {
                 $0.cgmBuiltFrom = Self.plist(configuration.state)
                 $0.pendingPumpAlerts.removeAll { $0.managerIdentifier == cgm.pluginIdentifier }
@@ -577,6 +581,7 @@ import WatchKit
 
     /// The watch stops connecting; its saved state stays for the next session.
     private func stopCGM() {
+        sensorPairingDone()
         guard let cgm = cgmManager else { return }
         saveCGMState()
         cgm.cgmManagerDelegate = nil

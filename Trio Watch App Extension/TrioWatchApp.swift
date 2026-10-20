@@ -35,6 +35,8 @@ import WatchKit
             } else if newScenePhase == .active {
                 // with the phone away, looking at the watch is the one wake left
                 UntetheredWatchManager.shared.recheckCGM()
+                // a sensor pairing that is due keeps Trio in front from here
+                UntetheredWatchManager.shared.appBecameActive()
                 // what loops in the background did, without waiting for the phone link
                 UntetheredWatchManager.shared.refresh()
             }

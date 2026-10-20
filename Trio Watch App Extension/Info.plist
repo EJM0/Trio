@@ -5,7 +5,11 @@
 	<key>AppGroupID</key>
 	<string>$(APP_GROUP_ID)</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>In untethered mode, Trio on the watch connects to your pod and sensor directly, so it can keep looping while your iPhone is out of reach.</string>
+	<string>Trio on the watch can read your Dexcom G7 directly, so glucose and alerts keep working when your iPhone is out of reach. In untethered mode it also runs your pod.</string>
+	<key>WKBackgroundModes</key>
+	<array>
+		<string>self-care</string>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>bluetooth-central</string>
