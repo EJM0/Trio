@@ -35,6 +35,8 @@ import WatchKit
     @ObservationIgnored private var bolusEndTimer: Timer?
     /// When the pod link was last torn down and searched for afresh.
     @ObservationIgnored var lastPodLinkReset: Date?
+    /// When the user was last told the pod can't be reached; repeated while the stall lasts.
+    @ObservationIgnored var lastPodLinkNotice: Date?
 
     /// Records travel in batches small enough for an interactive message.
     private static let recordsPerMessage = 40

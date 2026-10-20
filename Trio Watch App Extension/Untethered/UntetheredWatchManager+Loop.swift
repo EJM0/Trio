@@ -882,23 +882,28 @@ extension UntetheredWatchManager: CGMManagerDelegate {
     /// A loop that keeps failing to reach the pod while readings come in usually has a stuck connection, which
     /// otherwise only opening the app clears. The link is torn down and searched for afresh.
     func checkPodLink(now: Date = Date()) {
-        guard data.session.phase == .active, !isLooping, !isBolusing, let pump = pumpManager,
+        guard data.session.phase == .active, let pump = pumpManager,
               let lastLoop = data.lastLoopDate ?? data.session.startStatus?.date,
               now.timeIntervalSince(lastLoop) > Self.podLinkStallLimit,
-              now.timeIntervalSince(lastPodLinkReset ?? .distantPast) > Self.podLinkResetInterval,
+              now.timeIntervalSince(lastPodLinkNotice ?? .distantPast) > Self.podLinkResetInterval,
               // without readings the sensor is what's missing, and its own alarm says so (2026-10-19 18:04)
               let newest = data.glucose.map(\.dateString).max(), now.timeIntervalSince(newest) < 11 * 60
         else { return }
-        if lastPodLinkReset == nil {
-            notify(
-                id: Self.podLinkID,
-                title: Self.podLinkTitle,
-                body: Self.podLinkBody(minutes: Int(Self.podLinkStallLimit / 60))
-            )
-        }
+        let minutes = Int(now.timeIntervalSince(lastLoop) / 60)
+        // Every 10 minutes while it lasts, not only once: once was easy to miss (2026-10-20, 12:25 went unnoticed),
+        // and opening Trio is what cleared the stall (13:32). Removed and posted again so it alerts each time.
+        lastPodLinkNotice = now
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [Self.podLinkID])
+        notify(id: Self.podLinkID, title: Self.podLinkTitle, body: Self.podLinkBody(minutes: minutes))
+        WKInterfaceDevice.current().play(.failure)
+        Task { await WatchLogger.shared.log("⌚️ Untethered alarm: \(Self.podLinkTitle) after \(minutes) min", force: true) }
+        // The reconnect itself waits for a loop or bolus in flight; the notice above doesn't. A loop waiting on the
+        // pod held on for 41 minutes (2026-10-20, 12:20 to 13:01), and nothing else ran for the stall meanwhile.
+        guard !isLooping, !isBolusing,
+              now.timeIntervalSince(lastPodLinkReset ?? .distantPast) > Self.podLinkResetInterval
+        else { return }
         lastPodLinkReset = now
         let releaseHold = Self.holdProcess(reason: "Untethered pod reconnect", upTo: Self.loopHoldLimit)
-        let minutes = Int(now.timeIntervalSince(lastLoop) / 60)
         let outcome = pump.escalateTakeControl() ?? "nothing to escalate"
         let diagnostics = pump.connectionDiagnostics() ?? ""
         Task {
@@ -912,9 +917,12 @@ extension UntetheredWatchManager: CGMManagerDelegate {
 
     /// A loop reached the pod again: the search an escalation started ends, and so does its notice.
     func podLinkRecovered(_ pump: PumpManager & ExclusiveDeviceControl) {
-        guard lastPodLinkReset != nil else { return }
-        lastPodLinkReset = nil
-        pump.endTakeEscalation()
+        guard lastPodLinkReset != nil || lastPodLinkNotice != nil else { return }
+        lastPodLinkNotice = nil
+        if lastPodLinkReset != nil {
+            lastPodLinkReset = nil
+            pump.endTakeEscalation()
+        }
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [Self.podLinkID])
     }
 
