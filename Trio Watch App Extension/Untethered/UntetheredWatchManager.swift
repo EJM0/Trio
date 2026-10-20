@@ -266,9 +266,6 @@ import WatchKit
             if data.startedByFallback, data.session.phase == .active {
                 handleFallbackPhoneHealthResponse()
             } else {
-                if data.session.phase == .idle {
-                    store.update { $0.fallbackPhoneOwnershipBlocked = !phoneMayDose }
-                }
                 checkFallback()
             }
 
@@ -920,17 +917,19 @@ import WatchKit
            now.timeIntervalSince(health.checkedAt) >= 0,
            now.timeIntervalSince(health.checkedAt) <= Self.fallbackHealthFreshness
         {
+            let healthAge = now.timeIntervalSince(health.checkedAt)
             guard health.phoneMayDose else {
-                store.update { $0.fallbackPhoneOwnershipBlocked = true }
                 Task {
                     await WatchLogger.shared.log(
                         "⌚️ Untethered: phone answered but cannot confirm pump ownership; fallback held",
                         force: true
                     )
                 }
+                // Honor an explicit ownership refusal only while that response is fresh. If the phone
+                // goes silent, the normal two unanswered checks below must be able to authorize fallback.
+                scheduleFallbackCheck(after: Self.fallbackHealthFreshness - healthAge)
                 return
             }
-            store.update { $0.fallbackPhoneOwnershipBlocked = false }
 
             let phoneNewest = health.newestReadingDate ?? .distantPast
             let missed = recentWatchReadings.filter {
@@ -970,16 +969,6 @@ import WatchKit
 
         guard fallbackHealthRequestCount >= Self.fallbackHealthRequestLimit else {
             requestFallbackPhoneHealth()
-            return
-        }
-
-        guard !data.fallbackPhoneOwnershipBlocked else {
-            Task {
-                await WatchLogger.shared.log(
-                    "⌚️ Untethered: fallback held; the phone previously confirmed it cannot safely own the pump yet",
-                    force: true
-                )
-            }
             return
         }
 
@@ -1185,7 +1174,6 @@ import WatchKit
             $0.handover = nil
             $0.phoneReturnNoted = false
             $0.startedByFallback = byFallback
-            $0.fallbackPhoneOwnershipBlocked = false
         }
         return true
     }
