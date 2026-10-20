@@ -13,6 +13,7 @@ extension WatchConfig {
         @Published var showGlucoseBubbleWatch = true
         @Published var allowUntetheredStartWithoutPhoneWatch = true
         @Published var untetheredModeWatch = true
+        @Published var watchSensorAlwaysOn = true
 
         /// Garmin watch settings containing all watch-related configuration
         @Published var garminSettings = GarminWatchSettings()
@@ -32,6 +33,7 @@ extension WatchConfig {
                 allowUntetheredStartWithoutPhoneWatch = $0
             }
             subscribeSetting(\.untetheredModeWatch, on: $untetheredModeWatch) { untetheredModeWatch = $0 }
+            subscribeSetting(\.watchSensorAlwaysOn, on: $watchSensorAlwaysOn) { watchSensorAlwaysOn = $0 }
 
             devices = garmin.devices
         }

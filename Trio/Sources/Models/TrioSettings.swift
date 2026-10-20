@@ -70,6 +70,8 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var allowUntetheredStartWithoutPhoneWatch: Bool = true
     /// Untethered watch mode offered at all: off, neither the phone nor the watch starts it.
     var untetheredModeWatch: Bool = true
+    /// The watch keeps its own link to the G7 all the time, not only while untethered.
+    var watchSensorAlwaysOn: Bool = true
     var overrideFactor: Decimal = 0.8
     var fattyMeals: Bool = false
     var fattyMealFactor: Decimal = 0.7
@@ -448,6 +450,10 @@ extension TrioSettings: Decodable {
 
         if let untetheredModeWatch = try? container.decode(Bool.self, forKey: .untetheredModeWatch) {
             settings.untetheredModeWatch = untetheredModeWatch
+        }
+
+        if let watchSensorAlwaysOn = try? container.decode(Bool.self, forKey: .watchSensorAlwaysOn) {
+            settings.watchSensorAlwaysOn = watchSensorAlwaysOn
         }
 
         if let displayPresets = try? container.decode(Bool.self, forKey: .displayPresets) {

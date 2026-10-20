@@ -881,7 +881,7 @@ extension UntetheredWatchManager: CGMManagerDelegate {
 
     /// G7SensorKit reports its pairing steps only in its log lines; matched here, as the link errors above are.
     func noteSensorPairingEvent(_ message: String) {
-        guard isActive else { return }
+        guard holdsSensorLink else { return }
         if message.contains("Pairing: running the key exchange")
             || message.contains("the sensor no longer accepts the saved key")
         {
@@ -1015,8 +1015,13 @@ extension UntetheredWatchManager: CGMManagerDelegate {
                 type: "sgv"
             )
         }
-        // outside a session the link only stays warm; the phone reads the same sensor
-        guard isActive, !readings.isEmpty else { return }
+        guard !readings.isEmpty else { return }
+        // outside a session the readings only show on the watch until the phone's copy of them arrives
+        guard isActive else {
+            WatchState.shared.applyOwnReadings(readings)
+            scheduleSessionRefresh()
+            return
+        }
         ingest(readings)
     }
 
@@ -1275,6 +1280,7 @@ extension UntetheredWatchManager {
                 return WatchTreatmentMarker(id: entry.id ?? "\(date.timeIntervalSince1970)", date: date, kind: .carbs)
             }
         state.treatmentMarkers = boluses + carbs
+        state.lastLoopDate = data.lastLoopDate
         if let lastLoop = data.lastLoopDate {
             // the phone's own rounding, so the ring turns as it does there
             let minutes = Int((Date().timeIntervalSince(lastLoop) - 30) / 60) + 1
@@ -1295,6 +1301,7 @@ extension UntetheredWatchManager {
         state.isSuperBolusAvailable = grant.bolusCalculator.sweetMeals
 
         publishWatchPeripherals(pump: pumpManager, cgm: cgmManager, reservoir: data.reservoir, to: state)
+        ComplicationStore.update(from: state, watchLoops: true)
     }
 }
 

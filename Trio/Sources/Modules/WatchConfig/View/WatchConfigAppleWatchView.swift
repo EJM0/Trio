@@ -87,6 +87,42 @@ struct WatchConfigAppleWatchView: BaseView {
                 headerText: String(localized: "Treatments")
             )
 
+            // the watch's own link to the G7, with or without untethered mode
+            SettingInputSection(
+                decimalValue: $decimalPlaceholder,
+                booleanValue: $state.watchSensorAlwaysOn,
+                shouldDisplayHint: $shouldDisplayHint,
+                selectedVerboseHint: Binding(
+                    get: { selectedVerboseHint },
+                    set: {
+                        selectedVerboseHint = $0.map { AnyView($0) }
+                        hintLabel = String(localized: "Watch Reads the Sensor")
+                    }
+                ),
+                units: state.units,
+                type: .boolean,
+                label: String(localized: "Watch Reads the Sensor"),
+                miniHint: String(
+                    localized: "The watch connects to the Dexcom G7 itself. Turn off on older watches to save battery: the watch then shows only the iPhone's glucose."
+                ),
+                verboseHint: VStack(alignment: .leading, spacing: 8) {
+                    Text(
+                        "When this is on, the watch keeps its own link to your Dexcom G7, in the sensor's slot for a watch, next to the iPhone's. Glucose on the watch and on its complication stays current when the iPhone is out of reach or its app is asleep. The link costs some watch battery."
+                    )
+                    Text("When this is off, the watch reads the sensor only during untethered mode. Until then:")
+                    Text(
+                        "• Glucose on the watch and on the complication comes only from the iPhone, and stops while the iPhone is away."
+                    )
+                    Text(
+                        "• The complication updates far less often: watchOS redraws it in the background only while the app holds a Bluetooth link, otherwise about every half hour at most."
+                    )
+                    Text(
+                        "• Untethered mode starts without readings: the watch first has to find the sensor, and pair with a new one."
+                    )
+                },
+                headerText: String(localized: "Sensor")
+            )
+
             // the watch running the loop: the switch, then what it allows and the session itself
             SettingInputSection(
                 decimalValue: $decimalPlaceholder,

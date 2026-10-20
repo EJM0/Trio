@@ -97,6 +97,24 @@ import WatchConnectivity
         }
     }
 
+    /// The CGM's export while the phone asks the watch to keep its own sensor link (Watch Reads the Sensor); nil while
+    /// that is off. Persisted, so the link comes back after watchOS ended the app with the phone away.
+    var sensorConfiguration: Data? = UserDefaults.standard.data(forKey: WatchMessageKeys.watchSensorConfiguration) {
+        didSet { UserDefaults.standard.set(sensorConfiguration, forKey: WatchMessageKeys.watchSensorConfiguration) }
+    }
+
+    /// The phone's range and color scheme, for the watch's own readings and the complication; persisted with them.
+    var glucoseRange: WatchGlucoseRange = UserDefaults.standard.data(forKey: WatchGlucoseRange.storageKey)
+        .flatMap { try? JSONDecoder().decode(WatchGlucoseRange.self, from: $0) } ?? WatchGlucoseRange {
+            didSet { UserDefaults.standard.set(try? JSONEncoder().encode(glucoseRange), forKey: WatchGlucoseRange.storageKey) }
+        }
+
+    /// When the loop last ran, from the phone's "N min" or the watch's own loop; for the complication's ring.
+    var lastLoopDate: Date?
+
+    /// Readings from the watch's own sensor link the phone hasn't sent yet, oldest first.
+    private var ownReadings: [BloodGlucose] = []
+
     /// Untethered mode offered at all, the phone's setting; persisted, as the start without the phone needs it most.
     var untetheredMode: Bool = UserDefaults.standard.object(forKey: WatchMessageKeys.untetheredModeWatch) as? Bool ?? true {
         didSet { UserDefaults.standard.set(untetheredMode, forKey: WatchMessageKeys.untetheredModeWatch) }
@@ -563,6 +581,49 @@ import WatchConnectivity
             )
         }
         hasPendingGlucoseHistoryUpdate = false
+        applyOwnOverlay()
+        ComplicationStore.update(from: self)
+    }
+
+    // MARK: - The watch's own sensor readings
+
+    /// Readings from the watch's own sensor link outside untethered mode: shown on the watch and its complication
+    /// until the phone's copy of them arrives.
+    func applyOwnReadings(_ readings: [BloodGlucose]) {
+        let known = Set(ownReadings.map { Int($0.dateString.timeIntervalSince1970 / 60) })
+        ownReadings += readings.filter { !known.contains(Int($0.dateString.timeIntervalSince1970 / 60)) }
+        ownReadings.sort { $0.dateString < $1.dateString }
+        applyOwnOverlay()
+        ComplicationStore.update(from: self)
+    }
+
+    /// The phone's readings, then the watch's own newer ones; the newest of either is the one shown. Idempotent.
+    private func applyOwnOverlay() {
+        // nothing of the watch's own: the phone's readings as they are (and no untethered lookup while launching)
+        guard !ownReadings.isEmpty else { return }
+        guard !UntetheredWatchManager.shared.isActive else {
+            ownReadings.removeAll()
+            return
+        }
+        let phoneNewest = glucoseHistory.readings.last.map { Date(timeIntervalSince1970: $0.timestamp) } ?? .distantPast
+        // the phone's copy of a reading carries a timestamp a few seconds apart from the watch's
+        ownReadings.removeAll {
+            $0.dateString <= phoneNewest.addingTimeInterval(60) || $0.dateString < Date().addingTimeInterval(-6 * 60 * 60)
+        }
+        glucoseValues.removeAll { $0.date > phoneNewest.addingTimeInterval(60) }
+        let range = glucoseRange
+        let own = ownReadings.compactMap { reading in (reading.glucose ?? reading.sgv).map { (reading, $0) } }
+        guard let (latest, value) = own.last else { return }
+        glucoseValues += own.map { (date: $0.0.dateString, glucose: range.display($0.1), color: range.color($0.1)) }
+        currentGlucose = range.isMmol ? Decimal(value).formattedAsMmolL : "\(value)"
+        let inRange = Decimal(value) > range.low && Decimal(value) < range.high
+        currentGlucoseColorString = inRange ? "#ffffff" : range.color(value).toHexString()
+        trend = latest.direction?.rawValue
+        if glucoseValues.count >= 2 {
+            let change = glucoseValues[glucoseValues.count - 1].glucose - glucoseValues[glucoseValues.count - 2].glucose
+            let formatted = range.isMmol ? String(format: "%.1f", change) : String(format: "%.0f", change)
+            delta = change < 0 ? formatted : "+" + formatted
+        }
     }
 
     private func disableGlucoseDeltaSync(reason: String) {
@@ -913,6 +974,8 @@ import WatchConnectivity
 
         if let lastLoopTime = message[WatchMessageKeys.lastLoopTime] as? String {
             self.lastLoopTime = lastLoopTime
+            lastLoopDate = lastLoopTime.split(separator: " ").first.flatMap { Int($0) }
+                .map { Date().addingTimeInterval(-Double($0) * 60) }
         }
 
         if hasPendingGlucoseHistoryUpdate {
@@ -1016,6 +1079,33 @@ import WatchConnectivity
             self.untetheredMode = untetheredMode
         }
 
+        // a full state from the phone: the sensor link it asks for (absent: off) and the range it colors by
+        if let low = message[WatchMessageKeys.glucoseRangeLow] as? Double,
+           let high = message[WatchMessageKeys.glucoseRangeHigh] as? Double
+        {
+            let range = WatchGlucoseRange(
+                low: Decimal(low),
+                high: Decimal(high),
+                target: (message[WatchMessageKeys.glucoseRangeTarget] as? Double).map { Decimal($0) } ?? glucoseRange.target,
+                colorScheme: message[WatchMessageKeys.glucoseColorScheme] as? String ?? glucoseRange.colorScheme,
+                isMmol: message[WatchMessageKeys.units] as? String == "mmol/L"
+            )
+            if range != glucoseRange { glucoseRange = range }
+            let configuration = message[WatchMessageKeys.watchSensorConfiguration] as? Data
+            if configuration != sensorConfiguration {
+                if (configuration == nil) != (sensorConfiguration == nil) {
+                    Task {
+                        await WatchLogger.shared.log(
+                            "⌚️ Watch Reads the Sensor: \(configuration == nil ? "off" : "on")",
+                            force: true
+                        )
+                    }
+                }
+                sensorConfiguration = configuration
+                UntetheredWatchManager.shared.updateStandingSensor()
+            }
+        }
+
         if let isForecastCone = message[WatchMessageKeys.isForecastCone] as? Bool, isForecastCone != self.isForecastCone {
             self.isForecastCone = isForecastCone
         }
@@ -1032,6 +1122,10 @@ import WatchConnectivity
         if let peripheralPayload = message[WatchMessageKeys.peripheralData] as? [String: Any] {
             processPeripheralData(peripheralPayload)
         }
+
+        // the watch's own newer readings stay in front of the phone's older ones
+        applyOwnOverlay()
+        ComplicationStore.update(from: self)
     }
 
     /// Applies a peripheral payload, whether it arrived nested inside a routine
@@ -1077,5 +1171,33 @@ import WatchConnectivity
         cgmStatusMessage = payload[WatchMessageKeys.cgmStatusMessage] as? String
 
         hasReceivedPeripheralData = true
+    }
+}
+
+/// The phone's glucose range and color scheme, in mg/dL, as `BaseWatchManager` colors the readings it sends.
+struct WatchGlucoseRange: Codable, Equatable {
+    static let storageKey = "watchGlucoseRange"
+
+    var low: Decimal = 70
+    var high: Decimal = 180
+    var target: Decimal = 100
+    var colorScheme: String = GlucoseColorScheme.staticColor.rawValue
+    var isMmol = false
+
+    func display(_ mgdl: Int) -> Double {
+        isMmol ? NSDecimalNumber(decimal: Decimal(mgdl).asMmolL).doubleValue : Double(mgdl)
+    }
+
+    /// As `BaseWatchManager.setupWatchState`: the dynamic scheme ramps between fixed ends around the target.
+    func color(_ mgdl: Int) -> Color {
+        let scheme = GlucoseColorScheme(rawValue: colorScheme) ?? .staticColor
+        let isDynamic = scheme == .dynamicColor
+        return getDynamicGlucoseColor(
+            glucoseValue: Decimal(mgdl),
+            highGlucoseColorValue: isDynamic ? 220 : high,
+            lowGlucoseColorValue: isDynamic ? 55 : low,
+            targetGlucose: target,
+            glucoseColorScheme: scheme
+        )
     }
 }
