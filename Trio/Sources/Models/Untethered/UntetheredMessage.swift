@@ -36,6 +36,21 @@ enum UntetheredMessage: Codable, Equatable {
     case standingGrant(UntetheredGrant, issuedAt: Date)
     /// The watch has no standing grant young enough to start from: the phone sends one at once.
     case standingGrantRequest
+    /// Checks the phone's live loop/data state; WatchConnectivity reachability alone doesn't establish app liveness.
+    case fallbackHealthRequest(UUID)
+    /// Last successful loop detects an outage; the attempt date detects phone recovery while Watch owns the pump.
+    case fallbackHealthResponse(
+        requestID: UUID,
+        checkedAt: Date,
+        lastLoopDate: Date,
+        lastLoopAttemptDate: Date,
+        newestReadingDate: Date?,
+        phoneMayDose: Bool
+    )
+    /// The phone's loop and glucose feed recovered during a watch fallback; it should take the pump back.
+    case fallbackHandbackRequest(UntetheredPodStatus)
+    /// The phone accepted the fallback hand-back and is asking the watch to return the pump.
+    case fallbackHandbackAccepted
 }
 
 extension UntetheredMessage {
@@ -43,6 +58,7 @@ extension UntetheredMessage {
     var isResentUntilAnswered: Bool {
         switch self {
         case .endRequest,
+             .fallbackHandbackRequest,
              .handback,
              .handbackAck,
              .standingGrantRequest,
@@ -68,8 +84,7 @@ struct UntetheredPodStatus: Codable, Equatable {
     /// Start without the phone: when the standing grant's pump copy was taken. The phone's doses started after it
     /// never reached the watch, which doesn't take them over.
     var copyAsOf: Date? = nil
-    /// Start without the phone: the fallback loop started it, the phone's readings having stopped. The phone takes the
-    /// pump back as soon as it hears from the watch.
+    /// Start without the phone: the fallback loop started it after the phone's feed and loop stopped.
     var byFallback: Bool? = nil
 }
 

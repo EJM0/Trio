@@ -275,6 +275,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 var watchState = WatchState(date: Date())
 
                 // Set lastLoopDate
+                watchState.phoneLastLoopDate = self.apsManager.lastLoopDate
                 let lastLoopMinutes = Int((Date().timeIntervalSince(self.apsManager.lastLoopDate) - 30) / 60) + 1
                 if lastLoopMinutes > 1440 {
                     watchState.lastLoopTime = "--"
@@ -807,6 +808,9 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             WatchMessageKeys.showForecastWatch: state.showForecast,
             WatchMessageKeys.isForecastCone: state.isForecastCone
         ]
+        if let phoneLastLoopDate = state.phoneLastLoopDate {
+            dictionary[WatchMessageKeys.phoneLastLoopDate] = phoneLastLoopDate.timeIntervalSince1970
+        }
 
         // Assigned rather than inlined above: this literal is already at the
         // edge of the type checker's budget for a single expression.

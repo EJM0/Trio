@@ -67,27 +67,29 @@ actor WatchLogger {
         guard !logs.isEmpty else {
             return
         }
-
-        let payload: [String: Any] = ["watchLogs": logs.joined(separator: "\n")]
-
-        if session.activationState != .activated {
-            session.activate()
-        }
-
-        if session.isReachable {
-            // the buffer is empty by the time a send fails: what failed is kept, not the empty buffer
-            let sent = logs
-            session.sendMessage(payload, replyHandler: nil) { _ in
-                Task {
-                    await self.persistLogsLocally(sent)
-                }
-            }
-        } else {
-            await persistLogsLocally()
-        }
-
-        lastFlush = Date()
+        let entries = logs
         logs.removeAll()
+        lastFlush = Date()
+
+        // Pump ownership, dosing, and hand-back messages take priority over diagnostic logs.
+        guard !UntetheredWatchManager.shared.isActive, !UntetheredWatchManager.shared.isBusy else {
+            await persistLogsLocally(entries)
+            return
+        }
+        await queueInBackground(entries)
+    }
+
+    private func queueInBackground(_ entries: [String]) async {
+        guard !entries.isEmpty else { return }
+        guard session.activationState == .activated else {
+            session.activate()
+            await persistLogsLocally(entries)
+            return
+        }
+        let text = entries.joined(separator: "\n")
+        for part in Self.parts(of: text) {
+            _ = session.transferUserInfo(["watchLogs": part])
+        }
     }
 
     func persistLogsLocally(_ entries: [String]? = nil) async {
@@ -121,9 +123,10 @@ actor WatchLogger {
         }
     }
 
-    /// `queued` hands the log to WatchConnectivity even with the phone reachable: a log kept back while the
-    /// phone was away can be too large for an interactive message.
-    func flushPersistedLogs(queued: Bool = false) async {
+    /// Diagnostic logs are always background traffic and stay on disk while the watch owns the pump.
+    func flushPersistedLogs() async {
+        guard !UntetheredWatchManager.shared.isActive, !UntetheredWatchManager.shared.isBusy else { return }
+        await flushToPhone()
         let logDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
             .appendingPathComponent("logs", isDirectory: true)
         let logFile = logDir.appendingPathComponent("watch_log.txt")
@@ -133,23 +136,16 @@ actor WatchLogger {
               !logString.isEmpty
         else { return }
 
-        if session.activationState != .activated {
+        guard session.activationState == .activated else {
             session.activate()
+            return
         }
 
         // hours kept back while the phone was away are far over what one transfer takes ("payload too large"): in
         // parts, each of which the phone appends
         for part in Self.parts(of: logString) {
             let payload: [String: Any] = ["watchLogs": part]
-            if session.isReachable, !queued {
-                session.sendMessage(payload, replyHandler: nil) { _ in
-                    Task {
-                        await self.persistLogsLocally(part.split(separator: "\n").map(String.init))
-                    }
-                }
-            } else {
-                _ = session.transferUserInfo(payload)
-            }
+            _ = session.transferUserInfo(payload)
         }
         try? FileManager.default.removeItem(at: logFile)
     }

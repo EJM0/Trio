@@ -6126,6 +6126,12 @@
         }
       }
     },
+    "· %@" : {
+
+    },
+    "· %@U" : {
+
+    },
     "“Trio” Would Like to Use Bluetooth" : {
       "localizations" : {
         "bg" : {
@@ -99323,6 +99329,9 @@
         }
       }
     },
+    "Critical Alerts" : {
+
+    },
     "Crying" : {
       "comment" : "Name of a sound file that plays a crying sound.",
       "localizations" : {
@@ -192094,6 +192103,9 @@
           }
         }
       }
+    },
+    "Lets urgent Trio alarms sound even when the phone or watch is muted or in Do Not Disturb." : {
+
     },
     "Libre 2 Direct" : {
       "comment" : "Libre 2 Direct",
@@ -313317,9 +313329,6 @@
           }
         }
       }
-    },
-    "The iPhone's readings stopped. Starting %@…" : {
-
     },
     "The iPhone's readings stopped. The watch is taking over the loop." : {
 

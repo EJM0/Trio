@@ -16,6 +16,7 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var iob: String?
     var cob: String?
     var lastLoopTime: String?
+    var phoneLastLoopDate: Date? = nil
     var overridePresets: [OverridePresetWatch] = []
     var tempTargetPresets: [TempTargetPresetWatch] = []
 
@@ -95,6 +96,7 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         let treatmentsAreEqual = lhs.iob == rhs.iob &&
             lhs.cob == rhs.cob &&
             lhs.lastLoopTime == rhs.lastLoopTime &&
+            lhs.phoneLastLoopDate == rhs.phoneLastLoopDate &&
             lhs.overridePresets == rhs.overridePresets &&
             lhs.tempTargetPresets == rhs.tempTargetPresets
 
@@ -155,6 +157,7 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(iob)
         hasher.combine(cob)
         hasher.combine(lastLoopTime)
+        hasher.combine(phoneLastLoopDate)
         hasher.combine(overridePresets)
         hasher.combine(tempTargetPresets)
         hasher.combine(maxBolus)

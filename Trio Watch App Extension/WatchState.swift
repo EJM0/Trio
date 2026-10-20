@@ -91,7 +91,9 @@ import WatchConnectivity
             UserDefaults.standard.set(useCriticalAlerts, forKey: WatchMessageKeys.useCriticalAlertsWatch)
             if useCriticalAlerts {
                 UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .criticalAlert]) { granted, _ in
-                    Task { await WatchLogger.shared.log("⌚️ Critical alerts on: watch notifications allowed=\(granted)", force: true) }
+                    Task {
+                        await WatchLogger.shared.log("⌚️ Critical alerts on: watch notifications allowed=\(granted)", force: true)
+                    }
                 }
             }
         }
@@ -141,6 +143,43 @@ import WatchConnectivity
     /// When the loop last ran, from the phone's "N min" or the watch's own loop; for the complication's ring.
     var lastLoopDate: Date?
 
+    /// The phone's last successful loop from its most recent state update. Kept separately from the display value,
+    /// which is relative and may describe the watch's own loop while untethered.
+    var phoneLastLoopDate: Date? = {
+        guard let timestamp = UserDefaults.standard.object(forKey: WatchMessageKeys.phoneLastLoopDate) as? TimeInterval
+        else { return nil }
+        return Date(timeIntervalSince1970: timestamp)
+    }() {
+        didSet {
+            if let phoneLastLoopDate {
+                UserDefaults.standard.set(
+                    phoneLastLoopDate.timeIntervalSince1970,
+                    forKey: WatchMessageKeys.phoneLastLoopDate
+                )
+            } else {
+                UserDefaults.standard.removeObject(forKey: WatchMessageKeys.phoneLastLoopDate)
+            }
+        }
+    }
+
+    /// Newest phone reading confirmed by a live health response, even if its WatchState push is delayed.
+    var phoneHealthNewestReadingDate: Date? = {
+        guard let timestamp = UserDefaults.standard.object(forKey: WatchMessageKeys.phoneNewestReadingDate) as? TimeInterval
+        else { return nil }
+        return Date(timeIntervalSince1970: timestamp)
+    }() {
+        didSet {
+            if let phoneHealthNewestReadingDate {
+                UserDefaults.standard.set(
+                    phoneHealthNewestReadingDate.timeIntervalSince1970,
+                    forKey: WatchMessageKeys.phoneNewestReadingDate
+                )
+            } else {
+                UserDefaults.standard.removeObject(forKey: WatchMessageKeys.phoneNewestReadingDate)
+            }
+        }
+    }
+
     /// Readings from the watch's own sensor link the phone hasn't sent yet, oldest first.
     private var ownReadings: [BloodGlucose] = []
 
@@ -159,7 +198,11 @@ import WatchConnectivity
     }
 
     /// The newest reading the phone has sent.
-    var phoneNewestReading: Date? { glucoseHistory.newestTimestamp.map(Date.init(timeIntervalSince1970:)) }
+    var phoneNewestReading: Date? {
+        [glucoseHistory.newestTimestamp.map(Date.init(timeIntervalSince1970:)), phoneHealthNewestReadingDate]
+            .compactMap { $0 }
+            .max()
+    }
 
     // Forecast options; kept across launches like the bubble page: untethered with the phone off, no update
     // brings them back after watchOS ended the app
@@ -368,6 +411,7 @@ import WatchConnectivity
 
         Task {
             await WatchLogger.shared.log("⌚️ Watch isReachable after activation: \(session.isReachable)")
+            await WatchLogger.shared.flushPersistedLogs()
         }
 
         let context = session.receivedApplicationContext
@@ -717,14 +761,18 @@ import WatchConnectivity
         return fields
     }
 
-    func session(_: WCSession, didFinish _: WCSessionUserInfoTransfer, error: (any Error)?) {
+    func session(_: WCSession, didFinish transfer: WCSessionUserInfoTransfer, error: (any Error)?) {
         if let error = error {
             // untethered history among it would otherwise wait for the phone's next sync request
             DispatchQueue.main.async { UntetheredWatchManager.shared.requeueUnconfirmed() }
             Task {
                 await WatchLogger.shared.log("⌚️ transferUserInfo failed with error: \(error)")
-                await WatchLogger.shared.log("⌚️ Saving logs to disk as fallback!")
-                await WatchLogger.shared.persistLogsLocally()
+                if let text = transfer.userInfo["watchLogs"] as? String {
+                    await WatchLogger.shared.persistLogsLocally(text.split(separator: "\n").map(String.init))
+                } else {
+                    await WatchLogger.shared.log("⌚️ Saving logs to disk as fallback!")
+                    await WatchLogger.shared.persistLogsLocally()
+                }
             }
         }
     }
@@ -1017,6 +1065,14 @@ import WatchConnectivity
             self.lastLoopTime = lastLoopTime
             lastLoopDate = lastLoopTime.split(separator: " ").first.flatMap { Int($0) }
                 .map { Date().addingTimeInterval(-Double($0) * 60) }
+        }
+
+        if let timestamp = message[WatchMessageKeys.phoneLastLoopDate] as? TimeInterval {
+            phoneLastLoopDate = Date(timeIntervalSince1970: timestamp)
+        } else {
+            // A newly built payload without the timestamp is from an older phone version; do not trust an
+            // unrelated value left on the watch as proof that the phone's loop has stalled.
+            phoneLastLoopDate = nil
         }
 
         if hasPendingGlucoseHistoryUpdate {

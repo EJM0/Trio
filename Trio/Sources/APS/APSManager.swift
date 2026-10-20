@@ -20,6 +20,8 @@ protocol APSManager {
     var pumpName: CurrentValueSubject<String, Never> { get }
     var isLooping: CurrentValueSubject<Bool, Never> { get }
     var lastLoopDate: Date { get }
+    /// The last scheduled phone loop attempt, including one skipped because the watch currently owns the pump.
+    var lastLoopAttemptDate: Date { get }
     /// The untethered hand-back carries the watch's last loop over: the loop's age and the minimum interval to the
     /// next loop both count from it, so the phone doesn't loop again straight away.
     func adoptLoop(at date: Date)
@@ -151,6 +153,9 @@ final class BaseAPSManager: APSManager, Injectable {
             lastLoopDateSubject.send(lastLoopDate)
         }
     }
+
+    @Persisted(key: "lastLoopAttemptDate") private var storedLastLoopAttemptDate: Date = .distantPast
+    var lastLoopAttemptDate: Date { storedLastLoopAttemptDate }
 
     private var openAPS: OpenAPS!
 
@@ -321,6 +326,7 @@ final class BaseAPSManager: APSManager, Injectable {
                 return
             }
 
+            self.storedLastLoopAttemptDate = Date()
             guard UntetheredGate.phoneMayDose else {
                 debug(.apsManager, "The watch is in charge of the pump (untethered) — skipping loop attempt")
                 return
