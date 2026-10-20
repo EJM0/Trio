@@ -58,8 +58,10 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var showGlucoseBubble: Bool = true
     var allowUntetheredStartWithoutPhone: Bool = true
     var untetheredMode: Bool = true
-    /// The CGM's export while the watch keeps its own sensor link; nil while that is off.
+    /// Latest CGM export while the watch keeps its own sensor link; nil until the phone has loaded its CGM manager.
     var watchSensorConfiguration: Data? = nil
+    /// Explicit setting, sent even when the phone has not loaded a CGM manager yet.
+    var watchReadsSensor: Bool = true
     var glucoseRangeLow: Decimal = 70
     var glucoseRangeHigh: Decimal = 180
     var glucoseRangeTarget: Decimal = 100
@@ -108,6 +110,7 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
             lhs.allowUntetheredStartWithoutPhone == rhs.allowUntetheredStartWithoutPhone &&
             lhs.untetheredMode == rhs.untetheredMode &&
             lhs.watchSensorConfiguration == rhs.watchSensorConfiguration &&
+            lhs.watchReadsSensor == rhs.watchReadsSensor &&
             lhs.glucoseRangeLow == rhs.glucoseRangeLow &&
             lhs.glucoseRangeHigh == rhs.glucoseRangeHigh &&
             lhs.glucoseRangeTarget == rhs.glucoseRangeTarget &&
@@ -165,6 +168,7 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(allowUntetheredStartWithoutPhone)
         hasher.combine(untetheredMode)
         hasher.combine(watchSensorConfiguration)
+        hasher.combine(watchReadsSensor)
         hasher.combine(glucoseRangeLow)
         hasher.combine(glucoseRangeHigh)
         hasher.combine(glucoseRangeTarget)

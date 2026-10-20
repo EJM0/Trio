@@ -150,6 +150,8 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     private var lastHandledForeignSessionAt: Date?
     private let assembler = UntetheredChunks.Assembler()
     private var endRequestTimer: Timer?
+    /// One high-priority wake per hand-back; regular retries keep using the queued user-info transfer.
+    private var lastHandbackWakeEpoch: Int?
     /// How long a normal hand-back waits for the watch's last records before the audit judges the pump.
     private static let historyWait: TimeInterval = 60
     /// Between reads of a returned pump: each read already waits for the link (20 s, 45 s with the eager connect).
@@ -684,6 +686,15 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 }
             }
             session.transferUserInfo(payload)
+            if case .endRequest = message, !session.isReachable, lastHandbackWakeEpoch != epoch {
+                lastHandbackWakeEpoch = epoch
+                if session.isComplicationEnabled, session.remainingComplicationUserInfoTransfers > 0 {
+                    session.transferCurrentComplicationUserInfo(payload)
+                    debug(.watchManager, "Untethered: sent the hand-back request as a complication wake")
+                } else {
+                    debug(.watchManager, "Untethered: no complication transfer available for the hand-back wake")
+                }
+            }
         case .recordsStored:
             session.transferUserInfo(payload)
             return

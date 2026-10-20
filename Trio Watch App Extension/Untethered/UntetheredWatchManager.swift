@@ -64,6 +64,7 @@ import WatchKit
     /// Observed: the status page shows the fallback about to start.
     private var fallbackArmedAt: Date?
     @ObservationIgnored private var fallbackTimer: Timer?
+    @ObservationIgnored private var fallbackKeepAlive: FallbackGraceKeepAlive?
     /// The phone's newest reading when the fallback last tried: once per outage, until the phone sends again.
     @ObservationIgnored private var fallbackTriedAfter: Date?
     /// A missing standing grant is asked for at most this often, the standby link's readings asking again.
@@ -618,7 +619,7 @@ import WatchKit
         updateBolusState(nil)
         store.update { $0.pumpRawValue = nil }
         // with the standing link on, the sensor stays connected for the watch's own readings
-        if WatchState.shared.sensorConfiguration == nil { stopCGM() }
+        if !WatchState.shared.watchReadsSensor { stopCGM() }
         updateStandingSensor()
         refresh()
     }
@@ -667,12 +668,14 @@ import WatchKit
     /// Outside a session: the sensor link the phone asks for (Watch Reads the Sensor), or none.
     func updateStandingSensor() {
         guard !isActive, data.session.phase != .starting else { return }
+        guard WatchState.shared.watchReadsSensor else {
+            if cgmManager != nil { stopCGM() }
+            return
+        }
         if let data = WatchState.shared.sensorConfiguration, let configuration = Self.configuration(data),
            watchCGMManagers[configuration.managerIdentifier] != nil
         {
             startCGM(configuration)
-        } else if cgmManager != nil {
-            stopCGM()
         }
     }
 
@@ -834,6 +837,12 @@ import WatchKit
             fallbackTimer = Timer.scheduledTimer(withTimeInterval: Self.fallbackGrace, repeats: false) { [weak self] _ in
                 self?.checkFallback()
             }
+            let keepAlive = FallbackGraceKeepAlive { [weak self] reason in
+                Task { await WatchLogger.shared.log("⌚️ Untethered: fallback grace wake ended (\(reason))") }
+                self?.fallbackKeepAlive = nil
+            }
+            fallbackKeepAlive = keepAlive
+            keepAlive.start()
             Task {
                 await WatchLogger.shared.log("⌚️ Untethered: \(missed) readings without the phone, fallback in 10 s", force: true)
             }
@@ -854,6 +863,8 @@ import WatchKit
     private func disarmFallback() {
         fallbackTimer?.invalidate()
         fallbackTimer = nil
+        fallbackKeepAlive?.stop()
+        fallbackKeepAlive = nil
         fallbackArmedAt = nil
     }
 
