@@ -1171,6 +1171,7 @@
 		DDFF202F2DB1D14500AB8A96 /* NotificationPermissionStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDFF202E2DB1D14500AB8A96 /* NotificationPermissionStepView.swift */; };
 		DDFF20312DB1D15500AB8A96 /* BluetoothPermissionStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDFF20302DB1D15500AB8A96 /* BluetoothPermissionStepView.swift */; };
 		DDFF204A2DB29EF500AB8A96 /* WatchLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDFF20492DB29EF500AB8A96 /* WatchLogger.swift */; };
+		95BF4CDC00E1987FB2C85328 /* ComplicationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A999DC94CBE1A03D2A0BAA2 /* ComplicationStore.swift */; };
 		DECF1903237041E2BBBE4033 /* QuickPickTreatmentsInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1526A587AD1544C495050662 /* QuickPickTreatmentsInfoView.swift */; };
 		DEE8294C639B8A920F14949B /* AutosensError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BF424C62DF480550017CFD9 /* AutosensError.swift */; };
 		E00D940D746ED9458F4711A7 /* RileyLinkBLEKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3818AA55274C26A300843DB3 /* RileyLinkBLEKit.framework */; };
@@ -2430,6 +2431,7 @@
 		DDFF202E2DB1D14500AB8A96 /* NotificationPermissionStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPermissionStepView.swift; sourceTree = "<group>"; };
 		DDFF20302DB1D15500AB8A96 /* BluetoothPermissionStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothPermissionStepView.swift; sourceTree = "<group>"; };
 		DDFF20492DB29EF500AB8A96 /* WatchLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLogger.swift; sourceTree = "<group>"; };
+		3A999DC94CBE1A03D2A0BAA2 /* ComplicationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplicationStore.swift; sourceTree = "<group>"; };
 		E00EEBFD27368630002FF094 /* ServiceAssembly.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ServiceAssembly.swift; sourceTree = "<group>"; };
 		E00EEBFE27368630002FF094 /* SecurityAssembly.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SecurityAssembly.swift; sourceTree = "<group>"; };
 		E00EEBFF27368630002FF094 /* StorageAssembly.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StorageAssembly.swift; sourceTree = "<group>"; };
@@ -4535,6 +4537,7 @@
 			isa = PBXGroup;
 			children = (
 				DDFF20492DB29EF500AB8A96 /* WatchLogger.swift */,
+				3A999DC94CBE1A03D2A0BAA2 /* ComplicationStore.swift */,
 				BDA25EE52D260D5800035F34 /* WatchState.swift */,
 				BDAE3FFF2D372BA8009C12B1 /* WatchState+Requests.swift */,
 				C3A7E0012FA0000100D1E001 /* WatchGlucoseHistory.swift */,
@@ -6850,6 +6853,7 @@
 				BD04ECCE2D29952A008C5FEB /* BolusProgressOverlay.swift in Sources */,
 				DD09D5C92D29F3D0000D82C9 /* AcknowledgementPendingView.swift in Sources */,
 				DDFF204A2DB29EF500AB8A96 /* WatchLogger.swift in Sources */,
+				95BF4CDC00E1987FB2C85328 /* ComplicationStore.swift in Sources */,
 				036EA2964CBB2BB8390AA204 /* DecimalExtensions.swift in Sources */,
 				8FA475260A697F87BCECA748 /* OrefPipeline.swift in Sources */,
 				BEFF8624F9C614B466DF20B6 /* TempTargetCalculations.swift in Sources */,
@@ -7326,6 +7330,7 @@
 		BD8207D02D2B42E80023339D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "Trio Watch Complication/TrioWatchComplication.entitlements";
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
@@ -7363,6 +7368,7 @@
 		BD8207D12D2B42E80023339D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "Trio Watch Complication/TrioWatchComplication.entitlements";
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
@@ -7399,6 +7405,7 @@
 		BDFF79A12D25AA890016C40C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "Trio Watch App Extension/TrioWatchApp.entitlements";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -7437,6 +7444,7 @@
 		BDFF79A22D25AA890016C40C /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "Trio Watch App Extension/TrioWatchApp.entitlements";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

@@ -342,7 +342,9 @@ import WatchKit
         reply?([:])
         // the grant's sensor, in case it changed since the phone's last update
         if !wasActive, store.data.session.phase == .active {
-            startCGM()
+            if let configuration = data.grant.flatMap({ Self.configuration($0.cgmConfiguration) }) {
+                startCGM(configuration)
+            }
             resumeHandedOverTempBasal()
             recordPumpStatus()
         }
@@ -538,19 +540,25 @@ import WatchKit
         pumpManager = nil
         updateBolusState(nil)
         store.update { $0.pumpRawValue = nil }
-        stopCGM()
+        // with the standing link on, the sensor stays connected for the watch's own readings
+        if WatchState.shared.sensorConfiguration == nil { stopCGM() }
+        updateStandingSensor()
         refresh()
     }
 
     // MARK: - The sensor link
 
-    /// The watch reads the sensor in its own display slot only while untethered. Its saved state (key and
-    /// Bluetooth handle) outlives the session, so the next takeover reconnects with the same pairing
-    /// instead of pairing afresh; a different sensor or code starts over.
-    private func startCGM() {
-        guard let grant = data.grant, let configuration = Self.configuration(grant.cgmConfiguration) else { return }
+    /// The watch reads the sensor in its own display slot while untethered, and with the standing link on also
+    /// outside a session. Its saved state (key and Bluetooth handle) outlives either, so the next start reconnects
+    /// with the same pairing instead of pairing afresh; a different sensor or code starts over.
+    private func startCGM(_ configuration: SharedDeviceConfiguration) {
         let sameSensor = Self.dictionary(store.data.cgmBuiltFrom)
             .map { NSDictionary(dictionary: $0).isEqual(to: configuration.state) } ?? false
+        // one manager per sensor: a second one would claim the same Bluetooth restore identifier
+        if cgmManager != nil {
+            if sameSensor { return }
+            stopCGM()
+        }
         if sameSensor, let restored = restoredCGM() {
             install(restored)
         } else if let type = watchCGMManagers[configuration.managerIdentifier],
@@ -579,6 +587,18 @@ import WatchKit
         cgmManager = nil
     }
 
+    /// Outside a session: the sensor link the phone asks for (Watch Reads the Sensor), or none.
+    func updateStandingSensor() {
+        guard !isActive, data.session.phase != .starting else { return }
+        if let data = WatchState.shared.sensorConfiguration, let configuration = Self.configuration(data),
+           watchCGMManagers[configuration.managerIdentifier] != nil
+        {
+            startCGM(configuration)
+        } else if cgmManager != nil {
+            stopCGM()
+        }
+    }
+
     func install(_ cgm: CGMManager) {
         cgm.cgmManagerDelegate = self
         cgm.delegateQueue = .main
@@ -595,12 +615,10 @@ import WatchKit
         }
     }
 
-    /// Looking at the watch, the loop timer and Bluetooth wakes are the times no reading came: the sensor's
-    /// acquisition puts itself right, and the loop and sensor alarms are checked.
     /// Trio leaves the screen (wrist down or another app). watchOS freezes it within seconds, and twice on
     /// 20 October that froze the sensor's next connect before it was made: nothing woke the app for over 30 minutes.
     func appLeavingScreen() {
-        guard isActive else { return }
+        guard holdsSensorLink else { return }
         watchCGMAppLeavingScreen(cgmManager)
         scheduleSessionRefresh()
     }
@@ -608,13 +626,15 @@ import WatchKit
     /// A background refresh as the backstop wake: if a connect is still missing, it is put in on that wake.
     /// One refresh is pending per app at a time; this one replaces the watch reader's while a session runs.
     func scheduleSessionRefresh() {
-        guard isActive else { return }
+        guard holdsSensorLink else { return }
         WKApplication.shared().scheduleBackgroundRefresh(
             withPreferredDate: Date().addingTimeInterval(10 * 60),
             userInfo: nil
         ) { _ in }
     }
 
+    /// Looking at the watch, the loop timer and Bluetooth wakes are the times no reading came: the sensor's
+    /// acquisition puts itself right, and the loop and sensor alarms are checked.
     func recheckCGM() {
         watchCGMRecheckAcquisition(cgmManager)
         checkAlarms()
@@ -634,7 +654,7 @@ import WatchKit
             if data.session.phase != .starting, let cgm = restoredCGM() { install(cgm) }
         case .idle,
              .preparing:
-            break
+            updateStandingSensor()
         }
     }
 

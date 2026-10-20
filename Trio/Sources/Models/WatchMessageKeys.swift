@@ -90,6 +90,13 @@ enum WatchMessageKeys {
     static let showGlucoseBubbleWatch = "showGlucoseBubbleWatch"
     static let allowUntetheredStartWithoutPhoneWatch = "allowUntetheredStartWithoutPhoneWatch"
     static let untetheredModeWatch = "untetheredModeWatch"
+    /// The CGM's export for the watch's own sensor link; absent while that link is off.
+    static let watchSensorConfiguration = "watchSensorConfiguration"
+    /// mg/dL bounds, target and color scheme the watch colors its own readings and the complication by.
+    static let glucoseRangeLow = "glucoseRangeLow"
+    static let glucoseRangeHigh = "glucoseRangeHigh"
+    static let glucoseRangeTarget = "glucoseRangeTarget"
+    static let glucoseColorScheme = "glucoseColorScheme"
     static let isForecastCone = "isForecastCone"
     static let forecastData = "forecastData"
     static let forecastStartDate = "forecastStartDate"

@@ -1,6 +1,7 @@
 import Combine
 import CoreData
 import Foundation
+import LoopKit
 import OmnipodKit
 import Swinject
 import UIKit
@@ -62,6 +63,9 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     private static let contextGlucoseTail: TimeInterval = 2 * 60 * 60
     private var lastContextContent: NSDictionary?
     private var lastContextUpdate: Date?
+    private var lastComplicationTransfer = Date.distantPast
+    /// watchOS allows about 50 complication transfers a day.
+    private static let complicationTransferInterval: TimeInterval = 28 * 60
     /// Resends an unchanged context before the watch sees it as stale (15 minutes).
     private static let unchangedContextRefreshInterval: TimeInterval = 5 * 60
     /// The watch goes stale by the age of its newest reading, so an unchanged message is never resent.
@@ -435,6 +439,28 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 watchState.allowUntetheredStartWithoutPhone = self.settingsManager.settings
                     .allowUntetheredStartWithoutPhoneWatch
                 watchState.untetheredMode = self.settingsManager.settings.untetheredModeWatch
+                // the watch's own sensor link, and what it colors its readings and the complication by
+                if self.settingsManager.settings.watchSensorAlwaysOn,
+                   let cgm = self.fetchGlucoseManager.cgmManager as? DeviceConfigurationSharing
+                {
+                    // without the export's time, so an unchanged sensor leaves the watch state unchanged
+                    let export = cgm.exportConfiguration()
+                    let configuration = SharedDeviceConfiguration(
+                        managerIdentifier: export.managerIdentifier,
+                        asOf: .distantPast,
+                        deliveredUnits: nil,
+                        state: export.state
+                    )
+                    watchState.watchSensorConfiguration = try? PropertyListSerialization.data(
+                        fromPropertyList: configuration.rawValue,
+                        format: .binary,
+                        options: 0
+                    )
+                }
+                watchState.glucoseRangeLow = self.lowGlucose
+                watchState.glucoseRangeHigh = self.highGlucose
+                watchState.glucoseRangeTarget = currentGlucoseTarget
+                watchState.glucoseColorScheme = self.glucoseColorScheme.rawValue
                 watchState.isForecastCone = self.settingsManager.settings.forecastDisplayType == .cone
 
                 // Forecast data comes from OrefDetermination's `forecasts` CoreData
@@ -788,6 +814,11 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         dictionary[WatchMessageKeys.showGlucoseBubbleWatch] = state.showGlucoseBubble
         dictionary[WatchMessageKeys.allowUntetheredStartWithoutPhoneWatch] = state.allowUntetheredStartWithoutPhone
         dictionary[WatchMessageKeys.untetheredModeWatch] = state.untetheredMode
+        dictionary[WatchMessageKeys.watchSensorConfiguration] = state.watchSensorConfiguration
+        dictionary[WatchMessageKeys.glucoseRangeLow] = NSDecimalNumber(decimal: state.glucoseRangeLow).doubleValue
+        dictionary[WatchMessageKeys.glucoseRangeHigh] = NSDecimalNumber(decimal: state.glucoseRangeHigh).doubleValue
+        dictionary[WatchMessageKeys.glucoseRangeTarget] = NSDecimalNumber(decimal: state.glucoseRangeTarget).doubleValue
+        dictionary[WatchMessageKeys.glucoseColorScheme] = state.glucoseColorScheme
 
         let glucoseReadings: [[String: Any]] = state.glucoseValues.map { value -> [String: Any] in
             [
@@ -970,6 +1001,18 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 lastContextContent = content
                 lastContextUpdate = state.date
                 logTransfer("context", [WatchMessageKeys.watchState: context])
+                // With Trio on the active watch face this wakes the watch app at once, so the face shows the new
+                // state; the rest waits for the context (as kristinkand/Trio 73c64f2).
+                if !session.isReachable, session.isComplicationEnabled, session.remainingComplicationUserInfoTransfers > 0,
+                   state.date.timeIntervalSince(lastComplicationTransfer) >= Self.complicationTransferInterval
+                {
+                    session.transferCurrentComplicationUserInfo([WatchMessageKeys.watchState: context])
+                    lastComplicationTransfer = state.date
+                    debug(
+                        .watchManager,
+                        "📤 Complication transfer (\(session.remainingComplicationUserInfoTransfers) left today)"
+                    )
+                }
             } catch {
                 debug(.watchManager, "❌ Error updating watch application context: \(error)")
             }

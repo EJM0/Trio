@@ -58,6 +58,12 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var showGlucoseBubble: Bool = true
     var allowUntetheredStartWithoutPhone: Bool = true
     var untetheredMode: Bool = true
+    /// The CGM's export while the watch keeps its own sensor link; nil while that is off.
+    var watchSensorConfiguration: Data? = nil
+    var glucoseRangeLow: Decimal = 70
+    var glucoseRangeHigh: Decimal = 180
+    var glucoseRangeTarget: Decimal = 100
+    var glucoseColorScheme: String = GlucoseColorScheme.staticColor.rawValue
     var forecastStartDate: Date? = nil
     var forecastConeMin: [Double] = []
     var forecastConeMax: [Double] = []
@@ -100,6 +106,11 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
             lhs.showGlucoseBubble == rhs.showGlucoseBubble &&
             lhs.allowUntetheredStartWithoutPhone == rhs.allowUntetheredStartWithoutPhone &&
             lhs.untetheredMode == rhs.untetheredMode &&
+            lhs.watchSensorConfiguration == rhs.watchSensorConfiguration &&
+            lhs.glucoseRangeLow == rhs.glucoseRangeLow &&
+            lhs.glucoseRangeHigh == rhs.glucoseRangeHigh &&
+            lhs.glucoseRangeTarget == rhs.glucoseRangeTarget &&
+            lhs.glucoseColorScheme == rhs.glucoseColorScheme &&
             lhs.isForecastCone == rhs.isForecastCone &&
             lhs.forecastStartDate == rhs.forecastStartDate &&
             lhs.forecastConeMin == rhs.forecastConeMin &&
@@ -151,6 +162,11 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(showGlucoseBubble)
         hasher.combine(allowUntetheredStartWithoutPhone)
         hasher.combine(untetheredMode)
+        hasher.combine(watchSensorConfiguration)
+        hasher.combine(glucoseRangeLow)
+        hasher.combine(glucoseRangeHigh)
+        hasher.combine(glucoseRangeTarget)
+        hasher.combine(glucoseColorScheme)
         hasher.combine(isForecastCone)
         hasher.combine(forecastStartDate)
         hasher.combine(forecastConeMin)
