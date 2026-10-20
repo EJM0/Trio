@@ -29,6 +29,15 @@ struct UntetheredStatusView: View {
             ScrollView {
                 VStack(spacing: 10) {
                     header(now: context.date)
+                    if manager.isPairingSensor {
+                        card(tint: .untethered) {
+                            Label(
+                                "Pairing the sensor: keep Trio open until a glucose value shows, and accept the Bluetooth pairing request.",
+                                systemImage: "sensor.tag.radiowaves.forward"
+                            )
+                            .font(.footnote)
+                        }
+                    }
                     if let error = data.lastError ?? (manager.isActive ? data.lastLoopError : nil) {
                         card(tint: .orange) {
                             Label(error, systemImage: "exclamationmark.triangle.fill")

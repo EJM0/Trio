@@ -4,6 +4,7 @@ import LoopKit
 import SwiftUI
 import UserNotifications
 import WatchConnectivity
+import WatchKit
 
 // MARK: - The loop
 
@@ -751,6 +752,7 @@ extension UntetheredWatchManager: PumpManagerDelegate {
         completion: ((Error?) -> Void)?
     ) {
         Task { await WatchLogger.shared.log("⌚️ Device: \(message)") }
+        DispatchQueue.main.async { self.noteSensorPairingEvent(message) }
         // ponytail: matched on G7SensorKit's log line, which is the only place it reports a link error;
         // move to a delegate call if the kit ever reports one. 14 = the peer removed the pairing,
         // 15 = encryption timed out: the sensor no longer has this watch's bond.
@@ -869,6 +871,82 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         }
     }
 
+    // MARK: Sensor pairing
+
+    /// A sensor pairing ends with the system's Bluetooth pairing request, which watchOS only shows with Trio in front.
+    /// In the background the sensor drops the link a second after asking and discards the key (2026-10-19, 07:04
+    /// and 17:54); with Trio in front it bonded (18:19). While a pairing is due, Trio is kept in front for up to
+    /// 10 minutes once it is open, it vibrates as the request comes, and the user is told to open it otherwise.
+    static let pairingID = "untethered.pairing"
+
+    /// G7SensorKit reports its pairing steps only in its log lines; matched here, as the link errors above are.
+    func noteSensorPairingEvent(_ message: String) {
+        guard isActive else { return }
+        if message.contains("Pairing: running the key exchange")
+            || message.contains("the sensor no longer accepts the saved key")
+        {
+            sensorPairingDue()
+        } else if message.contains("expect the system pairing prompt") {
+            WKInterfaceDevice.current().play(.notification)
+        } else if message.contains("dropped the link after the bond request") {
+            notify(
+                id: Self.pairingID,
+                title: String(localized: "Sensor Pairing Not Finished"),
+                body: String(
+                    localized: "Trio wasn't on the watch screen for the Bluetooth pairing request. Open Trio on the watch and keep it open: it pairs again at the next reading."
+                )
+            )
+        } else if message.hasPrefix("Bonded") || message.contains("Authenticated with the sensor directly") {
+            sensorPairingDone()
+        }
+    }
+
+    /// A new sensor, or one that refused the saved key: the next connection pairs.
+    func sensorPairingDue() {
+        if !isPairingSensor {
+            isPairingSensor = true
+            Task { await WatchLogger.shared.log("⌚️ Untethered: sensor pairing due", force: true) }
+        }
+        if WKApplication.shared().applicationState == .active {
+            keepTrioInFrontForPairing()
+        } else {
+            notify(
+                id: Self.pairingID,
+                title: String(localized: "Pair the Sensor"),
+                body: String(
+                    localized: "Open Trio on the watch and keep it open until a glucose value shows, and accept the Bluetooth pairing request."
+                )
+            )
+        }
+    }
+
+    func sensorPairingDone() {
+        guard isPairingSensor else { return }
+        isPairingSensor = false
+        pairingKeepAlive?.stop()
+        pairingKeepAlive = nil
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [Self.pairingID])
+        center.removeDeliveredNotifications(withIdentifiers: [Self.pairingID])
+        Task { await WatchLogger.shared.log("⌚️ Untethered: sensor paired", force: true) }
+    }
+
+    /// Trio came to the front: a pairing that is due keeps it there.
+    func appBecameActive() {
+        if isPairingSensor { keepTrioInFrontForPairing() }
+    }
+
+    private func keepTrioInFrontForPairing() {
+        guard pairingKeepAlive?.isRunning != true, WKApplication.shared().applicationState == .active else { return }
+        let keepAlive = SensorPairingKeepAlive { [weak self] reason in
+            Task { await WatchLogger.shared.log("⌚️ Untethered: pairing screen hold ended (\(reason))", force: true) }
+            self?.pairingKeepAlive = nil
+        }
+        pairingKeepAlive = keepAlive
+        keepAlive.start()
+        Task { await WatchLogger.shared.log("⌚️ Untethered: keeping Trio in front for the sensor pairing", force: true) }
+    }
+
     /// Readings arrive but no loop got through for this long: the pod link is presumed stuck.
     static let podLinkStallLimit: TimeInterval = 15 * 60
     /// At most one reconnect per this interval, so a pod that is really out of reach isn't hammered.
@@ -880,7 +958,9 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         guard data.session.phase == .active, !isLooping, !isBolusing, let pump = pumpManager,
               let lastLoop = data.lastLoopDate ?? data.session.startStatus?.date,
               now.timeIntervalSince(lastLoop) > Self.podLinkStallLimit,
-              now.timeIntervalSince(lastPodLinkReset ?? .distantPast) > Self.podLinkResetInterval
+              now.timeIntervalSince(lastPodLinkReset ?? .distantPast) > Self.podLinkResetInterval,
+              // without readings the sensor is what's missing, and its own alarm says so (2026-10-19 18:04)
+              let newest = data.glucose.map(\.dateString).max(), now.timeIntervalSince(newest) < 11 * 60
         else { return }
         if lastPodLinkReset == nil {
             notify(
@@ -921,6 +1001,7 @@ extension UntetheredWatchManager: CGMManagerDelegate {
 
     func cgmManager(_: CGMManager, hasNew readingResult: CGMReadingResult) {
         guard case let .newData(samples) = readingResult else { return }
+        sensorPairingDone()
         let readings = samples.filter { !$0.wasUserEntered }.map { sample in
             let value = Int(sample.quantity.doubleValue(for: HKUnit(from: "mg/dL")))
             return BloodGlucose(
@@ -972,6 +1053,7 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         refresh()
         checkAlarms()
         scheduleNoReadingsAlert(from: lastDate)
+        scheduleSessionRefresh()
         publishToWatchState()
         checkPodLink()
         runLoop(.newGlucose)
@@ -1213,5 +1295,40 @@ extension UntetheredWatchManager {
         state.isSuperBolusAvailable = grant.bolusCalculator.sweetMeals
 
         publishWatchPeripherals(pump: pumpManager, cgm: cgmManager, reservoir: data.reservoir, to: state)
+    }
+}
+
+/// Keeps Trio in front for a sensor pairing: a self-care extended runtime session (WKBackgroundModes self-care, at
+/// most 10 minutes), started while the app is active. watchOS then returns to Trio, not the clock, when the wrist
+/// comes up, so the Bluetooth pairing request can show.
+final class SensorPairingKeepAlive: NSObject, WKExtendedRuntimeSessionDelegate {
+    private let session = WKExtendedRuntimeSession()
+    private let onEnd: (String) -> Void
+
+    init(onEnd: @escaping (String) -> Void) {
+        self.onEnd = onEnd
+        super.init()
+        session.delegate = self
+    }
+
+    var isRunning: Bool { session.state == .running || session.state == .notStarted }
+
+    func start() { session.start() }
+
+    func stop() {
+        if session.state == .running { session.invalidate() }
+    }
+
+    func extendedRuntimeSessionDidStart(_: WKExtendedRuntimeSession) {}
+
+    func extendedRuntimeSessionWillExpire(_: WKExtendedRuntimeSession) {}
+
+    func extendedRuntimeSession(
+        _: WKExtendedRuntimeSession,
+        didInvalidateWith reason: WKExtendedRuntimeSessionInvalidationReason,
+        error: Error?
+    ) {
+        let text = error.map { "\(reason.rawValue): \($0.localizedDescription)" } ?? "\(reason.rawValue)"
+        DispatchQueue.main.async { self.onEnd(text) }
     }
 }

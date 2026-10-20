@@ -34,6 +34,9 @@ import WatchConnectivity
     @ObservationIgnored private var bolusEndTimer: Timer?
     /// When the pod link was last torn down and searched for afresh (`checkPodLink`).
     @ObservationIgnored var lastPodLinkReset: Date?
+    /// A sensor pairing is due: Trio has to be in front for its Bluetooth pairing request.
+    var isPairingSensor = false
+    @ObservationIgnored var pairingKeepAlive: SensorPairingKeepAlive?
 
     /// Records travel in batches small enough for an interactive message.
     private static let recordsPerMessage = 40
@@ -300,12 +303,16 @@ import WatchConnectivity
         also change: ((inout UntetheredWatchData) -> Void)? = nil
     ) {
         let wasActive = isActive
+        let wasIdle = store.data.session.phase == .idle
         let effects = store.update { data -> [UntetheredSession.Effect] in
             let effects = data.session.watch(event, now: Date())
             change?(&data)
             return effects
         }
         let epoch = store.data.session.epoch
+        // a start that never got going, as when the phone's commit was lost and it took the pump back (2026-10-20
+        // 06:22): nothing is in progress any more, so the spinner goes
+        if !wasIdle, store.data.session.phase == .idle { isBusy = false }
         refresh()
         var reply = reply
         for effect in effects {
@@ -549,6 +556,7 @@ import WatchConnectivity
                   let cgm = type.init(adopting: configuration, localState: localState(for: configuration.managerIdentifier))
         {
             Task { await WatchLogger.shared.log("⌚️ Untethered: new sensor, pairing the watch afresh", force: true) }
+            sensorPairingDue()
             store.update {
                 $0.cgmBuiltFrom = Self.plist(configuration.state)
                 $0.pendingPumpAlerts.removeAll { $0.managerIdentifier == cgm.pluginIdentifier }
@@ -561,6 +569,7 @@ import WatchConnectivity
 
     /// The watch stops connecting; its saved state stays for the next session.
     private func stopCGM() {
+        sensorPairingDone()
         guard let cgm = cgmManager else { return }
         saveCGMState()
         cgm.cgmManagerDelegate = nil
@@ -587,6 +596,24 @@ import WatchConnectivity
 
     /// Looking at the watch, the loop timer and Bluetooth wakes are the times no reading came: the sensor's
     /// acquisition puts itself right, and the loop and sensor alarms are checked.
+    /// Trio leaves the screen (wrist down or another app). watchOS freezes it within seconds, and twice on
+    /// 20 October that froze the sensor's next connect before it was made: nothing woke the app for over 30 minutes.
+    func appLeavingScreen() {
+        guard isActive else { return }
+        watchCGMAppLeavingScreen(cgmManager)
+        scheduleSessionRefresh()
+    }
+
+    /// A background refresh as the backstop wake: if a connect is still missing, it is put in on that wake.
+    /// One refresh is pending per app at a time; this one replaces the watch reader's while a session runs.
+    func scheduleSessionRefresh() {
+        guard isActive else { return }
+        WKApplication.shared().scheduleBackgroundRefresh(
+            withPreferredDate: Date().addingTimeInterval(10 * 60),
+            userInfo: nil
+        ) { _ in }
+    }
+
     func recheckCGM() {
         watchCGMRecheckAcquisition(cgmManager)
         checkAlarms()
