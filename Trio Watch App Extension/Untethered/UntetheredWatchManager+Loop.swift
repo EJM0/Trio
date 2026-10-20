@@ -967,6 +967,7 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         refresh()
         checkAlarms()
         scheduleNoReadingsAlert(from: lastDate)
+        scheduleSessionRefresh()
         publishToWatchState()
         checkPodLink()
         runLoop(.newGlucose)

@@ -19,6 +19,10 @@ import WatchKit
             TrioMainWatchView()
         }
         .onChange(of: scenePhase) { _, newScenePhase in
+            // wrist down (inactive) or another app (background): either can freeze the app next
+            if newScenePhase != .active {
+                UntetheredWatchManager.shared.appLeavingScreen()
+            }
             if newScenePhase == .background {
                 // with the watch's own sensor link the log waits for the phone and a moment clear of the reading,
                 // rather than queue up while the phone is away and go over with the rest when it returns

@@ -28,6 +28,15 @@ final class TrioWatchAppDelegate: NSObject, WKApplicationDelegate {
                 holdUntilDelivered(task)
                 continue
             }
+            if task is WKApplicationRefreshBackgroundTask {
+                // the session's backstop wake: put a missing sensor connect in, book the next wake
+                if UntetheredWatchManager.shared.isActive {
+                    UntetheredWatchManager.shared.recheckCGM()
+                    UntetheredWatchManager.shared.scheduleSessionRefresh()
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5) { self.complete(task) }
+                continue
+            }
             guard task is WKBluetoothAlertRefreshBackgroundTask else {
                 complete(task)
                 continue
