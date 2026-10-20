@@ -379,13 +379,20 @@ extension TrioWatchComplicationEntry {
     }
 
     var iobText: String {
-        guard !isOnBoardStale, let iob = data?.iob, let value = Double(iob) else { return "--" }
+        guard !isOnBoardStale, let iob = data?.iob else { return "--" }
+        guard let value = Self.number(iob) else { return iob }
         return value.formatted(.number.precision(.fractionLength(abs(value) < 10 ? 1 : 0)))
     }
 
     var cobText: String {
-        guard !isOnBoardStale, let cob = data?.cob, let value = Double(cob) else { return "--" }
+        guard !isOnBoardStale, let cob = data?.cob else { return "--" }
+        guard let value = Self.number(cob) else { return cob }
         return value.formatted(.number.precision(.fractionLength(0)))
+    }
+
+    /// The phone formats IOB and COB in its locale ("1,23"), the watch's own loop with a point ("1.23").
+    private static func number(_ text: String) -> Double? {
+        Double(text) ?? Double(text.replacingOccurrences(of: ",", with: "."))
     }
 }
 
