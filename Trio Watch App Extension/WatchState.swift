@@ -97,10 +97,27 @@ import WatchConnectivity
         }
     }
 
-    /// The CGM's export while the phone asks the watch to keep its own sensor link (Watch Reads the Sensor); nil while
-    /// that is off. Persisted, so the link comes back after watchOS ended the app with the phone away.
+    /// The last CGM export from the phone. Persisted so the link comes back after watchOS ends the app while the phone
+    /// is away; the explicit `watchReadsSensor` setting controls whether the watch uses it.
     var sensorConfiguration: Data? = UserDefaults.standard.data(forKey: WatchMessageKeys.watchSensorConfiguration) {
         didSet { UserDefaults.standard.set(sensorConfiguration, forKey: WatchMessageKeys.watchSensorConfiguration) }
+    }
+
+    /// The phone's explicit setting; old saved contexts fall back to whether a sensor export was saved.
+    var watchReadsSensor: Bool = UserDefaults.standard.object(forKey: WatchMessageKeys.watchReadsSensor) as? Bool
+        ?? (UserDefaults.standard.data(forKey: WatchMessageKeys.watchSensorConfiguration) != nil)
+    {
+        didSet {
+            UserDefaults.standard.set(watchReadsSensor, forKey: WatchMessageKeys.watchReadsSensor)
+            if watchReadsSensor != oldValue {
+                Task {
+                    await WatchLogger.shared.log(
+                        "⌚️ Watch Reads the Sensor: \(watchReadsSensor ? "on" : "off")",
+                        force: true
+                    )
+                }
+            }
+        }
     }
 
     /// The phone's range and color scheme, for the watch's own readings and the complication; persisted with them.
@@ -1095,7 +1112,17 @@ import WatchConnectivity
             self.untetheredMode = untetheredMode
         }
 
-        // a full state from the phone: the sensor link it asks for (absent: off) and the range it colors by
+        let watchReadsSensorDidChange: Bool
+        if let watchReadsSensor = message[WatchMessageKeys.watchReadsSensor] as? Bool {
+            watchReadsSensorDidChange = watchReadsSensor != self.watchReadsSensor
+            self.watchReadsSensor = watchReadsSensor
+        } else {
+            watchReadsSensorDidChange = false
+        }
+
+        // The sensor export can be temporarily absent while the phone starts; only the explicit setting turns the
+        // standing connection off. Keep the last export until a replacement arrives.
+        var sensorConfigurationDidChange = false
         if let low = message[WatchMessageKeys.glucoseRangeLow] as? Double,
            let high = message[WatchMessageKeys.glucoseRangeHigh] as? Double
         {
@@ -1111,19 +1138,15 @@ import WatchConnectivity
                 highAlarm: (message[WatchMessageKeys.glucoseAlarmHigh] as? Double).flatMap { $0 > 0 ? Decimal($0) : nil }
             )
             if range != glucoseRange { glucoseRange = range }
-            let configuration = message[WatchMessageKeys.watchSensorConfiguration] as? Data
-            if configuration != sensorConfiguration {
-                if (configuration == nil) != (sensorConfiguration == nil) {
-                    Task {
-                        await WatchLogger.shared.log(
-                            "⌚️ Watch Reads the Sensor: \(configuration == nil ? "off" : "on")",
-                            force: true
-                        )
-                    }
-                }
+            if let configuration = message[WatchMessageKeys.watchSensorConfiguration] as? Data,
+               configuration != sensorConfiguration
+            {
                 sensorConfiguration = configuration
-                UntetheredWatchManager.shared.updateStandbySensor()
+                sensorConfigurationDidChange = true
             }
+        }
+        if watchReadsSensorDidChange || sensorConfigurationDidChange {
+            UntetheredWatchManager.shared.updateStandbySensor()
         }
 
         if let isForecastCone = message[WatchMessageKeys.isForecastCone] as? Bool, isForecastCone != self.isForecastCone {

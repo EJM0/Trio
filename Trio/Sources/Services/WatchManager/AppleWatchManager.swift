@@ -439,6 +439,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 watchState.allowUntetheredStartWithoutPhone = self.settingsManager.settings
                     .allowUntetheredStartWithoutPhoneWatch
                 watchState.untetheredMode = self.settingsManager.settings.untetheredModeWatch
+                watchState.watchReadsSensor = self.settingsManager.settings.watchSensorAlwaysOn
                 // the watch's own sensor link, and what it colors its readings and the complication by
                 if self.settingsManager.settings.watchSensorAlwaysOn,
                    let cgm = self.fetchGlucoseManager.cgmManager as? DeviceConfigurationSharing
@@ -816,6 +817,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         dictionary[WatchMessageKeys.allowUntetheredStartWithoutPhoneWatch] = state.allowUntetheredStartWithoutPhone
         dictionary[WatchMessageKeys.untetheredModeWatch] = state.untetheredMode
         dictionary[WatchMessageKeys.watchSensorConfiguration] = state.watchSensorConfiguration
+        dictionary[WatchMessageKeys.watchReadsSensor] = state.watchReadsSensor
         dictionary[WatchMessageKeys.glucoseRangeLow] = NSDecimalNumber(decimal: state.glucoseRangeLow).doubleValue
         dictionary[WatchMessageKeys.glucoseRangeHigh] = NSDecimalNumber(decimal: state.glucoseRangeHigh).doubleValue
         dictionary[WatchMessageKeys.glucoseRangeTarget] = NSDecimalNumber(decimal: state.glucoseRangeTarget).doubleValue
