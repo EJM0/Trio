@@ -23,6 +23,7 @@ enum UntetheredLoopTrigger {
 extension UntetheredWatchManager {
     /// One cycle, as the phone's `APSManager.loop()`: refresh the pump, determine, enact, record.
     func runLoop(_ trigger: UntetheredLoopTrigger) {
+        if phoneTookAbandonedPump() { return }
         // a hand-back doses on while its history drains, until its last stage
         let phase = data.session.phase
         guard phase == .active || (phase == .ending && !isFinalizing), !data.podEnded, let pump = pumpManager,
@@ -845,7 +846,7 @@ extension UntetheredWatchManager: PumpManagerDelegate {
 
 extension UntetheredWatchManager: CGMManagerDelegate {
     func startDateToFilterNewData(for _: CGMManager) -> Date? {
-        data.glucose.map(\.dateString).max()
+        (data.glucose + data.standbyGlucose).map(\.dateString).max()
     }
 
     /// The most a loop holds the app awake: a pod command, retries included, is done well within it.
@@ -1019,6 +1020,7 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         // outside a session the readings only show on the watch until the phone's copy of them arrives
         guard isActive else {
             WatchState.shared.applyOwnReadings(readings)
+            holdStandby(readings)
             scheduleSessionRefresh()
             return
         }
@@ -1062,6 +1064,7 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         publishToWatchState()
         checkPodLink()
         runLoop(.newGlucose)
+        reportFallbackSession()
     }
 
     func cgmManager(_: CGMManager, hasNew _: [PersistedCgmEvent]) {}

@@ -167,6 +167,30 @@ struct WatchConfigAppleWatchView: BaseView {
                     headerText: nil
                 )
 
+                // starts by itself when the iPhone's readings stop; needs the watch's own sensor link
+                if state.allowUntetheredStartWithoutPhoneWatch, state.watchSensorAlwaysOn {
+                    SettingInputSection(
+                        decimalValue: $decimalPlaceholder,
+                        booleanValue: $state.fallbackLoopWatch,
+                        shouldDisplayHint: $shouldDisplayHint,
+                        selectedVerboseHint: Binding(
+                            get: { selectedVerboseHint },
+                            set: {
+                                selectedVerboseHint = $0.map { AnyView($0) }
+                                hintLabel = String(localized: "Fallback Loop")
+                            }
+                        ),
+                        units: state.units,
+                        type: .boolean,
+                        label: String(localized: "Fallback Loop"),
+                        miniHint: String(localized: "The watch loops on its own when the iPhone's readings stop"),
+                        verboseHint: Text(
+                            "When two readings reach the watch through its own sensor link but not from the iPhone, and the iPhone is out of reach, the watch waits 10 seconds for it and then starts untethered mode from the saved grant. Once the iPhone is back, the watch hands the pump back. One of them uses the pod at a time: once the watch has it, the iPhone stops dosing until the watch hands back. Needs Watch Reads the Sensor."
+                        ),
+                        headerText: nil
+                    )
+                }
+
                 UntetheredSettingsSection(manager: resolver.resolve(UntetheredPhoneManager.self)!)
             }
 

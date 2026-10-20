@@ -488,6 +488,19 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             default:
                 await self.apply(.received(envelope.message, epoch: envelope.epoch), reply: replyHandler)
             }
+            // the fallback loop's session comes back as soon as the watch reaches the phone again: its report shows
+            // the phone's app is running
+            switch envelope.message {
+            case let .statusReport(holding: .some(status)),
+                 let .takeoverComplete(status):
+                guard status.byFallback == true, self.state.session.phase == .active,
+                      self.state.session.epoch == envelope.epoch
+                else { break }
+                debug(.watchManager, "Untethered: the watch's fallback session ends, the phone is back")
+                await self.end()
+            default:
+                break
+            }
         }
     }
 
@@ -657,9 +670,19 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         switch message {
         case .adjustmentCancelled,
              .dosingModeChanged,
+             .endRequest,
+             .handbackAck,
+             // a watch asleep in the background still hands back, and lets go, once it hears them
              .revoke,
              .statusQuery:
             // queued as well: the watch must hear it whenever it comes back
+            if message.isResentUntilAnswered {
+                for transfer in session.outstandingUserInfoTransfers
+                    where (try? UntetheredEnvelope.decode(transfer.userInfo))?.message == message
+                {
+                    transfer.cancel()
+                }
+            }
             session.transferUserInfo(payload)
         case .recordsStored:
             session.transferUserInfo(payload)
@@ -1022,7 +1045,8 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         UntetheredGate.update { $0.pumpReturnPending = false }
         publish()
         debug(.watchManager, "Untethered: pump is back on the phone")
-        // the session's start dropped the watch's copy: a phone gone again right after leaves it none to start from
+        // the session's start dropped the watch's copy: a phone gone again right after leaves it none to fall back on
+        // (2026-10-19, back for a minute after a fallback session)
         scheduleStandingGrant(settingsChanged: true, immediately: true)
         // each reading loops once, as on the watch: one the watch's last loop dosed on waits for the next
         if (glucoseStorage.lastGlucoseDate() ?? .distantPast) > apsManager.lastLoopDate {

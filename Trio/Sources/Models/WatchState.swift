@@ -64,6 +64,7 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var glucoseRangeHigh: Decimal = 180
     var glucoseRangeTarget: Decimal = 100
     var glucoseColorScheme: String = GlucoseColorScheme.staticColor.rawValue
+    var fallbackLoop: Bool = false
     var forecastStartDate: Date? = nil
     var forecastConeMin: [Double] = []
     var forecastConeMax: [Double] = []
@@ -111,6 +112,7 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
             lhs.glucoseRangeHigh == rhs.glucoseRangeHigh &&
             lhs.glucoseRangeTarget == rhs.glucoseRangeTarget &&
             lhs.glucoseColorScheme == rhs.glucoseColorScheme &&
+            lhs.fallbackLoop == rhs.fallbackLoop &&
             lhs.isForecastCone == rhs.isForecastCone &&
             lhs.forecastStartDate == rhs.forecastStartDate &&
             lhs.forecastConeMin == rhs.forecastConeMin &&
@@ -167,6 +169,7 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(glucoseRangeHigh)
         hasher.combine(glucoseRangeTarget)
         hasher.combine(glucoseColorScheme)
+        hasher.combine(fallbackLoop)
         hasher.combine(isForecastCone)
         hasher.combine(forecastStartDate)
         hasher.combine(forecastConeMin)
