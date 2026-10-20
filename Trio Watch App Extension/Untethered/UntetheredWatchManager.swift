@@ -2,6 +2,7 @@ import Foundation
 import LoopKit
 import UserNotifications
 import WatchConnectivity
+import WatchKit
 
 /// The watch's side of untethered mode: takes the pump from the phone, loops with its own pump and
 /// CGM connections, and gives the pump and its history back. Everything runs on the main queue,
