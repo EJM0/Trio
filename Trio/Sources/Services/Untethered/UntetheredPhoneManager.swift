@@ -144,6 +144,8 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     static let leaseLength: TimeInterval = 120
     /// How old the newest glucose may be when the watch takes over.
     static let maxGlucoseAge: TimeInterval = 12 * 60
+    /// The phone must have recent glucose and a recent loop attempt before it can ask the fallback watch to return.
+    private static let fallbackRecoveryFreshness: TimeInterval = 15 * 60
 
     private var openAPS: OpenAPS!
     private var ticker: Timer?
@@ -449,6 +451,8 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 case let .statusReport(holding: .some(status)),
                      let .takeoverComplete(status):
                     await self.apply(.watchHoldsPump(epoch: envelope.epoch, status: status))
+                case let .fallbackHandbackRequest(status) where status.byFallback == true:
+                    await self.apply(.watchHoldsPump(epoch: envelope.epoch, status: status))
                 case .statusReport(holding: nil) where self.state.session.phase == .starting:
                     await self.apply(.watchHoldsPump(epoch: envelope.epoch, status: nil))
                 case .records:
@@ -475,6 +479,58 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 replyHandler?([:])
                 // whatever the fingerprint says: the watch has none
                 self.scheduleStandingGrant(settingsChanged: true, immediately: true)
+            case let .fallbackHealthRequest(requestID):
+                let response = UntetheredMessage.fallbackHealthResponse(
+                    requestID: requestID,
+                    checkedAt: Date(),
+                    lastLoopDate: self.apsManager.lastLoopDate,
+                    lastLoopAttemptDate: self.apsManager.lastLoopAttemptDate,
+                    newestReadingDate: self.glucoseStorage.lastGlucoseDate(),
+                    phoneMayDose: UntetheredGate.phoneMayDose
+                )
+                if let replyHandler,
+                   let payload = try? UntetheredEnvelope(epoch: envelope.epoch, message: response).payload()
+                {
+                    replyHandler(payload)
+                } else {
+                    replyHandler?([:])
+                }
+            case let .fallbackHandbackRequest(status):
+                guard status.byFallback == true,
+                      self.state.session.phase == .active,
+                      self.state.session.epoch == envelope.epoch,
+                      self.state.session.startStatus?.byFallback == true,
+                      !self.state.pumpReturnPending
+                else {
+                    replyHandler?([:])
+                    return
+                }
+                let now = Date()
+                let loopAttemptAge = now.timeIntervalSince(self.apsManager.lastLoopAttemptDate)
+                let readingAge = self.glucoseStorage.lastGlucoseDate().map { now.timeIntervalSince($0) }
+                guard loopAttemptAge >= 0, loopAttemptAge < Self.fallbackRecoveryFreshness,
+                      let readingAge, readingAge >= 0, readingAge < Self.fallbackRecoveryFreshness
+                else {
+                    debug(.watchManager, "Untethered: fallback hand-back held; phone loop attempt or glucose is still stale")
+                    replyHandler?([:])
+                    return
+                }
+                debug(
+                    .watchManager,
+                    "Untethered: phone loop attempted recently with fresh glucose; starting the two-phase pump hand-back"
+                )
+                if let replyHandler,
+                   let payload = try? UntetheredEnvelope(
+                       epoch: envelope.epoch,
+                       message: .fallbackHandbackAccepted
+                   ).payload()
+                {
+                    replyHandler(payload)
+                } else {
+                    replyHandler?([:])
+                    self.send(.fallbackHandbackAccepted, epoch: envelope.epoch)
+                }
+                await self.end()
             case .startRequest:
                 replyHandler?([:])
                 if let reason = await self.start() {
@@ -489,19 +545,6 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 self.settingsManager.settings = settings
             default:
                 await self.apply(.received(envelope.message, epoch: envelope.epoch), reply: replyHandler)
-            }
-            // the fallback loop's session comes back as soon as the watch reaches the phone again: its report shows
-            // the phone's app is running
-            switch envelope.message {
-            case let .statusReport(holding: .some(status)),
-                 let .takeoverComplete(status):
-                guard status.byFallback == true, self.state.session.phase == .active,
-                      self.state.session.epoch == envelope.epoch
-                else { break }
-                debug(.watchManager, "Untethered: the watch's fallback session ends, the phone is back")
-                await self.end()
-            default:
-                break
             }
         }
     }

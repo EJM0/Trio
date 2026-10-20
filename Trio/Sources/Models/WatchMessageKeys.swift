@@ -40,6 +40,10 @@ enum WatchMessageKeys {
     static let iob = "iob"
     static let cob = "cob"
     static let lastLoopTime = "lastLoopTime"
+    /// The phone's absolute last successful loop time, for fallback safety checks.
+    static let phoneLastLoopDate = "phoneLastLoopDate"
+    /// The newest phone reading confirmed by a live fallback health response.
+    static let phoneNewestReadingDate = "phoneNewestReadingDate"
     static let glucoseValues = "glucoseValues"
     static let minYAxisValue = "minYAxisValue"
     static let maxYAxisValue = "maxYAxisValue"

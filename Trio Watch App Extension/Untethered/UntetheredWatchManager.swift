@@ -58,10 +58,24 @@ import WatchKit
     @ObservationIgnored private var burst: (id: Int, startedAt: Date, outstanding: Int, failed: Bool)?
     @ObservationIgnored private var burstCount = 0
     private static let takeoverReadInterval: UInt64 = 8_000_000_000
-    /// The fallback starts as soon as the phone has missed this many of the watch's readings.
+    /// The watch must have this many recent, valid sensor readings that the phone has not sent.
     private static let fallbackMissedReadings = 2
+    /// The phone's sensor feed and successful loop must both be this old before takeover is considered.
+    private static let fallbackPhoneStaleInterval: TimeInterval = 15 * 60
+    /// Standby readings older than this cannot prove that the watch's own sensor link is live.
+    private static let fallbackWatchReadingFreshness: TimeInterval = 12 * 60
+    /// A direct app-level health check gets two chances; `WCSession.isReachable` is not used as proof of liveness.
+    private static let fallbackHealthResponseTimeout: TimeInterval = 15
+    private static let fallbackHealthRequestLimit = 2
+    private static let fallbackHealthFreshness: TimeInterval = 30
     /// The phone's newest reading when the fallback last tried: once per outage, until the phone sends again.
     @ObservationIgnored private var fallbackTriedAfter: Date?
+    @ObservationIgnored private var fallbackPhoneHealth: FallbackPhoneHealth?
+    @ObservationIgnored private var fallbackHealthRequestID: UUID?
+    @ObservationIgnored private var fallbackHealthRequestSentAt: Date?
+    @ObservationIgnored private var fallbackHealthRequestCount = 0
+    @ObservationIgnored private var fallbackCheckScheduled = false
+    @ObservationIgnored private var fallbackHandbackRequestedAt: Date?
     /// A missing standing grant is asked for at most this often, the standby link's readings asking again.
     private static let standingGrantRequestInterval: TimeInterval = 5 * 60
     @ObservationIgnored private var standingGrantRequestedAt: Date?
@@ -71,6 +85,16 @@ import WatchKit
     /// acknowledges doesn't keep the watch from dosing.
     @ObservationIgnored private var handbackAbandonedAt: Date?
     private static let handbackRetryDelay: TimeInterval = 10 * 60
+
+    private struct FallbackPhoneHealth {
+        let checkedAt: Date
+        /// The last successful loop detects an outage before takeover.
+        let lastLoopDate: Date
+        /// Successful loops are intentionally blocked while the watch owns the pump.
+        let lastLoopAttemptDate: Date
+        let newestReadingDate: Date?
+        let phoneMayDose: Bool
+    }
 
     var isActive: Bool { data.session.phase == .active || data.session.phase == .ending }
 
@@ -214,6 +238,53 @@ import WatchKit
             replyHandler?([:])
             isBusy = false
             setError(reason)
+
+        case let .fallbackHealthResponse(
+            requestID,
+            checkedAt,
+            lastLoopDate,
+            lastLoopAttemptDate,
+            newestReadingDate,
+            phoneMayDose
+        ):
+            replyHandler?([:])
+            guard requestID == fallbackHealthRequestID else { return }
+            fallbackHealthRequestID = nil
+            fallbackHealthRequestSentAt = nil
+            fallbackHealthRequestCount = 0
+            fallbackPhoneHealth = FallbackPhoneHealth(
+                checkedAt: checkedAt,
+                lastLoopDate: lastLoopDate,
+                lastLoopAttemptDate: lastLoopAttemptDate,
+                newestReadingDate: newestReadingDate,
+                phoneMayDose: phoneMayDose
+            )
+            WatchState.shared.phoneLastLoopDate = lastLoopDate
+            if let newestReadingDate {
+                WatchState.shared.phoneHealthNewestReadingDate = newestReadingDate
+            }
+            if data.startedByFallback, data.session.phase == .active {
+                handleFallbackPhoneHealthResponse()
+            } else {
+                if data.session.phase == .idle {
+                    store.update { $0.fallbackPhoneOwnershipBlocked = !phoneMayDose }
+                }
+                checkFallback()
+            }
+
+        case .fallbackHandbackAccepted:
+            replyHandler?([:])
+            guard data.startedByFallback,
+                  data.session.phase == .active || data.session.phase == .ending
+            else { return }
+            if !data.phoneReturnNoted {
+                store.update { $0.phoneReturnNoted = true }
+                notify(
+                    id: "untethered.phoneBack",
+                    title: String(localized: "iPhone Is Back"),
+                    body: String(localized: "The iPhone is responding with fresh readings. The pump is returning to it.")
+                )
+            }
 
         case let .adjustmentCancelled(kind, start, date):
             replyHandler?([:])
@@ -374,6 +445,9 @@ import WatchKit
         if wasActive != isActive { handOverAlertNotifications(toWatch: isActive) }
         // the phone may have confirmed the last records while the hand-back was still open: nothing else says so
         if wasActive, !isActive { finishSyncIfDone(epoch: epoch) }
+        if wasActive, !isActive {
+            Task { await WatchLogger.shared.flushPersistedLogs() }
+        }
         // the session's start dropped the copy, and the phone sends the next only when something changed
         if store.data.session.phase == .idle { requestStandingGrantIfMissing() }
         // after the devices are in place, so the Devices page shows them too
@@ -797,46 +871,239 @@ import WatchKit
         requestStandingGrantIfMissing()
     }
 
-    /// Two of the watch's readings the phone never sent, and the phone unavailable for live messaging: start at once.
-    /// Once per outage; the phone's next reading allows the next.
+    /// Require a live watch sensor and stale phone feed/loop data. A live app health reply or two unanswered
+    /// application-level checks decides the fallback; `WCSession.isReachable` is not treated as proof of liveness.
     func checkFallback() {
-        // the screens' value, read afresh: a reachability change while the app was suspended never reached it, and the
-        // phone that left meanwhile still showed as nearby until the app was opened again
-        let reachable = WCSession.default.isReachable
-        if WatchState.shared.isReachable != reachable { WatchState.shared.isReachable = reachable }
-        let phoneNewest = WatchState.shared.phoneNewestReading ?? .distantPast
-        // the phone's reading of the same sensor arrives a little after the watch's own
-        let missed = data.standbyGlucose.filter { $0.dateString > phoneNewest.addingTimeInterval(60) }.count
-        guard missed >= Self.fallbackMissedReadings else { return }
+        let now = Date()
+        if data.startedByFallback, data.session.phase == .active {
+            checkFallbackHandbackHealthTimeout(now: now)
+            return
+        }
+        let cachedPhoneNewest = WatchState.shared.phoneNewestReading ?? .distantPast
+        let cachedPhoneLoopDate = WatchState.shared.phoneLastLoopDate
+        let cachedPhoneFeedIsStale = cachedPhoneNewest <= now.addingTimeInterval(-Self.fallbackPhoneStaleInterval)
+
+        // A backfilled reading cannot prove that the watch's own sensor link is live now.
+        let recentWatchReadings = data.standbyGlucose.filter {
+            $0.dateString >= now.addingTimeInterval(-Self.fallbackWatchReadingFreshness)
+                && $0.sgv != nil && $0.isStateValid
+        }
+        let cachedMissed = recentWatchReadings.filter {
+            $0.dateString > cachedPhoneNewest.addingTimeInterval(60)
+        }.count
+        guard cachedMissed >= Self.fallbackMissedReadings else {
+            if !cachedPhoneFeedIsStale {
+                fallbackPhoneHealth = nil
+                fallbackHealthRequestID = nil
+                fallbackHealthRequestSentAt = nil
+                fallbackHealthRequestCount = 0
+            }
+            return
+        }
+
         let blocker: String? = !keepsStandbySensor ? "fallback off"
             : data.session.phase != .idle ? "session \(data.session.phase)"
             : isBusy ? "busy"
-            : reachable ? "phone reachable"
-            : standingGrantAge == nil ? "no standing grant young enough"
-            : fallbackTriedAfter == phoneNewest ? "tried already this outage"
+            : !cachedPhoneFeedIsStale ? "phone readings are not stale"
             : nil
         if let blocker {
             Task {
                 await WatchLogger.shared.log(
-                    "⌚️ Untethered: \(missed) readings without the phone, no fallback: \(blocker)",
+                    "⌚️ Untethered: \(cachedMissed) recent readings not sent by the phone, no fallback: \(blocker)",
                     force: true
                 )
             }
             return
         }
-        fallbackTriedAfter = phoneNewest
+
+        if let health = fallbackPhoneHealth,
+           now.timeIntervalSince(health.checkedAt) >= 0,
+           now.timeIntervalSince(health.checkedAt) <= Self.fallbackHealthFreshness
+        {
+            guard health.phoneMayDose else {
+                store.update { $0.fallbackPhoneOwnershipBlocked = true }
+                Task {
+                    await WatchLogger.shared.log(
+                        "⌚️ Untethered: phone answered but cannot confirm pump ownership; fallback held",
+                        force: true
+                    )
+                }
+                return
+            }
+            store.update { $0.fallbackPhoneOwnershipBlocked = false }
+
+            let phoneNewest = health.newestReadingDate ?? .distantPast
+            let missed = recentWatchReadings.filter {
+                $0.dateString > phoneNewest.addingTimeInterval(60)
+            }.count
+            let feedIsStale = phoneNewest <= now.addingTimeInterval(-Self.fallbackPhoneStaleInterval)
+            let loopIsStale = now.timeIntervalSince(health.lastLoopDate) >= Self.fallbackPhoneStaleInterval
+
+            // A live response means the phone still owns the pump when its gate allows dosing. Even if its feed and
+            // loop look stale, the watch must not start a second controller alongside it.
+            Task {
+                await WatchLogger.shared.log(
+                    "⌚️ Untethered: phone answered its health check; fallback held (new readings \(missed), feed stale \(feedIsStale), loop stale \(loopIsStale))",
+                    force: true
+                )
+            }
+            return
+        }
+
+        // Ask the phone app directly. The connectivity flag can be true while the app is not processing messages.
+        if let sentAt = fallbackHealthRequestSentAt {
+            let elapsed = now.timeIntervalSince(sentAt)
+            guard elapsed >= Self.fallbackHealthResponseTimeout else {
+                scheduleFallbackCheck(after: Self.fallbackHealthResponseTimeout - elapsed)
+                return
+            }
+            fallbackHealthRequestID = nil
+            fallbackHealthRequestSentAt = nil
+            fallbackHealthRequestCount += 1
+            Task {
+                await WatchLogger.shared.log(
+                    "⌚️ Untethered: no phone health reply to fallback check \(fallbackHealthRequestCount)/\(Self.fallbackHealthRequestLimit)",
+                    force: true
+                )
+            }
+        }
+
+        guard fallbackHealthRequestCount >= Self.fallbackHealthRequestLimit else {
+            requestFallbackPhoneHealth()
+            return
+        }
+
+        guard !data.fallbackPhoneOwnershipBlocked else {
+            Task {
+                await WatchLogger.shared.log(
+                    "⌚️ Untethered: fallback held; the phone previously confirmed it cannot safely own the pump yet",
+                    force: true
+                )
+            }
+            return
+        }
+
+        // After two unanswered app-level checks, use only the last known stale loop state and the standing grant.
+        guard let cachedPhoneLoopDate,
+              now.timeIntervalSince(cachedPhoneLoopDate) >= Self.fallbackPhoneStaleInterval
+        else {
+            Task {
+                await WatchLogger.shared.log(
+                    "⌚️ Untethered: phone did not answer, but its last known loop time is not confirmed stale",
+                    force: true
+                )
+            }
+            return
+        }
+        startFallback(phoneNewest: cachedPhoneNewest, reason: "phone did not answer two health checks")
+    }
+
+    private func requestFallbackPhoneHealth() {
+        guard fallbackHealthRequestID == nil else { return }
+        if fallbackHealthRequestCount >= Self.fallbackHealthRequestLimit { fallbackHealthRequestCount = 0 }
+        let requestID = UUID()
+        fallbackHealthRequestID = requestID
+        fallbackHealthRequestSentAt = Date()
+        send(.fallbackHealthRequest(requestID), epoch: data.session.epoch) {
+            Task {
+                await WatchLogger.shared.log("⌚️ Untethered: fallback health check could not be delivered", force: true)
+            }
+        }
+        scheduleFallbackCheck(after: Self.fallbackHealthResponseTimeout)
+    }
+
+    private func checkFallbackHandbackHealthTimeout(now: Date) {
+        guard let sentAt = fallbackHealthRequestSentAt else { return }
+        let elapsed = now.timeIntervalSince(sentAt)
+        guard elapsed >= Self.fallbackHealthResponseTimeout else {
+            scheduleFallbackCheck(after: Self.fallbackHealthResponseTimeout - elapsed)
+            return
+        }
+        fallbackHealthRequestID = nil
+        fallbackHealthRequestSentAt = nil
+        fallbackHealthRequestCount += 1
+        guard fallbackHealthRequestCount < Self.fallbackHealthRequestLimit else {
+            Task { await WatchLogger.shared.log("⌚️ Untethered: iPhone health check unanswered during fallback", force: true) }
+            return
+        }
+        requestFallbackPhoneHealth()
+    }
+
+    private func handleFallbackPhoneHealthResponse() {
+        guard let health = fallbackPhoneHealth, let status = data.session.startStatus, status.byFallback == true else { return }
+        let now = Date()
+        let responseAge = now.timeIntervalSince(health.checkedAt)
+        guard responseAge >= 0, responseAge <= Self.fallbackHealthFreshness else { return }
+        let phoneFeedIsFresh = health.newestReadingDate.map {
+            now.timeIntervalSince($0) >= 0 && now.timeIntervalSince($0) < Self.fallbackPhoneStaleInterval
+        } ?? false
+        let phoneLoopAttemptIsFresh = now.timeIntervalSince(health.lastLoopAttemptDate) >= 0
+            && now.timeIntervalSince(health.lastLoopAttemptDate) < Self.fallbackPhoneStaleInterval
+        guard phoneFeedIsFresh, phoneLoopAttemptIsFresh else {
+            Task {
+                await WatchLogger.shared.log(
+                    "⌚️ Untethered: phone is responding, but its readings or loop attempts are still stale; watch keeps the pump",
+                    force: true
+                )
+            }
+            return
+        }
+        if let sentAt = fallbackHandbackRequestedAt,
+           now.timeIntervalSince(sentAt) < Self.fallbackHealthResponseTimeout
+        { return }
+        fallbackHandbackRequestedAt = now
+        send(.fallbackHandbackRequest(status), epoch: data.session.epoch)
         Task {
             await WatchLogger.shared.log(
-                "⌚️ Untethered: starting fallback loop immediately; the phone's readings stopped",
+                "⌚️ Untethered: phone replied with fresh readings and a recent loop attempt; asking it to take the pump back",
+                force: true
+            )
+        }
+    }
+
+    private func startFallback(phoneNewest: Date, reason: String) {
+        guard standingGrantAge != nil else {
+            Task {
+                await WatchLogger.shared.log("⌚️ Untethered: fallback blocked; no standing grant young enough", force: true)
+            }
+            return
+        }
+        guard fallbackTriedAfter != phoneNewest else {
+            Task { await WatchLogger.shared.log("⌚️ Untethered: fallback already tried for this phone feed", force: true) }
+            return
+        }
+        guard startWithoutPhone(byFallback: true) else {
+            Task {
+                await WatchLogger.shared
+                    .log("⌚️ Untethered: fallback conditions changed before takeover could start", force: true) }
+            return
+        }
+        fallbackTriedAfter = phoneNewest
+        fallbackPhoneHealth = nil
+        fallbackHealthRequestID = nil
+        fallbackHealthRequestSentAt = nil
+        fallbackHealthRequestCount = 0
+        fallbackHandbackRequestedAt = nil
+        Task {
+            await WatchLogger.shared.log(
+                "⌚️ Untethered: starting watch fallback; watch sensor is live, phone feed and loop are stale, \(reason)",
                 force: true
             )
         }
         notify(
             id: "untethered.fallback",
-            title: String(localized: "iPhone Unavailable"),
-            body: String(localized: "The iPhone's readings stopped. The watch is taking over the loop.")
+            title: String(localized: "Phone Loop Stalled"),
+            body: String(localized: "The iPhone's loop and readings stopped. The watch is taking over.")
         )
-        startWithoutPhone(byFallback: true)
+    }
+
+    private func scheduleFallbackCheck(after delay: TimeInterval) {
+        guard !fallbackCheckScheduled else { return }
+        fallbackCheckScheduled = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + max(0.25, delay)) {
+            self.fallbackCheckScheduled = false
+            self.checkFallback()
+        }
     }
 
     // MARK: - Starting without the phone
@@ -863,15 +1130,16 @@ import WatchKit
         return .watching
     }
 
-    /// The fallback loop's session reports to the phone with its readings as well: in the background the reachability
-    /// change rarely arrives, and the phone takes the pump back on the report. Queued, the newest only.
+    /// Check whether the phone's own feed and loop have recovered; a status report or reachability signal alone cannot
+    /// trigger a handback.
     func reportFallbackSession() {
         let now = Date()
         guard data.startedByFallback, data.session.phase == .active,
               (fallbackReportedAt ?? .distantPast).addingTimeInterval(Self.standingGrantRequestInterval) < now
         else { return }
         fallbackReportedAt = now
-        send(.statusReport(holding: data.session.startStatus), epoch: data.session.epoch, queueing: true)
+        if fallbackHealthRequestCount >= Self.fallbackHealthRequestLimit { fallbackHealthRequestCount = 0 }
+        requestFallbackPhoneHealth()
     }
 
     /// No standing grant young enough to start from, as after a session, whose start dropped it: asked for, as the
@@ -900,13 +1168,14 @@ import WatchKit
         )
     }
 
-    /// With the phone off or out of reach, from the phone's standing grant: the ordinary takeover, with a fresh lease
-    /// and an epoch of the watch's own. The phone stands aside once it hears from the watch. As LoopKit/Loop#2545.
-    func startWithoutPhone(byFallback: Bool = false) {
+    /// From the phone's standing grant: the watch takes control with its own epoch, then reports ownership to the
+    /// phone. Manual starts still require the phone to be out of reach; the automatic fallback uses app-level health.
+    @discardableResult func startWithoutPhone(byFallback: Bool = false) -> Bool {
         guard WatchState.shared.untetheredMode, WatchState.shared.allowUntetheredStartWithoutPhone,
-              data.session.phase == .idle, !isBusy, !WatchState.shared.isReachable, standingGrantAge != nil,
+              data.session.phase == .idle, !isBusy,
+              !WatchState.shared.isReachable || byFallback, standingGrantAge != nil,
               let grant = data.standingGrant
-        else { return }
+        else { return false }
         setError(nil)
         Task { await WatchLogger.shared.log("⌚️ Untethered: starting without the phone", force: true) }
         apply(.startWithoutPhone) {
@@ -916,7 +1185,9 @@ import WatchKit
             $0.handover = nil
             $0.phoneReturnNoted = false
             $0.startedByFallback = byFallback
+            $0.fallbackPhoneOwnershipBlocked = false
         }
+        return true
     }
 
     /// The takeover's reading; started without the phone, before the first loop, with what the phone dosed after its
@@ -974,20 +1245,21 @@ import WatchKit
         }
     }
 
-    /// The phone back during a session started without it: told at once that the watch has the pump, so it stops
-    /// dosing; the wrist is asked once whether to hand back. Never handed back on its own.
+    /// A connectivity callback only starts a health check. It does not prove that the phone's loop recovered.
     private func notePhoneReturn() {
-        guard isActive, data.session.startedWithoutPhone, WCSession.default.isReachable else { return }
+        guard isActive, data.session.startedWithoutPhone else { return }
+        if data.startedByFallback {
+            requestFallbackPhoneHealth()
+            return
+        }
+        guard WCSession.default.isReachable else { return }
         send(.statusReport(holding: data.session.startStatus), epoch: data.session.epoch)
         guard !data.phoneReturnNoted else { return }
         store.update { $0.phoneReturnNoted = true }
         notify(
             id: "untethered.phoneBack",
             title: String(localized: "iPhone Is Back"),
-            body: data.startedByFallback
-                // the phone asks for it once it has the report, which shows its app is running
-                ? String(localized: "The watch hands the pump back to the iPhone.")
-                : String(localized: "The watch still has the pump. Hand back on its status page when you're ready.")
+            body: String(localized: "The watch still has the pump. Hand back on its status page when you're ready.")
         )
     }
 
