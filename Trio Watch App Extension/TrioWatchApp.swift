@@ -22,6 +22,10 @@ import UserNotifications
         }
         .onChange(of: scenePhase) { _, newScenePhase in
             WatchState.shared.setAppActive(newScenePhase == .active)
+            // wrist down (inactive) or another app (background): either can freeze the app next
+            if newScenePhase != .active {
+                UntetheredWatchManager.shared.appLeavingScreen()
+            }
             if newScenePhase == .background {
                 // with the watch's own sensor link the log waits for the phone and a moment clear of the reading,
                 // rather than queue up while the phone is away and go over with the rest when it returns
@@ -35,6 +39,8 @@ import UserNotifications
                 WatchState.shared.refreshIfNeeded()
                 // with the phone away, looking at the watch is the one wake left
                 UntetheredWatchManager.shared.recheckCGM()
+                // a sensor pairing that is due keeps Trio in front from here
+                UntetheredWatchManager.shared.appBecameActive()
                 // what loops in the background did, without waiting for the phone link
                 UntetheredWatchManager.shared.refresh()
             }

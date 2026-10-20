@@ -22,6 +22,11 @@ func watchCGMRecheckAcquisition(_ manager: CGMManager?) {
     (manager as? G7CGMManager)?.recheckAcquisition()
 }
 
+/// The app is leaving the screen: the CGM puts its next connect in before watchOS freezes the app.
+func watchCGMAppLeavingScreen(_ manager: CGMManager?) {
+    (manager as? G7CGMManager)?.appLeavingScreen()
+}
+
 /// The sensor's link is up right now: a reading or its backfill is on the radio.
 func watchCGMIsConnected(_ manager: CGMManager?) -> Bool {
     (manager as? G7CGMManager)?.isConnected ?? false
