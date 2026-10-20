@@ -60,9 +60,6 @@ struct TrioWatchComplicationEntry: TimelineEntry {
         return date.timeIntervalSince(latest.date) > staleAfter
     }
 
-    /// Whole minutes since the reading, as the watch app counts them.
-    var readingAge: Int? { latest.map { max(0, Int(date.timeIntervalSince($0.date) / 60)) } }
-
     /// The ring as on the watch's main screen: green up to 5 minutes since the loop, yellow to 10, red after.
     var loopColor: Color {
         guard let lastLoop = data?.lastLoop else { return .gray }
@@ -88,8 +85,6 @@ struct TrioWatchComplicationEntry: TimelineEntry {
         default: return ""
         }
     }
-
-    var ageText: String { readingAge.map { "\($0)m" } ?? "" }
 
     /// The color the watch app stored for the reading (Trio's static or dynamic scheme), else by range.
     func color(_ point: TrioComplicationData.Point) -> Color {
@@ -118,17 +113,22 @@ struct TrioWatchComplicationProvider: TimelineProvider {
         completion(TrioWatchComplicationEntry(date: Date(), data: data))
     }
 
-    /// The watch app reloads with every newer reading. Until then the reading's age counts up minute by minute, and
-    /// the ring turns and the reading goes stale from entries, without a reload (as LoopKit/Loop#2562 does).
+    /// New data reloads the timeline when its displayed snapshot changes. Time-based changes are precomputed here,
+    /// so age, loop freshness and stale states do not need more reload requests.
     func getTimeline(in _: Context, completion: @escaping (Timeline<TrioWatchComplicationEntry>) -> Void) {
         let now = Date()
         let data = TrioComplicationData.load()
-        var dates = (0 ... 30).map { now.addingTimeInterval(Double($0) * 60) }
+        var dates: [Date] = []
         if let lastLoop = data?.lastLoop {
-            dates += [lastLoop.addingTimeInterval(5 * 60 + 1), lastLoop.addingTimeInterval(10 * 60 + 1)]
+            dates += [
+                lastLoop.addingTimeInterval(5 * 60 + 1),
+                lastLoop.addingTimeInterval(10 * 60 + 1),
+                lastLoop.addingTimeInterval(staleAfter + 1)
+            ]
         }
         if let latest = data?.points.last?.date { dates.append(latest.addingTimeInterval(staleAfter + 1)) }
-        let entries = Set(dates.filter { $0 >= now }).sorted().map { TrioWatchComplicationEntry(date: $0, data: data) }
+        let entries = [TrioWatchComplicationEntry(date: now, data: data)]
+            + Set(dates.filter { $0 > now }).sorted().map { TrioWatchComplicationEntry(date: $0, data: data) }
         completion(Timeline(entries: entries, policy: .never))
     }
 }
@@ -259,8 +259,11 @@ struct TrioAccessoryCircularView: View {
                 .foregroundStyle(entry.glucoseColor)
                 .widgetCurvesContent()
                 .widgetLabel {
-                    Text(entry.isStale ? "" : [entry.data?.delta, entry.ageText].compactMap { $0 }.joined(separator: " "))
-                        .foregroundStyle(entry.loopColor)
+                    HStack(spacing: 3) {
+                        if !entry.isStale, let delta = entry.data?.delta { Text(delta) }
+                        if !entry.isStale, let latest = entry.latest { Text(latest.date, style: .relative) }
+                    }
+                    .foregroundStyle(entry.loopColor)
                 }
                 .widgetBackground(backgroundView: Color.clear)
         }
@@ -272,14 +275,15 @@ struct TrioAccessoryInlineView: View {
     var entry: TrioWatchComplicationEntry
 
     var body: some View {
-        let parts: [String?] = [
-            entry.glucoseText + entry.arrow,
-            entry.isStale ? nil : entry.data?.delta,
-            entry.isStale ? nil : entry.ageText,
-            entry.data?.iob.map { "\($0)U" }
-        ]
-        Text(parts.compactMap { $0 }.joined(separator: " · "))
-            .widgetBackground(backgroundView: Color.clear)
+        HStack(spacing: 3) {
+            Text(entry.glucoseText + entry.arrow)
+            if !entry.isStale, let delta = entry.data?.delta { Text("· \(delta)") }
+            if !entry.isStale, let latest = entry.latest { Text(latest.date, style: .relative) }
+            if let iob = entry.data?.iob { Text("· \(iob)U") }
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.6)
+        .widgetBackground(backgroundView: Color.clear)
     }
 }
 
