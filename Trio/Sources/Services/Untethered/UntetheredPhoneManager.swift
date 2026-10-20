@@ -574,6 +574,19 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
 
     // MARK: - Transport
 
+    /// The commit tells the watch to take the released pump; one lost in a reachability flicker left the watch waiting
+    /// and the phone taking the pump back after the lease (2026-10-20 06:20). Sent again every few seconds while the
+    /// phone waits for the takeover, and never in the lease's last 30 s, so a late one can't meet the phone's take-back.
+    private func retryCommit(_ message: UntetheredMessage, epoch: Int) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            guard let self, self.state.session.phase == .starting, self.state.session.epoch == epoch,
+                  let lease = self.state.session.leaseExpiresAt, Date() < lease.addingTimeInterval(-30)
+            else { return }
+            debug(.watchManager, "Untethered: sending the commit again")
+            self.send(message, epoch: epoch)
+        }
+    }
+
     private func send(_ message: UntetheredMessage, epoch: Int) {
         guard WCSession.isSupported(), WCSession.default.activationState == .activated,
               let payload = try? UntetheredEnvelope(epoch: epoch, message: message).payload()
@@ -596,6 +609,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             if case .prepare = message {
                 Task { await self.apply(.received(.rejected(reason: Self.unreachable), epoch: epoch)) }
             }
+            if case .commit = message { retryCommit(message, epoch: epoch) }
             return
         }
         let replyHandler: ([String: Any]) -> Void = { [weak self] reply in
@@ -605,6 +619,11 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         var failed = false
         let errorHandler: (Error) -> Void = { [weak self] error in
             warning(.watchManager, "Untethered: sending failed: \(error.localizedDescription)")
+            if case .commit = message, !failed {
+                failed = true
+                DispatchQueue.main.async { self?.retryCommit(message, epoch: epoch) }
+                return
+            }
             guard case .prepare = message, !failed else { return }
             failed = true
             Task { await self?.apply(.received(.rejected(reason: error.localizedDescription), epoch: epoch)) }

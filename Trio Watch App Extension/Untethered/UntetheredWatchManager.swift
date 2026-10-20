@@ -302,12 +302,16 @@ import WatchKit
         also change: ((inout UntetheredWatchData) -> Void)? = nil
     ) {
         let wasActive = isActive
+        let wasIdle = store.data.session.phase == .idle
         let effects = store.update { data -> [UntetheredSession.Effect] in
             let effects = data.session.watch(event, now: Date())
             change?(&data)
             return effects
         }
         let epoch = store.data.session.epoch
+        // a start that never got going, as when the phone's commit was lost and it took the pump back (2026-10-20
+        // 06:22): nothing is in progress any more, so the spinner goes
+        if !wasIdle, store.data.session.phase == .idle { isBusy = false }
         refresh()
         var reply = reply
         for effect in effects {
