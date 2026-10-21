@@ -51,10 +51,10 @@ import WatchKit
 
     /// Records travel in batches small enough for an interactive message.
     private static let recordsPerMessage = 40
-    /// While the watch holds the sensor link, a backlog goes one batch at a time, each checked against the reading
-    /// window; the next waits until the phone answered for the last, or this long at most.
-    private static let batchesPerBurst = 1
-    private static let burstTimeout: TimeInterval = 30
+    /// Keep a small pipeline in flight: one-at-a-time made a large history take many phone round trips, while
+    /// sending the whole backlog at once could clog WatchConnectivity's durable queue.
+    private static let batchesInFlightLimit = 4
+    private static let recordAckTimeout: TimeInterval = 30
     /// After a batch failed with the phone in reach: no tight loop of sends that keep failing.
     private static let retryDelay: TimeInterval = 15
     @ObservationIgnored private var streamTimer: Timer?
@@ -67,9 +67,8 @@ import WatchKit
     /// The hand-back's own pod commands and its wait for a loop in flight end after this: in a stall they wait on a
     /// pod the watch can't reach (2026-10-20: one loop waited 41 minutes), and the phone reads the pod itself anyway.
     private static let handbackPodLimit: TimeInterval = 60
-    /// The paced burst on its way, how many of its batches the phone has yet to answer for, and whether one failed.
-    @ObservationIgnored private var burst: (id: Int, startedAt: Date, outstanding: Int, failed: Bool)?
-    @ObservationIgnored private var burstCount = 0
+    /// Batches the phone has not confirmed storing yet. This also bounds durable transfers while the phone is away.
+    @ObservationIgnored private var recordFlights: [UUID: (ids: Set<UUID>, sentAt: Date)] = [:]
     private static let takeoverReadInterval: UInt64 = 8_000_000_000
     /// A missing standing grant is asked for at most this often.
     private static let standingGrantRequestInterval: TimeInterval = 5 * 60
@@ -209,8 +208,23 @@ import WatchKit
                 }
                 data.unsent.subtract(stored)
             }
+            for flightID in Array(recordFlights.keys) {
+                guard var flight = recordFlights[flightID] else { continue }
+                flight.ids.subtract(stored)
+                if flight.ids.isEmpty {
+                    recordFlights[flightID] = nil
+                } else {
+                    recordFlights[flightID] = flight
+                }
+            }
+            debug(
+                .watchManager,
+                "Untethered: phone stored \(stored.count) history record(s); \(recordFlights.count)/\(Self.batchesInFlightLimit) batches remain in flight"
+            )
             finishSyncIfDone(epoch: envelope.epoch)
             refresh()
+            // A confirmation frees a slot in the bounded send window; immediately push the next batch.
+            streamRecords()
 
         case let .syncRequest(bucketStart, checksums):
             replyHandler?([:])
@@ -1065,31 +1079,48 @@ import WatchKit
 
     // MARK: - History to the phone
 
-    /// Hands every new version to WatchConnectivity. The phone confirms what it stored, and only then
-    /// does the watch drop it, so its backlog stays as small as the phone's reach allows.
-    ///
-    /// While the watch holds the sensor link the two share its radio: history then goes only to a reachable
-    /// phone, never while the sensor's link is up or around the next reading, and one batch at a time, each once the
-    /// phone has answered for the last, so none piles up in WatchConnectivity and runs into the reading. Nothing is
-    /// queued there either while the phone is away, which would send the whole backlog at once whenever it came back.
-    /// A hand-back lets go of the sensor anyway and sends everything (`ignoringSensor`).
+    /// Hands record batches to WatchConnectivity and keeps each record locally until the phone confirms storage.
+    /// A bounded window avoids serial round trips and prevents a large history from flooding the durable transfer
+    /// queue. Hand-back can pipeline four batches; during normal sensor use only one goes at a time, in a clear
+    /// window, to protect the sensor link. The phone's confirmation opens the next slot(s).
     func streamRecords(ignoringSensor: Bool = false) {
         streamTimer?.invalidate()
         streamTimer = nil
         // before activation nothing can go, not even queued: what left `unsent` now would never be sent
         guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return }
-        let paced = holdsSensorLink && !ignoringSensor
-        if paced, let burst {
-            let overdue = burst.startedAt.addingTimeInterval(Self.burstTimeout)
-            // the phone's last answer continues the stream; a burst it never answered for stops holding it
-            guard Date() >= overdue else {
-                scheduleStream(at: overdue)
-                return
+        let session = WCSession.default
+        let now = Date()
+        let pendingIDs = Set(store.data.pending.values.flatMap { $0.values.map(\.id) })
+        for flightID in Array(recordFlights.keys) {
+            guard var flight = recordFlights[flightID] else { continue }
+            flight.ids.formIntersection(pendingIDs)
+            if flight.ids.isEmpty {
+                recordFlights[flightID] = nil
+            } else {
+                recordFlights[flightID] = flight
             }
         }
-        burst = nil
+
+        // If a live interactive send stopped answering, retry its records. When the phone is away, leave durable
+        // transfers alone; WatchConnectivity will deliver them on reconnection, and reachability will resume here.
+        if session.isReachable {
+            let expiredFlightIDs = recordFlights.compactMap { entry in
+                now.timeIntervalSince(entry.value.sentAt) >= Self.recordAckTimeout ? entry.key : nil
+            }
+            if !expiredFlightIDs.isEmpty {
+                let expiredIDs = Set(expiredFlightIDs.flatMap { recordFlights[$0]?.ids ?? [] })
+                debug(.watchManager, "Untethered: no storage confirmation for \(expiredIDs.count) history record(s) in 30 s; retrying")
+                for id in expiredFlightIDs { recordFlights[id] = nil }
+                resend(Array(expiredIDs))
+            }
+        }
+
+        let paced = holdsSensorLink && !ignoringSensor && !isFinalizing
         let unsent = store.data.unsent
-        guard !unsent.isEmpty else { return }
+        guard !unsent.isEmpty else {
+            scheduleRecordAckTimeoutIfNeeded()
+            return
+        }
         let pending = store.data.pending.sorted { $0.key < $1.key }
         var batches: [(epoch: Int, records: [UntetheredRecord])] = []
         for (epoch, records) in pending {
@@ -1098,59 +1129,58 @@ import WatchKit
                 batches.append((epoch, Array(batch[start ..< min(start + Self.recordsPerMessage, batch.count)])))
             }
         }
-        var sending = batches
-        if paced, !batches.isEmpty {
-            // the next loop or the phone's return tries again
-            guard WCSession.default.isReachable else { return }
+        guard !batches.isEmpty else { return }
+
+        if paced {
+            // The next phone reachability change or sensor reading retries; never queue history over the sensor link.
+            guard session.isReachable else { return }
             if let clear = sensorWindowEnd(now: Date()) {
                 scheduleStream(at: clear)
                 return
             }
-            sending = Array(batches.prefix(Self.batchesPerBurst))
-            burstCount += 1
-            burst = (burstCount, Date(), sending.count, false)
-            scheduleStream(at: Date().addingTimeInterval(Self.burstTimeout))
         }
-        let burstID = burst?.id
+
+        let batchLimit = paced ? 1 : Self.batchesInFlightLimit
+        let availableSlots = max(0, batchLimit - recordFlights.count)
+        guard availableSlots > 0 else {
+            scheduleRecordAckTimeoutIfNeeded()
+            return
+        }
+        let sending = Array(batches.prefix(availableSlots))
         for batch in sending {
             let ids = batch.records.map(\.id)
-            // the phone's answer or the failure, whichever comes, settles the batch once
-            var settled = false
-            let settle: (_ delivered: Bool) -> Void = { [weak self] delivered in
-                guard !settled else { return }
-                settled = true
-                if !delivered { self?.resend(ids) }
-                if let burstID { self?.batchSettled(inBurst: burstID, delivered: delivered) }
-            }
+            let flightID = UUID()
+            recordFlights[flightID] = (Set(ids), now)
+            debug(
+                .watchManager,
+                "Untethered: sending \(ids.count) history record(s); \(recordFlights.count)/\(Self.batchesInFlightLimit) batches in flight"
+            )
             send(
                 .records(batch.records),
                 epoch: batch.epoch,
                 queueing: paced ? false : nil,
-                onReply: paced ? { settle(true) } : nil,
-                onFailure: paced ? { settle(false) } : nil
+                onFailure: { [weak self] in self?.recordBatchFailed(flightID: flightID, ids: ids) }
             )
         }
         // what is no longer pending was confirmed meanwhile and needs no sending
-        let pendingIDs = Set(pending.flatMap { $0.value.values.map(\.id) })
+        let currentPendingIDs = Set(pending.flatMap { $0.value.values.map(\.id) })
         let sent = Set(sending.flatMap { $0.records.map(\.id) })
-        store.update { $0.unsent = $0.unsent.subtracting(sent).intersection(pendingIDs) }
+        store.update { $0.unsent = $0.unsent.subtracting(sent).intersection(currentPendingIDs) }
+        scheduleRecordAckTimeoutIfNeeded()
     }
 
-    /// The last batch the phone answered for, or that failed, sends the next burst: at once, or after a pause
-    /// when one failed.
-    private func batchSettled(inBurst id: Int, delivered: Bool) {
-        guard let current = burst, current.id == id else { return }
-        let failed = current.failed || !delivered
-        guard current.outstanding > 1 else {
-            burst = nil
-            if failed {
-                scheduleStream(at: Date().addingTimeInterval(Self.retryDelay))
-            } else {
-                streamRecords()
-            }
-            return
-        }
-        burst = (current.id, current.startedAt, current.outstanding - 1, failed)
+    private func recordBatchFailed(flightID: UUID, ids: [UUID]) {
+        recordFlights[flightID] = nil
+        resend(ids)
+        scheduleStream(at: Date().addingTimeInterval(Self.retryDelay))
+    }
+
+    /// Retry an unanswered interactive batch, or wake it when its slot is due.
+    private func scheduleRecordAckTimeoutIfNeeded() {
+        guard WCSession.default.isReachable,
+              let oldest = recordFlights.values.map(\.sentAt).min()
+        else { return }
+        scheduleStream(at: oldest.addingTimeInterval(Self.recordAckTimeout))
     }
 
     /// The end of the window around the watch's next sensor reading, or nil while clear of it or holding no sensor.
@@ -1182,14 +1212,25 @@ import WatchKit
     /// Every version the phone hasn't confirmed goes again: after a relaunch, whose process lost the replies and
     /// failures it waited for, and after a queued transfer failed. The phone stores each version once.
     func requeueUnconfirmed(stream: Bool = true) {
+        recordFlights.removeAll()
         store.update { $0.unsent = Set($0.pending.values.flatMap { $0.values.map(\.id) }) }
         if stream { streamRecords() }
     }
 
     /// A batch that reached the phone neither way goes again with the next one, unless confirmed meanwhile.
     private func resend(_ ids: [UUID]) {
+        let retrying = Set(ids)
+        for flightID in Array(recordFlights.keys) {
+            guard var flight = recordFlights[flightID] else { continue }
+            flight.ids.subtract(retrying)
+            if flight.ids.isEmpty {
+                recordFlights[flightID] = nil
+            } else {
+                recordFlights[flightID] = flight
+            }
+        }
         let pendingIDs = Set(store.data.pending.values.flatMap { $0.values.map(\.id) })
-        store.update { $0.unsent.formUnion(Set(ids).intersection(pendingIDs)) }
+        store.update { $0.unsent.formUnion(retrying.intersection(pendingIDs)) }
     }
 
     /// The phone's checksums against ours: what it misses is resent; a finished session whose every
@@ -1199,7 +1240,7 @@ import WatchKit
         let differing = UntetheredSyncEntry.differingBuckets(local: entries, remoteStart: bucketStart, remoteChecksums: checksums)
         let missing = (store.data.pending[epoch] ?? [:]).values.filter { differing.contains($0.syncEntry.bucket) }
         if !missing.isEmpty {
-            store.update { $0.unsent.formUnion(missing.map(\.id)) }
+            resend(missing.map(\.id))
             streamRecords()
         }
         finishSyncIfDone(epoch: epoch)
