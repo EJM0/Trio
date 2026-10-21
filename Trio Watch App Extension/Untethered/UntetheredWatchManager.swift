@@ -322,6 +322,8 @@ import WatchKit
         DispatchQueue.main.async {
             self.checkFallback()
             guard WCSession.default.isReachable else { return }
+            // A sensor reading may have arrived while the iPhone was unreachable. Probe it now that it is back.
+            self.reportFallbackSession(trigger: "phone became reachable")
             self.requestStandingGrantIfMissing()
             self.streamRecords()
             if self.data.session.phase == .ending { self.apply(.tick) }
@@ -556,7 +558,10 @@ import WatchKit
         // what must reach the phone even if it is away right now; the rest is resent by its own retry
         let queued: Bool
         switch message {
-        case .handback,
+        case .fallbackHandbackRequest,
+             .fallbackHealthRequest,
+             // The phone may become unreachable just after answering the health check; keep its return request queued.
+             .handback,
              .records,
              .released,
              .syncDone,
@@ -901,8 +906,8 @@ import WatchKit
                         force: true
                     )
                 }
-                // The scheduled run still tries when isReachable is false; the transport reports delivery failure.
-                requestFallbackPhoneHealth()
+                // Queue it when a live reply is unavailable: the phone can answer from its background wake.
+                requestFallbackPhoneHealth(queueing: true)
             }
             return
         }
@@ -1037,28 +1042,41 @@ import WatchKit
         startFallback(phoneNewest: cachedPhoneNewest, reason: "phone did not answer its health check")
     }
 
-    private func requestFallbackPhoneHealth() {
-        guard fallbackHealthRequestID == nil else { return }
-        if fallbackHealthRequestCount >= Self.fallbackHealthRequestLimit { fallbackHealthRequestCount = 0 }
-        let requestID = UUID()
+    private func requestFallbackPhoneHealth(queueing: Bool = false) {
+        let activeFallback = data.startedByFallback && data.session.phase == .active
+        if activeFallback {
+            if let sentAt = fallbackHealthRequestSentAt,
+               Date().timeIntervalSince(sentAt) < Self.fallbackHealthResponseTimeout
+            { return }
+        } else {
+            guard fallbackHealthRequestID == nil else { return }
+            if fallbackHealthRequestCount >= Self.fallbackHealthRequestLimit { fallbackHealthRequestCount = 0 }
+        }
+        // Keep one request ID across background retries. A delayed queued reply still answers this probe.
+        let requestID = activeFallback ? (fallbackHealthRequestID ?? UUID()) : UUID()
         fallbackHealthRequestID = requestID
         fallbackHealthRequestSentAt = Date()
         persistFallbackProbeState()
-        // Active fallback retries on a new reading and on the scheduled background run. Avoid a separate
-        // 15-second background task solely to expire an unanswered live-message request.
+        // During fallback, a queued answer can arrive well after a live-message timeout. Keep its request ID
+        // and retry that same probe on a new reading or scheduled background run.
         if !data.startedByFallback || data.session.phase != .active {
             scheduleFallbackCheck(after: Self.fallbackHealthResponseTimeout)
         }
-        send(.fallbackHealthRequest(requestID), epoch: data.session.epoch) {
+        send(.fallbackHealthRequest(requestID), epoch: data.session.epoch, queueing: queueing) {
             guard self.fallbackHealthRequestID == requestID else { return }
-            self.fallbackHealthRequestID = nil
-            self.fallbackHealthRequestSentAt = nil
-            self.fallbackHealthRequestCount = Self.fallbackHealthRequestLimit
-            self.store.update { $0.fallbackCheckDueAt = nil }
+            if self.data.startedByFallback, self.data.session.phase == .active {
+                // Keep the ID: a queued copy may still reach the phone, or the next wake can retry it.
+                self.fallbackHealthRequestSentAt = nil
+            } else {
+                self.fallbackHealthRequestID = nil
+                self.fallbackHealthRequestSentAt = nil
+                self.fallbackHealthRequestCount = Self.fallbackHealthRequestLimit
+                self.store.update { $0.fallbackCheckDueAt = nil }
+            }
             self.persistFallbackProbeState()
             Task {
                 await WatchLogger.shared.log(
-                    "⌚️ Untethered: fallback health request was not delivered; evaluating cached phone state now",
+                    "⌚️ Untethered: fallback health request was not delivered; keeping it for the next retry",
                     force: true
                 )
             }
@@ -1074,13 +1092,13 @@ import WatchKit
             scheduleFallbackCheck(after: Self.fallbackHealthResponseTimeout - elapsed)
             return
         }
-        fallbackHealthRequestID = nil
+        // UserInfo delivery can take longer than a live message. Keep its request ID so a late phone
+        // response still matches; the next sensor or scheduled wake resends the same probe.
         fallbackHealthRequestSentAt = nil
-        fallbackHealthRequestCount = Self.fallbackHealthRequestLimit
         persistFallbackProbeState()
         Task {
             await WatchLogger.shared.log(
-                "⌚️ Untethered: iPhone health check unanswered during fallback; waiting for the next reading or scheduled run",
+                "⌚️ Untethered: iPhone health check unanswered during fallback; keeping its ID for a late reply or retry",
                 force: true
             )
         }
@@ -1088,26 +1106,38 @@ import WatchKit
 
     private func handleFallbackPhoneHealthResponse() {
         guard let health = fallbackPhoneHealth, let status = data.session.startStatus, status.byFallback == true else { return }
-        let now = Date()
-        let responseAge = now.timeIntervalSince(health.checkedAt)
-        guard responseAge >= 0, responseAge <= Self.fallbackHealthFreshness else { return }
-        let phoneFeedIsFresh = health.newestReadingDate.map {
-            now.timeIntervalSince($0) >= 0 && now.timeIntervalSince($0) < Self.fallbackPhoneStaleInterval
-        } ?? false
-        guard phoneFeedIsFresh else {
+        guard let newestReadingDate = health.newestReadingDate else {
             Task {
                 await WatchLogger.shared.log(
-                    "⌚️ Untethered: phone is responding, but its glucose is still stale; watch keeps the pump",
+                    "⌚️ Untethered: phone health check had no glucose date; watch keeps the pump",
                     force: true
                 )
             }
             return
         }
+        let readingAgeAtHealthCheck = health.checkedAt.timeIntervalSince(newestReadingDate)
+        let phoneFeedIsFresh = readingAgeAtHealthCheck >= 0
+            && readingAgeAtHealthCheck < Self.fallbackPhoneStaleInterval
+        guard phoneFeedIsFresh else {
+            Task {
+                await WatchLogger.shared.log(
+                    "⌚️ Untethered: phone glucose was over 10 minutes old at health-check time; watch keeps the pump",
+                    force: true
+                )
+            }
+            return
+        }
+        var handbackStatus = status
+        handbackStatus.fallbackHealthCheck = UntetheredFallbackHealthCheck(
+            checkedAt: health.checkedAt,
+            newestReadingDate: newestReadingDate
+        )
+        let now = Date()
         if let sentAt = fallbackHandbackRequestedAt,
            now.timeIntervalSince(sentAt) < Self.fallbackHealthResponseTimeout
         { return }
         fallbackHandbackRequestedAt = now
-        send(.fallbackHandbackRequest(status), epoch: data.session.epoch)
+        send(.fallbackHandbackRequest(handbackStatus), epoch: data.session.epoch)
         Task {
             await WatchLogger.shared.log(
                 "⌚️ Untethered: phone replied with fresh glucose; asking it to take the pump back",
@@ -1210,9 +1240,9 @@ import WatchKit
         return .watching
     }
 
-    /// A fresh watch reading starts a health check no more than once every five minutes, and only when reachable.
-    /// A status report or reachability signal alone cannot trigger a handback.
-    func reportFallbackSession() {
+    /// A fresh reading, or the phone becoming reachable after one, can start a health check every five minutes.
+    /// Reachability alone never hands back the pump; the phone must answer with a fresh glucose timestamp.
+    func reportFallbackSession(trigger: String = "incoming sensor reading") {
         let now = Date()
         guard data.startedByFallback, data.session.phase == .active,
               WCSession.default.isReachable,
@@ -1222,18 +1252,11 @@ import WatchKit
         if let sentAt = fallbackHealthRequestSentAt,
            now.timeIntervalSince(sentAt) < Self.fallbackHealthResponseTimeout
         { return }
-        if fallbackHealthRequestID != nil || fallbackHealthRequestSentAt != nil {
-            fallbackHealthRequestID = nil
-            fallbackHealthRequestSentAt = nil
-            fallbackHealthRequestCount = Self.fallbackHealthRequestLimit
-            store.update { $0.fallbackCheckDueAt = nil }
-            persistFallbackProbeState()
-        }
         store.update { $0.fallbackHealthLastReadingRequestAt = now }
         if fallbackHealthRequestCount >= Self.fallbackHealthRequestLimit { fallbackHealthRequestCount = 0 }
         Task {
             await WatchLogger.shared.log(
-                "⌚️ Untethered: requesting iPhone health check on incoming sensor reading",
+                "⌚️ Untethered: requesting iPhone health check after \(trigger)",
                 force: true
             )
         }

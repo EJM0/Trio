@@ -144,8 +144,8 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     static let leaseLength: TimeInterval = 120
     /// How old the newest glucose may be when the watch takes over.
     static let maxGlucoseAge: TimeInterval = 12 * 60
-    /// The phone must have recent glucose before it can ask the fallback watch to return.
-    private static let fallbackRecoveryFreshness: TimeInterval = 15 * 60
+    /// The phone's newest glucose must be under ten minutes old when its health check is created.
+    private static let fallbackRecoveryFreshness: TimeInterval = 10 * 60
 
     private var openAPS: OpenAPS!
     private var ticker: Timer?
@@ -480,12 +480,15 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 // whatever the fingerprint says: the watch has none
                 self.scheduleStandingGrant(settingsChanged: true, immediately: true)
             case let .fallbackHealthRequest(requestID):
+                let newestReadingDate = self.glucoseStorage.lastGlucoseDate()
+                // Take the reference time after the stored reading date, so a concurrent sample isn't future-dated.
+                let checkedAt = Date()
                 let response = UntetheredMessage.fallbackHealthResponse(
                     requestID: requestID,
-                    checkedAt: Date(),
+                    checkedAt: checkedAt,
                     lastLoopDate: self.apsManager.lastLoopDate,
                     lastLoopAttemptDate: self.apsManager.lastLoopAttemptDate,
-                    newestReadingDate: self.glucoseStorage.lastGlucoseDate(),
+                    newestReadingDate: newestReadingDate,
                     phoneMayDose: UntetheredGate.phoneMayDose
                 )
                 if let replyHandler,
@@ -494,6 +497,9 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                     replyHandler(payload)
                 } else {
                     replyHandler?([:])
+                    // A health request delivered through transferUserInfo has no reply handler. Queue its
+                    // correlated answer so a sleeping watch can still complete the hand-back check.
+                    self.send(response, epoch: envelope.epoch)
                 }
             case let .fallbackHandbackRequest(status):
                 guard status.byFallback == true,
@@ -505,11 +511,16 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                     replyHandler?([:])
                     return
                 }
-                let now = Date()
-                let readingAge = self.glucoseStorage.lastGlucoseDate().map { now.timeIntervalSince($0) }
-                guard let readingAge, readingAge >= 0, readingAge < Self.fallbackRecoveryFreshness
+                guard let healthCheck = status.fallbackHealthCheck else {
+                    debug(.watchManager, "Untethered: fallback hand-back held; request has no phone health-check snapshot")
+                    replyHandler?([:])
+                    return
+                }
+                let readingAgeAtHealthCheck = healthCheck.checkedAt.timeIntervalSince(healthCheck.newestReadingDate)
+                guard readingAgeAtHealthCheck >= 0,
+                      readingAgeAtHealthCheck < Self.fallbackRecoveryFreshness
                 else {
-                    debug(.watchManager, "Untethered: fallback hand-back held; phone glucose is still stale")
+                    debug(.watchManager, "Untethered: fallback hand-back held; phone glucose was over 10 min old at health check")
                     replyHandler?([:])
                     return
                 }
@@ -714,6 +725,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         case .adjustmentCancelled,
              .dosingModeChanged,
              .endRequest,
+             .fallbackHealthResponse,
              .handbackAck,
              // a watch asleep in the background still hands back, and lets go, once it hears them
              .revoke,
@@ -736,9 +748,10 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                     debug(.watchManager, "Untethered: no complication transfer available for the hand-back wake")
                 }
             }
-        case .recordsStored:
+        case .fallbackHandbackAccepted,
+             .recordsStored:
             session.transferUserInfo(payload)
-            return
+            if case .recordsStored = message { return }
         default: break
         }
         guard session.isReachable else {

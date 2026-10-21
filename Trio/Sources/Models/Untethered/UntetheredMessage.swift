@@ -59,6 +59,7 @@ extension UntetheredMessage {
         switch self {
         case .endRequest,
              .fallbackHandbackRequest,
+             .fallbackHealthRequest,
              .handback,
              .handbackAck,
              .standingGrantRequest,
@@ -86,6 +87,14 @@ struct UntetheredPodStatus: Codable, Equatable {
     var copyAsOf: Date? = nil
     /// Start without the phone: the fallback loop started it after the phone's feed and loop stopped.
     var byFallback: Bool? = nil
+    /// Phone glucose snapshot from the health check that led to an automatic fallback hand-back.
+    /// Freshness is evaluated at `checkedAt`, even if WatchConnectivity delivers the request later.
+    var fallbackHealthCheck: UntetheredFallbackHealthCheck? = nil
+}
+
+struct UntetheredFallbackHealthCheck: Codable, Equatable {
+    let checkedAt: Date
+    let newestReadingDate: Date
 }
 
 /// The pump as the phone let go of it, a moment before the commit: the grant's configuration is older, and a temp
