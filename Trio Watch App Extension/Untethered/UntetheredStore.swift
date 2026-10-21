@@ -55,6 +55,15 @@ struct UntetheredWatchData: Codable {
     var phoneReturnNoted = false
     /// The session started without the phone was the fallback loop's: it goes back to the phone on its return.
     var startedByFallback = false
+    /// Fallback health probes survive watchOS suspending or relaunching the app between sensor wakes.
+    var fallbackHealthRequestID: UUID?
+    var fallbackHealthRequestSentAt: Date?
+    var fallbackHealthRequestCount = 0
+    var fallbackCheckDueAt: Date?
+    /// Last reading-triggered health check, to keep the five-minute limit across app relaunches.
+    var fallbackHealthLastReadingRequestAt: Date?
+    /// Prevents starting the same phone-feed outage twice after a process relaunch.
+    var fallbackTriedAfter: Date?
     /// The fallback loop's readings between sessions, from the watch's own sensor link: the next session starts with
     /// them, the link having nothing left to backfill.
     var standbyGlucose: [BloodGlucose] = []
@@ -134,6 +143,16 @@ extension UntetheredWatchData {
         standingGrantIssuedAt = try container.decodeIfPresent(Date.self, forKey: .standingGrantIssuedAt)
         phoneReturnNoted = try container.decodeIfPresent(Bool.self, forKey: .phoneReturnNoted) ?? defaults.phoneReturnNoted
         startedByFallback = try container.decodeIfPresent(Bool.self, forKey: .startedByFallback) ?? defaults.startedByFallback
+        fallbackHealthRequestID = try container.decodeIfPresent(UUID.self, forKey: .fallbackHealthRequestID)
+        fallbackHealthRequestSentAt = try container.decodeIfPresent(Date.self, forKey: .fallbackHealthRequestSentAt)
+        fallbackHealthRequestCount = try container.decodeIfPresent(Int.self, forKey: .fallbackHealthRequestCount)
+            ?? defaults.fallbackHealthRequestCount
+        fallbackCheckDueAt = try container.decodeIfPresent(Date.self, forKey: .fallbackCheckDueAt)
+        fallbackHealthLastReadingRequestAt = try container.decodeIfPresent(
+            Date.self,
+            forKey: .fallbackHealthLastReadingRequestAt
+        )
+        fallbackTriedAfter = try container.decodeIfPresent(Date.self, forKey: .fallbackTriedAfter)
         standbyGlucose = try container.decodeIfPresent([BloodGlucose].self, forKey: .standbyGlucose) ?? defaults.standbyGlucose
         pendingPumpAlerts = try container.decodeIfPresent([PendingPumpAlert].self, forKey: .pendingPumpAlerts) ?? defaults
             .pendingPumpAlerts
