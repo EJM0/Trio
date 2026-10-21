@@ -199,13 +199,16 @@ jobs:
         (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' )
     steps:
       - name: Select Xcode version
-        # Xcode 26.5 as before where the runner has it, else the runner's Xcode 27
+        # Xcode 26.5 as before where the runner has it, else the newest released Xcode 27 (never a beta or
+        # release candidate: 2026-10-21 picked 27.2 beta 3), else whatever the runner selects by default
         run: |
+          ls -d /Applications/Xcode*.app
           if [ -d /Applications/Xcode_26.5.app ]; then
-            sudo xcode-select --switch /Applications/Xcode_26.5.app/Contents/Developer
+            XCODE=/Applications/Xcode_26.5.app
           else
-            sudo xcode-select --switch "$(ls -d /Applications/Xcode_27*.app | sort -V | tail -1)/Contents/Developer"
+            XCODE=$(ls -d /Applications/Xcode_27*.app | grep -viE 'beta|release_candidate|_rc' | sort -V | tail -1)
           fi
+          if [ -n "$XCODE" ]; then sudo xcode-select --switch "$XCODE/Contents/Developer"; fi
           xcodebuild -version
       
       - name: Checkout Repo for building
