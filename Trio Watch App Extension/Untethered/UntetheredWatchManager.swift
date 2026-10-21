@@ -37,6 +37,10 @@ import WatchKit
     @ObservationIgnored var lastPodLinkReset: Date?
     /// When the user was last told the pod can't be reached; repeated while the stall lasts.
     @ObservationIgnored var lastPodLinkNotice: Date?
+    /// When the phone was last heard from: any untethered message, or the phone reachable.
+    @ObservationIgnored var lastPhoneContact: Date?
+    /// This stall's request to the phone to take the pump back.
+    @ObservationIgnored var handbackRequestedAt: Date?
     /// How many Pod Not Reachable notices this stall has brought; from the second on the watch vibrates harder.
     @ObservationIgnored var podLinkNoticeCount = 0
     /// A sensor pairing is due: Trio has to be in front for its Bluetooth pairing request.
@@ -156,6 +160,7 @@ import WatchKit
     }
 
     private func handle(_ envelope: UntetheredEnvelope, replyHandler: (([String: Any]) -> Void)?) {
+        lastPhoneContact = Date()
         if let version = envelope.appVersion, WatchState.shared.phoneAppVersion != version {
             WatchState.shared.phoneAppVersion = version
         }
@@ -247,6 +252,7 @@ import WatchKit
     func reachabilityChanged() {
         DispatchQueue.main.async {
             guard WCSession.default.isReachable else { return }
+            self.lastPhoneContact = Date()
             self.requestStandingGrantIfMissing()
             self.streamRecords()
             if self.data.session.phase == .ending { self.apply(.tick) }
@@ -550,6 +556,10 @@ import WatchKit
 
     func releasePump() {
         isFinalizing = false
+        // the next session's stall asks the phone afresh
+        handbackRequestedAt = nil
+        lastPodLinkNotice = nil
+        podLinkNoticeCount = 0
         if let pump = pumpManager {
             pump.releaseControl()
             savePumpState()
@@ -951,24 +961,38 @@ import WatchKit
         }
     }
 
-    /// The watch can't reach the pod while readings come in and the phone answers: the phone takes the pump back
-    /// rather than nobody looping. On 20 October stalls of 41, 80 and 26 minutes ended only when someone opened Trio
-    /// or handed back; the phone had the pod again within seconds each time.
-    @discardableResult func handBackForPodStall(minutes: Int) -> Bool {
-        guard data.session.phase == .active, !isBolusing, WCSession.default.isReachable else { return false }
+    /// How recently the phone must have been heard from for the watch to ask it to take the pump back.
+    static let phoneContactWindow: TimeInterval = 30 * 60
+    /// A stall that outlasts this asks again, in case the first request never arrived.
+    static let handbackRequestRepeat: TimeInterval = 30 * 60
+
+    /// The watch can't reach the pod while readings come in: it asks the phone to take the pump back, as Take Back
+    /// the Pump Now, rather than nobody looping. The phone reached the pod within seconds every time the watch's
+    /// background links failed (2026-10-20, stalls of 41, 80 and 26 minutes; 2026-10-21 from 00:45 to 05:56).
+    /// watchOS reports the phone unreachable to an app in the background almost always, so the request goes queued
+    /// as well, which wakes the phone app; it is only sent with the phone heard from in the last 30 minutes. The watch
+    /// keeps the pump and keeps trying until the phone's revoke arrives, so a phone that is away changes nothing.
+    func requestHandbackForPodStall(minutes: Int, now: Date = Date()) {
+        let phoneNearby = WCSession.default.isReachable
+            || lastPhoneContact.map { now.timeIntervalSince($0) < Self.phoneContactWindow } ?? false
+        guard data.session.phase == .active, !isBolusing, phoneNearby,
+              now.timeIntervalSince(handbackRequestedAt ?? .distantPast) > Self.handbackRequestRepeat
+        else { return }
+        handbackRequestedAt = now
         Task {
-            await WatchLogger.shared.log("⌚️ Untethered: no loop for \(minutes) min, the phone answers: handing the pump back", force: true)
+            await WatchLogger.shared.log(
+                "⌚️ Untethered: no loop for \(minutes) min, asking the phone to take the pump back",
+                force: true
+            )
         }
         notify(
-            id: Self.podLinkID,
-            title: String(localized: "Pump Back on the Phone"),
+            id: Self.notificationPrefix + "handbackRequest",
+            title: String(localized: "Handing Back to iPhone"),
             body: String(
-                localized: "The watch couldn't reach the pod for \(minutes) minutes, so it gave the pump back to the phone. Start untethered mode again when you want."
+                localized: "The watch hasn't reached the pod for \(minutes) minutes. The iPhone takes the pump back as soon as it gets the request; keep it nearby."
             )
         )
-        podLinkNoticeCount = 0
-        apply(.end)
-        return true
+        send(.handbackRequested(minutesWithoutLoop: minutes), epoch: data.session.epoch, queueing: true)
     }
 
     private func hasUnconfirmedRecords(_ epoch: Int) -> Bool {

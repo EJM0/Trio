@@ -967,11 +967,8 @@ extension UntetheredWatchManager: CGMManagerDelegate {
               let newest = data.glucose.map(\.dateString).max(), now.timeIntervalSince(newest) < 11 * 60
         else { return }
         let minutes = Int(now.timeIntervalSince(lastLoop) / 60)
-        // with the phone in reach it takes the pump back, and its own alerts take over from here
-        if handBackForPodStall(minutes: minutes) {
-            lastPodLinkNotice = now
-            return
-        }
+        // with the phone nearby it takes the pump back; until its revoke arrives the watch keeps trying and alerting
+        requestHandbackForPodStall(minutes: minutes, now: now)
         // Every 10 minutes while it lasts, not only once: once was easy to miss (2026-10-20, 12:25 went unnoticed),
         // and opening Trio is what cleared the stall (13:32). Removed and posted again so it alerts each time.
         lastPodLinkNotice = now
@@ -1007,6 +1004,7 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         guard lastPodLinkReset != nil || lastPodLinkNotice != nil else { return }
         lastPodLinkNotice = nil
         podLinkNoticeCount = 0
+        handbackRequestedAt = nil
         if lastPodLinkReset != nil {
             lastPodLinkReset = nil
             pump.endTakeEscalation()

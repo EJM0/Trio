@@ -841,5 +841,9 @@ import Testing
         let decoded = try UntetheredEnvelope.decode(oldPayload)
         #expect(decoded?.message == .startRequest)
         #expect(decoded?.appVersion == nil)
+
+        // the watch's request to take the pump back travels like any other message
+        let request = UntetheredEnvelope(epoch: 4, message: .handbackRequested(minutesWithoutLoop: 15))
+        #expect(try UntetheredEnvelope.decode(try request.payload()) == request)
     }
 }

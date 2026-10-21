@@ -425,6 +425,12 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 if let reason = await self.start() {
                     self.send(.startRefused(reason: reason), epoch: envelope.epoch)
                 }
+            case let .handbackRequested(minutes):
+                replyHandler?([:])
+                guard self.state.session.phase == .active, envelope.epoch == self.state.session.epoch else { return }
+                warning(.watchManager, "Untethered: the watch hasn't reached the pod for \(minutes) min and asks the phone to take it back")
+                // as Take Back the Pump Now: the phone reaches for the pod first, and leaves the watch dosing if it can't
+                await self.forceTakeBack()
             case let .dosingModeChanged(mode):
                 replyHandler?([:])
                 guard envelope.epoch >= self.state.session.epoch else { return }

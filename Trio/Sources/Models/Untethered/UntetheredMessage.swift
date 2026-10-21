@@ -38,6 +38,9 @@ enum UntetheredMessage: Codable, Equatable {
     case standingGrant(UntetheredGrant, issuedAt: Date)
     /// The watch has no standing grant young enough to start from: the phone sends one at once.
     case standingGrantRequest
+    /// The watch hasn't reached the pod for this long while readings came in: the phone takes the pump back as with
+    /// Take Back the Pump Now, as it reaches a pod the watch's background links can't (2026-10-21, 00:45 to 05:56).
+    case handbackRequested(minutesWithoutLoop: Int)
 }
 
 enum UntetheredAdjustment: String, Codable {
