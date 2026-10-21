@@ -34,7 +34,7 @@ final class TrioWatchAppDelegate: NSObject, WKApplicationDelegate {
                     let expire = { if let task { self?.complete(task) } }
                     if Thread.isMainThread { expire() } else { DispatchQueue.main.sync(execute: expire) }
                 }
-                UntetheredWatchManager.shared.recheckCGM()
+                UntetheredWatchManager.shared.recheckCGM(trigger: "scheduled-background-refresh")
                 UntetheredWatchManager.shared.scheduleSessionRefresh()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 5) { self.complete(task) }
                 continue
@@ -63,7 +63,7 @@ final class TrioWatchAppDelegate: NSObject, WKApplicationDelegate {
                 if Thread.isMainThread { expire() } else { DispatchQueue.main.sync(execute: expire) }
             }
             // a reading in this wake loops through the CGM delegate; the wake itself only checks
-            UntetheredWatchManager.shared.recheckCGM()
+            UntetheredWatchManager.shared.recheckCGM(trigger: "bluetooth-background-wake")
             DispatchQueue.main.asyncAfter(deadline: .now() + Self.bluetoothHold) { self.release(task) }
         }
     }

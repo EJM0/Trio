@@ -39,7 +39,7 @@ import UserNotifications
                 let untethered = UntetheredWatchManager.shared
                 // Mark G7 foreground state before rechecking, so a missed-burst scan can start here.
                 untethered.appBecameActive()
-                untethered.recheckCGM()
+                untethered.recheckCGM(trigger: "scene-active")
                 // a sensor pairing that is due keeps Trio in front from here
                 // what loops in the background did, without waiting for the phone link
                 untethered.refresh()
