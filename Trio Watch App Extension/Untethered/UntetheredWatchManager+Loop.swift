@@ -934,6 +934,7 @@ extension UntetheredWatchManager: CGMManagerDelegate {
 
     /// Trio came to the front: a pairing that is due keeps it there.
     func appBecameActive() {
+        watchCGMAppBecameActive(cgmManager)
         if isPairingSensor { keepTrioInFrontForPairing() }
     }
 

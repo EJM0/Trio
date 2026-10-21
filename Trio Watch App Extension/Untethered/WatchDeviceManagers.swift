@@ -22,6 +22,11 @@ func watchCGMRecheckAcquisition(_ manager: CGMManager?) {
     (manager as? G7CGMManager)?.recheckAcquisition()
 }
 
+/// The G7 resumes foreground-only acquisition work before the next acquisition recheck.
+func watchCGMAppBecameActive(_ manager: CGMManager?) {
+    (manager as? G7CGMManager)?.appBecameActive()
+}
+
 /// The app is leaving the screen: the CGM puts its next connect in before watchOS freezes the app.
 func watchCGMAppLeavingScreen(_ manager: CGMManager?) {
     (manager as? G7CGMManager)?.appLeavingScreen()

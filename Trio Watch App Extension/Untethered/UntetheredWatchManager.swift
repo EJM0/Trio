@@ -764,8 +764,8 @@ import WatchKit
     /// Trio leaves the screen (wrist down or another app). watchOS freezes it within seconds, and twice on
     /// 20 October that froze the sensor's next connect before it was made: nothing woke the app for over 30 minutes.
     func appLeavingScreen() {
-        guard holdsSensorLink else { return }
         watchCGMAppLeavingScreen(cgmManager)
+        guard holdsSensorLink else { return }
         scheduleSessionRefresh()
     }
 
