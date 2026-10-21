@@ -290,7 +290,7 @@ struct UntetheredStatusView: View {
                 .tint(.untethered)
                 .disabled(!isPhoneReachable || manager.versionMismatch != nil)
                 if let mismatch = manager.versionMismatch {
-                    note(mismatch)
+                    note(Text(mismatch))
                 } else if !isPhoneReachable {
                     note("Starts with the phone nearby and Trio open on it.")
                     // without a copy the note below says why
