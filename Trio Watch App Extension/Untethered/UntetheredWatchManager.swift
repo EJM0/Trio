@@ -277,7 +277,8 @@ import WatchKit
 
         case .fallbackHandbackAccepted:
             replyHandler?([:])
-            guard data.startedByFallback,
+            guard envelope.epoch == data.session.epoch,
+                  data.startedByFallback,
                   data.session.phase == .active || data.session.phase == .ending
             else { return }
             if !data.phoneReturnNoted {
@@ -287,6 +288,17 @@ import WatchKit
                     title: String(localized: "iPhone Is Back"),
                     body: String(localized: "The iPhone is responding with fresh readings. The pump is returning to it.")
                 )
+            }
+            // This is the phone's acceptance of the watch's fresh-reading snapshot. Start hand-back from this
+            // durable background message itself; don't depend on a separate endRequest arriving first.
+            if data.session.phase == .active, !isBolusing {
+                Task {
+                    await WatchLogger.shared.log(
+                        "⌚️ Untethered: phone accepted the fallback hand-back; starting the pump hand-back",
+                        force: true
+                    )
+                }
+                apply(.end)
             }
 
         case let .adjustmentCancelled(kind, start, date):
