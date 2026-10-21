@@ -47,7 +47,7 @@ enum UntetheredMessage: Codable, Equatable {
         newestReadingDate: Date?,
         phoneMayDose: Bool
     )
-    /// The phone's loop and glucose feed recovered during a watch fallback; it should take the pump back.
+    /// The phone's glucose feed recovered during a watch fallback; it should take the pump back.
     case fallbackHandbackRequest(UntetheredPodStatus)
     /// The phone accepted the fallback hand-back and is asking the watch to return the pump.
     case fallbackHandbackAccepted

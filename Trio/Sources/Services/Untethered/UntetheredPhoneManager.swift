@@ -144,7 +144,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     static let leaseLength: TimeInterval = 120
     /// How old the newest glucose may be when the watch takes over.
     static let maxGlucoseAge: TimeInterval = 12 * 60
-    /// The phone must have recent glucose and a recent loop attempt before it can ask the fallback watch to return.
+    /// The phone must have recent glucose before it can ask the fallback watch to return.
     private static let fallbackRecoveryFreshness: TimeInterval = 15 * 60
 
     private var openAPS: OpenAPS!
@@ -506,18 +506,16 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                     return
                 }
                 let now = Date()
-                let loopAttemptAge = now.timeIntervalSince(self.apsManager.lastLoopAttemptDate)
                 let readingAge = self.glucoseStorage.lastGlucoseDate().map { now.timeIntervalSince($0) }
-                guard loopAttemptAge >= 0, loopAttemptAge < Self.fallbackRecoveryFreshness,
-                      let readingAge, readingAge >= 0, readingAge < Self.fallbackRecoveryFreshness
+                guard let readingAge, readingAge >= 0, readingAge < Self.fallbackRecoveryFreshness
                 else {
-                    debug(.watchManager, "Untethered: fallback hand-back held; phone loop attempt or glucose is still stale")
+                    debug(.watchManager, "Untethered: fallback hand-back held; phone glucose is still stale")
                     replyHandler?([:])
                     return
                 }
                 debug(
                     .watchManager,
-                    "Untethered: phone loop attempted recently with fresh glucose; starting the two-phase pump hand-back"
+                    "Untethered: phone has fresh glucose; starting the two-phase pump hand-back"
                 )
                 if let replyHandler,
                    let payload = try? UntetheredEnvelope(

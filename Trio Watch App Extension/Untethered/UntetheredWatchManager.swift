@@ -1094,12 +1094,10 @@ import WatchKit
         let phoneFeedIsFresh = health.newestReadingDate.map {
             now.timeIntervalSince($0) >= 0 && now.timeIntervalSince($0) < Self.fallbackPhoneStaleInterval
         } ?? false
-        let phoneLoopAttemptIsFresh = now.timeIntervalSince(health.lastLoopAttemptDate) >= 0
-            && now.timeIntervalSince(health.lastLoopAttemptDate) < Self.fallbackPhoneStaleInterval
-        guard phoneFeedIsFresh, phoneLoopAttemptIsFresh else {
+        guard phoneFeedIsFresh else {
             Task {
                 await WatchLogger.shared.log(
-                    "⌚️ Untethered: phone is responding, but its readings or loop attempts are still stale; watch keeps the pump",
+                    "⌚️ Untethered: phone is responding, but its glucose is still stale; watch keeps the pump",
                     force: true
                 )
             }
@@ -1112,7 +1110,7 @@ import WatchKit
         send(.fallbackHandbackRequest(status), epoch: data.session.epoch)
         Task {
             await WatchLogger.shared.log(
-                "⌚️ Untethered: phone replied with fresh readings and a recent loop attempt; asking it to take the pump back",
+                "⌚️ Untethered: phone replied with fresh glucose; asking it to take the pump back",
                 force: true
             )
         }
