@@ -625,6 +625,10 @@ import WatchKit
         cgm.delegateQueue = .main
         cgmManager = cgm
         saveCGMState()
+        // a CGM set up with Trio in front holds in the app from the start (see watchCGMAppBecameActive)
+        DispatchQueue.main.async {
+            if WKApplication.shared().applicationState == .active { watchCGMAppBecameActive(cgm) }
+        }
     }
 
     /// The phone's wake after its reading: the sensor is re-checked and the history goes, the phone being in reach.

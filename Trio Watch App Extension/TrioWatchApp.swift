@@ -33,10 +33,10 @@ import WatchKit
                     Task { await WatchLogger.shared.flushPersistedLogs(queued: true) }
                 }
             } else if newScenePhase == .active {
+                // in front first, so the recheck holds in the app; a sensor pairing that is due keeps Trio in front
+                UntetheredWatchManager.shared.appBecameActive()
                 // with the phone away, looking at the watch is the one wake left
                 UntetheredWatchManager.shared.recheckCGM()
-                // a sensor pairing that is due keeps Trio in front from here
-                UntetheredWatchManager.shared.appBecameActive()
                 // what loops in the background did, without waiting for the phone link
                 UntetheredWatchManager.shared.refresh()
             }
