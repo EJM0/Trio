@@ -611,6 +611,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         // and the color scheme the graph's readings follow, as on the phone
         message[Self.complicationColorSchemeKey] = glucoseColorScheme.rawValue
         message[Self.complicationTargetKey] = NSDecimalNumber(decimal: currentGlucoseTarget).doubleValue
+        message[WatchMessageKeys.phoneAppVersion] = UntetheredVersion.current
 
         // if session is reachable, it means watch App is in the foreground -> send watchState as message
         // if session is not reachable, it means it's in background -> send watchState as userInfo

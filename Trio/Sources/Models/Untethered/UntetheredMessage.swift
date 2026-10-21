@@ -240,6 +240,14 @@ struct UntetheredEnvelope: Codable, Equatable {
 
     let epoch: Int
     let message: UntetheredMessage
+    /// The sender's app version and build (`UntetheredVersion.current`); nil from a build before the check.
+    var appVersion: String?
+
+    init(epoch: Int, message: UntetheredMessage, appVersion: String? = UntetheredVersion.current) {
+        self.epoch = epoch
+        self.message = message
+        self.appVersion = appVersion
+    }
 
     func payload() throws -> [String: Any] {
         let json = try JSONEncoder().encode(self)
@@ -251,6 +259,41 @@ struct UntetheredEnvelope: Codable, Equatable {
         guard let data = payload[key] as? Data else { return nil }
         let json = try (data as NSData).decompressed(using: .lzfse) as Data
         return try JSONDecoder().decode(UntetheredEnvelope.self, from: json)
+    }
+}
+
+/// The phone and the watch hand the pump over only when they run the same build. The watch app is built and
+/// numbered with the phone app, but watchOS installs it separately and in its own time, sometimes minutes after the
+/// phone's update: meanwhile the old watch app answered the new phone app's start late or not at all (2026-10-21
+/// 01:46), and two builds may not read each other's grant, records or hand-back the same way.
+enum UntetheredVersion {
+    /// "1.0.2.15 (579)": the version and build both apps carry. nil without them (tests).
+    static var current: String? {
+        guard let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+              let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+        else { return nil }
+        return "\(version) (\(build))"
+    }
+
+    /// Why no hand-over can start, when the other side's build differs from this one's; nil when they match or this
+    /// build doesn't know its own (tests). A sender without a version is a build from before the check.
+    static func mismatch(phone: String?, watch: String?) -> String? {
+        guard let phone, let watch, phone != watch else { return nil }
+        return String(
+            localized: "Trio on the iPhone (\(phone)) and on the watch (\(watch)) are different builds. Wait until the watch app has updated, then start again. To hurry it: Watch app on the iPhone › My Watch › Trio."
+        )
+    }
+
+    /// From the phone's side: the watch's build against this one.
+    static func mismatch(watch: String?) -> String? {
+        guard current != nil else { return nil }
+        return mismatch(phone: current, watch: watch ?? String(localized: "an older build"))
+    }
+
+    /// From the watch's side: the phone's build against this one.
+    static func mismatch(phone: String?) -> String? {
+        guard current != nil else { return nil }
+        return mismatch(phone: phone ?? String(localized: "an older build"), watch: current)
     }
 }
 

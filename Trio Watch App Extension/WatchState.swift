@@ -83,6 +83,12 @@ import WatchConnectivity
         }
     }
 
+    /// The phone app's version and build as it last said; kept. The watch app starts no session while it differs
+    /// from its own, which is the case for a while after an update, until watchOS has installed the new watch app.
+    var phoneAppVersion: String? = UserDefaults.standard.string(forKey: WatchMessageKeys.phoneAppVersion) {
+        didSet { UserDefaults.standard.set(phoneAppVersion, forKey: WatchMessageKeys.phoneAppVersion) }
+    }
+
     // Acknowlegement handling
     var showCommsAnimation: Bool = false
     var showAcknowledgmentBanner: Bool = false
@@ -661,6 +667,10 @@ import WatchConnectivity
 
         if let mode = message[WatchMessageKeys.untetheredModeWatch] as? Bool, mode != untetheredMode {
             untetheredMode = mode
+        }
+
+        if let version = message[WatchMessageKeys.phoneAppVersion] as? String, version != phoneAppVersion {
+            phoneAppVersion = version
         }
 
         if let allow = message[WatchMessageKeys.allowUntetheredStartWithoutPhoneWatch] as? Bool {

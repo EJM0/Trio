@@ -410,10 +410,18 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 await self.finishSync(epoch: envelope.epoch)
             case .standingGrantRequest:
                 replyHandler?([:])
+                // a copy for another build would start a session the two can't share
+                guard UntetheredVersion.mismatch(watch: envelope.appVersion) == nil else { return }
                 // whatever the fingerprint says: the watch has none
                 self.scheduleStandingGrant(settingsChanged: true, immediately: true)
             case .startRequest:
                 replyHandler?([:])
+                // a watch app watchOS hasn't updated yet (or an older phone): no hand-over between two builds
+                if let reason = UntetheredVersion.mismatch(watch: envelope.appVersion) {
+                    warning(.watchManager, "Untethered: start refused, \(reason)")
+                    self.send(.startRefused(reason: reason), epoch: envelope.epoch)
+                    return
+                }
                 if let reason = await self.start() {
                     self.send(.startRefused(reason: reason), epoch: envelope.epoch)
                 }

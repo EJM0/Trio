@@ -825,4 +825,21 @@ import Testing
         #expect(determination.timestamp == determination.deliverAt)
         #expect(used?.timestamp == now)
     }
+
+    @Test("Build check: a hand-over only between the same builds, an older sender counts as another build")
+    func buildCheck() throws {
+        #expect(UntetheredVersion.mismatch(phone: "1.0.2.15 (579)", watch: "1.0.2.15 (579)") == nil)
+        #expect(UntetheredVersion.mismatch(phone: "1.0.2.15 (579)", watch: "1.0.2.13 (578)") != nil)
+        // nothing known on one side: not a mismatch by itself
+        #expect(UntetheredVersion.mismatch(phone: nil, watch: "1.0.2.15 (579)") == nil)
+
+        // the sender's build travels with the envelope; one from before the check decodes without it
+        let envelope = UntetheredEnvelope(epoch: 3, message: .startRequest, appVersion: "1.0.2.15 (579)")
+        #expect(try UntetheredEnvelope.decode(try envelope.payload())?.appVersion == "1.0.2.15 (579)")
+        let old = try JSONSerialization.data(withJSONObject: ["epoch": 3, "message": ["startRequest": [:] as [String: Any]]])
+        let oldPayload: [String: Any] = [UntetheredEnvelope.key: try (old as NSData).compressed(using: .lzfse) as Data]
+        let decoded = try UntetheredEnvelope.decode(oldPayload)
+        #expect(decoded?.message == .startRequest)
+        #expect(decoded?.appVersion == nil)
+    }
 }

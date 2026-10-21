@@ -288,8 +288,10 @@ struct UntetheredStatusView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.untethered)
-                .disabled(!isPhoneReachable)
-                if !isPhoneReachable {
+                .disabled(!isPhoneReachable || manager.versionMismatch != nil)
+                if let mismatch = manager.versionMismatch {
+                    note(mismatch)
+                } else if !isPhoneReachable {
                     note("Starts with the phone nearby and Trio open on it.")
                     // without a copy the note below says why
                     if WatchState.shared.allowUntetheredStartWithoutPhone, manager.startWithoutPhoneUnavailable == nil {

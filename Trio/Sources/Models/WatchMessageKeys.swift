@@ -61,6 +61,8 @@ enum WatchMessageKeys {
     // Forecast
     static let showForecastWatch = "showForecastWatch"
     static let untetheredModeWatch = "untetheredModeWatch"
+    /// The phone app's version and build (`UntetheredVersion.current`), with every watch state.
+    static let phoneAppVersion = "phoneAppVersion"
     static let isForecastCone = "isForecastCone"
     static let forecastData = "forecastData"
     static let forecastStartDate = "forecastStartDate"
