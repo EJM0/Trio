@@ -189,7 +189,7 @@ jobs:
   build:
     name: Build
     needs: [check_certs, check_status]
-    runs-on: macos-26
+    runs-on: xcode-27  # the macos-26 queue left builds waiting and failing (2026-10-21); LoopFollow's pool
     permissions:
       contents: write
     if:
@@ -199,7 +199,14 @@ jobs:
         (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' )
     steps:
       - name: Select Xcode version
-        run: "sudo xcode-select --switch /Applications/Xcode_26.5.app/Contents/Developer"
+        # Xcode 26.5 as before where the runner has it, else the runner's Xcode 27
+        run: |
+          if [ -d /Applications/Xcode_26.5.app ]; then
+            sudo xcode-select --switch /Applications/Xcode_26.5.app/Contents/Developer
+          else
+            sudo xcode-select --switch "$(ls -d /Applications/Xcode_27*.app | sort -V | tail -1)/Contents/Developer"
+          fi
+          xcodebuild -version
       
       - name: Checkout Repo for building
         uses: actions/checkout@v5
