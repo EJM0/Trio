@@ -219,6 +219,18 @@ import WatchKit
             }
             refresh()
 
+        case .revoke:
+            // the answer to this stall's hand-back request: the same note, now saying it's done
+            let asked = handbackRequestedAt != nil && data.session.phase == .active
+            apply(.received(envelope.message, epoch: envelope.epoch), reply: replyHandler)
+            if asked, data.session.phase == .idle {
+                notify(
+                    id: Self.notificationPrefix + "handbackRequest",
+                    title: String(localized: "Pump Back on iPhone"),
+                    body: String(localized: "The iPhone has the pump again and loops. Start untethered mode again when you want.")
+                )
+            }
+
         case let .startRefused(reason):
             replyHandler?([:])
             isBusy = false
