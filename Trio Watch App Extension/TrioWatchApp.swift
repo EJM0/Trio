@@ -20,7 +20,7 @@ import UserNotifications
                     WatchShortcut.handle(url)
                 }
         }
-        .onChange(of: scenePhase) { _, newScenePhase in
+        .onChange(of: scenePhase, initial: true) { _, newScenePhase in
             WatchState.shared.setAppActive(newScenePhase == .active)
             // wrist down (inactive) or another app (background): either can freeze the app next
             if newScenePhase != .active {
@@ -36,11 +36,13 @@ import UserNotifications
             } else if newScenePhase == .active {
                 WatchState.shared.refreshIfNeeded()
                 // with the phone away, looking at the watch is the one wake left
-                UntetheredWatchManager.shared.recheckCGM()
+                let untethered = UntetheredWatchManager.shared
+                // Mark G7 foreground state before rechecking, so a missed-burst scan can start here.
+                untethered.appBecameActive()
+                untethered.recheckCGM()
                 // a sensor pairing that is due keeps Trio in front from here
-                UntetheredWatchManager.shared.appBecameActive()
                 // what loops in the background did, without waiting for the phone link
-                UntetheredWatchManager.shared.refresh()
+                untethered.refresh()
             }
         }
     }

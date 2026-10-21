@@ -187239,9 +187239,6 @@
     "iPhone not reachable. Nothing was sent." : {
 
     },
-    "iPhone Unavailable" : {
-
-    },
     "is running" : {
       "localizations" : {
         "bg" : {
@@ -249412,6 +249409,9 @@
 
     },
     "Phone in Charge" : {
+
+    },
+    "Phone Loop Stalled" : {
 
     },
     "Phone NFC required!" : {
@@ -313330,7 +313330,10 @@
         }
       }
     },
-    "The iPhone's readings stopped. The watch is taking over the loop." : {
+    "The iPhone is responding with fresh readings. The pump is returning to it." : {
+
+    },
+    "The iPhone's loop and readings stopped. The watch is taking over." : {
 
     },
     "The lowest forecasted glucose during the remaining duration of insulin action (DIA)." : {
@@ -316284,9 +316287,6 @@
 
     },
     "The watch hands the pump back as soon as it is reachable." : {
-
-    },
-    "The watch hands the pump back to the iPhone." : {
 
     },
     "The watch has had no glucose reading for %lld minutes. Keep it near the sensor; it keeps trying." : {
