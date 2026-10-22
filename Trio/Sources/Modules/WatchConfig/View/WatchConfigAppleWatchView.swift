@@ -124,7 +124,7 @@ struct WatchConfigAppleWatchView: BaseView {
                         label: String(localized: "Start by Itself When iPhone Stops"),
                         miniHint: String(localized: "The watch takes over the loop when the iPhone is gone"),
                         verboseHint: Text(
-                            "Needs the Watch sensor switch on the watch (its own G7 reading). When the iPhone is out of reach and has sent no reading for 11 minutes, while the watch has read two of its own, the watch starts untethered mode by itself from the iPhone's copy, as Start Without Phone does, once per outage. When the iPhone is back in reach for a minute, the watch hands the pump back by itself. Idea and design by Elias Maurer."
+                            "Needs the Watch sensor switch on the watch (its own G7 reading). When the iPhone is out of reach and its newest reading is 11 minutes old, while the watch has read two of its own, the watch starts untethered mode by itself from the iPhone's copy, as Start Without Phone does, once per outage. When the iPhone is back in reach for a minute, the watch hands the pump back by itself. Idea and design by Elias Maurer."
                         ),
                         headerText: nil
                     )

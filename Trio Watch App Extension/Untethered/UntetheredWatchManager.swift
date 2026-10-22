@@ -1354,7 +1354,7 @@ extension Optional {
 /// Elias Maurer's fallback loop (EJM0/Trio feat/direct-to-watch, 84ad4da and 7943e43 to 5444214), built here on
 /// this branch's own parts: the watch reader supplies the readings and Start Without Phone does the start. With
 /// Settings › Apple Watch › Start by Itself When iPhone Stops on (it needs Allow Start Without iPhone), the watch starts
-/// untethered mode by itself once the phone is out of reach and has sent no reading for 11 minutes, while the watch
+/// untethered mode by itself once the phone is out of reach and its newest reading is 11 minutes old, while the watch
 /// read two of its own; once per outage. When the phone is in reach again for a minute, it hands back by itself.
 extension UntetheredWatchManager {
     static let fallbackPhoneSilence: TimeInterval = 11 * 60
@@ -1374,8 +1374,11 @@ extension UntetheredWatchManager {
               data.session.phase == .idle, !isBusy, !WCSession.default.isReachable,
               versionMismatch == nil, standingGrantAge != nil
         else { return }
+        // The phone's newest reading, not any contact: on 22 October at 17:05 the phone, Bluetooth off in a metal
+        // pot, got through for 5 s with only its 16:50 reading, and counting that contact put the start back by
+        // 15 minutes. A phone without new readings isn't looping, whether it answers or not.
         let phoneNewest = WatchG7Reader.shared.phoneGlucoseDate ?? .distantPast
-        let lastHeard = max(phoneNewest, lastPhoneContact ?? .distantPast)
+        let lastHeard = phoneNewest
         guard now.timeIntervalSince(lastHeard) > Self.fallbackPhoneSilence,
               readerReadings.filter({ $0 > phoneNewest.addingTimeInterval(60) }).count >= 2
         else { return }
