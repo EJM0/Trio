@@ -763,7 +763,7 @@ extension UntetheredWatchManager: PumpManagerDelegate {
         if type == .error, message.contains("CBErrorDomain Code=14") || message.contains("CBErrorDomain Code=15") {
             DispatchQueue.main.async {
                 self.setError(String(
-                    localized: "The sensor refuses this watch's Bluetooth pairing. On the watch, open Settings › Bluetooth, forget the DXCM device and wait for the next reading."
+                    localized: "The sensor refuses this watch's Bluetooth pairing. On the watch, open Settings › Bluetooth and forget the DXCM device, then open Trio and keep it open until a glucose value shows; accept the pairing request."
                 ))
             }
         }
@@ -888,6 +888,9 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         guard isActive else { return }
         if message.contains("Pairing: running the key exchange")
             || message.contains("the sensor no longer accepts the saved key")
+            // the same sensor asking to bond again (bond=2) after its Bluetooth pairing was lost; 2026-10-22 05:00:
+            // Trio left the screen a second into it, the sensor dropped the link, no reading for 50 minutes
+            || message.contains("Running the certificate exchange")
         {
             sensorPairingDue()
         } else if message.contains("expect the system pairing prompt") {
