@@ -1056,13 +1056,57 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         // outside a session the link only stays warm; the phone reads the same sensor
         guard isActive, case let .newData(samples) = readingResult, !samples.isEmpty else { return }
         sensorPairingDone()
+        takeReadings(samples.filter { !$0.wasUserEntered }.map {
+            SessionReading(
+                date: $0.date,
+                mgdl: Int($0.quantity.doubleValue(for: HKUnit(from: "mg/dL"))),
+                direction: .untethered($0.trend)
+            )
+        })
+    }
+
+    struct SessionReading {
+        let date: Date
+        let mgdl: Int
+        let direction: BloodGlucose.Direction
+    }
+
+    /// The watch's own G7 reader's readings since the phone's newest, into a session the fallback started: it took
+    /// over because the reader had them, and without them the session began with the phone's last reading. On
+    /// 22 October at 17:22, a minute in, it sounded "no glucose reading for 31 minutes" and waited for its own sensor
+    /// link's next burst before it could loop.
+    func seedFallbackReadings() {
+        guard isActive, isFallbackSession else { return }
+        let since = max(
+            data.glucose.map(\.dateString).max() ?? .distantPast,
+            Date().addingTimeInterval(-60 * 60)
+        )
+        let readings = WatchG7Reader.shared.history.filter { $0.date > since.addingTimeInterval(60) }
+        guard !readings.isEmpty else { return }
+        Task {
+            await WatchLogger.shared.log(
+                "⌚️ Untethered: fallback — \(readings.count) of the watch reader's readings into the session",
+                force: true
+            )
+        }
+        takeReadings(readings.map {
+            SessionReading(
+                date: $0.date,
+                mgdl: $0.glucose,
+                direction: BloodGlucose.Direction(rawValue: $0.trendName ?? "") ?? .none
+            )
+        })
+    }
+
+    func takeReadings(_ readings: [SessionReading]) {
+        guard isActive, !readings.isEmpty else { return }
         let known = Set(data.glucose.map { Int($0.dateString.timeIntervalSince1970 / 30) })
         // as `GlucoseStorage.filterTooFrequentGlucose`: a new reading within 3.5 min of the previous one is
         // dropped; older readings are backfill and only need to be new
         var lastDate = data.glucose.map(\.dateString).max() ?? .distantPast
-        var fresh: [NewGlucoseSample] = []
-        for sample in samples.sorted(by: { $0.date < $1.date })
-            where !sample.wasUserEntered && !known.contains(Int(sample.date.timeIntervalSince1970 / 30))
+        var fresh: [SessionReading] = []
+        for sample in readings.sorted(by: { $0.date < $1.date })
+            where !known.contains(Int(sample.date.timeIntervalSince1970 / 30))
         {
             if sample.date > lastDate {
                 guard sample.date.addingTimeInterval(-3.5 * 60) > lastDate else { continue }
@@ -1073,11 +1117,11 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         guard !fresh.isEmpty else { return }
         let epoch = data.session.epoch
         for sample in fresh {
-            let value = Int(sample.quantity.doubleValue(for: HKUnit(from: "mg/dL")))
+            let value = sample.mgdl
             let glucose = BloodGlucose(
                 id: UUID().uuidString,
                 sgv: value,
-                direction: .untethered(sample.trend),
+                direction: sample.direction,
                 date: Decimal(Int(sample.date.timeIntervalSince1970 * 1000)),
                 dateString: sample.date,
                 unfiltered: Decimal(value),

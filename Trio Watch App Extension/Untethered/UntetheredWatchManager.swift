@@ -403,6 +403,8 @@ import WatchKit
             handOverAlertNotifications(toWatch: isActive)
             noteSessionBattery(started: isActive)
         }
+        // after the alarms are booked from the phone's reading, so the seeded ones book them again
+        if !wasActive, isActive { seedFallbackReadings() }
         // the phone may have confirmed the last records while the hand-back was still open: nothing else says so
         if wasActive, !isActive { finishSyncIfDone(epoch: epoch) }
         // the session's start dropped the copy, and the phone sends the next only when something changed
