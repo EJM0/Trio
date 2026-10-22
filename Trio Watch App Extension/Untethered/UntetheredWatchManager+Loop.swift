@@ -955,6 +955,13 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         Task { await WatchLogger.shared.log("⌚️ Untethered: keeping Trio in front for the sensor pairing", force: true) }
     }
 
+    /// The last loop, or the session's start when that is later: a session started without the phone carries the
+    /// phone's last loop over, which can be half an hour old, and the stall checks asked for a hand-back the moment
+    /// it began (2026-10-22 17:21: "hasn't reached the pod for 36 min" a minute into the fallback's session).
+    var loopReference: Date? {
+        [data.lastLoopDate, data.session.startStatus?.date].compactMap { $0 }.max()
+    }
+
     /// Readings arrive but no loop got through for this long: the pod link is presumed stuck.
     static let podLinkStallLimit: TimeInterval = 15 * 60
     /// At most one reconnect per this interval, so a pod that is really out of reach isn't hammered.
@@ -965,7 +972,7 @@ extension UntetheredWatchManager: CGMManagerDelegate {
     func checkPodLink(now: Date = Date()) {
         checkSensorStall(now: now)
         guard data.session.phase == .active, let pump = pumpManager,
-              let lastLoop = data.lastLoopDate ?? data.session.startStatus?.date,
+              let lastLoop = loopReference,
               now.timeIntervalSince(lastLoop) > Self.podLinkStallLimit,
               now.timeIntervalSince(lastPodLinkNotice ?? .distantPast) > Self.podLinkResetInterval,
               // without readings the sensor is what's missing, and its own alarm says so (2026-10-19 18:04)
@@ -1016,7 +1023,7 @@ extension UntetheredWatchManager: CGMManagerDelegate {
     /// as for a pod stall (2026-10-22: a session started at 05:00 got no reading, no loop for 56 minutes).
     func checkSensorStall(now: Date = Date()) {
         guard data.session.phase == .active,
-              let lastLoop = data.lastLoopDate ?? data.session.startStatus?.date,
+              let lastLoop = loopReference,
               now.timeIntervalSince(lastLoop) > Self.sensorStallLimit
         else { return }
         let newest = data.glucose.map(\.dateString).max()
@@ -1156,7 +1163,7 @@ extension UntetheredWatchManager {
             let minutes = Int(now.timeIntervalSince(newest) / 60)
             alarm("sensor", title: Self.noReadingsTitle, body: Self.noReadingsBody(minutes: minutes), every: 30 * 60)
         }
-        if !data.podEnded, let lastLoop = data.lastLoopDate ?? data.session.startStatus?.date,
+        if !data.podEnded, let lastLoop = loopReference,
            now.timeIntervalSince(lastLoop) > Self.notLoopingAfter
         {
             alarm("loop", title: Self.notLoopingTitle, body: Self.notLoopingBody, every: 30 * 60)
