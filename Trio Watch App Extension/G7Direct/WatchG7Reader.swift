@@ -853,6 +853,7 @@ import WatchKit
                 trendRate: message.trend
             )
             self.merge([reading])
+            UntetheredWatchManager.shared.checkFallback(readerReadings: self.history.map(\.date))
             ComplicationStore.add(reading)
             self.bookNoReadingsAlert()
             self.appendLog("Reading \(self.format(Double(reading.glucose))) \(self.units) \(self.arrow(for: reading.trendName))")

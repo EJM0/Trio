@@ -686,6 +686,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         message[WatchMessageKeys.allowUntetheredStartWithoutPhoneWatch] = settingsManager.settings
             .allowUntetheredStartWithoutPhoneWatch
         message[WatchMessageKeys.untetheredModeWatch] = settingsManager.settings.untetheredModeWatch
+        message[WatchMessageKeys.fallbackLoopWatch] = settingsManager.settings.fallbackLoopWatch
         message[WatchMessageKeys.useCriticalAlertsWatch] = settingsManager.settings.useCriticalAlerts
         message[WatchMessageKeys.phoneAppVersion] = UntetheredVersion.current
         // carbs and boluses as markers on the watch chart: times only, the values would crowd a watch screen

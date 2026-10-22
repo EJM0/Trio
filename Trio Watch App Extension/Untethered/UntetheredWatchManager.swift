@@ -39,6 +39,8 @@ import WatchKit
     @ObservationIgnored var lastPodLinkNotice: Date?
     /// When the phone was last heard from: any untethered message, or the phone reachable.
     @ObservationIgnored var lastPhoneContact: Date?
+    /// The fallback's hand-back is waiting out its minute.
+    @ObservationIgnored var fallbackHandbackPending = false
     /// This stall's request to the phone to take the pump back.
     @ObservationIgnored var handbackRequestedAt: Date?
     /// How many Pod Not Reachable notices this stall has brought; from the second on the watch vibrates harder.
@@ -859,6 +861,11 @@ import WatchKit
     private func notePhoneReturn() {
         guard isActive, data.session.startedWithoutPhone, WCSession.default.isReachable else { return }
         send(.statusReport(holding: data.session.startStatus), epoch: data.session.epoch)
+        // a session the fallback started goes back by itself
+        if isFallbackSession {
+            scheduleFallbackHandback()
+            return
+        }
         guard !data.phoneReturnNoted else { return }
         store.update { $0.phoneReturnNoted = true }
         notify(
@@ -1339,5 +1346,90 @@ extension Optional {
     func asyncMap<T>(_ transform: (Wrapped) async -> T) async -> T? {
         guard let self else { return nil }
         return await transform(self)
+    }
+}
+
+// MARK: - Fallback: the watch takes over when the phone is gone
+
+/// Elias Maurer's fallback loop (EJM0/Trio feat/direct-to-watch, 84ad4da and 7943e43 to 5444214), built here on
+/// this branch's own parts: the watch reader supplies the readings and Start Without Phone does the start. With
+/// Settings › Apple Watch › Start by Itself When iPhone Stops on (it needs Allow Start Without iPhone), the watch starts
+/// untethered mode by itself once the phone is out of reach and has sent no reading for 11 minutes, while the watch
+/// read two of its own; once per outage. When the phone is in reach again for a minute, it hands back by itself.
+extension UntetheredWatchManager {
+    static let fallbackPhoneSilence: TimeInterval = 11 * 60
+    static let fallbackHandbackGrace: TimeInterval = 60
+    private static let fallbackEpochKey = "untethered.fallbackEpoch"
+    private static let fallbackTriedForKey = "untethered.fallbackTriedFor"
+
+    /// The running session is one the fallback started.
+    var isFallbackSession: Bool {
+        data.session.phase != .idle && UserDefaults.standard.object(forKey: Self.fallbackEpochKey) as? Int == data.session.epoch
+    }
+
+    /// After each of the reader's readings: the phone gone, the watch reading, a copy to start from.
+    func checkFallback(readerReadings: [Date], now: Date = Date()) {
+        let state = WatchState.shared
+        guard state.fallbackLoop, state.untetheredMode, state.allowUntetheredStartWithoutPhone,
+              data.session.phase == .idle, !isBusy, !WCSession.default.isReachable,
+              versionMismatch == nil, standingGrantAge != nil
+        else { return }
+        let phoneNewest = WatchG7Reader.shared.phoneGlucoseDate ?? .distantPast
+        let lastHeard = max(phoneNewest, lastPhoneContact ?? .distantPast)
+        guard now.timeIntervalSince(lastHeard) > Self.fallbackPhoneSilence,
+              readerReadings.filter({ $0 > phoneNewest.addingTimeInterval(60) }).count >= 2
+        else { return }
+        // once per outage: the next try needs a newer reading from the phone first
+        let triedFor = UserDefaults.standard.object(forKey: Self.fallbackTriedForKey) as? Date
+        guard triedFor != phoneNewest else { return }
+        UserDefaults.standard.set(phoneNewest, forKey: Self.fallbackTriedForKey)
+        let minutes = Int(now.timeIntervalSince(lastHeard) / 60)
+        Task {
+            await WatchLogger.shared.log(
+                "⌚️ Untethered: fallback — no word from the phone for \(minutes) min, the watch reads the sensor: starting without the phone",
+                force: true
+            )
+        }
+        startWithoutPhone()
+        guard data.session.phase == .starting else {
+            Task { await WatchLogger.shared.log("⌚️ Untethered: fallback start didn't begin", force: true) }
+            return
+        }
+        UserDefaults.standard.set(data.session.epoch, forKey: Self.fallbackEpochKey)
+        notify(
+            id: Self.notificationPrefix + "fallback",
+            title: String(localized: "Watch Took Over"),
+            body: String(
+                localized: "The iPhone has been silent for \(minutes) minutes and is out of reach. The watch runs the pump until it's back, then hands it back by itself."
+            )
+        )
+    }
+
+    /// The phone is back (in reach, or its watch state arrived with a fresh reading): after a minute the fallback's
+    /// session goes back to it, by the queued request a stall uses, as the watch is rarely in reach in the background
+    /// (2026-10-21: the walk's request reached the phone on its own). The status goes first, so the phone knows the
+    /// session the request names.
+    func scheduleFallbackHandback() {
+        guard isFallbackSession, data.session.phase == .active, !fallbackHandbackPending else { return }
+        fallbackHandbackPending = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.fallbackHandbackGrace) { [weak self] in
+            guard let self else { return }
+            self.fallbackHandbackPending = false
+            guard self.isFallbackSession, self.data.session.phase == .active, !self.isBolusing,
+                  Date().timeIntervalSince(self.handbackRequestedAt ?? .distantPast) > Self.handbackRequestRepeat
+            else { return }
+            self.handbackRequestedAt = Date()
+            Task { await WatchLogger.shared.log("⌚️ Untethered: fallback — the phone is back, handing the pump back", force: true) }
+            self.send(.statusReport(holding: self.data.session.startStatus), epoch: self.data.session.epoch, queueing: true)
+            self.send(.handbackRequested(minutesWithoutLoop: 0), epoch: self.data.session.epoch, queueing: true)
+        }
+    }
+
+    /// The phone's watch state arrived: with a reading of its own from the last 10 minutes, the phone is back.
+    func notePhoneState() {
+        guard isFallbackSession, data.session.phase == .active,
+              let phoneNewest = WatchG7Reader.shared.phoneGlucoseDate, Date().timeIntervalSince(phoneNewest) < 10 * 60
+        else { return }
+        scheduleFallbackHandback()
     }
 }

@@ -85,6 +85,11 @@ import WatchConnectivity
         }
     }
 
+    /// Settings › Apple Watch › Start by Itself When iPhone Stops, as the phone last sent it; kept for when it's gone.
+    var fallbackLoop: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.fallbackLoopWatch) {
+        didSet { UserDefaults.standard.set(fallbackLoop, forKey: WatchMessageKeys.fallbackLoopWatch) }
+    }
+
     /// Settings › Notifications › Critical Alerts, as the phone last sent it; kept, so the watch's alarms follow it
     /// while the phone is away. Turning it on asks watchOS for critical alerts, which only a build carrying the
     /// critical-alerts entitlement is granted; without it the alarms stay ordinary notifications.
@@ -715,6 +720,10 @@ import WatchConnectivity
             useCriticalAlerts = critical
         }
 
+        if let fallback = message[WatchMessageKeys.fallbackLoopWatch] as? Bool, fallback != fallbackLoop {
+            fallbackLoop = fallback
+        }
+
         if let allow = message[WatchMessageKeys.allowUntetheredStartWithoutPhoneWatch] as? Bool {
             if allow != allowUntetheredStartWithoutPhone { allowUntetheredStartWithoutPhone = allow }
             // also a copy an earlier build left, when it was sent regardless
@@ -738,6 +747,8 @@ import WatchConnectivity
 
         // Sensor details, alarm thresholds and units for the watch's own G7 reading.
         WatchG7Reader.shared.updateFromPhone(message)
+        // a session the fallback started goes back once the phone sends fresh readings again
+        UntetheredWatchManager.shared.notePhoneState()
         // after the reader took the units and alert thresholds from the same message
         if message[WatchMessageKeys.glucoseValues] != nil {
             ComplicationStore.update(
