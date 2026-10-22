@@ -199,16 +199,21 @@ jobs:
         (vars.SCHEDULED_SYNC != 'false' && needs.check_status.outputs.NEW_COMMITS == 'true' )
     steps:
       - name: Select Xcode version
-        # Xcode 26.5 as before where the runner has it, else the newest released Xcode 27 (never a beta or
-        # release candidate: 2026-10-21 picked 27.2 beta 3), else whatever the runner selects by default
+        # Xcode 26.5 as before where the runner has it, else a released Xcode 27, never a beta or release
+        # candidate. The runner's Xcode_27.2.app is only a link to Xcode_27.2_beta_2.app (2026-10-21: App Store
+        # Connect refused the upload, ITMS-90534), so each name is followed to the folder it points to first.
+        # 27.1, then 27.0 as LoopFollow builds with; else the runner's default.
         run: |
-          ls -d /Applications/Xcode*.app
-          if [ -d /Applications/Xcode_26.5.app ]; then
-            XCODE=/Applications/Xcode_26.5.app
-          else
-            XCODE=$(ls -d /Applications/Xcode_27*.app | grep -viE 'beta|release_candidate|_rc' | sort -V | tail -1)
-          fi
+          for x in /Applications/Xcode*.app; do echo "$x -> $(cd "$x" && pwd -P)"; done
+          XCODE=""
+          for x in /Applications/Xcode_26.5.app /Applications/Xcode_27.1.app /Applications/Xcode_27.0.app; do
+            [ -d "$x" ] || continue
+            real=$(cd "$x" && pwd -P)
+            if echo "$real" | grep -qiE 'beta|release_candidate|_rc'; then continue; fi
+            XCODE="$real"; break
+          done
           if [ -n "$XCODE" ]; then sudo xcode-select --switch "$XCODE/Contents/Developer"; fi
+          echo "Selected: ${XCODE:-runner default}"
           xcodebuild -version
       
       - name: Checkout Repo for building
