@@ -988,7 +988,9 @@ import WatchKit
     /// watchOS reports the phone unreachable to an app in the background almost always, so the request goes queued
     /// as well, which wakes the phone app; it is only sent with the phone heard from in the last 30 minutes. The watch
     /// keeps the pump and keeps trying until the phone's revoke arrives, so a phone that is away changes nothing.
-    func requestHandbackForPodStall(minutes: Int, now: Date = Date()) {
+    enum HandbackReason { case podStall, noReadings }
+
+    func requestHandback(minutes: Int, reason: HandbackReason, now: Date = Date()) {
         let phoneNearby = WCSession.default.isReachable
             || lastPhoneContact.map { now.timeIntervalSince($0) < Self.phoneContactWindow } ?? false
         guard data.session.phase == .active, !isBolusing, phoneNearby,
@@ -997,16 +999,20 @@ import WatchKit
         handbackRequestedAt = now
         Task {
             await WatchLogger.shared.log(
-                "⌚️ Untethered: no loop for \(minutes) min, asking the phone to take the pump back",
+                "⌚️ Untethered: no loop for \(minutes) min (\(reason == .podStall ? "pod not reached" : "no sensor readings")), asking the phone to take the pump back",
                 force: true
             )
         }
         notify(
             id: Self.notificationPrefix + "handbackRequest",
             title: String(localized: "Handing Back to iPhone"),
-            body: String(
-                localized: "The watch hasn't reached the pod for \(minutes) minutes. The iPhone takes the pump back as soon as it gets the request; keep it nearby."
-            )
+            body: reason == .podStall
+                ? String(
+                    localized: "The watch hasn't reached the pod for \(minutes) minutes. The iPhone takes the pump back as soon as it gets the request; keep it nearby."
+                )
+                : String(
+                    localized: "The watch has had no sensor reading and no loop for \(minutes) minutes. The iPhone takes the pump back as soon as it gets the request; keep it nearby."
+                )
         )
         send(.handbackRequested(minutesWithoutLoop: minutes), epoch: data.session.epoch, queueing: true)
     }

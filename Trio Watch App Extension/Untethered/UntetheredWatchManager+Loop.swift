@@ -960,6 +960,7 @@ extension UntetheredWatchManager: CGMManagerDelegate {
     /// A loop that keeps failing to reach the pod while readings come in usually has a stuck connection, which
     /// otherwise only opening the app clears. The link is torn down and searched for afresh.
     func checkPodLink(now: Date = Date()) {
+        checkSensorStall(now: now)
         guard data.session.phase == .active, let pump = pumpManager,
               let lastLoop = data.lastLoopDate ?? data.session.startStatus?.date,
               now.timeIntervalSince(lastLoop) > Self.podLinkStallLimit,
@@ -969,7 +970,7 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         else { return }
         let minutes = Int(now.timeIntervalSince(lastLoop) / 60)
         // with the phone nearby it takes the pump back; until its revoke arrives the watch keeps trying and alerting
-        requestHandbackForPodStall(minutes: minutes, now: now)
+        requestHandback(minutes: minutes, reason: .podStall, now: now)
         // Every 10 minutes while it lasts, not only once: once was easy to miss (2026-10-20, 12:25 went unnoticed),
         // and opening Trio is what cleared the stall (13:32). Removed and posted again so it alerts each time.
         lastPodLinkNotice = now
@@ -998,6 +999,22 @@ extension UntetheredWatchManager: CGMManagerDelegate {
             )
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.loopHoldLimit) { releaseHold() }
+    }
+
+    /// Neither a reading nor a loop for this long: the watch's own sensor link isn't working.
+    static let sensorStallLimit: TimeInterval = 20 * 60
+
+    /// No reading and no loop: the pod check above stands back (the sensor is what's missing), but nothing else
+    /// would end the session either, and the watch can't loop without readings. The phone takes the pump back,
+    /// as for a pod stall (2026-10-22: a session started at 05:00 got no reading, no loop for 56 minutes).
+    func checkSensorStall(now: Date = Date()) {
+        guard data.session.phase == .active,
+              let lastLoop = data.lastLoopDate ?? data.session.startStatus?.date,
+              now.timeIntervalSince(lastLoop) > Self.sensorStallLimit
+        else { return }
+        let newest = data.glucose.map(\.dateString).max()
+        guard newest.map({ now.timeIntervalSince($0) > Self.sensorStallLimit }) ?? true else { return }
+        requestHandback(minutes: Int(now.timeIntervalSince(lastLoop) / 60), reason: .noReadings, now: now)
     }
 
     /// A loop reached the pod again: the search an escalation started ends, and so does its notice.
