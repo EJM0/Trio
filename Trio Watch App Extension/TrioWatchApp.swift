@@ -22,6 +22,7 @@ import WatchKit
             // wrist down (inactive) or another app (background): either can freeze the app next
             if newScenePhase != .active {
                 UntetheredWatchManager.shared.appLeavingScreen()
+                WatchG7Reader.shared.appLeavingScreen()
             }
             if newScenePhase == .background {
                 // with the watch's own sensor link the log waits for the phone and a moment clear of the reading,
@@ -35,6 +36,7 @@ import WatchKit
             } else if newScenePhase == .active {
                 // in front first, so the recheck holds in the app; a sensor pairing that is due keeps Trio in front
                 UntetheredWatchManager.shared.appBecameActive()
+                WatchG7Reader.shared.appBecameActive()
                 // with the phone away, looking at the watch is the one wake left
                 UntetheredWatchManager.shared.recheckCGM()
                 // what loops in the background did, without waiting for the phone link

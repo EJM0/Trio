@@ -24,7 +24,7 @@ enum WatchStateSnapshot {
 // MARK: - Glucose for the watch face
 
 /// What the watch-face graph shows. The watch app writes it to the app group whenever a newer reading
-/// arrives (from the phone or untethered mode); the complication only reads
+/// arrives (from the phone, untethered mode or the watch's own G7 reader); the complication only reads
 /// it. Keep in step with the copy in TrioWatchComplication.swift.
 struct TrioComplicationData: Codable {
     struct Point: Codable {
@@ -78,13 +78,14 @@ enum ComplicationStore {
     }
 
     private static func range(isMmol: Bool, lowMgDL: Double? = nil, highMgDL: Double? = nil) -> (low: Double, high: Double) {
-        let low = lowMgDL ?? 70
-        let high = highMgDL ?? 180
+        let reader = WatchG7Reader.shared
+        let low = lowMgDL ?? reader.lowMgDL ?? 70
+        let high = highMgDL ?? reader.highMgDL ?? 180
         return isMmol ? (low * mmolFactor, high * mmolFactor) : (low, high)
     }
 
-    /// After the phone's data or untethered mode's own reached the watch state, with the units and range
-    /// each sends.
+    /// After the phone's data or untethered mode's own reached the watch state. Untethered mode passes
+    /// its units and range; the phone's come through the reader's settings.
     static func update(
         from state: WatchState,
         isMmol: Bool? = nil,
@@ -95,14 +96,14 @@ enum ComplicationStore {
     ) {
         guard let newest = state.glucoseValues.last else { return }
         let old = load()
-        let isMmol = isMmol ?? old?.isMmol ?? false
+        let isMmol = isMmol ?? WatchG7Reader.shared.isMmol
         let cutoff = Date().addingTimeInterval(-span)
         // the phone and untethered mode already colored each reading by the scheme
         var points = state.glucoseValues.filter { $0.date >= cutoff }
             .map { TrioComplicationData.Point(date: $0.date, value: $0.glucose, color: $0.color.toHexString()) }
         var trend = state.trend
         var delta = state.delta
-        // untethered mode may be ahead of the phone's last message: keep its newer readings
+        // the watch's own reader may be ahead of the phone: keep its newer readings
         if let old, old.isMmol == isMmol {
             let newer = old.points.filter { $0.date > newest.date.addingTimeInterval(60) }
             if !newer.isEmpty {
@@ -122,6 +123,53 @@ enum ComplicationStore {
                 delta: delta,
                 colorScheme: colorScheme ?? old?.colorScheme,
                 targetMgDL: targetMgDL ?? old?.targetMgDL
+            ),
+            previousLatest: old?.points.last?.date
+        )
+    }
+
+    /// A reading of the watch's own G7 reader, in mg/dL.
+    static func add(_ reading: WatchG7Reading) {
+        let old = load()
+        let isMmol = WatchG7Reader.shared.isMmol
+        var points = (old?.isMmol == isMmol ? old?.points : nil) ?? []
+        // within a minute of one already there it is the same reading
+        guard !points.contains(where: { abs($0.date.timeIntervalSince(reading.date)) < 60 }),
+              reading.date > (points.last?.date ?? .distantPast)
+        else { return }
+        let value = isMmol ? Double(reading.glucose) * mmolFactor : Double(reading.glucose)
+        var delta: String?
+        if let previous = points.last, reading.date.timeIntervalSince(previous.date) < 15 * 60 {
+            let change = value - previous.value
+            let formatted = change.formatted(.number.precision(.fractionLength(isMmol ? 1 : 0)))
+            delta = change < 0 ? formatted : "+" + formatted
+        }
+        let cutoff = Date().addingTimeInterval(-span)
+        points.removeAll { $0.date < cutoff }
+        // the range the phone or untethered mode last gave, else the reader's alert thresholds
+        var shaded = range(isMmol: isMmol)
+        if let old, old.isMmol == isMmol { shaded = (low: old.low, high: old.high) }
+        // colored as the phone colors it: the dynamic scheme ramps between fixed ends around the target
+        let scheme = old?.colorScheme.flatMap(GlucoseColorScheme.init(rawValue:)) ?? .staticColor
+        let toMgDL = isMmol ? 1 / mmolFactor : 1
+        let color = getDynamicGlucoseColor(
+            glucoseValue: Decimal(reading.glucose),
+            highGlucoseColorValue: scheme == .dynamicColor ? 220 : Decimal(shaded.high * toMgDL),
+            lowGlucoseColorValue: scheme == .dynamicColor ? 55 : Decimal(shaded.low * toMgDL),
+            targetGlucose: Decimal(old?.targetMgDL ?? 100),
+            glucoseColorScheme: scheme
+        )
+        points.append(.init(date: reading.date, value: value, color: color.toHexString()))
+        save(
+            TrioComplicationData(
+                points: points,
+                isMmol: isMmol,
+                low: shaded.low,
+                high: shaded.high,
+                trend: reading.trendName,
+                delta: delta,
+                colorScheme: old?.colorScheme,
+                targetMgDL: old?.targetMgDL
             ),
             previousLatest: old?.points.last?.date
         )

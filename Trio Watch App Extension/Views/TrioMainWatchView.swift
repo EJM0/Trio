@@ -6,15 +6,21 @@ struct TrioMainWatchView: View {
     @State private var state = WatchState.shared
     @State private var untethered = UntetheredWatchManager.shared
 
-    // Pages: glucose, chart, untethered mode's status page, and while the watch loops, its loop status.
-    private let statusPage = 2
+    // Pages in order: bubble, chart, the watch's own G7 reading, then untethered mode's status page, where it
+    // starts from the wrist and its history opens, and while it loops, the watch's own loop status.
+    private let watchSensorPage = 2
     /// Untethered mode off on the phone: no status page, but a session still running keeps it.
     private var showsUntethered: Bool { state.untetheredMode || untethered.isActive }
+    private var statusPage: Int { watchSensorPage + 1 }
+    /// The watch's own loop status, while it loops.
     private var loopPage: Int? { untethered.isActive ? statusPage + 1 : nil }
-    private var lastPage: Int { showsUntethered ? loopPage ?? statusPage : 1 }
+    private var lastPage: Int { showsUntethered ? loopPage ?? statusPage : watchSensorPage }
 
     // misc
     @State private var currentPage: Int = 0
+    /// Scrubbing the chart with the crown (see GlucoseChartView).
+    @State private var isScrubbingChart = false
+    @State private var chartScrubSteps = 0.0
     @State private var rotationDegrees: Double = 0.0
     @State private var showingTempTargetSheet = false
 
@@ -77,11 +83,16 @@ struct TrioMainWatchView: View {
             TabView(selection: $currentPage) {
                 // Page 1: Current glucose trend in "BG bobble"
                 ZStack {
-                    GlucoseTrendView(
-                        state: state,
-                        rotationDegrees: rotationDegrees,
-                        isWatchStateDated: isWatchStateDated || isSessionUnreachable
-                    )
+                    // Re-evaluated every 15 s: "stale" and "the watch has a newer
+                    // reading" depend on the clock, not only on new data, so the
+                    // bubble switches as soon as the phone's data ages out.
+                    TimelineView(.periodic(from: .now, by: 15)) { _ in
+                        GlucoseTrendView(
+                            state: state,
+                            rotationDegrees: rotationDegrees,
+                            isWatchStateDated: isWatchStateDated || isSessionUnreachable
+                        )
+                    }
 
                     if state.showSyncingAnimation {
                         Image(systemName: "iphone.radiowaves.left.and.right")
@@ -103,9 +114,15 @@ struct TrioMainWatchView: View {
                 // Page 2: Glucose chart
                 GlucoseChartView(
                     state: state,
-                    glucoseValues: state.glucoseValues
+                    glucoseValues: state.glucoseValues,
+                    isScrubbing: $isScrubbingChart,
+                    scrubSteps: $chartScrubSteps
                 )
                 .tag(1)
+
+                // Page 3: the watch reading the G7 itself
+                WatchG7View()
+                    .tag(watchSensorPage)
 
                 if showsUntethered {
                     UntetheredStatusView(manager: untethered).tag(statusPage)
@@ -137,6 +154,7 @@ struct TrioMainWatchView: View {
             .background(trioBackgroundColor)
             .tabViewStyle(.verticalPage)
             .digitalCrownRotation($currentPage.doubleBinding(), from: 0, through: Double(lastPage), by: 1)
+            .modifier(ChartScrubEnd(isScrubbing: $isScrubbingChart, scrubSteps: $chartScrubSteps, currentPage: currentPage))
             .onChange(of: state.trend) { _, newTrend in
                 withAnimation {
                     updateRotation(for: newTrend)
@@ -146,6 +164,7 @@ struct TrioMainWatchView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     VStack {
                         Image(systemName: "syringe.fill")
+                            .font(.system(size: 15))
                             .foregroundStyle(Color.insulin)
 
                         Text(isPhoneDataUnusable ? "--" : state.iob ?? "--")
@@ -158,6 +177,7 @@ struct TrioMainWatchView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     VStack {
                         Image(systemName: "fork.knife")
+                            .font(.system(size: 15))
                             .foregroundStyle(Color.orange)
 
                         Text(isPhoneDataUnusable ? "--" : state.cob ?? "--")
@@ -168,8 +188,8 @@ struct TrioMainWatchView: View {
                 }
 
                 ToolbarItemGroup(placement: .bottomBar) {
-                    if currentPage != statusPage, currentPage != loopPage {
-                        // the status and loop pages have no treatment controls
+                    if currentPage == 0 {
+                        // treatments, overrides and temp targets on the first page only; the chart gets the room
                         Button {
                             showingOverrideSheet = true
                         } label: {
@@ -313,4 +333,33 @@ struct TrioMainWatchView: View {
 
 #Preview {
     TrioMainWatchView()
+}
+
+/// Ends the chart's scrubbing (GlucoseChartView), which then hands the crown back to the pages: by turning the
+/// crown back past now, after 10 seconds without a turn, or on leaving the chart page. A tap on the chart ends it too.
+struct ChartScrubEnd: ViewModifier {
+    @Binding var isScrubbing: Bool
+    @Binding var scrubSteps: Double
+    let currentPage: Int
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: scrubSteps) { _, steps in
+                if isScrubbing, steps < 0 { stop() }
+            }
+            .onChange(of: currentPage) { _, page in
+                if page != 1, isScrubbing { stop() }
+            }
+            // restarts with every turn; 10 s still ends it
+            .task(id: isScrubbing ? scrubSteps : -2) {
+                guard isScrubbing else { return }
+                try? await Task.sleep(for: .seconds(10))
+                if !Task.isCancelled, isScrubbing { stop() }
+            }
+    }
+
+    private func stop() {
+        withAnimation { isScrubbing = false }
+        scrubSteps = 0
+    }
 }

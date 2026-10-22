@@ -1193,6 +1193,36 @@
 		CA0924000000000000000002 /* GRICalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0924000000000000000001 /* GRICalculator.swift */; };
 		CA0924000000000000000004 /* GRIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0924000000000000000003 /* GRIView.swift */; };
 		CA0924000000000000000006 /* GRICalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0924000000000000000005 /* GRICalculatorTests.swift */; };
+		D7C0FFEE0000000000000002 /* AlgorithmState.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000001 /* AlgorithmState.swift */; };
+		D7C0FFEE0000000000000004 /* AuthChallengeRxMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000003 /* AuthChallengeRxMessage.swift */; };
+		D7C0FFEE0000000000000006 /* BluetoothServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000005 /* BluetoothServices.swift */; };
+		D7C0FFEE0000000000000008 /* CBPeripheral.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000007 /* CBPeripheral.swift */; };
+		D7C0FFEE000000000000000A /* Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000009 /* Data.swift */; };
+		D7C0FFEE000000000000000C /* G7AES.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE000000000000000B /* G7AES.swift */; };
+		D7C0FFEE000000000000000E /* G7Authenticator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE000000000000000D /* G7Authenticator.swift */; };
+		D7C0FFEE0000000000000010 /* G7BigUInt.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE000000000000000F /* G7BigUInt.swift */; };
+		D7C0FFEE0000000000000012 /* G7BluetoothManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000011 /* G7BluetoothManager.swift */; };
+		D7C0FFEE0000000000000014 /* G7ChallengeSigner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000013 /* G7ChallengeSigner.swift */; };
+		D7C0FFEE0000000000000016 /* G7DexcomCredentials.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000015 /* G7DexcomCredentials.swift */; };
+		D7C0FFEE0000000000000018 /* G7DisplayType.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000017 /* G7DisplayType.swift */; };
+		D7C0FFEE000000000000001A /* G7JPAKE.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000019 /* G7JPAKE.swift */; };
+		D7C0FFEE000000000000001C /* G7Opcode.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE000000000000001B /* G7Opcode.swift */; };
+		D7C0FFEE000000000000001E /* G7P256.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE000000000000001D /* G7P256.swift */; };
+		D7C0FFEE0000000000000020 /* G7P256Field.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE000000000000001F /* G7P256Field.swift */; };
+		D7C0FFEE0000000000000022 /* G7PCert.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000021 /* G7PCert.swift */; };
+		D7C0FFEE0000000000000024 /* G7PeripheralManager+Handshake.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000023 /* G7PeripheralManager+Handshake.swift */; };
+		D7C0FFEE0000000000000026 /* G7PeripheralManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000025 /* G7PeripheralManager.swift */; };
+		D7C0FFEE0000000000000028 /* G7SensorIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000027 /* G7SensorIdentity.swift */; };
+		D7C0FFEE000000000000002A /* G7WatchAcquisition.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000029 /* G7WatchAcquisition.swift */; };
+		D7C0FFEE000000000000002C /* GlucoseLimits.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE000000000000002B /* GlucoseLimits.swift */; };
+		D7C0FFEE000000000000002E /* Locked.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE000000000000002D /* Locked.swift */; };
+		D7C0FFEE0000000000000030 /* OSLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE000000000000002F /* OSLog.swift */; };
+		D7C0FFEE0000000000000032 /* SensorMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000031 /* SensorMessage.swift */; };
+		D7C0FFEE0000000000000034 /* TimeInterval.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000033 /* TimeInterval.swift */; };
+		D7C0FFEE0000000000000038 /* WatchG7Messages.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000037 /* WatchG7Messages.swift */; };
+		D7C0FFEE000000000000003A /* WatchG7Reader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE0000000000000039 /* WatchG7Reader.swift */; };
+		D7C0FFEE000000000000003C /* WatchG7Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE000000000000003B /* WatchG7Session.swift */; };
+		D7C0FFEE000000000000003E /* WatchG7View.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C0FFEE000000000000003D /* WatchG7View.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -2392,6 +2422,38 @@
 		CA0924000000000000000001 /* GRICalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRICalculator.swift; sourceTree = "<group>"; };
 		CA0924000000000000000003 /* GRIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRIView.swift; sourceTree = "<group>"; };
 		CA0924000000000000000005 /* GRICalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRICalculatorTests.swift; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000001 /* AlgorithmState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AlgorithmState.swift"; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000003 /* AuthChallengeRxMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthChallengeRxMessage.swift"; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000005 /* BluetoothServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BluetoothServices.swift"; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000007 /* CBPeripheral.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CBPeripheral.swift"; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000009 /* Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Data.swift"; sourceTree = "<group>"; };
+		D7C0FFEE000000000000000B /* G7AES.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "G7AES.swift"; sourceTree = "<group>"; };
+		D7C0FFEE000000000000000D /* G7Authenticator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "G7Authenticator.swift"; sourceTree = "<group>"; };
+		D7C0FFEE000000000000000F /* G7BigUInt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "G7BigUInt.swift"; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000011 /* G7BluetoothManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "G7BluetoothManager.swift"; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000013 /* G7ChallengeSigner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "G7ChallengeSigner.swift"; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000015 /* G7DexcomCredentials.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "G7DexcomCredentials.swift"; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000017 /* G7DisplayType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "G7DisplayType.swift"; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000019 /* G7JPAKE.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "G7JPAKE.swift"; sourceTree = "<group>"; };
+		D7C0FFEE000000000000001B /* G7Opcode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "G7Opcode.swift"; sourceTree = "<group>"; };
+		D7C0FFEE000000000000001D /* G7P256.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "G7P256.swift"; sourceTree = "<group>"; };
+		D7C0FFEE000000000000001F /* G7P256Field.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "G7P256Field.swift"; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000021 /* G7PCert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "G7PCert.swift"; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000023 /* G7PeripheralManager+Handshake.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "G7PeripheralManager+Handshake.swift"; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000025 /* G7PeripheralManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "G7PeripheralManager.swift"; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000027 /* G7SensorIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "G7SensorIdentity.swift"; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000029 /* G7WatchAcquisition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "G7WatchAcquisition.swift"; sourceTree = "<group>"; };
+		D7C0FFEE000000000000002B /* GlucoseLimits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GlucoseLimits.swift"; sourceTree = "<group>"; };
+		D7C0FFEE000000000000002D /* Locked.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Locked.swift"; sourceTree = "<group>"; };
+		D7C0FFEE000000000000002F /* OSLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OSLog.swift"; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000031 /* SensorMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SensorMessage.swift"; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000033 /* TimeInterval.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TimeInterval.swift"; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000037 /* WatchG7Messages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchG7Messages.swift"; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000039 /* WatchG7Reader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchG7Reader.swift"; sourceTree = "<group>"; };
+		D7C0FFEE000000000000003B /* WatchG7Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchG7Session.swift"; sourceTree = "<group>"; };
+		D7C0FFEE000000000000003D /* WatchG7View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchG7View.swift"; sourceTree = "<group>"; };
+		D7C0FFEE000000000000003F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		D7C0FFEE0000000000000040 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -4391,6 +4453,8 @@
 				BDFF7A9E2D25FA970016C40C /* Preview Content */,
 				BDFF7A832D25F97D0016C40C /* Assets.xcassets */,
 				BDFF7A852D25F97D0016C40C /* TrioWatchApp.swift */,
+				D7C0FFEE0000000000000042 /* G7Direct */,
+				D7C0FFEE0000000000000040 /* Info.plist */,
 			);
 			path = "Trio Watch App Extension";
 			sourceTree = "<group>";
@@ -5248,7 +5312,6 @@
 				F8535A7C77C96A85512D5319 /* UntetheredWatchManager+Loop.swift */,
 				71217E2B7E28E30291910EDF /* WatchDeviceManagers.swift */,
 				307F95E02AD95DB27D3A0263 /* UntetheredViews.swift */,
-				D7C0FFEE0000000000000035 /* TrioWatchAppDelegate.swift */,
 			);
 			path = Untethered;
 			sourceTree = "<group>";
@@ -5259,6 +5322,53 @@
 				898B03E37D7CA6944AA033F9 /* StartUntetheredIntent.swift */,
 			);
 			path = Untethered;
+			sourceTree = "<group>";
+		};
+		D7C0FFEE0000000000000041 /* G7SensorKit */ = {
+			isa = PBXGroup;
+			children = (
+				D7C0FFEE0000000000000001 /* AlgorithmState.swift */,
+				D7C0FFEE0000000000000003 /* AuthChallengeRxMessage.swift */,
+				D7C0FFEE0000000000000005 /* BluetoothServices.swift */,
+				D7C0FFEE0000000000000007 /* CBPeripheral.swift */,
+				D7C0FFEE0000000000000009 /* Data.swift */,
+				D7C0FFEE000000000000000B /* G7AES.swift */,
+				D7C0FFEE000000000000000D /* G7Authenticator.swift */,
+				D7C0FFEE000000000000000F /* G7BigUInt.swift */,
+				D7C0FFEE0000000000000011 /* G7BluetoothManager.swift */,
+				D7C0FFEE0000000000000013 /* G7ChallengeSigner.swift */,
+				D7C0FFEE0000000000000015 /* G7DexcomCredentials.swift */,
+				D7C0FFEE0000000000000017 /* G7DisplayType.swift */,
+				D7C0FFEE0000000000000019 /* G7JPAKE.swift */,
+				D7C0FFEE000000000000001B /* G7Opcode.swift */,
+				D7C0FFEE000000000000001D /* G7P256.swift */,
+				D7C0FFEE000000000000001F /* G7P256Field.swift */,
+				D7C0FFEE0000000000000021 /* G7PCert.swift */,
+				D7C0FFEE0000000000000023 /* G7PeripheralManager+Handshake.swift */,
+				D7C0FFEE0000000000000025 /* G7PeripheralManager.swift */,
+				D7C0FFEE0000000000000027 /* G7SensorIdentity.swift */,
+				D7C0FFEE0000000000000029 /* G7WatchAcquisition.swift */,
+				D7C0FFEE000000000000002B /* GlucoseLimits.swift */,
+				D7C0FFEE000000000000002D /* Locked.swift */,
+				D7C0FFEE000000000000002F /* OSLog.swift */,
+				D7C0FFEE0000000000000031 /* SensorMessage.swift */,
+				D7C0FFEE0000000000000033 /* TimeInterval.swift */,
+			);
+			path = G7SensorKit;
+			sourceTree = "<group>";
+		};
+		D7C0FFEE0000000000000042 /* G7Direct */ = {
+			isa = PBXGroup;
+			children = (
+				D7C0FFEE000000000000003F /* README.md */,
+				D7C0FFEE0000000000000035 /* TrioWatchAppDelegate.swift */,
+				D7C0FFEE0000000000000037 /* WatchG7Messages.swift */,
+				D7C0FFEE0000000000000039 /* WatchG7Reader.swift */,
+				D7C0FFEE000000000000003B /* WatchG7Session.swift */,
+				D7C0FFEE000000000000003D /* WatchG7View.swift */,
+				D7C0FFEE0000000000000041 /* G7SensorKit */,
+			);
+			path = G7Direct;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -6649,6 +6759,36 @@
 				3F43916B772958743955D25E /* UntetheredWatchManager+Loop.swift in Sources */,
 				EAEF5FE75E7327F3862B8696 /* UntetheredWatchManager.swift in Sources */,
 				D7C0FFEE0000000000000036 /* TrioWatchAppDelegate.swift in Sources */,
+				D7C0FFEE0000000000000002 /* AlgorithmState.swift in Sources */,
+				D7C0FFEE0000000000000004 /* AuthChallengeRxMessage.swift in Sources */,
+				D7C0FFEE0000000000000006 /* BluetoothServices.swift in Sources */,
+				D7C0FFEE0000000000000008 /* CBPeripheral.swift in Sources */,
+				D7C0FFEE000000000000000A /* Data.swift in Sources */,
+				D7C0FFEE000000000000000C /* G7AES.swift in Sources */,
+				D7C0FFEE000000000000000E /* G7Authenticator.swift in Sources */,
+				D7C0FFEE0000000000000010 /* G7BigUInt.swift in Sources */,
+				D7C0FFEE0000000000000012 /* G7BluetoothManager.swift in Sources */,
+				D7C0FFEE0000000000000014 /* G7ChallengeSigner.swift in Sources */,
+				D7C0FFEE0000000000000016 /* G7DexcomCredentials.swift in Sources */,
+				D7C0FFEE0000000000000018 /* G7DisplayType.swift in Sources */,
+				D7C0FFEE000000000000001A /* G7JPAKE.swift in Sources */,
+				D7C0FFEE000000000000001C /* G7Opcode.swift in Sources */,
+				D7C0FFEE000000000000001E /* G7P256.swift in Sources */,
+				D7C0FFEE0000000000000020 /* G7P256Field.swift in Sources */,
+				D7C0FFEE0000000000000022 /* G7PCert.swift in Sources */,
+				D7C0FFEE0000000000000024 /* G7PeripheralManager+Handshake.swift in Sources */,
+				D7C0FFEE0000000000000026 /* G7PeripheralManager.swift in Sources */,
+				D7C0FFEE0000000000000028 /* G7SensorIdentity.swift in Sources */,
+				D7C0FFEE000000000000002A /* G7WatchAcquisition.swift in Sources */,
+				D7C0FFEE000000000000002C /* GlucoseLimits.swift in Sources */,
+				D7C0FFEE000000000000002E /* Locked.swift in Sources */,
+				D7C0FFEE0000000000000030 /* OSLog.swift in Sources */,
+				D7C0FFEE0000000000000032 /* SensorMessage.swift in Sources */,
+				D7C0FFEE0000000000000034 /* TimeInterval.swift in Sources */,
+				D7C0FFEE0000000000000038 /* WatchG7Messages.swift in Sources */,
+				D7C0FFEE000000000000003A /* WatchG7Reader.swift in Sources */,
+				D7C0FFEE000000000000003C /* WatchG7Session.swift in Sources */,
+				D7C0FFEE000000000000003E /* WatchG7View.swift in Sources */,
 				87C557E1A947A277DB2BC4CA /* UntetheredStore.swift in Sources */,
 				82BEF5A4EE93B49EFA536B2C /* UntetheredAudit.swift in Sources */,
 				54B35D984BB1B2E45DF5BA6D /* UntetheredAlgorithm.swift in Sources */,

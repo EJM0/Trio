@@ -1124,25 +1124,25 @@ extension UntetheredWatchManager {
 
     /// The watch is the only device watching glucose: low, high and a stalled loop sound here.
     /// Run on every reading and every wake: the loop and sensor alarms are for exactly the times no reading comes.
-    /// The same fixed urgent-low line Trio's own glucose alarms use by default.
-    private static let urgentLowMgDL = 54
-
-    private static func formatted(_ mgdl: Int, units: GlucoseUnits) -> String {
-        units == .mmolL ? String(format: "%.1f", Double(mgdl) * 0.0555) : "\(mgdl)"
-    }
-
     func checkAlarms() {
         guard isActive, let grant = data.grant else { return }
         let now = Date()
         let latest = data.glucose.max(by: { $0.dateString < $1.dateString })
         // a reading old enough to be stale doesn't sound as low or high again
+        // Trio: the thresholds of the phone's glucose alarms, as the watch's own reader uses them (urgent low
+        // included), in the units shown; the glucose range only when the phone has no such alarm turned on.
         if let latest, let value = latest.glucose ?? latest.sgv, now.timeIntervalSince(latest.dateString) < 12 * 60 {
-            let body = "\(Self.formatted(value, units: grant.units)) \(grant.units.rawValue)"
-            if value <= Self.urgentLowMgDL {
+            let reader = WatchG7Reader.shared
+            let mgdl = Double(value)
+            let low = reader.lowMgDL ?? NSDecimalNumber(decimal: grant.lowGlucose).doubleValue
+            let high = reader.highMgDL ?? NSDecimalNumber(decimal: grant.highGlucose).doubleValue
+            let body = "\(reader.format(mgdl)) \(reader.units) \(reader.arrow(for: latest.direction?.rawValue))"
+                .trimmingCharacters(in: .whitespaces)
+            if mgdl <= reader.urgentLowMgDL {
                 alarm("urgentLow", title: String(localized: "Urgent Low"), body: body, every: 5 * 60)
-            } else if Decimal(value) <= grant.lowGlucose {
+            } else if mgdl <= low {
                 alarm("low", title: String(localized: "Low Glucose"), body: body, every: 15 * 60)
-            } else if Decimal(value) >= grant.highGlucose {
+            } else if mgdl >= high {
                 alarm("high", title: String(localized: "High Glucose"), body: body, every: 60 * 60)
             }
         }
@@ -1168,6 +1168,7 @@ extension UntetheredWatchManager {
         let now = Date()
         let status = UntetheredPumpStatus(
             date: now,
+            // this fork has no Devices page in the watch state: straight from the pod
             reservoir: watchPumpReservoir(pumpManager) ?? data.reservoir,
             expiresAt: watchPumpExpiresAt(pumpManager),
             isSuspended: isSuspended
@@ -1228,11 +1229,19 @@ extension UntetheredWatchManager {
         Task { await WatchLogger.shared.log("⌚️ Untethered alarm: \(title) \(body)", force: true) }
     }
 
+    /// The alarms that mean nobody is looping or the user is in danger: critical with Settings › Notifications ›
+    /// Critical Alerts on, so they get through Silent Mode and Focus on the wrist without the phone too.
+    static let criticalAlarmIDs: Set<String> = [
+        notificationPrefix + "urgentLow", notLoopingID, noReadingsID, podLinkID
+    ]
+
     func notify(id: String, title: String, body: String, after delay: TimeInterval? = nil) {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
-        content.sound = .default
+        let critical = Self.criticalAlarmIDs.contains(id)
+            && UserDefaults.standard.bool(forKey: WatchMessageKeys.useCriticalAlertsWatch)
+        content.sound = critical ? .defaultCritical : .default
         // not time-sensitive: the watch app has no entitlement for it; plain, as the reader's alerts that do arrive
         let trigger = delay.flatMap { $0 > 0 ? UNTimeIntervalNotificationTrigger(timeInterval: $0, repeats: false) : nil }
         let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)

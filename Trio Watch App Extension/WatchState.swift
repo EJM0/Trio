@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UserNotifications
 import WatchConnectivity
 
 /// WatchState manages the communication between the Watch app and the iPhone app using WatchConnectivity.
@@ -83,11 +84,43 @@ import WatchConnectivity
         }
     }
 
+    /// Settings › Notifications › Critical Alerts, as the phone last sent it; kept, so the watch's alarms follow it
+    /// while the phone is away. Turning it on asks watchOS for critical alerts, which only a build carrying the
+    /// critical-alerts entitlement is granted; without it the alarms stay ordinary notifications.
+    var useCriticalAlerts: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.useCriticalAlertsWatch) {
+        didSet {
+            UserDefaults.standard.set(useCriticalAlerts, forKey: WatchMessageKeys.useCriticalAlertsWatch)
+            if useCriticalAlerts {
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .criticalAlert]) { granted, _ in
+                    Task { await WatchLogger.shared.log("⌚️ Critical alerts on: watch notifications allowed=\(granted)", force: true) }
+                }
+            }
+        }
+    }
+
     /// The phone app's version and build as it last said; kept. The watch app starts no session while it differs
     /// from its own, which is the case for a while after an update, until watchOS has installed the new watch app.
     var phoneAppVersion: String? = UserDefaults.standard.string(forKey: WatchMessageKeys.phoneAppVersion) {
         didSet { UserDefaults.standard.set(phoneAppVersion, forKey: WatchMessageKeys.phoneAppVersion) }
     }
+
+    // chart lines and markers
+    /// The phone's low and high glucose and current target, in mg/dL.
+    /// The current glucose is the watch's own reading (untethered mode), not the phone's.
+    var currentGlucoseIsWatchOwn = false
+
+    /// Kept, so the lines and the time-in-range bar stay while the phone is away and after a relaunch.
+    var chartLowMgDL: Double? = UserDefaults.standard.object(forKey: "chartLowMgDL") as? Double {
+        didSet { UserDefaults.standard.set(chartLowMgDL, forKey: "chartLowMgDL") }
+    }
+    var chartHighMgDL: Double? = UserDefaults.standard.object(forKey: "chartHighMgDL") as? Double {
+        didSet { UserDefaults.standard.set(chartHighMgDL, forKey: "chartHighMgDL") }
+    }
+    var chartTargetMgDL: Double? = UserDefaults.standard.object(forKey: "chartTargetMgDL") as? Double {
+        didSet { UserDefaults.standard.set(chartTargetMgDL, forKey: "chartTargetMgDL") }
+    }
+    /// Carbs and boluses of the last 24 hours from the phone, times only.
+    var phoneTreatmentMarkers: [WatchTreatmentMarker] = []
 
     // Acknowlegement handling
     var showCommsAnimation: Bool = false
@@ -286,7 +319,7 @@ import WatchConnectivity
         handleIncomingWatchStatePayload(userInfo)
     }
 
-    /// The phone's wake while the watch has the pump: nothing but a nudge to re-check the sensor and
+    /// The phone's wake while the watch has the pump (EJM0 fba0698): nothing but a nudge to re-check the sensor and
     /// send what is left. Any other context is a watch state.
     func session(_: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
         if applicationContext[WatchMessageKeys.untetheredWake] != nil {
@@ -673,17 +706,37 @@ import WatchConnectivity
             phoneAppVersion = version
         }
 
+        if let critical = message[WatchMessageKeys.useCriticalAlertsWatch] as? Bool, critical != useCriticalAlerts {
+            useCriticalAlerts = critical
+        }
+
         if let allow = message[WatchMessageKeys.allowUntetheredStartWithoutPhoneWatch] as? Bool {
             if allow != allowUntetheredStartWithoutPhone { allowUntetheredStartWithoutPhone = allow }
             // also a copy an earlier build left, when it was sent regardless
             if !allow || !untetheredMode { DispatchQueue.main.async { UntetheredWatchManager.shared.dropStandingGrant() } }
         }
 
-        // the watch-face graph: readings and the target range from the phone
+        if let low = message["complicationRangeLowMgDL"] as? Double, low != chartLowMgDL { chartLowMgDL = low }
+        if let high = message["complicationRangeHighMgDL"] as? Double, high != chartHighMgDL { chartHighMgDL = high }
+        if let target = message["complicationTargetMgDL"] as? Double, target != chartTargetMgDL { chartTargetMgDL = target }
+        if let carbs = message[WatchMessageKeys.chartCarbs] as? [TimeInterval],
+           let boluses = message[WatchMessageKeys.chartBoluses] as? [[String: Any]]
+        {
+            phoneTreatmentMarkers = boluses.compactMap { entry -> WatchTreatmentMarker? in
+                guard let time = entry["date"] as? TimeInterval else { return nil }
+                let smb = entry["smb"] as? Bool ?? false
+                return WatchTreatmentMarker(id: "bolus-\(time)", date: Date(timeIntervalSince1970: time), kind: smb ? .smb : .bolus)
+            } + carbs.map { time in
+                WatchTreatmentMarker(id: "carbs-\(time)", date: Date(timeIntervalSince1970: time), kind: .carbs)
+            }
+        }
+
+        // Sensor details, alarm thresholds and units for the watch's own G7 reading.
+        WatchG7Reader.shared.updateFromPhone(message)
+        // after the reader took the units and alert thresholds from the same message
         if message[WatchMessageKeys.glucoseValues] != nil {
             ComplicationStore.update(
                 from: self,
-                isMmol: (message[WatchMessageKeys.units] as? String).map { $0 == "mmol/L" },
                 lowMgDL: message["complicationRangeLowMgDL"] as? Double,
                 highMgDL: message["complicationRangeHighMgDL"] as? Double,
                 colorScheme: message["complicationColorScheme"] as? String,

@@ -2,6 +2,10 @@ enum WatchMessageKeys {
     // Request/Response Keys
     static let date = "date"
     static let units = "units"
+    /// Carb entries of the last 24 hours, as times (seconds since 1970), for the watch chart's markers.
+    static let chartCarbs = "chartCarbs"
+    /// Boluses of the last 24 hours: `["date": seconds since 1970, "smb": Bool]`, for the watch chart's markers.
+    static let chartBoluses = "chartBoluses"
     static let requestWatchUpdate = "requestWatchUpdate"
     static let watchState = "watchState"
     static let acknowledged = "acknowledged"
@@ -55,8 +59,23 @@ enum WatchMessageKeys {
     // Notification Actions
     static let snoozeDuration = "snoozeDuration"
 
+    // Watch reads the G7 itself (step 1 of watch independence: display and alerts only)
+    /// The G7 the phone reads directly ("DXCMxx"); empty when it reads none.
+    static let g7DirectSensorName = "g7DirectSensorName"
+    /// That sensor's 4-digit pairing code, so the watch can pair in its own slot.
+    static let g7DirectPairingCode = "g7DirectPairingCode"
+    /// Thresholds for the watch's own alerts in mg/dL; 0 = no such alarm.
+    static let watchAlertUrgentLowMgDL = "watchAlertUrgentLowMgDL"
+    static let watchAlertLowMgDL = "watchAlertLowMgDL"
+    static let watchAlertHighMgDL = "watchAlertHighMgDL"
+    /// The user's glucose units, sent with every update, also when the rest of the state is empty.
+    static let watchDisplayUnits = "watchDisplayUnits"
+    /// The phone's application context while the watch has the pump: only wakes the watch app.
     static let untetheredWake = "untetheredWake"
+    /// Settings › Apple Watch › Allow Start Without iPhone, with every watch state.
     static let allowUntetheredStartWithoutPhoneWatch = "allowUntetheredStartWithoutPhoneWatch"
+    /// Settings › Notifications › Critical Alerts, with every watch state: the watch's own safety alarms follow it.
+    static let useCriticalAlertsWatch = "useCriticalAlertsWatch"
 
     // Forecast
     static let showForecastWatch = "showForecastWatch"

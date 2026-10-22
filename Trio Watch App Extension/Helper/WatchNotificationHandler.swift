@@ -28,14 +28,18 @@ final class WatchNotificationHandler: NSObject, UNUserNotificationCenterDelegate
         }
     }
 
-    /// Shows untethered mode's alarms even when Trio is open on the wrist: while the watch loops they are the only
-    /// ones. Everything else keeps the system's default handling.
+    /// Shows the watch's own alerts even when Trio is open on the wrist: the reader's (raised while the iPhone is out
+    /// of reach) and untethered mode's, which are the only alarms while the watch loops. Everything else keeps the
+    /// system's default handling.
     func userNotificationCenter(
         _: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        if notification.request.identifier.hasPrefix(UntetheredWatchManager.notificationPrefix) {
+        let id = notification.request.identifier
+        if id.hasPrefix(WatchG7Reader.notificationIdentifierPrefix)
+            || id.hasPrefix(UntetheredWatchManager.notificationPrefix)
+        {
             completionHandler([.banner, .list, .sound])
         } else {
             completionHandler([])
