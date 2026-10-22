@@ -43,7 +43,10 @@ extension UntetheredWatchManager {
         // A Bluetooth wake often comes with almost no time from watchOS; without time of its own the app can be
         // suspended in the middle of reaching the pod, and the loop stalls until the app is opened.
         loopHoldExpired = false
-        let releaseHold = Self.holdProcess(reason: "Untethered loop", upTo: Self.loopHoldLimit) { [weak self] in
+        let releaseHold = Self.holdProcess(
+            reason: "Untethered loop",
+            upTo: Self.loopHoldLimit + (trigger == .newGlucose ? Self.sensorQuietLimit + Self.sensorQuietMargin : 0)
+        ) { [weak self] in
             self?.loopHoldExpired = true
         }
         Task { @MainActor in
@@ -58,6 +61,8 @@ extension UntetheredWatchManager {
                 }
                 self.endLoopHold(releaseHold)
             }
+            // the pod only once the sensor's link is closed (see `waitForSensorQuiet`)
+            if trigger == .newGlucose { await self.waitForSensorQuiet() }
             if enacts {
                 _ = await withCheckedContinuation { (continuation: CheckedContinuation<Date?, Never>) in
                     pump.ensureCurrentPumpData { continuation.resume(returning: $0) }
@@ -894,6 +899,30 @@ extension UntetheredWatchManager: CGMManagerDelegate {
             else { return }
             Task { await WatchLogger.shared.log("⌚️ Untethered: loop done, the sensor's wait goes to bluetoothd", force: true) }
             watchCGMAppLeavingScreen(self.cgmManager)
+        }
+    }
+
+    /// A test (22 October): every pod stall so far began with a command cut off within seconds of a sensor reading
+    /// (02:25, 12:10, 00:45, 01:00), and the loop reached for the pod while the G7's link was still up, both on the
+    /// one radio. The loop a reading starts now waits until the sensor has closed its link (at most 12 s), then
+    /// 3 s more, before it talks to the pod. If the stalls get rarer, this is why.
+    static let sensorQuietLimit: TimeInterval = 12
+    static let sensorQuietMargin: TimeInterval = 3
+
+    @MainActor func waitForSensorQuiet() async {
+        let start = Date()
+        while watchCGMIsConnected(cgmManager), Date().timeIntervalSince(start) < Self.sensorQuietLimit {
+            try? await Task.sleep(nanoseconds: 250_000_000)
+        }
+        let linkOpen = Date().timeIntervalSince(start)
+        try? await Task.sleep(nanoseconds: UInt64(Self.sensorQuietMargin * 1_000_000_000))
+        Task {
+            await WatchLogger.shared.log(
+                String(
+                    format: "⌚️ Untethered: pod after the sensor — link closed after %.1f s%@, then %.0f s margin",
+                    linkOpen, watchCGMIsConnected(self.cgmManager) ? " (still open, limit reached)" : "", Self.sensorQuietMargin
+                )
+            )
         }
     }
 
