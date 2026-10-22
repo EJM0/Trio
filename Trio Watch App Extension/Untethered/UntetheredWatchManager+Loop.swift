@@ -969,7 +969,11 @@ extension UntetheredWatchManager: CGMManagerDelegate {
               now.timeIntervalSince(lastLoop) > Self.podLinkStallLimit,
               now.timeIntervalSince(lastPodLinkNotice ?? .distantPast) > Self.podLinkResetInterval,
               // without readings the sensor is what's missing, and its own alarm says so (2026-10-19 18:04)
-              let newest = data.glucose.map(\.dateString).max(), now.timeIntervalSince(newest) < 11 * 60
+              let newest = data.glucose.map(\.dateString).max(), now.timeIntervalSince(newest) < 11 * 60,
+              // and only when loops had readings to run on and still didn't get through: a gap made of missed
+              // readings ended with a reading that arrived a moment before its loop, and was taken for a pod
+              // stall (2026-10-22 11:10: no reading at 11:00 and 11:05, the pod fine, the pump handed back)
+              data.glucose.filter({ $0.dateString > lastLoop.addingTimeInterval(60) }).count >= 2
         else { return }
         let minutes = Int(now.timeIntervalSince(lastLoop) / 60)
         // with the phone nearby it takes the pump back; until its revoke arrives the watch keeps trying and alerting
