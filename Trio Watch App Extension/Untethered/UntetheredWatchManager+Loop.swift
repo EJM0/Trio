@@ -809,7 +809,9 @@ extension UntetheredWatchManager: PumpManagerDelegate {
                 .removePendingNotificationRequests(withIdentifiers: alerts.map(\.id) + [Self.notLoopingID, Self.noReadingsID])
             return
         }
-        scheduleNotLoopingAlert(from: data.lastLoopDate ?? Date())
+        // from the takeover at the earliest: booked from the phone's last loop, a start without the phone sounded
+        // "Not Looping" at once (2026-10-22 20:41, with the watch's first loop 22 s after the takeover)
+        scheduleNotLoopingAlert(from: loopReference ?? Date())
         scheduleNoReadingsAlert(from: data.glucose.map(\.dateString).max() ?? Date())
         for alert in alerts {
             guard let due = alert.due, due > Date() else { continue }
