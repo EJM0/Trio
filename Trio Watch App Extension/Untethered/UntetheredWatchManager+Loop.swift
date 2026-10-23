@@ -62,7 +62,11 @@ extension UntetheredWatchManager {
                 self.endLoopHold(releaseHold)
             }
             // the pod only once the sensor's link is closed (see `waitForSensorQuiet`)
-            if trigger == .newGlucose { await self.waitForSensorQuiet() }
+            if trigger == .newGlucose {
+                await self.waitForSensorQuiet()
+                // the session may have ended meanwhile (2026-10-23 08:25:46: a loop ran on after the hand-back)
+                guard self.isActive else { return }
+            }
             if enacts {
                 _ = await withCheckedContinuation { (continuation: CheckedContinuation<Date?, Never>) in
                     pump.ensureCurrentPumpData { continuation.resume(returning: $0) }
