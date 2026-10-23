@@ -89,6 +89,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         broadcaster.register(PumpSettingsObserver.self, observer: self)
         broadcaster.register(PumpReservoirObserver.self, observer: self)
         broadcaster.register(PumpDeactivatedObserver.self, observer: self)
+        broadcaster.register(SnoozeObserver.self, observer: self)
 
         // Observer for OrefDetermination and adjustments. Upload flags change nothing the watch shows.
         coreDataPublisher =
@@ -273,6 +274,8 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
             var watchState: WatchState = await context.perform {
                 var watchState = WatchState(date: Date())
+                watchState.snoozeUntilDate = UserDefaults.standard
+                    .object(forKey: "UserNotificationsManager.snoozeUntilDate") as? Date ?? .distantPast
 
                 // Set lastLoopDate
                 watchState.phoneLastLoopDate = self.apsManager.lastLoopDate
@@ -806,7 +809,8 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             WatchMessageKeys.confirmBolusFaster: state.confirmBolusFaster,
             WatchMessageKeys.units: state.units.rawValue,
             WatchMessageKeys.showForecastWatch: state.showForecast,
-            WatchMessageKeys.isForecastCone: state.isForecastCone
+            WatchMessageKeys.isForecastCone: state.isForecastCone,
+            WatchMessageKeys.snoozeUntilDate: state.snoozeUntilDate.timeIntervalSince1970
         ]
         if let phoneLastLoopDate = state.phoneLastLoopDate {
             dictionary[WatchMessageKeys.phoneLastLoopDate] = phoneLastLoopDate.timeIntervalSince1970
@@ -1627,6 +1631,16 @@ extension BaseWatchManager: PumpReservoirObserver, PumpDeactivatedObserver {
         // Also refresh the application context, so a relaunched watch app does
         // not show the removed pump from an older snapshot.
         scheduleWatchStatePush()
+    }
+}
+
+extension BaseWatchManager: SnoozeObserver {
+    @MainActor func snoozeDidChange(_: Date) {
+        guard let session = self.session, session.isPaired, session.isReachable, session.isWatchAppInstalled else { return }
+        Task {
+            guard let state = await self.setupWatchState() else { return }
+            await self.sendDataToWatch(state)
+        }
     }
 }
 

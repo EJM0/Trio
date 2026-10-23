@@ -1541,7 +1541,10 @@ import WatchKit
             }
             if !expiredFlightIDs.isEmpty {
                 let expiredIDs = Set(expiredFlightIDs.flatMap { recordFlights[$0]?.ids ?? [] })
-                debug(.watchManager, "Untethered: no storage confirmation for \(expiredIDs.count) history record(s) in 30 s; retrying")
+                debug(
+                    .watchManager,
+                    "Untethered: no storage confirmation for \(expiredIDs.count) history record(s) in 30 s; retrying"
+                )
                 for id in expiredFlightIDs { recordFlights[id] = nil }
                 resend(Array(expiredIDs))
             }
