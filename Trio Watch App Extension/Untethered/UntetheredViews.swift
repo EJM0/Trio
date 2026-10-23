@@ -313,7 +313,7 @@ struct UntetheredStatusView: View {
                     note("Hands back by itself once the phone is nearby.")
                 }
             case .active:
-                if data.startedByFallback {
+                if data.startedByFallback, data.session.startedWithoutPhone {
                     note("Started by the fallback loop. Hands back by itself once the iPhone is back.")
                 }
                 Button { whenPhoneReachable { confirmEnd = true } } label: {

@@ -1212,6 +1212,13 @@ extension UntetheredWatchManager {
 
     private func alarm(_ kind: String, title: String, body: String, every interval: TimeInterval) {
         guard (Self.lastAlarm[kind] ?? .distantPast).addingTimeInterval(interval) < Date() else { return }
+        // as on the phone: a snooze (set on either) silences all but urgent low
+        let snoozedUntil = WatchState.shared.snoozeUntilDate
+        guard kind == "urgentLow" || snoozedUntil <= Date() else {
+            Task {
+                await WatchLogger.shared.log("⌚️ Untethered alarm snoozed until \(snoozedUntil): \(title) \(body)", force: true) }
+            return
+        }
         Self.lastAlarm[kind] = Date()
         notify(id: Self.notificationPrefix + kind, title: title, body: body)
         // felt at once while the app runs; the notification may wait for the screen

@@ -6,17 +6,18 @@ struct TrioMainWatchView: View {
     @State private var state = WatchState.shared
     @State private var untethered = UntetheredWatchManager.shared
 
-    // Pages in order; the bubble page is a phone setting, the status page (where untethered mode starts from the
-    // wrist, and its history opens) always.
+    // Pages in order; the bubble page is a phone setting, then chart, devices and alarm snooze, the status page (where
+    // untethered mode starts from the wrist, and its history opens) always.
     private var bubblePage: Int? { state.showGlucoseBubble ? 1 : nil }
     private var chartPage: Int { bubblePage.map { $0 + 1 } ?? 1 }
     private var peripheralsPage: Int { chartPage + 1 }
+    private var snoozePage: Int { peripheralsPage + 1 }
     /// Untethered mode off on the phone: no status page, but a session still running keeps it.
     private var showsUntethered: Bool { state.untetheredMode || untethered.isActive }
-    private var statusPage: Int { peripheralsPage + 1 }
+    private var statusPage: Int { snoozePage + 1 }
     /// The watch's own loop status, while it loops.
     private var loopPage: Int? { untethered.isActive ? statusPage + 1 : nil }
-    private var lastPage: Int { showsUntethered ? loopPage ?? statusPage : peripheralsPage }
+    private var lastPage: Int { showsUntethered ? loopPage ?? statusPage : snoozePage }
 
     // misc
     @State private var currentPage: Int = 0
@@ -130,6 +131,10 @@ struct TrioMainWatchView: View {
                     isWatchStateDated: isWatchStateDated || isSessionUnreachable
                 )
                 .tag(peripheralsPage)
+
+                // Page 4: alarm snooze (nightscout/Trio#1576, t1dude)
+                AlarmSnoozeView(state: state)
+                    .tag(snoozePage)
 
                 if showsUntethered {
                     UntetheredStatusView(manager: untethered).tag(statusPage)
