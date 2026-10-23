@@ -17,7 +17,10 @@ import WatchKit
     private(set) var isBusy = false
 
     @ObservationIgnored var pumpManager: (PumpManager & ExclusiveDeviceControl)?
-    @ObservationIgnored var cgmManager: CGMManager?
+    @ObservationIgnored var cgmManager: CGMManager? {
+        // every pod command waits for the sensor's link, not only the loop's (OmniPumpManager.commandConnectDelay)
+        didSet { watchGatePodCommands(on: cgmManager) }
+    }
     @ObservationIgnored var isLooping = false
     /// watchOS ended the running loop's background time: it starts no further pod command.
     @ObservationIgnored var loopHoldExpired = false
