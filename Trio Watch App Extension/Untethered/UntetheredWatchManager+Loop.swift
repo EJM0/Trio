@@ -67,7 +67,8 @@ extension UntetheredWatchManager {
                 // the session may have ended meanwhile (2026-10-23 08:25:46: a loop ran on after the hand-back)
                 guard self.isActive else { return }
             }
-            if enacts {
+            // the pod read is a pod command too: none without background time left (see `enact`)
+            if enacts, !self.loopHoldExpired {
                 _ = await withCheckedContinuation { (continuation: CheckedContinuation<Date?, Never>) in
                     pump.ensureCurrentPumpData { continuation.resume(returning: $0) }
                 }
