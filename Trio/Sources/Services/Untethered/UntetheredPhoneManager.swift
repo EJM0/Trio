@@ -1197,6 +1197,18 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
 
     /// Judges the span between the pump's two readings against the history as it is now.
     @MainActor private func judge(_ point: UntetheredAuditPoint, historyComplete: Bool) async {
+        // A pod's delivery counter only counts up. Lower at the end, the pod read isn't one to judge by: the pod
+        // faulted or reset (2026-10-23 22:23, a pod past its 80 hours read 10.1 U below its start and the audit
+        // warned of 10.8 U too many in the records).
+        guard point.delivered >= 0 else {
+            UntetheredGate.update { $0.audit = nil; $0.auditFinding = nil }
+            warning(
+                .watchManager,
+                "Untethered: no audit, the pod's delivery counter went back by \(-point.delivered) U (a faulted or new pod)"
+            )
+            publish()
+            return
+        }
         // taken before the history is read, so the complete history judges it only once
         UntetheredGate.update { $0.audit = historyComplete ? nil : point }
         do {
