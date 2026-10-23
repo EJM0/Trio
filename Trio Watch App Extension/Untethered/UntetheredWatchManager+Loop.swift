@@ -1043,7 +1043,9 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         if workoutKeepAlive != nil, !isKeptAwake, inFront,
            let requested = workoutStartRequestedAt, Date().timeIntervalSince(requested) > Self.workoutStartPatience
         {
-            Task { await WatchLogger.shared.log("⌚️ Untethered: extended mode workout never started, again with Trio in front", force: true) }
+            Task {
+                await WatchLogger.shared
+                    .log("⌚️ Untethered: extended mode workout never started, again with Trio in front", force: true) }
             // let go, not stop: its late "ended" would drop the new one; a start that went through after all is taken
             // back by the new one's `recoverActiveWorkoutSession`
             workoutKeepAlive = nil
