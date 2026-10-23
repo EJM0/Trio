@@ -17,6 +17,11 @@ final class TrioWatchAppDelegate: NSObject, WKApplicationDelegate {
     private var isWaitingForDelivery = false
     private static let deliveryHold: TimeInterval = 20
 
+    /// Extended Untethered Mode's workout outlived the last process.
+    func handleActiveWorkoutRecovery() {
+        UntetheredWatchManager.shared.recoverWorkout()
+    }
+
     func handle(_ backgroundTasks: Set<WKRefreshBackgroundTask>) {
         // not always on main: a Bluetooth task can arrive on CoreBluetooth's queue, and all below is main-only
         guard Thread.isMainThread else {

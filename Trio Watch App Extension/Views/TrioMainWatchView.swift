@@ -21,6 +21,8 @@ struct TrioMainWatchView: View {
 
     // misc
     @State private var currentPage: Int = 0
+    /// Extended Untethered Mode shows its minimal screen on each wrist raise until tapped.
+    @State private var showsFullApp = false
     @State private var rotationDegrees: Double = 0.0
     @State private var showingTempTargetSheet = false
 
@@ -82,6 +84,22 @@ struct TrioMainWatchView: View {
     )
 
     var body: some View {
+        Group {
+            if untethered.isKeptAwake, state.glanceEnabled, !showsFullApp {
+                UntetheredGlanceView(state: state, manager: untethered) { showsFullApp = true }
+            } else {
+                fullApp
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { showsFullApp = false }
+        }
+        .onChange(of: state.isMealBolusShortcutPending, initial: true) { _, isPending in
+            if isPending { showsFullApp = true }
+        }
+    }
+
+    private var fullApp: some View {
         NavigationStack(path: $navigationPath) {
             TabView(selection: $currentPage) {
                 // Page 1: Combined View of glucose trend and chart view

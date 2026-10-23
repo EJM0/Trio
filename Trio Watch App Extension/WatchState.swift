@@ -198,6 +198,26 @@ import WatchConnectivity
         }
     }
 
+    /// The minimal screen's slots (Extended Untethered Mode), as arranged on the phone. Persisted with the setting.
+    var glanceLayout: WatchGlanceLayout = UserDefaults.standard.stringArray(forKey: WatchMessageKeys.watchGlanceLayout)
+        .map(WatchGlanceLayout.init(strings:)) ?? .standard {
+        didSet { UserDefaults.standard.set(glanceLayout.strings, forKey: WatchMessageKeys.watchGlanceLayout) }
+    }
+
+    /// Off: the wrist shows the full app during Extended Untethered Mode, not the minimal screen.
+    var glanceEnabled: Bool = UserDefaults.standard.object(forKey: WatchMessageKeys.watchGlanceEnabled) as? Bool ?? true {
+        didSet { UserDefaults.standard.set(glanceEnabled, forKey: WatchMessageKeys.watchGlanceEnabled) }
+    }
+
+    /// A workout session keeps Trio running through untethered mode (Extended Untethered Mode). Persisted, as a session
+    /// can start without the phone.
+    var untetheredWorkout: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.untetheredWorkoutWatch) {
+        didSet {
+            UserDefaults.standard.set(untetheredWorkout, forKey: WatchMessageKeys.untetheredWorkoutWatch)
+            if untetheredWorkout != oldValue { UntetheredWatchManager.shared.updateWorkoutKeepAlive() }
+        }
+    }
+
     /// The newest reading the phone has sent.
     var phoneNewestReading: Date? {
         [glucoseHistory.newestTimestamp.map(Date.init(timeIntervalSince1970:)), phoneHealthNewestReadingDate]
@@ -1176,6 +1196,19 @@ import WatchConnectivity
 
         if let fallbackLoop = message[WatchMessageKeys.fallbackLoopWatch] as? Bool, fallbackLoop != self.fallbackLoop {
             self.fallbackLoop = fallbackLoop
+        }
+
+        if let workout = message[WatchMessageKeys.untetheredWorkoutWatch] as? Bool, workout != untetheredWorkout {
+            untetheredWorkout = workout
+        }
+
+        if let enabled = message[WatchMessageKeys.watchGlanceEnabled] as? Bool, enabled != glanceEnabled {
+            glanceEnabled = enabled
+        }
+
+        if let strings = message[WatchMessageKeys.watchGlanceLayout] as? [String] {
+            let layout = WatchGlanceLayout(strings: strings)
+            if layout != glanceLayout { glanceLayout = layout }
         }
 
         if let untetheredMode = message[WatchMessageKeys.untetheredModeWatch] as? Bool, untetheredMode != self.untetheredMode {

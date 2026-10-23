@@ -11086,6 +11086,9 @@
     "%@ times" : {
       "comment" : "Accessibility: multiplier value, as in 2 times"
     },
+    "%@ U" : {
+
+    },
     "%@ U · %@ g" : {
       "localizations" : {
         "en" : {
@@ -11761,6 +11764,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@/U"
+          }
+        }
+      }
+    },
+    "%@%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@%2$@"
           }
         }
       }
@@ -13875,7 +13888,6 @@
       }
     },
     "%lld m" : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -14134,6 +14146,9 @@
           }
         }
       }
+    },
+    "%lld min ago" : {
+
     },
     "%lld x" : {
       "extractionState" : "stale",
@@ -14395,6 +14410,9 @@
           }
         }
       }
+    },
+    "%lldm" : {
+
     },
     "%lldx" : {
 
@@ -17625,6 +17643,9 @@
         }
       }
     },
+    "• Ending the workout on the watch stops the keeping awake until the next untethered session. Untethered mode itself goes on." : {
+
+    },
     "• Eventual Glucose: Glucose value as forecasted by the oref algorithm." : {
       "localizations" : {
         "bg" : {
@@ -17754,6 +17775,9 @@
           }
         }
       }
+    },
+    "• Fallback Loop is not available." : {
+
     },
     "• Fat and Protein Delay" : {
       "localizations" : {
@@ -18915,7 +18939,7 @@
         }
       }
     },
-    "• Glucose on the watch and on the complication comes only from the iPhone, and stops while the iPhone is away." : {
+    "• Glucose on the watch and on its complications comes from the iPhone only, and stops while the iPhone is away." : {
 
     },
     "• Glucose Reading: Current CGM provided glucose value." : {
@@ -23038,7 +23062,10 @@
         }
       }
     },
-    "• The complication updates far less often: watchOS redraws it in the background only while the app holds a Bluetooth link, otherwise about every half hour at most." : {
+    "• The complications update far less often: watchOS redraws them in the background mainly when a Bluetooth connection wakes the app, otherwise about every half hour at most." : {
+
+    },
+    "• The heart rate sensor runs the whole time: the watch battery drains noticeably faster." : {
 
     },
     "• The main chart and treatment chart show a light gray trend line for the smoothed values. The glucose dots always show your original CGM readings." : {
@@ -23170,6 +23197,9 @@
           }
         }
       }
+    },
+    "• The watch shows the workout symbol at the top, and raising the wrist shows Trio instead of the watch face: its minimal screen, or the full app with Minimal Screen off." : {
+
     },
     "• Untethered mode starts without readings: the watch first has to find the sensor, and pair with a new one." : {
 
@@ -26049,6 +26079,9 @@
         }
       }
     },
+    "0.85" : {
+
+    },
     "1 hour" : {
       "comment" : "Snooze glucose alerts for 1 hour",
       "extractionState" : "stale",
@@ -26435,6 +26468,12 @@
           }
         }
       }
+    },
+    "1.25" : {
+
+    },
+    "1m" : {
+
     },
     "2 hours" : {
       "extractionState" : "manual",
@@ -26832,6 +26871,9 @@
           }
         }
       }
+    },
+    "2m" : {
+
     },
     "3 hours" : {
       "comment" : "Snooze glucose alerts for 3 hours",
@@ -28411,6 +28453,12 @@
         }
       }
     },
+    "12:05" : {
+
+    },
+    "12:05  +3" : {
+
+    },
     "15 minutes earlier" : {
       "localizations" : {
         "bg" : {
@@ -28926,6 +28974,9 @@
           }
         }
       }
+    },
+    "24" : {
+
     },
     "24 h" : {
       "comment" : "Stats interval: the rolling last 24 hours"
@@ -29587,6 +29638,9 @@
         }
       }
     },
+    "38.4 U" : {
+
+    },
     "43.21 U" : {
       "localizations" : {
         "bg" : {
@@ -29847,6 +29901,12 @@
         }
       }
     },
+    "50+ U" : {
+
+    },
+    "72" : {
+
+    },
     "75%:" : {
       "localizations" : {
         "bg" : {
@@ -30106,6 +30166,9 @@
           }
         }
       }
+    },
+    "86 U" : {
+
     },
     "90%:" : {
       "localizations" : {
@@ -30497,6 +30560,9 @@
         }
       }
     },
+    "108" : {
+
+    },
     "110% makes fat-to-carbs ratio essentially equal:" : {
       "localizations" : {
         "bg" : {
@@ -30757,6 +30823,12 @@
         }
       }
     },
+    "123 →" : {
+
+    },
+    "123→" : {
+
+    },
     "A bolus command of %@ U of insulin was sent." : {
       "localizations" : {
         "bg" : {
@@ -30888,6 +30960,9 @@
       }
     },
     "A bolus is running. Hand back once it is done, or stop it with the treatment button." : {
+
+    },
+    "A bolus on the watch is confirmed by turning the Digital Crown until the ring is full. When this is on, each step of the crown fills ten times as much of it, so a short turn confirms. Off, it takes several full turns, which makes a bolus by accident harder." : {
 
     },
     "A display of On/On indicates both Dynamic ISF and CR are enabled. On/Off indicates only Dynamic ISF is enabled. Dynamic CR cannot be enabled when Dynamic ISF is disabled." : {
@@ -33904,7 +33979,6 @@
     },
     "active" : {
       "comment" : "Accessibility: alarms active",
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -40911,6 +40985,9 @@
         }
       }
     },
+    "Adds a watch page with only the large glucose bubble." : {
+
+    },
     "Adds Phone Battery" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -41047,6 +41124,9 @@
           }
         }
       }
+    },
+    "Adds this element to the screen" : {
+
     },
     "Adds this widget to the layout" : {
 
@@ -43831,6 +43911,9 @@
           }
         }
       }
+    },
+    "Alarms active" : {
+
     },
     "Alarms cannot alert you. Tap to fix." : {
       "localizations" : {
@@ -49635,6 +49718,9 @@
       }
     },
     "Already in the layout" : {
+
+    },
+    "Already on the screen" : {
 
     },
     "Already set for Day & Night. Change the alarm time window to add a second alarm for the same type." : {
@@ -68750,6 +68836,9 @@
         }
       }
     },
+    "BG" : {
+      "comment" : "Watch minimal screen: small glucose"
+    },
     "BGI" : {
       "localizations" : {
         "bg" : {
@@ -74820,6 +74909,9 @@
           }
         }
       }
+    },
+    "BPM" : {
+      "comment" : "Watch minimal screen: heart rate"
     },
     "Branch" : {
       "localizations" : {
@@ -85269,6 +85361,7 @@
       }
     },
     "Chart" : {
+      "comment" : "Watch minimal screen: glucose chart with forecast",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -90378,6 +90471,7 @@
 
     },
     "COB" : {
+      "comment" : "Watch minimal screen: carbs on board",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -94324,6 +94418,9 @@
           }
         }
       }
+    },
+    "Confirming a bolus on the watch takes a much shorter crown turn." : {
+
     },
     "Connect" : {
       "comment" : "Connect to NS",
@@ -126623,6 +126720,12 @@
     "Drag a widget to move it. Drag one up from Available Widgets to add it, or drop it back onto the list to remove it." : {
 
     },
+    "Drag an element onto a slot, or tap it to add it. Drag it back onto the list, or tap its trash, to remove it. Wide elements take two or three slots of their row." : {
+
+    },
+    "Draws the predicted glucose into the watch's charts." : {
+
+    },
     "Drives the outer-ring + tag on the home screen's glucose bobble." : {
       "localizations" : {
         "bg" : {
@@ -130691,6 +130794,9 @@
       "comment" : "Themed alarm sound catalog for electronic sounds.",
       "isCommentAutoGenerated" : true
     },
+    "Elements" : {
+
+    },
     "Emergency Stop" : {
 
     },
@@ -130960,6 +131066,9 @@
           }
         }
       }
+    },
+    "Empty slot" : {
+
     },
     "Empty widget slot" : {
 
@@ -134530,6 +134639,7 @@
       }
     },
     "Enable this feature to show the forecast on the Apple Watch" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -137159,6 +137269,7 @@
       }
     },
     "Enabling this feature lowers the number of turns on the crown dial required when confirming a bolus." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -142430,6 +142541,9 @@
         }
       }
     },
+    "Eventual" : {
+      "comment" : "Watch minimal screen: eventual glucose"
+    },
     "Eventual glucose" : {
       "comment" : "A label displayed under the loop status icon",
       "localizations" : {
@@ -145513,6 +145627,9 @@
           }
         }
       }
+    },
+    "Extended Untethered Mode" : {
+
     },
     "External" : {
       "comment" : "External Insulin",
@@ -159367,7 +159484,7 @@
       }
     },
     "Glucose" : {
-      "comment" : "Accessibility: glucose label\nHistory Mode\nTitle for glucose-related statistics",
+      "comment" : "Accessibility: glucose label\nHistory Mode\nTitle for glucose-related statistics\nWatch minimal screen: large glucose",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -159757,6 +159874,9 @@
           }
         }
       }
+    },
+    "Glucose and Chart" : {
+      "comment" : "Watch minimal screen: glucose above the chart"
     },
     "Glucose and forecast chart" : {
       "comment" : "Accessibility: chart summary",
@@ -186841,6 +186961,7 @@
       }
     },
     "IOB" : {
+      "comment" : "Watch minimal screen: insulin on board",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -187102,6 +187223,9 @@
     },
     "IOB %@ U" : {
 
+    },
+    "IOB and COB" : {
+      "comment" : "Watch minimal screen: IOB and COB together"
     },
     "IOBpredBG" : {
       "localizations" : {
@@ -191964,12 +192088,6 @@
           }
         }
       }
-    },
-    "Let the watch run the loop with its own pump and CGM connection" : {
-
-    },
-    "Let the watch start untethered mode while the iPhone is unavailable" : {
-
     },
     "Let's go through a few quick steps to ensure Trio works optimally for you." : {
       "localizations" : {
@@ -198444,8 +198562,7 @@
 
     },
     "Loop" : {
-      "comment" : "Accessibility: loop pill label",
-      "extractionState" : "stale",
+      "comment" : "Watch minimal screen: loop status",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -214762,6 +214879,9 @@
         }
       }
     },
+    "Middle" : {
+
+    },
     "Middleware" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -217000,6 +217120,12 @@
           }
         }
       }
+    },
+    "Minimal Screen" : {
+
+    },
+    "Minimal Screen Layout" : {
+
     },
     "Minimum duration in minutes for new SMB since last SMB or manual bolus" : {
       "comment" : "\"SMB Interval\"",
@@ -220067,6 +220193,9 @@
         }
       }
     },
+    "More stable untethered mode: a workout keeps Trio running on the watch, at a clear battery cost." : {
+
+    },
     "Most set this to their largest meal bolus. Then, adjust if needed." : {
       "localizations" : {
         "bg" : {
@@ -220731,6 +220860,9 @@
       }
     },
     "Nearby" : {
+
+    },
+    "Needs Watch Reads the Sensor and Allow Start Without iPhone." : {
 
     },
     "Neither the carbs nor the bolus could be saved. Please try again." : {
@@ -237578,6 +237710,9 @@
         }
       }
     },
+    "Once the iPhone answers again with current glucose, the watch hands the pod back by itself. Only one of them doses at a time: while the watch has the pod, the iPhone doesn't dose." : {
+
+    },
     "Once the total insulin required is calculated, this safety limit specifies what percentage of the insulin required can be delivered as an SMB." : {
       "localizations" : {
         "bg" : {
@@ -241550,7 +241685,6 @@
     },
     "Opens snooze options" : {
       "comment" : "Accessibility hint",
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -264441,6 +264575,7 @@
       }
     },
     "Reduce the number of crown rotations required for bolus confirmation." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -266950,6 +267085,7 @@
       "comment" : "Live Activity widget icon label for the slot taken by a double-width item"
     },
     "Reservoir" : {
+      "comment" : "Watch minimal screen: pump reservoir",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -267861,6 +267997,9 @@
           }
         }
       }
+    },
+    "Reset to Default" : {
+
     },
     "Reset to Defaults" : {
       "localizations" : {
@@ -286689,6 +286828,7 @@
     },
     "Shows forecast on the Apple Watch" : {
       "comment" : "Text displayed in a hint when the user enables the feature to show the forecast on the Apple Watch.",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -287080,9 +287220,6 @@
           }
         }
       }
-    },
-    "Shows the page with only the glucose bubble on the Apple Watch" : {
-
     },
     "Shows the portion stepper" : {
 
@@ -293405,7 +293542,6 @@
     },
     "snoozed, %d minutes remaining" : {
       "comment" : "Accessibility: alarm snooze",
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -307518,6 +307654,7 @@
       }
     },
     "TDD" : {
+      "comment" : "Watch minimal screen: total daily dose",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -307646,6 +307783,9 @@
           }
         }
       }
+    },
+    "Temp" : {
+      "comment" : "Watch minimal screen: running temp basal"
     },
     "Temp Basal" : {
       "comment" : "Treatment label in history for temporary basal\nTreatment type",
@@ -308456,6 +308596,9 @@
           }
         }
       }
+    },
+    "Temp, IOB and COB" : {
+      "comment" : "Watch minimal screen: temp basal, IOB and COB"
     },
     "Temporary Basal" : {
       "comment" : "Navigation Title for ManualTempBasalEntryView",
@@ -313333,6 +313476,9 @@
     "The iPhone is responding with fresh readings. The pump is returning to it." : {
 
     },
+    "The iPhone keeps sending the watch a copy of its settings and history, so the watch can also start while the iPhone is away (Allow Start Without iPhone)." : {
+
+    },
     "The iPhone's loop and readings stopped. The watch is taking over." : {
 
     },
@@ -316259,10 +316405,13 @@
     "The watch can take over pump and sensor" : {
 
     },
-    "The watch can't deactivate this pump." : {
+    "The watch can take over the loop, with its own connection to the pod and the sensor." : {
 
     },
-    "The watch connects to the Dexcom G7 itself. Turn off on older watches to save battery: the watch then shows only the iPhone's glucose." : {
+    "The watch can take over the pod while the iPhone can't be reached." : {
+
+    },
+    "The watch can't deactivate this pump." : {
 
     },
     "The watch could not reach the pump." : {
@@ -316313,10 +316462,10 @@
     "The watch is still taking over the pump. Trio on the phone shows when it has." : {
 
     },
-    "The watch loops on its own when the iPhone's readings stop" : {
+    "The watch reached the pump too late." : {
 
     },
-    "The watch reached the pump too late." : {
+    "The watch reads the Dexcom G7 itself, next to the iPhone. Off saves watch battery: the watch then shows the iPhone's glucose only." : {
 
     },
     "The watch runs the loop with its own connection to the pump and the CGM while the phone is away. While it does, the phone shows glucose but doesn't dose." : {
@@ -316326,6 +316475,12 @@
 
     },
     "The watch still has the pump. Hand back on its status page when you're ready." : {
+
+    },
+    "The watch takes over the loop by itself when the iPhone stops looping." : {
+
+    },
+    "The workout is discarded at the end: it doesn't appear in the Fitness app or count toward the activity rings. It collects only the heart rate, for the minimal screen. The first start asks on the watch for permission to use workouts and read the heart rate." : {
 
     },
     "Therapy" : {
@@ -327007,7 +327162,7 @@
       }
     },
     "Time" : {
-      "comment" : "Time basal profile",
+      "comment" : "Watch minimal screen: current time",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -344016,9 +344171,6 @@
     "Turn one off to keep its notification but drop the tone. Which alarms land in this tier cannot be changed." : {
 
     },
-    "Turn this off to drop the page that shows only the large glucose bubble. The combined page with the bubble and the chart stays." : {
-
-    },
     "Turn this setting on to give basal adjustments more agility. Keep this setting off if your basal needs are not highly variable." : {
       "localizations" : {
         "bg" : {
@@ -348923,6 +349075,7 @@
       }
     },
     "Updated" : {
+      "comment" : "Watch minimal screen: age of the newest reading",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -358679,6 +358832,9 @@
         }
       }
     },
+    "watchOS gave the watch no background time for the pump." : {
+
+    },
     "We couldn’t find this barcode in OpenFoodFacts. Maybe add the product to OpenFoodFacts via the App." : {
 
     },
@@ -363390,16 +363546,34 @@
         }
       }
     },
-    "When this is off, neither the iPhone nor the watch starts untethered mode, the watch hides its status page and the iPhone stops sending it the copy to start without it. A session still running hands back." : {
+    "When this is off, neither the iPhone nor the watch starts untethered mode, the watch hides its status page and the iPhone stops sending the copy. A session still running hands back." : {
 
     },
-    "When this is off, the watch hides Start Without Phone and won't take over from a saved grant while the iPhone is unavailable." : {
+    "When this is off, the watch reads the sensor only while it loops untethered. Otherwise:" : {
 
     },
-    "When this is off, the watch reads the sensor only during untethered mode. Until then:" : {
+    "When this is off, untethered mode starts only with the iPhone in reach, and Fallback Loop is not available." : {
 
     },
-    "When this is on, the watch keeps its own link to your Dexcom G7, in the sensor's slot for a watch, next to the iPhone's. Glucose on the watch and on its complication stays current when the iPhone is out of reach or its app is asleep. The link costs some watch battery." : {
+    "When this is on, the watch compares its own sensor readings with the iPhone's. When it has a reading the iPhone hasn't sent and the iPhone's newest is over 10 minutes old, it asks the Trio app on the iPhone directly. If the app doesn't answer within 15 seconds, the watch starts untethered mode from the last copy and takes the pod over." : {
+
+    },
+    "When this is on, the watch connects to your Dexcom G7 at each reading, in the sensor's slot for a watch, so the iPhone keeps its own. Glucose on the watch and its complications stays current with the iPhone out of reach or its app asleep, and Fallback Loop can tell when the iPhone's readings stop. The connections cost some watch battery." : {
+
+    },
+    "When this is on, the watch has a page with only the large glucose bubble, after the first page. When this is off, that page is gone; the first page, with the bubble above the chart, stays." : {
+
+    },
+    "When this is on, the watch runs a workout with each untethered session, from the start to the hand-back. watchOS doesn't suspend an app with a running workout, so Trio stays awake between sensor readings: fewer readings and loops are missed, and its own checks keep running." : {
+
+    },
+    "When this is on, the watch's glucose charts, the minimal screen's included, continue past now with the predicted glucose, as lines or as a cone as set for the main chart. The charts then span less of the past. While the watch loops untethered, the prediction is its own loop's." : {
+
+    },
+    "When this is on, the watch's status page offers Start Without Phone while the iPhone can't be reached. The watch then starts from the last copy of the iPhone's settings and history it was sent, and takes the pod over itself. The iPhone learns of it once it is back, and stops dosing." : {
+
+    },
+    "When this is on, untethered mode can be started here or on the watch's status page. The iPhone then hands the pod over: the watch connects to it and to the sensor itself and runs the loop, with the iPhone's settings, until it hands the pod back. Meanwhile the iPhone shows glucose but doesn't dose. Only the Omnipod DASH and the Dexcom G7 are supported." : {
 
     },
     "When true, raises BG target when autosens detects sensitivity" : {
@@ -363539,9 +363713,6 @@
           }
         }
       }
-    },
-    "When two readings reach the watch through its own sensor link but not from the iPhone, and the iPhone is out of reach, the watch waits 10 seconds for it and then starts untethered mode from the saved grant. Once the iPhone is back, the watch hands the pump back. One of them uses the pod at a time: once the watch has it, the iPhone stops dosing until the watch hands back. Needs Watch Reads the Sensor." : {
-
     },
     "When using the Sigmoid Formula, the weighted Total Daily Dose has a much lower impact on the dynamic adjustments to sensitivity." : {
       "localizations" : {
@@ -364077,6 +364248,9 @@
         }
       }
     },
+    "While it runs:" : {
+
+    },
     "While onboarding, Trio continues to operate with your prior settings." : {
       "localizations" : {
         "bg" : {
@@ -364206,6 +364380,9 @@
           }
         }
       }
+    },
+    "While the workout runs, watchOS shows Trio instead of the watch face when the wrist comes up. With Minimal Screen on, that is a calm dark screen you arrange here; tap it for the full app. Off, it is the full app at once. The workout and the keeping awake are the same either way." : {
+
     },
     "While this override runs, a watch button next to its cancel button hands the loop to the Apple Watch. Untethered mode ends with the override." : {
 
