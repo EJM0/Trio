@@ -224,8 +224,13 @@ struct GlucoseTrendView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    // where the reading comes from
-                    if showsGlucose {
+                    // a sensor problem first: a yellow triangle catches the eye, page 3 says what it is
+                    if reader.showsSensorWarning {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.yellow)
+                            .accessibilityLabel("Sensor problem: see the sensor page")
+                    } else if showsGlucose {
                         Image(systemName: readingIsWatchOwn ? "applewatch" : "iphone")
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)

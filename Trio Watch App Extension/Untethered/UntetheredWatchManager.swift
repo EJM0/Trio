@@ -397,6 +397,7 @@ import WatchKit
             recordPumpStatus()
         }
         if wasActive != isActive {
+            WatchG7Reader.shared.refreshSensorWarning()
             handOverAlertNotifications(toWatch: isActive)
             noteSessionBattery(started: isActive)
         }

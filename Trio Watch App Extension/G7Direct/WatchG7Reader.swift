@@ -606,6 +606,28 @@ import WatchKit
         }
     }
 
+    // MARK: - Sensor warning (first page and watch face)
+
+    /// Something about the sensor needs a look: it reports a problem, or untethered mode has had no reading for
+    /// 11 minutes. Shown as a yellow triangle on the first page and the watch face; page 3 says what it is.
+    var showsSensorWarning: Bool {
+        let untethered = UntetheredWatchManager.shared
+        if untethered.isActive {
+            let newest = untethered.data.glucose.map(\.dateString).max() ?? .distantPast
+            return Date().timeIntervalSince(newest) > 11 * 60
+        }
+        return isEnabled && sensorProblemLabel != nil
+    }
+
+    /// Hands the warning to the watch face when it may have changed.
+    func refreshSensorWarning() {
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { self.refreshSensorWarning() }
+            return
+        }
+        ComplicationStore.setSensorWarning(showsSensorWarning)
+    }
+
     // MARK: - Sensor state alerts
 
     private enum SensorAlert: String {
@@ -818,10 +840,12 @@ import WatchKit
                 self.sensorProblem = problem
                 self.appendLog("Sensor answered without a reading (\(problem))")
                 self.noteSensorState(message.algorithmState)
+                self.refreshSensorWarning()
                 return
             }
             self.sensorProblem = nil
             self.sensorStateRecovered()
+            self.refreshSensorWarning()
             self.isReconnecting = false
             let reading = WatchG7Reading(
                 date: receivedAt.addingTimeInterval(-TimeInterval(message.age)),

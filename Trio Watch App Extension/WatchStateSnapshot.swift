@@ -46,6 +46,9 @@ struct TrioComplicationData: Codable {
     /// The phone's color scheme and target, to color the watch's own readings the same way.
     var colorScheme: String?
     var targetMgDL: Double?
+    /// The sensor sends no glucose (failed, ended, a temporary issue) or the watch got none for 11 minutes in
+    /// untethered mode: a yellow triangle, so a look at the face shows something needs checking.
+    var sensorWarning: Bool?
 }
 
 enum ComplicationStore {
@@ -64,9 +67,13 @@ enum ComplicationStore {
         defaults?.data(forKey: key).flatMap { try? JSONDecoder().decode(TrioComplicationData.self, from: $0) }
     }
 
-    private static func save(_ data: TrioComplicationData, previousLatest: Date?) {
+    private static func save(_ data: TrioComplicationData, previousLatest: Date?, force: Bool = false) {
         guard let defaults, let encoded = try? JSONEncoder().encode(data) else { return }
         defaults.set(encoded, forKey: key)
+        if force {
+            WidgetCenter.shared.reloadTimelines(ofKind: kind)
+            return
+        }
         // redraw only for a newer reading: watchOS budgets the redraws. The phone's copy of a reading the
         // watch read itself carries a timestamp a few seconds apart; that is the same reading, not a new one
         // (2026-10-19: some 20 redraws an hour overnight, likely past the budget: the face went stale).
@@ -122,10 +129,18 @@ enum ComplicationStore {
                 trend: trend,
                 delta: delta,
                 colorScheme: colorScheme ?? old?.colorScheme,
-                targetMgDL: targetMgDL ?? old?.targetMgDL
+                targetMgDL: targetMgDL ?? old?.targetMgDL,
+                sensorWarning: old?.sensorWarning
             ),
             previousLatest: old?.points.last?.date
         )
+    }
+
+    /// The sensor warning on or off; redrawn at once when it changes, which is rare.
+    static func setSensorWarning(_ on: Bool) {
+        guard var data = load(), (data.sensorWarning ?? false) != on else { return }
+        data.sensorWarning = on
+        save(data, previousLatest: data.points.last?.date, force: true)
     }
 
     /// A reading of the watch's own G7 reader, in mg/dL.
@@ -169,7 +184,8 @@ enum ComplicationStore {
                 trend: reading.trendName,
                 delta: delta,
                 colorScheme: old?.colorScheme,
-                targetMgDL: old?.targetMgDL
+                targetMgDL: old?.targetMgDL,
+                sensorWarning: old?.sensorWarning
             ),
             previousLatest: old?.points.last?.date
         )

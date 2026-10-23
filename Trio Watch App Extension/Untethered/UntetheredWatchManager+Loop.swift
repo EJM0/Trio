@@ -1129,6 +1129,7 @@ extension UntetheredWatchManager {
     /// The watch is the only device watching glucose: low, high and a stalled loop sound here.
     /// Run on every reading and every wake: the loop and sensor alarms are for exactly the times no reading comes.
     func checkAlarms() {
+        WatchG7Reader.shared.refreshSensorWarning()
         guard isActive, let grant = data.grant else { return }
         let now = Date()
         let latest = data.glucose.max(by: { $0.dateString < $1.dateString })

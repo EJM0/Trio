@@ -29,6 +29,9 @@ struct TrioComplicationData: Codable {
     var delta: String?
     var colorScheme: String?
     var targetMgDL: Double?
+    /// The sensor sends no glucose (failed, ended, a temporary issue) or the watch got none for 11 minutes in
+    /// untethered mode: a yellow triangle, so a look at the face shows something needs checking.
+    var sensorWarning: Bool?
 
     static func load() -> TrioComplicationData? {
         guard let group = Bundle.main.object(forInfoDictionaryKey: "AppGroupID") as? String,
@@ -115,6 +118,13 @@ struct TrioAccessoryCircularView: View {
         Image("ComplicationIcon")
             .resizable()
             .widgetAccentable()
+            .overlay(alignment: .bottomTrailing) {
+                if entry.data?.sensorWarning == true {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.yellow)
+                }
+            }
             .widgetBackground(backgroundView: Color.clear)
     }
 }
@@ -169,9 +179,17 @@ struct TrioAccessoryRectangularView: View {
                 .lineLimit(1)
                 Text(isStale ? "" : data.delta ?? "")
                     .font(.system(size: 13, weight: .medium, design: .rounded))
-                Text(latest.date, style: .time)
-                    .font(.system(size: 12, design: .rounded))
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 2) {
+                    if data.sensorWarning == true {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(isFullColor ? Color.yellow : Color.primary)
+                            .widgetAccentable()
+                    }
+                    Text(latest.date, style: .time)
+                        .font(.system(size: 12, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
             }
             .fixedSize(horizontal: true, vertical: false)
 
