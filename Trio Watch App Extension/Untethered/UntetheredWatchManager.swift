@@ -50,6 +50,15 @@ import WatchKit
     /// A sensor pairing is due: Trio has to be in front for its Bluetooth pairing request.
     var isPairingSensor = false
     @ObservationIgnored var pairingKeepAlive: SensorPairingKeepAlive?
+    /// Extended Untethered Mode's workout runs: watchOS keeps Trio running between readings.
+    var isKeptAwake = false
+    /// The workout's newest heart rate, beats per minute, for the minimal screen.
+    var heartRate: Double?
+    @ObservationIgnored var workoutKeepAlive: UntetheredWorkoutKeepAlive?
+    /// The last start had no permission or failed: tried again only with Trio in front, where watchOS can ask.
+    @ObservationIgnored var workoutStartFailed = false
+    /// The workout was ended in watchOS during the session: it stays off until the next one.
+    @ObservationIgnored var workoutEndedByUser = false
 
     /// Records travel in batches small enough for an interactive message.
     private static let recordsPerMessage = 40
@@ -94,6 +103,7 @@ import WatchKit
             self.requeueUnconfirmed(stream: false)
             // the saved state, background loops included, is on screen at once, not after the phone link is up
             if self.isActive { self.publishToWatchState() }
+            self.updateWorkoutKeepAlive()
         }
     }
 
@@ -428,6 +438,7 @@ import WatchKit
         // after the devices are in place, so the Devices page shows them too
         if isActive { publishToWatchState() }
         updateTimers()
+        updateWorkoutKeepAlive()
     }
 
     private func updateTimers() {

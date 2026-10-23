@@ -754,3 +754,211 @@ private struct PillFlow: Layout {
         return rows
     }
 }
+
+/// Extended Untethered Mode's screen: raising the wrist returns to Trio while its workout runs, so it shows this, dark
+/// and calm, after Loop's Sport Mode glance. The phone arranges it (`WatchGlanceLayout`): a row above, the middle, a row
+/// below. A tap opens the full app.
+struct UntetheredGlanceView: View {
+    let state: WatchState
+    let manager: UntetheredWatchManager
+    let onOpen: () -> Void
+
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
+
+    private static let dim = Color(white: 0.55)
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 30)) { context in
+            VStack(spacing: 4) {
+                row(0, now: context.date)
+                middle(now: context.date)
+                    .frame(maxHeight: .infinity)
+                row(1, now: context.date)
+            }
+            .padding(.horizontal, 6)
+            .padding(.bottom, 2)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black)
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onOpen)
+        .opacity(isLuminanceReduced ? 0.75 : 1)
+    }
+
+    // MARK: - Layout
+
+    /// Each element as wide as its slots.
+    private func row(_ index: Int, now: Date) -> some View {
+        let elements = state.glanceLayout.row(index)
+        let slots = WatchGlanceLayout.rows[index].count
+        return GeometryReader { geometry in
+            HStack(spacing: 0) {
+                ForEach(elements, id: \.slot) { element in
+                    let width = geometry.size.width * CGFloat(element.item?.width ?? 1) / CGFloat(slots)
+                    Group {
+                        if let item = element.item { cell(item, now: now) } else { Color.clear }
+                    }
+                    .frame(width: width)
+                }
+            }
+        }
+        .frame(height: elements.allSatisfy { $0.item == nil } ? 0 : 36)
+    }
+
+    @ViewBuilder private func middle(now: Date) -> some View {
+        switch state.glanceLayout.slots[WatchGlanceLayout.center] {
+        case .glucoseLarge:
+            glucose(size: 58, now: now)
+        case .glucoseChart:
+            VStack(spacing: 0) {
+                glucose(size: 30, now: now)
+                chart
+            }
+        case .chart:
+            chart
+        default:
+            Color.clear
+        }
+    }
+
+    private var chart: some View {
+        GlucoseChartView(state: state, glucoseValues: state.glucoseValues)
+            .allowsHitTesting(false)
+    }
+
+    // MARK: - Elements
+
+    private var newestReading: Date? { state.glucoseValues.last?.date }
+
+    private func isStale(_ now: Date) -> Bool {
+        newestReading.map { now.timeIntervalSince($0) > 6 * 60 } ?? true
+    }
+
+    private var arrow: String {
+        switch state.trend {
+        case "DoubleUp": return "⇈"
+        case "SingleUp": return "↑"
+        case "FortyFiveUp": return "↗"
+        case "Flat": return "→"
+        case "FortyFiveDown": return "↘"
+        case "SingleDown": return "↓"
+        case "DoubleDown": return "⇊"
+        default: return ""
+        }
+    }
+
+    private func glucose(size: CGFloat, now: Date) -> some View {
+        let stale = isStale(now)
+        return VStack(spacing: 0) {
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(state.currentGlucose)
+                    .font(.system(size: size, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .minimumScaleFactor(0.6)
+                    .lineLimit(1)
+                Text(arrow).font(.system(size: size * 0.45, weight: .semibold))
+            }
+            .foregroundStyle(stale ? Self.dim : state.currentGlucoseColorString.toColor())
+            // the reading's time, then its delta, or how old it is once stale
+            if let newestReading {
+                HStack(spacing: 6) {
+                    Text(newestReading, format: .dateTime.hour().minute()).foregroundStyle(Self.dim)
+                    if stale {
+                        Text("\(minutes(since: newestReading, now: now)) min ago").foregroundStyle(Color.loopYellow)
+                    } else if let delta = state.delta {
+                        Text(delta).foregroundStyle(Self.dim)
+                    }
+                }
+                .font(.footnote.weight(.semibold))
+                .monospacedDigit()
+            }
+        }
+    }
+
+    /// A combined element shows its parts side by side, each with its own label.
+    private func cell(_ item: WatchGlanceItem, now: Date) -> some View {
+        HStack(spacing: 2) {
+            ForEach(item.parts, id: \.self) { part in
+                VStack(spacing: 0) {
+                    value(part, now: now)
+                        .font(.system(size: 17, weight: .semibold))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                    // the small glucose is labelled with its reading's time
+                    Group {
+                        if part == .glucose, let newestReading {
+                            Text(newestReading, format: .dateTime.hour().minute())
+                        } else {
+                            Text(part.label.uppercased())
+                        }
+                    }
+                    .font(.system(size: 9, weight: .medium))
+                    .kerning(0.6)
+                    .foregroundStyle(Self.dim)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
+    @ViewBuilder private func value(_ item: WatchGlanceItem, now: Date) -> some View {
+        let data = manager.data
+        switch item {
+        case .glucose:
+            Text("\(state.currentGlucose)\(arrow)")
+                .foregroundStyle(isStale(now) ? Self.dim : state.currentGlucoseColorString.toColor())
+        case .loop:
+            let age = data.lastLoopDate.map { now.timeIntervalSince($0) }
+            HStack(spacing: 3) {
+                Circle().stroke(loopColor(age), lineWidth: 2.5).frame(width: 12, height: 12)
+                Text(age.map { "\(Int($0 / 60))m" } ?? "--")
+            }
+        case .iob:
+            Text(state.iob ?? "--").foregroundStyle(Color.insulin)
+        case .cob:
+            Text(state.cob ?? "--").foregroundStyle(Color.orange)
+        case .tempBasal:
+            let temp = UntetheredAlgorithm.historyTempBasal(data.pumpHistory, now: now)
+            Text(temp.duration > 0 ? "\(number(temp.rate, places: 2))" : "--")
+        case .eventualGlucose:
+            Text(data.lastDetermination?.eventualBG.map { glucoseText($0) } ?? "--")
+        case .heartRate:
+            HStack(spacing: 2) {
+                Image(systemName: "heart.fill").font(.system(size: 11)).foregroundStyle(Color.red)
+                Text(manager.heartRate.map { "\(Int($0.rounded()))" } ?? "--")
+            }
+        case .reservoir:
+            Text(data.reservoir.map { "\(number($0, places: 0)) U" } ?? "50+ U")
+        case .lastReading:
+            Text(newestReading.map { "\(minutes(since: $0, now: now))m" } ?? "--")
+        case .totalDailyDose:
+            Text(data.tddRows.max(by: { $0.date < $1.date }).map { "\(number($0.total, places: 1)) U" } ?? "--")
+        case .clock:
+            Text(now, format: .dateTime.hour().minute())
+        default:
+            Text("--")
+        }
+    }
+
+    /// As the phone's loop ring: within 5 minutes green, within 10 yellow, then red.
+    private func loopColor(_ age: TimeInterval?) -> Color {
+        guard let age else { return Self.dim }
+        return age <= 5 * 60 ? .loopGreen : age <= 10 * 60 ? .loopYellow : .loopRed
+    }
+
+    private func minutes(since date: Date, now: Date) -> Int {
+        max(0, Int(now.timeIntervalSince(date) / 60))
+    }
+
+    private func glucoseText(_ mgdl: Int) -> String {
+        guard manager.data.grant?.units == .mmolL else { return "\(mgdl)" }
+        return NSDecimalNumber(decimal: Decimal(mgdl).asMmolL).doubleValue.formatted(.number.precision(.fractionLength(1)))
+    }
+
+    private func number(_ value: Decimal, places: Int) -> String {
+        NSDecimalNumber(decimal: value).doubleValue.formatted(.number.precision(.fractionLength(0 ... places)))
+    }
+}

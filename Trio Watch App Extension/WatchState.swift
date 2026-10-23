@@ -90,6 +90,26 @@ import WatchConnectivity
         didSet { UserDefaults.standard.set(fallbackLoop, forKey: WatchMessageKeys.fallbackLoopWatch) }
     }
 
+    /// A workout session keeps Trio running through untethered mode (Extended Untethered Mode). Persisted, as a session
+    /// can start without the phone.
+    var untetheredWorkout: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.untetheredWorkoutWatch) {
+        didSet {
+            UserDefaults.standard.set(untetheredWorkout, forKey: WatchMessageKeys.untetheredWorkoutWatch)
+            if untetheredWorkout != oldValue { UntetheredWatchManager.shared.updateWorkoutKeepAlive() }
+        }
+    }
+
+    /// The minimal screen's slots (Extended Untethered Mode), as arranged on the phone. Persisted with the setting.
+    var glanceLayout: WatchGlanceLayout = UserDefaults.standard.stringArray(forKey: WatchMessageKeys.watchGlanceLayout)
+        .map(WatchGlanceLayout.init(strings:)) ?? .standard {
+        didSet { UserDefaults.standard.set(glanceLayout.strings, forKey: WatchMessageKeys.watchGlanceLayout) }
+    }
+
+    /// Off: the wrist shows the full app during Extended Untethered Mode, not the minimal screen.
+    var glanceEnabled: Bool = UserDefaults.standard.object(forKey: WatchMessageKeys.watchGlanceEnabled) as? Bool ?? true {
+        didSet { UserDefaults.standard.set(glanceEnabled, forKey: WatchMessageKeys.watchGlanceEnabled) }
+    }
+
     /// Settings › Notifications › Critical Alerts, as the phone last sent it; kept, so the watch's alarms follow it
     /// while the phone is away. Turning it on asks watchOS for critical alerts, which only a build carrying the
     /// critical-alerts entitlement is granted; without it the alarms stay ordinary notifications.
@@ -722,6 +742,19 @@ import WatchConnectivity
 
         if let fallback = message[WatchMessageKeys.fallbackLoopWatch] as? Bool, fallback != fallbackLoop {
             fallbackLoop = fallback
+        }
+
+        if let workout = message[WatchMessageKeys.untetheredWorkoutWatch] as? Bool, workout != untetheredWorkout {
+            untetheredWorkout = workout
+        }
+
+        if let enabled = message[WatchMessageKeys.watchGlanceEnabled] as? Bool, enabled != glanceEnabled {
+            glanceEnabled = enabled
+        }
+
+        if let strings = message[WatchMessageKeys.watchGlanceLayout] as? [String] {
+            let layout = WatchGlanceLayout(strings: strings)
+            if layout != glanceLayout { glanceLayout = layout }
         }
 
         if let allow = message[WatchMessageKeys.allowUntetheredStartWithoutPhoneWatch] as? Bool {

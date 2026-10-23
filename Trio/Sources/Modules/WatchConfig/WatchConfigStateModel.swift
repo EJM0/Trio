@@ -12,6 +12,9 @@ extension WatchConfig {
         @Published var showForecastWatch = false
         @Published var allowUntetheredStartWithoutPhoneWatch = false
         @Published var fallbackLoopWatch = false
+        @Published var untetheredWorkoutWatch = false
+        @Published var watchGlanceLayout: WatchGlanceLayout = .standard
+        @Published var watchGlanceEnabled = true
         @Published var untetheredModeWatch = true
 
         /// Garmin watch settings containing all watch-related configuration
@@ -31,6 +34,9 @@ extension WatchConfig {
                 allowUntetheredStartWithoutPhoneWatch = $0
             }
             subscribeSetting(\.fallbackLoopWatch, on: $fallbackLoopWatch) { fallbackLoopWatch = $0 }
+            subscribeSetting(\.untetheredWorkoutWatch, on: $untetheredWorkoutWatch) { untetheredWorkoutWatch = $0 }
+            subscribeSetting(\.watchGlanceLayout, on: $watchGlanceLayout) { watchGlanceLayout = $0 }
+            subscribeSetting(\.watchGlanceEnabled, on: $watchGlanceEnabled) { watchGlanceEnabled = $0 }
             subscribeSetting(\.untetheredModeWatch, on: $untetheredModeWatch) { untetheredModeWatch = $0 }
 
             devices = garmin.devices

@@ -63,6 +63,12 @@ struct TrioSettings: JSON, Equatable, Encodable {
     /// With Allow Start Without iPhone on: the watch starts untethered mode by itself when the iPhone stops
     /// sending readings and is out of reach (Elias Maurer's fallback loop). Off until chosen.
     var fallbackLoopWatch: Bool = false
+    /// The watch keeps Trio running through untethered mode with a workout session that is never saved.
+    var untetheredWorkoutWatch: Bool = false
+    /// What Extended Untethered Mode's minimal watch screen shows, and where.
+    var watchGlanceLayout: WatchGlanceLayout = .standard
+    /// Off: the workout keeps Trio running, but the wrist shows the full app, not the minimal screen.
+    var watchGlanceEnabled: Bool = true
     /// Untethered watch mode offered at all: off, neither the phone nor the watch starts it.
     var untetheredModeWatch: Bool = true
     var overrideFactor: Decimal = 0.8
@@ -338,6 +344,18 @@ extension TrioSettings: Decodable {
 
         if let fallbackLoopWatch = try? container.decode(Bool.self, forKey: .fallbackLoopWatch) {
             settings.fallbackLoopWatch = fallbackLoopWatch
+        }
+
+        if let untetheredWorkoutWatch = try? container.decode(Bool.self, forKey: .untetheredWorkoutWatch) {
+            settings.untetheredWorkoutWatch = untetheredWorkoutWatch
+        }
+
+        if let watchGlanceLayout = try? container.decode(WatchGlanceLayout.self, forKey: .watchGlanceLayout) {
+            settings.watchGlanceLayout = watchGlanceLayout
+        }
+
+        if let watchGlanceEnabled = try? container.decode(Bool.self, forKey: .watchGlanceEnabled) {
+            settings.watchGlanceEnabled = watchGlanceEnabled
         }
 
         if let showForecastWatch = try? container.decode(Bool.self, forKey: .showForecastWatch) {

@@ -85,6 +85,26 @@ import Testing
         return (phone, watch)
     }
 
+    @Test("minimal screen: wide elements fit their row, and saved slots are made valid") func glanceLayout() {
+        var layout = WatchGlanceLayout.standard
+        layout.place(.basalIobCob, at: 4)
+        #expect(Array(layout.slots[3...]) == [.basalIobCob, .continuation, .continuation])
+        layout.place(.heartRate, at: 5)
+        #expect(Array(layout.slots[3...]) == [nil, nil, .heartRate])
+        layout.place(.iobCob, at: 4)
+        #expect(Array(layout.slots[3...]) == [nil, .iobCob, .continuation])
+        layout.place(.iobCob, at: 1)
+        #expect(Array(layout.slots[1...]) == [.iobCob, .continuation, nil, nil, nil])
+        #expect(!layout.place(.chart, at: 2))
+        #expect(!layout.place(.loop, at: 0))
+        layout.remove(.iobCob)
+        #expect(layout.slots[1] == nil && layout.slots[2] == nil)
+        #expect(layout.placeInFirstFreeSlot(.basalIobCob) && layout.slots[3] == .basalIobCob)
+
+        let saved = WatchGlanceLayout(strings: ["loop", "continuation", "iob", "iob", "chart", "nonsense"])
+        #expect(saved.slots == [nil, nil, .iob, nil, nil, nil])
+    }
+
     @Test("start: both sides active only after the full handshake") func handshake() {
         let (phone, watch) = started()
         #expect(phone.phase == .active)

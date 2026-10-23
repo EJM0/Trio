@@ -890,7 +890,8 @@ extension UntetheredWatchManager: CGMManagerDelegate {
     /// ponytail: the start delay as the ordinary wait lost bursts (kristinkand 3b3f1f3); here it covers only the rest
     /// after a loop. If link-ups drop again, release only (`release()`) and keep G7's hold.
     func endLoopHold(_ release: @escaping () -> Void) {
-        guard WKApplication.shared().applicationState != .active, !isBolusing else { return release() }
+        // a running workout keeps the app awake anyway: the sensor keeps its own hold, which loses no bursts
+        guard WKApplication.shared().applicationState != .active, !isBolusing, !isKeptAwake else { return release() }
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.podIdleDisconnectWait) { [weak self] in
             defer { release() }
             guard let self, !self.isLooping, !self.isBolusing,
@@ -1024,6 +1025,50 @@ extension UntetheredWatchManager: CGMManagerDelegate {
     func appBecameActive() {
         watchCGMAppBecameActive(cgmManager)
         if isPairingSensor { keepTrioInFrontForPairing() }
+        updateWorkoutKeepAlive()
+    }
+
+    /// Extended Untethered Mode: the workout runs while the watch has the pump and the setting is on.
+    func updateWorkoutKeepAlive() {
+        guard isActive, WatchState.shared.untetheredWorkout else {
+            workoutKeepAlive?.stop()
+            workoutEndedByUser = false
+            return
+        }
+        guard workoutKeepAlive == nil, !workoutEndedByUser,
+              !workoutStartFailed || WKApplication.shared().applicationState == .active
+        else { return }
+        let keepAlive = UntetheredWorkoutKeepAlive(onChange: { [weak self] isRunning, note in
+            guard let self else { return }
+            Task { await WatchLogger.shared.log("⌚️ Untethered: extended mode workout \(note)", force: true) }
+            self.isKeptAwake = isRunning
+            if !isRunning { self.heartRate = nil }
+            if isRunning {
+                self.workoutStartFailed = false
+                // the session may have ended while it started
+                self.updateWorkoutKeepAlive()
+            } else {
+                self.workoutKeepAlive = nil
+                if note != "ended" {
+                    self.workoutStartFailed = true
+                } else if self.isActive, WatchState.shared.untetheredWorkout {
+                    // ended in watchOS, not by Trio: no new one until the next session
+                    self.workoutEndedByUser = true
+                }
+            }
+        }, onHeartRate: { [weak self] in self?.heartRate = $0 })
+        workoutKeepAlive = keepAlive
+        keepAlive.start()
+    }
+
+    /// watchOS relaunched Trio with its workout running: taken back, or ended when no longer wanted.
+    func recoverWorkout() {
+        guard workoutKeepAlive == nil else { return }
+        guard isActive, WatchState.shared.untetheredWorkout else {
+            HKHealthStore().recoverActiveWorkoutSession { session, _ in session?.end() }
+            return
+        }
+        updateWorkoutKeepAlive()
     }
 
     private func keepTrioInFrontForPairing() {
@@ -1545,4 +1590,130 @@ final class SensorPairingKeepAlive: NSObject, WKExtendedRuntimeSessionDelegate {
         let text = error.map { "\(reason.rawValue): \($0.localizedDescription)" } ?? "\(reason.rawValue)"
         DispatchQueue.main.async { self.onEnd(text) }
     }
+}
+
+/// Extended Untethered Mode: a workout session (WKBackgroundModes workout-processing) keeps Trio running for the whole
+/// untethered session, where watchOS otherwise suspends it between sensor bursts and now and then misses one (2026-10-23
+/// 11:50 and 12:05, the connect standing). Its builder collects the heart rate alone, for the minimal screen, and the
+/// workout is discarded at the end: nothing is saved to Health or counts for the activity rings. Starting needs
+/// permission to share workouts, asked once with Trio in front; after a relaunch the running workout is taken back.
+final class UntetheredWorkoutKeepAlive: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate {
+    private static let heartRate = HKQuantityType(.heartRate)
+    private static let beatsPerMinute = HKUnit.count().unitDivided(by: .minute())
+
+    private let healthStore = HKHealthStore()
+    private var session: HKWorkoutSession?
+    private var builder: HKLiveWorkoutBuilder?
+    private let onChange: (_ isRunning: Bool, _ note: String) -> Void
+    private let onHeartRate: (Double) -> Void
+
+    init(onChange: @escaping (_ isRunning: Bool, _ note: String) -> Void, onHeartRate: @escaping (Double) -> Void) {
+        self.onChange = onChange
+        self.onHeartRate = onHeartRate
+        super.init()
+    }
+
+    func start() {
+        healthStore.recoverActiveWorkoutSession { recovered, _ in
+            DispatchQueue.main.async {
+                guard self.session == nil else { return }
+                if let recovered, recovered.state == .running {
+                    self.run(recovered)
+                    self.onChange(true, "taken back after a relaunch")
+                } else {
+                    recovered?.end()
+                    self.startNew()
+                }
+            }
+        }
+    }
+
+    func stop() {
+        guard let session else { return }
+        session.end()
+    }
+
+    private func startNew() {
+        guard HKHealthStore.isHealthDataAvailable() else { return onChange(false, "Health unavailable") }
+        healthStore.requestAuthorization(toShare: [HKObjectType.workoutType()], read: [Self.heartRate]) { _, error in
+            DispatchQueue.main.async {
+                guard self.session == nil else { return }
+                guard self.healthStore.authorizationStatus(for: .workoutType()) == .sharingAuthorized else {
+                    return self.onChange(false, "no permission to use workouts" + (error.map { ": \($0.localizedDescription)" } ?? ""))
+                }
+                let configuration = HKWorkoutConfiguration()
+                configuration.activityType = .other
+                configuration.locationType = .indoor
+                do {
+                    let session = try HKWorkoutSession(healthStore: self.healthStore, configuration: configuration)
+                    self.run(session)
+                    let start = Date()
+                    session.startActivity(with: start)
+                    session.associatedWorkoutBuilder().beginCollection(withStart: start) { _, _ in }
+                } catch {
+                    self.onChange(false, "could not start: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    private func run(_ session: HKWorkoutSession) {
+        session.delegate = self
+        self.session = session
+        let builder = session.associatedWorkoutBuilder()
+        if builder.dataSource == nil {
+            let source = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: session.workoutConfiguration)
+            // the heart rate only: no energy or distance for the activity rings
+            for type in source.typesToCollect where type != Self.heartRate {
+                source.disableCollection(for: type)
+            }
+            source.enableCollection(for: Self.heartRate, predicate: nil)
+            builder.dataSource = source
+        }
+        builder.delegate = self
+        self.builder = builder
+    }
+
+    private func ended(_ session: HKWorkoutSession, _ note: String) {
+        let builder = session.associatedWorkoutBuilder()
+        builder.endCollection(withEnd: Date()) { _, _ in builder.discardWorkout() }
+        DispatchQueue.main.async {
+            guard self.session === session else { return }
+            self.session = nil
+            self.builder = nil
+            self.onChange(false, note)
+        }
+    }
+
+    func workoutSession(
+        _ workoutSession: HKWorkoutSession,
+        didChangeTo toState: HKWorkoutSessionState,
+        from _: HKWorkoutSessionState,
+        date _: Date
+    ) {
+        switch toState {
+        case .running:
+            DispatchQueue.main.async { self.onChange(true, "running") }
+        case .stopped:
+            // stopped by the system: ended, so nothing is left waiting to be saved
+            workoutSession.end()
+        case .ended:
+            ended(workoutSession, "ended")
+        default:
+            break
+        }
+    }
+
+    func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
+        ended(workoutSession, "failed: \(error.localizedDescription)")
+    }
+
+    func workoutBuilder(_ workoutBuilder: HKLiveWorkoutBuilder, didCollectDataOf collectedTypes: Set<HKSampleType>) {
+        guard collectedTypes.contains(Self.heartRate),
+              let bpm = workoutBuilder.statistics(for: Self.heartRate)?.mostRecentQuantity()?.doubleValue(for: Self.beatsPerMinute)
+        else { return }
+        DispatchQueue.main.async { self.onHeartRate(bpm) }
+    }
+
+    func workoutBuilderDidCollectEvent(_: HKLiveWorkoutBuilder) {}
 }

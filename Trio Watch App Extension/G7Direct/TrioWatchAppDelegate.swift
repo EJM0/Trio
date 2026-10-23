@@ -36,6 +36,11 @@ final class TrioWatchAppDelegate: NSObject, WKApplicationDelegate {
     }
 
     /// Implementing this makes every background task ours to complete.
+    /// Extended Untethered Mode's workout outlived the last process.
+    func handleActiveWorkoutRecovery() {
+        UntetheredWatchManager.shared.recoverWorkout()
+    }
+
     func handle(_ backgroundTasks: Set<WKRefreshBackgroundTask>) {
         // Not always on main (EJM0 f858f18): a Bluetooth task can arrive on CoreBluetooth's queue, and all below is
         // main-only. The reader's hold asserts main, so such a task ended the process right at the link-up (Trio

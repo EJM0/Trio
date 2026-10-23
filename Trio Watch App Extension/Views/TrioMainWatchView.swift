@@ -3,6 +3,9 @@ import SwiftUI
 import WatchKit
 
 struct TrioMainWatchView: View {
+    /// Extended Untethered Mode shows its minimal screen on each wrist raise until tapped.
+    @State private var showsFullApp = false
+    @Environment(\.scenePhase) private var glanceScenePhase
     @State private var state = WatchState.shared
     @State private var untethered = UntetheredWatchManager.shared
 
@@ -80,6 +83,19 @@ struct TrioMainWatchView: View {
     )
 
     var body: some View {
+        Group {
+            if untethered.isKeptAwake, state.glanceEnabled, !showsFullApp {
+                UntetheredGlanceView(state: state, manager: untethered) { showsFullApp = true }
+            } else {
+                fullApp
+            }
+        }
+        .onChange(of: glanceScenePhase) { _, phase in
+            if phase != .active { showsFullApp = false }
+        }
+    }
+
+    private var fullApp: some View {
         NavigationStack(path: $navigationPath) {
             TabView(selection: $currentPage) {
                 // Page 1: Current glucose trend in "BG bobble"
