@@ -1041,6 +1041,7 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         let keepAlive = UntetheredWorkoutKeepAlive(onChange: { [weak self] isRunning, note in
             guard let self else { return }
             Task { await WatchLogger.shared.log("⌚️ Untethered: extended mode workout \(note)", force: true) }
+            let wasRunning = self.isKeptAwake
             self.isKeptAwake = isRunning
             if !isRunning { self.heartRate = nil }
             if isRunning {
@@ -1049,11 +1050,12 @@ extension UntetheredWatchManager: CGMManagerDelegate {
                 self.updateWorkoutKeepAlive()
             } else {
                 self.workoutKeepAlive = nil
-                if note != "ended" {
+                if wasRunning || note == "ended" {
+                    // ended in watchOS, not by Trio, also by a workout started in another app (one runs at a time):
+                    // no new one until the next session, which would end that workout in turn
+                    if self.isActive, WatchState.shared.untetheredWorkout { self.workoutEndedByUser = true }
+                } else {
                     self.workoutStartFailed = true
-                } else if self.isActive, WatchState.shared.untetheredWorkout {
-                    // ended in watchOS, not by Trio: no new one until the next session
-                    self.workoutEndedByUser = true
                 }
             }
         }, onHeartRate: { [weak self] in self?.heartRate = $0 })
