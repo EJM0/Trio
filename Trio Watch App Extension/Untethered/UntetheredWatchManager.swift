@@ -1220,10 +1220,16 @@ import WatchKit
                 force: true
             )
         }
+        // watchOS starts Extended Untethered Mode's workout only with Trio in front
+        let opensForWorkout = WatchState.shared.untetheredWorkout && WKApplication.shared().applicationState != .active
         notify(
             id: "untethered.fallback",
             title: String(localized: "Phone Loop Stalled"),
-            body: String(localized: "The iPhone's loop and readings stopped. The watch is taking over.")
+            body: opensForWorkout
+                ? String(
+                    localized: "The iPhone's loop and readings stopped. The watch is taking over. Open Trio to start the workout that keeps it awake."
+                )
+                : String(localized: "The iPhone's loop and readings stopped. The watch is taking over.")
         )
     }
 
