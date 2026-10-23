@@ -49,6 +49,12 @@ struct GlucoseTrendView: View {
     }
 
     private var bottomText: String {
+        // the sensor's own state, when it sends no glucose: the reason, not "stale"
+        if let label = reader.sensorProblemLabel, !reader.isStandingAside,
+           (reader.latest.map { Date().timeIntervalSince($0.date) > 6 * 60 } ?? true)
+        {
+            return label
+        }
         if let directReading {
             let minutes = max(0, Int(Date().timeIntervalSince(directReading.date) / 60))
             return String(

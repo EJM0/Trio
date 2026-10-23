@@ -44,6 +44,10 @@ import WatchKit
     private(set) var needsCodeForSensor: String? = nil
     /// The sensor's state when it last answered without a usable reading (warm-up, failed, ...).
     private(set) var sensorProblem: String? = nil
+    /// The same as a few words for the first page, so a missing reading is put down to the sensor, not the watch.
+    private(set) var sensorProblemLabel: String? = nil
+    /// Answers in a row with a temporary sensor issue; the second raises "Sensor Issue".
+    @ObservationIgnored private var temporaryIssueCount = 0
     private(set) var logLines: [String] = []
     /// When the last watch state update from the phone was made.
     private(set) var lastPhoneContact: Date?
@@ -602,6 +606,93 @@ import WatchKit
         }
     }
 
+    // MARK: - Sensor state alerts
+
+    private enum SensorAlert: String {
+        case failed = "sensorFailed"
+        case ended = "sensorEnded"
+        case issue = "sensorIssue"
+
+        var title: String {
+            switch self {
+            case .failed: return String(localized: "Sensor Failed", comment: "Watch G7 alert title: the sensor reports it has failed")
+            case .ended: return String(localized: "Sensor Session Ended", comment: "Watch G7 alert title: the sensor's session is over")
+            case .issue: return String(localized: "Sensor Issue", comment: "Watch G7 alert title: the sensor reports a temporary problem")
+            }
+        }
+
+        var body: String {
+            switch self {
+            case .failed:
+                return String(
+                    localized: "The G7 reports that it has failed and sends no more glucose. The watch and Trio are working; replace the sensor.",
+                    comment: "Watch G7 alert body: sensor failed"
+                )
+            case .ended:
+                return String(
+                    localized: "The G7 reports that its session is over and sends no more glucose. Replace the sensor.",
+                    comment: "Watch G7 alert body: sensor session ended"
+                )
+            case .issue:
+                return String(
+                    localized: "The G7 reports a temporary sensor issue and sends no glucose for now. The watch and Trio are working; readings come back when the sensor recovers.",
+                    comment: "Watch G7 alert body: temporary sensor issue"
+                )
+            }
+        }
+    }
+
+    /// A G7 that answers without glucose says why. Its own state is what the wrist should hear, also with the phone
+    /// nearby: a missing reading otherwise looks like the watch or Trio not updating. Warm-up only shows on the page.
+    private func noteSensorState(_ state: AlgorithmState) {
+        if state.sensorFailed {
+            sensorProblemLabel = String(localized: "Sensor failed", comment: "Watch first page: the sensor reports it has failed")
+            raiseSensorAlert(.failed)
+        } else if case let .known(known) = state, [.sessionExpired, .expired, .sessionEnded, .stopped].contains(known) {
+            sensorProblemLabel = String(localized: "Sensor ended", comment: "Watch first page: the sensor's session is over")
+            raiseSensorAlert(.ended)
+        } else if state.isInWarmup {
+            sensorProblemLabel = String(localized: "Sensor warming up", comment: "Watch first page: the sensor is warming up")
+        } else {
+            sensorProblemLabel = String(localized: "Sensor issue", comment: "Watch first page: the sensor sends no glucose for now")
+            temporaryIssueCount += 1
+            if temporaryIssueCount >= 2 { raiseSensorAlert(.issue) }
+        }
+    }
+
+    private func sensorStateRecovered() {
+        temporaryIssueCount = 0
+        guard sensorProblemLabel != nil else { return }
+        sensorProblemLabel = nil
+        for alert in [SensorAlert.failed, .ended, .issue] {
+            defaults.removeObject(forKey: Key.lastAlert + alert.rawValue)
+        }
+        UNUserNotificationCenter.current().removeDeliveredNotifications(
+            withIdentifiers: [SensorAlert.issue].map { Self.notificationIdentifierPrefix + $0.rawValue }
+        )
+        appendLog("Sensor sends glucose again")
+    }
+
+    /// Once per sensor problem: it is cleared by the next good reading. "Failed" is critical when Critical Alerts
+    /// are on for the watch, as untethered mode's sensor alarms are.
+    private func raiseSensorAlert(_ alert: SensorAlert) {
+        let key = Key.lastAlert + alert.rawValue
+        guard defaults.object(forKey: key) == nil else { return }
+        defaults.set(Date(), forKey: key)
+        let content = UNMutableNotificationContent()
+        content.title = alert.title
+        content.body = alert.body
+        let critical = alert == .failed && defaults.bool(forKey: WatchMessageKeys.useCriticalAlertsWatch)
+        content.sound = critical ? .defaultCritical : .default
+        UNUserNotificationCenter.current().add(UNNotificationRequest(
+            identifier: Self.notificationIdentifierPrefix + alert.rawValue,
+            content: content,
+            trigger: nil
+        ))
+        WKInterfaceDevice.current().play(.failure)
+        appendLog("Alert: \(alert.title)")
+    }
+
     // MARK: - Alerts
 
     private enum AlertKind: String {
@@ -726,9 +817,11 @@ import WatchKit
                 let problem = String(describing: message.algorithmState)
                 self.sensorProblem = problem
                 self.appendLog("Sensor answered without a reading (\(problem))")
+                self.noteSensorState(message.algorithmState)
                 return
             }
             self.sensorProblem = nil
+            self.sensorStateRecovered()
             self.isReconnecting = false
             let reading = WatchG7Reading(
                 date: receivedAt.addingTimeInterval(-TimeInterval(message.age)),
