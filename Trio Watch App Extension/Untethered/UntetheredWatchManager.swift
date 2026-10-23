@@ -1457,12 +1457,18 @@ extension UntetheredWatchManager {
             return
         }
         UserDefaults.standard.set(data.session.epoch, forKey: Self.fallbackEpochKey)
+        // watchOS starts Extended Untethered Mode's workout only with Trio in front
+        let opensForWorkout = WatchState.shared.untetheredWorkout && WKApplication.shared().applicationState != .active
         notify(
             id: Self.notificationPrefix + "fallback",
             title: String(localized: "Watch Took Over"),
-            body: String(
-                localized: "The iPhone has been silent for \(minutes) minutes and is out of reach. The watch runs the pump until it's back, then hands it back by itself."
-            )
+            body: opensForWorkout
+                ? String(
+                    localized: "The iPhone has been silent for \(minutes) minutes and is out of reach. The watch runs the pump until it's back, then hands it back by itself. Open Trio to start the workout that keeps it awake."
+                )
+                : String(
+                    localized: "The iPhone has been silent for \(minutes) minutes and is out of reach. The watch runs the pump until it's back, then hands it back by itself."
+                )
         )
     }
 
