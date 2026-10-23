@@ -19,6 +19,8 @@ import WatchKit
     @ObservationIgnored var pumpManager: (PumpManager & ExclusiveDeviceControl)?
     @ObservationIgnored var cgmManager: CGMManager?
     @ObservationIgnored var isLooping = false
+    /// watchOS ended the running loop's background time: it starts no further pod command.
+    @ObservationIgnored var loopHoldExpired = false
     /// A treatment came in while a loop ran; its determination follows.
     @ObservationIgnored var isDeterminationPending = false
     /// A mode changed while a loop ran; its constrained determination and enactment follow.

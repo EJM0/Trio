@@ -41,7 +41,10 @@ extension UntetheredWatchManager {
         if enacts { store.update { $0.lastLoopGlucose = newestGlucose } }
         // A Bluetooth wake often comes with almost no time from watchOS; without time of its own the app can be
         // suspended in the middle of reaching the pod, and the loop stalls until the app is opened.
-        let releaseHold = Self.holdProcess(reason: "Untethered loop", upTo: Self.loopHoldLimit)
+        loopHoldExpired = false
+        let releaseHold = Self.holdProcess(reason: "Untethered loop", upTo: Self.loopHoldLimit) { [weak self] in
+            self?.loopHoldExpired = true
+        }
         Task { @MainActor in
             defer {
                 releaseHold()
@@ -251,6 +254,9 @@ extension UntetheredWatchManager {
     /// The phone's `APSManager.enactDetermination`.
     private func enact(_ determination: Determination, pump: PumpManager, dosingMode: DosingMode) async throws {
         if case .suspended = pump.status.basalDeliveryState { return }
+        // a pod command watchOS can freeze half-way is what leaves the pod link stuck (2026-10-19 08:09,
+        // 2026-10-20 02:25 and 12:11): none starts once the loop has no background time left
+        guard !loopHoldExpired else { throw UntetheredWatchError.noBackgroundTime }
         if let rate = determination.rate, let duration = determination.duration {
             try await pump.enactTempBasal(
                 unitsPerHour: rate.nearestDouble,
@@ -261,6 +267,7 @@ extension UntetheredWatchManager {
         if data.grant?.dosingMode == dosingMode, let units = determination.units, units > 0,
            pump.status.bolusState == .noBolus
         {
+            guard !loopHoldExpired else { throw UntetheredWatchError.noBackgroundTime }
             try await pump.enactBolus(units: units.nearestDouble, automatic: true)
         }
     }
@@ -291,6 +298,7 @@ enum UntetheredWatchError: LocalizedError {
     case noPump
     case notEnoughGlucose
     case staleGlucose
+    case noBackgroundTime
 
     var errorDescription: String? {
         switch self {
@@ -298,6 +306,7 @@ enum UntetheredWatchError: LocalizedError {
         case .staleGlucose: return String(localized: "Glucose data is stale: the most recent reading is more than 12 minutes old.")
         case .noDetermination: return String(localized: "The algorithm gave no result.")
         case .noPump: return String(localized: "The watch doesn't have the pump.")
+        case .noBackgroundTime: return String(localized: "watchOS gave the watch no background time for the pump.")
         }
     }
 }
@@ -755,7 +764,15 @@ extension UntetheredWatchManager: PumpManagerDelegate {
         message: String,
         completion: ((Error?) -> Void)?
     ) {
-        Task { await WatchLogger.shared.log("⌚️ Device: \(message)") }
+        if Self.isRawDump(message) {
+            // a sensor link writes over a hundred of these, written out at every wake: only with Trio in front
+            DispatchQueue.main.async {
+                guard WKApplication.shared().applicationState == .active else { return }
+                Task { await WatchLogger.shared.log("⌚️ Device: \(message)") }
+            }
+        } else {
+            Task { await WatchLogger.shared.log("⌚️ Device: \(message)") }
+        }
         DispatchQueue.main.async { self.noteSensorPairingEvent(message) }
         // ponytail: matched on G7SensorKit's log line, which is the only place it reports a link error;
         // move to a delegate call if the kit ever reports one. 14 = the peer removed the pairing,
@@ -768,6 +785,13 @@ extension UntetheredWatchManager: PumpManagerDelegate {
             }
         }
         completion?(nil)
+    }
+
+    /// A kit's raw packet line: a hex dump alone, or behind G7SensorKit's "backfill" or "control".
+    static func isRawDump(_ message: String) -> Bool {
+        let words = message.split(separator: " ")
+        guard let last = words.last, last.count >= 8, last.allSatisfy(\.isHexDigit) else { return false }
+        return words.count == 1 || (words.count == 2 && ["backfill", "control"].contains(words[0]))
     }
 
     func deviceManagerControlDidBecomeReady(_: DeviceManager) {
@@ -858,12 +882,31 @@ extension UntetheredWatchManager: CGMManagerDelegate {
     static let loopHoldLimit: TimeInterval = 30
 
     /// Keeps the app running until `release` is called, `wait` has passed, or watchOS ends it, whichever comes first.
-    static func holdProcess(reason: String, upTo wait: TimeInterval) -> () -> Void {
+    /// watchOS ends it by calling the block again with `expired`, or calls it only so when it grants no time: the hold
+    /// lets go at once, since an app that holds on past that gets less background time from then on, logs how long it
+    /// had, and `onExpire` tells the work to start nothing new.
+    static func holdProcess(
+        reason: String,
+        upTo wait: TimeInterval,
+        onExpire: (@MainActor () -> Void)? = nil
+    ) -> () -> Void {
         let gate = DispatchSemaphore(value: 0)
+        let started = Date()
         DispatchQueue.global(qos: .userInitiated).async {
             ProcessInfo.processInfo.performExpiringActivity(withReason: reason) { expired in
-                if expired { return }
-                _ = gate.wait(timeout: .now() + wait)
+                guard expired else {
+                    _ = gate.wait(timeout: .now() + wait)
+                    return
+                }
+                gate.signal()
+                let granted = Date().timeIntervalSince(started)
+                Task {
+                    await WatchLogger.shared.log(
+                        String(format: "⌚️ %@: background time ended by watchOS after %.1f s", reason, granted),
+                        force: true
+                    )
+                }
+                if let onExpire { Task { @MainActor in onExpire() } }
             }
         }
         let once = NSLock()
@@ -1326,6 +1369,9 @@ extension UntetheredWatchManager {
     func publishToWatchState() {
         guard isActive, let grant = data.grant else { return }
         let state = WatchState.shared
+        // in the background nobody sees the screens: the forecast, markers, presets and devices wait for the app to
+        // come forward (`refresh`), the complication's values don't
+        let inFront = WKApplication.shared().applicationState == .active
         let units = grant.units
         func display(_ mgdl: Int) -> Double {
             units == .mgdL ? Double(mgdl) : NSDecimalNumber(decimal: Decimal(mgdl).asMmolL).doubleValue
@@ -1341,6 +1387,16 @@ extension UntetheredWatchManager {
                 lowGlucoseColorValue: isDynamic ? 55 : grant.lowGlucose,
                 targetGlucose: target,
                 glucoseColorScheme: scheme
+            )
+        }
+        func updateComplication() {
+            ComplicationStore.update(
+                from: state,
+                isMmol: units != .mgdL,
+                lowMgDL: NSDecimalNumber(decimal: grant.lowGlucose).doubleValue,
+                highMgDL: NSDecimalNumber(decimal: grant.highGlucose).doubleValue,
+                colorScheme: grant.glucoseColorScheme,
+                targetMgDL: NSDecimalNumber(decimal: target).doubleValue
             )
         }
         let readings = data.glucose.sorted { $0.dateString < $1.dateString }
@@ -1361,6 +1417,18 @@ extension UntetheredWatchManager {
         if let determination = data.lastDetermination {
             state.iob = determination.iob.map { String(format: "%.2f", NSDecimalNumber(decimal: $0).doubleValue) }
             state.cob = determination.cob.map { $0.formatted(.number.precision(.fractionLength(0))) }
+        }
+        if let lastLoop = data.lastLoopDate {
+            // the phone's own rounding, so the ring turns as it does there
+            let minutes = Int((Date().timeIntervalSince(lastLoop) - 30) / 60) + 1
+            state.lastLoopTime = minutes > 1440 ? "--" : "\(minutes) min"
+        }
+        state.lastWatchStateUpdate = Date().timeIntervalSince1970
+        guard inFront else {
+            updateComplication()
+            return
+        }
+        if let determination = data.lastDetermination {
             // as `AppleWatchManager`: two hours of each line, or the cone between them
             let series = [
                 "iob": determination.predictions?.iob, "cob": determination.predictions?.cob,
@@ -1393,12 +1461,6 @@ extension UntetheredWatchManager {
                 return WatchTreatmentMarker(id: entry.id ?? "\(date.timeIntervalSince1970)", date: date, kind: .carbs)
             }
         state.treatmentMarkers = boluses + carbs
-        if let lastLoop = data.lastLoopDate {
-            // the phone's own rounding, so the ring turns as it does there
-            let minutes = Int((Date().timeIntervalSince(lastLoop) - 30) / 60) + 1
-            state.lastLoopTime = minutes > 1440 ? "--" : "\(minutes) min"
-        }
-        state.lastWatchStateUpdate = Date().timeIntervalSince1970
         state.showSyncingAnimation = false
         let activeOverrideID = activeOverride(at: Date())?.id
         state.overridePresets = grant.overridePresets
@@ -1409,14 +1471,7 @@ extension UntetheredWatchManager {
         }
         state.maxBolus = grant.maxBolus
         state.maxCarbs = grant.maxCarbs
-        ComplicationStore.update(
-            from: state,
-            isMmol: units != .mgdL,
-            lowMgDL: NSDecimalNumber(decimal: grant.lowGlucose).doubleValue,
-            highMgDL: NSDecimalNumber(decimal: grant.highGlucose).doubleValue,
-            colorScheme: grant.glucoseColorScheme,
-            targetMgDL: NSDecimalNumber(decimal: target).doubleValue
-        )
+        updateComplication()
     }
 }
 

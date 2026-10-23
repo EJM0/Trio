@@ -170,6 +170,10 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     /// The publisher also fires as the watch's own readings are stored: one wake per reading cycle at most.
     private static let watchWakeInterval: TimeInterval = 4 * 60
     private var lastWatchWake: Date?
+    /// The newest of the watch's own readings that reached the phone.
+    private var lastWatchReadingAt: Date?
+    /// A watch whose own reading is at most this old reads its sensor fine and was awake for it.
+    private static let watchReadsFineWithin: TimeInterval = 10 * 60
 
     /// While the watch has the pump, a small application context after each phone reading wakes the watch app, so it
     /// re-checks its sensor and sends its history even if a Bluetooth callback was lost.
@@ -178,6 +182,12 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         lastWatchWake = Date()
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.watchWakeDelay) { [weak self] in
             guard let self, self.isWatchInCharge else { return }
+            // a wake of the app's own is a draw on its background budget: only for a watch whose readings stopped
+            if let watchReading = self.lastWatchReadingAt,
+               Date().timeIntervalSince(watchReading) < Self.watchReadsFineWithin
+            {
+                return
+            }
             let session = WCSession.default
             guard WCSession.isSupported(), session.activationState == .activated, session.isWatchAppInstalled else { return }
             try? session.updateApplicationContext([WatchMessageKeys.untetheredWake: Date().timeIntervalSince1970])
@@ -1305,6 +1315,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             UntetheredGate.update { $0.watchPendingDoses[epoch]?.remove(syncIdentifier) }
         case let .glucose(glucose):
             try await glucoseStorage.storeGlucose([glucose])
+            if glucose.dateString > lastWatchReadingAt ?? .distantPast { lastWatchReadingAt = glucose.dateString }
         case let .glucoseDeleted(date):
             let context = CoreDataStack.shared.newTaskContext()
             let found: (objectID: NSManagedObjectID, id: String?, date: Date?)? = await context.perform {
