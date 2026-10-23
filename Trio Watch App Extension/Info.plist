@@ -4,14 +4,6 @@
 <dict>
 	<key>AppGroupID</key>
 	<string>$(APP_GROUP_ID)</string>
-	<key>WKBackgroundModes</key>
-	<array>
-		<string>self-care</string>
-	</array>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>bluetooth-central</string>
-	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -22,6 +14,19 @@
 				<string>trio-watch</string>
 			</array>
 		</dict>
+	</array>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Extended Untethered Mode runs a workout session to keep Trio running. The workout is never saved.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Extended Untethered Mode runs a workout session to keep Trio running. The workout is never saved.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>bluetooth-central</string>
+	</array>
+	<key>WKBackgroundModes</key>
+	<array>
+		<string>self-care</string>
+		<string>workout-processing</string>
 	</array>
 </dict>
 </plist>

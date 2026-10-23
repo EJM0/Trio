@@ -74,6 +74,12 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var watchSensorAlwaysOn: Bool = true
     /// The watch keeps its own sensor link and starts on its own when the iPhone's readings stop.
     var fallbackLoopWatch: Bool = false
+    /// The watch keeps Trio running through untethered mode with a workout session that is never saved.
+    var untetheredWorkoutWatch: Bool = false
+    /// What Extended Untethered Mode's minimal watch screen shows, and where.
+    var watchGlanceLayout: WatchGlanceLayout = .standard
+    /// Off: the workout keeps Trio running, but the wrist shows the full app, not the minimal screen.
+    var watchGlanceEnabled: Bool = true
     var overrideFactor: Decimal = 0.8
     var fattyMeals: Bool = false
     var fattyMealFactor: Decimal = 0.7
@@ -466,6 +472,18 @@ extension TrioSettings: Decodable {
 
         if let fallbackLoopWatch = try? container.decode(Bool.self, forKey: .fallbackLoopWatch) {
             settings.fallbackLoopWatch = fallbackLoopWatch
+        }
+
+        if let untetheredWorkoutWatch = try? container.decode(Bool.self, forKey: .untetheredWorkoutWatch) {
+            settings.untetheredWorkoutWatch = untetheredWorkoutWatch
+        }
+
+        if let watchGlanceLayout = try? container.decode(WatchGlanceLayout.self, forKey: .watchGlanceLayout) {
+            settings.watchGlanceLayout = watchGlanceLayout
+        }
+
+        if let watchGlanceEnabled = try? container.decode(Bool.self, forKey: .watchGlanceEnabled) {
+            settings.watchGlanceEnabled = watchGlanceEnabled
         }
 
         if let displayPresets = try? container.decode(Bool.self, forKey: .displayPresets) {

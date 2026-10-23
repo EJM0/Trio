@@ -467,6 +467,9 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 watchState.glucoseRangeTarget = currentGlucoseTarget
                 watchState.glucoseColorScheme = self.glucoseColorScheme.rawValue
                 watchState.fallbackLoop = self.settingsManager.settings.fallbackLoopWatch
+                watchState.untetheredWorkout = self.settingsManager.settings.untetheredWorkoutWatch
+                watchState.glanceLayout = self.settingsManager.settings.watchGlanceLayout.strings
+                watchState.glanceEnabled = self.settingsManager.settings.watchGlanceEnabled
                 watchState.isForecastCone = self.settingsManager.settings.forecastDisplayType == .cone
 
                 // Forecast data comes from OrefDetermination's `forecasts` CoreData
@@ -840,6 +843,9 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         dictionary[WatchMessageKeys.glucoseAlarmLow] = thresholds(.low).max() ?? 0
         dictionary[WatchMessageKeys.glucoseAlarmHigh] = thresholds(.high).min() ?? 0
         dictionary[WatchMessageKeys.fallbackLoopWatch] = state.fallbackLoop
+        dictionary[WatchMessageKeys.untetheredWorkoutWatch] = state.untetheredWorkout
+        dictionary[WatchMessageKeys.watchGlanceLayout] = state.glanceLayout
+        dictionary[WatchMessageKeys.watchGlanceEnabled] = state.glanceEnabled
 
         let glucoseReadings: [[String: Any]] = state.glucoseValues.map { value -> [String: Any] in
             [

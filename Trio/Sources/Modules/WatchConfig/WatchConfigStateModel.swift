@@ -15,6 +15,9 @@ extension WatchConfig {
         @Published var untetheredModeWatch = true
         @Published var watchSensorAlwaysOn = true
         @Published var fallbackLoopWatch = false
+        @Published var untetheredWorkoutWatch = false
+        @Published var watchGlanceLayout: WatchGlanceLayout = .standard
+        @Published var watchGlanceEnabled = true
 
         /// Garmin watch settings containing all watch-related configuration
         @Published var garminSettings = GarminWatchSettings()
@@ -36,6 +39,9 @@ extension WatchConfig {
             subscribeSetting(\.untetheredModeWatch, on: $untetheredModeWatch) { untetheredModeWatch = $0 }
             subscribeSetting(\.watchSensorAlwaysOn, on: $watchSensorAlwaysOn) { watchSensorAlwaysOn = $0 }
             subscribeSetting(\.fallbackLoopWatch, on: $fallbackLoopWatch) { fallbackLoopWatch = $0 }
+            subscribeSetting(\.untetheredWorkoutWatch, on: $untetheredWorkoutWatch) { untetheredWorkoutWatch = $0 }
+            subscribeSetting(\.watchGlanceLayout, on: $watchGlanceLayout) { watchGlanceLayout = $0 }
+            subscribeSetting(\.watchGlanceEnabled, on: $watchGlanceEnabled) { watchGlanceEnabled = $0 }
 
             devices = garmin.devices
         }
