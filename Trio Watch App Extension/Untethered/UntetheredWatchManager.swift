@@ -1361,6 +1361,7 @@ extension Optional {
 extension UntetheredWatchManager {
     static let fallbackPhoneSilence: TimeInterval = 11 * 60
     static let fallbackHandbackGrace: TimeInterval = 60
+    static let fallbackHandbackRepeat: TimeInterval = 5 * 60
     private static let fallbackEpochKey = "untethered.fallbackEpoch"
     private static let fallbackTriedForKey = "untethered.fallbackTriedFor"
 
@@ -1420,8 +1421,11 @@ extension UntetheredWatchManager {
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.fallbackHandbackGrace) { [weak self] in
             guard let self else { return }
             self.fallbackHandbackPending = false
+            // The fallback's own request goes again every 5 minutes while the phone shows up, not every 30 as a
+            // stall's: on 23 October the phone's first take-back (07:49) found no pod link in 5 s, the requests at
+            // the phone's next appearances (07:50 to 08:20) were held back, and the watch kept the pump until 08:25.
             guard self.isFallbackSession, self.data.session.phase == .active, !self.isBolusing,
-                  Date().timeIntervalSince(self.handbackRequestedAt ?? .distantPast) > Self.handbackRequestRepeat
+                  Date().timeIntervalSince(self.handbackRequestedAt ?? .distantPast) > Self.fallbackHandbackRepeat
             else { return }
             self.handbackRequestedAt = Date()
             Task { await WatchLogger.shared.log("⌚️ Untethered: fallback — the phone is back, handing the pump back", force: true) }
