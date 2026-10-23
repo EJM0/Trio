@@ -59,6 +59,7 @@ import WatchKit
     @ObservationIgnored var workoutStartFailed = false
     /// The workout was ended in watchOS during the session: it stays off until the next one.
     @ObservationIgnored var workoutEndedByUser = false
+    @ObservationIgnored var workoutStartRequestedAt: Date?
 
     /// Records travel in batches small enough for an interactive message.
     private static let recordsPerMessage = 40

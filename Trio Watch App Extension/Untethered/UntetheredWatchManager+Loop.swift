@@ -1028,6 +1028,9 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         updateWorkoutKeepAlive()
     }
 
+    /// How long a workout start may go unanswered before Trio in front asks again.
+    static let workoutStartPatience: TimeInterval = 15
+
     /// Extended Untethered Mode: the workout runs while the watch has the pump and the setting is on.
     func updateWorkoutKeepAlive() {
         guard isActive, WatchState.shared.untetheredWorkout else {
@@ -1035,11 +1038,23 @@ extension UntetheredWatchManager: CGMManagerDelegate {
             workoutEndedByUser = false
             return
         }
-        guard workoutKeepAlive == nil, !workoutEndedByUser,
-              !workoutStartFailed || WKApplication.shared().applicationState == .active
-        else { return }
+        let inFront = WKApplication.shared().applicationState == .active
+        // a start in the background that watchOS never answered: with Trio in front it goes again
+        if workoutKeepAlive != nil, !isKeptAwake, inFront,
+           let requested = workoutStartRequestedAt, Date().timeIntervalSince(requested) > Self.workoutStartPatience
+        {
+            Task { await WatchLogger.shared.log("⌚️ Untethered: extended mode workout never started, again with Trio in front", force: true) }
+            // let go, not stop: its late "ended" would drop the new one; a start that went through after all is taken
+            // back by the new one's `recoverActiveWorkoutSession`
+            workoutKeepAlive = nil
+        }
+        // watchOS starts a workout only for an app in front: one that failed in the background (a fallback start) goes
+        // again as soon as Trio is opened
+        guard workoutKeepAlive == nil, !workoutEndedByUser, !workoutStartFailed || inFront else { return }
+        // an attempt let go above may still answer: only the current one counts
+        weak var current: UntetheredWorkoutKeepAlive?
         let keepAlive = UntetheredWorkoutKeepAlive(onChange: { [weak self] isRunning, note in
-            guard let self else { return }
+            guard let self, current != nil, current === self.workoutKeepAlive else { return }
             Task { await WatchLogger.shared.log("⌚️ Untethered: extended mode workout \(note)", force: true) }
             let wasRunning = self.isKeptAwake
             self.isKeptAwake = isRunning
@@ -1050,16 +1065,19 @@ extension UntetheredWatchManager: CGMManagerDelegate {
                 self.updateWorkoutKeepAlive()
             } else {
                 self.workoutKeepAlive = nil
-                if wasRunning || note == "ended" {
+                if wasRunning {
                     // ended in watchOS, not by Trio, also by a workout started in another app (one runs at a time):
                     // no new one until the next session, which would end that workout in turn
                     if self.isActive, WatchState.shared.untetheredWorkout { self.workoutEndedByUser = true }
                 } else {
+                    // refused, as in the background, or ended before it ran: again with Trio in front
                     self.workoutStartFailed = true
                 }
             }
         }, onHeartRate: { [weak self] in self?.heartRate = $0 })
+        current = keepAlive
         workoutKeepAlive = keepAlive
+        workoutStartRequestedAt = Date()
         keepAlive.start()
     }
 
