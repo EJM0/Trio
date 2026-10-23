@@ -47,7 +47,6 @@ extension UntetheredWatchManager {
         }
         Task { @MainActor in
             defer {
-                releaseHold()
                 self.isLooping = false
                 if self.isModeChangePending {
                     self.isModeChangePending = false
@@ -56,6 +55,7 @@ extension UntetheredWatchManager {
                     self.isDeterminationPending = false
                     self.runLoop(.treatment)
                 }
+                self.endLoopHold(releaseHold)
             }
             if enacts {
                 _ = await withCheckedContinuation { (continuation: CheckedContinuation<Date?, Never>) in
@@ -880,6 +880,26 @@ extension UntetheredWatchManager: CGMManagerDelegate {
 
     /// The most a loop holds the app awake: a pod command, retries included, is done well within it.
     static let loopHoldLimit: TimeInterval = 30
+    /// Past OmnipodKit's idle disconnect (4 s after the last command): an app asleep before it leaves the pod connected.
+    static let podIdleDisconnectWait: TimeInterval = 5
+
+    /// The loop is done and, past the pod's idle disconnect, the app has nothing to do until the next reading. In the
+    /// background the rest of G7's wait after the reading then goes to bluetoothd as a start delay, as when Trio leaves
+    /// the screen, so the app can sleep through it (2026-10-23 10:30: 23 s awake for nothing but that wait). Not in
+    /// front, not while a bolus runs (its progress and end are followed here), not once another loop started.
+    /// ponytail: the start delay as the ordinary wait lost bursts (kristinkand 3b3f1f3); here it covers only the rest
+    /// after a loop. If link-ups drop again, release only (`release()`) and keep G7's hold.
+    func endLoopHold(_ release: @escaping () -> Void) {
+        guard WKApplication.shared().applicationState != .active, !isBolusing else { return release() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.podIdleDisconnectWait) { [weak self] in
+            defer { release() }
+            guard let self, !self.isLooping, !self.isBolusing,
+                  WKApplication.shared().applicationState != .active
+            else { return }
+            Task { await WatchLogger.shared.log("⌚️ Untethered: loop done, the sensor's wait goes to bluetoothd", force: true) }
+            watchCGMAppLeavingScreen(self.cgmManager)
+        }
+    }
 
     /// Keeps the app running until `release` is called, `wait` has passed, or watchOS ends it, whichever comes first.
     /// watchOS ends it by calling the block again with `expired`, or calls it only so when it grants no time: the hold
@@ -888,36 +908,53 @@ extension UntetheredWatchManager: CGMManagerDelegate {
     static func holdProcess(
         reason: String,
         upTo wait: TimeInterval,
-        onExpire: (@MainActor () -> Void)? = nil
+        onExpire: (@MainActor() -> Void)? = nil
     ) -> () -> Void {
         let gate = DispatchSemaphore(value: 0)
         let started = Date()
+        // each hold logs once, how it ended: released by us, or ended by watchOS (with what may have limited it)
+        let once = NSLock()
+        var ended = false
+        let end = { () -> Bool in
+            once.lock()
+            defer { once.unlock() }
+            guard !ended else { return false }
+            ended = true
+            return true
+        }
         DispatchQueue.global(qos: .userInitiated).async {
             ProcessInfo.processInfo.performExpiringActivity(withReason: reason) { expired in
                 guard expired else {
-                    _ = gate.wait(timeout: .now() + wait)
+                    if gate.wait(timeout: .now() + wait) == .timedOut, end() {
+                        logHold(reason, after: Date().timeIntervalSince(started), how: "held to its \(Int(wait)) s limit")
+                    }
                     return
                 }
                 gate.signal()
+                guard end() else { return }
                 let granted = Date().timeIntervalSince(started)
-                Task {
-                    await WatchLogger.shared.log(
-                        String(format: "⌚️ %@: background time ended by watchOS after %.1f s", reason, granted),
-                        force: true
+                let process = ProcessInfo.processInfo
+                let thermal = ["nominal", "fair", "serious", "critical"][min(process.thermalState.rawValue, 3)]
+                Task { @MainActor in
+                    let inFront = WKApplication.shared().applicationState == .active
+                    logHold(
+                        reason,
+                        after: granted,
+                        how: "background time ended by watchOS · lowPower=\(process.isLowPowerModeEnabled) thermal=\(thermal) front=\(inFront)"
                     )
+                    onExpire?()
                 }
-                if let onExpire { Task { @MainActor in onExpire() } }
             }
         }
-        let once = NSLock()
-        var released = false
         return {
-            once.lock()
-            defer { once.unlock() }
-            guard !released else { return }
-            released = true
+            let first = end()
             gate.signal()
+            if first { logHold(reason, after: Date().timeIntervalSince(started), how: "released") }
         }
+    }
+
+    private static func logHold(_ reason: String, after seconds: TimeInterval, how: String) {
+        Task { await WatchLogger.shared.log(String(format: "⌚️ hold %@: %.1f s, %@", reason, seconds, how), force: true) }
     }
 
     // MARK: Sensor pairing
