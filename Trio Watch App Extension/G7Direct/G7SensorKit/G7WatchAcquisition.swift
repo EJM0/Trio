@@ -366,8 +366,23 @@ public final class G7WatchAcquisition: G7AcquisitionArm {
         queue.asyncAfter(deadline: .now() + delay) { [weak self] in
             defer { release() }
             guard let self, !self.lodged,
-                  let p = self.central.retrievePeripherals(withIdentifiers: [id]).first, p.state == .disconnected else { return }
-            self.lodge(p, why: why)
+                  let p = self.central.retrievePeripherals(withIdentifiers: [id]).first else { return }
+            switch p.state {
+            case .disconnected:
+                self.lodge(p, why: why)
+            case .connected:
+                return
+            default:
+                // Trio: a cancel that never answers leaves the sensor 'connecting' in this process for good, and each
+                // retry cancelled again and lodged nothing (2026-10-22 21:02 to 22:10, and 02:15 to 04:34 on 23 October:
+                // no reading until the app was relaunched). Connect anyway; the request goes to the daemon.
+                guard self.central.state == .poweredOn else { return }
+                if let delegate = self.manager.delegate, !delegate.bluetoothManagerCanAuthenticate(self.manager) { return }
+                self.lodged = true; self.lodgedAt = Date()
+                self.lodgedWithDelay = false
+                self.central.connect(p, options: nil)
+                self.watchLog("lodged — \(why) · the cancel went unanswered (state \(p.state.rawValue)), connecting anyway · the app may suspend")
+            }
         }
     }
 
