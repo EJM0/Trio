@@ -145,7 +145,7 @@ struct UntetheredStatusView: View {
     // MARK: - Figures
 
     private var tiles: some View {
-        HStack(spacing: 6) {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 6) {
             tile(
                 "Basal",
                 systemImage: "chart.bar.fill",
@@ -159,6 +159,13 @@ struct UntetheredStatusView: View {
                 // not `NSDecimalNumber.intValue`: it misreads long fractions such as the fill-based estimate's
                 $0 == Decimal(UInt32(0xDEAD_BEEF)) ? "50+ U" : "\($0.formatted(.number.precision(.fractionLength(0)))) U"
             })
+            // the watch's own battery, which a session draws on (Kristin Kandschur, 638c80405)
+            tile(
+                "Watch Battery",
+                systemImage: "battery.75percent",
+                tint: (UntetheredWatchManager.batteryPercent ?? 100) < 20 ? .red : .green,
+                value: UntetheredWatchManager.batteryPercent.map { "\($0) %" }
+            )
         }
     }
 

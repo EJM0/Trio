@@ -514,7 +514,10 @@ import WatchKit
                 ingest(standby)
             }
         }
-        if wasActive != isActive { handOverAlertNotifications(toWatch: isActive) }
+        if wasActive != isActive {
+            handOverAlertNotifications(toWatch: isActive)
+            noteSessionBattery(started: isActive)
+        }
         // the phone may have confirmed the last records while the hand-back was still open: nothing else says so
         if wasActive, !isActive { finishSyncIfDone(epoch: epoch) }
         if wasActive, !isActive {
@@ -1872,6 +1875,56 @@ import WatchKit
               let state = raw["state"] as? [String: Any]
         else { return nil }
         return watchCGMManagers[identifier]?.init(rawState: state)
+    }
+}
+
+// MARK: - Battery
+
+/// The watch's battery in the log and on the status page (Kristin Kandschur, 638c80405).
+extension UntetheredWatchManager {
+    private static let batteryAtStartKey = "untethered.batteryAtStart"
+    private static let sessionStartKey = "untethered.sessionStart"
+
+    /// The watch's battery in percent; nil while watchOS doesn't report it.
+    static var batteryPercent: Int? {
+        let device = WKInterfaceDevice.current()
+        if !device.isBatteryMonitoringEnabled { device.isBatteryMonitoringEnabled = true }
+        let level = device.batteryLevel
+        return level < 0 ? nil : Int((level * 100).rounded())
+    }
+
+    static var batteryText: String { batteryPercent.map { "\($0) %" } ?? "–" }
+
+    /// Logs the battery when a session starts and, when it ends, how much it used and per hour.
+    /// Kept in UserDefaults, so a relaunch in between doesn't lose the start.
+    func noteSessionBattery(started: Bool) {
+        let defaults = UserDefaults.standard
+        let now = Date()
+        let battery = Self.batteryPercent
+        if started {
+            defaults.set(battery, forKey: Self.batteryAtStartKey)
+            defaults.set(now, forKey: Self.sessionStartKey)
+            let text = battery.map { "\($0) %" } ?? "–"
+            Task { await WatchLogger.shared.log("⌚️ Untethered session started, battery \(text)", force: true) }
+            return
+        }
+        let startBattery = defaults.object(forKey: Self.batteryAtStartKey) as? Int
+        let start = defaults.object(forKey: Self.sessionStartKey) as? Date
+        defaults.removeObject(forKey: Self.batteryAtStartKey)
+        defaults.removeObject(forKey: Self.sessionStartKey)
+        var line = "⌚️ Untethered session ended"
+        if let start {
+            let minutes = max(0, Int(now.timeIntervalSince(start) / 60))
+            line += " after \(minutes / 60) h \(minutes % 60) min"
+            if let startBattery, let battery {
+                line += ", battery \(startBattery) % → \(battery) %"
+                if minutes >= 10 {
+                    let perHour = Double(startBattery - battery) / (Double(minutes) / 60)
+                    line += String(format: " (%.1f %% per hour)", perHour)
+                }
+            }
+        }
+        Task { await WatchLogger.shared.log(line, force: true) }
     }
 }
 
