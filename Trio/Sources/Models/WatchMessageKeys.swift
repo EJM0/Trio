@@ -110,6 +110,11 @@ enum WatchMessageKeys {
     static let chartCarbs = "chartCarbs"
     static let chartBoluses = "chartBoluses"
     static let chartSMBs = "chartSMBs"
+    /// IOB (U) and COB (g) at each loop of the last 24 hours, with the loops' times as seconds since 1970: the
+    /// values at the big chart's scrub line.
+    static let chartIobCobDates = "chartIobCobDates"
+    static let chartIob = "chartIob"
+    static let chartCob = "chartCob"
     /// mg/dL of the phone's glucose alarms that are on, the most cautious of each; 0: none.
     static let glucoseAlarmUrgentLow = "glucoseAlarmUrgentLow"
     static let glucoseAlarmLow = "glucoseAlarmLow"

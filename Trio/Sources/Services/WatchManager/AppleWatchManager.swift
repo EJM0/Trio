@@ -476,6 +476,17 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                     guard let date = event.timestamp, let bolus = event.bolus else { continue }
                     if bolus.isSMB { watchState.chartSMBs.append(date) } else { watchState.chartBoluses.append(date) }
                 }
+                // each loop's IOB and COB, for the big chart's scrub line as the phone's chart shows them
+                // (kristinkand's feature/untethered-fallback, 1762e75a0)
+                let determinationRequest = NSFetchRequest<OrefDetermination>(entityName: "OrefDetermination")
+                determinationRequest.predicate = NSPredicate.determinationsForCobIobCharts(since: glucoseWindowStart)
+                determinationRequest.sortDescriptors = [NSSortDescriptor(key: "deliverAt", ascending: true)]
+                for determination in (try? context.fetch(determinationRequest)) ?? [] {
+                    guard let date = determination.deliverAt else { continue }
+                    watchState.chartIobCobDates.append(date)
+                    watchState.chartIob.append(determination.iob?.doubleValue ?? 0)
+                    watchState.chartCob.append(Double(determination.cob))
+                }
 
                 watchState.glucoseRangeLow = self.lowGlucose
                 watchState.glucoseRangeHigh = self.highGlucose
@@ -852,6 +863,9 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         dictionary[WatchMessageKeys.chartCarbs] = state.chartCarbs.map(\.timeIntervalSince1970)
         dictionary[WatchMessageKeys.chartBoluses] = state.chartBoluses.map(\.timeIntervalSince1970)
         dictionary[WatchMessageKeys.chartSMBs] = state.chartSMBs.map(\.timeIntervalSince1970)
+        dictionary[WatchMessageKeys.chartIobCobDates] = state.chartIobCobDates.map(\.timeIntervalSince1970)
+        dictionary[WatchMessageKeys.chartIob] = state.chartIob
+        dictionary[WatchMessageKeys.chartCob] = state.chartCob
         // the phone's glucose alarms, for the watch's own while it loops: the highest low, the lowest high that is on
         let alerts = GlucoseAlertsStore.shared.alerts
         func thresholds(_ type: GlucoseAlertType) -> [Double] {

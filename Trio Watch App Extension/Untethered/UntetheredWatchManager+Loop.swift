@@ -1486,6 +1486,17 @@ extension UntetheredWatchManager {
         if let determination = data.lastDetermination {
             state.iob = determination.iob.map { String(format: "%.2f", NSDecimalNumber(decimal: $0).doubleValue) }
             state.cob = determination.cob.map { $0.formatted(.number.precision(.fractionLength(0))) }
+            // each loop's IOB and COB for the big chart's scrub line, as the phone keeps them
+            if let date = determination.deliverAt ?? determination.timestamp,
+               state.ownIobCob.last.map({ $0.date < date }) ?? true
+            {
+                state.ownIobCob.append(WatchIobCobPoint(
+                    date: date,
+                    iob: determination.iob.map { NSDecimalNumber(decimal: $0).doubleValue } ?? 0,
+                    cob: determination.cob.map { NSDecimalNumber(decimal: $0).doubleValue } ?? 0
+                ))
+                state.ownIobCob.removeAll { $0.date < Date().addingTimeInterval(-24 * 60 * 60) }
+            }
         }
         state.lastLoopDate = data.lastLoopDate
         if let lastLoop = data.lastLoopDate {
