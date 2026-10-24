@@ -154,14 +154,10 @@ struct UntetheredStatusView: View {
                     String(format: "%.2f U/h", NSDecimalNumber(decimal: $0).doubleValue)
                 }
             )
-            // as the Devices page: the fill-based estimate above 50 U, or "50+" when there is none
-            tile("Reservoir", systemImage: "drop.fill", tint: .blue, value: WatchState.shared.pumpReservoir.map {
-                // not `NSDecimalNumber.intValue`: it misreads long fractions such as the fill-based estimate's
-                $0 == Decimal(UInt32(0xDEAD_BEEF)) ? "50+ U" : "\($0.formatted(.number.precision(.fractionLength(0)))) U"
-            })
-            // the watch's own battery, which a session draws on (kristinkand, 638c80405)
+            // the watch's own battery, which a session draws on (kristinkand, 638c80405); the reservoir is on
+            // the Devices page
             tile(
-                "Watch Battery",
+                "Battery",
                 systemImage: "battery.75percent",
                 tint: (UntetheredWatchManager.batteryPercent ?? 100) < 20 ? .red : .green,
                 value: UntetheredWatchManager.batteryPercent.map { "\($0) %" }
