@@ -86,6 +86,16 @@ struct GlucoseChartView: View {
     private var lowLine: Double { range.display(NSDecimalNumber(decimal: range.low).intValue) }
     private var highLine: Double { range.display(NSDecimalNumber(decimal: range.high).intValue) }
     private var targetLine: Double { range.display(NSDecimalNumber(decimal: range.target).intValue) }
+    /// With the dynamic glucose colors, each line in the color a reading at its value gets, as the readings are drawn;
+    /// red and yellow with the static ones.
+    private var isDynamicScheme: Bool { GlucoseColorScheme(rawValue: range.colorScheme) == .dynamicColor }
+    private var lowLineColor: Color {
+        isDynamicScheme ? range.color(NSDecimalNumber(decimal: range.low).intValue) : .red
+    }
+
+    private var highLineColor: Color {
+        isDynamicScheme ? range.color(NSDecimalNumber(decimal: range.high).intValue) : .yellow
+    }
 
     private var futureOffset: TimeInterval {
         guard state.showForecast else { return 0 }
@@ -250,10 +260,10 @@ struct GlucoseChartView: View {
                 Chart {
                     // the low and high glucose dashed, the target solid, as on the watch face
                     RuleMark(y: .value("Low", lowLine))
-                        .foregroundStyle(Color.red.opacity(0.6))
+                        .foregroundStyle(lowLineColor.opacity(0.6))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                     RuleMark(y: .value("High", highLine))
-                        .foregroundStyle(Color.yellow.opacity(0.6))
+                        .foregroundStyle(highLineColor.opacity(0.6))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                     RuleMark(y: .value("Target", targetLine))
                         .foregroundStyle(Color.loopGreen.opacity(0.6))
