@@ -796,13 +796,15 @@ extension UntetheredWatchManager: PumpManagerDelegate {
     }
 
     func deviceManager(
-        _: DeviceManager,
+        _ manager: DeviceManager,
         logEventForDeviceIdentifier _: String?,
         type: DeviceLogEntryType,
         message: String,
         completion: ((Error?) -> Void)?
     ) {
-        if Self.isRawDump(message) {
+        // The pod's messages are logged in the background too: a few per command, and they show what the pod last
+        // said before a link drops mid-command (Kristin Kandschur, afccad647: the stall of 24 Oct, 05:36, had none)
+        if Self.isRawDump(message), !(manager is PumpManager) {
             // a sensor link writes over a hundred of these, written out at every wake: only with Trio in front
             DispatchQueue.main.async {
                 guard WKApplication.shared().applicationState == .active else { return }
