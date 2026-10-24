@@ -1461,7 +1461,10 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             UntetheredGate.update { $0.watchPendingDoses[epoch]?.remove(syncIdentifier) }
         case let .glucose(glucose):
             try await glucoseStorage.storeGlucose([glucose])
-            if glucose.dateString > lastWatchReadingAt ?? .distantPast { lastWatchReadingAt = glucose.dateString }
+            // the watch's sensor readings only: a BG entered on the watch says nothing about its sensor link
+            if glucose.mbg == nil, glucose.dateString > lastWatchReadingAt ?? .distantPast {
+                lastWatchReadingAt = glucose.dateString
+            }
         case let .glucoseDeleted(date):
             let context = CoreDataStack.shared.newTaskContext()
             let found: (objectID: NSManagedObjectID, id: String?, date: Date?)? = await context.perform {

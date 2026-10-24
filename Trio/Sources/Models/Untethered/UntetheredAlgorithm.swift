@@ -108,6 +108,13 @@ enum UntetheredAlgorithm {
         smoothing: Bool
     ) -> [BloodGlucose] {
         glucose.sorted { $0.dateString > $1.dateString }.map { reading in
+            // a manual BG in the shape the phone's `mapToBloodGlucose` gives the algorithm: `glucose` only, unsmoothed
+            if reading.mbg != nil {
+                return BloodGlucose(
+                    id: reading.id, direction: reading.direction, date: reading.date, dateString: reading.dateString,
+                    glucose: reading.glucose ?? reading.mbg, type: "sgv"
+                )
+            }
             guard smoothing, reading.sgv != nil, let value = smoothed[reading.id], value != 0 else {
                 return reading
             }
