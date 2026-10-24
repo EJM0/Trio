@@ -170,15 +170,10 @@ struct UntetheredStatusView: View {
         NavigationLink { UntetheredHistoryView(manager: manager) } label: {
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
-                    // as the page's other labels, in English: the catalog's "History" reads "Verlauf" in German
-                    Label {
-                        Text(verbatim: "History")
-                    } icon: {
-                        Image(systemName: "list.bullet")
-                    }
-                    .font(.caption2)
-                    .foregroundStyle(.blue)
-                    .lineLimit(1)
+                    Label("History", systemImage: "list.bullet")
+                        .font(.caption2)
+                        .foregroundStyle(.blue)
+                        .lineLimit(1)
                     Spacer(minLength: 0)
                     Image(systemName: "chevron.right")
                         .font(.caption2)
