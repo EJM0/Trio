@@ -24,6 +24,12 @@ struct TrioMainWatchView: View {
     /// Scrubbing the chart with the crown (see GlucoseChartView).
     @State private var isScrubbingChart = false
     @State private var chartScrubSteps = 0.0
+    /// The pages hold the crown, except while the chart scrubs. The chart dropping its focus didn't hand the crown
+    /// back: nothing had it and the pages didn't turn until a swipe. So the pages take it again, by their binding,
+    /// and the focus is settled again within them as at launch.
+    @FocusState private var pagesHaveCrown: Bool
+    @Namespace private var pagesFocusScope
+    @Environment(\.resetFocus) private var resetFocus
     /// Extended Untethered Mode shows its minimal screen on each wrist raise until tapped.
     @State private var showsFullApp = false
     @State private var rotationDegrees: Double = 0.0
@@ -190,6 +196,9 @@ struct TrioMainWatchView: View {
             }
             .background(trioBackgroundColor)
             .tabViewStyle(.verticalPage)
+            .focused($pagesHaveCrown)
+            // only around the pages: a pushed treatment screen keeps its own default focus
+            .focusScope(pagesFocusScope)
             .digitalCrownRotation($currentPage.doubleBinding(), from: 0, through: Double(lastPage), by: 1)
             .modifier(ChartScrubEnd(
                 isScrubbing: $isScrubbingChart,
@@ -197,6 +206,14 @@ struct TrioMainWatchView: View {
                 currentPage: currentPage,
                 chartPage: chartPage
             ))
+            // scrubbing over: the crown back to the pages, once the chart has let go of it
+            .onChange(of: isScrubbingChart) { _, scrubbing in
+                guard !scrubbing else { return }
+                DispatchQueue.main.async {
+                    pagesHaveCrown = true
+                    resetFocus(in: pagesFocusScope)
+                }
+            }
             .onChange(of: state.trend) { _, newTrend in
                 withAnimation {
                     updateRotation(for: newTrend)
