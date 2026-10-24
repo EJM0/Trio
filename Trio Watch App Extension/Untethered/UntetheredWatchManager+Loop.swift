@@ -871,7 +871,9 @@ extension UntetheredWatchManager: PumpManagerDelegate {
                 .removePendingNotificationRequests(withIdentifiers: alerts.map(\.id) + [Self.notLoopingID, Self.noReadingsID])
             return
         }
-        scheduleNotLoopingAlert(from: data.lastLoopDate ?? Date())
+        // from the takeover at the earliest: booked from the phone's last loop, a start without the phone sounded
+        // "Not Looping" at once (Kristin Kandschur, f6d5183e8; 2026-10-22 20:41, the watch's first loop 22 s later)
+        scheduleNotLoopingAlert(from: loopReference ?? Date())
         scheduleNoReadingsAlert(from: sensorGlucose.map(\.dateString).max() ?? Date())
         for alert in alerts {
             guard let due = alert.due, due > Date() else { continue }
@@ -1161,31 +1163,57 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         Task { await WatchLogger.shared.log("⌚️ Untethered: keeping Trio in front for the sensor pairing", force: true) }
     }
 
+    /// The last loop, or the session's start when that is later: a session started without the phone carries the
+    /// phone's last loop over, which can be half an hour old, and the stall checks asked for a hand-back the moment
+    /// it began (Kristin Kandschur, 2026-10-22 17:21: "hasn't reached the pod for 36 min" a minute into a session).
+    var loopReference: Date? {
+        [data.lastLoopDate, data.session.startStatus?.date].compactMap { $0 }.max()
+    }
+
     /// Readings arrive but no loop got through for this long: the pod link is presumed stuck.
     static let podLinkStallLimit: TimeInterval = 15 * 60
     /// At most one reconnect per this interval, so a pod that is really out of reach isn't hammered.
     static let podLinkResetInterval: TimeInterval = 10 * 60
 
     /// A loop that keeps failing to reach the pod while readings come in usually has a stuck connection, which
-    /// otherwise only opening the app clears (2026-10-19: 08:09 to 11:05). The link is torn down and searched for afresh.
+    /// otherwise only opening the app clears (2026-10-19: 08:09 to 11:05). The link is torn down and searched for afresh,
+    /// the user is told every 10 minutes while it lasts, and a phone nearby is asked to take the pump back (Kristin
+    /// Kandschur's feature/untethered-pr-plus, 269807bef, e12e79ff8, df5e62b1f, bf399f71c).
     func checkPodLink(now: Date = Date()) {
-        guard data.session.phase == .active, !isLooping, !isBolusing, let pump = pumpManager,
-              let lastLoop = data.lastLoopDate ?? data.session.startStatus?.date,
+        checkSensorStall(now: now)
+        guard data.session.phase == .active, let pump = pumpManager,
+              let lastLoop = loopReference,
               now.timeIntervalSince(lastLoop) > Self.podLinkStallLimit,
-              now.timeIntervalSince(lastPodLinkReset ?? .distantPast) > Self.podLinkResetInterval,
+              now.timeIntervalSince(lastPodLinkNotice ?? .distantPast) > Self.podLinkResetInterval,
               // without readings the sensor is what's missing, and its own alarm says so (2026-10-19 18:04)
-              let newest = sensorGlucose.map(\.dateString).max(), now.timeIntervalSince(newest) < 11 * 60
+              let newest = sensorGlucose.map(\.dateString).max(), now.timeIntervalSince(newest) < 11 * 60,
+              // and only when loops had readings to run on and still didn't get through: a gap made of missed
+              // readings ended with a reading that arrived a moment before its loop, and was taken for a pod
+              // stall (2026-10-22 11:10: no reading at 11:00 and 11:05, the pod fine)
+              sensorGlucose.filter({ $0.dateString > lastLoop.addingTimeInterval(60) }).count >= 2
         else { return }
-        if lastPodLinkReset == nil {
-            notify(
-                id: Self.podLinkID,
-                title: Self.podLinkTitle,
-                body: Self.podLinkBody(minutes: Int(Self.podLinkStallLimit / 60))
-            )
+        let minutes = Int(now.timeIntervalSince(lastLoop) / 60)
+        // with the phone nearby it takes the pump back; until its revoke arrives the watch keeps trying and alerting
+        requestHandback(minutes: minutes, reason: .podStall, now: now)
+        // Every 10 minutes while it lasts, not only once: once was easy to miss (2026-10-20, 12:25 went unnoticed),
+        // and opening Trio is what cleared the stall (13:32). Removed and posted again so it alerts each time.
+        lastPodLinkNotice = now
+        podLinkNoticeCount += 1
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [Self.podLinkID])
+        notify(id: Self.podLinkID, title: Self.podLinkTitle, body: Self.podLinkBody(minutes: minutes))
+        // from the second notice on, three strong taps a second apart, as long as the app runs to play them
+        let taps = podLinkNoticeCount >= 2 ? 3 : 1
+        for tap in 0 ..< taps {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(tap)) { WKInterfaceDevice.current().play(.failure) }
         }
+        Task { await WatchLogger.shared.log("⌚️ Untethered alarm: \(Self.podLinkTitle) after \(minutes) min", force: true) }
+        // The reconnect itself waits for a loop or bolus in flight; the notice above doesn't. A loop waiting on the
+        // pod held on for 41 minutes (2026-10-20, 12:20 to 13:01), and nothing else ran for the stall meanwhile.
+        guard !isLooping, !isBolusing,
+              now.timeIntervalSince(lastPodLinkReset ?? .distantPast) > Self.podLinkResetInterval
+        else { return }
         lastPodLinkReset = now
         let releaseHold = Self.holdProcess(reason: "Untethered pod reconnect", upTo: Self.loopHoldLimit)
-        let minutes = Int(now.timeIntervalSince(lastLoop) / 60)
         let outcome = pump.escalateTakeControl() ?? "nothing to escalate"
         let diagnostics = pump.connectionDiagnostics() ?? ""
         Task {
@@ -1197,11 +1225,33 @@ extension UntetheredWatchManager: CGMManagerDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.loopHoldLimit) { releaseHold() }
     }
 
+    /// Neither a reading nor a loop for this long: the watch's own sensor link isn't working.
+    static let sensorStallLimit: TimeInterval = 20 * 60
+
+    /// No reading and no loop: the pod check above stands back (the sensor is what's missing), but nothing else
+    /// would end the session either, and the watch can't loop without readings. A phone nearby takes the pump back,
+    /// as for a pod stall (Kristin Kandschur, 429910c8e; 2026-10-22: a session got no reading, no loop for 56 minutes).
+    /// The background refresh every 10 minutes runs it without readings (`recheckCGM`).
+    func checkSensorStall(now: Date = Date()) {
+        guard data.session.phase == .active,
+              let lastLoop = loopReference,
+              now.timeIntervalSince(lastLoop) > Self.sensorStallLimit
+        else { return }
+        let newest = sensorGlucose.map(\.dateString).max()
+        guard newest.map({ now.timeIntervalSince($0) > Self.sensorStallLimit }) ?? true else { return }
+        requestHandback(minutes: Int(now.timeIntervalSince(lastLoop) / 60), reason: .noReadings, now: now)
+    }
+
     /// A loop reached the pod again: the search an escalation started ends, and so does its notice.
     func podLinkRecovered(_ pump: PumpManager & ExclusiveDeviceControl) {
-        guard lastPodLinkReset != nil else { return }
-        lastPodLinkReset = nil
-        pump.endTakeEscalation()
+        guard lastPodLinkReset != nil || lastPodLinkNotice != nil else { return }
+        lastPodLinkNotice = nil
+        podLinkNoticeCount = 0
+        handbackRequestedAt = nil
+        if lastPodLinkReset != nil {
+            lastPodLinkReset = nil
+            pump.endTakeEscalation()
+        }
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [Self.podLinkID])
     }
 
@@ -1340,7 +1390,7 @@ extension UntetheredWatchManager {
             let minutes = Int(now.timeIntervalSince(newest) / 60)
             alarm("sensor", title: Self.noReadingsTitle, body: Self.noReadingsBody(minutes: minutes), every: 30 * 60)
         }
-        if !data.podEnded, let lastLoop = data.lastLoopDate ?? data.session.startStatus?.date,
+        if !data.podEnded, let lastLoop = loopReference,
            now.timeIntervalSince(lastLoop) > Self.notLoopingAfter
         {
             alarm("loop", title: Self.notLoopingTitle, body: Self.notLoopingBody, every: 30 * 60)

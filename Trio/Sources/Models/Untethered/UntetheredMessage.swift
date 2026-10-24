@@ -51,6 +51,9 @@ enum UntetheredMessage: Codable, Equatable {
     case fallbackHandbackRequest(UntetheredPodStatus)
     /// The phone accepted the fallback hand-back and is asking the watch to return the pump.
     case fallbackHandbackAccepted
+    /// The watch hasn't reached the pod (or had no reading) for this long: the phone takes the pump back as with Take
+    /// Back the Pump Now, as it reaches a pod the watch's background links can't (Kristin Kandschur, df5e62b1f).
+    case handbackRequested(minutesWithoutLoop: Int)
 }
 
 extension UntetheredMessage {
