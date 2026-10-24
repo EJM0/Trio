@@ -344,12 +344,28 @@ struct UntetheredTreatmentGate<Content: View>: View {
 struct UntetheredHomeTint: View {
     @ObservedObject var manager: UntetheredPhoneManager
 
+    /// Strongest behind the glucose circle, gone just below the IOB, COB and basal row.
+    private static let glow = Gradient(stops: [
+        .init(color: Color.untethered.opacity(0.3), location: 0),
+        .init(color: Color.untethered.opacity(0.16), location: 0.4),
+        .init(color: Color.untethered.opacity(0.05), location: 0.75),
+        .init(color: Color.untethered.opacity(0), location: 1)
+    ])
+
     var body: some View {
-        Color.untethered
-            .opacity(manager.tintsHomeScreen ? 0.16 : 0)
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-            .animation(.easeInOut(duration: 0.4), value: manager.tintsHomeScreen)
+        // A glow around the glucose circle that bleeds out under the header, as Trio's rings glow, rather than a
+        // wash over the whole screen. Placed by the header's fixed height, so it sits the same on every iPhone.
+        GeometryReader { geometry in
+            let centerY = geometry.safeAreaInsets.top + HomeLayout.headerHeight / 2
+            let radiusY = HomeLayout.headerHeight / 2 + HomeLayout.mealSlotHeight + 70
+            EllipticalGradient(gradient: Self.glow, center: .center, startRadiusFraction: 0, endRadiusFraction: 0.5)
+                .frame(width: geometry.size.width * 1.3, height: radiusY * 2)
+                .position(x: geometry.size.width / 2, y: centerY)
+        }
+        .ignoresSafeArea()
+        .opacity(manager.tintsHomeScreen ? 1 : 0)
+        .allowsHitTesting(false)
+        .animation(.easeInOut(duration: 0.4), value: manager.tintsHomeScreen)
     }
 }
 
