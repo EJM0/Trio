@@ -21,6 +21,9 @@ struct TrioMainWatchView: View {
 
     // misc
     @State private var currentPage: Int = 0
+    /// Scrubbing the chart with the crown (see GlucoseChartView).
+    @State private var isScrubbingChart = false
+    @State private var chartScrubSteps = 0.0
     /// Extended Untethered Mode shows its minimal screen on each wrist raise until tapped.
     @State private var showsFullApp = false
     @State private var rotationDegrees: Double = 0.0
@@ -139,7 +142,9 @@ struct TrioMainWatchView: View {
                 // Page 3: Glucose chart
                 GlucoseChartView(
                     state: state,
-                    glucoseValues: state.glucoseValues
+                    glucoseValues: state.glucoseValues,
+                    isScrubbing: $isScrubbingChart,
+                    scrubSteps: $chartScrubSteps
                 )
                 .tag(chartPage)
 
@@ -186,6 +191,12 @@ struct TrioMainWatchView: View {
             .background(trioBackgroundColor)
             .tabViewStyle(.verticalPage)
             .digitalCrownRotation($currentPage.doubleBinding(), from: 0, through: Double(lastPage), by: 1)
+            .modifier(ChartScrubEnd(
+                isScrubbing: $isScrubbingChart,
+                scrubSteps: $chartScrubSteps,
+                currentPage: currentPage,
+                chartPage: chartPage
+            ))
             .onChange(of: state.trend) { _, newTrend in
                 withAnimation {
                     updateRotation(for: newTrend)
@@ -400,4 +411,36 @@ struct TrioMainWatchView: View {
 
 #Preview {
     TrioMainWatchView()
+}
+
+/// Ends the chart's scrubbing (GlucoseChartView), which then hands the crown back to the pages: by turning the
+/// crown back past now, after 10 seconds without a turn, or on leaving the chart page. A tap on the chart ends it too.
+/// From Kristin Kandschur's feature/untethered-plus (74732bde4, f5033e743).
+struct ChartScrubEnd: ViewModifier {
+    @Binding var isScrubbing: Bool
+    @Binding var scrubSteps: Double
+    let currentPage: Int
+    /// The bubble page is a phone setting, so the chart's page moves.
+    let chartPage: Int
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: scrubSteps) { _, steps in
+                if isScrubbing, steps < 0 { stop() }
+            }
+            .onChange(of: currentPage) { _, page in
+                if page != chartPage, isScrubbing { stop() }
+            }
+            // restarts with every turn; 10 s still ends it
+            .task(id: isScrubbing ? scrubSteps : -2) {
+                guard isScrubbing else { return }
+                try? await Task.sleep(for: .seconds(10))
+                if !Task.isCancelled, isScrubbing { stop() }
+            }
+    }
+
+    private func stop() {
+        withAnimation { isScrubbing = false }
+        scrubSteps = 0
+    }
 }

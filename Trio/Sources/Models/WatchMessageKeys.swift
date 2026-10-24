@@ -106,6 +106,10 @@ enum WatchMessageKeys {
     static let glucoseRangeHigh = "glucoseRangeHigh"
     static let glucoseRangeTarget = "glucoseRangeTarget"
     static let glucoseColorScheme = "glucoseColorScheme"
+    /// The last 24 hours' carb entries, boluses and SMBs, as seconds since 1970: the markers on the big chart.
+    static let chartCarbs = "chartCarbs"
+    static let chartBoluses = "chartBoluses"
+    static let chartSMBs = "chartSMBs"
     /// mg/dL of the phone's glucose alarms that are on, the most cautious of each; 0: none.
     static let glucoseAlarmUrgentLow = "glucoseAlarmUrgentLow"
     static let glucoseAlarmLow = "glucoseAlarmLow"

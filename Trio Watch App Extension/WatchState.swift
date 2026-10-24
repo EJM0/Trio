@@ -241,6 +241,8 @@ import WatchConnectivity
     var forecastLines: [String: [Double]] = [:] // "iob" / "cob" / "uam" / "zt" -> values
     /// Boluses and carbs on the chart, untethered only: the watch has its own history then.
     var treatmentMarkers: [WatchTreatmentMarker] = []
+    /// The phone's carbs and boluses of the last 24 hours, for the big chart while the phone loops.
+    var phoneTreatmentMarkers: [WatchTreatmentMarker] = []
 
     // Acknowlegement handling
     var showCommsAnimation: Bool = false
@@ -1275,6 +1277,17 @@ import WatchConnectivity
 
         if let peripheralPayload = message[WatchMessageKeys.peripheralData] as? [String: Any] {
             processPeripheralData(peripheralPayload)
+        }
+
+        // the phone's carbs and boluses, times only, for the big chart's markers
+        if let carbs = message[WatchMessageKeys.chartCarbs] as? [TimeInterval],
+           let boluses = message[WatchMessageKeys.chartBoluses] as? [TimeInterval],
+           let smbs = message[WatchMessageKeys.chartSMBs] as? [TimeInterval]
+        {
+            func markers(_ times: [TimeInterval], _ kind: WatchTreatmentMarker.Kind) -> [WatchTreatmentMarker] {
+                times.map { WatchTreatmentMarker(id: "\(kind)-\($0)", date: Date(timeIntervalSince1970: $0), kind: kind) }
+            }
+            phoneTreatmentMarkers = markers(boluses, .bolus) + markers(smbs, .smb) + markers(carbs, .carbs)
         }
 
         // the watch's own newer readings stay in front of the phone's older ones
