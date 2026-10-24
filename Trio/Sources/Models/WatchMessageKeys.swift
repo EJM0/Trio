@@ -95,6 +95,8 @@ enum WatchMessageKeys {
     static let showGlucoseBubbleWatch = "showGlucoseBubbleWatch"
     static let allowUntetheredStartWithoutPhoneWatch = "allowUntetheredStartWithoutPhoneWatch"
     static let untetheredModeWatch = "untetheredModeWatch"
+    /// The phone app's build (`UntetheredVersion.current`), with every watch state.
+    static let phoneAppVersion = "phoneAppVersion"
     /// Whether safety alarms on the watch should use Critical Alerts.
     static let useCriticalAlertsWatch = "useCriticalAlertsWatch"
     /// Latest CGM export for the watch's own sensor link; can be absent while the phone is starting.

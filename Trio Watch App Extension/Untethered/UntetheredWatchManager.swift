@@ -215,9 +215,12 @@ import WatchKit
 
     private func handle(_ envelope: UntetheredEnvelope, replyHandler: (([String: Any]) -> Void)?) {
         lastPhoneContact = Date()
+        if let version = envelope.appVersion, WatchState.shared.phoneAppVersion != version {
+            WatchState.shared.phoneAppVersion = version
+        }
         switch envelope.message {
         case let .prepare(grant):
-            if let reason = rejection(of: grant) {
+            if let reason = UntetheredVersion.mismatch(phone: envelope.appVersion) ?? rejection(of: grant) {
                 isBusy = false
                 if let replyHandler {
                     reply(.rejected(reason: reason), epoch: envelope.epoch, via: replyHandler)
@@ -271,6 +274,17 @@ import WatchKit
 
         case let .standingGrant(grant, issuedAt):
             replyHandler?([:])
+            // from another build: not for a session this watch app runs, and any older copy goes with it
+            if UntetheredVersion.mismatch(phone: envelope.appVersion) != nil {
+                guard data.standingGrant != nil else { return }
+                store.update {
+                    $0.standingGrant = nil
+                    $0.standingGrantIssuedAt = nil
+                }
+                updateStandbySensor()
+                refresh()
+                return
+            }
             // a late copy from before a session would miss what the session dosed
             guard data.session.phase == .idle else { return }
             store.update {
@@ -1359,6 +1373,7 @@ import WatchKit
 
     /// Why there is no start without the phone, for the status page; nil when one can start.
     var startWithoutPhoneUnavailable: String? {
+        if let reason = versionMismatch { return reason }
         guard let grant = data.standingGrant, let issuedAt = data.standingGrantIssuedAt else {
             return String(localized: "No copy from the phone to start from yet. It sends one while it has the pump.")
         }
@@ -1376,6 +1391,8 @@ import WatchKit
         guard WatchState.shared.untetheredMode, WatchState.shared.allowUntetheredStartWithoutPhone,
               data.session.phase == .idle, !isBusy,
               !WatchState.shared.isReachable || byFallback, standingGrantAge != nil,
+              // not from a phone of another build, the fallback's start included
+              versionMismatch == nil,
               let grant = data.standingGrant
         else { return false }
         setError(nil)
@@ -1466,8 +1483,17 @@ import WatchKit
     // MARK: - Starting from the wrist
 
     /// Asks the phone to start, as its settings toggle does; the phone's answer is the usual prepare.
+    /// The phone's build differs from this watch app's: nothing starts until watchOS has updated it (or the phone).
+    var versionMismatch: String? {
+        UntetheredVersion.mismatch(phone: WatchState.shared.phoneAppVersion ?? UntetheredVersion.current)
+    }
+
     func requestStart() {
         guard WatchState.shared.untetheredMode, data.session.phase == .idle, !isBusy else { return }
+        if let reason = versionMismatch {
+            setError(reason)
+            return
+        }
         guard WCSession.default.isReachable else {
             setError(String(localized: "The phone must be reachable to start untethered mode."))
             return

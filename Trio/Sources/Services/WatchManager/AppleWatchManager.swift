@@ -853,6 +853,8 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         dictionary[WatchMessageKeys.showGlucoseBubbleWatch] = state.showGlucoseBubble
         dictionary[WatchMessageKeys.allowUntetheredStartWithoutPhoneWatch] = state.allowUntetheredStartWithoutPhone
         dictionary[WatchMessageKeys.untetheredModeWatch] = state.untetheredMode
+        // the watch starts no session while its build differs (UntetheredVersion)
+        dictionary[WatchMessageKeys.phoneAppVersion] = UntetheredVersion.current
         dictionary[WatchMessageKeys.useCriticalAlertsWatch] = settingsManager.settings.useCriticalAlerts
         dictionary[WatchMessageKeys.watchSensorConfiguration] = state.watchSensorConfiguration
         dictionary[WatchMessageKeys.watchReadsSensor] = state.watchReadsSensor

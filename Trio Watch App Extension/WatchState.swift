@@ -189,6 +189,12 @@ import WatchConnectivity
         didSet { UserDefaults.standard.set(untetheredMode, forKey: WatchMessageKeys.untetheredModeWatch) }
     }
 
+    /// The phone app's build as it last said; kept. The watch app starts no session while it differs from its own,
+    /// which is the case for a while after an update, until watchOS has installed the new watch app.
+    var phoneAppVersion: String? = UserDefaults.standard.string(forKey: WatchMessageKeys.phoneAppVersion) {
+        didSet { UserDefaults.standard.set(phoneAppVersion, forKey: WatchMessageKeys.phoneAppVersion) }
+    }
+
     /// The watch starts untethered on its own when the phone's readings stop, reading the sensor through its own link
     /// (`sensorConfiguration`). Persisted locally like the start without the phone, which it needs.
     var fallbackLoop: Bool = UserDefaults.standard.object(forKey: WatchMessageKeys.fallbackLoopWatch) as? Bool ?? false {
@@ -1219,6 +1225,10 @@ import WatchConnectivity
 
         if let untetheredMode = message[WatchMessageKeys.untetheredModeWatch] as? Bool, untetheredMode != self.untetheredMode {
             self.untetheredMode = untetheredMode
+        }
+
+        if let version = message[WatchMessageKeys.phoneAppVersion] as? String, version != phoneAppVersion {
+            phoneAppVersion = version
         }
 
         if let critical = message[WatchMessageKeys.useCriticalAlertsWatch] as? Bool, critical != useCriticalAlerts {
