@@ -733,8 +733,12 @@ private struct PillFlow: Layout {
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache _: inout ()) -> CGSize {
         let rows = rows(width: proposal.width ?? .infinity, subviews: subviews)
-        let height = rows.map { $0.map(\.height).max() ?? 0 }.reduce(0) { $0 + $1 } + spacing * CGFloat(max(rows.count - 1, 0))
-        return CGSize(width: proposal.width ?? rows.map { $0.reduce(0) { $0 + $1.width } }.max() ?? 0, height: height)
+        // in steps with their types: as one expression the arm64_32 archive gave up type-checking it
+        let rowHeights: [CGFloat] = rows.map { row in row.map(\.height).max() ?? 0 }
+        let gaps: CGFloat = spacing * CGFloat(max(rows.count - 1, 0))
+        let height: CGFloat = rowHeights.reduce(0, +) + gaps
+        let rowWidths: [CGFloat] = rows.map { row in row.reduce(CGFloat(0)) { $0 + $1.width } }
+        return CGSize(width: proposal.width ?? rowWidths.max() ?? 0, height: height)
     }
 
     func placeSubviews(in bounds: CGRect, proposal _: ProposedViewSize, subviews: Subviews, cache _: inout ()) {
