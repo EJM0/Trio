@@ -98,15 +98,23 @@ struct GlucoseChartView: View {
         }
     }
 
+    /// The forecast's part of the window. The phone sends two hours of it, which in the one-hour window left no
+    /// past at all, and the chart said "No glucose readings": at least an hour of readings stays, or half the window
+    /// when it is shorter. From three hours up, as before.
+    private var shownFuture: TimeInterval {
+        let window = Double(timeWindow.rawValue) * 3600
+        return min(futureOffset, max(window - 3600, window / 2))
+    }
+
     private var pastOffset: TimeInterval {
         let totalWindowDuration = Double(timeWindow.rawValue) * 3600
-        return -(totalWindowDuration - futureOffset)
+        return -(totalWindowDuration - shownFuture)
     }
 
     private var xAxisDomain: ClosedRange<Date> {
         let now = Date().addingTimeInterval(-scrubOffset)
         let startDate = now.addingTimeInterval(pastOffset)
-        let endDate = now.addingTimeInterval(futureOffset)
+        let endDate = now.addingTimeInterval(shownFuture)
         return startDate ... max(now, endDate)
     }
 
@@ -190,9 +198,11 @@ struct GlucoseChartView: View {
 
     private var yAxisBounds: (min: Double, max: Double)? {
         // typed: four untyped sums are the kind the arm64_32 archive gives up type-checking
+        // the forecast as far as the window shows it, so a cut-off part doesn't stretch the axis
+        let domain = xAxisDomain
         let readings: [Double] = filteredValues.map(\.glucose)
-        let cone: [Double] = forecastConePoints.flatMap { [$0.min, $0.max] }
-        let lines: [Double] = forecastLinePoints.map(\.value)
+        let cone: [Double] = forecastConePoints.filter { domain.contains($0.date) }.flatMap { [$0.min, $0.max] }
+        let lines: [Double] = forecastLinePoints.filter { domain.contains($0.date) }.map(\.value)
         let values: [Double] = readings + cone + lines + [lowLine, highLine]
 
         guard let minValue = values.min(),
