@@ -354,6 +354,9 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
     @Published private(set) var isReachingPod = false
     /// Short: a pod in reach answers within a second or two, and a refusal costs one more tap.
     private static let takeBackLinkLimit: TimeInterval = 5
+    /// Take-back tries after a watch's request, and the pause between them.
+    private static let handbackRequestTries = 3
+    private static let handbackRequestRetryDelay: TimeInterval = 20
     /// The returned pump has answered: what is left is the watch's last records and the audit.
     @Published private(set) var pumpReturnAnswered = false
     /// How long the start waits for the pump to answer.
@@ -570,8 +573,19 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 replyHandler?([:])
                 guard self.state.session.phase == .active, envelope.epoch == self.state.session.epoch else { return }
                 warning(.watchManager, "Untethered: the watch hasn't looped for \(minutes) min and asks the phone to take the pump back")
-                // as Take Back the Pump Now: the phone reaches for the pod first, and leaves the watch dosing if it can't
-                await self.forceTakeBack()
+                // as Take Back the Pump Now: the phone reaches for the pod first, and leaves the watch dosing if it can't.
+                // The pod may still be busy with the watch's last command: a few more tries, a little apart, rather
+                // than waiting for the watch's next request (24 October: refused at 13:55:56, taken back by hand 14:07).
+                for attempt in 1 ... Self.handbackRequestTries {
+                    await self.forceTakeBack()
+                    guard self.state.session.phase == .active, envelope.epoch == self.state.session.epoch,
+                          attempt < Self.handbackRequestTries
+                    else { break }
+                    debug(.watchManager, "Untethered: the pod was busy, trying again in \(Int(Self.handbackRequestRetryDelay)) s (\(attempt) of \(Self.handbackRequestTries))")
+                    self.setError(String(localized: "The pod is still busy with the watch. The phone tries again in a moment; keep it near the pod."))
+                    try? await Task.sleep(nanoseconds: UInt64(Self.handbackRequestRetryDelay * 1_000_000_000))
+                    guard self.state.session.phase == .active, envelope.epoch == self.state.session.epoch else { break }
+                }
             case let .dosingModeChanged(mode):
                 replyHandler?([:])
                 guard envelope.epoch >= self.state.session.epoch else { return }

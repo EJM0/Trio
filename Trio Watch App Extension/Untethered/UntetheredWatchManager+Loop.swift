@@ -28,6 +28,10 @@ extension UntetheredWatchManager {
         let phase = data.session.phase
         guard phase == .active || (phase == .ending && !isFinalizing), !data.podEnded, let pump = pumpManager,
               let grant = data.grant else { return }
+        if let quietUntil = podQuietUntil, Date() < quietUntil {
+            Task { await WatchLogger.shared.log("⌚️ Untethered: loop skipped, the iPhone is taking the pod back", force: true) }
+            return
+        }
         guard !isLooping else {
             // as `determineBasalSync`, which waits for a loop in flight: run once it is done
             if trigger == .treatment { isDeterminationPending = true }

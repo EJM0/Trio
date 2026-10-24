@@ -118,10 +118,22 @@ struct UntetheredStatusView: View {
         }
     }
 
+    /// The phone didn't take the last message, or isn't in reach right now.
+    private func phoneSeemsBusy(now: Date) -> Bool {
+        !WCSession.default.isReachable || manager.phoneTroubleAt.map { now.timeIntervalSince($0) < 2 * 60 } ?? false
+    }
+
     private func look(now: Date) -> (symbol: String, tint: Color, title: LocalizedStringKey, subtitle: LocalizedStringKey) {
         switch phase {
         case .active where data.podEnded:
             return ("xmark.circle", .orange, "Pod Deactivated", "The phone pairs the next pod; hand back once it is nearby")
+        case .active where manager.handbackRequestedAt.map({ now.timeIntervalSince($0) < 10 * 60 }) ?? false:
+            if phoneSeemsBusy(now: now) {
+                return ("hourglass", .orange, "Asked iPhone to Take Over",
+                        "The iPhone hasn't taken the pump yet. Open Trio on it; the watch keeps looping meanwhile")
+            }
+            return ("arrow.uturn.backward.circle", .blue, "Asked iPhone to Take Over",
+                    "The iPhone takes the pump back as soon as it reaches the pod")
         case .active:
             if let lastLoop = data.lastLoopDate {
                 let minutes = max(0, Int(now.timeIntervalSince(lastLoop) / 60))
@@ -130,8 +142,29 @@ struct UntetheredStatusView: View {
             return ("applewatch", .untethered, "Untethered", "Looping on the watch")
         case .preparing,
              .starting:
+            let waited = now.timeIntervalSince(manager.phaseSince)
+            if data.session.startedWithoutPhone, waited > 30 {
+                return ("applewatch.radiowaves.left.and.right", .yellow, "Looking for the Pod…",
+                        "The pod hasn't answered yet. Keep the watch near it; it keeps trying")
+            }
+            if data.session.startedWithoutPhone {
+                return ("applewatch.radiowaves.left.and.right", .yellow, "Starting…", "Looking for the pod")
+            }
+            if waited > 20, phoneSeemsBusy(now: now) {
+                return ("hourglass", .orange, "iPhone Busy",
+                        "The iPhone hasn't answered yet. Open Trio on the iPhone; the start goes on by itself")
+            }
             return ("applewatch.radiowaves.left.and.right", .yellow, "Starting…", "Taking over the pump and sensor")
         case .ending:
+            let waited = now.timeIntervalSince(manager.phaseSince)
+            if unsynced > 0 {
+                return ("arrow.uturn.backward.circle", .blue, "Handing Back…",
+                        "Sending the history to the iPhone: \(unsynced) entries left")
+            }
+            if waited > 30, phoneSeemsBusy(now: now) {
+                return ("hourglass", .orange, "iPhone Busy",
+                        "The iPhone isn't answering. Open Trio on the iPhone; the watch keeps the pump until it takes it")
+            }
             return ("arrow.uturn.backward.circle", .blue, "Handing Back…", "Waiting for the phone to take the pump")
         case .idle:
             if unsynced > 0 {

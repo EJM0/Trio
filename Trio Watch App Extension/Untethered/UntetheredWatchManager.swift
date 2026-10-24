@@ -15,6 +15,14 @@ import WatchKit
     private(set) var data: UntetheredWatchData
     /// Taking over or handing back.
     private(set) var isBusy = false
+    /// When the session's phase last changed: the status page says what a start or a hand-back is waiting for once
+    /// it takes longer than it should.
+    private(set) var phaseSince = Date()
+    /// The last message to the phone that didn't get through; cleared by the next that did.
+    private(set) var phoneTroubleAt: Date?
+    /// The phone is reaching for the pod after the watch asked it to take it back: the watch's loops leave the pod
+    /// alone until then, so the two don't race for its one link.
+    @ObservationIgnored var podQuietUntil: Date?
 
     @ObservationIgnored var pumpManager: (PumpManager & ExclusiveDeviceControl)?
     @ObservationIgnored var cgmManager: CGMManager? {
@@ -479,6 +487,7 @@ import WatchKit
     ) {
         let wasActive = isActive
         let wasIdle = store.data.session.phase == .idle
+        let phaseBefore = store.data.session.phase
         let effects = store.update { data -> [UntetheredSession.Effect] in
             let effects = data.session.watch(event, now: Date())
             change?(&data)
@@ -534,6 +543,10 @@ import WatchKit
         }
         // the phone may have confirmed the last records while the hand-back was still open: nothing else says so
         if wasActive, !isActive { finishSyncIfDone(epoch: epoch) }
+        if store.data.session.phase != phaseBefore {
+            phaseSince = Date()
+            if store.data.session.phase == .idle { podQuietUntil = nil }
+        }
         if wasActive, !isActive {
             Task { await WatchLogger.shared.flushPersistedLogs() }
         }
@@ -667,6 +680,7 @@ import WatchKit
             session.transferUserInfo(payload)
         }
         guard session.isReachable else {
+            DispatchQueue.main.async { self.phoneTroubleAt = Date() }
             if queued {
                 queue(payload)
             } else {
@@ -678,14 +692,16 @@ import WatchKit
         var failureReported = false
         for part in UntetheredChunks.split(payload) ?? [payload] {
             session.sendMessage(part, replyHandler: { [weak self] reply in
+                DispatchQueue.main.async { self?.phoneTroubleAt = nil }
                 guard reply[UntetheredEnvelope.key] != nil else { return }
                 self?.receive(reply, replyHandler: nil)
                 // queued behind the reply's own handling, which `receive` puts on the main queue
                 if let onReply { DispatchQueue.main.async(execute: onReply) }
-            }, errorHandler: { error in
+            }, errorHandler: { [weak self] error in
                 Task { await WatchLogger.shared.log("⌚️ Untethered: sending failed: \(error.localizedDescription)") }
                 // the whole envelope goes queued once, whichever part failed
                 DispatchQueue.main.async {
+                    self?.phoneTroubleAt = Date()
                     if queued, !queuedAfterFailure {
                         queuedAfterFailure = true
                         queue(payload)
@@ -1644,7 +1660,18 @@ import WatchKit
             )
         notify(id: Self.notificationPrefix + "handbackRequest", title: String(localized: "Handing Back to iPhone"), body: body)
         send(.handbackRequested(minutesWithoutLoop: minutes), epoch: data.session.epoch, queueing: true)
+        holdOffPodForTakeBack()
     }
+
+    /// The phone reaches for the pod for a few seconds after it gets the request; a loop of the watch's that takes
+    /// the pod's link then makes it give up (24 October 13:55: the phone found no link in 5 s, the watch had just
+    /// looped at 13:55:52). A minute without the watch's pod commands, unless the phone refused.
+    func holdOffPodForTakeBack() {
+        podQuietUntil = Date().addingTimeInterval(Self.podQuietForTakeBack)
+        Task { await WatchLogger.shared.log("⌚️ Untethered: leaving the pod to the iPhone for a minute", force: true) }
+    }
+
+    static let podQuietForTakeBack: TimeInterval = 60
 
     private func hasUnconfirmedRecords(_ epoch: Int) -> Bool {
         !(store.data.pending[epoch] ?? [:]).isEmpty
