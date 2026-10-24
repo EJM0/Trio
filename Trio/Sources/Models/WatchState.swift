@@ -24,6 +24,10 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var chartCarbs: [Date] = []
     var chartBoluses: [Date] = []
     var chartSMBs: [Date] = []
+    /// IOB and COB at each loop of the last 24 hours, for the big chart's scrub line.
+    var chartIobCobDates: [Date] = []
+    var chartIob: [Double] = []
+    var chartCob: [Double] = []
 
     // Safety limits
     var maxBolus: Decimal = 10.0
@@ -112,7 +116,10 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
 
         let chartMarkersAreEqual = lhs.chartCarbs == rhs.chartCarbs &&
             lhs.chartBoluses == rhs.chartBoluses &&
-            lhs.chartSMBs == rhs.chartSMBs
+            lhs.chartSMBs == rhs.chartSMBs &&
+            lhs.chartIobCobDates == rhs.chartIobCobDates &&
+            lhs.chartIob == rhs.chartIob &&
+            lhs.chartCob == rhs.chartCob
 
         let limitsAreEqual = lhs.maxBolus == rhs.maxBolus &&
             lhs.maxCarbs == rhs.maxCarbs &&
@@ -181,6 +188,9 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(chartCarbs)
         hasher.combine(chartBoluses)
         hasher.combine(chartSMBs)
+        hasher.combine(chartIobCobDates)
+        hasher.combine(chartIob)
+        hasher.combine(chartCob)
         hasher.combine(maxBolus)
         hasher.combine(maxCarbs)
         hasher.combine(maxFat)

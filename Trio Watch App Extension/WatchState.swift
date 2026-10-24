@@ -243,6 +243,10 @@ import WatchConnectivity
     var treatmentMarkers: [WatchTreatmentMarker] = []
     /// The phone's carbs and boluses of the last 24 hours, for the big chart while the phone loops.
     var phoneTreatmentMarkers: [WatchTreatmentMarker] = []
+    /// IOB and COB at each of the phone's loops in the last 24 hours, for the big chart's scrub line.
+    var phoneIobCob: [WatchIobCobPoint] = []
+    /// The same from the watch's own loops while it runs untethered (kept in memory, a day at most).
+    var ownIobCob: [WatchIobCobPoint] = []
 
     // Acknowlegement handling
     var showCommsAnimation: Bool = false
@@ -1288,6 +1292,17 @@ import WatchConnectivity
                 times.map { WatchTreatmentMarker(id: "\(kind)-\($0)", date: Date(timeIntervalSince1970: $0), kind: kind) }
             }
             phoneTreatmentMarkers = markers(boluses, .bolus) + markers(smbs, .smb) + markers(carbs, .carbs)
+        }
+
+        // each loop's IOB and COB, for the big chart's scrub line
+        if let dates = message[WatchMessageKeys.chartIobCobDates] as? [TimeInterval],
+           let iob = message[WatchMessageKeys.chartIob] as? [Double],
+           let cob = message[WatchMessageKeys.chartCob] as? [Double],
+           dates.count == iob.count, dates.count == cob.count
+        {
+            phoneIobCob = dates.indices.map { index in
+                WatchIobCobPoint(date: Date(timeIntervalSince1970: dates[index]), iob: iob[index], cob: cob[index])
+            }
         }
 
         // the watch's own newer readings stay in front of the phone's older ones
