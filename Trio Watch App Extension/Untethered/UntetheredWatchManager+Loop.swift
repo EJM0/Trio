@@ -154,9 +154,12 @@ extension UntetheredWatchManager {
                     }
                     let rate = determination.rate.map { "\($0) U/h" } ?? "-"
                     let smb = determination.units.map { "\($0) U" } ?? "-"
+                    let battery = Self.batteryText
                     Task {
-                        await WatchLogger.shared
-                            .log("⌚️ Untethered loop: BG \(determination.bg ?? 0), temp \(rate), SMB \(smb)", force: true)
+                        await WatchLogger.shared.log(
+                            "⌚️ Untethered loop: BG \(determination.bg ?? 0), temp \(rate), SMB \(smb), battery \(battery)",
+                            force: true
+                        )
                     }
                 } else {
                     record(enactedAt: nil)
