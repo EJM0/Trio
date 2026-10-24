@@ -415,6 +415,10 @@ import Testing
         let payload = try envelope.payload()
         #expect(try UntetheredEnvelope.decode(payload) == envelope)
         #expect(try UntetheredEnvelope.decode(["watchState": 1]) == nil)
+
+        // the watch's request to take the pump back travels like any other message
+        let request = UntetheredEnvelope(epoch: 4, message: .handbackRequested(minutesWithoutLoop: 15))
+        #expect(try UntetheredEnvelope.decode(try request.payload()) == request)
     }
 
     @Test("sync: bucket repair converges, versions included") func reconcile() {
