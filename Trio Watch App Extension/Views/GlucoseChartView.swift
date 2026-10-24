@@ -427,7 +427,7 @@ struct GlucoseChartView: View {
                 }
                 .foregroundStyle(scrubReading?.color ?? .secondary)
             }
-            .font(.system(.headline, design: .rounded))
+            .font(Self.scrubFont)
             .labelStyle(CompactLabelStyle())
             // IOB and COB at that time, as on the phone's chart
             if let point = scrubIobCob {
@@ -446,7 +446,7 @@ struct GlucoseChartView: View {
                     }
                     .foregroundStyle(Color.orange)
                 }
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .font(Self.scrubFont)
                 .labelStyle(CompactLabelStyle())
             }
         }
@@ -456,11 +456,14 @@ struct GlucoseChartView: View {
         .background(RoundedRectangle(cornerRadius: 12).fill(Color.black.opacity(0.6)))
     }
 
+    /// Both lines at the scrub line in one size, between the headline and the old small second line.
+    private static let scrubFont = Font.system(size: 14, weight: .semibold, design: .rounded)
+
     /// Icon and value close together, so both fit beside each other on a small watch.
     private struct CompactLabelStyle: LabelStyle {
         func makeBody(configuration: Configuration) -> some View {
             HStack(spacing: 3) {
-                configuration.icon.font(.system(size: 10))
+                configuration.icon.font(.system(size: 11))
                 configuration.title
             }
         }
