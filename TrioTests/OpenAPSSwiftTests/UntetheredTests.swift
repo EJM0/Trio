@@ -421,6 +421,23 @@ import Testing
         #expect(try UntetheredEnvelope.decode(try request.payload()) == request)
     }
 
+    @Test("Build check: a hand-over only between the same builds, an older sender counts as another build")
+    func buildCheck() throws {
+        #expect(UntetheredVersion.mismatch(phone: "580", watch: "580") == nil)
+        #expect(UntetheredVersion.mismatch(phone: "580", watch: "579") != nil)
+        // nothing known on one side: not a mismatch by itself
+        #expect(UntetheredVersion.mismatch(phone: nil, watch: "580") == nil)
+
+        // the sender's build travels with the envelope; one from before the check decodes without it
+        let envelope = UntetheredEnvelope(epoch: 3, message: .startRequest, appVersion: "580")
+        #expect(try UntetheredEnvelope.decode(try envelope.payload())?.appVersion == "580")
+        let old = try JSONSerialization.data(withJSONObject: ["epoch": 3, "message": ["startRequest": [:] as [String: Any]]])
+        let oldPayload: [String: Any] = [UntetheredEnvelope.key: try (old as NSData).compressed(using: .lzfse) as Data]
+        let decoded = try UntetheredEnvelope.decode(oldPayload)
+        #expect(decoded?.message == .startRequest)
+        #expect(decoded?.appVersion == nil)
+    }
+
     @Test("sync: bucket repair converges, versions included") func reconcile() {
         func entry(_ key: String, _ minutes: Double) -> UntetheredSyncEntry {
             UntetheredSyncEntry(key: key, id: UUID(), date: t0.addingTimeInterval(minutes * 60))
