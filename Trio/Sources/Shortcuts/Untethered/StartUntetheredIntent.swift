@@ -7,7 +7,7 @@ struct StartUntetheredIntent: AppIntent {
     static var title = LocalizedStringResource("Start Untethered Watch Mode")
 
     static var description = IntentDescription(.init(
-        "Hands the pump and the CGM to the Apple Watch, which loops on its own until the pump is handed back. Trio must be open on the watch."
+        "Hands the pump and the CGM to the watch, which loops on its own until the pump is handed back. Trio must be open on the watch."
     ))
 
     /// A shortcut waits about this long for the watch to report the takeover.
