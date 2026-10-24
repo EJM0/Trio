@@ -25,6 +25,9 @@ struct TrioComplicationData: Codable, Equatable {
     var iob: String?
     var cob: String?
     var watchLoops: Bool
+    /// The low and high lines' "#RRGGBB" with the dynamic color scheme on; nil: red and yellow.
+    var lowColor: String?
+    var highColor: String?
 
     static func load() -> TrioComplicationData? {
         guard let group = Bundle.main.object(forInfoDictionaryKey: "AppGroupID") as? String,
@@ -341,6 +344,8 @@ struct TrioAccessoryRectangularView: View {
         let padding = data.isMmol ? 0.5 : 10
         let yMin = (values.min() ?? data.low) - padding
         let yMax = (values.max() ?? data.high) + padding
+        let lowLine = lineColor(data.lowColor, fallback: .trioLoopRed)
+        let highLine = lineColor(data.highColor, fallback: .trioLoopYellow)
 
         return Chart {
             RectangleMark(
@@ -349,7 +354,15 @@ struct TrioAccessoryRectangularView: View {
                 yStart: .value("Low", data.low),
                 yEnd: .value("High", data.high)
             )
-            .foregroundStyle(isFullColor ? Color.trioLoopGreen.opacity(0.2) : Color.primary.opacity(0.15))
+            .foregroundStyle(isFullColor ? Color.trioLoopGreen.opacity(0.12) : Color.primary.opacity(0.08))
+            // the low and high thresholds as lines, so the range still reads where the band is too faint
+            // (kristinkand, 811e2148f)
+            RuleMark(y: .value("Low", data.low))
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 2]))
+                .foregroundStyle(lowLine)
+            RuleMark(y: .value("High", data.high))
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 2]))
+                .foregroundStyle(highLine)
             ForEach(points, id: \.date) { point in
                 PointMark(x: .value("Time", point.date), y: .value("Glucose", point.value))
                     .symbolSize(point.date == points.last?.date ? 24 : 9)
@@ -363,6 +376,13 @@ struct TrioAccessoryRectangularView: View {
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
         .widgetAccentable(!isFullColor)
+    }
+
+    /// On a multicolor face the scheme's color at the threshold (red and yellow in the static scheme); in one tint,
+    /// both lines in that tint.
+    private func lineColor(_ hex: String?, fallback: Color) -> Color {
+        guard isFullColor else { return Color.primary.opacity(0.5) }
+        return (hex.flatMap { Color(hex: $0) } ?? fallback).opacity(0.8)
     }
 }
 

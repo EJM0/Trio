@@ -28,6 +28,10 @@ struct TrioComplicationData: Codable, Equatable {
     var cob: String?
     /// The watch runs the loop (untethered).
     var watchLoops: Bool
+    /// "#RRGGBB" of the low and high lines with the dynamic color scheme on, its colors at those values; nil with
+    /// the static scheme, which draws them red and yellow.
+    var lowColor: String?
+    var highColor: String?
 }
 
 /// The watch app publishes snapshots to the app group and asks WidgetKit to reload only kinds whose visible data
@@ -68,6 +72,7 @@ enum ComplicationStore {
             .map { TrioComplicationData.Point(date: $0.date, value: $0.glucose, color: $0.color.toHexString()) }
         guard !points.isEmpty else { return }
         let range = state.glucoseRange
+        let isDynamic = GlucoseColorScheme(rawValue: range.colorScheme) == .dynamicColor
         let data = TrioComplicationData(
             points: points,
             isMmol: range.isMmol,
@@ -78,7 +83,9 @@ enum ComplicationStore {
             lastLoop: state.lastLoopDate,
             iob: state.iob,
             cob: state.cob,
-            watchLoops: watchLoops
+            watchLoops: watchLoops,
+            lowColor: isDynamic ? range.color(NSDecimalNumber(decimal: range.low).intValue).toHexString() : nil,
+            highColor: isDynamic ? range.color(NSDecimalNumber(decimal: range.high).intValue).toHexString() : nil
         )
         let old = load()
         let now = Date()
@@ -115,6 +122,7 @@ enum ComplicationStore {
         if old.points != new.points || old.isMmol != new.isMmol || old.low != new.low || old.high != new.high
             || old.trend != new.trend || old.delta != new.delta || old.lastLoop != new.lastLoop
             || old.iob != new.iob || old.cob != new.cob || old.watchLoops != new.watchLoops
+            || old.lowColor != new.lowColor || old.highColor != new.highColor
         {
             changed.insert(glucoseKind)
         }
