@@ -1436,15 +1436,33 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             return records.map(\.id)
         }
         var applied = state.applied[epoch] ?? [:]
-        for record in records.sorted(by: { $0.date < $1.date }) where applied[record.key]?.id != record.id {
+        // the Apple Watch update waits until the batch is in: one per stored reading slowed the history to a crawl
+        Self.historyBusyUntil = Date().addingTimeInterval(Self.historyQuietGap)
+        let todo = records.sorted(by: { $0.date < $1.date }).filter { applied[$0.key]?.id != $0.id }
+        var index = 0
+        while index < todo.count {
+            // a run of readings or of pump events goes in one save, one update for the app instead of one each
+            // (24 October: 500 entries left after a 4 h session, each batch outlasting WatchConnectivity's reply time)
+            let run = Self.storageRun(todo[index...])
             do {
-                try await store(record, epoch: epoch)
-                applied[record.key] = record.syncEntry
+                if run.count > 1 {
+                    try await storeRun(run, epoch: epoch)
+                } else {
+                    try await store(run[0], epoch: epoch)
+                }
+                for record in run { applied[record.key] = record.syncEntry }
             } catch {
                 // left out of the applied set, so the next sync asks for it again
-                warning(.watchManager, "Untethered: could not store \(record.key): \(error.localizedDescription)")
+                for record in run {
+                    warning(.watchManager, "Untethered: could not store \(record.key): \(error.localizedDescription)")
+                }
             }
+            index += run.count
         }
+        if todo.contains(where: { if case .determination = $0.kind { return true } else { return false } }) {
+            await keepNewestDeterminationsForUpload()
+        }
+        Self.historyBusyUntil = Date().addingTimeInterval(Self.historyQuietGap)
         UntetheredGate.update { $0.applied[epoch] = applied }
         publish()
         if settingsManager.settings.smoothGlucose,
@@ -1463,13 +1481,79 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         return records.filter { applied[$0.key]?.id == $0.id }.map(\.id)
     }
 
+    /// While the watch's history comes in, and a moment after: the Apple Watch update waits for it.
+    @MainActor static var historyBusyUntil = Date.distantPast
+    static let historyQuietGap: TimeInterval = 3
+
+    /// The records from the start of `records` that can be stored together: readings with readings, pump events with
+    /// pump events, never two versions of one key. Anything else goes alone.
+    private static func storageRun(_ records: ArraySlice<UntetheredRecord>) -> [UntetheredRecord] {
+        guard let first = records.first else { return [] }
+        func group(_ record: UntetheredRecord) -> Int? {
+            switch record.kind {
+            case .glucose: return 1
+            case .pumpEvent: return 2
+            default: return nil
+            }
+        }
+        guard let kind = group(first) else { return [first] }
+        var keys = Set<String>()
+        var run: [UntetheredRecord] = []
+        for record in records {
+            guard group(record) == kind, keys.insert(record.key).inserted else { break }
+            run.append(record)
+        }
+        return run
+    }
+
+    private static func pumpEvent(from data: Data) throws -> NewPumpEvent {
+        guard let raw = try PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? NewPumpEvent
+            .RawValue,
+            let event = NewPumpEvent(rawValue: raw)
+        else { throw UntetheredError.unavailable("unreadable pump event") }
+        return event
+    }
+
+    /// A run from `storageRun`, in one call to its storage.
+    private func storeRun(_ run: [UntetheredRecord], epoch: Int) async throws {
+        var glucose: [BloodGlucose] = []
+        var events: [NewPumpEvent] = []
+        for record in run {
+            switch record.kind {
+            case let .glucose(reading): glucose.append(reading)
+            case let .pumpEvent(data): events.append(try Self.pumpEvent(from: data))
+            default: break
+            }
+        }
+        if !glucose.isEmpty {
+            try await glucoseStorage.storeGlucose(glucose)
+            // as `store`: the watch's sensor readings only, not a BG entered on the watch
+            if let newest = glucose.filter({ $0.mbg == nil }).map(\.dateString).max(), newest > lastWatchReadingAt ?? .distantPast {
+                lastWatchReadingAt = newest
+            }
+        }
+        if !events.isEmpty {
+            // as `store` does for one: held before the rows exist, released once final
+            let doses = events.compactMap { event -> (id: String, mutable: Bool)? in
+                guard let id = event.dose?.syncIdentifier, !id.isEmpty else { return nil }
+                return (id, event.dose?.isMutable == true)
+            }
+            let pending = doses.filter(\.mutable).map(\.id)
+            if !pending.isEmpty {
+                UntetheredGate.update { $0.watchPendingDoses[epoch, default: []].formUnion(pending) }
+            }
+            try await pumpHistoryStorage.storePumpEvents(events, replacePendingEvents: false)
+            let final = doses.filter { !$0.mutable }.map(\.id)
+            if !final.isEmpty {
+                UntetheredGate.update { $0.watchPendingDoses[epoch]?.subtract(final) }
+            }
+        }
+    }
+
     private func store(_ record: UntetheredRecord, epoch: Int) async throws {
         switch record.kind {
         case let .pumpEvent(data):
-            guard let raw = try PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? NewPumpEvent
-                .RawValue,
-                let event = NewPumpEvent(rawValue: raw)
-            else { throw UntetheredError.unavailable("unreadable pump event") }
+            let event = try Self.pumpEvent(from: data)
             // held before the row exists, so no purge can fall in between; released once the row is final
             let pendingDose = event.dose?.syncIdentifier.flatMap { $0.isEmpty ? nil : $0 }
             if let pendingDose, event.dose?.isMutable == true {
@@ -1551,7 +1635,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             let context = CoreDataStack.shared.newTaskContext()
             context.name = "untetheredDetermination"
             await openAPS.processDetermination(determination, enactedAt: enactedAt, on: context)
-            await keepNewestDeterminationsForUpload()
+            // `ingest` sorts the uploads once the batch is in
         case let .tdd(tdd):
             await tddStorage.storeTDD(
                 TDDResult(

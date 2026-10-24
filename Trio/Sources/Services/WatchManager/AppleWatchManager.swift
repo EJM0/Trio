@@ -46,8 +46,15 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     /// Only accessed on `queue`.
     private var pendingWatchStatePush: DispatchWorkItem?
     private var pendingWatchStatePushSince: Date?
+    /// Counts the pushes scheduled, so a check that hopped to the main actor sends only for the newest.
+    private var watchStatePushGeneration = 0
+    private var lastWatchStatePushAt = Date.distantPast
     /// A slow pump can keep the loop running; the glucose value must not wait on it longer than this.
     private static let maxLoopWait: TimeInterval = 30
+    /// Each state is tens of kilobytes: a burst of changes sends the newest once it is over, at most one this often
+    /// (kristinkand's feature/untethered-pr-plus, 4a217bf0f: 73 states in 4 minutes during a start, and the watch's
+    /// own messages timed out behind them).
+    private static let minWatchStatePushGap: TimeInterval = 3
 
     // Glucose history sync. Only accessed on the main actor.
     /// The newest reading the watch got in a message or reply: the base of the next delta. The context doesn't
@@ -162,15 +169,34 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     /// While a loop runs, holds the push until its result is in, measured from the first trigger. Only called on `queue`.
     private func schedulePendingWatchStatePush(after delay: TimeInterval) {
         pendingWatchStatePush?.cancel()
+        watchStatePushGeneration += 1
+        let generation = watchStatePushGeneration
         let workItem = DispatchWorkItem { [weak self] in
             guard let self = self, let since = self.pendingWatchStatePushSince else { return }
             if self.apsManager.isLooping.value, Date().timeIntervalSince(since) < Self.maxLoopWait {
                 self.schedulePendingWatchStatePush(after: 1)
                 return
             }
-            self.pendingWatchStatePushSince = nil
-            Task {
-                await self.pushWatchState()
+            let gapLeft = self.lastWatchStatePushAt.addingTimeInterval(Self.minWatchStatePushGap).timeIntervalSinceNow
+            if gapLeft > 0 {
+                self.schedulePendingWatchStatePush(after: gapLeft)
+                return
+            }
+            Task { @MainActor in
+                // none while the watch's history comes in: one state once it is in, not one per batch
+                let historyLeft = UntetheredPhoneManager.historyBusyUntil.timeIntervalSinceNow
+                self.queue.async {
+                    guard generation == self.watchStatePushGeneration, self.pendingWatchStatePushSince != nil else { return }
+                    if historyLeft > 0 {
+                        self.schedulePendingWatchStatePush(after: historyLeft)
+                        return
+                    }
+                    self.pendingWatchStatePushSince = nil
+                    self.lastWatchStatePushAt = Date()
+                    Task {
+                        await self.pushWatchState()
+                    }
+                }
             }
         }
         pendingWatchStatePush = workItem

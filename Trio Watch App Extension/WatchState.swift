@@ -482,8 +482,11 @@ import WatchConnectivity
             UntetheredWatchManager.shared.receive(message, replyHandler: nil)
             return
         }
+        // the keys only: a full state is tens of kilobytes, up to 600, and writing each out slowed the watch
+        // (24 October: a 35 MB log, most of it these)
+        let keys = message.keys.sorted().joined(separator: ", ")
         Task {
-            await WatchLogger.shared.log("⌚️ Watch received data: \(message)")
+            await WatchLogger.shared.log("⌚️ Watch received data: \(keys)")
         }
 
         // Ack at top level — no `watchState` wrapper, no staleness check.
