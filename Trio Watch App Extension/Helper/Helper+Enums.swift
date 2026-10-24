@@ -39,6 +39,8 @@ enum AcknowledgmentCode: String, Codable {
 /// chart is a glance, the full one is for scrolling back through the day. Both survive the app
 /// being backgrounded or relaunched.
 enum WatchChartTimeWindow: Int, CaseIterable {
+    /// The full-screen chart's only (`nextFullScreen`); the combined chart starts at three hours.
+    case oneHour = 1
     case threeHours = 3
     case sixHours = 6
     case twelveHours = 12
@@ -51,11 +53,17 @@ enum WatchChartTimeWindow: Int, CaseIterable {
 
     var next: WatchChartTimeWindow {
         switch self {
+        case .oneHour: return .threeHours
         case .threeHours: return .sixHours
         case .sixHours: return .twelveHours
         case .twelveHours: return .twentyFourHours
         case .twentyFourHours: return .threeHours
         }
+    }
+
+    /// The full-screen chart's cycle, from the last hour (kristinkand's feature/untethered-plus, 62148fe42).
+    var nextFullScreen: WatchChartTimeWindow {
+        self == .twentyFourHours ? .oneHour : next
     }
 }
 

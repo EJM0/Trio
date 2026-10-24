@@ -19,6 +19,11 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var phoneLastLoopDate: Date? = nil
     var overridePresets: [OverridePresetWatch] = []
     var tempTargetPresets: [TempTargetPresetWatch] = []
+    /// The last 24 hours' carb entries (without fat and protein equivalents), boluses and SMBs, times only: the
+    /// markers on the watch's big chart.
+    var chartCarbs: [Date] = []
+    var chartBoluses: [Date] = []
+    var chartSMBs: [Date] = []
 
     // Safety limits
     var maxBolus: Decimal = 10.0
@@ -105,6 +110,10 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
             lhs.overridePresets == rhs.overridePresets &&
             lhs.tempTargetPresets == rhs.tempTargetPresets
 
+        let chartMarkersAreEqual = lhs.chartCarbs == rhs.chartCarbs &&
+            lhs.chartBoluses == rhs.chartBoluses &&
+            lhs.chartSMBs == rhs.chartSMBs
+
         let limitsAreEqual = lhs.maxBolus == rhs.maxBolus &&
             lhs.maxCarbs == rhs.maxCarbs &&
             lhs.maxFat == rhs.maxFat &&
@@ -146,8 +155,8 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
             lhs.cgmProgressState == rhs.cgmProgressState &&
             lhs.cgmStatusMessage == rhs.cgmStatusMessage
 
-        return glucoseIsEqual && treatmentsAreEqual && limitsAreEqual && forecastIsEqual && pumpIsEqual &&
-            cgmIsEqual
+        return glucoseIsEqual && treatmentsAreEqual && chartMarkersAreEqual && limitsAreEqual && forecastIsEqual &&
+            pumpIsEqual && cgmIsEqual
     }
 
     func hash(into hasher: inout Hasher) {
@@ -169,6 +178,9 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(phoneLastLoopDate)
         hasher.combine(overridePresets)
         hasher.combine(tempTargetPresets)
+        hasher.combine(chartCarbs)
+        hasher.combine(chartBoluses)
+        hasher.combine(chartSMBs)
         hasher.combine(maxBolus)
         hasher.combine(maxCarbs)
         hasher.combine(maxFat)

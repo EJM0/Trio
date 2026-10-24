@@ -462,6 +462,21 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                         options: 0
                     )
                 }
+                // carbs and boluses as markers on the watch's big chart: times only, amounts would crowd a watch
+                // screen (kristinkand's feature/untethered-plus, 477ca2bf4)
+                let carbRequest = NSFetchRequest<CarbEntryStored>(entityName: "CarbEntryStored")
+                carbRequest.predicate = NSPredicate.carbsForChart(since: glucoseWindowStart)
+                watchState.chartCarbs = ((try? context.fetch(carbRequest)) ?? []).compactMap(\.date)
+                let bolusRequest = NSFetchRequest<PumpEventStored>(entityName: "PumpEventStored")
+                bolusRequest.predicate = NSPredicate(
+                    format: "timestamp >= %@ AND bolus != nil",
+                    glucoseWindowStart as NSDate
+                )
+                for event in (try? context.fetch(bolusRequest)) ?? [] {
+                    guard let date = event.timestamp, let bolus = event.bolus else { continue }
+                    if bolus.isSMB { watchState.chartSMBs.append(date) } else { watchState.chartBoluses.append(date) }
+                }
+
                 watchState.glucoseRangeLow = self.lowGlucose
                 watchState.glucoseRangeHigh = self.highGlucose
                 watchState.glucoseRangeTarget = currentGlucoseTarget
@@ -834,6 +849,9 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         dictionary[WatchMessageKeys.glucoseRangeHigh] = NSDecimalNumber(decimal: state.glucoseRangeHigh).doubleValue
         dictionary[WatchMessageKeys.glucoseRangeTarget] = NSDecimalNumber(decimal: state.glucoseRangeTarget).doubleValue
         dictionary[WatchMessageKeys.glucoseColorScheme] = state.glucoseColorScheme
+        dictionary[WatchMessageKeys.chartCarbs] = state.chartCarbs.map(\.timeIntervalSince1970)
+        dictionary[WatchMessageKeys.chartBoluses] = state.chartBoluses.map(\.timeIntervalSince1970)
+        dictionary[WatchMessageKeys.chartSMBs] = state.chartSMBs.map(\.timeIntervalSince1970)
         // the phone's glucose alarms, for the watch's own while it loops: the highest low, the lowest high that is on
         let alerts = GlucoseAlertsStore.shared.alerts
         func thresholds(_ type: GlucoseAlertType) -> [Double] {

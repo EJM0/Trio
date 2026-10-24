@@ -838,8 +838,14 @@ struct UntetheredGlanceView: View {
     }
 
     private var chart: some View {
-        GlucoseChartView(state: state, glucoseValues: state.glucoseValues)
-            .allowsHitTesting(false)
+        // a glance: no scrubbing here
+        GlucoseChartView(
+            state: state,
+            glucoseValues: state.glucoseValues,
+            isScrubbing: .constant(false),
+            scrubSteps: .constant(0)
+        )
+        .allowsHitTesting(false)
     }
 
     // MARK: - Elements
