@@ -70,6 +70,8 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var allowUntetheredStartWithoutPhoneWatch: Bool = true
     /// Untethered watch mode offered at all: off, neither the phone nor the watch starts it.
     var untetheredModeWatch: Bool = true
+    /// The home screen's background takes the untethered color while the watch has the pump.
+    var untetheredTintHomeWatch: Bool = true
     /// The watch keeps its own link to the G7 all the time, not only while untethered.
     var watchSensorAlwaysOn: Bool = true
     /// The watch keeps its own sensor link and starts on its own when the iPhone's readings stop.
@@ -465,6 +467,10 @@ extension TrioSettings: Decodable {
 
         if let untetheredModeWatch = try? container.decode(Bool.self, forKey: .untetheredModeWatch) {
             settings.untetheredModeWatch = untetheredModeWatch
+        }
+
+        if let untetheredTintHomeWatch = try? container.decode(Bool.self, forKey: .untetheredTintHomeWatch) {
+            settings.untetheredTintHomeWatch = untetheredTintHomeWatch
         }
 
         if let watchSensorAlwaysOn = try? container.decode(Bool.self, forKey: .watchSensorAlwaysOn) {

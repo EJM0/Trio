@@ -339,6 +339,20 @@ struct UntetheredTreatmentGate<Content: View>: View {
     }
 }
 
+/// The home screen's background while the watch has the pump: a wash of the untethered color over Trio's own
+/// (Kristin Kandschur, 3010a9a15).
+struct UntetheredHomeTint: View {
+    @ObservedObject var manager: UntetheredPhoneManager
+
+    var body: some View {
+        Color.untethered
+            .opacity(manager.tintsHomeScreen ? 0.16 : 0)
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .animation(.easeInOut(duration: 0.4), value: manager.tintsHomeScreen)
+    }
+}
+
 extension Color {
     /// Untethered watch mode, wherever it shows: a bright cyan on the dark background, deeper on the light one.
     static let untethered = Color(UIColor { traits in

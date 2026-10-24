@@ -231,6 +231,9 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
 
     var isWatchInCharge: Bool { !state.session.isIdle }
 
+    /// The home screen is tinted while the watch has the pump (Settings › Apple Watch).
+    var tintsHomeScreen: Bool { isWatchInCharge && settingsManager.settings.untetheredTintHomeWatch }
+
     /// After the phone's own reading, clear of the watch's: the two read the same sensor, and the watch's link to it
     /// comes up around the reading and stays some 40 s.
     private static let watchWakeDelay: TimeInterval = 45
@@ -1698,6 +1701,8 @@ extension UntetheredPhoneManager: SettingsObserver, PreferencesObserver, PumpSet
 {
     func settingsDidChange(_ settings: TrioSettings) {
         scheduleStandingGrant(settingsChanged: true)
+        // the home screen's tint reads a setting
+        DispatchQueue.main.async { self.objectWillChange.send() }
         if !state.session.isIdle {
             send(.dosingModeChanged(settings.dosingMode), epoch: state.session.epoch)
         }
