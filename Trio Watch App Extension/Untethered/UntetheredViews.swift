@@ -47,7 +47,6 @@ struct UntetheredStatusView: View {
                     }
                     if manager.isActive { tiles }
                     if manager.isActive || unsynced > 0 { historyButton }
-                    if manager.isActive, let mode = data.grant?.dosingMode { loopModePicker(mode) }
                     alerts(now: context.date)
                     actions
                 }
@@ -144,8 +143,16 @@ struct UntetheredStatusView: View {
 
     // MARK: - Figures
 
+    /// The loop mode on the left, tapped to change it, and the delivered basal on the right.
     private var tiles: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 6) {
+            if let mode = data.grant?.dosingMode {
+                NavigationLink { UntetheredLoopModeSelectionView(manager: manager) } label: {
+                    tile("Loop Mode", systemImage: mode.icon, tint: .untethered, value: mode.displayName)
+                }
+                .buttonStyle(.plain)
+                .disabled(data.session.phase != .active)
+            }
             tile(
                 "Basal",
                 systemImage: "chart.bar.fill",
@@ -153,14 +160,6 @@ struct UntetheredStatusView: View {
                 value: (manager.deliveredBasalRate ?? data.lastDetermination?.rate).map {
                     String(format: "%.2f U/h", NSDecimalNumber(decimal: $0).doubleValue)
                 }
-            )
-            // the watch's own battery, which a session draws on (Kristin Kandschur, 638c80405); the reservoir is on
-            // the Devices page
-            tile(
-                "Battery",
-                systemImage: "battery.75percent",
-                tint: (UntetheredWatchManager.batteryPercent ?? 100) < 20 ? .red : .green,
-                value: UntetheredWatchManager.batteryPercent.map { "\($0) %" }
             )
         }
     }
@@ -171,53 +170,34 @@ struct UntetheredStatusView: View {
         NavigationLink { UntetheredHistoryView(manager: manager) } label: {
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
-                    Label("History", systemImage: "list.bullet")
-                        .font(.caption2)
-                        .foregroundStyle(.blue)
-                        .lineLimit(1)
+                    // as the page's other labels, in English: the catalog's "History" reads "Verlauf" in German
+                    Label {
+                        Text(verbatim: "History")
+                    } icon: {
+                        Image(systemName: "list.bullet")
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.blue)
+                    .lineLimit(1)
                     Spacer(minLength: 0)
                     Image(systemName: "chevron.right")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
-                Text("\(unsynced)")
-                    .font(.system(.footnote, design: .rounded).weight(.semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                HStack(spacing: 4) {
+                    Text("to sync:")
+                        .foregroundStyle(.secondary)
+                    Text("\(unsynced)")
+                }
+                .font(.system(.footnote, design: .rounded).weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(8)
             .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
-    }
-
-    private func loopModePicker(_ mode: DosingMode) -> some View {
-        NavigationLink {
-            UntetheredLoopModeSelectionView(manager: manager)
-        } label: {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack {
-                    Label("Loop Mode", systemImage: mode.icon)
-                        .font(.caption2)
-                        .foregroundStyle(Color.untethered)
-                        .lineLimit(1)
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.right")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                Text(mode.displayName)
-                    .font(.system(.footnote, design: .rounded).weight(.semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(8)
-            .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
-        }
-        .buttonStyle(.plain)
-        .disabled(data.session.phase != .active)
     }
 
     private func tile(_ label: LocalizedStringKey, systemImage: String, tint: Color, value: String?) -> some View {
