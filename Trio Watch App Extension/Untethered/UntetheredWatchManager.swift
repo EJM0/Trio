@@ -1646,7 +1646,9 @@ import WatchKit
     func sensorWindowEnd(now: Date) -> Date? {
         guard holdsSensorLink else { return nil }
         if watchCGMIsConnected(cgmManager) { return now.addingTimeInterval(5) }
-        return UntetheredSensorWindow.end(now: now, lastReading: store.data.glucose.map(\.dateString).max())
+        // the sensor's own readings: a manual BG says nothing about when the next one comes
+        let lastReading = store.data.glucose.filter { $0.mbg == nil }.map(\.dateString).max()
+        return UntetheredSensorWindow.end(now: now, lastReading: lastReading)
     }
 
     /// The watch reads the sensor itself, in an untethered session.

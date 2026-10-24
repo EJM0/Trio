@@ -507,6 +507,37 @@ extension UntetheredWatchManager {
         runLoop(.treatment)
     }
 
+    /// The sensor's readings alone, without manual BGs: what the sensor checks, the alarms for missing readings,
+    /// the sensor's reading window and the 3.5-minute filter go by, so a manual BG neither hides a silent sensor
+    /// nor drops its next reading.
+    var sensorGlucose: [BloodGlucose] { data.glucose.filter { $0.mbg == nil } }
+
+    /// A blood glucose from a meter, entered on the watch: as the phone's History → Add Glucose, it goes into the
+    /// readings the loop uses (unsmoothed) and reaches the phone as a manual entry (`mbg` set → `isManual`). Like
+    /// the phone, it doesn't start a loop of its own: the next sensor reading's loop takes it into account
+    /// (kristinkand's feature/untethered-fallback, d4c8552f6).
+    func addManualGlucose(mgdl: Int) {
+        guard isActive else { return }
+        let now = Date()
+        let glucose = BloodGlucose(
+            id: UUID().uuidString,
+            mbg: mgdl,
+            date: Decimal(Int(now.timeIntervalSince1970 * 1000)),
+            dateString: now,
+            glucose: mgdl,
+            type: "mbg"
+        )
+        store.update { $0.glucose.append(glucose) }
+        store.record(
+            UntetheredRecord(key: UntetheredRecord.glucoseKey(now), date: now, kind: .glucose(glucose)),
+            epoch: data.session.epoch
+        )
+        Task { await WatchLogger.shared.log("⌚️ Untethered: manual BG \(mgdl) mg/dL entered on the watch", force: true) }
+        refresh()
+        checkAlarms()
+        publishToWatchState()
+    }
+
     /// Deleted for the loop and the screens; the same key's new version tells the phone.
     func deleteGlucose(id: String) {
         guard let reading = data.glucose.first(where: { $0.id == id }) else { return }
@@ -841,7 +872,7 @@ extension UntetheredWatchManager: PumpManagerDelegate {
             return
         }
         scheduleNotLoopingAlert(from: data.lastLoopDate ?? Date())
-        scheduleNoReadingsAlert(from: data.glucose.map(\.dateString).max() ?? Date())
+        scheduleNoReadingsAlert(from: sensorGlucose.map(\.dateString).max() ?? Date())
         for alert in alerts {
             guard let due = alert.due, due > Date() else { continue }
             notify(id: alert.id, title: alert.title, body: alert.body, after: due.timeIntervalSinceNow)
@@ -880,7 +911,7 @@ extension UntetheredWatchManager: PumpManagerDelegate {
 
 extension UntetheredWatchManager: CGMManagerDelegate {
     func startDateToFilterNewData(for _: CGMManager) -> Date? {
-        (data.glucose + data.standbyGlucose).map(\.dateString).max()
+        (sensorGlucose + data.standbyGlucose).map(\.dateString).max()
     }
 
     /// The most a loop holds the app awake: a pod command, retries included, is done well within it.
@@ -1143,7 +1174,7 @@ extension UntetheredWatchManager: CGMManagerDelegate {
               now.timeIntervalSince(lastLoop) > Self.podLinkStallLimit,
               now.timeIntervalSince(lastPodLinkReset ?? .distantPast) > Self.podLinkResetInterval,
               // without readings the sensor is what's missing, and its own alarm says so (2026-10-19 18:04)
-              let newest = data.glucose.map(\.dateString).max(), now.timeIntervalSince(newest) < 11 * 60
+              let newest = sensorGlucose.map(\.dateString).max(), now.timeIntervalSince(newest) < 11 * 60
         else { return }
         if lastPodLinkReset == nil {
             notify(
@@ -1211,10 +1242,10 @@ extension UntetheredWatchManager: CGMManagerDelegate {
 
     /// New readings for the loop and the phone.
     func ingest(_ readings: [BloodGlucose]) {
-        let known = Set(data.glucose.map { Int($0.dateString.timeIntervalSince1970 / 30) })
+        let known = Set(sensorGlucose.map { Int($0.dateString.timeIntervalSince1970 / 30) })
         // as `GlucoseStorage.filterTooFrequentGlucose`: a new reading within 3.5 min of the previous one is
-        // dropped; older readings are backfill and only need to be new
-        var lastDate = data.glucose.map(\.dateString).max() ?? .distantPast
+        // dropped; older readings are backfill and only need to be new (a manual BG doesn't count)
+        var lastDate = sensorGlucose.map(\.dateString).max() ?? .distantPast
         var fresh: [BloodGlucose] = []
         for reading in readings.sorted(by: { $0.dateString < $1.dateString })
             where !known.contains(Int(reading.dateString.timeIntervalSince1970 / 30))
@@ -1304,8 +1335,8 @@ extension UntetheredWatchManager {
                 alarm("high", title: String(localized: "High Glucose"), body: body, every: 60 * 60)
             }
         }
-        // two missed readings on the sensor's 5-minute grid
-        if let newest = latest?.dateString, now.timeIntervalSince(newest) > Self.noReadingsAfter {
+        // two missed readings on the sensor's 5-minute grid: the sensor's own, a manual BG doesn't count
+        if let newest = sensorGlucose.map(\.dateString).max(), now.timeIntervalSince(newest) > Self.noReadingsAfter {
             let minutes = Int(now.timeIntervalSince(newest) / 60)
             alarm("sensor", title: Self.noReadingsTitle, body: Self.noReadingsBody(minutes: minutes), every: 30 * 60)
         }
