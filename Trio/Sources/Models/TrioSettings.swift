@@ -103,6 +103,7 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var scaleID: String = ""
     var scaleName: String = ""
     var homeStatsPanelFace: HomeStatsPanelFace = .timeInRange
+    var homeStatsPanelRange: HomeStatsPanelRange = .today
     var requireAdjustmentsConfirmation: Bool = false
     /// Enables Critical Alerts for safety alarms on the phone and watch.
     var useCriticalAlerts: Bool = false
@@ -573,6 +574,10 @@ extension TrioSettings: Decodable {
 
         if let homeStatsPanelFace = try? container.decode(HomeStatsPanelFace.self, forKey: .homeStatsPanelFace) {
             settings.homeStatsPanelFace = homeStatsPanelFace
+        }
+
+        if let homeStatsPanelRange = try? container.decode(HomeStatsPanelRange.self, forKey: .homeStatsPanelRange) {
+            settings.homeStatsPanelRange = homeStatsPanelRange
         }
 
         if let requireAdjustmentsConfirmation = try? container.decode(Bool.self, forKey: .requireAdjustmentsConfirmation) {
