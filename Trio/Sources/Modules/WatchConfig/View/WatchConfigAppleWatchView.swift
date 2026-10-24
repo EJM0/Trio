@@ -244,6 +244,10 @@ struct WatchConfigAppleWatchView: BaseView {
                         Text(
                             "• The watch shows the workout symbol at the top, and raising the wrist shows Trio instead of the watch face: its minimal screen, or the full app with Minimal Screen off."
                         )
+                        Text(
+                            "To keep the watch face instead: on the Apple Watch, open Settings → General → Return to Clock → Trio, turn on Custom, choose Always, and turn off Return to App during a session. Trio keeps running and stays awake; tap the workout symbol at the top of the watch face to open it."
+                        )
+                        .padding(.leading, 12)
                         Text("• The heart rate sensor runs the whole time: the watch battery drains noticeably faster.")
                         Text(
                             "• Ending the workout on the watch stops the keeping awake until the next untethered session. Untethered mode itself goes on."
