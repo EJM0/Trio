@@ -797,21 +797,37 @@ struct UntetheredGlanceView: View {
     private static let dim = Color(white: 0.55)
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 30)) { context in
-            VStack(spacing: 4) {
-                row(0, now: context.date)
-                middle(now: context.date)
-                    .frame(maxHeight: .infinity)
-                row(1, now: context.date)
+        // A button over the whole screen rather than a tap gesture on the stack: on 25 October taps on the minimal
+        // screen did nothing, and the hand-back had to come from the phone. A long press opens it too, and the hint
+        // at the bottom says how.
+        Button(action: open) {
+            TimelineView(.periodic(from: .now, by: 30)) { context in
+                VStack(spacing: 4) {
+                    row(0, now: context.date)
+                    middle(now: context.date)
+                        .frame(maxHeight: .infinity)
+                    row(1, now: context.date)
+                    if !isLuminanceReduced {
+                        Text("Tap for Trio", comment: "Hint at the bottom of Extended Untethered Mode's minimal screen")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Self.dim)
+                    }
+                }
+                .padding(.horizontal, 6)
+                .padding(.bottom, 2)
             }
-            .padding(.horizontal, 6)
-            .padding(.bottom, 2)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black)
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black)
-        .contentShape(Rectangle())
-        .onTapGesture(perform: onOpen)
+        .buttonStyle(.plain)
+        .simultaneousGesture(LongPressGesture(minimumDuration: 0.4).onEnded { _ in open() })
         .opacity(isLuminanceReduced ? 0.75 : 1)
+    }
+
+    private func open() {
+        Task { await WatchLogger.shared.log("⌚️ Untethered: minimal screen tapped, opening the full app", force: true) }
+        onOpen()
     }
 
     // MARK: - Layout
