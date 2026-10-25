@@ -97,7 +97,14 @@ struct TrioMainWatchView: View {
     var body: some View {
         Group {
             if untethered.isKeptAwake, state.glanceEnabled, !showsFullApp {
-                UntetheredGlanceView(state: state, manager: untethered) { showsFullApp = true }
+                UntetheredGlanceView(state: state, manager: untethered) {
+                    // The pages change while the minimal screen shows (a session's loop page comes and goes), and the
+                    // full app's own corrections only run while it is on screen: a page that no longer existed opened
+                    // as an empty screen with no way out (25 October, second user). A tap opens the untethered page,
+                    // with the hand-back, which is what it is usually for.
+                    currentPage = showsUntethered ? statusPage : 0
+                    showsFullApp = true
+                }
             } else {
                 fullApp
             }
@@ -198,6 +205,8 @@ struct TrioMainWatchView: View {
                 if currentPage > lastPage { currentPage = lastPage }
             }
             .onAppear {
+                // a page left over from before the minimal screen, or from another set of pages, shows nothing
+                if currentPage < 0 || currentPage > lastPage { currentPage = 0 }
                 /// Hard reset variables when main view appears
                 /// Reset `bolusAmount` and `recommendedBolus` to ensure no stale / old value is set when user opens bolus input or meal combo the next time.
                 state.bolusAmount = 0
