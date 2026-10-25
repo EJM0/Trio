@@ -1516,12 +1516,37 @@ import WatchKit
         }
         setError(nil)
         isBusy = true
-        send(.startRequest, epoch: data.session.epoch)
+        sendStartRequest(attempt: 1)
         // the phone's prepare, or its refusal, comes once it has read the pump (up to 30 s); this only frees the button
         DispatchQueue.main.asyncAfter(deadline: .now() + 60) {
             if self.data.session.phase == .idle { self.isBusy = false }
         }
     }
+
+    /// Asked again when WatchConnectivity didn't get it through (25 October: four starts by hand); the phone ignores a
+    /// request for a start already under way. Meanwhile the page says "iPhone Busy".
+    private func sendStartRequest(attempt: Int) {
+        send(.startRequest, epoch: data.session.epoch, onFailure: { [weak self] in
+            guard let self, self.isBusy, self.data.session.phase == .idle else { return }
+            guard attempt < Self.startRequestTries else {
+                self.isBusy = false
+                self.setError(String(localized: "The iPhone didn't get the start. Open Trio on the iPhone and try again."))
+                return
+            }
+            Task {
+                await WatchLogger.shared.log(
+                    "⌚️ Untethered: start request \(attempt) of \(Self.startRequestTries) didn't reach the iPhone, again in 5 s",
+                    force: true
+                )
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                guard self.isBusy, self.data.session.phase == .idle else { return }
+                self.sendStartRequest(attempt: attempt + 1)
+            }
+        })
+    }
+
+    private static let startRequestTries = 4
 
     // MARK: - Handing back
 

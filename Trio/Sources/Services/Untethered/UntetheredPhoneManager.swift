@@ -560,6 +560,11 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
                 await self.end()
             case .startRequest:
                 replyHandler?([:])
+                // the watch asks again when its request seemed lost: one already on its way here is not refused
+                if self.isCheckingDevices || self.state.session.phase == .preparing || self.state.session.phase == .starting {
+                    debug(.watchManager, "Untethered: the watch asked again for the start already under way")
+                    return
+                }
                 // a watch app watchOS hasn't updated yet (or an older phone): no hand-over between two builds
                 if let reason = UntetheredVersion.mismatch(watch: envelope.appVersion) {
                     warning(.watchManager, "Untethered: start refused, \(reason)")
@@ -756,6 +761,24 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         }
     }
 
+    /// A start's `prepare` that didn't get through goes again every few seconds until the watch answers or the start's
+    /// time is up (`UntetheredSession.prepareTimeout`): on 25 October one "not reachable" or "transfer timed out" ended
+    /// each start at once, and it took four tries. The watch answers a repeated prepare the same way.
+    private func retryPrepare(_ message: UntetheredMessage, epoch: Int, why: String) {
+        guard state.session.phase == .preparing, state.session.epoch == epoch else { return }
+        if let deadline = state.session.prepareDeadline, Date() > deadline.addingTimeInterval(-Self.prepareRetryDelay) {
+            // the tick ends the start with "the watch did not answer"
+            return
+        }
+        debug(.watchManager, "Untethered: the start didn't reach the watch (\(why)), trying again")
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.prepareRetryDelay) { [weak self] in
+            guard let self, self.state.session.phase == .preparing, self.state.session.epoch == epoch else { return }
+            self.send(message, epoch: epoch)
+        }
+    }
+
+    private static let prepareRetryDelay: TimeInterval = 4
+
     private func send(_ message: UntetheredMessage, epoch: Int) {
         guard WCSession.isSupported(), WCSession.default.activationState == .activated,
               let payload = try? UntetheredEnvelope(epoch: epoch, message: message).payload()
@@ -797,7 +820,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         }
         guard session.isReachable else {
             if case .prepare = message {
-                Task { await self.apply(.received(.rejected(reason: Self.unreachable), epoch: epoch)) }
+                DispatchQueue.main.async { self.retryPrepare(message, epoch: epoch, why: "not reachable") }
             }
             if case .commit = message { retryCommit(message, epoch: epoch) }
             return
@@ -816,7 +839,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
             }
             guard case .prepare = message, !failed else { return }
             failed = true
-            Task { await self?.apply(.received(.rejected(reason: error.localizedDescription), epoch: epoch)) }
+            DispatchQueue.main.async { self?.retryPrepare(message, epoch: epoch, why: error.localizedDescription) }
         }
         for part in UntetheredChunks.split(payload) ?? [payload] {
             session.sendMessage(part, replyHandler: replyHandler, errorHandler: errorHandler)
@@ -841,9 +864,7 @@ final class UntetheredPhoneManager: ObservableObject, Injectable {
         guard WCSession.isSupported(), WCSession.default.isPaired, WCSession.default.isWatchAppInstalled else {
             throw UntetheredError.unavailable(String(localized: "Trio is not installed on a paired Apple Watch."))
         }
-        guard WCSession.default.isReachable else {
-            throw UntetheredError.unavailable(Self.unreachable)
-        }
+        // not reachable this moment is no reason to refuse: the start offers itself for half a minute (`retryPrepare`)
         guard let pump = apsManager.pumpManager else {
             throw UntetheredError.unavailable(String(localized: "No pump is connected."))
         }
