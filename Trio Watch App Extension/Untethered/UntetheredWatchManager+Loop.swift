@@ -944,8 +944,9 @@ extension UntetheredWatchManager: CGMManagerDelegate {
             guard let self, !self.isLooping, !self.isBolusing,
                   WKApplication.shared().applicationState != .active
             else { return }
-            Task { await WatchLogger.shared.log("⌚️ Untethered: loop done, the sensor's wait goes to bluetoothd", force: true) }
-            watchCGMAppLeavingScreen(self.cgmManager)
+            // No start delay any more (Pete Schwamb, LoopKit/G7SensorKit#80, and the readings it cost on 23/24 October):
+            // the sensor keeps its own hold, which waits out its tail, as this function's note foresaw.
+            Task { await WatchLogger.shared.log("⌚️ Untethered: loop done, the sensor keeps its own hold", force: true) }
         }
     }
 
