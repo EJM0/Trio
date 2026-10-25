@@ -317,13 +317,13 @@ struct GlucoseSectorChart: View {
                 items: [
                     (
                         String(
-                            localized: "Normal (\(Decimal(timeInRangeType.bottomThreshold).formatted(for: units))-\(highLimit.formatted(for: units)))"
+                            localized: "TIR (\(Decimal(timeInRangeType.bottomThreshold).formatted(for: units))-\(highLimit.formatted(for: units)))"
                         ),
                         formatPercentage(Decimal(glucoseValues.count) / total * 100)
                     ),
                     (
                         String(
-                            localized: "\(timeInRangeType == .timeInTightRange ? "TITR" : "TING") (\(Decimal(timeInRangeType.bottomThreshold).formatted(for: units))-\(Decimal(timeInRangeType.topThreshold).formatted(for: units)))"
+                            localized: "TITR (\(Decimal(timeInRangeType.bottomThreshold).formatted(for: units))-\(Decimal(timeInRangeType.topThreshold).formatted(for: units)))"
                         ),
                         formatPercentage(Decimal(tight) / total * 100)
                     ),

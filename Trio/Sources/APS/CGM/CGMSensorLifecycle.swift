@@ -8,6 +8,7 @@ import LibreLoop
 import LibreTransmitter
 import LoopKit
 import LoopKitUI
+import SyaiKit
 
 /// Vendor-specific resolution of CGM session lifetime into plain wall-clock
 /// dates. Lives outside the Home module so both the home UI and the Apple
@@ -57,6 +58,9 @@ enum CGMSensorLifecycle {
         case let accuChek as AccuChekCgmManager:
             return accuChek.state.cgmEndTime
 
+        case let syai as SyaiCGMManager:
+            return syai.sensorExpirationDate
+
         default:
             return nil
         }
@@ -101,6 +105,9 @@ enum CGMSensorLifecycle {
                 return warmupCompleted
             }
             return nil
+
+        case let syai as SyaiCGMManager:
+            return syai.sensorWarmupEndDate
 
         default:
             return nil
