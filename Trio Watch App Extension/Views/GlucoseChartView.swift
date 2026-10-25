@@ -104,15 +104,14 @@ struct GlucoseChartView: View {
         isDynamicScheme ? range.color(NSDecimalNumber(decimal: range.high).intValue) : .yellow
     }
 
+    /// How far the forecast reaches. Without forecast points it took 2 h, which in the 1 h window put the window's
+    /// start an hour ahead of now: "No glucose readings" until a long press changed the window (kristinkand,
+    /// 9d273fd96, 25 October). Now nothing without points; `shownFuture` caps the rest.
     private var futureOffset: TimeInterval {
         guard state.showForecast else { return 0 }
-        let now = Date()
-        if state.isForecastCone {
-            return forecastConePoints.last?.date.timeIntervalSince(now) ?? (2 * 3600)
-        } else {
-            let maxLineDate = forecastLinePoints.map(\.date).max()
-            return maxLineDate?.timeIntervalSince(now) ?? (2 * 3600)
-        }
+        let forecastEnd = state.isForecastCone ? forecastConePoints.last?.date : forecastLinePoints.map(\.date).max()
+        guard let forecastEnd else { return 0 }
+        return max(0, forecastEnd.timeIntervalSince(Date()))
     }
 
     /// The forecast's part of the window. The phone sends two hours of it, which in the one-hour window left no
