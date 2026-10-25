@@ -1,3 +1,4 @@
+import HealthKit
 import SwiftUI
 import UIKit
 import UserNotifications
@@ -30,6 +31,19 @@ class AppDelegate: NSObject, UIApplicationDelegate, ObservableObject, UNUserNoti
         supportedInterfaceOrientationsFor _: UIWindow?
     ) -> UIInterfaceOrientationMask {
         MainActor.assumeIsolated { OrientationGate.mask }
+    }
+
+    /// The watch app asks HealthKit for workouts and the heart rate (Extended Untethered Mode). A watch app that
+    /// depends on its iPhone app gets that permission through it: without this the request came back unanswered, with
+    /// no prompt anywhere ("no permission to use workouts", 25 October). Now iOS asks on the phone.
+    func applicationShouldRequestHealthAuthorization(_: UIApplication) {
+        HKHealthStore().handleAuthorizationForExtension { success, error in
+            if let error {
+                warning(.service, "Health permission for the watch app: \(error.localizedDescription)")
+            } else {
+                debug(.service, "Health permission for the watch app handled: \(success)")
+            }
+        }
     }
 
     /// Foreground-transition entry point for telemetry cadence. Re-evaluates

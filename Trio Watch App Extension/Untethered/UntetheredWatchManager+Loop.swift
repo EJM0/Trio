@@ -1732,10 +1732,13 @@ final class UntetheredWorkoutKeepAlive: NSObject, HKWorkoutSessionDelegate, HKLi
         healthStore.requestAuthorization(toShare: [HKObjectType.workoutType()], read: [Self.heartRate]) { _, error in
             DispatchQueue.main.async {
                 guard self.session == nil else { return }
-                guard self.healthStore.authorizationStatus(for: .workoutType()) == .sharingAuthorized else {
+                let status = self.healthStore.authorizationStatus(for: .workoutType())
+                guard status == .sharingAuthorized else {
+                    // not asked yet: the iPhone shows the request (`applicationShouldRequestHealthAuthorization`)
+                    let state = status == .notDetermined ? "not asked yet, see the iPhone" : "turned off in Health"
                     return self.onChange(
                         false,
-                        "no permission to use workouts" + (error.map { ": \($0.localizedDescription)" } ?? "")
+                        "no permission to use workouts (\(state))" + (error.map { ": \($0.localizedDescription)" } ?? "")
                     )
                 }
                 let configuration = HKWorkoutConfiguration()
