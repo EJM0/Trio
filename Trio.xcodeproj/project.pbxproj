@@ -1138,6 +1138,38 @@
 		CA0924000000000000000004 /* GRIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0924000000000000000003 /* GRIView.swift */; };
 		CA0924000000000000000006 /* GRICalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0924000000000000000005 /* GRICalculatorTests.swift */; };
 		FF42480CF46A31D00C817D8C /* WatchLogEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5D79872B74ADDBDD11682D0 /* WatchLogEntry.swift */; };
+		D5E387DD954348ECA67EECF1 /* ComplicationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFB6184150384E73888ED541 /* ComplicationStore.swift */; };
+		007FA84077384B4C8DC7377B /* CombinedGlucoseChartview.swift in Sources */ = {isa = PBXBuildFile; fileRef = F069471F77D44E49B74CE2F4 /* CombinedGlucoseChartview.swift */; };
+		FE7855FC098E4521AA14F550 /* PeripheralsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6FA54788B8349A9BAAF5638 /* PeripheralsView.swift */; };
+		5E3FD9F2E71C4BBDB45DB3DD /* OpenMealBolusIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054D657A363644ABBDE82EDE /* OpenMealBolusIntent.swift */; };
+		46117AD7EB704729971B2E5B /* WatchGlucoseHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50170B05A24E40A3AC18E0B0 /* WatchGlucoseHistory.swift */; };
+		1E7E2B06703D450C8A1F5999 /* WatchShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05743841A6384649B2618FA9 /* WatchShortcuts.swift */; };
+		58DDDDEE6FC947A687CCF64D /* TrioWatchAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6688C245006345FDAB78C680 /* TrioWatchAppDelegate.swift */; };
+		E688674CA6A94925995C023E /* WatchDeviceManagers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A66C2B3CEBDE46809E8B522C /* WatchDeviceManagers.swift */; };
+		C788E1B5524B4596AC33BB7B /* WatchCGMHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32A6B8C5BEE64685991B67FD /* WatchCGMHost.swift */; };
+		272BFEADB1AE49E9AA5290ED /* WatchAlarms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7461B194383D4B959304E145 /* WatchAlarms.swift */; };
+		E27FCE2F7BB545CBA2AD87A5 /* BloodGlucose.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3870FF4225EC13F40088248F /* BloodGlucose.swift */; };
+		E83A39970B4F47A1BE04E540 /* JSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 388E5A5B25B6F0770019842D /* JSON.swift */; };
+		ACC84AE1389441B2B8192091 /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3811DE5425C9D4D500A708ED /* Formatters.swift */; };
+		29DDACE6CC854C9889051F99 /* ConvenienceExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38192E0C261BAF980094D973 /* ConvenienceExtensions.swift */; };
+		E6C9BDC1CC484EE2A1DE714D /* String+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E98A3625F5509500C0CED0 /* String+Extensions.swift */; };
+		5F5C1F45EC07479EB47DB540 /* Decimal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3871F39E25ED895A0013ECB5 /* Decimal+Extensions.swift */; };
+		407DAC0430D54A63B89745BB /* Decimal+rounding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BCE75B42D4B3917009E9453 /* Decimal+rounding.swift */; };
+		CABCBF0DF1A14C2E8896463A /* DecimalExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BA8D1B22DDB870F0006191F /* DecimalExtensions.swift */; };
+		25925B6B54A24D95A5EDA87C /* TimeExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B1C5C322D68E233004E9273 /* TimeExtensions.swift */; };
+		3CA957ADE993406597DD2F37 /* TimeInterval+Convenience.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C5E1F4A7B91E2F3C5D6E71 /* TimeInterval+Convenience.swift */; };
+		CF563B8194B24A6AA568D9FC /* DynamicGlucoseColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD940BAB2CA75889000830A5 /* DynamicGlucoseColor.swift */; };
+		8813B0159CB74F608F398155 /* GlucoseColorScheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD940BA92CA7585D000830A5 /* GlucoseColorScheme.swift */; };
+		6D8C9F25D38C472594698C88 /* G7SensorKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA75E2D8DBD690069D5B8 /* G7SensorKit.framework */; };
+		4B2E5E56B4A54D5EA8608486 /* LoopKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3818AA4C274C26A300843DB3 /* LoopKit.framework */; };
+		909E0AA0EF674F22889C6B5E /* OpenMealBolusIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054D657A363644ABBDE82EDE /* OpenMealBolusIntent.swift */; };
+		A4200D4F1ED8494CBB9895B6 /* CGMSensorDisplayState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11C000000000000000C001 /* CGMSensorDisplayState.swift */; };
+		A4CEF7BBB9594AD1A935A000 /* LoopKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3818AA4C274C26A300843DB3 /* LoopKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		1EB5165261AB48C3AB179F12 /* G7SensorKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA75E2D8DBD690069D5B8 /* G7SensorKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		94FA2D8955104ACDAC466B45 /* LoopAlgorithm in Frameworks */ = {isa = PBXBuildFile; productRef = 35DC28AD6CC545F8A1BCB678 /* LoopAlgorithm */; };
+		5FBCD285F86A4019AC162401 /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 2247D636FA9F4FA9BB7A59AB /* CryptoSwift */; };
+		E6F95378516C489AAF95C3D0 /* AlgorithmLoggingShim.swift in Sources */ = {isa = PBXBuildFile; fileRef = 003825BBFA684CCFA8DA2929 /* AlgorithmLoggingShim.swift */; };
+		0837687032AA45E78964F162 /* Rounding.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD6B7CB12C7B6F0800B75029 /* Rounding.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1250,6 +1282,18 @@
 				BD8207CE2D2B42E70023339D /* Trio Watch Complication Extension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6CC9AF72ADDE4EF5AD9FE6CE /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				A4CEF7BBB9594AD1A935A000 /* LoopKit.framework in Embed Frameworks */,
+				1EB5165261AB48C3AB179F12 /* G7SensorKit.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -2364,6 +2408,17 @@
 		CA0924000000000000000001 /* GRICalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRICalculator.swift; sourceTree = "<group>"; };
 		CA0924000000000000000003 /* GRIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRIView.swift; sourceTree = "<group>"; };
 		CA0924000000000000000005 /* GRICalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRICalculatorTests.swift; sourceTree = "<group>"; };
+		EFB6184150384E73888ED541 /* ComplicationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComplicationStore.swift; sourceTree = "<group>"; };
+		F069471F77D44E49B74CE2F4 /* CombinedGlucoseChartview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/CombinedGlucoseChartview.swift; sourceTree = "<group>"; };
+		C6FA54788B8349A9BAAF5638 /* PeripheralsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/PeripheralsView.swift; sourceTree = "<group>"; };
+		054D657A363644ABBDE82EDE /* OpenMealBolusIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenMealBolusIntent.swift; sourceTree = "<group>"; };
+		50170B05A24E40A3AC18E0B0 /* WatchGlucoseHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchGlucoseHistory.swift; sourceTree = "<group>"; };
+		05743841A6384649B2618FA9 /* WatchShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchShortcuts.swift; sourceTree = "<group>"; };
+		6688C245006345FDAB78C680 /* TrioWatchAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrioWatchAppDelegate.swift; sourceTree = "<group>"; };
+		A66C2B3CEBDE46809E8B522C /* WatchDeviceManagers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchDeviceManagers.swift; sourceTree = "<group>"; };
+		32A6B8C5BEE64685991B67FD /* WatchCGMHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchCGMHost.swift; sourceTree = "<group>"; };
+		7461B194383D4B959304E145 /* WatchAlarms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAlarms.swift; sourceTree = "<group>"; };
+		003825BBFA684CCFA8DA2929 /* AlgorithmLoggingShim.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Trio/Sources/APS/OpenAPSSwift/AlgorithmLoggingShim.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -2452,6 +2507,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5FBCD285F86A4019AC162401 /* CryptoSwift in Frameworks */,
+				94FA2D8955104ACDAC466B45 /* LoopAlgorithm in Frameworks */,
+				4B2E5E56B4A54D5EA8608486 /* LoopKit.framework in Frameworks */,
+				6D8C9F25D38C472594698C88 /* G7SensorKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4423,6 +4482,17 @@
 		BDFF7A9C2D25FA730016C40C /* Trio Watch App Extension */ = {
 			isa = PBXGroup;
 			children = (
+				003825BBFA684CCFA8DA2929 /* AlgorithmLoggingShim.swift */,
+				7461B194383D4B959304E145 /* WatchAlarms.swift */,
+				32A6B8C5BEE64685991B67FD /* WatchCGMHost.swift */,
+				A66C2B3CEBDE46809E8B522C /* WatchDeviceManagers.swift */,
+				6688C245006345FDAB78C680 /* TrioWatchAppDelegate.swift */,
+				05743841A6384649B2618FA9 /* WatchShortcuts.swift */,
+				50170B05A24E40A3AC18E0B0 /* WatchGlucoseHistory.swift */,
+				054D657A363644ABBDE82EDE /* OpenMealBolusIntent.swift */,
+				C6FA54788B8349A9BAAF5638 /* PeripheralsView.swift */,
+				F069471F77D44E49B74CE2F4 /* CombinedGlucoseChartview.swift */,
+				EFB6184150384E73888ED541 /* ComplicationStore.swift */,
 				DDFF204D2DB2C00B00AB8A96 /* WatchStateSnapshot.swift */,
 				DDFF20492DB29EF500AB8A96 /* WatchLogger.swift */,
 				BDA25EE52D260D5800035F34 /* WatchState.swift */,
@@ -5390,6 +5460,7 @@
 				BDFF79792D25AA870016C40C /* Frameworks */,
 				BDFF797A2D25AA870016C40C /* Resources */,
 				BD8207CF2D2B42E80023339D /* Embed Foundation Extensions */,
+				6CC9AF72ADDE4EF5AD9FE6CE /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -5401,6 +5472,8 @@
 			);
 			name = "Trio Watch App";
 			packageProductDependencies = (
+				35DC28AD6CC545F8A1BCB678 /* LoopAlgorithm */,
+				2247D636FA9F4FA9BB7A59AB /* CryptoSwift */,
 			);
 			productName = "TrioWatch Watch App";
 			productReference = BDFF797C2D25AA870016C40C /* Trio Watch App.app */;
@@ -6669,6 +6742,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				909E0AA0EF674F22889C6B5E /* OpenMealBolusIntent.swift in Sources */,
 				DD09D6462D2B553A000D82C9 /* TrioWatchComplication.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -6677,6 +6751,31 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0837687032AA45E78964F162 /* Rounding.swift in Sources */,
+				E6F95378516C489AAF95C3D0 /* AlgorithmLoggingShim.swift in Sources */,
+				A4200D4F1ED8494CBB9895B6 /* CGMSensorDisplayState.swift in Sources */,
+				8813B0159CB74F608F398155 /* GlucoseColorScheme.swift in Sources */,
+				CF563B8194B24A6AA568D9FC /* DynamicGlucoseColor.swift in Sources */,
+				3CA957ADE993406597DD2F37 /* TimeInterval+Convenience.swift in Sources */,
+				25925B6B54A24D95A5EDA87C /* TimeExtensions.swift in Sources */,
+				CABCBF0DF1A14C2E8896463A /* DecimalExtensions.swift in Sources */,
+				407DAC0430D54A63B89745BB /* Decimal+rounding.swift in Sources */,
+				5F5C1F45EC07479EB47DB540 /* Decimal+Extensions.swift in Sources */,
+				E6C9BDC1CC484EE2A1DE714D /* String+Extensions.swift in Sources */,
+				29DDACE6CC854C9889051F99 /* ConvenienceExtensions.swift in Sources */,
+				ACC84AE1389441B2B8192091 /* Formatters.swift in Sources */,
+				E83A39970B4F47A1BE04E540 /* JSON.swift in Sources */,
+				E27FCE2F7BB545CBA2AD87A5 /* BloodGlucose.swift in Sources */,
+				272BFEADB1AE49E9AA5290ED /* WatchAlarms.swift in Sources */,
+				C788E1B5524B4596AC33BB7B /* WatchCGMHost.swift in Sources */,
+				E688674CA6A94925995C023E /* WatchDeviceManagers.swift in Sources */,
+				58DDDDEE6FC947A687CCF64D /* TrioWatchAppDelegate.swift in Sources */,
+				1E7E2B06703D450C8A1F5999 /* WatchShortcuts.swift in Sources */,
+				46117AD7EB704729971B2E5B /* WatchGlucoseHistory.swift in Sources */,
+				5E3FD9F2E71C4BBDB45DB3DD /* OpenMealBolusIntent.swift in Sources */,
+				FE7855FC098E4521AA14F550 /* PeripheralsView.swift in Sources */,
+				007FA84077384B4C8DC7377B /* CombinedGlucoseChartview.swift in Sources */,
+				D5E387DD954348ECA67EECF1 /* ComplicationStore.swift in Sources */,
 				BDA25F222D26D62800035F34 /* BolusInputView.swift in Sources */,
 				BDFF7A882D25F97D0016C40C /* TrioMainWatchView.swift in Sources */,
 				BDA25F202D26D5FE00035F34 /* CarbsInputView.swift in Sources */,
@@ -7080,6 +7179,7 @@
 		BD8207D02D2B42E80023339D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "Trio Watch Complication/TrioWatchComplication.entitlements";
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
@@ -7110,13 +7210,14 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 10;
+				WATCHOS_DEPLOYMENT_TARGET = 10.6;
 			};
 			name = Debug;
 		};
 		BD8207D12D2B42E80023339D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "Trio Watch Complication/TrioWatchComplication.entitlements";
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
@@ -7146,13 +7247,14 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 10;
+				WATCHOS_DEPLOYMENT_TARGET = 10.6;
 			};
 			name = Release;
 		};
 		BDFF79A12D25AA890016C40C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "Trio Watch App Extension/TrioWatchApp.entitlements";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -7179,17 +7281,19 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 10;
+				WATCHOS_DEPLOYMENT_TARGET = 10.6;
+				PRODUCT_MODULE_NAME = Trio;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG TRIO_ALGORITHM_PACKAGE $(inherited)";
 			};
 			name = Debug;
 		};
 		BDFF79A22D25AA890016C40C /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "Trio Watch App Extension/TrioWatchApp.entitlements";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -7219,7 +7323,9 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 10;
+				WATCHOS_DEPLOYMENT_TARGET = 10.6;
+				PRODUCT_MODULE_NAME = Trio;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "TRIO_ALGORITHM_PACKAGE $(inherited)";
 			};
 			name = Release;
 		};
@@ -7245,7 +7351,7 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Trio Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Trio Watch App";
-				WATCHOS_DEPLOYMENT_TARGET = 10;
+				WATCHOS_DEPLOYMENT_TARGET = 10.6;
 			};
 			name = Debug;
 		};
@@ -7270,7 +7376,7 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Trio Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Trio Watch App";
-				WATCHOS_DEPLOYMENT_TARGET = 10;
+				WATCHOS_DEPLOYMENT_TARGET = 10.6;
 			};
 			name = Release;
 		};
@@ -7496,6 +7602,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DD868FD92E381E1C005D3308 /* XCRemoteSwiftPackageReference "Swift-JWT" */;
 			productName = SwiftJWT;
+		};
+		35DC28AD6CC545F8A1BCB678 /* LoopAlgorithm */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5E12FE112EBC0000000000A0 /* XCLocalSwiftPackageReference "LoopAlgorithm" */;
+			productName = LoopAlgorithm;
+		};
+		2247D636FA9F4FA9BB7A59AB /* CryptoSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3BD9687D2D8DDD8800899469 /* XCRemoteSwiftPackageReference "CryptoSwift" */;
+			productName = CryptoSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
 

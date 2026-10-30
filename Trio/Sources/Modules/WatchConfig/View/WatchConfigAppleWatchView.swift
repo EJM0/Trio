@@ -64,6 +64,59 @@ struct WatchConfigAppleWatchView: BaseView {
                 headerText: String(localized: "Apple Watch Configuration")
             )
 
+            SettingInputSection(
+                decimalValue: $decimalPlaceholder,
+                booleanValue: $state.showGlucoseBubbleWatch,
+                shouldDisplayHint: $shouldDisplayHint,
+                selectedVerboseHint: Binding(
+                    get: { selectedVerboseHint },
+                    set: {
+                        selectedVerboseHint = $0.map { AnyView($0) }
+                        hintLabel = String(localized: "Glucose Bubble on Watch")
+                    }
+                ),
+                units: state.units,
+                type: .boolean,
+                label: String(localized: "Glucose Bubble on Watch"),
+                miniHint: String(localized: "Shows the glucose bubble page on the Apple Watch"),
+                verboseHint: Text(
+                    "When this is on, the watch app opens on a page with the glucose bubble, ahead of the chart."
+                ),
+                headerText: String(localized: "Apple Watch Configuration")
+            )
+
+            SettingInputSection(
+                decimalValue: $decimalPlaceholder,
+                booleanValue: $state.useCriticalAlertsWatch,
+                shouldDisplayHint: $shouldDisplayHint,
+                selectedVerboseHint: Binding(
+                    get: { selectedVerboseHint },
+                    set: {
+                        selectedVerboseHint = $0.map { AnyView($0) }
+                        hintLabel = String(localized: "Critical Alerts on Watch")
+                    }
+                ),
+                units: state.units,
+                type: .boolean,
+                label: String(localized: "Critical Alerts on Watch"),
+                miniHint: String(localized: "The watch’s urgent low alarm sounds through Silent Mode"),
+                verboseHint: Text(
+                    "When this is on, the urgent low alarm the watch raises for its own readings sounds even in Silent Mode. The watch asks for permission the first time."
+                ),
+                headerText: String(localized: "Apple Watch Configuration")
+            )
+
+            Section(
+                header: Text("Glucose on the Watch"),
+                content: {
+                    Text(
+                        "The watch reads the sensor itself while “Read on Apple Watch” is on in the CGM’s settings (Dexcom G7). Its own readings show on the watch until the iPhone sends the same reading, with a watch symbol in the glucose bubble."
+                    )
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                }
+            )
+
             Section(
                 header: Text("Contact Image"),
                 content: {

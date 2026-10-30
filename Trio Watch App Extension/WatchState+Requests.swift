@@ -9,7 +9,8 @@ extension WatchState {
     ///   - amount: The insulin amount to be delivered
     func sendBolusRequest(_ amount: Decimal) {
         guard let session = session, session.isReachable else {
-            WatchLogger.shared.warning(.bolus, "Bolus request not sent, phone unreachable")
+            WatchLogger.shared.info(.bolus, "Bolus request aborted: session unreachable")
+            reportSendFailure(String(localized: "iPhone not reachable. Nothing was sent."))
             return
         }
 
@@ -20,7 +21,8 @@ extension WatchState {
         ]
 
         session.sendMessage(message, replyHandler: nil) { error in
-            WatchLogger.shared.error(.bolus, "Sending bolus request failed", error: error)
+            WatchLogger.shared.info(.bolus, "Error sending bolus request: \(error)")
+            self.reportSendFailure(String(localized: "Sending to iPhone failed. Please try again."))
         }
 
         // Display pending communication animation
@@ -31,9 +33,12 @@ extension WatchState {
     /// - Parameters:
     ///   - amount: The amount of carbs in grams
     ///   - date: The timestamp for the carb entry (defaults to current time)
-    func sendCarbsRequest(_ amount: Int, _ date: Date = Date()) {
+    /// - Parameter acknowledge: false when a bolus follows at once, as the
+    ///   phone's combo answers once.
+    func sendCarbsRequest(_ amount: Int, _ date: Date = Date(), acknowledge _: Bool = true) {
         guard let session = session, session.isReachable else {
-            WatchLogger.shared.warning(.treatments, "Carbs request not sent, phone unreachable")
+            WatchLogger.shared.info(.treatments, "Carbs request aborted: session unreachable")
+            reportSendFailure(String(localized: "iPhone not reachable. Nothing was sent."))
             return
         }
 
@@ -45,11 +50,19 @@ extension WatchState {
         ]
 
         session.sendMessage(message, replyHandler: nil) { error in
-            WatchLogger.shared.error(.treatments, "Sending carbs request failed", error: error)
+            WatchLogger.shared.info(.treatments, "Error sending carbs request: \(error)")
+            self.reportSendFailure(String(localized: "Sending to iPhone failed. Please try again."))
         }
 
         // Display pending communication animation
         showCommsAnimation = true
+    }
+
+    /// Shows the failure on the pending screen; without it a request that never left the watch looks sent.
+    private func reportSendFailure(_ message: String) {
+        DispatchQueue.main.async {
+            self.handleAcknowledgment(success: false, message: message)
+        }
     }
 
     /// Sends a request to cancel the current override preset to the paired iPhone
@@ -164,7 +177,9 @@ extension WatchState {
 
         let message: [String: Any] = [
             WatchMessageKeys.requestBolusRecommendation: true,
-            WatchMessageKeys.carbs: carbsAmount
+            WatchMessageKeys.carbs: carbsAmount,
+            WatchMessageKeys.useReducedBolus: useReducedBolus,
+            WatchMessageKeys.useSuperBolus: useSuperBolus
         ]
 
         session.sendMessage(message, replyHandler: nil) { error in
@@ -175,34 +190,51 @@ extension WatchState {
         }
     }
 
-    func requestWatchStateUpdate() {
+    /// - Parameter completion: Called on the main queue with `true` if the phone answered.
+    /// - Returns: `true` if the request was sent.
+    @discardableResult func requestWatchStateUpdate(completion: ((_ answered: Bool) -> Void)? = nil) -> Bool {
         guard let session = session else {
-            WatchLogger.shared.warning(.connectivity, "No session for a state update")
-            return
+            WatchLogger.shared.info(.connectivity, "No session available for state update")
+            return false
         }
 
         guard session.activationState == .activated else {
             WatchLogger.shared.debug(.connectivity, "Session not activated, activating")
             session.activate()
-            return
+            return false
         }
 
         if session.isReachable {
             WatchLogger.shared.debug(.data, "Requesting a state update from the phone")
 
-            let message = [WatchMessageKeys.requestWatchUpdate: WatchMessageKeys.watchState]
+            var message: [String: Any] = [WatchMessageKeys.requestWatchUpdate: WatchMessageKeys.watchState]
+            message.merge(glucoseSyncRequestFields()) { _, new in new }
 
-            session.sendMessage(message, replyHandler: nil) { error in
-                WatchLogger.shared.warning(.connectivity, "Requesting a state update failed", error: error)
-            }
+            session.sendMessage(message, replyHandler: { reply in
+                DispatchQueue.main.async {
+                    // Empty reply: the phone could not build a state.
+                    if reply.isEmpty || !self.acceptWatchStatePayload(reply) {
+                        self.showSyncingAnimation = false
+                    }
+                    completion?(true)
+                }
+            }, errorHandler: { error in
+                WatchLogger.shared.info(.connectivity, "Error requesting WatchState update: \(error)")
+                DispatchQueue.main.async {
+                    self.showSyncingAnimation = false
+                    completion?(false)
+                }
+            })
+            return true
         } else {
-            WatchLogger.shared.debug(.connectivity, "Phone unreachable, state update not requested")
+            WatchLogger.shared.info(.connectivity, "Phone not reachable for WatchState update")
+            return false
         }
     }
 
     /// Snoozes all alarms on the iPhone for the given duration. A duration of 0 ends the snooze.
     func sendSnoozeRequest(minutes: Int) {
-        WatchLogger.shared.debug(.connectivity, "Sending snooze request: \(minutes) min")
+        WatchLogger.shared.info(.connectivity, "Sending snooze request: \(minutes) min")
 
         snoozeUntilDate = minutes > 0 ? Date().addingTimeInterval(TimeInterval(minutes * 60)) : .distantPast
         WatchNotificationHandler.shared.sendSnoozeRequest(minutes: minutes)

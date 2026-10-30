@@ -1,10 +1,15 @@
 import Foundation
 import SwiftUI
+import UserNotifications
 import WatchConnectivity
 
 /// WatchState manages the communication between the Watch app and the iPhone app using WatchConnectivity.
 /// It handles glucose data synchronization and sending treatment requests (bolus, carbs) to the phone.
 @Observable final class WatchState: NSObject, WCSessionDelegate {
+    /// Shared, not created in a view: every throwaway instance from a view re-init would take over the
+    /// (weak) session delegate and then be released, leaving nothing to receive from the phone.
+    static let shared = WatchState()
+
     // MARK: - Properties
 
     /// The WatchConnectivity session instance used for communication
@@ -47,13 +52,128 @@ import WatchConnectivity
     var bolusIncrement: Decimal = 0.05
     var confirmBolusFaster: Bool = false
 
-    // Forecast options
-    var showForecast: Bool = false
-    var isForecastCone: Bool = false
+    // Bolus calculator options, offered when enabled in the phone's settings
+    var isReducedBolusAvailable: Bool = false
+    var isSuperBolusAvailable: Bool = false
+    /// Chosen for the next bolus recommendation; mutually exclusive, as on the phone.
+    var useReducedBolus: Bool = false
+    var useSuperBolus: Bool = false
+
+    // Peripherals (pump + CGM device info shown on the Devices page)
+    var peripheralsUpdatedAt: Date?
+    var pumpName: String?
+    /// Raw reservoir units. `0xDEAD_BEEF` is the phone's "50+ U" sentinel for
+    /// pumps that only report "above threshold" (Omnipod).
+    var pumpReservoir: Decimal?
+    /// `nil` for patch pumps, which report no battery at all.
+    var pumpBatteryPercent: Int?
+    var pumpExpiresAt: Date?
+    var pumpActivatedAt: Date?
+    var pumpStatusMessage: String?
+    var cgmName: String?
+    var cgmSensorExpiresAt: Date?
+    var cgmProgressPercent: Double?
+    /// `DeviceLifecycleProgressState` raw value; drives the sensor ring color.
+    var cgmProgressState: String?
+    var cgmStatusMessage: String?
+
+    /// True once a peripheral payload has been applied, so the Devices page can
+    /// tell "still loading" apart from "phone says there is nothing to show".
+    var hasReceivedPeripheralData: Bool = false
+
+    /// The page with only the glucose bubble; kept across launches, the phone's setting decides.
+    var showGlucoseBubble: Bool = UserDefaults.standard.object(forKey: WatchMessageKeys.showGlucoseBubbleWatch) as? Bool ?? true {
+        didSet { UserDefaults.standard.set(showGlucoseBubble, forKey: WatchMessageKeys.showGlucoseBubbleWatch) }
+    }
+
+    /// Cached from the phone so the setting still applies while the phone is away.
+    var useCriticalAlerts: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.useCriticalAlertsWatch) {
+        didSet {
+            UserDefaults.standard.set(useCriticalAlerts, forKey: WatchMessageKeys.useCriticalAlertsWatch)
+            if useCriticalAlerts {
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .criticalAlert]) { granted, _ in
+                    WatchLogger.shared.info(.data, "Critical alerts on: watch notifications allowed=\(granted)")
+                }
+            }
+        }
+    }
+
+    /// The last CGM export from the phone. Persisted so the link comes back after watchOS ends the app while the phone
+    /// is away; the explicit `watchReadsSensor` setting controls whether the watch uses it.
+    var sensorConfiguration: Data? = UserDefaults.standard.data(forKey: WatchMessageKeys.watchSensorConfiguration) {
+        didSet { UserDefaults.standard.set(sensorConfiguration, forKey: WatchMessageKeys.watchSensorConfiguration) }
+    }
+
+    /// The phone's explicit setting; old saved contexts fall back to whether a sensor export was saved.
+    var watchReadsSensor: Bool = UserDefaults.standard.object(forKey: WatchMessageKeys.watchReadsSensor) as? Bool
+        ?? (UserDefaults.standard.data(forKey: WatchMessageKeys.watchSensorConfiguration) != nil)
+    {
+        didSet {
+            UserDefaults.standard.set(watchReadsSensor, forKey: WatchMessageKeys.watchReadsSensor)
+            if watchReadsSensor != oldValue {
+                WatchLogger.shared.info(.data, "Watch Reads the Sensor: \(watchReadsSensor ? "on" : "off")")
+            }
+        }
+    }
+
+    /// The phone's range and color scheme, for the watch's own readings and the complication; persisted with them.
+    var glucoseRange: WatchGlucoseRange = .saved {
+        didSet { glucoseRange.save() }
+    }
+
+    /// When the loop last ran, from the phone's "N min" or the watch's own loop; for the complication's ring.
+    var lastLoopDate: Date?
+
+    /// The phone's last successful loop from its most recent state update. Kept separately from the display value,
+    /// which is relative and may describe the watch's own loop.
+    var phoneLastLoopDate: Date? = {
+        guard let timestamp = UserDefaults.standard.object(forKey: WatchMessageKeys.phoneLastLoopDate) as? TimeInterval
+        else { return nil }
+        return Date(timeIntervalSince1970: timestamp)
+    }() {
+        didSet {
+            if let phoneLastLoopDate {
+                UserDefaults.standard.set(
+                    phoneLastLoopDate.timeIntervalSince1970,
+                    forKey: WatchMessageKeys.phoneLastLoopDate
+                )
+            } else {
+                UserDefaults.standard.removeObject(forKey: WatchMessageKeys.phoneLastLoopDate)
+            }
+        }
+    }
+
+    /// Readings from the watch's own sensor link the phone hasn't sent yet, oldest first.
+    private var ownReadings: [BloodGlucose] = []
+    /// The reading shown is the watch's own, not the phone's: the bubble says so.
+    private(set) var newestReadingIsOwn = false
+
+    /// The newest reading the phone has sent.
+    var phoneNewestReading: Date? {
+        glucoseHistory.newestTimestamp.map(Date.init(timeIntervalSince1970:))
+    }
+
+    // Forecast options; kept across launches like the bubble page
+    var showForecast: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.showForecastWatch) {
+        didSet { UserDefaults.standard.set(showForecast, forKey: WatchMessageKeys.showForecastWatch) }
+    }
+
+    var isForecastCone: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.isForecastCone) {
+        didSet { UserDefaults.standard.set(isForecastCone, forKey: WatchMessageKeys.isForecastCone) }
+    }
+
     var forecastStartDate: Date?
     var forecastConeMin: [Double] = []
     var forecastConeMax: [Double] = []
     var forecastLines: [String: [Double]] = [:] // "iob" / "cob" / "uam" / "zt" -> values
+    /// Boluses and carbs from the watch's own history (filled once the watch loops).
+    var treatmentMarkers: [WatchTreatmentMarker] = []
+    /// The phone's carbs and boluses of the last 24 hours, for the big chart while the phone loops.
+    var phoneTreatmentMarkers: [WatchTreatmentMarker] = []
+    /// IOB and COB at each of the phone's loops in the last 24 hours, for the big chart's scrub line.
+    var phoneIobCob: [WatchIobCobPoint] = []
+    /// The same from the watch's own loops (kept in memory, a day at most).
+    var ownIobCob: [WatchIobCobPoint] = []
 
     // Acknowlegement handling
     var showCommsAnimation: Bool = false
@@ -71,10 +191,56 @@ import WatchConnectivity
 
     var recommendedBolus: Decimal = 0
 
+    /// Set by the "Meal & Bolus" complication or App Intent; the main view opens the flow and clears it.
+    var isMealBolusShortcutPending: Bool = false
+
     /// Snapshots older than this are dropped at the top of the WC delegate
     /// methods. Single source of truth for both `didReceiveMessage` and
     /// `didReceiveUserInfo`.
     private static let maxAcceptableMessageAgeInMinutes: TimeInterval = 15 * 60
+
+    /// In memory only: the UI starts empty on every launch, so a payload must never be dropped as a
+    /// duplicate of one a previous launch displayed.
+    private var lastAcceptedStateDate: Date?
+
+    private static let syncingAnimationTimeout: TimeInterval = 10
+
+    // MARK: - Coalescing the updates on re-entry
+
+    /// Re-entering the app fires the scene activation and the reachability change on the watch, and the phone
+    /// pushes when it sees the watch reachable. Whichever arrives first is the update; the others are skipped
+    /// or applied without showing the syncing animation again.
+    private var isWatchStateRequestInFlight = false
+    private var watchStateRequestID = 0
+    /// When a state was last accepted, by the watch's clock (the payload's own date is the phone's).
+    private var lastStateReceivedAt: Date?
+    /// When the syncing animation was last switched on. Updates within `syncBurstWindow` of it belong to the
+    /// same sync and don't switch it on again.
+    private var syncingAnimationShownAt: Date?
+    private static let syncBurstWindow: TimeInterval = 5
+
+    // MARK: - Glucose history sync
+
+    enum GlucoseResync: Int, Comparable {
+        /// Sends the watch's bucket checksums: the phone answers with the buckets that differ.
+        case repair
+        case full
+
+        static func < (lhs: GlucoseResync, rhs: GlucoseResync) -> Bool {
+            lhs.rawValue < rhs.rawValue
+        }
+    }
+
+    /// Only accessed on the main queue, like everything below.
+    private var glucoseHistory = WatchGlucoseHistory()
+    private var hasPendingGlucoseHistoryUpdate = false
+    private var pendingGlucoseResync: GlucoseResync?
+    private var isGlucoseResyncInFlight = false
+    private var glucoseResyncAttempts = 0
+    private static let maxGlucoseResyncAttempts = 3
+    /// Set once a full history fails its own checksum. A delta that doesn't verify is no such sign:
+    /// readings deleted or backfilled on the phone cause that too.
+    private var isGlucoseDeltaSyncDisabled = false
 
     // MARK: - Debouncing and batch processing helpers
 
@@ -84,6 +250,10 @@ import WatchConnectivity
     /// Work item to schedule finalizing the pending data.
     private var finalizeWorkItem: DispatchWorkItem?
 
+    /// Whether the app is in the foreground. Only there is the debounce reliable: in the background the app
+    /// is suspended within moments of a delivery.
+    private var isAppActive = false
+
     /// A flag to tell the UI we’re still updating.
     var showSyncingAnimation: Bool = false
 
@@ -91,6 +261,7 @@ import WatchConnectivity
 
     override init() {
         super.init()
+        restoreGlucoseHistory()
         setupSession()
     }
 
@@ -99,9 +270,16 @@ import WatchConnectivity
         if WCSession.isSupported() {
             let session = WCSession.default
             session.delegate = self
-            session.activate()
             self.session = session
-            WatchLogger.shared.debug(.connectivity, "Session set up")
+            if session.activationState == .activated {
+                // Activated before this delegate was installed: the activation callback won't come.
+                DispatchQueue.main.async {
+                    self.handleSessionActivated(session)
+                }
+            } else {
+                session.activate()
+            }
+            WatchLogger.shared.info(.connectivity, "WCSession setup complete.")
         } else {
             WatchLogger.shared.error(.connectivity, "Watch connectivity not supported on this device")
         }
@@ -153,14 +331,36 @@ import WatchConnectivity
             if activationState == .activated {
                 WatchLogger.shared.info(.connectivity, "Session activated, phone reachable: \(session.isReachable)")
 
-                self.forceConditionalWatchStateUpdate()
-
-                self.isReachable = session.isReachable
+                self.handleSessionActivated(session)
             }
         }
     }
 
+    private func handleSessionActivated(_ session: WCSession) {
+        isReachable = session.isReachable
+
+        WatchLogger.shared.info(.connectivity, "Watch isReachable after activation: \(session.isReachable)")
+
+        let context = session.receivedApplicationContext
+        if !context.isEmpty {
+            acceptWatchStatePayload(context)
+        }
+
+        forceConditionalWatchStateUpdate()
+    }
+
+    func refreshIfNeeded() {
+        DispatchQueue.main.async {
+            guard let session = self.session, session.activationState == .activated else { return }
+            self.forceConditionalWatchStateUpdate()
+        }
+    }
+
     /// Handles incoming messages from the paired iPhone when Phone is in the foreground
+    func session(_: WCSession, didReceiveMessage _: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+        replyHandler([:])
+    }
+
     func session(_: WCSession, didReceiveMessage message: [String: Any]) {
         if WatchLogger.shared.handlePhoneMessage(message) { return }
 
@@ -191,11 +391,15 @@ import WatchConnectivity
             return
         }
 
+        if handlePeripheralPayload(message) { return }
+
         handleIncomingWatchStatePayload(message)
     }
 
     func session(_: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
         if WatchLogger.shared.handlePhoneMessage(userInfo) { return }
+        if handlePeripheralPayload(userInfo) { return }
+
         handleIncomingWatchStatePayload(userInfo)
     }
 
@@ -203,16 +407,40 @@ import WatchConnectivity
         WatchLogger.shared.transferFinished(fileTransfer, error: error)
     }
 
-    /// Shared path for watch-state payloads from either delegate method.
-    /// Enforces the freshness contract in one place so the two delivery paths
-    /// can't drift.
+    func session(_: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        handleIncomingWatchStatePayload(applicationContext)
+    }
+
+    /// Standalone peripheral payload — sent on its own when a peripheral change
+    /// has to reach the watch outside a routine push, a removed pump above all.
+    /// Applied immediately rather than through `scheduleUIUpdate`'s debounce,
+    /// since it is a one-shot message and not part of the streaming state.
+    /// - Returns: `true` when the dictionary was a peripheral payload and has
+    ///   been consumed.
+    private func handlePeripheralPayload(_ dictionary: [String: Any]) -> Bool {
+        guard let payload = dictionary[WatchMessageKeys.peripheralData] as? [String: Any] else { return false }
+
+        WatchLogger.shared.info(.data, "Received standalone peripheral data")
+        DispatchQueue.main.async {
+            self.processPeripheralData(payload)
+        }
+        return true
+    }
+
     private func handleIncomingWatchStatePayload(_ dictionary: [String: Any]) {
+        DispatchQueue.main.async {
+            self.acceptWatchStatePayload(dictionary)
+        }
+    }
+
+    /// Doesn't end the syncing animation when a payload is rejected: a stale or duplicate payload can
+    /// arrive while a request is still in flight.
+    @discardableResult func acceptWatchStatePayload(_ dictionary: [String: Any]) -> Bool {
         guard let payload = dictionary[WatchMessageKeys.watchState] as? [String: Any],
               let timestamp = payload[WatchMessageKeys.date] as? TimeInterval
         else {
-            WatchLogger.shared.warning(.data, "Watch state payload malformed, skipped")
-            DispatchQueue.main.async { self.showSyncingAnimation = false }
-            return
+            WatchLogger.shared.info(.data, "Faulty watch state payload — skipping")
+            return false
         }
         let date = Date(timeIntervalSince1970: timestamp)
 
@@ -220,31 +448,230 @@ import WatchConnectivity
         // the watch app wakes after long disuse; without it, every payload
         // schedules merge + UI work.
         guard date >= Date().addingTimeInterval(-Self.maxAcceptableMessageAgeInMinutes) else {
-            if WatchLogger.shared.shouldLog("staleState") {
-                WatchLogger.shared.debug(.data, "Stale watch state from \(date) skipped")
-            }
-            DispatchQueue.main.async { self.showSyncingAnimation = false }
-            return
+            WatchLogger.shared.info(.data, "Skipping stale watch state (\(date))")
+            adoptGlucoseHistory(fromStale: payload)
+            return false
         }
 
-        // Monotonicity dedup.
-        let lastProcessed = WatchStateSnapshot.loadLatestDateFromDisk()
-        guard date > lastProcessed else {
-            if WatchLogger.shared.shouldLog("duplicateState") {
-                WatchLogger.shared.debug(.data, "Duplicate watch state from \(date) skipped")
+        // The same state can arrive both as a message and as the application context.
+        if let lastAccepted = lastAcceptedStateDate, date <= lastAccepted {
+            WatchLogger.shared.info(.data, "Skipping duplicate watch state (\(date))")
+            if date == lastAccepted {
+                // A request's full reply shares its stamp with the context, which only carries recent readings.
+                applyGlucoseHistory(from: payload)
+                if hasPendingGlucoseHistoryUpdate {
+                    publishGlucoseHistory()
+                }
             }
-            return
+            return false
         }
 
-        WatchStateSnapshot.saveLatestDateToDisk(date)
-        DispatchQueue.main.async {
-            self.scheduleUIUpdate(with: payload)
+        lastAcceptedStateDate = date
+        lastStateReceivedAt = Date()
+        applyGlucoseHistory(from: payload)
+
+        var uiPayload = payload
+        uiPayload.removeValue(forKey: WatchMessageKeys.glucoseValues)
+        scheduleUIUpdate(with: uiPayload)
+        return true
+    }
+
+    /// A stale payload's IOB, COB and trend are outdated, but its glucose readings are not.
+    private func adoptGlucoseHistory(fromStale payload: [String: Any]) {
+        guard let newest = WatchGlucoseSync.newestTimestamp(in: payload),
+              newest > glucoseHistory.newestTimestamp ?? -.infinity
+        else { return }
+
+        WatchLogger.shared.info(.data, "Taking over glucose readings from stale watch state")
+        applyGlucoseHistory(from: payload)
+        if hasPendingGlucoseHistoryUpdate {
+            publishGlucoseHistory()
         }
     }
 
-    func session(_: WCSession, didFinish _: WCSessionUserInfoTransfer, error: (any Error)?) {
+    private func applyGlucoseHistory(from payload: [String: Any]) {
+        let isRepair = payload[WatchMessageKeys.glucoseBuckets] != nil
+        let isDelta = isRepair || payload[WatchMessageKeys.glucoseSyncBase] != nil
+
+        if isDelta, isGlucoseDeltaSyncDisabled {
+            requestGlucoseResync(.full, reason: "delta received while delta sync is disabled")
+            return
+        }
+
+        switch glucoseHistory.merge(payload) {
+        case .unchanged:
+            return
+
+        case .updated:
+            hasPendingGlucoseHistoryUpdate = true
+            pendingGlucoseResync = nil
+            glucoseResyncAttempts = 0
+            saveGlucoseHistory()
+
+        case .updatedUnverified:
+            hasPendingGlucoseHistoryUpdate = true
+            pendingGlucoseResync = nil
+            glucoseResyncAttempts = 0
+            disableGlucoseDeltaSync(reason: "full glucose history does not match its own checksum")
+            saveGlucoseHistory()
+
+        case .mismatch:
+            // Keep showing and saving the merged readings: the repair only sends the buckets that differ.
+            hasPendingGlucoseHistoryUpdate = true
+            saveGlucoseHistory()
+            if isRepair {
+                requestGlucoseResync(.full, reason: "repaired glucose history does not match the phone's")
+            } else {
+                requestGlucoseResync(.repair, reason: "merged glucose history does not match the phone's")
+            }
+
+        case let .needsFullHistory(reason):
+            requestGlucoseResync(.full, reason: reason)
+        }
+    }
+
+    // MARK: - Glucose history persistence
+
+    private static let glucoseHistoryFileURL: URL? = FileManager.default
+        .urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
+        .appendingPathComponent("GlucoseHistory.plist")
+    private static let glucoseHistoryFileQueue = DispatchQueue(label: "WatchState.glucoseHistoryFile", qos: .utility)
+
+    private func saveGlucoseHistory() {
+        guard let url = Self.glucoseHistoryFileURL, let data = glucoseHistory.encoded() else { return }
+        Self.glucoseHistoryFileQueue.async {
+            do {
+                try FileManager.default.createDirectory(
+                    at: url.deletingLastPathComponent(),
+                    withIntermediateDirectories: true
+                )
+                try data.write(to: url, options: .atomic)
+            } catch {
+                WatchLogger.shared.info(.data, "Saving glucose history failed: \(error)")
+            }
+        }
+    }
+
+    private func restoreGlucoseHistory() {
+        guard let url = Self.glucoseHistoryFileURL,
+              let data = try? Data(contentsOf: url),
+              let restored = WatchGlucoseHistory(data: data)
+        else { return }
+
+        glucoseHistory = restored
+        publishGlucoseHistory()
+        WatchLogger.shared.info(.data, "Restored \(restored.readings.count) saved glucose readings")
+    }
+
+    private func publishGlucoseHistory() {
+        glucoseValues = glucoseHistory.readings.map { reading in
+            (
+                date: Date(timeIntervalSince1970: reading.timestamp),
+                glucose: reading.glucose,
+                color: reading.color.toColor() // Convert colorString to Color
+            )
+        }
+        hasPendingGlucoseHistoryUpdate = false
+        applyOwnOverlay()
+        ComplicationStore.update(from: self)
+    }
+
+    // MARK: - The watch's own sensor readings
+
+    /// Readings from the watch's own sensor link: shown on the watch and its complication
+    /// until the phone's copy of them arrives.
+    func applyOwnReadings(_ readings: [BloodGlucose]) {
+        let known = Set(ownReadings.map { Int($0.dateString.timeIntervalSince1970 / 60) })
+        ownReadings += readings.filter { !known.contains(Int($0.dateString.timeIntervalSince1970 / 60)) }
+        ownReadings.sort { $0.dateString < $1.dateString }
+        applyOwnOverlay()
+        ComplicationStore.update(from: self)
+    }
+
+    /// The phone's readings, then the watch's own newer ones; the newest of either is the one shown. Idempotent.
+    private func applyOwnOverlay() {
+        newestReadingIsOwn = false
+        // nothing of the watch's own: the phone's readings as they are
+        guard !ownReadings.isEmpty else { return }
+        let phoneNewest = glucoseHistory.readings.last.map { Date(timeIntervalSince1970: $0.timestamp) } ?? .distantPast
+        // the phone's copy of a reading carries a timestamp a few seconds apart from the watch's
+        ownReadings.removeAll {
+            $0.dateString <= phoneNewest.addingTimeInterval(60) || $0.dateString < Date().addingTimeInterval(-6 * 60 * 60)
+        }
+        glucoseValues.removeAll { $0.date > phoneNewest.addingTimeInterval(60) }
+        let range = glucoseRange
+        let own = ownReadings.compactMap { reading in (reading.glucose ?? reading.sgv).map { (reading, $0) } }
+        guard let (latest, value) = own.last else { return }
+        newestReadingIsOwn = true
+        glucoseValues += own.map { (date: $0.0.dateString, glucose: range.display($0.1), color: range.color($0.1)) }
+        currentGlucose = range.isMmol ? Decimal(value).formattedAsMmolL : "\(value)"
+        let inRange = Decimal(value) > range.low && Decimal(value) < range.high
+        currentGlucoseColorString = inRange ? "#ffffff" : range.color(value).toHexString()
+        trend = latest.direction?.rawValue
+        if glucoseValues.count >= 2 {
+            let change = glucoseValues[glucoseValues.count - 1].glucose - glucoseValues[glucoseValues.count - 2].glucose
+            let formatted = range.isMmol ? String(format: "%.1f", change) : String(format: "%.0f", change)
+            delta = change < 0 ? formatted : "+" + formatted
+        }
+    }
+
+    private func disableGlucoseDeltaSync(reason: String) {
+        guard !isGlucoseDeltaSyncDisabled else { return }
+        isGlucoseDeltaSyncDisabled = true
+        WatchLogger.shared.info(.data, "Glucose delta sync disabled: \(reason)")
+    }
+
+    private func requestGlucoseResync(_ resync: GlucoseResync, reason: String) {
+        WatchLogger.shared.info(.data, "Glucose history resync (\(resync)): \(reason)")
+        pendingGlucoseResync = max(pendingGlucoseResync ?? resync, resync)
+        sendPendingGlucoseResync()
+    }
+
+    /// One request at a time. A request that couldn't be delivered waits for the next regular update
+    /// request, which carries the pending resync too.
+    private func sendPendingGlucoseResync() {
+        guard pendingGlucoseResync != nil, !isGlucoseResyncInFlight else { return }
+        guard glucoseResyncAttempts < Self.maxGlucoseResyncAttempts else {
+            WatchLogger.shared.info(.data, "Glucose history resync attempts exhausted; waiting for the next update")
+            return
+        }
+
+        glucoseResyncAttempts += 1
+        isGlucoseResyncInFlight = true
+        let sent = requestWatchStateUpdate { answered in
+            self.isGlucoseResyncInFlight = false
+            if answered {
+                self.sendPendingGlucoseResync()
+            }
+        }
+        if !sent {
+            isGlucoseResyncInFlight = false
+        }
+    }
+
+    func glucoseSyncRequestFields() -> [String: Any] {
+        var fields: [String: Any] = [WatchMessageKeys.supportsGlucoseDelta: !isGlucoseDeltaSyncDisabled]
+        guard !isGlucoseDeltaSyncDisabled, pendingGlucoseResync != .full,
+              let since = glucoseHistory.newestTimestamp,
+              let signature = glucoseHistory.signature
+        else { return fields }
+
+        fields[WatchMessageKeys.glucoseSince] = since
+        fields[WatchMessageKeys.glucoseSignature] = signature
+        if pendingGlucoseResync == .repair, let buckets = glucoseHistory.bucketChecksumList {
+            fields[WatchMessageKeys.glucoseBucketStart] = buckets.start
+            fields[WatchMessageKeys.glucoseBucketChecksums] = buckets.checksums
+        }
+        return fields
+    }
+
+    func session(_: WCSession, didFinish transfer: WCSessionUserInfoTransfer, error: (any Error)?) {
         if let error = error {
-            WatchLogger.shared.warning(.connectivity, "User info transfer to the phone failed", error: error)
+            Task {
+                WatchLogger.shared.info(.connectivity, "transferUserInfo failed with error: \(error)")
+                if let text = transfer.userInfo["watchLogs"] as? String {
+                } else {}
+            }
         }
     }
 
@@ -255,6 +682,8 @@ import WatchConnectivity
             if WatchLogger.shared.shouldLog("reachability", state: "\(session.isReachable)") {
                 WatchLogger.shared.debug(.connectivity, "Phone reachable: \(session.isReachable)")
             }
+
+            self.isReachable = session.isReachable
 
             if session.isReachable {
                 self.forceConditionalWatchStateUpdate()
@@ -276,14 +705,31 @@ import WatchConnectivity
     ///  - If `lastWatchStateUpdate` is `nil` (meaning there has never been an update), or
     ///  - If more than 15 seconds have passed,
     ///
-    /// it will show a syncing animation and request a new watch state update from the iPhone app.
+    /// it will request a new watch state update from the iPhone app and, if the request could be sent, show a syncing animation.
     private func forceConditionalWatchStateUpdate() {
+        if isWatchStateRequestInFlight {
+            WatchLogger.shared.info(.connectivity, "WatchState request already in flight — not sending another")
+            return
+        }
+        // A running resync request brings the current state too.
+        guard !isGlucoseResyncInFlight else {
+            WatchLogger.shared.info(.connectivity, "Glucose resync in flight — not requesting another WatchState")
+            return
+        }
+        // A push that just arrived is shown already, or will be after the foreground debounce. One still
+        // waiting in the background is not, and must not hold back the request.
+        if let receivedAt = lastStateReceivedAt, Date().timeIntervalSince(receivedAt) < 15,
+           pendingData.isEmpty || isAppActive
+        {
+            WatchLogger.shared.info(.connectivity, "WatchState just received — not requesting another")
+            return
+        }
+
         guard let lastUpdateTimestamp = lastWatchStateUpdate else {
             WatchLogger.shared.debug(.data, "No watch state yet, requesting one")
 
             // If there's no recorded timestamp, we must force a fresh update immediately.
-            showSyncingAnimation = true
-            requestWatchStateUpdate()
+            requestWatchStateUpdateWithSyncingAnimation()
             return
         }
 
@@ -292,11 +738,42 @@ import WatchConnectivity
 
         // If more than 15 seconds have elapsed since the last update, force an(other) update.
         if secondsSinceUpdate > 15 {
-            WatchLogger.shared.debug(.data, "Watch state \(Int(secondsSinceUpdate)) s old, requesting update")
-            showSyncingAnimation = true
-            requestWatchStateUpdate()
+            requestWatchStateUpdateWithSyncingAnimation()
             return
         }
+    }
+
+    private func requestWatchStateUpdateWithSyncingAnimation() {
+        watchStateRequestID += 1
+        let requestID = watchStateRequestID
+        isWatchStateRequestInFlight = true
+        let sent = requestWatchStateUpdate { _ in
+            self.isWatchStateRequestInFlight = false
+        }
+        guard sent else {
+            isWatchStateRequestInFlight = false
+            return
+        }
+
+        showSyncingAnimationForNewSync()
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.syncingAnimationTimeout) {
+            // WatchConnectivity always calls the reply or the error handler; this only guards against it not doing so.
+            if self.watchStateRequestID == requestID {
+                self.isWatchStateRequestInFlight = false
+            }
+            guard self.showSyncingAnimation, self.pendingData.isEmpty else { return }
+            self.showSyncingAnimation = false
+            WatchLogger.shared.info(.connectivity, "No WatchState answer from iPhone — hiding syncing animation")
+        }
+    }
+
+    /// Shows the syncing animation, unless it was already shown for this sync: a request's reply and the phone's
+    /// push on re-entry arrive within seconds of each other and must not flash it twice.
+    private func showSyncingAnimationForNewSync() {
+        if showSyncingAnimation { return }
+        if let shownAt = syncingAnimationShownAt, Date().timeIntervalSince(shownAt) < Self.syncBurstWindow { return }
+        syncingAnimationShownAt = Date()
+        showSyncingAnimation = true
     }
 
     /// Handles incoming messages that either contain an acknowledgement or fresh watchState data  (<15 min)
@@ -333,8 +810,8 @@ import WatchConnectivity
             }
 
             // 2) Raw watchState data
-            if let watchStateData = message[WatchMessageKeys.watchState] as? [String: Any] {
-                self.scheduleUIUpdate(with: watchStateData)
+            if message[WatchMessageKeys.watchState] != nil {
+                self.acceptWatchStatePayload(message)
             }
         }
     }
@@ -349,18 +826,25 @@ import WatchConnectivity
             return
         }
 
-        // 1) Mark as syncing
-        DispatchQueue.main.async {
-            self.showSyncingAnimation = true
+        WatchLogger.shared.info(.data, "Merging new WatchState data with keys: \(newData.keys.joined(separator: ", "))")
+
+        pendingData.merge(newData) { _, newVal in newVal }
+        finalizeWorkItem?.cancel()
+        finalizeWorkItem = nil
+
+        // In the background watchOS suspends the app right after a delivery, before a delayed work item
+        // runs; the state would only show on the next wake, one push late. Apply it right away there.
+        guard isAppActive else {
+            finalizePendingData()
+            return
         }
 
-        // 2) Merge data into our pendingData
-        pendingData.merge(newData) { _, newVal in newVal }
+        // 1) Mark as syncing, once per sync
+        DispatchQueue.main.async {
+            self.showSyncingAnimationForNewSync()
+        }
 
-        // 3) Cancel any previous finalization
-        finalizeWorkItem?.cancel()
-
-        // 4) Create and schedule a new finalization
+        // 2) Create and schedule a new finalization
         let workItem = DispatchWorkItem { [self] in
             self.finalizePendingData()
         }
@@ -368,8 +852,20 @@ import WatchConnectivity
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: workItem)
     }
 
+    /// Tracks the scene phase; on leaving the foreground, applies a debounced state before the app is suspended.
+    func setAppActive(_ isActive: Bool) {
+        isAppActive = isActive
+        // a change while the app was suspended never arrived: the status page shows the phone as it is now
+        if isActive, WCSession.default.activationState == .activated { isReachable = WCSession.default.isReachable }
+        guard !isActive, finalizeWorkItem != nil else { return }
+        finalizeWorkItem?.cancel()
+        finalizeWorkItem = nil
+        finalizePendingData()
+    }
+
     /// Applies all pending data to the watch state in one shot
     private func finalizePendingData() {
+        finalizeWorkItem = nil
         guard !pendingData.isEmpty else {
             // If we have no actual data, just end syncing
             DispatchQueue.main.async {
@@ -424,22 +920,20 @@ import WatchConnectivity
 
         if let lastLoopTime = message[WatchMessageKeys.lastLoopTime] as? String {
             self.lastLoopTime = lastLoopTime
+            lastLoopDate = lastLoopTime.split(separator: " ").first.flatMap { Int($0) }
+                .map { Date().addingTimeInterval(-Double($0) * 60) }
         }
 
-        if let glucoseData = message[WatchMessageKeys.glucoseValues] as? [[String: Any]] {
-            glucoseValues = glucoseData.compactMap { data in
-                guard let glucose = data["glucose"] as? Double,
-                      let timestamp = data["date"] as? TimeInterval,
-                      let colorString = data["color"] as? String
-                else { return nil }
+        if let timestamp = message[WatchMessageKeys.phoneLastLoopDate] as? TimeInterval {
+            phoneLastLoopDate = Date(timeIntervalSince1970: timestamp)
+        } else {
+            // A newly built payload without the timestamp is from an older phone version; do not trust an
+            // unrelated value left on the watch as proof that the phone's loop has stalled.
+            phoneLastLoopDate = nil
+        }
 
-                return (
-                    Date(timeIntervalSince1970: timestamp),
-                    glucose,
-                    colorString.toColor() // Convert colorString to Color
-                )
-            }
-            .sorted { $0.date < $1.date }
+        if hasPendingGlucoseHistoryUpdate {
+            publishGlucoseHistory()
         }
 
         if let minYAxisValue = message[WatchMessageKeys.minYAxisValue] {
@@ -509,11 +1003,68 @@ import WatchConnectivity
             }
         }
 
-        if let showForecast = message[WatchMessageKeys.showForecastWatch] as? Bool {
+        if let isReducedBolusAvailable = message[WatchMessageKeys.isReducedBolusAvailable] as? Bool {
+            self.isReducedBolusAvailable = isReducedBolusAvailable
+            if !isReducedBolusAvailable { useReducedBolus = false }
+        }
+
+        if let isSuperBolusAvailable = message[WatchMessageKeys.isSuperBolusAvailable] as? Bool {
+            self.isSuperBolusAvailable = isSuperBolusAvailable
+            if !isSuperBolusAvailable { useSuperBolus = false }
+        }
+
+        if let showForecast = message[WatchMessageKeys.showForecastWatch] as? Bool, showForecast != self.showForecast {
             self.showForecast = showForecast
         }
 
-        if let isForecastCone = message[WatchMessageKeys.isForecastCone] as? Bool {
+        if let showGlucoseBubble = message[WatchMessageKeys.showGlucoseBubbleWatch] as? Bool,
+           showGlucoseBubble != self.showGlucoseBubble
+        {
+            self.showGlucoseBubble = showGlucoseBubble
+        }
+
+        if let critical = message[WatchMessageKeys.useCriticalAlertsWatch] as? Bool, critical != useCriticalAlerts {
+            useCriticalAlerts = critical
+        }
+
+        let watchReadsSensorDidChange: Bool
+        if let watchReadsSensor = message[WatchMessageKeys.watchReadsSensor] as? Bool {
+            watchReadsSensorDidChange = watchReadsSensor != self.watchReadsSensor
+            self.watchReadsSensor = watchReadsSensor
+        } else {
+            watchReadsSensorDidChange = false
+        }
+
+        // The sensor export can be temporarily absent while the phone starts; only the explicit setting turns the
+        // standing connection off. Keep the last export until a replacement arrives.
+        var sensorConfigurationDidChange = false
+        if let low = message[WatchMessageKeys.glucoseRangeLow] as? Double,
+           let high = message[WatchMessageKeys.glucoseRangeHigh] as? Double
+        {
+            let range = WatchGlucoseRange(
+                low: Decimal(low),
+                high: Decimal(high),
+                target: (message[WatchMessageKeys.glucoseRangeTarget] as? Double).map { Decimal($0) } ?? glucoseRange.target,
+                colorScheme: message[WatchMessageKeys.glucoseColorScheme] as? String ?? glucoseRange.colorScheme,
+                isMmol: message[WatchMessageKeys.units] as? String == "mmol/L",
+                urgentLowAlarm: (message[WatchMessageKeys.glucoseAlarmUrgentLow] as? Double).map { Decimal($0) } ?? 54,
+                // 0: no such alarm on
+                lowAlarm: (message[WatchMessageKeys.glucoseAlarmLow] as? Double).flatMap { $0 > 0 ? Decimal($0) : nil },
+                highAlarm: (message[WatchMessageKeys.glucoseAlarmHigh] as? Double).flatMap { $0 > 0 ? Decimal($0) : nil }
+            )
+            if range != glucoseRange { glucoseRange = range }
+            if let configuration = message[WatchMessageKeys.watchSensorConfiguration] as? Data,
+               configuration != sensorConfiguration
+            {
+                sensorConfiguration = configuration
+                sensorConfigurationDidChange = true
+            }
+        }
+        if watchReadsSensorDidChange || sensorConfigurationDidChange {
+            Task { @MainActor in WatchCGMHost.shared.update(from: self) }
+        }
+
+        if let isForecastCone = message[WatchMessageKeys.isForecastCone] as? Bool, isForecastCone != self.isForecastCone {
             self.isForecastCone = isForecastCone
         }
 
@@ -529,5 +1080,155 @@ import WatchConnectivity
             forecastConeMax = forecastPayload[WatchMessageKeys.forecastConeMax] as? [Double] ?? []
             forecastLines = forecastPayload[WatchMessageKeys.forecastLines] as? [String: [Double]] ?? [:]
         }
+
+        if let peripheralPayload = message[WatchMessageKeys.peripheralData] as? [String: Any] {
+            processPeripheralData(peripheralPayload)
+        }
+
+        // the phone's carbs and boluses, times only, for the big chart's markers
+        if let carbs = message[WatchMessageKeys.chartCarbs] as? [TimeInterval],
+           let boluses = message[WatchMessageKeys.chartBoluses] as? [TimeInterval],
+           let smbs = message[WatchMessageKeys.chartSMBs] as? [TimeInterval]
+        {
+            func markers(_ times: [TimeInterval], _ kind: WatchTreatmentMarker.Kind) -> [WatchTreatmentMarker] {
+                times.map { WatchTreatmentMarker(id: "\(kind)-\($0)", date: Date(timeIntervalSince1970: $0), kind: kind) }
+            }
+            phoneTreatmentMarkers = markers(boluses, .bolus) + markers(smbs, .smb) + markers(carbs, .carbs)
+        }
+
+        // each loop's IOB and COB, for the big chart's scrub line
+        if let dates = message[WatchMessageKeys.chartIobCobDates] as? [TimeInterval],
+           let iob = message[WatchMessageKeys.chartIob] as? [Double],
+           let cob = message[WatchMessageKeys.chartCob] as? [Double],
+           dates.count == iob.count, dates.count == cob.count
+        {
+            phoneIobCob = dates.indices.map { index in
+                WatchIobCobPoint(date: Date(timeIntervalSince1970: dates[index]), iob: iob[index], cob: cob[index])
+            }
+        }
+
+        // the watch's own newer readings stay in front of the phone's older ones
+        applyOwnOverlay()
+        ComplicationStore.update(from: self)
+    }
+
+    /// Applies a peripheral payload, whether it arrived nested inside a routine
+    /// watch state push or as a standalone peripheral message.
+    ///
+    /// Every field clears explicitly when its key is absent: the phone omits
+    /// keys it has no value for, so a removed pod or sensor must not leave the
+    /// last known reading on screen.
+    func processPeripheralData(_ payload: [String: Any]) {
+        if let timestamp = payload[WatchMessageKeys.peripheralsUpdatedAt] as? TimeInterval {
+            peripheralsUpdatedAt = Date(timeIntervalSince1970: timestamp)
+        } else {
+            peripheralsUpdatedAt = Date()
+        }
+
+        pumpName = payload[WatchMessageKeys.pumpName] as? String
+        pumpReservoir = (payload[WatchMessageKeys.pumpReservoir] as? NSNumber)?.decimalValue
+        pumpBatteryPercent = (payload[WatchMessageKeys.pumpBatteryPercent] as? NSNumber)?.intValue
+
+        if let timestamp = payload[WatchMessageKeys.pumpExpiresAt] as? TimeInterval {
+            pumpExpiresAt = Date(timeIntervalSince1970: timestamp)
+        } else {
+            pumpExpiresAt = nil
+        }
+
+        if let timestamp = payload[WatchMessageKeys.pumpActivatedAt] as? TimeInterval {
+            pumpActivatedAt = Date(timeIntervalSince1970: timestamp)
+        } else {
+            pumpActivatedAt = nil
+        }
+
+        pumpStatusMessage = payload[WatchMessageKeys.pumpStatusMessage] as? String
+        cgmName = payload[WatchMessageKeys.cgmName] as? String
+
+        if let timestamp = payload[WatchMessageKeys.cgmSensorExpiresAt] as? TimeInterval {
+            cgmSensorExpiresAt = Date(timeIntervalSince1970: timestamp)
+        } else {
+            cgmSensorExpiresAt = nil
+        }
+
+        cgmProgressPercent = (payload[WatchMessageKeys.cgmProgressPercent] as? NSNumber)?.doubleValue
+        cgmProgressState = payload[WatchMessageKeys.cgmProgressState] as? String
+        cgmStatusMessage = payload[WatchMessageKeys.cgmStatusMessage] as? String
+
+        hasReceivedPeripheralData = true
+    }
+}
+
+/// The phone's glucose range and color scheme, in mg/dL, as `BaseWatchManager` colors the readings it sends.
+struct WatchGlucoseRange: Codable, Equatable {
+    private static let storageKey = "watchGlucoseRange"
+
+    static var saved: WatchGlucoseRange {
+        UserDefaults.standard.data(forKey: storageKey)
+            .flatMap { try? JSONDecoder().decode(WatchGlucoseRange.self, from: $0) } ?? WatchGlucoseRange()
+    }
+
+    func save() {
+        UserDefaults.standard.set(try? JSONEncoder().encode(self), forKey: Self.storageKey)
+    }
+
+    var low: Decimal = 70
+    var high: Decimal = 180
+    var target: Decimal = 100
+    var colorScheme: String = GlucoseColorScheme.staticColor.rawValue
+    var isMmol = false
+    /// The phone's glucose alarms, the most cautious that is on: the watch alarms by them on its own readings.
+    var urgentLowAlarm: Decimal = 54
+    var lowAlarm: Decimal?
+    var highAlarm: Decimal?
+
+    init(
+        low: Decimal = 70,
+        high: Decimal = 180,
+        target: Decimal = 100,
+        colorScheme: String = GlucoseColorScheme.staticColor.rawValue,
+        isMmol: Bool = false,
+        urgentLowAlarm: Decimal = 54,
+        lowAlarm: Decimal? = nil,
+        highAlarm: Decimal? = nil
+    ) {
+        self.low = low
+        self.high = high
+        self.target = target
+        self.colorScheme = colorScheme
+        self.isMmol = isMmol
+        self.urgentLowAlarm = urgentLowAlarm
+        self.lowAlarm = lowAlarm
+        self.highAlarm = highAlarm
+    }
+
+    /// Field by field: a value an earlier build saved keeps what it had.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = WatchGlucoseRange()
+        low = try container.decodeIfPresent(Decimal.self, forKey: .low) ?? defaults.low
+        high = try container.decodeIfPresent(Decimal.self, forKey: .high) ?? defaults.high
+        target = try container.decodeIfPresent(Decimal.self, forKey: .target) ?? defaults.target
+        colorScheme = try container.decodeIfPresent(String.self, forKey: .colorScheme) ?? defaults.colorScheme
+        isMmol = try container.decodeIfPresent(Bool.self, forKey: .isMmol) ?? defaults.isMmol
+        urgentLowAlarm = try container.decodeIfPresent(Decimal.self, forKey: .urgentLowAlarm) ?? defaults.urgentLowAlarm
+        lowAlarm = try container.decodeIfPresent(Decimal.self, forKey: .lowAlarm)
+        highAlarm = try container.decodeIfPresent(Decimal.self, forKey: .highAlarm)
+    }
+
+    func display(_ mgdl: Int) -> Double {
+        isMmol ? NSDecimalNumber(decimal: Decimal(mgdl).asMmolL).doubleValue : Double(mgdl)
+    }
+
+    /// As `BaseWatchManager.setupWatchState`: the dynamic scheme ramps between fixed ends around the target.
+    func color(_ mgdl: Int) -> Color {
+        let scheme = GlucoseColorScheme(rawValue: colorScheme) ?? .staticColor
+        let isDynamic = scheme == .dynamicColor
+        return getDynamicGlucoseColor(
+            glucoseValue: Decimal(mgdl),
+            highGlucoseColorValue: isDynamic ? 220 : high,
+            lowGlucoseColorValue: isDynamic ? 55 : low,
+            targetGlucose: target,
+            glucoseColorScheme: scheme
+        )
     }
 }
