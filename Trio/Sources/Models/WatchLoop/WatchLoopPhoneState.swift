@@ -24,6 +24,10 @@ struct WatchLoopPhoneState: Codable, Equatable {
     var spans: [WatchLoopSpan] = []
     /// The audit of the last session taken back, kept while the watch's last records may still arrive.
     var openAudit: WatchLoopOpenAudit?
+    /// The pump's total at the last reading the records explained; dosing waits for one while a copy is out.
+    var verifiedDelivered: Double?
+    var verifiedAt: Date?
+    var standingCopySentAt: Date?
 
     static let storedRecordCapacity = 2000
 
@@ -69,6 +73,9 @@ struct WatchLoopPhoneState: Codable, Equatable {
         refusedSessions = (try? c.decodeIfPresent([Int].self, forKey: .refusedSessions)) ?? d.refusedSessions
         spans = (try? c.decodeIfPresent([WatchLoopSpan].self, forKey: .spans)) ?? d.spans
         openAudit = try? c.decodeIfPresent(WatchLoopOpenAudit.self, forKey: .openAudit)
+        verifiedDelivered = try? c.decodeIfPresent(Double.self, forKey: .verifiedDelivered)
+        verifiedAt = try? c.decodeIfPresent(Date.self, forKey: .verifiedAt)
+        standingCopySentAt = try? c.decodeIfPresent(Date.self, forKey: .standingCopySentAt)
         // killed mid-transfer: who has the pump is asked at once, as for a watch gone quiet (`checkOverdue`)
         if role == .transferring {
             role = .lending

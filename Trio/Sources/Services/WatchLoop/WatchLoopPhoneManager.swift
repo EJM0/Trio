@@ -13,6 +13,10 @@ protocol WatchLoopPhoneManager: AnyObject {
     func receive(_ userInfo: [String: Any])
     /// The looper tapped Take Back on the phone. Returns why it couldn't, or nil once the phone has the pump.
     func takeBack() async -> String?
+    /// Asked before every dose the phone sends: false holds it.
+    func mayDose() async -> Bool
+    /// After each of the phone's own loops.
+    func didLoop() async
     var state: WatchLoopPhoneState { get }
 }
 
@@ -51,6 +55,10 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
     private var pendingQuery: (id: UUID, onSilence: WatchLoopControl.Decision)?
     private var overdueTimer: Timer?
     private var isAuditing = false
+    /// Insulin a pump reading showed that the phone's records don't explain, while it asks the watch.
+    private var unexplained: (units: Double, reading: (units: Double, at: Date))?
+    /// What the last copy was made from, so an unchanged one isn't sent again.
+    private var standingCopyFingerprint: String?
 
     init(resolver: Resolver) {
         state = Self.load()
@@ -356,7 +364,7 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
                 : report.pumpReachable == false ? .holdsPumpButCannotReach : .answered
             if answer == .answered { state.lastReportAt = Date() }
             await run(WatchLoopControl.afterQuery(answer, onSilence: query.onSilence))
-            return
+            guard answer == .answered else { return }
         }
         // the watch never took the pump it was granted (or let it go): no reason to wait for the query
         if !report.holdsPump, state.role == .lending, report.session == state.session {
@@ -375,6 +383,12 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         if decision == .renewHold { state.lastReportAt = Date() }
         if decision == .sendStop { refuse(session) }
         if decision == .standAside { await standAside(for: session, startedAt: report.startedAt) }
+        // a watch that dosed and doesn't keep the pump: its insulin is booked (rule 1), and the phone doses on
+        if let unexplained, state.role == .holdsPump {
+            await bookPlaceholder(unexplained.units)
+            verified(unexplained.reading)
+            self.unexplained = nil
+        }
     }
 
     @MainActor private func refuse(_ session: Int) {
@@ -395,6 +409,7 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         next.releasedAt = Date()
         next.noteSpan(at: Date())
         state = next
+        unexplained = nil
         info(.watch, "Watch Loop: standing aside for the watch's session \(session)")
     }
 
@@ -672,7 +687,8 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         isAuditing = true
         defer { isAuditing = false }
         let odometer = controllablePump as? PumpDeliveryOdometer
-        if audit.deliveredAtTake == nil {
+        let firstRun = audit.deliveredAtTake == nil
+        if firstRun {
             guard state.role == .holdsPump, let odometer, await odometer.refreshDeliveredUnits(),
                   let reading = odometer.deliveredUnits
             else {
@@ -703,6 +719,8 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         )
         let delivered = total - start
         var missing = 0.0
+        // whatever the audit finds is booked or reported here; the check before each dose starts from the take
+        if firstRun { verified((total, readAt)) }
         switch WatchLoopAudit.compare(delivered: delivered, recorded: recorded) {
         case .matches:
             info(.watch, "Watch Loop audit: the pump's \(delivered) U match the records")
@@ -813,6 +831,155 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         if let objectID { await CoreDataStack.shared.deleteObject(identifiedBy: objectID) }
     }
 
+    /// Insulin the records don't explain, booked as a bolus now: IOB errs high, so dosing errs low. Reminders follow,
+    /// as the watch's records, once they arrive, explain it.
+    @MainActor private func bookPlaceholder(_ units: Double) async {
+        let rounded = Decimal((units * 20).rounded(.down) / 20)
+        guard rounded > 0 else { return }
+        await pumpHistoryStorage.storeExternalInsulinEvent(amount: rounded, timestamp: Date())
+        warning(.watch, "Watch Loop: booked \(rounded) U the records don't explain")
+        notify(
+            id: "watchLoop.placeholder",
+            title: String(localized: "Insulin From the Watch Booked"),
+            body: String(
+                localized: "The pod delivered \(rounded.formatted()) U the iPhone's records don't explain. Trio booked it as a bolus now."
+            )
+        )
+        for hours in [2.0, 4.0] {
+            notify(
+                id: "watchLoop.placeholder.\(Int(hours))",
+                title: String(localized: "Check the Watch's Insulin"),
+                body: String(
+                    localized: "Trio booked insulin its records didn't explain. Bring the watch near the iPhone to replace it with the watch's records."
+                ),
+                after: hours * 3600
+            )
+        }
+    }
+
+    // MARK: - The copy for a start without the phone
+
+    /// After each of the phone's own loops, with Allow Without iPhone on: a new copy when the insulin, carbs or
+    /// settings changed, and every 30 min regardless. Only the newest waits in the queue.
+    func didLoop() async {
+        await MainActor.run { () -> Bool in state.role == .holdsPump } ? await refreshStandingCopy() : ()
+    }
+
+    @MainActor private func refreshStandingCopy() async {
+        guard settingsManager.settings.watchLoopEnabled, settingsManager.settings.watchLoopWithoutPhone else {
+            if state.standingCopyOut { info(.watch, "Watch Loop: Allow Without iPhone is off; the copy is no longer renewed") }
+            return
+        }
+        guard let pump = controllablePump, let odometer = pump as? PumpDeliveryOdometer,
+              let cgm = fetchGlucoseManager.cgmManager as? DeviceConfigurationSharing, cgm.isConfigurationSharingEnabled,
+              let reading = odometer.deliveredUnits
+        else { return }
+        var copy: WatchLoopGrant
+        do {
+            copy = try await makeGrant(session: state.session, pump: pump, cgm: cgm)
+        } catch {
+            warning(.watch, "Watch Loop copy could not be built", error: error)
+            return
+        }
+        let fingerprint = [
+            copy.pumpHistory.first?.id ?? "",
+            copy.carbs.map { $0.id ?? "" }.joined(),
+            String(describing: copy.basalProfile.map(\.rate)),
+            String(describing: copy.preferences.maxIOB),
+            copy.activeOverride?.id ?? "",
+            copy.tempTargets.last?.id ?? ""
+        ].joined(separator: "|")
+        let sentAt = state.standingCopySentAt ?? .distantPast
+        guard fingerprint != standingCopyFingerprint || Date().timeIntervalSince(sentAt) > WatchLoopStanding.refreshInterval
+        else { return }
+        // issued expired: a start from it takes a new session and lease (`WatchLoopSession.startWithoutPhone`)
+        copy = WatchLoopGrant(
+            session: copy.session, issuedAt: copy.issuedAt, leaseExpiresAt: copy.issuedAt,
+            pumpConfiguration: copy.pumpConfiguration, cgmConfiguration: copy.cgmConfiguration,
+            pumpSettings: copy.pumpSettings, bgTargets: copy.bgTargets, basalProfile: copy.basalProfile,
+            insulinSensitivities: copy.insulinSensitivities, carbRatios: copy.carbRatios, preferences: copy.preferences,
+            dosingMode: copy.dosingMode, smoothGlucose: copy.smoothGlucose, units: copy.units, tdd: copy.tdd,
+            hasSufficientTDD: copy.hasSufficientTDD, autosens: copy.autosens, maxBolus: copy.maxBolus,
+            maxCarbs: copy.maxCarbs, bolusCalculator: copy.bolusCalculator, lowGlucose: copy.lowGlucose,
+            highGlucose: copy.highGlucose, pumpHistory: copy.pumpHistory, glucose: copy.glucose, carbs: copy.carbs,
+            activeOverride: copy.activeOverride, tempTargets: copy.tempTargets, overridePresets: copy.overridePresets,
+            tempTargetPresets: copy.tempTargetPresets, lastDetermination: copy.lastDetermination,
+            deliveredUnits: reading.units, deliveredUnitsAt: reading.at
+        )
+        let session = WCSession.default
+        for transfer in session.outstandingUserInfoTransfers {
+            if let envelope = try? WatchLoopTransport.decode(transfer.userInfo), case .standingCopy = envelope.message {
+                transfer.cancel()
+            }
+        }
+        send(.standingCopy(copy))
+        standingCopyFingerprint = fingerprint
+        var next = state
+        next.standingCopyOut = true
+        next.standingCopySentAt = Date()
+        if next.verifiedDelivered == nil {
+            next.verifiedDelivered = reading.units
+            next.verifiedAt = reading.at
+        }
+        state = next
+        debug(.watch, "Watch Loop: copy for a start without the iPhone sent")
+    }
+
+    // MARK: - Before the phone doses
+
+    /// While a copy is out, a watch may have started from it: each dose waits for a pump reading whose total the
+    /// phone's own records explain. Insulin they don't means another controller dosed: the phone asks the watch
+    /// whether it holds the pump (it stands aside if so, control row 17) and, without an answer, books the
+    /// difference as a bolus and loops on (rows 5 and 18).
+    func mayDose() async -> Bool {
+        await check()
+    }
+
+    @MainActor private func check() async -> Bool {
+        guard state.role == .holdsPump else { return false }
+        guard state.standingCopyOut else { return true }
+        guard unexplained == nil, pendingQuery == nil else { return false }
+        guard let odometer = controllablePump as? PumpDeliveryOdometer else { return true }
+        if (odometer.deliveredUnits?.at ?? .distantPast) < Date().addingTimeInterval(-120) {
+            _ = await odometer.refreshDeliveredUnits()
+        }
+        guard let reading = odometer.deliveredUnits, reading.at > Date().addingTimeInterval(-300) else {
+            warning(.watch, "Watch Loop: no recent pump total; the phone doesn't dose until it has one")
+            return false
+        }
+        guard let baseline = state.verifiedDelivered, let since = state.verifiedAt, reading.at > since else {
+            verified(reading)
+            return true
+        }
+        let basalProfile = await storage.retrieveAsync(OpenAPS.Settings.basalProfile, as: [BasalProfileEntry].self) ?? []
+        let history = (try? await pumpHistoryStorage.getPumpHistory()) ?? []
+        let recorded = WatchLoopAudit.recordedInsulin(
+            WatchLoopAudit.doses(history, now: reading.at) { [controllablePump] units in
+                controllablePump?.estimatedDuration(toBolus: units) ?? 0
+            },
+            basalProfile: basalProfile,
+            from: since,
+            to: reading.at
+        )
+        let delivered = reading.units - baseline
+        guard case let .missing(units) = WatchLoopAudit.compare(delivered: delivered, recorded: recorded) else {
+            verified(reading)
+            return true
+        }
+        warning(.watch, "Watch Loop: the pod delivered \(units) U the iPhone's records don't explain; asking the watch")
+        unexplained = (units, reading)
+        let decision = WatchLoopControl.decide(situation(.pumpReading(differenceBeyondBand: true)))
+        Task { await run(decision) }
+        return false
+    }
+
+    @MainActor private func verified(_ reading: (units: Double, at: Date)) {
+        var next = state
+        next.verifiedDelivered = reading.units
+        next.verifiedAt = reading.at
+        state = next
+    }
+
     // MARK: - When the watch goes quiet
 
     @MainActor private func checkOverdue() {
@@ -875,6 +1042,11 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
             }
         case .keepPumpOnSilence:
             state.tookOverOnSilenceAt = Date()
+            if let unexplained {
+                await bookPlaceholder(unexplained.units)
+                verified(unexplained.reading)
+            }
+            unexplained = nil
         case .sendStop:
             send(.stop(session: state.session))
         default:
