@@ -3085,9 +3085,9 @@
 			sourceTree = "<group>";
 		};
 		3811DF0A25CAAAA500A708ED /* APS */ = {
-				B448CF467188976CDCE24F8E /* GlucoseSmoothing.swift */,
 			isa = PBXGroup;
 			children = (
+				B448CF467188976CDCE24F8E /* GlucoseSmoothing.swift */,
 				CE95BF562BA5F5FE00DC3DE3 /* PluginManager.swift */,
 				3811DF0F25CAAAE200A708ED /* APSManager.swift */,
 				38BF021E25E7F0DE00579895 /* DeviceDataManager.swift */,
@@ -3290,9 +3290,9 @@
 			sourceTree = "<group>";
 		};
 		388E5A5825B6F0070019842D /* OpenAPS */ = {
-				1FCEB19A6ED03C5248D45FB0 /* OrefPipeline.swift */,
 			isa = PBXGroup;
 			children = (
+				1FCEB19A6ED03C5248D45FB0 /* OrefPipeline.swift */,
 				388E596B25AD95110019842D /* OpenAPS.swift */,
 				3821ED4B25DD18BA00BC42AD /* Constants.swift */,
 			);
@@ -3421,9 +3421,9 @@
 			sourceTree = "<group>";
 		};
 		38A0362725ECF05300FCBB52 /* Storage */ = {
-				CB460F337DA644C5F2D601E8 /* TDDCalculator.swift */,
 			isa = PBXGroup;
 			children = (
+				CB460F337DA644C5F2D601E8 /* TDDCalculator.swift */,
 				38AEE75625F0F18E0013F05B /* CarbsStorage.swift */,
 				3A2F107674CF1D9C0A2A9ACF /* CarbEntryMutationService.swift */,
 				DDB37CC42D05048F00D99BF4 /* ContactImageStorage.swift */,
@@ -4336,9 +4336,9 @@
 			sourceTree = "<group>";
 		};
 		BD7DB88C2D2C49FF003D3155 /* BolusCalculator */ = {
-				5D9D6A065662BC1B46E82744 /* BolusCalculator.swift */,
 			isa = PBXGroup;
 			children = (
+				5D9D6A065662BC1B46E82744 /* BolusCalculator.swift */,
 				BD7DB88D2D2C4A0A003D3155 /* BolusCalculationManager.swift */,
 			);
 			path = BolusCalculator;
