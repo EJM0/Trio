@@ -43,6 +43,9 @@ struct WatchLoopGrant: Codable {
     let tempTargetPresets: [TempTarget]
     /// The phone's last loop, so the watch shows IOB, COB and the forecast until its own first loop.
     let lastDetermination: Determination?
+    /// The pump's own total when the grant was made, for the check before a start without the phone.
+    var deliveredUnits: Double? = nil
+    var deliveredUnitsAt: Date? = nil
 }
 
 extension WatchLoopGrant: Equatable {

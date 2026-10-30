@@ -15,6 +15,7 @@ struct WatchLoopView: View {
     @State private var confirmDiscard = false
     @State private var podFailure: String?
     @State private var isEndingPod = false
+    @State private var confirmStartWithoutPhone = false
 
     private var phase: WatchLoopWatchState.Phase { session.state.phase }
     private var unsynced: Int { session.state.pending.count }
@@ -39,6 +40,12 @@ struct WatchLoopView: View {
                 .padding(.horizontal, 4)
             }
         }
+        .confirmationDialog(
+            "Start from your iPhone's copy of \(copyAgeMinutes) min ago? Only if the iPhone is off or out of reach: it stops dosing once it hears from the watch.",
+            isPresented: $confirmStartWithoutPhone
+        ) {
+            Button("Start Without iPhone") { Task { await session.startWithoutPhone() } }
+        }
         .confirmationDialog("Loop on the watch? Your iPhone stops dosing until you end it.", isPresented: $confirmStart) {
             Button("Start Watch Loop") { session.start() }
         }
@@ -57,6 +64,10 @@ struct WatchLoopView: View {
         ) {
             Button("Discard Pod", role: .destructive) { endPod(discard: true) }
         }
+    }
+
+    private var copyAgeMinutes: Int {
+        Int(Date().timeIntervalSince(session.state.standing?.issuedAt ?? Date()) / 60)
     }
 
     private func endPod(discard: Bool) {
@@ -197,8 +208,23 @@ struct WatchLoopView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.watchLoop)
-                if !WatchState.shared.isReachable {
+                if session.offersStartWithoutPhone, session.usableStandingCopy != nil {
+                    Button { confirmStartWithoutPhone = true } label: {
+                        Label("Start Without iPhone", systemImage: "iphone.slash")
+                    }
+                    .tint(.watchLoop)
+                } else if !WatchState.shared.isReachable {
                     note("Starts with your iPhone nearby.")
+                }
+                if WatchState.shared.watchLoopFallback, WatchState.shared.watchLoopWithoutPhone {
+                    Label(
+                        session.usableStandingCopy != nil
+                            ? "Fallback Loop ready: starts by itself if your iPhone stops looping"
+                            : "Fallback Loop can't start: no recent copy from your iPhone",
+                        systemImage: "antenna.radiowaves.left.and.right"
+                    )
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
                 }
             case .active:
                 Button { confirmEnd = true } label: {

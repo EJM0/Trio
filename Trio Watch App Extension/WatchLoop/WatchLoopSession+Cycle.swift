@@ -107,6 +107,8 @@ extension WatchLoopSession {
             return
         }
 
+        // another controller's insulin: counted, and no dose until the phone has had its say
+        let explained = await pumpTotalIsExplained(pump)
         let now = Date()
         let inputs = CycleInputs(
             grant: grant,
@@ -133,7 +135,9 @@ extension WatchLoopSession {
         }
         state.autosens = result.autosens
 
-        if let determination = result.determination, state.closedLoop, grant.dosingMode.automation != .off {
+        await checkWithPhoneIfNeeded()
+        guard state.phase == .active, pumpManager === pump else { return }
+        if let determination = result.determination, state.closedLoop, grant.dosingMode.automation != .off, explained {
             do {
                 try await enact(determination, on: pump)
                 state.lastError = nil

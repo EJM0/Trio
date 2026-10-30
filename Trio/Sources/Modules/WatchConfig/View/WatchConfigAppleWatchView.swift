@@ -127,6 +127,52 @@ struct WatchConfigAppleWatchView: BaseView {
                 headerText: String(localized: "Apple Watch Configuration")
             )
 
+            if state.watchLoopEnabled {
+                SettingInputSection(
+                    decimalValue: $decimalPlaceholder,
+                    booleanValue: $state.watchLoopWithoutPhone,
+                    shouldDisplayHint: $shouldDisplayHint,
+                    selectedVerboseHint: Binding(
+                        get: { selectedVerboseHint },
+                        set: {
+                            selectedVerboseHint = $0.map { AnyView($0) }
+                            hintLabel = String(localized: "Allow Without iPhone")
+                        }
+                    ),
+                    units: state.units,
+                    type: .boolean,
+                    label: String(localized: "Allow Without iPhone"),
+                    miniHint: String(localized: "The watch can start from the iPhone’s copy when the iPhone doesn’t answer"),
+                    verboseHint: Text(
+                        "When this is on, the iPhone leaves a copy of its settings and history with the watch, renewed every 30 minutes and after each change. If the iPhone doesn’t answer a Start, the watch offers to start from that copy. Before its first loop the watch checks the pod’s insulin total and counts anything the copy doesn’t explain as a bolus."
+                    ),
+                    headerText: String(localized: "Apple Watch Configuration")
+                )
+            }
+
+            if state.watchLoopEnabled {
+                SettingInputSection(
+                    decimalValue: $decimalPlaceholder,
+                    booleanValue: $state.watchLoopFallback,
+                    shouldDisplayHint: $shouldDisplayHint,
+                    selectedVerboseHint: Binding(
+                        get: { selectedVerboseHint },
+                        set: {
+                            selectedVerboseHint = $0.map { AnyView($0) }
+                            hintLabel = String(localized: "Fallback Loop")
+                        }
+                    ),
+                    units: state.units,
+                    type: .boolean,
+                    label: String(localized: "Fallback Loop"),
+                    miniHint: String(localized: "The watch starts by itself when the iPhone has stopped looping"),
+                    verboseHint: Text(
+                        "When this is on and Allow Without iPhone is on, the watch starts the Watch Loop by itself when the iPhone hasn’t looped or read the sensor for 10 minutes, doesn’t answer, and the watch has two fresh readings of its own. Noisy readings, a warming up or failed sensor never start it. It hands the pod back once the iPhone answers again with fresh readings."
+                    ),
+                    headerText: String(localized: "Apple Watch Configuration")
+                )
+            }
+
             if state.cgmIsG7 {
                 Section(
                     header: Text("Glucose on the Watch"),

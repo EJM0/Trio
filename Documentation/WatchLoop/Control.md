@@ -105,6 +105,28 @@ unconfirmed is offered again after the next cycle reached the pod.
 After a relaunch a session with its pump saved resumes, reports to the phone and doses nothing for 30 s: a phone
 that holds the pump answers with the stop (rows 12, 13).
 
+## Without the phone
+
+Each behind its own setting, both needing Watch Loop.
+
+- **Allow Without iPhone.** The phone leaves a copy of the grant with the watch (`standingCopy`), renewed after its
+  own loops when insulin, carbs or settings changed and every 30 min; only the newest waits in the queue. When the
+  phone doesn't answer a Start within 10 s, the watch offers to start from a copy younger than the insulin's action
+  time (row 2). It takes the pump under a session above any it knows, reads the pump's total and counts what the
+  copy's records don't explain as a bolus of its own (the phone's doses since the copy), so it doses low rather
+  than twice.
+- **Fallback Loop.** On each of its own live readings with no session, the watch starts from the copy by itself
+  when the phone hasn't read the sensor or looped for 10 min, two of its own readings 5 min apart from the last
+  12 min are ones the phone doesn't have, no sensor problem showed in the last 15 min, and the phone doesn't answer
+  (`WatchLoopFallback`). Backfill doesn't count. The session goes back by itself once the phone answers with fresh
+  readings.
+- **The phone's check.** While a copy is out, each dose the phone sends (loop or bolus) waits for a pump reading
+  whose total its own records explain. Insulin they don't means a watch dosed: the phone asks it; a watch holding a
+  newer session gets the pump (row 17), anything else is booked as a bolus and the phone loops on (rows 5, 18).
+- **The watch's check.** Each cycle compares the pump's total with the watch's records the same way. Insulin they
+  don't explain is counted, the cycle doses nothing, and doses wait for the phone's word until it has answered once,
+  as they do after a hand-back nobody answered.
+
 ## Known limits
 
 - After a take-back the pump may not answer the audit's read; the phone then skips the audit and logs it.

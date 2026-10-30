@@ -194,7 +194,12 @@ final class BaseAPSManager: APSManager, Injectable {
         set { settingsManager.settings = newValue }
     }
 
+    /// Resolved on first use: it reaches APSManager back through NightscoutManager.
+    private lazy var watchLoop: WatchLoopPhoneManager = resolver.resolve(WatchLoopPhoneManager.self)!
+    private let resolver: Resolver
+
     init(resolver: Resolver) {
+        self.resolver = resolver
         injectServices(resolver)
         openAPS = OpenAPS(storage: storage, tddStorage: tddStorage, glucoseStorage: glucoseStorage, carbsStorage: carbsStorage)
         lastDosingMode = settingsManager.settings.dosingMode
@@ -429,6 +434,7 @@ final class BaseAPSManager: APSManager, Injectable {
             info(.loop, "Loop finished in \(String(format: "%.1f", Date().timeIntervalSince(loopStatRecord.start))) s")
             lastLoopDate = Date()
             lastError.send(nil)
+            Task { await self.watchLoop.didLoop() }
             transientCategoryFirstSeen.removeAll()
             transientCategoryCount.removeAll()
         }
@@ -669,6 +675,12 @@ final class BaseAPSManager: APSManager, Injectable {
 
         let roundedAmount = pump.roundToSupportedBolusVolume(units: amount)
 
+        guard await watchLoop.mayDose() else {
+            warning(.bolus, "Bolus of \(amount) U not enacted: the pump's insulin total is being checked")
+            callback?(false, String(localized: "Trio is checking the pod's insulin total. Try again in a minute."))
+            return
+        }
+
         debug(.bolus, "Enacting bolus \(roundedAmount) U, \(isSMB ? "automatic" : "manual")")
 
         do {
@@ -788,6 +800,11 @@ final class BaseAPSManager: APSManager, Injectable {
 
         guard WatchLoopGate.phoneMayDose else {
             info(.loop, "Determination not enacted: Apple Watch has the pump")
+            return
+        }
+
+        guard await watchLoop.mayDose() else {
+            info(.loop, "Determination not enacted: the pump's insulin total is being checked")
             return
         }
 

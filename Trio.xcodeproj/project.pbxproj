@@ -1265,6 +1265,10 @@
 		6CB21B30E46A4BE3912D9B49 /* WatchLoopPhoneViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFBBDD957A914C75B41B26B3 /* WatchLoopPhoneViews.swift */; };
 		9AB8A4B24D1C4F44B7ED4FDD /* WatchLoopSession+Display.swift in Sources */ = {isa = PBXBuildFile; fileRef = 288D9B164D744B168FB9D9BB /* WatchLoopSession+Display.swift */; };
 		D326FBE691FB43A99C16420B /* WatchLoopSession+Watchdog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F628DADACDC497FA622BDFC /* WatchLoopSession+Watchdog.swift */; };
+		1C469C117E844265A42A73E0 /* WatchLoopStanding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8021E3CD709648F2A34D73BA /* WatchLoopStanding.swift */; };
+		C9C8B0FA0B22428BBE002E89 /* WatchLoopStanding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8021E3CD709648F2A34D73BA /* WatchLoopStanding.swift */; };
+		D19BF575A3194E2FB8A6A5CF /* WatchLoopStandingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4E638F0E56C4B07AAB1D3DA /* WatchLoopStandingTests.swift */; };
+		8EA4B47E5CF748FF933729AE /* WatchLoopSession+WithoutPhone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D891D4C59B485093427A63 /* WatchLoopSession+WithoutPhone.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -2532,6 +2536,9 @@
 		EFBBDD957A914C75B41B26B3 /* WatchLoopPhoneViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoopPhoneViews.swift; sourceTree = "<group>"; };
 		288D9B164D744B168FB9D9BB /* WatchLoopSession+Display.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchLoopSession+Display.swift"; sourceTree = "<group>"; };
 		4F628DADACDC497FA622BDFC /* WatchLoopSession+Watchdog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchLoopSession+Watchdog.swift"; sourceTree = "<group>"; };
+		8021E3CD709648F2A34D73BA /* WatchLoopStanding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoopStanding.swift; sourceTree = "<group>"; };
+		C4E638F0E56C4B07AAB1D3DA /* WatchLoopStandingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoopStandingTests.swift; sourceTree = "<group>"; };
+		82D891D4C59B485093427A63 /* WatchLoopSession+WithoutPhone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchLoopSession+WithoutPhone.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -3914,6 +3921,7 @@
 		3B5CD2C72D4AECD500CE213C /* OpenAPSSwiftTests */ = {
 			isa = PBXGroup;
 			children = (
+				C4E638F0E56C4B07AAB1D3DA /* WatchLoopStandingTests.swift */,
 				69B9CF925E79461A9DBD8424 /* WatchLoopWatchStateTests.swift */,
 				3648188AD18942DFB773658D /* WatchLoopModelTests.swift */,
 				C14B98B928BD442FBC1D4292 /* WatchLoopControlTests.swift */,
@@ -5479,6 +5487,7 @@
 		E2C585A6036F44B7906742A5 /* WatchLoop */ = {
 			isa = PBXGroup;
 			children = (
+				8021E3CD709648F2A34D73BA /* WatchLoopStanding.swift */,
 				506877A2877B45E6BFCD5DD6 /* WatchLoopWatchState.swift */,
 				E42BF3FECC404F1B88C1DB39 /* WatchLoopPhoneState.swift */,
 				8F2F9ADA488749F4A52ECA4E /* WatchLoopMessages.swift */,
@@ -5501,6 +5510,7 @@
 			children = (
 				4F628DADACDC497FA622BDFC /* WatchLoopSession+Watchdog.swift */,
 				288D9B164D744B168FB9D9BB /* WatchLoopSession+Display.swift */,
+				82D891D4C59B485093427A63 /* WatchLoopSession+WithoutPhone.swift */,
 				327124A7D04B49BFB44CCEF3 /* WatchLoopSession+Cycle.swift */,
 				12AA9DB83E2E4594AA86CCB1 /* WatchLoopSession.swift */,
 			);
@@ -5979,6 +5989,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1C469C117E844265A42A73E0 /* WatchLoopStanding.swift in Sources */,
 				6CB21B30E46A4BE3912D9B49 /* WatchLoopPhoneViews.swift in Sources */,
 				9217BA231D9D43ED9DA3943C /* WatchLoopWatchState.swift in Sources */,
 				C903129B4A8B41C2B2DC57B7 /* WatchLoopPhoneManager.swift in Sources */,
@@ -6764,6 +6775,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D19BF575A3194E2FB8A6A5CF /* WatchLoopStandingTests.swift in Sources */,
 				2B7C6BE33CB041549C28AA89 /* WatchLoopWatchStateTests.swift in Sources */,
 				282BED5519564F31B8954036 /* WatchLoopModelTests.swift in Sources */,
 				46BFF6CA33CB4A08877FB052 /* WatchLoopControlTests.swift in Sources */,
@@ -6918,6 +6930,8 @@
 			files = (
 				D326FBE691FB43A99C16420B /* WatchLoopSession+Watchdog.swift in Sources */,
 				9AB8A4B24D1C4F44B7ED4FDD /* WatchLoopSession+Display.swift in Sources */,
+				8EA4B47E5CF748FF933729AE /* WatchLoopSession+WithoutPhone.swift in Sources */,
+				C9C8B0FA0B22428BBE002E89 /* WatchLoopStanding.swift in Sources */,
 				C24EF1ED3C23464CB4A6F550 /* WatchLoopView.swift in Sources */,
 				F65C6C706D184212AEF567F7 /* WatchLoopWatchState.swift in Sources */,
 				65A4DB3C0E6B4D95A2AD7F76 /* WatchLoopSession+Cycle.swift in Sources */,

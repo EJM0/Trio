@@ -20,6 +20,10 @@ struct WatchLoopPhoneState: Codable, Equatable {
     var releasedAt: Date?
     /// Sessions refused as revived claims (control row 19).
     var refusedSessions: [Int] = []
+    /// The pump's total at the last reading the records explained; dosing waits for one while a copy is out.
+    var verifiedDelivered: Double?
+    var verifiedAt: Date?
+    var standingCopySentAt: Date?
 
     static let storedRecordCapacity = 2000
 
@@ -47,6 +51,9 @@ struct WatchLoopPhoneState: Codable, Equatable {
         deliveredAtRelease = try? c.decodeIfPresent(Double.self, forKey: .deliveredAtRelease)
         releasedAt = try? c.decodeIfPresent(Date.self, forKey: .releasedAt)
         refusedSessions = (try? c.decodeIfPresent([Int].self, forKey: .refusedSessions)) ?? d.refusedSessions
+        verifiedDelivered = try? c.decodeIfPresent(Double.self, forKey: .verifiedDelivered)
+        verifiedAt = try? c.decodeIfPresent(Date.self, forKey: .verifiedAt)
+        standingCopySentAt = try? c.decodeIfPresent(Date.self, forKey: .standingCopySentAt)
     }
 }
 

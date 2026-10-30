@@ -97,6 +97,9 @@ enum WatchMessageKeys {
     static let watchReadsSensor = "watchReadsSensor"
     /// The phone's Watch Loop setting: the watch offers its Watch Loop page.
     static let watchLoopEnabled = "watchLoopEnabled"
+    /// The phone's Allow Without iPhone and Fallback Loop settings: off, the watch drops the phone's copy.
+    static let watchLoopWithoutPhone = "watchLoopWithoutPhone"
+    static let watchLoopFallback = "watchLoopFallback"
     /// mg/dL bounds, target and color scheme the watch colors its own readings and the complication by.
     static let glucoseRangeLow = "glucoseRangeLow"
     static let glucoseRangeHigh = "glucoseRangeHigh"

@@ -109,6 +109,14 @@ import WatchConnectivity
         didSet { UserDefaults.standard.set(watchLoopEnabled, forKey: WatchMessageKeys.watchLoopEnabled) }
     }
 
+    var watchLoopWithoutPhone: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.watchLoopWithoutPhone) {
+        didSet { UserDefaults.standard.set(watchLoopWithoutPhone, forKey: WatchMessageKeys.watchLoopWithoutPhone) }
+    }
+
+    var watchLoopFallback: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.watchLoopFallback) {
+        didSet { UserDefaults.standard.set(watchLoopFallback, forKey: WatchMessageKeys.watchLoopFallback) }
+    }
+
     /// The phone's explicit setting; old saved contexts fall back to whether a sensor export was saved.
     var watchReadsSensor: Bool = UserDefaults.standard.object(forKey: WatchMessageKeys.watchReadsSensor) as? Bool
         ?? (UserDefaults.standard.data(forKey: WatchMessageKeys.watchSensorConfiguration) != nil)
@@ -1040,6 +1048,12 @@ import WatchConnectivity
 
         if let enabled = message[WatchMessageKeys.watchLoopEnabled] as? Bool, enabled != watchLoopEnabled {
             watchLoopEnabled = enabled
+        }
+        if let withoutPhone = message[WatchMessageKeys.watchLoopWithoutPhone] as? Bool, withoutPhone != watchLoopWithoutPhone {
+            watchLoopWithoutPhone = withoutPhone
+        }
+        if let fallback = message[WatchMessageKeys.watchLoopFallback] as? Bool, fallback != watchLoopFallback {
+            watchLoopFallback = fallback
         }
 
         let watchReadsSensorDidChange: Bool

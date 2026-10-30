@@ -445,6 +445,8 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 let sharingCGM = self.fetchGlucoseManager.cgmManager as? DeviceConfigurationSharing
                 watchState.watchReadsSensor = sharingCGM?.isConfigurationSharingEnabled ?? false
                 watchState.watchLoopEnabled = self.settingsManager.settings.watchLoopEnabled
+                watchState.watchLoopWithoutPhone = self.settingsManager.settings.watchLoopWithoutPhone
+                watchState.watchLoopFallback = self.settingsManager.settings.watchLoopFallback
                 if let cgm = sharingCGM, cgm.isConfigurationSharingEnabled {
                     // without the export's time, so an unchanged sensor leaves the watch state unchanged
                     let export = cgm.exportConfiguration()
@@ -837,6 +839,8 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         dictionary[WatchMessageKeys.watchSensorConfiguration] = state.watchSensorConfiguration
         dictionary[WatchMessageKeys.watchReadsSensor] = state.watchReadsSensor
         dictionary[WatchMessageKeys.watchLoopEnabled] = state.watchLoopEnabled
+        dictionary[WatchMessageKeys.watchLoopWithoutPhone] = state.watchLoopWithoutPhone
+        dictionary[WatchMessageKeys.watchLoopFallback] = state.watchLoopFallback
         dictionary[WatchMessageKeys.glucoseRangeLow] = NSDecimalNumber(decimal: state.glucoseRangeLow).doubleValue
         dictionary[WatchMessageKeys.glucoseRangeHigh] = NSDecimalNumber(decimal: state.glucoseRangeHigh).doubleValue
         dictionary[WatchMessageKeys.glucoseRangeTarget] = NSDecimalNumber(decimal: state.glucoseRangeTarget).doubleValue

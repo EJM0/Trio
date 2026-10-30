@@ -42,6 +42,15 @@ struct WatchLoopWatchState: Codable {
     var lastError: String?
     var deliveredAtStart: Double?
     var deliveredAtStartReadAt: Date?
+    /// The phone's copy to start from without it.
+    var standing: WatchLoopGrant?
+    var startedWithoutPhone = false
+    var startedByFallback = false
+    /// The pump's total at the last reading the watch's records explained.
+    var verifiedDelivered: Double?
+    var verifiedAt: Date?
+    /// After a hand-back nobody answered: each dose waits for the phone's word first, until it has answered once.
+    var checkWithPhoneBeforeDosing = false
 
     init() {}
 
@@ -68,6 +77,13 @@ struct WatchLoopWatchState: Codable {
         lastError = try? c.decodeIfPresent(String.self, forKey: .lastError)
         deliveredAtStart = try? c.decodeIfPresent(Double.self, forKey: .deliveredAtStart)
         deliveredAtStartReadAt = try? c.decodeIfPresent(Date.self, forKey: .deliveredAtStartReadAt)
+        standing = try? c.decodeIfPresent(WatchLoopGrant.self, forKey: .standing)
+        startedWithoutPhone = (try? c.decodeIfPresent(Bool.self, forKey: .startedWithoutPhone)) ?? d.startedWithoutPhone
+        startedByFallback = (try? c.decodeIfPresent(Bool.self, forKey: .startedByFallback)) ?? d.startedByFallback
+        verifiedDelivered = try? c.decodeIfPresent(Double.self, forKey: .verifiedDelivered)
+        verifiedAt = try? c.decodeIfPresent(Date.self, forKey: .verifiedAt)
+        checkWithPhoneBeforeDosing = (try? c.decodeIfPresent(Bool.self, forKey: .checkWithPhoneBeforeDosing))
+            ?? d.checkWithPhoneBeforeDosing
     }
 
     /// Starts a session from its grant.
@@ -87,6 +103,11 @@ struct WatchLoopWatchState: Codable {
         lastLoopAt = nil
         pumpReachable = true
         lastError = nil
+        startedWithoutPhone = false
+        startedByFallback = false
+        verifiedDelivered = nil
+        verifiedAt = nil
+        checkWithPhoneBeforeDosing = false
     }
 
     /// Back to rest. Unacknowledged records stay until the phone has them.
@@ -104,6 +125,11 @@ struct WatchLoopWatchState: Codable {
         lastDetermination = nil
         deliveredAtStart = nil
         deliveredAtStartReadAt = nil
+        startedWithoutPhone = false
+        startedByFallback = false
+        verifiedDelivered = nil
+        verifiedAt = nil
+        checkWithPhoneBeforeDosing = false
     }
 
     mutating func record(_ kind: WatchLoopRecord.Kind, at now: Date) {
