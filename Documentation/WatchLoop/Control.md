@@ -1,0 +1,89 @@
+# Watch Loop: who controls the pump
+
+The Watch Loop lets Apple Watch run Trio's loop while the iPhone is away: the watch reads the CGM, runs the same
+oref pipeline and drives the pump. This document says, for every situation, which device controls the pump. It
+follows LoopKit/Loop#2545 (Sport Mode) and its control document; the row numbers are the same.
+
+The decisions live in `WatchLoopControl` (`Trio/Sources/Models/WatchLoop/WatchLoopControl.swift`), one pure function
+tested row by row in `WatchLoopControlTests`. The phone carries them out in `WatchLoopPhoneManager`, the watch in
+`WatchLoopSession`.
+
+## Principles
+
+In priority order. Rule 1 is never traded.
+
+1. **Insulin is conserved.** No device doses closed loop without every unit the pump delivered being in its records
+   or counted conservatively first (booked as a bolus now, so dosing errs low). The pump's own delivered total
+   (`PumpDeliveryOdometer`) is the independent check.
+2. **Nobody takes the pump from a device that is looping it.** A tap names the device that loops; while it is awake
+   and reaches the pump, only another tap changes that.
+3. **Looping conservatively is safer than not looping.**
+4. **When 2 and 3 conflict, a query decides.** The device that could loop asks the other. An answer settles it in
+   the other's favour; silence (or "I hold it but cannot reach it", or "I hold nothing") counts as not looping.
+5. **A device that was off queries before touching the pump.** An inferred takeover is not undone when it returns.
+6. **The phone looping is the resting state; the Watch Loop is entered only by a tap.** The watch never takes a
+   silent phone's pump: it cannot tell a dead phone from one left at home.
+7. **Tell the looper.** Whatever a device inferred, it says so; a refusal names what can be done.
+
+Control changes on evidence (a tap, the other device's word, a pump reading, silence after a query), never on a
+clock. Clocks only decide when to ask.
+
+Not fallbacks: noisy readings, a sensor warming up or failing. They are the CGM's business and never move the pump.
+
+## The table
+
+| # | Situation | Pump held by |
+|---|---|---|
+| 1 | Start on the watch, phone near | watch, by grant |
+| 2 | Start on the watch, phone away | watch, from the standing copy, after the looper confirms |
+| 3 | Phone dies, no session | nobody; the pump runs its schedule. The watch warns after 25 min |
+| 4 | Phone back, no session | phone |
+| 5 | A pump reading shows insulin the phone's records lack | phone, after asking (booked regardless) |
+| 6 | Message from a closed session | phone; the watch gets the stop again |
+| 7 | End on the watch, phone near | phone, by hand-back |
+| 8 | End on the watch, phone away | watch; the End is refused |
+| 9 | Take Back on the phone | phone, if it reaches the pump within 5 s |
+| 10 | Watch silent for 6 min, phone sees the sensor | phone, after a query (30 s) |
+| 11 | Watch silent, phone away | nobody; the pump runs its schedule |
+| 12 | Watch back from off, phone holds the pump | phone; the watch stands aside |
+| 13 | Watch back from off, nobody answers | watch carries on |
+| 14 | Watch cannot reach the pump, phone near | phone: "holds it but cannot reach it" counts as silence |
+| 15 | Watch out of reach, phone away | nobody |
+| 16 | Phone moves during a session | watch; each checkpoint renews its hold |
+| 17 | Phone returns, watch started alone and alive | watch; the phone stands aside |
+| 18 | Phone returns, watch started alone and dead | phone, after a query |
+| 19 | Watch back after the phone took over on silence | phone; a session older than the takeover gets a stop |
+| 20 | Phone returns, watch started alone, watch can't reach the pump | phone |
+| 21 | End, phone away, watch started alone | watch |
+| 22 | Watch started alone dies, phone away | nobody |
+| 23 | Both dead | nobody |
+
+## Transfers
+
+A transfer that does not complete returns to the state before it, or to the resting state if that is unknown.
+
+- **Nobody takes the pump during a bolus, or with a command unconfirmed.** Start, End and Take Back are refused with
+  the time the bolus has left, or with "The pod hasn't confirmed the last command yet." (the driver refuses
+  `releaseControl()`).
+- **Grant.** The phone checks Watch Loop is on, the CGM shares its configuration, no bolus runs; reads the pump's
+  total; releases the pump; sends the grant. A request older than the 60 s lease is refused. If no report arrives
+  within the lease the phone queries and takes the pump back on silence ("Watch Loop Didn't Start").
+- **Checkpoints.** The watch sends one every cycle, records or not; it is the sign of life. A cycle that cannot
+  reach the pump sends none (row 14). The phone stores each record once (by id), then acknowledges; the watch
+  resends until acknowledged. Doses keep their pump `syncIdentifier`, so storing twice updates one row; a bolus
+  under way is stored mutable and replaced by the finished one. Records of a session that is over are still stored
+  (rule 1) except carbs, which can no longer be dosed for.
+- **Hand-back.** The watch offers the pump with its last records, resending until acknowledged. The phone stores
+  them, takes the pump (30 s), acknowledges, and audits: the pump's total since the grant against the records plus
+  scheduled basal where no temp ran. With complete records a difference is only logged.
+- **Take-back** (tap or silence). The phone takes the pump and sends the stop. The records may be incomplete, so
+  insulin the records miss beyond 0.2 U is booked as a bolus now, with reminders after 2 and 4 h; insulin they
+  overstate raises a warning.
+- **Wire.** Messages carry a version and an id; both sides drop the second copy. What a person or a query waits
+  through rides both channels (`sendMessage` and `transferUserInfo`), bookkeeping only the queued one; nothing above
+  60 KB goes live.
+
+## Known limits
+
+- After a take-back the pump may not answer the audit's read; the phone then skips the audit and logs it.
+- Rows 3, 11, 15, 22 and 23 leave nobody looping; the pump falls back to its schedule.

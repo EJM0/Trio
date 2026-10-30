@@ -353,7 +353,7 @@ final class OpenAPS {
 
             let trioCustomOrefVariablesData = OrefPipeline.customOrefVariables(
                 override: override,
-                tdd: try self.tddSummary(now: now, on: context),
+                tdd: try OpenAPS.tddSummary(now: now, on: context),
                 preferences: userPreferences,
                 now: now
             )
@@ -562,7 +562,7 @@ extension OpenAPS {
     }
 
     /// TDD over the last ten days, as the algorithm reads it.
-    func tddSummary(now: Date, on context: NSManagedObjectContext) throws -> OrefPipeline.TDDSummary {
+    static func tddSummary(now: Date, on context: NSManagedObjectContext) throws -> OrefPipeline.TDDSummary {
         let rows = try CoreDataStack.shared.fetchEntities(
             ofType: TDDStored.self,
             onContext: context,
