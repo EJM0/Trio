@@ -4,10 +4,26 @@ import WatchConnectivity
 // MARK: - Send Data to Phone
 
 extension WatchState {
+    /// While the watch holds the pod, a treatment goes to its session instead of the phone. From the UI, on main.
+    private func watchLoopTakes(_ action: @MainActor(WatchLoopSession) -> Void) -> Bool {
+        MainActor.assumeIsolated {
+            let session = WatchLoopSession.shared
+            guard session.state.phase == .active else { return false }
+            action(session)
+            return true
+        }
+    }
+
     /// Sends a bolus insulin request to the paired iPhone
     /// - Parameters:
     ///   - amount: The insulin amount to be delivered
     func sendBolusRequest(_ amount: Decimal) {
+        if watchLoopTakes({ session in
+            Task {
+                if let failure = await session
+                    .bolus(NSDecimalNumber(decimal: amount).doubleValue) { self.reportSendFailure(failure) }
+            }
+        }) { return }
         guard let session = session, session.isReachable else {
             WatchLogger.shared.info(.bolus, "Bolus request aborted: session unreachable")
             reportSendFailure(String(localized: "iPhone not reachable. Nothing was sent."))
@@ -36,6 +52,7 @@ extension WatchState {
     /// - Parameter acknowledge: false when a bolus follows at once, as the
     ///   phone's combo answers once.
     func sendCarbsRequest(_ amount: Int, _ date: Date = Date(), acknowledge _: Bool = true) {
+        if watchLoopTakes({ $0.addCarbs(Decimal(amount), at: date) }) { return }
         guard let session = session, session.isReachable else {
             WatchLogger.shared.info(.treatments, "Carbs request aborted: session unreachable")
             reportSendFailure(String(localized: "iPhone not reachable. Nothing was sent."))
@@ -67,6 +84,7 @@ extension WatchState {
 
     /// Sends a request to cancel the current override preset to the paired iPhone
     func sendCancelOverrideRequest() {
+        if watchLoopTakes({ $0.setOverride(nil) }) { return }
         guard let session = session, session.isReachable else {
             WatchLogger.shared.warning(.treatments, "Override cancel not sent, phone unreachable")
             return
@@ -89,6 +107,7 @@ extension WatchState {
     /// Sends a request to activate an override preset to the paired iPhone
     /// - Parameter presetName: The name of the override preset to activate
     func sendActivateOverrideRequest(presetName: String) {
+        if watchLoopTakes({ $0.startOverride(presetName: presetName) }) { return }
         guard let session = session, session.isReachable else {
             WatchLogger.shared.warning(.treatments, "Override request not sent, phone unreachable")
             return
@@ -110,6 +129,7 @@ extension WatchState {
 
     /// Sends a request to cancel the current temporary target to the paired iPhone
     func sendCancelTempTargetRequest() {
+        if watchLoopTakes({ $0.setTempTarget(nil) }) { return }
         guard let session = session, session.isReachable else {
             WatchLogger.shared.warning(.treatments, "Temp target cancel not sent, phone unreachable")
             return
@@ -132,6 +152,7 @@ extension WatchState {
     /// Sends a request to activate a temporary target preset to the paired iPhone
     /// - Parameter presetName: The name of the temporary target preset to activate
     func sendActivateTempTargetRequest(presetName: String) {
+        if watchLoopTakes({ $0.startTempTarget(presetName: presetName) }) { return }
         guard let session = session, session.isReachable else {
             WatchLogger.shared.warning(.treatments, "Temp target request not sent, phone unreachable")
             return

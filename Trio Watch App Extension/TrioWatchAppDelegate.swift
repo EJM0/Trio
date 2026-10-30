@@ -35,7 +35,11 @@ final class TrioWatchAppDelegate: NSObject, WKApplicationDelegate {
                     if Thread.isMainThread { expire() } else { DispatchQueue.main.sync(execute: expire) }
                 }
                 WatchCGMHost.shared.recheckAcquisition()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5) { self.complete(task) }
+                // the Watch Loop's backstop: a cycle no reading has run; the task ends with it
+                Task { @MainActor in
+                    await WatchLoopSession.shared.cycleIfOverdue()
+                    self.complete(task)
+                }
                 continue
             }
             guard task is WKBluetoothAlertRefreshBackgroundTask else {
