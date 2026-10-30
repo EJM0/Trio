@@ -11,7 +11,7 @@ import WatchKit
     static let shared = WatchLoopSession()
 
     private static let pumpKey = "WatchLoopPump"
-    private static let pumpLocalKey = "WatchLoopPumpLocal"
+    static let pumpLocalKey = "WatchLoopPumpLocal"
     private static var stateURL: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("WatchLoop.json")
     }
@@ -28,7 +28,9 @@ import WatchKit
     private(set) var bolusWindow: DateInterval?
     @ObservationIgnored private var bolusEndTimer: Timer?
     /// A Start or an End in progress.
-    private(set) var isBusy = false
+    var isBusy = false
+    /// The phone didn't answer a Start and a usable copy is here: the page offers to start from it.
+    var offersStartWithoutPhone = false
 
     @ObservationIgnored private(set) var pumpManager: PumpManager?
     @ObservationIgnored private var seen = WatchLoopSeenEnvelopes()
@@ -46,6 +48,9 @@ import WatchKit
     @ObservationIgnored var ownReadings: [BloodGlucose] = []
     /// An End the pod driver refused with a command unconfirmed: offered again after the next contact with the pod.
     @ObservationIgnored var handBackAfterNextContact = false
+    /// The watch's own readings that arrived live, for the fallback.
+    @ObservationIgnored var liveReadings: [Date] = []
+    @ObservationIgnored var isCheckingFallback = false
 
     private var control: ExclusiveDeviceControl? { pumpManager as? ExclusiveDeviceControl }
 
@@ -99,10 +104,10 @@ import WatchKit
             endSession(note: String(localized: "Your iPhone took the pod back."))
             WKInterfaceDevice.current().play(.notification)
         case let .statusQuery(id): sendStatus(replyTo: id)
+        case let .standingCopy(copy): keepStandingCopy(copy)
         case .checkpoint,
              .handBack,
              .request,
-             .standingCopy,
              .statusReport:
             break
         }
@@ -156,7 +161,7 @@ import WatchKit
         }
     }
 
-    private func refuse(_ reason: String) {
+    func refuse(_ reason: String) {
         note = reason
         WKInterfaceDevice.current().play(.failure)
     }
@@ -181,9 +186,11 @@ import WatchKit
         let decision = WatchLoopControl.decide(.init(
             device: .watch,
             trigger: .startTapped,
+            watchHasStandingCopy: usableStandingCopy != nil,
             watchReadsCGM: WatchCGMHost.shared.cgmManager != nil
         ))
         guard case let .query(wait, onSilence) = decision else { return }
+        offersStartWithoutPhone = false
         let request = WatchLoopRequest(id: UUID(), sentAt: Date(), highestSession: state.session)
         requestID = request.id
         note = String(localized: "Asking your iPhone for the pod…")
@@ -194,7 +201,13 @@ import WatchKit
             try? await Task.sleep(nanoseconds: UInt64(wait.seconds * 1_000_000_000))
             guard state.phase == .requested, requestID == request.id else { return }
             state.phase = .idle
-            if case let .tell(tell) = onSilence { self.tell(tell) }
+            switch onSilence {
+            case let .tell(tell): self.tell(tell)
+            case .prompt(.startWithoutPhone):
+                note = String(localized: "No response from your iPhone.")
+                offersStartWithoutPhone = true
+            default: break
+            }
         }
     }
 
@@ -283,13 +296,20 @@ import WatchKit
         send(.handBack(WatchLoopHandBack(session: state.session, records: state.pending, odometer: odometer)))
         // the phone acknowledges once it has the pump, which can take it up to 30 s
         let deadline = Date().addingTimeInterval(45)
+        var offeredAt = Date()
         while state.phase == .handingBack, Date() < deadline {
             try? await Task.sleep(nanoseconds: 1_000_000_000)
+            if state.phase == .handingBack, Date().timeIntervalSince(offeredAt) >= 15 {
+                send(.handBack(WatchLoopHandBack(session: state.session, records: state.pending, odometer: odometer)))
+                offeredAt = Date()
+            }
         }
         disarmHandBackWatchdog()
         guard state.phase == .handingBack else { return }
         control.takeControl()
         state.phase = .active
+        // the phone may have taken the pod after all: each dose waits for its word, until it has answered once
+        state.checkWithPhoneBeforeDosing = true
         tell(.phoneAwayCannotHandBack)
         // a phone that did take the pump answers this with the stop
         sendStatus(replyTo: nil)
@@ -321,13 +341,13 @@ import WatchKit
         )
     }
 
-    private func install(_ pump: PumpManager) {
+    func install(_ pump: PumpManager) {
         pump.delegateQueue = .main
         pump.pumpManagerDelegate = self
         pumpManager = pump
     }
 
-    private func releasePump() {
+    func releasePump() {
         control?.releaseControl()
         if let pumpManager, let local = watchPumpLocalState(pumpManager) {
             UserDefaults.standard.set(local, forKey: Self.pumpLocalKey)
@@ -546,10 +566,18 @@ import WatchKit
 
     /// The watch's own readings: each new one is a cycle.
     func noteReadings(_ readings: [BloodGlucose]) {
+        let now = Date()
         let kept = Set(ownReadings.map(\.dateString))
         ownReadings += readings.filter { !kept.contains($0.dateString) }
-        ownReadings.removeAll { $0.dateString < Date().addingTimeInterval(-3 * 3600) }
-        guard state.phase == .active else { return }
+        ownReadings.removeAll { $0.dateString < now.addingTimeInterval(-3 * 3600) }
+        // live, not backfill: the sensor's own reading of the last minute and a half
+        liveReadings += readings.filter { now.timeIntervalSince($0.dateString) < 90 && ($0.sgv ?? 0) >= 39 }.map(\.dateString)
+        liveReadings.removeAll { now.timeIntervalSince($0) > WatchLoopFallback.readingWindow }
+        guard state.phase == .active else {
+            Task { await checkFallback() }
+            return
+        }
+        Task { await handBackIfPhoneIsBack() }
         let known = Set(state.glucose.map(\.dateString))
         state.glucose += readings.filter { !known.contains($0.dateString) }
         let dayAgo = Date().addingTimeInterval(-24 * 3600)
@@ -746,7 +774,7 @@ extension PumpManager {
     func refreshStatus(timeout: TimeInterval) async -> Bool {
         if let odometer = self as? PumpDeliveryOdometer {
             return await withCheckedContinuation { continuation in
-                let once = OnceFlag()
+                let once = OnceGate()
                 Task {
                     let answered = await odometer.refreshDeliveredUnits()
                     if once.claim() { continuation.resume(returning: answered) }
@@ -758,24 +786,10 @@ extension PumpManager {
         }
         let started = Date()
         let lastSync: Date? = await withCheckedContinuation { continuation in
-            let once = OnceFlag()
+            let once = OnceGate()
             ensureCurrentPumpData { date in if once.claim() { continuation.resume(returning: date) } }
             DispatchQueue.main.asyncAfter(deadline: .now() + timeout) { if once.claim() { continuation.resume(returning: nil) } }
         }
         return (lastSync ?? .distantPast) >= started.addingTimeInterval(-60)
-    }
-}
-
-/// Resumes a continuation once, from whichever of two paths comes first.
-private final class OnceFlag: @unchecked Sendable {
-    private let lock = NSLock()
-    private var claimed = false
-
-    func claim() -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        guard !claimed else { return false }
-        claimed = true
-        return true
     }
 }
