@@ -30,6 +30,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     @Injected() private var iobService: IOBService!
     @Injected() private var notificationsManager: UserNotificationsManager!
     @Injected() private var fetchGlucoseManager: FetchGlucoseManager!
+    @Injected() private var watchLoop: WatchLoopPhoneManager!
 
     private var units: GlucoseUnits = .mgdL
     private var glucoseColorScheme: GlucoseColorScheme = .staticColor
@@ -1125,6 +1126,10 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     }
 
     func session(_: WCSession, didReceiveMessage message: [String: Any]) {
+        if message[WatchLoopTransport.key] != nil {
+            watchLoop.receive(message)
+            return
+        }
         // Handle logs first - doesn't need self, so it can run even during teardown
         if let logs = message["watchLogs"] as? String {
             WatchLogIngest.legacyRecords(from: logs).forEach(TrioLogger.sink.accept)
@@ -1272,6 +1277,10 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     }
 
     func session(_: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        if userInfo[WatchLoopTransport.key] != nil {
+            watchLoop.receive(userInfo)
+            return
+        }
         if let logs = userInfo["watchLogs"] as? String {
             WatchLogIngest.legacyRecords(from: logs).forEach(TrioLogger.sink.accept)
         }

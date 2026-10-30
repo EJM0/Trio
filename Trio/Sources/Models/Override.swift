@@ -1,6 +1,6 @@
 import Foundation
 
-struct Override {
+struct Override: Codable, Equatable {
     let name: String
     let enabled: Bool
     let date: Date

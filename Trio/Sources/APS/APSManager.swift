@@ -308,6 +308,11 @@ final class BaseAPSManager: APSManager, Injectable {
                 return
             }
 
+            guard WatchLoopGate.phoneMayDose else {
+                debug(.loop, "Loop skipped: Apple Watch has the pump")
+                return
+            }
+
             // Atomic check-and-set via actor — eliminates the race between
             // checking isLooping.value and sending isLooping(true).
             guard await loopGuard.tryStart(
@@ -438,6 +443,9 @@ final class BaseAPSManager: APSManager, Injectable {
     private func verifyStatus() -> Error? {
         guard let pump = pumpManager else {
             return APSError.invalidPumpState(message: String(localized: "Pump not set"))
+        }
+        guard WatchLoopGate.phoneMayDose else {
+            return APSError.invalidPumpState(message: String(localized: "Apple Watch has the pump"))
         }
         let status = pump.status.pumpStatus
 
@@ -581,6 +589,8 @@ final class BaseAPSManager: APSManager, Injectable {
     }
 
     func determineBasalSync() async throws {
+        // the watch loops and its records arrive here; a determination of the phone's own would only mislead
+        guard WatchLoopGate.phoneMayDose else { return }
         await loopGuard.waitForLoop()
         guard await loopGuard.tryStartStandaloneDetermination() else {
             debug(.loop, "Standalone determination skipped: one is already running")
@@ -774,6 +784,11 @@ final class BaseAPSManager: APSManager, Injectable {
 
         guard let pump = pumpManager else {
             throw APSError.apsError(message: "Pump not set")
+        }
+
+        guard WatchLoopGate.phoneMayDose else {
+            info(.loop, "Determination not enacted: Apple Watch has the pump")
+            return
         }
 
         if pump.status.pumpStatus.suspended {
@@ -1499,7 +1514,7 @@ extension BaseAPSManager: SettingsObserver {
 
     /// Clears a Trio-set temp so a basal test starts from the scheduled rate.
     private func cancelAutomaticTempBasal() async {
-        guard let pump = pumpManager else { return }
+        guard let pump = pumpManager, WatchLoopGate.phoneMayDose else { return }
 
         // A temp the user set on the pump is theirs to cancel.
         guard !isManualTempBasal else { return }

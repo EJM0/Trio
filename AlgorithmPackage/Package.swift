@@ -72,7 +72,8 @@ let package = Package(
                 "Services/BolusCalculator/BolusCalculator.swift",
                 "APS/GlucoseSmoothing.swift",
                 "APS/Storage/TDDCalculator.swift",
-                "APS/Storage/ScheduledBasalInference.swift"
+                "APS/Storage/ScheduledBasalInference.swift",
+                "Models/WatchLoop"
             ] + algorithmModels + algorithmHelpers,
             swiftSettings: [.define("TRIO_ALGORITHM_PACKAGE")]
         ),
