@@ -1,5 +1,6 @@
 import G7SensorKit
 import LoopKit
+import OmnipodKit
 
 // The device managers the watch can be passed, by identifier, for managers built from another controller's exported
 // configuration. The one place the watch names a device kit (as LoopKit/Loop#2545's WatchDeviceManagers).
@@ -8,6 +9,48 @@ import LoopKit
 let watchCGMManagersByIdentifier: [String: (CGMManager & DeviceConfigurationSharing).Type] = [
     G7CGMManager.pluginIdentifier: G7CGMManager.self
 ]
+
+let watchPumpManagersByIdentifier: [String: (PumpManager & DeviceConfigurationSharing).Type] = [
+    OmniPumpManager.pluginIdentifier: OmniPumpManager.self
+]
+
+/// A pump manager built from the phone's export and this watch's saved `localState` (the pod's handle here).
+func watchPumpManager(adopting configuration: SharedDeviceConfiguration, localState: [String: Any]?) -> PumpManager? {
+    watchPumpManagersByIdentifier[configuration.managerIdentifier]?.init(adopting: configuration, localState: localState)
+}
+
+/// A pump manager restored from its saved `managerIdentifier` and `state`, after a relaunch mid-session.
+func watchPumpManager(rawValue: [String: Any]) -> PumpManager? {
+    guard let identifier = rawValue["managerIdentifier"] as? String,
+          let rawState = rawValue["state"] as? PumpManager.RawStateValue else { return nil }
+    return watchPumpManagersByIdentifier[identifier]?.init(rawState: rawState)
+}
+
+/// What the pump kit keeps of its own on this watch (the pod's Bluetooth handle), for the next adopt.
+func watchPumpLocalState(_ manager: PumpManager?) -> [String: Any]? {
+    (manager as? OmniPumpManager)?.localState
+}
+
+/// The pod's reservoir, when the pod reports one (above 50 U it reports none).
+func watchPumpReservoir(_ manager: PumpManager?) -> Double? {
+    (manager as? OmniPumpManager)?.state.podState?.lastInsulinMeasurements?.reservoirLevel
+}
+
+func watchPumpExpiresAt(_ manager: PumpManager?) -> Date? {
+    (manager as? OmniPumpManager)?.state.podState?.expiresAt
+}
+
+/// Deactivates the pod from the watch and forgets it.
+func watchDeactivatePod(_ manager: PumpManager?, completion: @escaping (Error?) -> Void) {
+    guard let omni = manager as? OmniPumpManager else { return completion(nil) }
+    omni.deactivateAndForgetPod(completion: completion)
+}
+
+/// Forgets a pod that can't be reached to deactivate (it keeps beeping until removed).
+func watchDiscardPod(_ manager: PumpManager?, completion: @escaping () -> Void) {
+    guard let omni = manager as? OmniPumpManager else { return completion() }
+    omni.discardPod(completion: completion)
+}
 
 /// A CGM manager built from another controller's export and this watch's saved `localState`.
 func watchCGMManager(adopting configuration: SharedDeviceConfiguration, localState: [String: Any]?) -> CGMManager? {

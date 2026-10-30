@@ -9,6 +9,8 @@ import UserNotifications
         _ = WatchState.shared
         // restores the watch's own link to the sensor
         _ = WatchCGMHost.shared
+        // a session that was running resumes with its pump
+        _ = WatchLoopSession.shared
         WatchNotificationHandler.shared.configure()
         OpenMealBolusIntent.onPerform = { WatchShortcut.openMealBolus() }
         WatchLogger.shared.info(.lifecycle, "App launched")

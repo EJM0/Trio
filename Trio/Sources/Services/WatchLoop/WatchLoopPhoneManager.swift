@@ -1,6 +1,7 @@
 import CoreData
 import Foundation
 import LoopKit
+import OmnipodKit
 import Swinject
 import UserNotifications
 import WatchConnectivity
@@ -16,7 +17,7 @@ protocol WatchLoopPhoneManager: AnyObject {
     var state: WatchLoopPhoneState { get }
 }
 
-final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable {
+final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, ObservableObject {
     @Injected() private var settingsManager: SettingsManager!
     @Injected() private var deviceDataManager: DeviceDataManager!
     @Injected() private var fetchGlucoseManager: FetchGlucoseManager!
@@ -40,9 +41,12 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable {
     )
 
     /// Touched on the main actor only.
-    private(set) var state: WatchLoopPhoneState {
+    @Published private(set) var state: WatchLoopPhoneState {
         didSet { save() }
     }
+
+    /// The watch has the pump, or is handing it over.
+    var isWatchInCharge: Bool { state.role != .holdsPump }
 
     private var seen = WatchLoopSeenEnvelopes()
     private var pendingQuery: (id: UUID, onSilence: WatchLoopControl.Decision)?
@@ -286,7 +290,8 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable {
             lowGlucose: settings.low,
             highGlucose: settings.high,
             pumpHistory: try await openAPS.algorithmPumpHistory(),
-            glucose: try await glucoseStorage.getGlucoseForAlgorithm(shouldSmoothGlucose: settings.smoothGlucose, fetchHours: 24),
+            // raw: the watch smooths them together with its own readings
+            glucose: try await glucoseStorage.getGlucoseForAlgorithm(shouldSmoothGlucose: false, fetchHours: 24),
             carbs: try await carbsStorage.getCarbsForAlgorithm(additionalCarbs: nil, carbsDate: nil),
             activeOverride: activeOverride,
             tempTargets: await storage.retrieveAsync(OpenAPS.Settings.tempTargets, as: [TempTarget].self) ?? [],
@@ -350,6 +355,11 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable {
                 : report.pumpReachable == false ? .holdsPumpButCannotReach : .answered
             if answer == .answered { state.lastReportAt = Date() }
             await run(WatchLoopControl.afterQuery(answer, onSilence: query.onSilence))
+            return
+        }
+        // the watch never took the pump it was granted (or let it go): no reason to wait for the query
+        if !report.holdsPump, state.role == .lending, report.session == state.session {
+            await run(.takeOnSilence(.watchDidNotTake))
             return
         }
         guard report.holdsPump, let session = report.session else { return }
@@ -549,6 +559,15 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable {
         }
         let previous = state.role
         state.role = .transferring
+        if handBack.podEnded == true {
+            // the pod was deactivated or discarded on the watch: nothing to take back
+            (controllablePump as? OmniPumpManager)?.forgetPodEndedElsewhere()
+            controllablePump?.takeControl()
+            send(.handBackAck(session: handBack.session))
+            finish()
+            info(.watch, "Watch Loop session \(handBack.session) ended with the pod on the watch")
+            return
+        }
         guard await take(within: 30) else {
             // the watch keeps the pump and offers it again
             controllablePump?.releaseControl()
