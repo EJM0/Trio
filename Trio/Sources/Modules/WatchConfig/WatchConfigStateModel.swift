@@ -10,6 +10,8 @@ extension WatchConfig {
         @Published var devices: [IQDevice] = []
         @Published var confirmBolusFaster = false
         @Published var showForecastWatch = false
+        @Published var showGlucoseBubbleWatch = true
+        @Published var useCriticalAlertsWatch = false
 
         /// Garmin watch settings containing all watch-related configuration
         @Published var garminSettings = GarminWatchSettings()
@@ -24,6 +26,8 @@ extension WatchConfig {
             subscribeSetting(\.garminSettings, on: $garminSettings) { garminSettings = $0 }
             subscribeSetting(\.confirmBolusFaster, on: $confirmBolusFaster) { confirmBolusFaster = $0 }
             subscribeSetting(\.showForecastWatch, on: $showForecastWatch) { showForecastWatch = $0 }
+            subscribeSetting(\.showGlucoseBubbleWatch, on: $showGlucoseBubbleWatch) { showGlucoseBubbleWatch = $0 }
+            subscribeSetting(\.useCriticalAlertsWatch, on: $useCriticalAlertsWatch) { useCriticalAlertsWatch = $0 }
 
             devices = garmin.devices
         }
