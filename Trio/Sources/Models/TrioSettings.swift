@@ -58,6 +58,8 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var confirmBolusFaster: Bool = false
     var showForecastWatch: Bool = false
     var showGlucoseBubbleWatch: Bool = true
+    /// The watch can take the pump and loop on its own (Watch Loop).
+    var watchLoopEnabled: Bool = false
     /// The watch’s own urgent low alarm sounds through Silent Mode.
     var useCriticalAlertsWatch: Bool = false
     var overrideFactor: Decimal = 0.8
@@ -325,6 +327,10 @@ extension TrioSettings: Decodable {
 
         if let showGlucoseBubbleWatch = try? container.decode(Bool.self, forKey: .showGlucoseBubbleWatch) {
             settings.showGlucoseBubbleWatch = showGlucoseBubbleWatch
+        }
+
+        if let watchLoopEnabled = try? container.decode(Bool.self, forKey: .watchLoopEnabled) {
+            settings.watchLoopEnabled = watchLoopEnabled
         }
 
         if let useCriticalAlertsWatch = try? container.decode(Bool.self, forKey: .useCriticalAlertsWatch) {
