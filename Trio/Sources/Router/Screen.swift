@@ -57,7 +57,47 @@ enum Screen: Identifiable, Hashable {
 }
 
 extension Screen {
+    /// While the watch has the pod, treatments are entered on it and the settings it doses with are locked.
     @ViewBuilder func view(resolver: Resolver) -> some View {
+        switch (watchLoopLock, resolver.watchLoop) {
+        case let (.treatments?, manager?):
+            WatchLoopTreatmentGate(manager: manager) { content(resolver: resolver) }
+        case let (.settings?, manager?):
+            WatchLoopSettingsGate(manager: manager) { content(resolver: resolver) }
+        default:
+            content(resolver: resolver)
+        }
+    }
+
+    private enum WatchLoopLock {
+        case treatments
+        case settings
+    }
+
+    private var watchLoopLock: WatchLoopLock? {
+        switch self {
+        case .overrideConfig,
+             .treatmentView:
+            return .treatments
+        case .algorithmAdvancedSettings,
+             .autosensSettings,
+             .basalProfileEditor,
+             .bolusCalculatorConfig,
+             .crEditor,
+             .dynamicISF,
+             .isfEditor,
+             .mealSettings,
+             .smbSettings,
+             .targetBehavior,
+             .targetsEditor,
+             .unitsAndLimits:
+            return .settings
+        default:
+            return nil
+        }
+    }
+
+    @ViewBuilder private func content(resolver: Resolver) -> some View {
         switch self {
         case .loading:
             ProgressView()

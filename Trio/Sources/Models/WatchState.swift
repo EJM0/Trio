@@ -70,6 +70,7 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var watchSensorConfiguration: Data? = nil
     /// Explicit setting, sent even when the phone has not loaded a CGM manager yet.
     var watchReadsSensor: Bool = true
+    var watchLoopEnabled: Bool = false
     var glucoseRangeLow: Decimal = 70
     var glucoseRangeHigh: Decimal = 180
     var glucoseRangeTarget: Decimal = 100
@@ -126,6 +127,7 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
             lhs.showGlucoseBubble == rhs.showGlucoseBubble &&
             lhs.watchSensorConfiguration == rhs.watchSensorConfiguration &&
             lhs.watchReadsSensor == rhs.watchReadsSensor &&
+            lhs.watchLoopEnabled == rhs.watchLoopEnabled &&
             lhs.glucoseRangeLow == rhs.glucoseRangeLow &&
             lhs.glucoseRangeHigh == rhs.glucoseRangeHigh &&
             lhs.glucoseRangeTarget == rhs.glucoseRangeTarget &&
@@ -189,6 +191,7 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(showGlucoseBubble)
         hasher.combine(watchSensorConfiguration)
         hasher.combine(watchReadsSensor)
+        hasher.combine(watchLoopEnabled)
         hasher.combine(glucoseRangeLow)
         hasher.combine(glucoseRangeHigh)
         hasher.combine(glucoseRangeTarget)

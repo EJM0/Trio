@@ -104,6 +104,11 @@ import WatchConnectivity
         didSet { UserDefaults.standard.set(sensorConfiguration, forKey: WatchMessageKeys.watchSensorConfiguration) }
     }
 
+    /// The phone's Watch Loop setting: the Watch Loop page shows (a running session keeps it regardless).
+    var watchLoopEnabled: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.watchLoopEnabled) {
+        didSet { UserDefaults.standard.set(watchLoopEnabled, forKey: WatchMessageKeys.watchLoopEnabled) }
+    }
+
     /// The phone's explicit setting; old saved contexts fall back to whether a sensor export was saved.
     var watchReadsSensor: Bool = UserDefaults.standard.object(forKey: WatchMessageKeys.watchReadsSensor) as? Bool
         ?? (UserDefaults.standard.data(forKey: WatchMessageKeys.watchSensorConfiguration) != nil)
@@ -369,6 +374,7 @@ import WatchConnectivity
 
     func session(_: WCSession, didReceiveMessage message: [String: Any]) {
         if WatchLogger.shared.handlePhoneMessage(message) { return }
+        if WatchLoopSession.receive(message) { return }
 
         // Ack at top level — no `watchState` wrapper, no staleness check.
         if let acknowledged = message[WatchMessageKeys.acknowledged] as? Bool,
@@ -404,6 +410,7 @@ import WatchConnectivity
 
     func session(_: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
         if WatchLogger.shared.handlePhoneMessage(userInfo) { return }
+        if WatchLoopSession.receive(userInfo) { return }
         if handlePeripheralPayload(userInfo) { return }
 
         handleIncomingWatchStatePayload(userInfo)
@@ -1031,6 +1038,10 @@ import WatchConnectivity
 
         if let critical = message[WatchMessageKeys.useCriticalAlertsWatch] as? Bool, critical != useCriticalAlerts {
             useCriticalAlerts = critical
+        }
+
+        if let enabled = message[WatchMessageKeys.watchLoopEnabled] as? Bool, enabled != watchLoopEnabled {
+            watchLoopEnabled = enabled
         }
 
         let watchReadsSensorDidChange: Bool
