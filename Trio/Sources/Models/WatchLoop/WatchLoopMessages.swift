@@ -102,6 +102,8 @@ struct WatchLoopHandBack: Codable, Equatable {
     let session: Int
     let records: [WatchLoopRecord]
     let odometer: WatchLoopOdometer?
+    /// The pod was deactivated or discarded on the watch: the phone forgets it rather than taking it back.
+    var podEnded: Bool? = nil
 }
 
 /// The answer to a status query, and the watch's report after a relaunch.

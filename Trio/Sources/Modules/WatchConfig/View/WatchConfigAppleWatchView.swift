@@ -106,6 +106,27 @@ struct WatchConfigAppleWatchView: BaseView {
                 headerText: String(localized: "Apple Watch Configuration")
             )
 
+            SettingInputSection(
+                decimalValue: $decimalPlaceholder,
+                booleanValue: $state.watchLoopEnabled,
+                shouldDisplayHint: $shouldDisplayHint,
+                selectedVerboseHint: Binding(
+                    get: { selectedVerboseHint },
+                    set: {
+                        selectedVerboseHint = $0.map { AnyView($0) }
+                        hintLabel = String(localized: "Watch Loop")
+                    }
+                ),
+                units: state.units,
+                type: .boolean,
+                label: String(localized: "Watch Loop"),
+                miniHint: String(localized: "The watch can take over the pod and loop without the iPhone"),
+                verboseHint: Text(
+                    "When this is on, the watch app has a Watch Loop page. Starting it there hands the pod to the watch: it reads the CGM, loops with Trio's algorithm and your settings, and records what it does. The iPhone doesn't dose until the watch hands the pod back or you take it back. Needs Read on Apple Watch in the CGM's settings."
+                ),
+                headerText: String(localized: "Apple Watch Configuration")
+            )
+
             if state.cgmIsG7 {
                 Section(
                     header: Text("Glucose on the Watch"),

@@ -207,7 +207,12 @@ extension Home {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 bottomControls()
             }
-            .background(appState.trioBackgroundColor(for: colorScheme))
+            .background {
+                ZStack {
+                    appState.trioBackgroundColor(for: colorScheme)
+                    if let watchLoop = resolver.watchLoop { WatchLoopHomeGlow(manager: watchLoop) }
+                }
+            }
             .onReceive(
                 resolver.resolve(AlertPermissionsChecker.self)!.$notificationsDisabled,
                 perform: {

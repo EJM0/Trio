@@ -95,6 +95,8 @@ enum WatchMessageKeys {
     static let watchSensorConfiguration = "watchSensorConfiguration"
     /// Explicit setting; independent of whether the phone's CGM manager is loaded yet.
     static let watchReadsSensor = "watchReadsSensor"
+    /// The phone's Watch Loop setting: the watch offers its Watch Loop page.
+    static let watchLoopEnabled = "watchLoopEnabled"
     /// mg/dL bounds, target and color scheme the watch colors its own readings and the complication by.
     static let glucoseRangeLow = "glucoseRangeLow"
     static let glucoseRangeHigh = "glucoseRangeHigh"

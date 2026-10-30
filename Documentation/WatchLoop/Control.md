@@ -83,7 +83,25 @@ A transfer that does not complete returns to the state before it, or to the rest
   through rides both channels (`sendMessage` and `transferUserInfo`), bookkeeping only the queued one; nothing above
   60 KB goes live.
 
+## On the watch
+
+`WatchLoopSession` holds the session: it asks for the pump (`start`), builds the phone's pump from the grant's export
+and takes it within the lease, then runs a cycle on each CGM reading, with a background refresh 6 min after each
+cycle as the backstop. A cycle reads the pump first; one that can't reach it doses nothing and reports nothing
+(row 14). Otherwise it runs the phone's oref phases (`OrefPipeline`) on the grant's settings, the phone's last day of
+history and the watch's own doses, carbs and readings, enacts as the phone does, and sends a checkpoint. Off, the
+loop determines but enacts nothing (open loop). Bolus, carbs, overrides and temp targets entered on the watch during
+a session go to the session, are recorded and sent with the next checkpoint. A pod deactivated or discarded on the
+watch ends the session; the phone forgets the pod.
+
+After a relaunch a session with its pump saved resumes, reports to the phone and doses nothing for 30 s: a phone
+that holds the pump answers with the stop (rows 12, 13).
+
 ## Known limits
 
 - After a take-back the pump may not answer the audit's read; the phone then skips the audit and logs it.
 - Rows 3, 11, 15, 22 and 23 leave nobody looping; the pump falls back to its schedule.
+- The hand-back waits up to 45 s for the phone, which acknowledges only once it has the pump; Loop answers the
+  first offer at once.
+- The phone's own glucose alarms keep running during a session, beside the watch's.
+- The watch's bolus recommendation still comes from the phone.

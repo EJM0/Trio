@@ -812,8 +812,22 @@ extension Home.RootView {
             .frame(height: HomeLayout.bottomPanelHeight)
             .animation(.easeInOut(duration: 0.2), value: state.bolusProgress != nil)
 
-            multiUsePanel()
-                .frame(height: HomeLayout.statsBannerHeight)
+            Group {
+                if let watchLoop = resolver.watchLoop {
+                    WatchLoopBannerSlot(manager: watchLoop) { multiUsePanel() } banner: { title, subtitle, action in
+                        panelBanner(
+                            systemImage: "applewatch.radiowaves.left.and.right",
+                            title: title,
+                            subtitle: subtitle,
+                            tint: .watchLoop,
+                            action: action
+                        )
+                    }
+                } else {
+                    multiUsePanel()
+                }
+            }
+            .frame(height: HomeLayout.statsBannerHeight)
         }
         .padding(.vertical, HomeLayout.bottomZonePadding)
     }

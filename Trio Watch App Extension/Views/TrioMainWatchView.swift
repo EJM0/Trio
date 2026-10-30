@@ -4,13 +4,17 @@ import WatchKit
 
 struct TrioMainWatchView: View {
     @State private var state = WatchState.shared
+    @State private var watchLoop = WatchLoopSession.shared
 
-    // Pages in order; the bubble page is a phone setting, then chart, devices and alarm snooze.
+    // Pages in order; the bubble page is a phone setting, then chart, devices and alarm snooze, then the Watch Loop.
     private var bubblePage: Int? { state.showGlucoseBubble ? 1 : nil }
     private var chartPage: Int { bubblePage.map { $0 + 1 } ?? 1 }
     private var peripheralsPage: Int { chartPage + 1 }
     private var snoozePage: Int { peripheralsPage + 1 }
-    private var lastPage: Int { snoozePage }
+    /// The phone's setting off: no Watch Loop page, but a running session keeps it.
+    private var watchLoopPage: Int? { state.watchLoopEnabled || watchLoop.state.phase != .idle ? snoozePage + 1 : nil }
+    private var loopStatusPage: Int? { watchLoop.state.phase == .active ? watchLoopPage.map { $0 + 1 } : nil }
+    private var lastPage: Int { loopStatusPage ?? watchLoopPage ?? snoozePage }
 
     // misc
     @State private var currentPage: Int = 0
@@ -139,7 +143,16 @@ struct TrioMainWatchView: View {
                 // Page 4: alarm snooze (nightscout/Trio#1576, t1dude)
                 AlarmSnoozeView(state: state)
                     .tag(snoozePage)
+
+                if let watchLoopPage {
+                    WatchLoopView(session: watchLoop).tag(watchLoopPage)
+                }
+                if let loopStatusPage {
+                    WatchLoopStatusView(session: watchLoop).tag(loopStatusPage)
+                }
             }
+            .onChange(of: lastPage) { _, _ in
+                if currentPage > lastPage { currentPage = lastPage } }
             .onChange(of: state.showGlucoseBubble) { _, _ in
                 if currentPage > lastPage { currentPage = lastPage } }
             .onAppear {

@@ -162,6 +162,7 @@ extension WatchCGMHost: CGMManagerDelegate {
                 WatchLogger.shared.info(.data, "Direct reading: \(readings.count) sample(s)")
                 noteSensorProblem(watchCGMHasSensorProblem(cgmManager))
                 WatchState.shared.applyOwnReadings(readings)
+                WatchLoopSession.shared.noteReadings(readings)
                 WatchAlarms.shared.check(own: readings)
                 scheduleAcquisitionBackstop()
             case .unreliableData:
