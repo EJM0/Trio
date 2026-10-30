@@ -19,6 +19,8 @@ extension WatchConfig {
         @Published var cgmIsG7 = false
         @Published var watchReadsSensor = false
         @Published var watchLoopEnabled = false
+        @Published var watchLoopWithoutPhone = false
+        @Published var watchLoopFallback = false
 
         /// Garmin watch settings containing all watch-related configuration
         @Published var garminSettings = GarminWatchSettings()
@@ -36,6 +38,8 @@ extension WatchConfig {
             subscribeSetting(\.showGlucoseBubbleWatch, on: $showGlucoseBubbleWatch) { showGlucoseBubbleWatch = $0 }
             subscribeSetting(\.useCriticalAlertsWatch, on: $useCriticalAlertsWatch) { useCriticalAlertsWatch = $0 }
             subscribeSetting(\.watchLoopEnabled, on: $watchLoopEnabled) { watchLoopEnabled = $0 }
+            subscribeSetting(\.watchLoopWithoutPhone, on: $watchLoopWithoutPhone) { watchLoopWithoutPhone = $0 }
+            subscribeSetting(\.watchLoopFallback, on: $watchLoopFallback) { watchLoopFallback = $0 }
 
             devices = garmin.devices
             refreshWatchSensor()
