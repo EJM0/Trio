@@ -406,6 +406,14 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable {
             }
         case let .tempTarget(tempTarget):
             try await tempTargetsStorage.storeTempTarget(tempTarget: tempTarget ?? TempTarget.cancel(at: Date()))
+        case let .glucose(reading):
+            // `mbg` makes it a manual reading, as History's Add Glucose stores one
+            try await glucoseStorage.storeGlucose([reading])
+        case let .determination(determination, enacted):
+            // as the phone's own: its charts and loop status read it, and Nightscout gets it at its own time
+            let context = CoreDataStack.shared.newTaskContext()
+            context.name = "watchLoopDetermination"
+            await openAPS.processDetermination(determination, on: context, enacted: enacted)
         }
     }
 

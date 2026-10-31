@@ -38,7 +38,9 @@ final class OpenAPS {
     }
 
     // Use the helper function for cleaner code
-    func processDetermination(_ determination: Determination, on context: NSManagedObjectContext) async {
+    /// `enacted`: a determination another device's loop ran (the Watch Loop's), marked as `reportEnacted` marks the
+    /// phone's own.
+    func processDetermination(_ determination: Determination, on context: NSManagedObjectContext, enacted: Bool? = nil) async {
         await context.perform {
             let newOrefDetermination = OrefDetermination(context: context)
             newOrefDetermination.id = UUID()
@@ -63,6 +65,10 @@ final class OpenAPS {
             newOrefDetermination.smbToDeliver = determination.units.map { NSDecimalNumber(decimal: $0) }
             newOrefDetermination.carbsRequired = Int16(Int(determination.carbsReq ?? 0))
             newOrefDetermination.isUploadedToNS = false
+            if let enacted {
+                newOrefDetermination.timestamp = determination.timestamp ?? determination.deliverAt
+                newOrefDetermination.enacted = enacted
+            }
 
             if let predictions = determination.predictions {
                 ["iob": predictions.iob, "zt": predictions.zt, "cob": predictions.cob, "uam": predictions.uam]
