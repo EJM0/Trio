@@ -89,13 +89,20 @@ enum WatchLoopAudit {
         return .matches
     }
 
-    /// The insulin a dose delivers between `start` and `end`: a bolus all of it (delivered, else programmed); a
-    /// temp basal its rate over its overlap.
+    /// The insulin a dose delivers between `start` and `end`. A bolus (delivered, else programmed) is spread over
+    /// its delivery, `startDate` to `endDate`, as the pump gives it: a bolus still running at a pump reading is
+    /// counted on both sides of it in the right shares. One without a duration counts whole at its start. A temp
+    /// basal counts its rate over its overlap.
     static func insulin(_ dose: WatchLoopDose, from start: Date, to end: Date) -> Double {
         switch dose.kind {
         case .bolus:
-            guard dose.startDate >= start, dose.startDate <= end else { return 0 }
-            return dose.deliveredUnits ?? dose.value
+            let units = dose.deliveredUnits ?? dose.value
+            guard dose.endDate > dose.startDate else {
+                return dose.startDate >= start && dose.startDate <= end ? units : 0
+            }
+            let from = max(start, dose.startDate), to = min(end, dose.endDate)
+            guard to > from else { return 0 }
+            return units * to.timeIntervalSince(from) / dose.endDate.timeIntervalSince(dose.startDate)
         case .tempBasal:
             let from = max(start, dose.startDate), to = min(end, dose.endDate)
             guard to > from else { return 0 }
