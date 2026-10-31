@@ -106,16 +106,29 @@ struct WatchConfigAppleWatchView: BaseView {
                 headerText: String(localized: "Apple Watch Configuration")
             )
 
-            Section(
-                header: Text("Glucose on the Watch"),
-                content: {
-                    Text(
-                        "The watch reads the sensor itself while “Read on Apple Watch” is on in the CGM’s settings (Dexcom G7). Its own readings show on the watch until the iPhone sends the same reading, with a watch symbol in the glucose bubble."
-                    )
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                }
-            )
+            if state.cgmIsG7 {
+                Section(
+                    header: Text("Glucose on the Watch"),
+                    footer: Text(
+                        "The watch reads the G7 itself while “Read on Apple Watch” is on in the G7’s settings. Its own readings show on the watch until the iPhone sends the same reading, with a watch symbol in the glucose bubble."
+                    ),
+                    content: {
+                        HStack {
+                            Text("Read on Apple Watch")
+                            Spacer()
+                            Text(state.watchReadsSensor ? "On" : "Off").foregroundStyle(.secondary)
+                        }
+                        NavigationLink("Change in the G7’s Settings") {
+                            CGMSettings.RootView(
+                                resolver: resolver,
+                                displayClose: false,
+                                bluetoothManager: resolver.resolve(BluetoothStateManager.self)!
+                            )
+                        }
+                        .foregroundStyle(Color.accentColor)
+                    }
+                ).listRowBackground(Color.chart)
+            }
 
             Section(
                 header: Text("Contact Image"),
@@ -131,6 +144,8 @@ struct WatchConfigAppleWatchView: BaseView {
             ).listRowBackground(Color.chart)
         }
         .listSectionSpacing(sectionSpacing)
+        // back from the G7's settings
+        .onAppear { state.refreshWatchSensor() }
         .sheet(isPresented: $shouldDisplayHint) {
             SettingInputHintView(
                 hintDetent: $hintDetent,

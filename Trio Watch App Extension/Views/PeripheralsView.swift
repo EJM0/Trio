@@ -50,6 +50,7 @@ struct PeripheralsView: View {
     }
 
     private var hasCGMData: Bool {
+        if WatchCGMHost.shared.isReadingDirectly { return true }
         if state.cgmSensorExpiresAt != nil { return true }
         if state.cgmProgressPercent != nil { return true }
         if state.cgmStatusMessage != nil { return true }
@@ -252,6 +253,20 @@ struct PeripheralsView: View {
         if let statusMessage = state.cgmStatusMessage {
             PeripheralMessage(text: statusMessage, color: Color.secondary)
         }
+        // the watch's own link to the sensor: the G7 manager runs it, the page only shows it
+        let host = WatchCGMHost.shared
+        if host.isReadingDirectly {
+            PeripheralMessage(
+                text: host.statusNote ?? watchLinkText(host.lastConnection),
+                color: host.hasSensorProblem || host.statusNote != nil ? Color.yellow : Color.secondary
+            )
+        }
+    }
+
+    private func watchLinkText(_ lastConnection: Date?) -> String {
+        guard let lastConnection else { return String(localized: "Watch reads it: connecting…") }
+        let minutes = max(0, Int(Date().timeIntervalSince(lastConnection) / 60))
+        return String(localized: "Watch reads it: \(minutes) min ago")
     }
 
     /// Sensor lifetime. Sources that report an expiry get a live countdown;

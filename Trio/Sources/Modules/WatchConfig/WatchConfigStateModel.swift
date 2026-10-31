@@ -1,10 +1,13 @@
 import Combine
 import ConnectIQ
+import G7SensorKit
+import LoopKit
 import SwiftUI
 
 extension WatchConfig {
     final class StateModel: BaseStateModel<Provider> {
         @Injected() private var garmin: GarminManager!
+        @Injected() private var fetchGlucoseManager: FetchGlucoseManager!
 
         @Published var units: GlucoseUnits = .mgdL
         @Published var devices: [IQDevice] = []
@@ -12,6 +15,9 @@ extension WatchConfig {
         @Published var showForecastWatch = false
         @Published var showGlucoseBubbleWatch = true
         @Published var useCriticalAlertsWatch = false
+        /// The CGM is a G7, whose "Read on Apple Watch" lets the watch read it.
+        @Published var cgmIsG7 = false
+        @Published var watchReadsSensor = false
 
         /// Garmin watch settings containing all watch-related configuration
         @Published var garminSettings = GarminWatchSettings()
@@ -30,6 +36,14 @@ extension WatchConfig {
             subscribeSetting(\.useCriticalAlertsWatch, on: $useCriticalAlertsWatch) { useCriticalAlertsWatch = $0 }
 
             devices = garmin.devices
+            refreshWatchSensor()
+        }
+
+        /// The G7 manager's own setting is the source; this only shows it.
+        func refreshWatchSensor() {
+            let cgm = fetchGlucoseManager.cgmManager
+            cgmIsG7 = cgm is G7CGMManager
+            watchReadsSensor = (cgm as? DeviceConfigurationSharing)?.isConfigurationSharingEnabled ?? false
         }
 
         /// Prompts the user to select Garmin devices and updates the device list
