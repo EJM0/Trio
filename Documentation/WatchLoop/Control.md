@@ -75,7 +75,8 @@ A transfer that does not complete returns to the state before it, or to the rest
   (rule 1) except carbs, which can no longer be dosed for.
 - **Hand-back.** The watch offers the pump with its last records, resending until acknowledged. The phone stores
   them, takes the pump (30 s), acknowledges, and audits: the pump's total since the grant against the records plus
-  scheduled basal where no temp ran. With complete records a difference is only logged.
+  scheduled basal where no temp ran. As in Loop, each temp ends where the next begins and counts in whole pulses (a
+  temp starts its own pulse clock, so rate × time over-counts it). With complete records a difference is only logged.
 - **Take-back** (tap or silence). The phone takes the pump and sends the stop. The records may be incomplete, so
   insulin the records miss beyond 0.2 U is booked as a bolus now, with reminders after 2 and 4 h; insulin they
   overstate raises a warning.

@@ -117,18 +117,34 @@ enum WatchLoopAudit {
 extension WatchLoopAudit {
     /// The insulin the records account for between `start` and `end`: the doses, and the scheduled basal wherever no
     /// temp basal or suspend covered the time (the pump gives it then without a record), minute by minute.
+    /// As LoopKit/Loop#2545's LoanReconciler: each temp or suspend ends where the next begins (the pump runs one rate
+    /// at a time, whatever end a record still carries), and a temp counts in whole `pulseUnits`, since it starts its
+    /// own pulse clock and rate × time over-counts it. The schedule stays rate × time: its pulse phase is unknown.
     static func recordedInsulin(
         _ doses: [WatchLoopDose],
         basalProfile: [BasalProfileEntry],
         from start: Date,
         to end: Date,
+        pulseUnits: Double? = nil,
         calendar: Calendar = .current
     ) -> Double {
         guard end > start else { return 0 }
-        let given = doses.reduce(0) { $0 + insulin($1, from: start, to: end) }
-        let covered = doses.filter { $0.kind == .tempBasal || $0.kind == .suspend }
-            .map { (max($0.startDate, start), min($0.endDate, end)) }
-            .filter { $0.1 > $0.0 }
+        let boluses = doses.filter { $0.kind == .bolus }.reduce(0) { $0 + insulin($1, from: start, to: end) }
+        let rates = doses.filter { $0.kind == .tempBasal || $0.kind == .suspend }.sorted { $0.startDate < $1.startDate }
+        let spans: [(Date, Date, Double)] = rates.indices.compactMap { index in
+            let dose = rates[index]
+            let until = index + 1 < rates.count ? min(dose.endDate, rates[index + 1].startDate) : dose.endDate
+            let from = max(dose.startDate, start), to = min(until, end)
+            return to > from ? (from, to, dose.kind == .tempBasal ? dose.value : 0) : nil
+        }
+        let temps = spans.reduce(0) { total, span in
+            let hours = span.1.timeIntervalSince(span.0) / 3600
+            guard let pulseUnits, pulseUnits > 0, span.2 > 0 else { return total + span.2 * hours }
+            // the nudge keeps 0.15 / 0.05 = 2.999… from losing a pulse
+            return total + (span.2 * hours / pulseUnits + 1e-9).rounded(.down) * pulseUnits
+        }
+        let given = boluses + temps
+        let covered = spans.map { ($0.0, $0.1) }
         let schedule = basalProfile.sorted { $0.minutes < $1.minutes }
         guard !schedule.isEmpty else { return given }
         var scheduled = 0.0
