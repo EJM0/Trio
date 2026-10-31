@@ -210,7 +210,8 @@ extension Home {
             }
             .background {
                 ZStack {
-                    appState.trioBackgroundColor(for: colorScheme)
+                    // under the status bar too, as `.background(color)` draws it
+                    appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea()
                     if let watchLoop = resolver.watchLoop { WatchLoopHomeGlow(manager: watchLoop) }
                 }
             }
