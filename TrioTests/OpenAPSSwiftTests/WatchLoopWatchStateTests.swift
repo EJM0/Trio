@@ -30,6 +30,31 @@ import Testing
         #expect(state.pending.first?.session == 2)
     }
 
+    @Test("A temp basal reads as the phone's: a duration and a rate at its start, replaced together") func tempBasalPair() {
+        var state = WatchLoopWatchState()
+        func temp(minutes: Double, mutable: Bool) -> WatchLoopDose {
+            WatchLoopDose(
+                kind: .tempBasal,
+                syncIdentifier: "tb",
+                startDate: t0,
+                endDate: t0.addingTimeInterval(minutes * 60),
+                value: 0.5,
+                deliveredUnits: nil,
+                automatic: true,
+                isMutable: mutable
+            )
+        }
+        state.noteDose(temp(minutes: 30, mutable: true), at: t0)
+        state.noteDose(temp(minutes: 10, mutable: false), at: t0.addingTimeInterval(600))
+        let rates = state.history.filter { $0.type == .tempBasal }
+        let durations = state.history.filter { $0.type == .tempBasalDuration }
+        #expect(rates.count == 1)
+        #expect(durations.count == 1)
+        #expect(rates.first?.timestamp == durations.first?.timestamp)
+        #expect(rates.first?.rate == 0.5)
+        #expect(durations.first?.durationMin == 10)
+    }
+
     @Test("The algorithm reads the phone's history and the watch's own, newest first, each once") func pumpHistoryMerged() {
         var state = WatchLoopWatchState()
         let phoneEvent = PumpHistoryEvent(id: "p1", type: .bolus, timestamp: t0.addingTimeInterval(-3600), amount: 1)
