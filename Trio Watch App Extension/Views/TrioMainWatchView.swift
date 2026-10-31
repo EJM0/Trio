@@ -114,13 +114,16 @@ struct TrioMainWatchView: View {
                                         7 // Font .body == 14, so half of default size for the SF Symbol image
                                 )
                         }
-                    }.tag(0)
+                    }
+                    .containerBackground(trioBackgroundColor, for: .tabView)
+                    .tag(0)
                 } else {
                     CombinedGlucoseChartview(
                         state: state,
                         rotationDegrees: rotationDegrees,
                         isWatchStateDated: isWatchStateDated || isSessionUnreachable
                     )
+                    .containerBackground(trioBackgroundColor, for: .tabView)
                     .tag(0)
                 }
 
@@ -131,6 +134,7 @@ struct TrioMainWatchView: View {
                     isScrubbing: $isScrubbingChart,
                     scrubSteps: $chartScrubSteps
                 )
+                .containerBackground(trioBackgroundColor, for: .tabView)
                 .tag(chartPage)
 
                 // Page 3: Pump and CGM peripheral info
@@ -138,17 +142,23 @@ struct TrioMainWatchView: View {
                     state: state,
                     isWatchStateDated: isWatchStateDated || isSessionUnreachable
                 )
+                .containerBackground(trioBackgroundColor, for: .tabView)
                 .tag(peripheralsPage)
 
                 // Page 4: alarm snooze (nightscout/Trio#1576, t1dude)
                 AlarmSnoozeView(state: state)
+                    .containerBackground(trioBackgroundColor, for: .tabView)
                     .tag(snoozePage)
 
                 if let watchLoopPage {
-                    WatchLoopView(session: watchLoop).tag(watchLoopPage)
+                    WatchLoopView(session: watchLoop)
+                        .containerBackground(trioBackgroundColor, for: .tabView)
+                        .tag(watchLoopPage)
                 }
                 if let loopStatusPage {
-                    WatchLoopStatusView(session: watchLoop).tag(loopStatusPage)
+                    WatchLoopStatusView(session: watchLoop)
+                        .containerBackground(trioBackgroundColor, for: .tabView)
+                        .tag(loopStatusPage)
                 }
             }
             .onChange(of: lastPage) { _, _ in
@@ -162,7 +172,7 @@ struct TrioMainWatchView: View {
                 state.useReducedBolus = false
                 state.useSuperBolus = false
             }
-            .background(trioBackgroundColor)
+            // each page draws the phone's gradient: a vertical page view covers anything behind it
             .tabViewStyle(.verticalPage)
             .focused($pagesHaveCrown)
             // only around the pages: a pushed treatment screen keeps its own default focus
