@@ -60,8 +60,7 @@ struct WatchConfigAppleWatchView: BaseView {
                 miniHint: String(localized: "Shows forecast on the Apple Watch"),
                 verboseHint: Text(
                     "Enable this feature to show the forecast on the Apple Watch"
-                ),
-                headerText: String(localized: "Apple Watch Configuration")
+                )
             )
 
             SettingInputSection(
@@ -81,8 +80,7 @@ struct WatchConfigAppleWatchView: BaseView {
                 miniHint: String(localized: "The glucose bubble instead of the combined view on the Apple Watch"),
                 verboseHint: Text(
                     "On, the watch app opens on the glucose bubble. Off, it opens on the combined view of glucose and chart."
-                ),
-                headerText: String(localized: "Apple Watch Configuration")
+                )
             )
 
             SettingInputSection(
@@ -102,8 +100,7 @@ struct WatchConfigAppleWatchView: BaseView {
                 miniHint: String(localized: "The watch’s urgent low alarm sounds through Silent Mode"),
                 verboseHint: Text(
                     "When this is on, the urgent low alarm the watch raises for its own readings sounds even in Silent Mode. The watch asks for permission the first time."
-                ),
-                headerText: String(localized: "Apple Watch Configuration")
+                )
             )
 
             SettingInputSection(
@@ -124,7 +121,7 @@ struct WatchConfigAppleWatchView: BaseView {
                 verboseHint: Text(
                     "When this is on, the watch app has a Watch Loop page. Starting it there hands the pod to the watch: it reads the CGM, loops with Trio's algorithm and your settings, and records what it does. The iPhone doesn't dose until the watch hands the pod back or you take it back. Needs Read on Apple Watch in the CGM's settings."
                 ),
-                headerText: String(localized: "Apple Watch Configuration")
+                headerText: String(localized: "Looping on the Watch")
             )
 
             if state.watchLoopEnabled {
@@ -145,12 +142,12 @@ struct WatchConfigAppleWatchView: BaseView {
                     miniHint: String(localized: "The watch can start from the iPhone’s copy when the iPhone doesn’t answer"),
                     verboseHint: Text(
                         "When this is on, the iPhone leaves a copy of its settings and history with the watch, renewed every 30 minutes and after each change. If the iPhone doesn’t answer a Start, the watch offers to start from that copy. Before its first loop the watch checks the pod’s insulin total and counts anything the copy doesn’t explain as a bolus."
-                    ),
-                    headerText: String(localized: "Apple Watch Configuration")
+                    )
                 )
             }
 
-            if state.watchLoopEnabled {
+            // the fallback starts from the copy Allow Without iPhone leaves
+            if state.watchLoopEnabled, state.watchLoopWithoutPhone {
                 SettingInputSection(
                     decimalValue: $decimalPlaceholder,
                     booleanValue: $state.watchLoopFallback,
@@ -167,9 +164,8 @@ struct WatchConfigAppleWatchView: BaseView {
                     label: String(localized: "Fallback Loop"),
                     miniHint: String(localized: "The watch starts by itself when the iPhone has stopped looping"),
                     verboseHint: Text(
-                        "When this is on and Allow Without iPhone is on, the watch starts the Watch Loop by itself when the iPhone hasn’t looped or read the sensor for 10 minutes, doesn’t answer, and the watch has two fresh readings of its own. Noisy readings, a warming up or failed sensor never start it. It hands the pod back once the iPhone answers again with fresh readings."
-                    ),
-                    headerText: String(localized: "Apple Watch Configuration")
+                        "When this is on, the watch starts the Watch Loop by itself when the iPhone hasn’t looped or read the sensor for 10 minutes, doesn’t answer, and the watch has two fresh readings of its own. Noisy readings, a warming up or failed sensor never start it. It hands the pod back once the iPhone answers again with fresh readings."
+                    )
                 )
             }
 
