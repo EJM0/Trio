@@ -208,13 +208,7 @@ extension Home {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 bottomControls()
             }
-            .background {
-                ZStack {
-                    // under the status bar too, as `.background(color)` draws it
-                    appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea()
-                    if let watchLoop = resolver.watchLoop { WatchLoopHomeGlow(manager: watchLoop) }
-                }
-            }
+            .background(appState.trioBackgroundColor(for: colorScheme))
             .onReceive(
                 resolver.resolve(AlertPermissionsChecker.self)!.$notificationsDisabled,
                 perform: {
@@ -251,6 +245,8 @@ extension Home {
                 }
                 // fixed slot: header state changes never reflow the zones below
                 .frame(height: HomeLayout.headerHeight)
+                // the bubble sits in the middle of the header, so the halo does too
+                .background { if let watchLoop = resolver.watchLoop { WatchLoopHomeGlow(manager: watchLoop) } }
 
                 mealPanel()
                     .frame(height: HomeLayout.mealSlotHeight)
