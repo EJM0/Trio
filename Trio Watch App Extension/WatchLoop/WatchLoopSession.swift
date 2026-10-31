@@ -632,8 +632,20 @@ extension PumpManager {
         }
     }
 
-    /// The pump's own status read, at most `timeout` long. True when it answered.
+    /// The pump's own status read, at most `timeout` long. True when it answered. A real read where the pump offers
+    /// one, as LoopKit/Loop#2545's settle does: `ensureCurrentPumpData` alone hands back a report under six minutes
+    /// old without asking the pod (OmnipodKit's `isPumpDataStale`), and a cycle then took the pod for unreachable.
     func refreshStatus(timeout: TimeInterval) async -> Bool {
+        if let odometer = self as? PumpDeliveryOdometer {
+            return await withCheckedContinuation { continuation in
+                let once = OnceFlag()
+                Task {
+                    let answered = await odometer.refreshDeliveredUnits()
+                    if once.claim() { continuation.resume(returning: answered) }
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + timeout) { if once.claim() { continuation.resume(returning: false) } }
+            }
+        }
         let started = Date()
         let lastSync: Date? = await withCheckedContinuation { continuation in
             let once = OnceFlag()
