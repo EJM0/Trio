@@ -142,12 +142,12 @@ struct WatchConfigAppleWatchView: BaseView {
                     miniHint: String(localized: "The watch can start from the iPhone’s copy when the iPhone doesn’t answer"),
                     verboseHint: Text(
                         "When this is on, the iPhone leaves a copy of its settings and history with the watch, renewed every 30 minutes and after each change. If the iPhone doesn’t answer a Start, the watch offers to start from that copy. Before its first loop the watch checks the pod’s insulin total and counts anything the copy doesn’t explain as a bolus."
-                    ),
-                    headerText: String(localized: "Apple Watch Configuration")
+                    )
                 )
             }
 
-            if state.watchLoopEnabled {
+            // the fallback starts from the copy Allow Without iPhone leaves
+            if state.watchLoopEnabled, state.watchLoopWithoutPhone {
                 SettingInputSection(
                     decimalValue: $decimalPlaceholder,
                     booleanValue: $state.watchLoopFallback,
@@ -164,9 +164,8 @@ struct WatchConfigAppleWatchView: BaseView {
                     label: String(localized: "Fallback Loop"),
                     miniHint: String(localized: "The watch starts by itself when the iPhone has stopped looping"),
                     verboseHint: Text(
-                        "When this is on and Allow Without iPhone is on, the watch starts the Watch Loop by itself when the iPhone hasn’t looped or read the sensor for 10 minutes, doesn’t answer, and the watch has two fresh readings of its own. Noisy readings, a warming up or failed sensor never start it. It hands the pod back once the iPhone answers again with fresh readings."
-                    ),
-                    headerText: String(localized: "Apple Watch Configuration")
+                        "When this is on, the watch starts the Watch Loop by itself when the iPhone hasn’t looped or read the sensor for 10 minutes, doesn’t answer, and the watch has two fresh readings of its own. Noisy readings, a warming up or failed sensor never start it. It hands the pod back once the iPhone answers again with fresh readings."
+                    )
                 )
             }
 
