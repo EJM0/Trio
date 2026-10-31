@@ -119,7 +119,10 @@ extension Home.RootView {
             battery: state.batteryFromPersistence
         )
         .onTapGesture {
-            if state.pumpDisplayState == nil {
+            if resolver.watchLoop?.isWatchInCharge == true {
+                // the watch has the pod: its settings would talk to a pod the phone let go of
+                showWatchLoopTakeBack = true
+            } else if state.pumpDisplayState == nil {
                 // shows user confirmation dialog with pump model choices, then proceeds to setup
                 showPumpSelection.toggle()
             } else {
@@ -127,6 +130,7 @@ extension Home.RootView {
                 state.shouldDisplayPumpSetupSheet.toggle()
             }
         }
+        .modifier(WatchLoopTakeBackOnPump(isPresented: $showWatchLoopTakeBack, manager: resolver.watchLoop))
         // group reservoir/battery/pod into one button so VO reads it as a single control
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)

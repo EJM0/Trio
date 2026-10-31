@@ -146,6 +146,13 @@ extension WatchLoopSession {
         }
         state.lastDetermination = result.determination
         state.lastLoopAt = now
+        publishDisplay()
+        armNotLoopingWatchdog()
+        // the cycle settled the command the driver was waiting on
+        if handBackAfterNextContact {
+            handBackAfterNextContact = false
+            Task { await end() }
+        }
         WatchLogger.shared.info(
             .treatments,
             "Watch Loop cycle (\(reason)): \(result.determination?.rate.map { "\($0) U/h" } ?? "no temp"), SMB \(result.determination?.units ?? 0) U"

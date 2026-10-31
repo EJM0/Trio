@@ -959,15 +959,18 @@ extension MainChartCanvas {
                     .asMmolL
             )
 
-            ForecastView(
-                preprocessedData: state.preprocessedData,
-                minForecast: state.minForecast,
-                maxForecast: state.maxForecast,
-                units: state.units,
-                maxValue: state.maxYAxisValue,
-                forecastDisplayType: state.forecastDisplayType,
-                lastDeterminationDate: state.determinationsFromPersistence.first?.deliverAt ?? .distantPast
-            )
+            // while the watch loops, the phone's last forecast is stale: the chart shows history only
+            if WatchLoopGate.phoneMayDose {
+                ForecastView(
+                    preprocessedData: state.preprocessedData,
+                    minForecast: state.minForecast,
+                    maxForecast: state.maxForecast,
+                    units: state.units,
+                    maxValue: state.maxYAxisValue,
+                    forecastDisplayType: state.forecastDisplayType,
+                    lastDeterminationDate: state.determinationsFromPersistence.first?.deliverAt ?? .distantPast
+                )
+            }
 
             GlucoseChartView(
                 glucoseData: glucose,
