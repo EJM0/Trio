@@ -678,7 +678,13 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         }
         let basalProfile = await storage.retrieveAsync(OpenAPS.Settings.basalProfile, as: [BasalProfileEntry].self) ?? []
         let delivered = latest.units - start
-        let recorded = WatchLoopAudit.recordedInsulin(sessionDoses, basalProfile: basalProfile, from: releasedAt, to: latest.at)
+        let recorded = WatchLoopAudit.recordedInsulin(
+            sessionDoses,
+            basalProfile: basalProfile,
+            from: releasedAt,
+            to: latest.at,
+            pulseUnits: odometer.deliveryPulseUnits
+        )
         // whatever the audit finds is booked or reported here; the check before each dose starts again from now
         defer { verified(latest) }
         switch WatchLoopAudit.compare(delivered: delivered, recorded: recorded) {

@@ -115,6 +115,19 @@ import Testing
         #expect(abs(total - 1.5) < 0.0001)
     }
 
+    @Test("A temp ends where the next begins and counts in whole pulses") func recordedTemps() {
+        let profile = [BasalProfileEntry(start: "00:00", minutes: 0, rate: 0)]
+        let end = t0.addingTimeInterval(3600)
+        // a 1 U/h temp for 30 min, superseded after 10 by a 2 U/h one for 30 min, then the schedule (0 U/h)
+        let first = dose(.tempBasal, value: 1, start: t0, minutes: 30)
+        let second = dose(.tempBasal, value: 2, start: t0.addingTimeInterval(600), minutes: 30)
+        let total = WatchLoopAudit.recordedInsulin([first, second], basalProfile: profile, from: t0, to: end)
+        #expect(abs(total - (1.0 / 6 + 1.0)) < 0.0001)
+        // in 0.05 U pulses: 10 min at 1 U/h is 3 whole pulses (0.15 U), 30 min at 2 U/h 20 (1.0 U)
+        let pulsed = WatchLoopAudit.recordedInsulin([first, second], basalProfile: profile, from: t0, to: end, pulseUnits: 0.05)
+        #expect(abs(pulsed - 1.15) < 0.0001)
+    }
+
     @Test("A dose's identity goes back to the raw bytes it came from") func identity() {
         let raw = Data([0x0A, 0x1B, 0x2C])
         #expect(WatchLoopIdentity.hexEncoded(raw) == "0a1b2c")
