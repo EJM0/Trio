@@ -79,6 +79,13 @@ import Testing
         let end = t0.addingTimeInterval(3600)
         #expect(WatchLoopAudit.insulin(dose(.bolus, value: 2, start: t0, delivered: 1.5), from: t0, to: end) == 1.5)
         #expect(WatchLoopAudit.insulin(dose(.bolus, value: 2, start: t0.addingTimeInterval(-60)), from: t0, to: end) == 0)
+        // a 1 U bolus over two minutes, read one minute in: half on each side of the reading
+        let running = WatchLoopDose(
+            kind: .bolus, syncIdentifier: "b", startDate: t0.addingTimeInterval(-60), endDate: t0.addingTimeInterval(60),
+            value: 1, deliveredUnits: nil, automatic: false, isMutable: true
+        )
+        #expect(WatchLoopAudit.insulin(running, from: t0, to: end) == 0.5)
+        #expect(WatchLoopAudit.insulin(running, from: t0.addingTimeInterval(-3600), to: t0) == 0.5)
         // a 1 U/h temp, half of it inside the stretch
         #expect(
             WatchLoopAudit
