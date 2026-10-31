@@ -7,6 +7,8 @@ struct CarbsInputView: View {
     @Binding var navigationPath: NavigationPath
     @State private var carbsAmount: Double = 0.0 // Needs to be Double due to .digitalCrownRotation() stride
     @FocusState private var isCrownFocused: Bool // Manage crown focus
+    /// While the watch loops, carbs alone dose: confirmed like a bolus (as Loop's carb entry on the watch).
+    @State private var confirmCarbs = false
 
     let state: WatchState
     let continueToBolus: Bool
@@ -93,14 +95,22 @@ struct CarbsInputView: View {
                 if continueToBolus {
                     state.carbsAmount = Int(min(carbsAmount, effectiveCarbsLimit))
                     navigationPath.append(NavigationDestinations.bolusInput)
+                } else if WatchLoopSession.shared.state.phase == .active {
+                    confirmCarbs = true
                 } else {
-                    state.sendCarbsRequest(Int(min(carbsAmount, effectiveCarbsLimit)))
-                    navigationPath.append(NavigationDestinations.acknowledgmentPending)
+                    logCarbs()
                 }
             }
             .buttonStyle(.bordered)
             .tint(.orange)
             .disabled(!(carbsAmount > 0.0) || carbsAmount > effectiveCarbsLimit)
+        }
+        .confirmationDialog(
+            "Log \(Int(min(carbsAmount, effectiveCarbsLimit))) g? The watch doses for them in its next loop.",
+            isPresented: $confirmCarbs,
+            titleVisibility: .visible
+        ) {
+            Button("Log Carbs") { logCarbs() }
         }
         .background(trioBackgroundColor)
         // The clock would crowd the on-board badge in the toolbar.
@@ -110,5 +120,10 @@ struct CarbsInputView: View {
                 OnBoardToolbarBadge(systemImage: "fork.knife", value: state.cob, unit: "g", color: .orange, state: state)
             }
         }
+    }
+
+    private func logCarbs() {
+        state.sendCarbsRequest(Int(min(carbsAmount, effectiveCarbsLimit)))
+        navigationPath.append(NavigationDestinations.acknowledgmentPending)
     }
 }

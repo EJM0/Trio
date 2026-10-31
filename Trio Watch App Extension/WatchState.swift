@@ -171,6 +171,8 @@ import WatchConnectivity
     var forecastConeMin: [Double] = []
     var forecastConeMax: [Double] = []
     var forecastLines: [String: [Double]] = [:] // "iob" / "cob" / "uam" / "zt" -> values
+    /// While the watch loops, IOB, COB, the last loop and the forecast are its own; the phone's are stale.
+    var watchLoopOwnsDisplay = false
     /// Boluses and carbs from the watch's own history (filled once the watch loops).
     var treatmentMarkers: [WatchTreatmentMarker] = []
     /// The phone's carbs and boluses of the last 24 hours, for the big chart while the phone loops.
@@ -368,6 +370,7 @@ import WatchConnectivity
 
     func session(_: WCSession, didReceiveMessage message: [String: Any]) {
         if WatchLogger.shared.handlePhoneMessage(message) { return }
+        WatchLoopSession.phoneHeard()
         if WatchLoopSession.receive(message) { return }
 
         // Ack at top level — no `watchState` wrapper, no staleness check.
@@ -404,6 +407,7 @@ import WatchConnectivity
 
     func session(_: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
         if WatchLogger.shared.handlePhoneMessage(userInfo) { return }
+        WatchLoopSession.phoneHeard()
         if WatchLoopSession.receive(userInfo) { return }
         if handlePeripheralPayload(userInfo) { return }
 
@@ -917,15 +921,15 @@ import WatchConnectivity
             self.delta = delta
         }
 
-        if let iob = message[WatchMessageKeys.iob] as? String {
+        if !watchLoopOwnsDisplay, let iob = message[WatchMessageKeys.iob] as? String {
             self.iob = iob
         }
 
-        if let cob = message[WatchMessageKeys.cob] as? String {
+        if !watchLoopOwnsDisplay, let cob = message[WatchMessageKeys.cob] as? String {
             self.cob = cob
         }
 
-        if let lastLoopTime = message[WatchMessageKeys.lastLoopTime] as? String {
+        if !watchLoopOwnsDisplay, let lastLoopTime = message[WatchMessageKeys.lastLoopTime] as? String {
             self.lastLoopTime = lastLoopTime
             lastLoopDate = lastLoopTime.split(separator: " ").first.flatMap { Int($0) }
                 .map { Date().addingTimeInterval(-Double($0) * 60) }
@@ -1083,7 +1087,7 @@ import WatchConnectivity
             snoozeUntilDate = Date(timeIntervalSince1970: snoozeTimestamp)
         }
 
-        if let forecastPayload = message[WatchMessageKeys.forecastData] as? [String: Any] {
+        if !watchLoopOwnsDisplay, let forecastPayload = message[WatchMessageKeys.forecastData] as? [String: Any] {
             if let startTimestamp = forecastPayload[WatchMessageKeys.forecastStartDate] as? TimeInterval {
                 forecastStartDate = Date(timeIntervalSince1970: startTimestamp)
             }

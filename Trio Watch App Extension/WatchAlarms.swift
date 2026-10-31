@@ -3,12 +3,13 @@ import UserNotifications
 import WatchKit
 
 /// The phone's glucose alarms, sounded on the watch for its own readings: only for a reading the phone hasn't sent,
-/// since the phone alarms on every reading it has. Thresholds are the phone's alarms (`WatchGlucoseRange`).
+/// since the phone alarms on every reading it has; during a Watch Loop session for every one, as the phone's pause.
+/// Thresholds are the phone's alarms (`WatchGlucoseRange`).
 @MainActor final class WatchAlarms {
     static let shared = WatchAlarms()
 
     /// Every watch notification's identifier starts with it, so they show with Trio open on the wrist too.
-    static let notificationPrefix = "trio.watch."
+    nonisolated static let notificationPrefix = "trio.watch."
     /// Safety alarms that bypass Silent Mode when Critical Alerts are on.
     static let criticalKinds: Set<String> = ["urgentLow"]
 
@@ -18,7 +19,7 @@ import WatchKit
         let state = WatchState.shared
         let phoneNewest = state.phoneNewestReading ?? .distantPast
         guard let latest = readings.max(by: { $0.dateString < $1.dateString }),
-              latest.dateString > phoneNewest.addingTimeInterval(60),
+              WatchLoopSession.shared.state.phase == .active || latest.dateString > phoneNewest.addingTimeInterval(60),
               now.timeIntervalSince(latest.dateString) < 12 * 60,
               let value = latest.glucose ?? latest.sgv
         else { return }

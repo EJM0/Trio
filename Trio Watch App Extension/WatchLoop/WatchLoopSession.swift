@@ -31,6 +31,9 @@ import WatchKit
     @ObservationIgnored var cycleRunning = false
     /// Back from off with the pump: no dose until the phone had the time to say it holds it (control rows 12, 13).
     @ObservationIgnored var resumingUntil: Date?
+    @ObservationIgnored var lastHeardFromPhoneAt: Date?
+    /// An End the pod driver refused with a command unconfirmed: offered again after the next contact with the pod.
+    @ObservationIgnored var handBackAfterNextContact = false
 
     private var control: ExclusiveDeviceControl? { pumpManager as? ExclusiveDeviceControl }
 
@@ -68,6 +71,7 @@ import WatchKit
     private func handle(_ envelope: WatchLoopTransport.Envelope) async {
         guard seen.firstSighting(of: envelope.id) else { return }
         WatchLogger.shared.debug(.connectivity, "Watch Loop received \(envelope.message.kind)")
+        armNotHearingFromPhone()
         switch envelope.message {
         case let .grant(grant): await takeOver(grant)
         case let .startRefused(id, reason):
@@ -244,16 +248,20 @@ import WatchKit
         control.releaseControl()
         guard control.isControlReleased else {
             control.takeControl()
+            handBackAfterNextContact = true
             return refuse(WatchLoopControl.unconfirmedCommandRefusal)
         }
+        handBackAfterNextContact = false
         note = String(localized: "Handing the pod back to your iPhone…")
         state.phase = .handingBack
+        armHandBackWatchdog()
         send(.handBack(WatchLoopHandBack(session: state.session, records: state.pending, odometer: odometer)))
         // the phone acknowledges once it has the pump, which can take it up to 30 s
         let deadline = Date().addingTimeInterval(45)
         while state.phase == .handingBack, Date() < deadline {
             try? await Task.sleep(nanoseconds: 1_000_000_000)
         }
+        disarmHandBackWatchdog()
         guard state.phase == .handingBack else { return }
         control.takeControl()
         state.phase = .active
@@ -266,6 +274,10 @@ import WatchKit
     func endSession(note: String?) {
         releasePump()
         state.end()
+        publishDisplay()
+        armNotLoopingWatchdog()
+        armNotHearingFromPhone()
+        disarmHandBackWatchdog()
         self.note = note
         drain()
         WatchLogger.shared.info(.treatments, "Watch Loop session \(state.session) ended")
@@ -338,7 +350,10 @@ import WatchKit
             let decision = WatchLoopControl.decide(.init(device: .watch, trigger: .backFromOff))
             if case let .query(wait, _) = decision { resumingUntil = Date().addingTimeInterval(wait.seconds) }
             WatchLogger.shared.info(.treatments, "Watch Loop session \(state.session) resumed after a relaunch")
-            DispatchQueue.main.async { self.sendStatus(replyTo: nil) }
+            DispatchQueue.main.async {
+                self.sendStatus(replyTo: nil)
+                self.publishDisplay()
+            }
         }
     }
 

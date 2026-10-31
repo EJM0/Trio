@@ -29,6 +29,7 @@ extension Home {
         @State var showQuickPickTreatmentsPicker = false
         @State var showQuickPickTreatmentsNoHistory = false
         @State var showPumpSelection: Bool = false
+        @State var showWatchLoopTakeBack = false
         @State var showCGMSelection: Bool = false
         @State var pendingPump: PumpCatalogEntry?
         @State var pendingCGM: CGMCatalogEntry?

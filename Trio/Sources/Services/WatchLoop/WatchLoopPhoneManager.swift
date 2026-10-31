@@ -28,6 +28,7 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
     @Injected() private var tddStorage: TDDStorage!
     @Injected() private var tempTargetsStorage: TempTargetsStorage!
     @Injected() private var overrideStorage: OverrideStorage!
+    @Injected() private var apsManager: APSManager!
 
     /// Touched on the main actor only.
     @Published private(set) var state: WatchLoopPhoneState {
@@ -298,6 +299,8 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
             next.lastReportAt = max(next.lastReportAt ?? .distantPast, checkpoint.sentAt)
             next.liveStatus = checkpoint.status ?? next.liveStatus
             state = next
+            // the watch's loop is the loop: Home shows it, and Not Looping waits for it
+            if let loopedAt = checkpoint.status?.lastLoopAt { apsManager.lastLoopDateSubject.send(loopedAt) }
         case .standAside:
             await standAside(for: checkpoint.session, startedAt: checkpoint.startedAt)
         default:

@@ -144,6 +144,20 @@ struct WatchLoopHomeGlow: View {
     }
 }
 
+/// The pod tile while the watch has the pod: a tap offers taking it back.
+struct WatchLoopTakeBackOnPump: ViewModifier {
+    @Binding var isPresented: Bool
+    let manager: BaseWatchLoopPhoneManager?
+
+    func body(content: Content) -> some View {
+        if let manager {
+            content.watchLoopTakeBackDialog(isPresented: $isPresented, manager: manager)
+        } else {
+            content
+        }
+    }
+}
+
 extension View {
     /// "Take back the pod?": the phone reaches for it and tells the watch to stop.
     func watchLoopTakeBackDialog(isPresented: Binding<Bool>, manager: BaseWatchLoopPhoneManager) -> some View {

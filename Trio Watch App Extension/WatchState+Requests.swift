@@ -20,8 +20,11 @@ extension WatchState {
     func sendBolusRequest(_ amount: Decimal) {
         if watchLoopTakes({ session in
             Task {
-                if let failure = await session
-                    .bolus(NSDecimalNumber(decimal: amount).doubleValue) { self.reportSendFailure(failure) }
+                if let failure = await session.bolus(NSDecimalNumber(decimal: amount).doubleValue) {
+                    self.reportSendFailure(failure)
+                } else {
+                    self.handleAcknowledgment(success: true, message: String(localized: "Bolus given by the watch."))
+                }
             }
         }) { return }
         guard let session = session, session.isReachable else {
@@ -52,7 +55,12 @@ extension WatchState {
     /// - Parameter acknowledge: false when a bolus follows at once, as the
     ///   phone's combo answers once.
     func sendCarbsRequest(_ amount: Int, _ date: Date = Date(), acknowledge _: Bool = true) {
-        if watchLoopTakes({ $0.addCarbs(Decimal(amount), at: date) }) { return }
+        if watchLoopTakes({ $0.addCarbs(Decimal(amount), at: date) }) {
+            DispatchQueue.main.async {
+                self.handleAcknowledgment(success: true, message: String(localized: "Carbs logged on the watch."))
+            }
+            return
+        }
         guard let session = session, session.isReachable else {
             WatchLogger.shared.info(.treatments, "Carbs request aborted: session unreachable")
             reportSendFailure(String(localized: "iPhone not reachable. Nothing was sent."))

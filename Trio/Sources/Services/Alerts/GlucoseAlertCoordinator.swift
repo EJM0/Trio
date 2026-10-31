@@ -293,6 +293,9 @@ final class GlucoseAlertCoordinator: Injectable {
     /// so `firingAlertIDs` is serialized without an extra `.sync` hop.
     private func fireIfNeeded(_ alarm: GlucoseAlert, valueMgDL: Decimal) {
         dispatchPrecondition(condition: .onQueue(evaluationQueue))
+        // while the watch has the pod it raises the glucose alarms from its own readings, and the phone's forecast
+        // is stale (as LoopKit/Loop#2545 pauses the phone's during a loan)
+        guard WatchLoopGate.phoneMayDose else { return }
         guard !firingAlertIDs.contains(alarm.id) else { return }
         firingAlertIDs.insert(alarm.id)
 

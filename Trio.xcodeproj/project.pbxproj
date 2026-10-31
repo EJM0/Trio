@@ -1263,6 +1263,8 @@
 		C24EF1ED3C23464CB4A6F550 /* WatchLoopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 920D9330AA8043ED91234E43 /* WatchLoopView.swift */; };
 		2B7C6BE33CB041549C28AA89 /* WatchLoopWatchStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69B9CF925E79461A9DBD8424 /* WatchLoopWatchStateTests.swift */; };
 		6CB21B30E46A4BE3912D9B49 /* WatchLoopPhoneViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFBBDD957A914C75B41B26B3 /* WatchLoopPhoneViews.swift */; };
+		9AB8A4B24D1C4F44B7ED4FDD /* WatchLoopSession+Display.swift in Sources */ = {isa = PBXBuildFile; fileRef = 288D9B164D744B168FB9D9BB /* WatchLoopSession+Display.swift */; };
+		D326FBE691FB43A99C16420B /* WatchLoopSession+Watchdog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F628DADACDC497FA622BDFC /* WatchLoopSession+Watchdog.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -2528,6 +2530,8 @@
 		920D9330AA8043ED91234E43 /* WatchLoopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoopView.swift; sourceTree = "<group>"; };
 		69B9CF925E79461A9DBD8424 /* WatchLoopWatchStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoopWatchStateTests.swift; sourceTree = "<group>"; };
 		EFBBDD957A914C75B41B26B3 /* WatchLoopPhoneViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoopPhoneViews.swift; sourceTree = "<group>"; };
+		288D9B164D744B168FB9D9BB /* WatchLoopSession+Display.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchLoopSession+Display.swift"; sourceTree = "<group>"; };
+		4F628DADACDC497FA622BDFC /* WatchLoopSession+Watchdog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchLoopSession+Watchdog.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -5495,6 +5499,8 @@
 		6F469DAADC404FA1BDDF5CC2 /* WatchLoop */ = {
 			isa = PBXGroup;
 			children = (
+				4F628DADACDC497FA622BDFC /* WatchLoopSession+Watchdog.swift */,
+				288D9B164D744B168FB9D9BB /* WatchLoopSession+Display.swift */,
 				327124A7D04B49BFB44CCEF3 /* WatchLoopSession+Cycle.swift */,
 				12AA9DB83E2E4594AA86CCB1 /* WatchLoopSession.swift */,
 			);
@@ -6910,6 +6916,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D326FBE691FB43A99C16420B /* WatchLoopSession+Watchdog.swift in Sources */,
+				9AB8A4B24D1C4F44B7ED4FDD /* WatchLoopSession+Display.swift in Sources */,
 				C24EF1ED3C23464CB4A6F550 /* WatchLoopView.swift in Sources */,
 				F65C6C706D184212AEF567F7 /* WatchLoopWatchState.swift in Sources */,
 				65A4DB3C0E6B4D95A2AD7F76 /* WatchLoopSession+Cycle.swift in Sources */,
