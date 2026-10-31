@@ -17,6 +17,8 @@ protocol FetchGlucoseManager: SourceInfoProvider {
     /// state; see `CGMSensorStateLog`. Call on every reading.
     func reportCGMSensorObservation(_ observation: CGMSensorObservation)
     func startCGMSensorSession(startedAt: Date)
+    /// Recomputes `smoothedGlucose` for the last day's readings.
+    func exponentialSmoothingGlucose(context: NSManagedObjectContext) async
     var glucoseSource: GlucoseSource? { get }
     var cgmManager: CGMManagerUI? { get }
     var cgmGlucoseSourceType: CGMType { get set }
@@ -49,6 +51,7 @@ final class BaseFetchGlucoseManager: FetchGlucoseManager, Injectable {
     @Injected() var pluginCGMManager: PluginManager!
     @Injected() var calibrationService: CalibrationService!
     @Injected() var trioAlertManager: TrioAlertManager!
+    @Injected() private var deviceLogStore: DeviceLogStore!
 
     /// Guarded by `sensorStateLock`.
     @Persisted(key: "cgmSensorStateLog") private var sensorStateLog = CGMSensorStateLog()
@@ -100,7 +103,6 @@ final class BaseFetchGlucoseManager: FetchGlucoseManager, Injectable {
         timer.publisher
             .receive(on: processQueue)
             .flatMap { [self] _ -> AnyPublisher<[BloodGlucose], Never> in
-                debug(.nightscout, "FetchGlucoseManager timer heartbeat")
                 if let glucoseSource = self.glucoseSource {
                     return glucoseSource.fetch(self.timer).eraseToAnyPublisher()
                 } else {
@@ -108,7 +110,7 @@ final class BaseFetchGlucoseManager: FetchGlucoseManager, Injectable {
                 }
             }
             .sink { glucose in
-                debug(.nightscout, "FetchGlucoseManager callback sensor")
+                debug(.cgm, "Glucose source returned \(glucose.count) readings")
                 Publishers.CombineLatest(
                     Just(glucose),
                     Just(self.glucoseStorage.syncDate())
@@ -123,7 +125,7 @@ final class BaseFetchGlucoseManager: FetchGlucoseManager, Injectable {
                                 glucose: newGlucose
                             )
                         } catch {
-                            debug(.deviceManager, "Failed to store glucose: \(error)")
+                            warning(.cgm, "Storing glucose failed", error: error)
                         }
                         self.glucoseStoreAndHeartLock.signal()
                     }
@@ -153,7 +155,7 @@ final class BaseFetchGlucoseManager: FetchGlucoseManager, Injectable {
                     glucose: newGlucose
                 )
             } catch {
-                debug(.deviceManager, "Failed to store glucose from CGM manager: \(error)")
+                warning(.cgm, "Storing glucose from the CGM failed", error: error)
             }
             glucoseStoreAndHeartLock.signal()
         }
@@ -194,10 +196,10 @@ final class BaseFetchGlucoseManager: FetchGlucoseManager, Injectable {
         Task {
             let note = "CGM: " + pending
             if await nightscoutManager.uploadNoteTreatment(note: note) {
-                debug(.deviceManager, "CGM sensor state uploaded to Nightscout: \(note)")
+                debug(.nightscout, "CGM sensor state uploaded: \(note)")
             } else {
                 self.sensorStateLock.perform { self.sensorStateLog.uploadFailed(pending) }
-                debug(.deviceManager, "CGM sensor state upload failed, will retry: \(note)")
+                warning(.nightscout, "CGM sensor state upload failed, will retry: \(note)")
             }
         }
     }
@@ -232,13 +234,17 @@ final class BaseFetchGlucoseManager: FetchGlucoseManager, Injectable {
         let units = settingsManager.settings.units
         let managerName = cgmManager.map { "\(type(of: $0))" } ?? "nil"
         let loopkitUnits: HKUnit = units == .mgdL ? .milligramsPerDeciliter : .millimolesPerLiter
-        print("manager: \(managerName) is changing units to: \(loopkitUnits.description) ")
+        debug(.cgm, "\(managerName) units set to \(loopkitUnits.description)")
         manager?.unitDidChange(to: loopkitUnits)
     }
 
     func updateGlucoseSource(cgmGlucoseSourceType: CGMType, cgmGlucosePluginId: String, newManager: CGMManagerUI?) {
         // if changed, remove all calibrations
         if self.cgmGlucoseSourceType != cgmGlucoseSourceType || self.cgmGlucosePluginId != cgmGlucosePluginId {
+            info(
+                .cgm,
+                "Glucose source changed to \(cgmGlucoseSourceType.rawValue)\(cgmGlucosePluginId.isEmpty ? "" : ", \(cgmGlucosePluginId)")"
+            )
             removeCalibrations()
             cgmManager = nil
             glucoseSource = nil
@@ -251,8 +257,6 @@ final class BaseFetchGlucoseManager: FetchGlucoseManager, Injectable {
         // if plugin, if the same pluginID, no change required because the manager is available
         // if plugin, if not the same pluginID, need to reset the cgmManager
         // if plugin and newManager provides, update cgmManager
-        debug(.apsManager, "plugin : \(String(describing: cgmManager?.pluginIdentifier))")
-
         if let manager = newManager {
             cgmManager = manager
             removeCalibrations()
@@ -275,7 +279,11 @@ final class BaseFetchGlucoseManager: FetchGlucoseManager, Injectable {
             case .simulator:
                 glucoseSource = simulatorSource
             case .plugin:
-                glucoseSource = PluginSource(glucoseStorage: glucoseStorage, glucoseManager: self)
+                glucoseSource = PluginSource(
+                    glucoseStorage: glucoseStorage,
+                    glucoseManager: self,
+                    deviceLogStore: deviceLogStore
+                )
             }
         }
 
@@ -308,17 +316,17 @@ final class BaseFetchGlucoseManager: FetchGlucoseManager, Injectable {
         // Check if sensor emitted calibrations
         let calibrations = glucose.filter { $0.mbg != nil }
         if calibrations.isNotEmpty {
-            debug(.deviceManager, "New calibration found")
+            debug(.cgm, "Storing \(calibrations.count) calibrations")
             try await glucoseStorage.storeGlucose(calibrations)
         }
 
         let backfillGlucose = newGlucose.filter { $0.dateString <= syncDate }
         if backfillGlucose.isNotEmpty {
-            debug(.deviceManager, "Backfilling glucose...")
+            debug(.cgm, "Backfilling \(backfillGlucose.count) glucose readings")
             do {
                 try await glucoseStorage.backfillGlucose(backfillGlucose)
             } catch {
-                debug(.deviceManager, "Unable to backfill glucose: \(error)")
+                warning(.cgm, "Backfilling glucose failed", error: error)
             }
         }
 
@@ -326,9 +334,10 @@ final class BaseFetchGlucoseManager: FetchGlucoseManager, Injectable {
         filtered = glucoseStorage.filterTooFrequentGlucose(filteredByDate, at: syncDate)
 
         if filtered.isNotEmpty {
-            debug(.deviceManager, "New glucose found")
+            debug(.cgm, "New glucose found")
             try await glucoseStorage.storeGlucose(filtered)
         }
+        debug(.cgm, "Storing \(filtered.count) new glucose readings")
 
         // Smooth after calibrations and backfill too, not only after new readings
         if settingsManager.settings.smoothGlucose, calibrations.isNotEmpty || newGlucose.isNotEmpty {
@@ -486,144 +495,18 @@ extension BaseFetchGlucoseManager {
 
                 guard !glucoseReadings.isEmpty else { return }
 
-                // Static method call to avoid self-capture
-                Self.applyExponentialSmoothingAndStore(
-                    glucoseReadings: glucoseReadings,
-                    minimumWindowSize: 4,
-                    maximumAllowedGapMinutes: 12,
-                    xDripErrorGlucose: 38,
-                    minimumSmoothedGlucose: 39,
-                    firstOrderWeight: 0.4,
-                    firstOrderAlpha: 0.5,
-                    secondOrderAlpha: 0.4,
-                    secondOrderBeta: 1.0
-                )
+                let smoothed = GlucoseSmoothing.smoothed(glucoseReadings.map { (date: $0.date, glucose: Int($0.glucose)) })
+                for (object, value) in zip(glucoseReadings, smoothed) {
+                    if let value { object.smoothedGlucose = value as NSDecimalNumber }
+                }
 
                 try context.save()
             }
 
             let duration = Date().timeIntervalSince(startTime)
-            debugPrint(String(format: "Exponential smoothing duration: %0.04fs", duration))
+            debug(.cgm, String(format: "Glucose smoothing took %.3f s", duration))
         } catch {
-            debug(.deviceManager, "Failed to smooth glucose: \(error)")
-        }
-    }
-
-    private static func applyExponentialSmoothingAndStore(
-        glucoseReadings data: [GlucoseStored],
-        minimumWindowSize: Int,
-        maximumAllowedGapMinutes: Int,
-        xDripErrorGlucose: Int,
-        minimumSmoothedGlucose: Decimal,
-        firstOrderWeight: Decimal,
-        firstOrderAlpha: Decimal,
-        secondOrderAlpha: Decimal,
-        secondOrderBeta: Decimal
-    ) {
-        guard !data.isEmpty else { return }
-
-        // Determine the size of the valid most-recent smoothing window.
-        // We walk adjacent pairs from newest -> oldest to preserve the same window semantics
-        // as the original implementation, but avoid manual reverse indexing.
-        var validWindowCount = max(data.count - 1, 0)
-
-        for (recentOffset, pair) in zip(data.dropFirst().reversed(), data.dropLast().reversed()).enumerated() {
-            let (newer, older) = pair
-
-            guard let newerDate = newer.date, let olderDate = older.date else { continue }
-
-            let gapSeconds = newerDate.timeIntervalSince(olderDate)
-            let gapMinutesRounded = Int((gapSeconds / 60.0).rounded())
-
-            if gapMinutesRounded >= maximumAllowedGapMinutes {
-                validWindowCount = recentOffset + 1 // include the more recent reading
-                break
-            }
-
-            // Ported from AAPS: 38 mg/dL may represent an xDrip error state.
-            if Int(newer.glucose) == xDripErrorGlucose {
-                validWindowCount = recentOffset // exclude this 38 value
-                break
-            }
-        }
-
-        // Not enough recent contiguous readings to smooth (e.g. after CGM gap).
-        // IMPORTANT: Only apply fallback to the recent window, not all data.
-        // Otherwise a recent gap would overwrite historical smoothed values.
-        guard validWindowCount >= minimumWindowSize else {
-            let recentWindow = data.suffix(validWindowCount)
-
-            for object in recentWindow {
-                let raw = Decimal(Int(object.glucose))
-                object.smoothedGlucose = max(raw, minimumSmoothedGlucose) as NSDecimalNumber
-            }
-
-            return
-        }
-
-        // Restrict smoothing to the valid most-recent window, still in chronological order.
-        let validWindow = data.suffix(validWindowCount)
-
-        guard let oldest = validWindow.first else { return }
-
-        // ---- 1st order smoothing ----
-        var firstOrderSmoothed: [Decimal] = []
-        firstOrderSmoothed.reserveCapacity(validWindow.count)
-
-        var firstOrderCurrent = Decimal(Int(oldest.glucose))
-        firstOrderSmoothed.append(firstOrderCurrent)
-
-        for sample in validWindow.dropFirst() {
-            let raw = Decimal(Int(sample.glucose))
-            firstOrderCurrent = firstOrderCurrent + firstOrderAlpha * (raw - firstOrderCurrent)
-            firstOrderSmoothed.append(firstOrderCurrent)
-        }
-
-        // ---- 2nd order smoothing ----
-        let secondOrderInput = Array(validWindow)
-        guard secondOrderInput.count >= 2 else { return }
-
-        var secondOrderSmoothed: [Decimal] = []
-        secondOrderSmoothed.reserveCapacity(secondOrderInput.count)
-
-        var secondOrderDeltas: [Decimal] = []
-        secondOrderDeltas.reserveCapacity(secondOrderInput.count)
-
-        var previousSecondOrderSmoothed = Decimal(Int(secondOrderInput[0].glucose))
-        var previousSecondOrderDelta =
-            Decimal(Int(secondOrderInput[1].glucose) - Int(secondOrderInput[0].glucose))
-
-        secondOrderSmoothed.append(previousSecondOrderSmoothed)
-        secondOrderDeltas.append(previousSecondOrderDelta)
-
-        for sample in secondOrderInput.dropFirst() {
-            let raw = Decimal(Int(sample.glucose))
-
-            let nextSmoothed =
-                secondOrderAlpha * raw
-                    + (1 - secondOrderAlpha) * (previousSecondOrderSmoothed + previousSecondOrderDelta)
-
-            let nextDelta =
-                secondOrderBeta * (nextSmoothed - previousSecondOrderSmoothed)
-                    + (1 - secondOrderBeta) * previousSecondOrderDelta
-
-            previousSecondOrderSmoothed = nextSmoothed
-            previousSecondOrderDelta = nextDelta
-
-            secondOrderSmoothed.append(nextSmoothed)
-            secondOrderDeltas.append(nextDelta)
-        }
-
-        // ---- Weighted blend ----
-        let blended = zip(firstOrderSmoothed, secondOrderSmoothed).map { firstOrder, secondOrder in
-            firstOrderWeight * firstOrder + (1 - firstOrderWeight) * secondOrder
-        }
-
-        // Apply to the most recent valid-window readings.
-        for (object, blendedValue) in zip(validWindow, blended) {
-            let rounded = blendedValue.rounded(toPlaces: 0) // nearest integer, ties away from zero
-            let clamped = max(rounded, minimumSmoothedGlucose)
-            object.smoothedGlucose = clamped as NSDecimalNumber
+            warning(.cgm, "Glucose smoothing failed", error: error)
         }
     }
 }

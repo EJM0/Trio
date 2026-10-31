@@ -64,6 +64,139 @@ struct WatchConfigAppleWatchView: BaseView {
                 headerText: String(localized: "Apple Watch Configuration")
             )
 
+            SettingInputSection(
+                decimalValue: $decimalPlaceholder,
+                booleanValue: $state.showGlucoseBubbleWatch,
+                shouldDisplayHint: $shouldDisplayHint,
+                selectedVerboseHint: Binding(
+                    get: { selectedVerboseHint },
+                    set: {
+                        selectedVerboseHint = $0.map { AnyView($0) }
+                        hintLabel = String(localized: "Glucose Bubble on Watch")
+                    }
+                ),
+                units: state.units,
+                type: .boolean,
+                label: String(localized: "Glucose Bubble on Watch"),
+                miniHint: String(localized: "Shows the glucose bubble page on the Apple Watch"),
+                verboseHint: Text(
+                    "When this is on, the watch app opens on a page with the glucose bubble, ahead of the chart."
+                ),
+                headerText: String(localized: "Apple Watch Configuration")
+            )
+
+            SettingInputSection(
+                decimalValue: $decimalPlaceholder,
+                booleanValue: $state.useCriticalAlertsWatch,
+                shouldDisplayHint: $shouldDisplayHint,
+                selectedVerboseHint: Binding(
+                    get: { selectedVerboseHint },
+                    set: {
+                        selectedVerboseHint = $0.map { AnyView($0) }
+                        hintLabel = String(localized: "Critical Alerts on Watch")
+                    }
+                ),
+                units: state.units,
+                type: .boolean,
+                label: String(localized: "Critical Alerts on Watch"),
+                miniHint: String(localized: "The watch’s urgent low alarm sounds through Silent Mode"),
+                verboseHint: Text(
+                    "When this is on, the urgent low alarm the watch raises for its own readings sounds even in Silent Mode. The watch asks for permission the first time."
+                ),
+                headerText: String(localized: "Apple Watch Configuration")
+            )
+
+            SettingInputSection(
+                decimalValue: $decimalPlaceholder,
+                booleanValue: $state.watchLoopEnabled,
+                shouldDisplayHint: $shouldDisplayHint,
+                selectedVerboseHint: Binding(
+                    get: { selectedVerboseHint },
+                    set: {
+                        selectedVerboseHint = $0.map { AnyView($0) }
+                        hintLabel = String(localized: "Watch Loop")
+                    }
+                ),
+                units: state.units,
+                type: .boolean,
+                label: String(localized: "Watch Loop"),
+                miniHint: String(localized: "The watch can take over the pod and loop without the iPhone"),
+                verboseHint: Text(
+                    "When this is on, the watch app has a Watch Loop page. Starting it there hands the pod to the watch: it reads the CGM, loops with Trio's algorithm and your settings, and records what it does. The iPhone doesn't dose until the watch hands the pod back or you take it back. Needs Read on Apple Watch in the CGM's settings."
+                ),
+                headerText: String(localized: "Apple Watch Configuration")
+            )
+
+            if state.watchLoopEnabled {
+                SettingInputSection(
+                    decimalValue: $decimalPlaceholder,
+                    booleanValue: $state.watchLoopWithoutPhone,
+                    shouldDisplayHint: $shouldDisplayHint,
+                    selectedVerboseHint: Binding(
+                        get: { selectedVerboseHint },
+                        set: {
+                            selectedVerboseHint = $0.map { AnyView($0) }
+                            hintLabel = String(localized: "Allow Without iPhone")
+                        }
+                    ),
+                    units: state.units,
+                    type: .boolean,
+                    label: String(localized: "Allow Without iPhone"),
+                    miniHint: String(localized: "The watch can start from the iPhone’s copy when the iPhone doesn’t answer"),
+                    verboseHint: Text(
+                        "When this is on, the iPhone leaves a copy of its settings and history with the watch, renewed every 30 minutes and after each change. If the iPhone doesn’t answer a Start, the watch offers to start from that copy. Before its first loop the watch checks the pod’s insulin total and counts anything the copy doesn’t explain as a bolus."
+                    ),
+                    headerText: String(localized: "Apple Watch Configuration")
+                )
+            }
+
+            if state.watchLoopEnabled {
+                SettingInputSection(
+                    decimalValue: $decimalPlaceholder,
+                    booleanValue: $state.watchLoopFallback,
+                    shouldDisplayHint: $shouldDisplayHint,
+                    selectedVerboseHint: Binding(
+                        get: { selectedVerboseHint },
+                        set: {
+                            selectedVerboseHint = $0.map { AnyView($0) }
+                            hintLabel = String(localized: "Fallback Loop")
+                        }
+                    ),
+                    units: state.units,
+                    type: .boolean,
+                    label: String(localized: "Fallback Loop"),
+                    miniHint: String(localized: "The watch starts by itself when the iPhone has stopped looping"),
+                    verboseHint: Text(
+                        "When this is on and Allow Without iPhone is on, the watch starts the Watch Loop by itself when the iPhone hasn’t looped or read the sensor for 10 minutes, doesn’t answer, and the watch has two fresh readings of its own. Noisy readings, a warming up or failed sensor never start it. It hands the pod back once the iPhone answers again with fresh readings."
+                    ),
+                    headerText: String(localized: "Apple Watch Configuration")
+                )
+            }
+
+            if state.cgmIsG7 {
+                Section(
+                    header: Text("Glucose on the Watch"),
+                    footer: Text(
+                        "The watch reads the G7 itself while “Read on Apple Watch” is on in the G7’s settings. Its own readings show on the watch until the iPhone sends the same reading, with a watch symbol in the glucose bubble."
+                    ),
+                    content: {
+                        HStack {
+                            Text("Read on Apple Watch")
+                            Spacer()
+                            Text(state.watchReadsSensor ? "On" : "Off").foregroundStyle(.secondary)
+                        }
+                        NavigationLink("Change in the G7’s Settings") {
+                            CGMSettings.RootView(
+                                resolver: resolver,
+                                displayClose: false,
+                                bluetoothManager: resolver.resolve(BluetoothStateManager.self)!
+                            )
+                        }
+                        .foregroundStyle(Color.accentColor)
+                    }
+                ).listRowBackground(Color.chart)
+            }
+
             Section(
                 header: Text("Contact Image"),
                 content: {
@@ -78,6 +211,8 @@ struct WatchConfigAppleWatchView: BaseView {
             ).listRowBackground(Color.chart)
         }
         .listSectionSpacing(sectionSpacing)
+        // back from the G7's settings
+        .onAppear { state.refreshWatchSensor() }
         .sheet(isPresented: $shouldDisplayHint) {
             SettingInputHintView(
                 hintDetent: $hintDetent,

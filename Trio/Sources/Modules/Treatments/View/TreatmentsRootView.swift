@@ -696,7 +696,7 @@ extension Treatments {
             // Scanned carbs are carbs, so this goes through the same path as typed macros and
             // follows an already accepted recommendation.
             debug(
-                .bolusState,
+                .bolus,
                 "syncScannedAmounts: carbs=\(state.carbs) scannedCarbs=\(state.scannedCarbs) totalCarbs=\(state.carbs + state.scannedCarbs)"
             )
             Task { @MainActor in

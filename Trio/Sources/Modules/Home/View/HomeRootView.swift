@@ -39,13 +39,13 @@ extension Home {
         @State var showQuickPickTreatmentsPicker = false
         @State var showQuickPickTreatmentsNoHistory = false
         @State var showPumpSelection: Bool = false
+        @State var showWatchLoopTakeBack = false
         @State var showCGMSelection: Bool = false
         @State var pendingPump: PumpCatalogEntry?
         @State var pendingCGM: CGMCatalogEntry?
         @State var showSnoozeSheet: Bool = false
         @State var showManualGlucose: Bool = false
         @State var showReleaseNotes: Bool = false
-        @State var alarmsSnoozeUntil: Date = .distantPast
         @ObservedObject var releaseNotesService = ReleaseNotesService.shared
         // Pull-down-to-force-loop (see HomeRootView+Refresh.swift)
         @State var pullOffset: CGFloat = 0
@@ -181,14 +181,19 @@ extension Home {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 bottomControls()
             }
-            .background(appState.trioBackgroundColor(for: colorScheme))
+            .background {
+                ZStack {
+                    appState.trioBackgroundColor(for: colorScheme)
+                    if let watchLoop = resolver.watchLoop { WatchLoopHomeGlow(manager: watchLoop) }
+                }
+            }
             .onReceive(
                 resolver.resolve(AlertPermissionsChecker.self)!.$notificationsDisabled,
                 perform: {
                     if notificationsDisabled != $0 {
                         notificationsDisabled = $0
                         if notificationsDisabled {
-                            debug(.default, "notificationsDisabled")
+                            debug(.alerts, "Notifications are disabled in iOS settings")
                         }
                     }
                 }
@@ -243,14 +248,9 @@ extension Home {
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .onAppear {
                 configureView()
-                refreshAlarmsSnooze()
             }
             .task {
                 await releaseNotesService.load()
-            }
-            // UserDefaults changes don't invalidate views; refresh on sheet dismissal
-            .onChange(of: showSnoozeSheet) {
-                if !showSnoozeSheet { refreshAlarmsSnooze() }
             }
             .navigationTitle("Home")
             .navigationBarHidden(true)
@@ -354,8 +354,15 @@ extension Home {
             }
         }
 
+        /// iOS 26 with UIDesignRequiresCompatibility draws the classic tab bar, not glass;
+        /// iOS 27 ignores the key
+        private static let designRequiresCompatibility: Bool = {
+            if #available(iOS 27.0, *) { return false }
+            return Bundle.main.object(forInfoDictionaryKey: "UIDesignRequiresCompatibility") as? Bool ?? false
+        }()
+
         @ViewBuilder func tabBar() -> some View {
-            if #available(iOS 26.0, *) {
+            if #available(iOS 26.0, *), !RootView.designRequiresCompatibility {
                 modernTabBar()
             } else {
                 legacyTabBar()
@@ -413,7 +420,7 @@ extension Home {
                 if !isLandscapeChart {
                     GeometryReader { geo in
                         treatmentButton
-                            .position(x: geo.size.width / 2, y: geo.size.height - 52)
+                            .position(treatmentButtonPosition(in: geo))
                     }
                     .ignoresSafeArea(.all, edges: .bottom)
                 }
@@ -436,6 +443,20 @@ extension Home {
             } else if settingsLeftAt == nil, !settingsPath.isEmpty {
                 settingsLeftAt = Date()
             }
+        }
+
+        /// System bars laid out vertically (the tab bar on iPhone Duo) add side safe-area
+        /// insets instead of a bottom one; the button then takes the rail's dead slot
+        /// rather than floating over the content. Trio's iPhone layout is otherwise
+        /// portrait-only, so other iPhones have no side insets and keep the bottom bar.
+        private func treatmentButtonPosition(in geo: GeometryProxy) -> CGPoint {
+            let insets = geo.safeAreaInsets
+            guard UIDevice.current.userInterfaceIdiom == .phone, insets.leading + insets.trailing > 0 else {
+                return CGPoint(x: geo.size.width / 2, y: geo.size.height - 52)
+            }
+            // rail centre is 48 pt in from the screen edge, the dead slot 156 pt up
+            let x = insets.trailing > 0 ? geo.size.width + insets.trailing - 48 : 48 - insets.leading
+            return CGPoint(x: x, y: geo.size.height - 156)
         }
 
         private var modernTabSelection: Binding<Int> {

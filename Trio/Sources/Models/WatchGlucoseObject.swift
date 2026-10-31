@@ -8,6 +8,6 @@ import Foundation
 
 struct WatchGlucoseObject: Hashable, Equatable, Codable {
     let date: Date
-    /// mg/dL
-    let glucose: Int
+    let glucose: Double
+    let color: String
 }

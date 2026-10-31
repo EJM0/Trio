@@ -1735,16 +1735,19 @@ extension MainChartCanvas {
                 viewContext: context
             )
 
-            ForecastView(
-                preprocessedData: state.preprocessedData,
-                minForecast: state.minForecast,
-                maxForecast: state.maxForecast,
-                units: state.units,
-                maxValue: state.maxYAxisValue,
-                forecastDisplayType: state.forecastDisplayType,
-                lastDeterminationDate: state.determinationsFromPersistence.first?.deliverAt ?? .distantPast,
-                chartEndDate: state.endMarker
-            )
+            // while the watch loops, the phone's last forecast is stale: the chart shows history only
+            if WatchLoopGate.phoneMayDose {
+                ForecastView(
+                    preprocessedData: state.preprocessedData,
+                    minForecast: state.minForecast,
+                    maxForecast: state.maxForecast,
+                    units: state.units,
+                    maxValue: state.maxYAxisValue,
+                    forecastDisplayType: state.forecastDisplayType,
+                    lastDeterminationDate: state.determinationsFromPersistence.first?.deliverAt ?? .distantPast,
+                    chartEndDate: state.endMarker
+                )
+            }
         }
         .frame(width: canvasWidth, height: mainHeight)
         .chartXScale(domain: windowStart ... windowEnd)

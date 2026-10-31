@@ -171,7 +171,7 @@ extension BaseScaleManager: CBCentralManagerDelegate {
     }
 
     func centralManager(_: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        debug(.service, "Scale connected")
+        debug(.treatments, "Scale connected")
         onConnectionChange?(true)
         peripheral.discoverServices([Self.scaleService, Self.batteryService])
     }
@@ -181,7 +181,7 @@ extension BaseScaleManager: CBCentralManagerDelegate {
     }
 
     func centralManager(_: CBCentralManager, didDisconnectPeripheral _: CBPeripheral, error: Error?) {
-        debug(.service, "Scale disconnected: \(error?.localizedDescription ?? "on request")")
+        debug(.treatments, "Scale disconnected: \(error?.localizedDescription ?? "on request")")
         control = nil
         onConnectionChange?(false)
         if isStreaming { start() }

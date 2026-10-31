@@ -7,21 +7,27 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var currentGlucoseColorString: String?
     var trend: String?
     var delta: String?
-    /// mg/dL, oldest first; the watch converts and colors them.
     var glucoseValues: [WatchGlucoseObject] = []
-    /// mg/dL of the glucose range and the current target, and the color scheme the watch colors the readings by.
-    var glucoseRangeLow: Decimal = 70
-    var glucoseRangeHigh: Decimal = 180
-    var glucoseRangeTarget: Decimal = 100
-    var glucoseColorScheme: String = GlucoseColorScheme.staticColor.rawValue
+    var glucoseWindowStart: Date? = nil
+    var glucoseSignature: String = ""
     var minYAxisValue: Decimal = 39.0
     var maxYAxisValue: Decimal = 200.0
     var units: GlucoseUnits = .mgdL
     var iob: String?
     var cob: String?
     var lastLoopTime: String?
+    var phoneLastLoopDate: Date? = nil
     var overridePresets: [OverridePresetWatch] = []
     var tempTargetPresets: [TempTargetPresetWatch] = []
+    /// The last 24 hours' carb entries (without fat and protein equivalents), boluses and SMBs, times only: the
+    /// markers on the watch's big chart.
+    var chartCarbs: [Date] = []
+    var chartBoluses: [Date] = []
+    var chartSMBs: [Date] = []
+    /// IOB and COB at each loop of the last 24 hours, for the big chart's scrub line.
+    var chartIobCobDates: [Date] = []
+    var chartIob: [Double] = []
+    var chartCob: [Double] = []
 
     // Safety limits
     var maxBolus: Decimal = 10.0
@@ -59,26 +65,41 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     // Forecast options
     var showForecast: Bool = false
     var isForecastCone: Bool = false
+    var showGlucoseBubble: Bool = true
+    /// Latest CGM export while the watch keeps its own sensor link; nil until the phone has loaded its CGM manager.
+    var watchSensorConfiguration: Data? = nil
+    /// Explicit setting, sent even when the phone has not loaded a CGM manager yet.
+    var watchReadsSensor: Bool = true
+    var watchLoopEnabled: Bool = false
+    var watchLoopWithoutPhone: Bool = false
+    var watchLoopFallback: Bool = false
+    var glucoseRangeLow: Decimal = 70
+    var glucoseRangeHigh: Decimal = 180
+    var glucoseRangeTarget: Decimal = 100
+    var glucoseColorScheme: String = GlucoseColorScheme.staticColor.rawValue
     var forecastStartDate: Date? = nil
     var forecastConeMin: [Double] = []
     var forecastConeMax: [Double] = []
     var forecastLines: [String: [Double]] = [:] // "iob" / "cob" / "uam" / "zt" -> values
 
+    var snoozeUntilDate: Date = .distantPast
+
     static func == (lhs: WatchState, rhs: WatchState) -> Bool {
         // Split into groups: a single `&&` chain over this many comparisons
         // blows past the type checker's expression budget.
-        let glucoseValuesAreEqual: Bool = lhs.glucoseValues == rhs.glucoseValues
-        let glucoseColoringIsEqual: Bool = lhs.glucoseRangeLow == rhs.glucoseRangeLow &&
-            lhs.glucoseRangeHigh == rhs.glucoseRangeHigh &&
-            lhs.glucoseRangeTarget == rhs.glucoseRangeTarget &&
-            lhs.glucoseColorScheme == rhs.glucoseColorScheme
+        // `elementsEqual` covers the count check. Closure parameters are typed
+        // explicitly: leaving them to inference is what makes this comparison
+        // expensive enough to stall the type checker.
+        let glucoseValuesAreEqual: Bool = lhs.glucoseValues
+            .elementsEqual(rhs.glucoseValues) { (a: WatchGlucoseObject, b: WatchGlucoseObject) -> Bool in
+                a.date == b.date && a.glucose == b.glucose && a.color == b.color
+            }
 
         let glucoseIsEqual = lhs.date == rhs.date &&
             lhs.currentGlucose == rhs.currentGlucose &&
             lhs.trend == rhs.trend &&
             lhs.delta == rhs.delta &&
             glucoseValuesAreEqual &&
-            glucoseColoringIsEqual &&
             lhs.minYAxisValue == rhs.minYAxisValue &&
             lhs.maxYAxisValue == rhs.maxYAxisValue &&
             lhs.units == rhs.units
@@ -86,8 +107,16 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         let treatmentsAreEqual = lhs.iob == rhs.iob &&
             lhs.cob == rhs.cob &&
             lhs.lastLoopTime == rhs.lastLoopTime &&
+            lhs.phoneLastLoopDate == rhs.phoneLastLoopDate &&
             lhs.overridePresets == rhs.overridePresets &&
             lhs.tempTargetPresets == rhs.tempTargetPresets
+
+        let chartMarkersAreEqual = lhs.chartCarbs == rhs.chartCarbs &&
+            lhs.chartBoluses == rhs.chartBoluses &&
+            lhs.chartSMBs == rhs.chartSMBs &&
+            lhs.chartIobCobDates == rhs.chartIobCobDates &&
+            lhs.chartIob == rhs.chartIob &&
+            lhs.chartCob == rhs.chartCob
 
         let limitsAreEqual = lhs.maxBolus == rhs.maxBolus &&
             lhs.maxCarbs == rhs.maxCarbs &&
@@ -97,11 +126,22 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
             lhs.confirmBolusFaster == rhs.confirmBolusFaster
 
         let forecastIsEqual = lhs.showForecast == rhs.showForecast &&
+            lhs.showGlucoseBubble == rhs.showGlucoseBubble &&
+            lhs.watchSensorConfiguration == rhs.watchSensorConfiguration &&
+            lhs.watchReadsSensor == rhs.watchReadsSensor &&
+            lhs.watchLoopEnabled == rhs.watchLoopEnabled &&
+            lhs.watchLoopWithoutPhone == rhs.watchLoopWithoutPhone &&
+            lhs.watchLoopFallback == rhs.watchLoopFallback &&
+            lhs.glucoseRangeLow == rhs.glucoseRangeLow &&
+            lhs.glucoseRangeHigh == rhs.glucoseRangeHigh &&
+            lhs.glucoseRangeTarget == rhs.glucoseRangeTarget &&
+            lhs.glucoseColorScheme == rhs.glucoseColorScheme &&
             lhs.isForecastCone == rhs.isForecastCone &&
             lhs.forecastStartDate == rhs.forecastStartDate &&
             lhs.forecastConeMin == rhs.forecastConeMin &&
             lhs.forecastConeMax == rhs.forecastConeMax &&
-            lhs.forecastLines == rhs.forecastLines
+            lhs.forecastLines == rhs.forecastLines &&
+            lhs.snoozeUntilDate == rhs.snoozeUntilDate
 
         let pumpIsEqual = lhs.pumpName == rhs.pumpName &&
             lhs.pumpReservoir == rhs.pumpReservoir &&
@@ -116,8 +156,8 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
             lhs.cgmProgressState == rhs.cgmProgressState &&
             lhs.cgmStatusMessage == rhs.cgmStatusMessage
 
-        return glucoseIsEqual && treatmentsAreEqual && limitsAreEqual && forecastIsEqual && pumpIsEqual &&
-            cgmIsEqual
+        return glucoseIsEqual && treatmentsAreEqual && chartMarkersAreEqual && limitsAreEqual && forecastIsEqual &&
+            pumpIsEqual && cgmIsEqual
     }
 
     func hash(into hasher: inout Hasher) {
@@ -125,19 +165,26 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(currentGlucose)
         hasher.combine(trend)
         hasher.combine(delta)
-        hasher.combine(glucoseValues)
-        hasher.combine(glucoseRangeLow)
-        hasher.combine(glucoseRangeHigh)
-        hasher.combine(glucoseRangeTarget)
-        hasher.combine(glucoseColorScheme)
+        for value in glucoseValues {
+            hasher.combine(value.date)
+            hasher.combine(value.glucose)
+            hasher.combine(value.color)
+        }
         hasher.combine(minYAxisValue)
         hasher.combine(maxYAxisValue)
         hasher.combine(units)
         hasher.combine(iob)
         hasher.combine(cob)
         hasher.combine(lastLoopTime)
+        hasher.combine(phoneLastLoopDate)
         hasher.combine(overridePresets)
         hasher.combine(tempTargetPresets)
+        hasher.combine(chartCarbs)
+        hasher.combine(chartBoluses)
+        hasher.combine(chartSMBs)
+        hasher.combine(chartIobCobDates)
+        hasher.combine(chartIob)
+        hasher.combine(chartCob)
         hasher.combine(maxBolus)
         hasher.combine(maxCarbs)
         hasher.combine(maxFat)
@@ -145,6 +192,16 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(bolusIncrement)
         hasher.combine(confirmBolusFaster)
         hasher.combine(showForecast)
+        hasher.combine(showGlucoseBubble)
+        hasher.combine(watchSensorConfiguration)
+        hasher.combine(watchReadsSensor)
+        hasher.combine(watchLoopEnabled)
+        hasher.combine(watchLoopWithoutPhone)
+        hasher.combine(watchLoopFallback)
+        hasher.combine(glucoseRangeLow)
+        hasher.combine(glucoseRangeHigh)
+        hasher.combine(glucoseRangeTarget)
+        hasher.combine(glucoseColorScheme)
         hasher.combine(isForecastCone)
         hasher.combine(forecastStartDate)
         hasher.combine(forecastConeMin)
@@ -164,5 +221,6 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(cgmProgressPercent)
         hasher.combine(cgmProgressState)
         hasher.combine(cgmStatusMessage)
+        hasher.combine(snoozeUntilDate)
     }
 }

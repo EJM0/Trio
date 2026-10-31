@@ -62,6 +62,7 @@ struct GlucoseAlertEditorView: View {
                 AlarmAudioSection(
                     playsSound: $working.playsSound,
                     soundFilename: $working.soundFilename,
+                    scope: .glucose(working.type),
                     trim: AlarmTrimControls(
                         trimsSound: $working.trimsSound,
                         mode: $working.soundTrim,

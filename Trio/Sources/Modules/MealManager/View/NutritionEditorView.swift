@@ -545,7 +545,7 @@ struct MealPhotoGenerationSheet: ViewModifier {
                 content.imagePlaygroundSheet(isPresented: $isPresented, concept: concept) { url in
                     // The sheet writes the result to a temporary file and hands over the URL.
                     guard let data = try? Data(contentsOf: url), let image = UIImage(data: data) else {
-                        debug(.default, "\(DebuggingIdentifiers.failed) Could not read generated image at \(url)")
+                        debug(.ui, "\(DebuggingIdentifiers.failed) Could not read generated image at \(url)")
                         return
                     }
                     onImage(image)

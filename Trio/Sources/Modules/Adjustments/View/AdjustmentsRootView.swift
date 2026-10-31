@@ -154,6 +154,7 @@ extension Adjustments {
                             Task {
                                 // Save cancelled Override in OverrideRunStored Entity
                                 // Cancel ALL active Override
+                                info(.treatments, "Override stopped")
                                 await state.disableAllActiveOverrides(createOverrideRunEntry: true)
                             }
                         }
@@ -168,6 +169,7 @@ extension Adjustments {
                             Task {
                                 // Save cancelled Temp Targets in TempTargetRunStored Entity
                                 // Cancel ALL active Temp Targets
+                                info(.treatments, "Temp target stopped")
                                 await state.disableAllActiveTempTargets(createTempTargetRunEntry: true)
                                 // Update View
                                 state.updateLatestTempTargetConfiguration()

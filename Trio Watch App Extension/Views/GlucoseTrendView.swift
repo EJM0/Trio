@@ -64,6 +64,19 @@ struct GlucoseTrendView: View {
                             .font(.system(.caption))
                             .foregroundStyle(.secondary)
                     }
+
+                    // where the reading comes from, a sensor problem first (Kristin Kandschur's feature/untethered-pr-plus)
+                    if WatchCGMHost.shared.hasSensorProblem {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.yellow)
+                            .accessibilityLabel("Sensor problem: see the sensor page")
+                    } else if WatchCGMHost.shared.isReadingDirectly, !isWatchStateDated {
+                        Image(systemName: state.newestReadingIsOwn ? "applewatch" : "iphone")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .accessibilityLabel(state.newestReadingIsOwn ? "Reading from the watch" : "Reading from the iPhone")
+                    }
                 }
             }
 

@@ -233,7 +233,9 @@ struct MinimizedGlucoseChartView: View {
 
     var glucosePointSize: CGFloat {
         switch timeWindow {
-        case .threeHours: return 18
+        // one hour is the full-screen chart's only; this one cycles from three hours
+        case .oneHour,
+             .threeHours: return 18
         case .sixHours: return 14
         case .twelveHours: return 10
         case .twentyFourHours: return 6
@@ -295,6 +297,8 @@ struct MinimizedGlucoseChartView: View {
                     .foregroundStyle(reading.color)
                     .symbolSize(glucosePointSize)
                 }
+
+                TreatmentMarks(markers: state.treatmentMarkers, glucose: filteredValues)
 
                 if state.showForecast {
                     if state.isForecastCone {

@@ -4,9 +4,29 @@ import WatchKit
 
 struct TrioMainWatchView: View {
     @State private var state = WatchState.shared
+    @State private var watchLoop = WatchLoopSession.shared
+
+    // Pages in order; the bubble page is a phone setting, then chart, devices and alarm snooze, then the Watch Loop.
+    private var bubblePage: Int? { state.showGlucoseBubble ? 1 : nil }
+    private var chartPage: Int { bubblePage.map { $0 + 1 } ?? 1 }
+    private var peripheralsPage: Int { chartPage + 1 }
+    private var snoozePage: Int { peripheralsPage + 1 }
+    /// The phone's setting off: no Watch Loop page, but a running session keeps it.
+    private var watchLoopPage: Int? { state.watchLoopEnabled || watchLoop.state.phase != .idle ? snoozePage + 1 : nil }
+    private var loopStatusPage: Int? { watchLoop.state.phase == .active ? watchLoopPage.map { $0 + 1 } : nil }
+    private var lastPage: Int { loopStatusPage ?? watchLoopPage ?? snoozePage }
 
     // misc
     @State private var currentPage: Int = 0
+    /// Scrubbing the chart with the crown (see GlucoseChartView).
+    @State private var isScrubbingChart = false
+    @State private var chartScrubSteps = 0.0
+    /// The pages hold the crown, except while the chart scrubs. The chart dropping its focus didn't hand the crown
+    /// back: nothing had it and the pages didn't turn until a swipe. So the pages take it again, by their binding,
+    /// and the focus is settled again within them as at launch.
+    @FocusState private var pagesHaveCrown: Bool
+    @Namespace private var pagesFocusScope
+    @Environment(\.resetFocus) private var resetFocus
     @State private var rotationDegrees: Double = 0.0
     @State private var showingTempTargetSheet = false
 
@@ -32,6 +52,11 @@ struct TrioMainWatchView: View {
         }
         guard let lastUpdateTimestamp = state.lastWatchStateUpdate else { return true }
         return now.timeIntervalSince1970 - lastUpdateTimestamp > 5 * 60
+    }
+
+    /// Treatments and IOB/COB rely on the phone's data.
+    private var isPhoneDataUnusable: Bool {
+        isWatchStateDated || isSessionUnreachable
     }
 
     var isSessionUnreachable: Bool {
@@ -72,45 +97,64 @@ struct TrioMainWatchView: View {
                     isWatchStateDated: isWatchStateDated || isSessionUnreachable
                 )
                 .tag(0)
-                // Page 2: Current glucose trend in "BG bobble"
-                ZStack {
-                    GlucoseTrendView(
-                        state: state,
-                        rotationDegrees: rotationDegrees,
-                        isWatchStateDated: isWatchStateDated || isSessionUnreachable
-                    )
+                // Page 2: Current glucose trend in "BG bobble", unless turned off on the phone
+                if let bubblePage {
+                    ZStack {
+                        GlucoseTrendView(
+                            state: state,
+                            rotationDegrees: rotationDegrees,
+                            isWatchStateDated: isWatchStateDated || isSessionUnreachable
+                        )
 
-                    if state.showSyncingAnimation {
-                        Image(systemName: "iphone.radiowaves.left.and.right")
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(Color.primary, Color.tabBar, Color.clear)
-                            .symbolEffect(
-                                .variableColor.iterative,
-                                options: .repeating,
-                                value: state.showSyncingAnimation
-                            )
-                            .position(
-                                x: 20,
-                                y: (WKInterfaceDevice.current().screenBounds.height / 4) -
-                                    7 // Font .body == 14, so half of default size for the SF Symbol image
-                            )
-                    }
-                }.tag(1)
+                        if state.showSyncingAnimation {
+                            Image(systemName: "iphone.radiowaves.left.and.right")
+                                .symbolRenderingMode(.palette)
+                                .foregroundStyle(Color.primary, Color.tabBar, Color.clear)
+                                .symbolEffect(
+                                    .variableColor.iterative,
+                                    options: .repeating,
+                                    value: state.showSyncingAnimation
+                                )
+                                .position(
+                                    x: 20,
+                                    y: (WKInterfaceDevice.current().screenBounds.height / 4) -
+                                        7 // Font .body == 14, so half of default size for the SF Symbol image
+                                )
+                        }
+                    }.tag(bubblePage)
+                }
 
                 // Page 3: Glucose chart
                 GlucoseChartView(
                     state: state,
-                    glucoseValues: state.glucoseValues
+                    glucoseValues: state.glucoseValues,
+                    isScrubbing: $isScrubbingChart,
+                    scrubSteps: $chartScrubSteps
                 )
-                .tag(2)
+                .tag(chartPage)
 
                 // Page 4: Pump and CGM peripheral info
                 PeripheralsView(
                     state: state,
                     isWatchStateDated: isWatchStateDated || isSessionUnreachable
                 )
-                .tag(3)
+                .tag(peripheralsPage)
+
+                // Page 4: alarm snooze (nightscout/Trio#1576, t1dude)
+                AlarmSnoozeView(state: state)
+                    .tag(snoozePage)
+
+                if let watchLoopPage {
+                    WatchLoopView(session: watchLoop).tag(watchLoopPage)
+                }
+                if let loopStatusPage {
+                    WatchLoopStatusView(session: watchLoop).tag(loopStatusPage)
+                }
             }
+            .onChange(of: lastPage) { _, _ in
+                if currentPage > lastPage { currentPage = lastPage } }
+            .onChange(of: state.showGlucoseBubble) { _, _ in
+                if currentPage > lastPage { currentPage = lastPage } }
             .onAppear {
                 /// Hard reset variables when main view appears
                 /// Reset `bolusAmount` and `recommendedBolus` to ensure no stale / old value is set when user opens bolus input or meal combo the next time.
@@ -122,7 +166,24 @@ struct TrioMainWatchView: View {
             }
             .background(trioBackgroundColor)
             .tabViewStyle(.verticalPage)
-            .digitalCrownRotation($currentPage.doubleBinding(), from: 0, through: 3, by: 1)
+            .focused($pagesHaveCrown)
+            // only around the pages: a pushed treatment screen keeps its own default focus
+            .focusScope(pagesFocusScope)
+            .digitalCrownRotation($currentPage.doubleBinding(), from: 0, through: Double(lastPage), by: 1)
+            .modifier(ChartScrubEnd(
+                isScrubbing: $isScrubbingChart,
+                scrubSteps: $chartScrubSteps,
+                currentPage: currentPage,
+                chartPage: chartPage
+            ))
+            // scrubbing over: the crown back to the pages, once the chart has let go of it
+            .onChange(of: isScrubbingChart) { _, scrubbing in
+                guard !scrubbing else { return }
+                DispatchQueue.main.async {
+                    pagesHaveCrown = true
+                    resetFocus(in: pagesFocusScope)
+                }
+            }
             .onChange(of: state.trend) { _, newTrend in
                 withAnimation {
                     updateRotation(for: newTrend)
@@ -134,7 +195,7 @@ struct TrioMainWatchView: View {
                         Image(systemName: "syringe.fill")
                             .foregroundStyle(Color.insulin)
 
-                        Text(isWatchStateDated || isSessionUnreachable ? "--" : state.iob ?? "--")
+                        Text(isPhoneDataUnusable ? "--" : state.iob ?? "--")
                             .foregroundStyle(isWatchStateDated ? Color.secondary : Color.white)
                             .frame(alignment: .leading)
                             .minimumScaleFactor(0.5)
@@ -146,41 +207,44 @@ struct TrioMainWatchView: View {
                         Image(systemName: "fork.knife")
                             .foregroundStyle(Color.orange)
 
-                        Text(isWatchStateDated || isSessionUnreachable ? "--" : state.cob ?? "--")
-                            .foregroundStyle(isWatchStateDated || isSessionUnreachable ? Color.secondary : Color.white)
+                        Text(isPhoneDataUnusable ? "--" : state.cob ?? "--")
+                            .foregroundStyle(isPhoneDataUnusable ? Color.secondary : Color.white)
                             .frame(alignment: .trailing)
                             .minimumScaleFactor(0.5)
                     }.font(.caption2)
                 }
 
                 ToolbarItemGroup(placement: .bottomBar) {
-                    Button {
-                        showingOverrideSheet = true
-                    } label: {
-                        Image(systemName: "clock.arrow.2.circlepath")
-                            .foregroundStyle(Color.primary, isOverrideActive ? Color.primary : Color.purple)
-                    }
-                    .tint(isOverrideActive ? Color.purple : nil)
-                    .disabled(isWatchStateDated || isSessionUnreachable)
+                    if ![peripheralsPage, snoozePage].contains(currentPage) {
+                        // the Devices and alarm snooze pages have no treatment controls
+                        Button {
+                            showingOverrideSheet = true
+                        } label: {
+                            Image(systemName: "clock.arrow.2.circlepath")
+                                .foregroundStyle(Color.primary, isOverrideActive ? Color.primary : Color.purple)
+                        }
+                        .tint(isOverrideActive ? Color.purple : nil)
+                        .disabled(isPhoneDataUnusable)
 
-                    Button {
-                        showingTreatmentMenuSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .foregroundStyle(Color.bgDarkerDarkBlue)
-                    }
-                    .controlSize(.large)
-                    .buttonStyle(WatchOSButtonStyle(deviceType: state.deviceType))
-                    .disabled(isWatchStateDated || isSessionUnreachable)
+                        Button {
+                            showingTreatmentMenuSheet = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .foregroundStyle(Color.bgDarkerDarkBlue)
+                        }
+                        .controlSize(.large)
+                        .buttonStyle(WatchOSButtonStyle(deviceType: state.deviceType))
+                        .disabled(isPhoneDataUnusable)
 
-                    Button {
-                        showingTempTargetSheet = true
-                    } label: {
-                        Image(systemName: "target")
-                            .foregroundStyle(isTempTargetActive ? Color.primary : Color.loopGreen.opacity(0.75))
+                        Button {
+                            showingTempTargetSheet = true
+                        } label: {
+                            Image(systemName: "target")
+                                .foregroundStyle(isTempTargetActive ? Color.primary : Color.loopGreen.opacity(0.75))
+                        }
+                        .tint(isTempTargetActive ? Color.loopGreen.opacity(0.75) : nil)
+                        .disabled(isPhoneDataUnusable)
                     }
-                    .tint(isTempTargetActive ? Color.loopGreen.opacity(0.75) : nil)
-                    .disabled(isWatchStateDated || isSessionUnreachable)
                 }
             }
             .fullScreenCover(isPresented: $showingTreatmentMenuSheet) {
@@ -326,4 +390,36 @@ struct TrioMainWatchView: View {
 
 #Preview {
     TrioMainWatchView()
+}
+
+/// Ends the chart's scrubbing (GlucoseChartView), which then hands the crown back to the pages: by turning the
+/// crown back past now, after 10 seconds without a turn, or on leaving the chart page. A tap on the chart ends it too.
+/// From Kristin Kandschur's feature/untethered-plus (74732bde4, f5033e743).
+struct ChartScrubEnd: ViewModifier {
+    @Binding var isScrubbing: Bool
+    @Binding var scrubSteps: Double
+    let currentPage: Int
+    /// The bubble page is a phone setting, so the chart's page moves.
+    let chartPage: Int
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: scrubSteps) { _, steps in
+                if isScrubbing, steps < 0 { stop() }
+            }
+            .onChange(of: currentPage) { _, page in
+                if page != chartPage, isScrubbing { stop() }
+            }
+            // restarts with every turn; 10 s still ends it
+            .task(id: isScrubbing ? scrubSteps : -2) {
+                guard isScrubbing else { return }
+                try? await Task.sleep(for: .seconds(10))
+                if !Task.isCancelled, isScrubbing { stop() }
+            }
+    }
+
+    private func stop() {
+        withAnimation { isScrubbing = false }
+        scrubSteps = 0
+    }
 }
