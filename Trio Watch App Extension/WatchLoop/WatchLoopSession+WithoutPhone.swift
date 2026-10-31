@@ -88,7 +88,8 @@ extension WatchLoopSession {
             WatchLoopAudit.doses(copy.pumpHistory, now: reading.at) { pump.estimatedDuration(toBolus: $0) },
             basalProfile: copy.basalProfile,
             from: copiedAt,
-            to: reading.at
+            to: reading.at,
+            pulseUnits: odometer.deliveryPulseUnits
         )
         guard case let .missing(units) = WatchLoopAudit.compare(delivered: reading.units - copied, recorded: recorded)
         else { return }
@@ -121,7 +122,8 @@ extension WatchLoopSession {
             WatchLoopAudit.doses(state.pumpHistory, now: reading.at) { pump.estimatedDuration(toBolus: $0) },
             basalProfile: grant.basalProfile,
             from: since,
-            to: reading.at
+            to: reading.at,
+            pulseUnits: odometer.deliveryPulseUnits
         )
         state.verifiedDelivered = reading.units
         state.verifiedAt = reading.at
