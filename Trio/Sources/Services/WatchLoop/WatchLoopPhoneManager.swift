@@ -9,6 +9,13 @@ import WatchConnectivity
 /// The phone's side of the Watch Loop: it lends the pump to the watch, stores what the watch records, and takes the
 /// pump back (after LoopKit/Loop#2545's PodLoanPhoneController). Every decision about who controls the pump comes from
 /// `WatchLoopControl`; this carries them out.
+enum WatchLoopRemoteAnswer {
+    case delivered(String)
+    case refused(String)
+    /// Nothing heard within the wait: the watch may still act on it until the command is 10 minutes old.
+    case noAnswer
+}
+
 protocol WatchLoopPhoneManager: AnyObject {
     /// A Watch Loop message from the watch, from any channel. Ignores anything else.
     func receive(_ userInfo: [String: Any])
@@ -18,6 +25,11 @@ protocol WatchLoopPhoneManager: AnyObject {
     func mayDose() async -> Bool
     /// After each of the phone's own loops.
     func didLoop() async
+    /// A remote bolus or meal while the watch has the pump: passed on, and the watch's answer awaited.
+    func forwardRemoteTreatment(
+        _ treatment: WatchLoopRemoteTreatment,
+        late: @escaping (WatchLoopRemoteAnswer) -> Void
+    ) async -> WatchLoopRemoteAnswer
     var state: WatchLoopPhoneState { get }
 }
 
@@ -100,15 +112,67 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         case let .checkpoint(checkpoint): await receiveCheckpoint(checkpoint)
         case let .handBack(handBack): await receiveHandBack(handBack)
         case let .statusReport(report): await receiveReport(report)
+        case let .remoteTreatmentResult(id, delivered, message):
+            answerRemoteTreatment(id, delivered ? .delivered(message) : .refused(message))
         case .ack,
              .grant,
              .handBackAck,
+             .remoteTreatment,
              .standingCopy,
              .startRefused,
              .statusQuery,
              .stop:
             break
         }
+    }
+
+    // MARK: - Remote commands
+
+    /// Keyed by the treatment's id: the first answer ends the wait, a later one goes to `late`. Main actor only.
+    private var remoteWaits: [UUID: CheckedContinuation<WatchLoopRemoteAnswer, Never>] = [:]
+    private var remoteLate: [UUID: (WatchLoopRemoteAnswer) -> Void] = [:]
+    /// Within the ~30 s iOS gives the app for a push in the background; a later answer wakes it as it arrives.
+    private static let remoteWait: TimeInterval = 25
+
+    func forwardRemoteTreatment(
+        _ treatment: WatchLoopRemoteTreatment,
+        late: @escaping (WatchLoopRemoteAnswer) -> Void
+    ) async -> WatchLoopRemoteAnswer {
+        await forward(treatment, late: late)
+    }
+
+    @MainActor private func forward(
+        _ treatment: WatchLoopRemoteTreatment,
+        late: @escaping (WatchLoopRemoteAnswer) -> Void
+    ) async -> WatchLoopRemoteAnswer {
+        guard state.role == .lending || state.role == .standingAside else {
+            return .refused(String(
+                localized: "Command rejected: the pump is changing hands between the iPhone and the Apple Watch. Try again in a few minutes."
+            ))
+        }
+        let id = treatment.id
+        info(.remote, "Watch Loop: passing a remote command to the watch: \(treatment.summary)")
+        remoteLate[id] = late
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(Self.remoteWait * 1_000_000_000))
+            self.answerRemoteTreatment(id, .noAnswer)
+            // until the watch would refuse the command anyway
+            try? await Task.sleep(nanoseconds: UInt64(WatchLoopRemoteTreatment.window * 1_000_000_000))
+            self.remoteLate[id] = nil
+        }
+        return await withCheckedContinuation { continuation in
+            remoteWaits[id] = continuation
+            send(.remoteTreatment(treatment))
+        }
+    }
+
+    @MainActor private func answerRemoteTreatment(_ id: UUID, _ answer: WatchLoopRemoteAnswer) {
+        if let wait = remoteWaits.removeValue(forKey: id) {
+            wait.resume(returning: answer)
+            return
+        }
+        if case .noAnswer = answer { return }
+        remoteLate.removeValue(forKey: id)?(answer)
     }
 
     /// Bookkeeping goes queued; what a person or a query waits through also goes live (`WatchLoopTransport`).

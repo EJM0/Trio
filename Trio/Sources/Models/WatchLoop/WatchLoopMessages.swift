@@ -121,6 +121,87 @@ struct WatchLoopStatusReport: Codable, Equatable {
     let pumpReachable: Bool?
 }
 
+/// A remote bolus or meal (LoopFollow, Nightscout) that reached the phone while the watch has the pump: the watch checks
+/// it as the phone checks one, with its own IOB and history, and delivers it (after Kristin Kandschur's untethered-pr-plus,
+/// e3380c504).
+struct WatchLoopRemoteTreatment: Codable, Equatable {
+    let id: UUID
+    /// When the command was sent, not received: refused once older than `window`; boluses and carbs since count.
+    let sentAt: Date
+    let bolus: Decimal?
+    let carbs: Decimal?
+    let fat: Decimal?
+    let protein: Decimal?
+    /// A meal's own time, when it was given one.
+    let carbsDate: Date?
+    /// The sender's id for the meal, so it can edit or delete it later: the watch logs the meal under it.
+    var mealID: String? = nil
+
+    /// As the phone's remote control (`TrioRemoteControl.timeWindow`).
+    static let window: TimeInterval = 600
+
+    var summary: String {
+        var parts: [String] = []
+        if let bolus, bolus > 0 { parts.append("bolus \(bolus) U") }
+        if let carbs, carbs > 0 { parts.append("carbs \(carbs) g") }
+        if let fat, fat > 0 { parts.append("fat \(fat) g") }
+        if let protein, protein > 0 { parts.append("protein \(protein) g") }
+        return parts.isEmpty ? "nothing" : parts.joined(separator: ", ")
+    }
+}
+
+extension WatchLoopRemoteTreatment {
+    /// A remote bolus may not land on boluses given since it was sent beyond this share of it.
+    static let recentBolusShare: Decimal = 0.2
+    /// The last loop's IOB counts while it is this recent; the boluses since it are counted on top.
+    static let iobMaxAge: TimeInterval = 15 * 60
+
+    /// Why the command can't be acted on at all, as the phone's remote control checks it.
+    func ageRejection(now: Date) -> String? {
+        let age = now.timeIntervalSince(sentAt)
+        if age > Self
+            .window { return String(localized: "Command rejected: the message is too old (sent \(Int(age)) seconds ago).") }
+        if age < -Self.window { return String(localized: "Command rejected: the message has an invalid future timestamp.") }
+        return nil
+    }
+
+    /// The phone's `BolusSafetyValidator` rules, with the watch's numbers: the last loop's IOB, the session's pump
+    /// history.
+    static func bolusRejection(
+        _ units: Decimal,
+        sentAt: Date,
+        now: Date,
+        maxBolus: Decimal,
+        maxIOB: Decimal,
+        iob: Decimal?,
+        iobAt: Date?,
+        history: [PumpHistoryEvent]
+    ) -> String? {
+        if units > maxBolus {
+            return String(
+                localized: "Command rejected: bolus amount (\(units.description) units) exceeds the maximum allowed (\(maxBolus.description) units)."
+            )
+        }
+        guard let iob, let iobAt, now.timeIntervalSince(iobAt) < iobMaxAge else {
+            return String(localized: "Command rejected: current IOB is not available.")
+        }
+        let boluses: (Date) -> Decimal = { since in
+            history.filter { [.bolus, .smb].contains($0.type) && $0.timestamp > since }.reduce(0) { $0 + ($1.amount ?? 0) }
+        }
+        if iob + boluses(iobAt) + units > maxIOB {
+            return String(
+                localized: "Command rejected: bolus amount (\(units.description) units) would exceed max IOB (\(maxIOB.description) units). Current IOB: \(iob.description) units."
+            )
+        }
+        if boluses(sentAt) >= units * recentBolusShare {
+            return String(
+                localized: "Command rejected: boluses totaling more than 20% of the requested amount have been delivered since the command was sent."
+            )
+        }
+        return nil
+    }
+}
+
 /// Every message the two apps exchange about the Watch Loop, roughly in the order a session uses them.
 enum WatchLoopMessage: Codable, Equatable {
     case request(WatchLoopRequest)
@@ -137,6 +218,9 @@ enum WatchLoopMessage: Codable, Equatable {
     case stop(session: Int)
     case statusQuery(id: UUID)
     case statusReport(WatchLoopStatusReport)
+    case remoteTreatment(WatchLoopRemoteTreatment)
+    /// The watch's answer, which the phone passes back to the sender.
+    case remoteTreatmentResult(id: UUID, delivered: Bool, message: String)
 
     var kind: String {
         switch self {
@@ -151,6 +235,8 @@ enum WatchLoopMessage: Codable, Equatable {
         case .stop: return "stop"
         case .statusQuery: return "statusQuery"
         case .statusReport: return "statusReport"
+        case .remoteTreatment: return "remoteTreatment"
+        case .remoteTreatmentResult: return "remoteTreatmentResult"
         }
     }
 }
@@ -197,6 +283,8 @@ enum WatchLoopTransport {
         case .grant,
              .handBack,
              .handBackAck,
+             .remoteTreatment,
+             .remoteTreatmentResult,
              .request,
              .startRefused,
              .statusQuery,

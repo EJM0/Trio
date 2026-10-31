@@ -96,8 +96,10 @@ import WatchKit
             sendStatus(replyTo: nil)
         case let .statusQuery(id): sendStatus(replyTo: id)
         case let .standingCopy(copy): keepStandingCopy(copy)
+        case let .remoteTreatment(treatment): await handleRemoteTreatment(treatment)
         case .checkpoint,
              .handBack,
+             .remoteTreatmentResult,
              .request,
              .statusReport:
             break
@@ -409,7 +411,9 @@ import WatchKit
     }
 
     func bolus(_ units: Double) async -> String? {
-        guard state.phase == .active, let pump = pumpManager, let grant = state.grant else { return nil }
+        guard state.phase == .active, let pump = pumpManager, let grant = state.grant else {
+            return String(localized: "The Apple Watch doesn't have the pump right now.")
+        }
         guard units > 0, Decimal(units) <= grant.maxBolus else {
             return String(localized: "Above the maximum bolus.")
         }
@@ -424,16 +428,23 @@ import WatchKit
         }
     }
 
-    func addCarbs(_ grams: Decimal, at date: Date) {
-        guard state.phase == .active, grams > 0 else { return }
+    func addCarbs(
+        _ grams: Decimal,
+        fat: Decimal = 0,
+        protein: Decimal = 0,
+        at date: Date,
+        note: String? = nil,
+        id: String? = nil
+    ) {
+        guard state.phase == .active, grams > 0 || fat > 0 || protein > 0 else { return }
         let entry = CarbsEntry(
-            id: UUID().uuidString,
+            id: id ?? UUID().uuidString,
             createdAt: Date(),
             actualDate: date,
             carbs: min(grams, state.grant?.maxCarbs ?? grams),
-            fat: 0,
-            protein: 0,
-            note: nil,
+            fat: fat,
+            protein: protein,
+            note: note,
             enteredBy: CarbsEntry.local,
             isFPU: false,
             fpuID: nil

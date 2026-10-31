@@ -34,6 +34,12 @@ struct WatchLoopView: View {
                         }
                     }
                     if phase == .active { tiles }
+                    if phase == .active {
+                        // remote commands come through the phone's push: without it online they wait or run out
+                        note(
+                            "Remote boluses and meals (LoopFollow, Nightscout) reach the watch only through your iPhone, while it is online. The watch refuses commands sent more than 10 minutes ago."
+                        )
+                    }
                     if phase == .active || unsynced > 0 { historyButton }
                     actions
                 }

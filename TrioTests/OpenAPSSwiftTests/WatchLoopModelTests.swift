@@ -36,7 +36,11 @@ import Testing
             .stop(session: 3),
             .statusQuery(id: UUID()),
             .statusReport(WatchLoopStatusReport(replyTo: nil, session: 3, holdsPump: true, startedAt: t0, pumpReachable: false)),
-            .startRefused(requestID: UUID(), reason: "Busy")
+            .startRefused(requestID: UUID(), reason: "Busy"),
+            .remoteTreatment(WatchLoopRemoteTreatment(
+                id: UUID(), sentAt: t0, bolus: 1.5, carbs: 30, fat: nil, protein: nil, carbsDate: t0, mealID: "m"
+            )),
+            .remoteTreatmentResult(id: UUID(), delivered: true, message: "Bolus started")
         ]
         for message in messages {
             let wire = try WatchLoopTransport.encode(message)

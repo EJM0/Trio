@@ -127,6 +127,18 @@ Each behind its own setting, both needing Watch Loop.
   don't explain is counted, the cycle doses nothing, and doses wait for the phone's word until it has answered once,
   as they do after a hand-back nobody answered.
 
+## Remote commands
+
+Remote commands (LoopFollow, Nightscout) reach Trio by Apple push on the phone. While the watch has the pod, the
+phone passes a bolus or meal on to the watch (after Kristin Kandschur's untethered-pr-plus, e3380c504): it checks the
+fat and protein limits only it knows, sends the command both ways, and waits up to 25 s for the watch's answer, which
+goes back to the sender ("no answer yet, check IOB" after that; a later answer still follows). The watch acts on the
+first copy and checks it as the phone would, with its own numbers: sent within 10 min, carbs within the limit and no
+newer carb entry, the bolus within max bolus, max IOB from its last loop plus the boluses since, and less than 20 %
+of it given since the command was sent. It logs the meal under the sender's id (note 📡), gives the bolus and tells
+the looper on the wrist. Every other remote command would change only the phone and is refused while the watch has
+the pod. Without the phone online, remote commands don't reach the watch.
+
 ## Retries
 
 - A grant waits up to 20 s for the phone's own loop to finish talking to the pod; still looping, the Start is
