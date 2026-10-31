@@ -56,6 +56,30 @@ import Testing
         #expect(!WatchLoopFallback.shouldStart(noCopy))
     }
 
+    @Test("A remote bolus is checked with the watch's numbers, as the phone checks one") func remoteBolus() {
+        let sentAt = now.addingTimeInterval(-120)
+        func check(_ units: Decimal, iob: Decimal? = 1, iobAt: Date? = nil, history: [PumpHistoryEvent] = []) -> String? {
+            WatchLoopRemoteTreatment.bolusRejection(
+                units, sentAt: sentAt, now: now, maxBolus: 5, maxIOB: 6, iob: iob,
+                iobAt: iobAt ?? now.addingTimeInterval(-60), history: history
+            )
+        }
+        #expect(check(2) == nil)
+        #expect(check(6) != nil) // above max bolus
+        #expect(check(2, iob: nil) != nil) // no IOB
+        #expect(check(2, iobAt: now.addingTimeInterval(-20 * 60)) != nil) // IOB too old
+        #expect(check(5.5, iob: 1) != nil) // above max bolus first
+        #expect(check(4, iob: 2.5) != nil) // max IOB
+        // a 0.5 U bolus since sending is more than 20 % of 2 U
+        let since = [PumpHistoryEvent(id: "b", type: .bolus, timestamp: now.addingTimeInterval(-30), amount: 0.5)]
+        #expect(check(2, history: since) != nil)
+        #expect(check(3, history: since) == nil)
+        let old = WatchLoopRemoteTreatment(
+            id: UUID(), sentAt: now.addingTimeInterval(-700), bolus: 1, carbs: nil, fat: nil, protein: nil, carbsDate: nil
+        )
+        #expect(old.ageRejection(now: now) != nil)
+    }
+
     @Test("The phone's history as doses: a temp ends at the next one, a suspend at the resume") func doses() {
         let t0 = now.addingTimeInterval(-3600)
         let history = [
