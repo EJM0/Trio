@@ -215,8 +215,8 @@ struct TrioMainWatchView: View {
                 }
 
                 ToolbarItemGroup(placement: .bottomBar) {
-                    if ![peripheralsPage, snoozePage].contains(currentPage) {
-                        // the Devices and alarm snooze pages have no treatment controls
+                    if ![peripheralsPage, snoozePage, watchLoopPage, loopStatusPage].contains(currentPage) {
+                        // the Devices, alarm snooze and Watch Loop pages have no treatment controls
                         Button {
                             showingOverrideSheet = true
                         } label: {
