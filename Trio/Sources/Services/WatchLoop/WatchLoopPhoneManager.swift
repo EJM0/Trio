@@ -358,6 +358,10 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
     }
 
     @MainActor private func receiveReport(_ report: WatchLoopStatusReport) async {
+        if !report.holdsPump, let pending = state.stopPendingSession, (report.session ?? 0) >= pending {
+            state.stopPendingSession = nil
+            state.stopPendingSince = nil
+        }
         if let query = pendingQuery, report.replyTo == query.id {
             pendingQuery = nil
             let answer: WatchLoopControl.Answer = !report.holdsPump ? .holdsNothing
@@ -391,15 +395,35 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         }
     }
 
+    /// The stop goes again on each overdue check until the watch reports it holds nothing (at most 30 min): a watch
+    /// off when it was sent hears it when it comes back.
+    @MainActor private func sendStop(_ session: Int) {
+        var next = state
+        if next.stopPendingSession != session { next.stopPendingSince = Date() }
+        next.stopPendingSession = session
+        state = next
+        send(.stop(session: session))
+    }
+
     @MainActor private func refuse(_ session: Int) {
         if !state.refusedSessions.contains(session) { state.refusedSessions.append(session) }
-        send(.stop(session: session))
+        sendStop(session)
     }
 
     /// Control row 17: a watch that started without the phone and is alive keeps the pump.
     @MainActor private func standAside(for session: Int, startedAt: Date?) async {
         guard let pump = controllablePump else { return }
+        // the driver keeps the pod while a command is unconfirmed: asked again until it lets go
         pump.releaseControl()
+        let deadline = Date().addingTimeInterval(30)
+        while !pump.isControlReleased, Date() < deadline {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            pump.releaseControl()
+        }
+        guard pump.isControlReleased else {
+            warning(.watch, "Watch Loop: the pod driver didn't let go; the phone doesn't stand aside")
+            return
+        }
         var next = state
         next.role = .standingAside
         next.session = session
@@ -610,7 +634,7 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
             state.role = previous
             return String(localized: "Trio couldn't reach the pod. Try again near it.")
         }
-        send(.stop(session: state.session))
+        sendStop(state.session)
         openAudit(recordsComplete: false)
         finish()
         await runAudit()
@@ -995,6 +1019,14 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
                 Task { await runAudit() }
             }
         }
+        if let session = state.stopPendingSession {
+            if Date().timeIntervalSince(state.stopPendingSince ?? Date()) < 30 * 60 {
+                send(.stop(session: session))
+            } else {
+                state.stopPendingSession = nil
+                state.stopPendingSince = nil
+            }
+        }
         guard state.role == .lending || state.role == .standingAside, pendingQuery == nil,
               let last = state.lastReportAt, Date().timeIntervalSince(last) > WatchLoopControl.watchReportOverdue
         else { return }
@@ -1020,7 +1052,7 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
                 return
             }
             state.tookOverOnSilenceAt = Date()
-            send(.stop(session: state.session))
+            sendStop(state.session)
             openAudit(recordsComplete: false)
             finish()
             await runAudit()
@@ -1048,7 +1080,7 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
             }
             unexplained = nil
         case .sendStop:
-            send(.stop(session: state.session))
+            sendStop(state.session)
         default:
             break
         }
