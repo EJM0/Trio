@@ -141,7 +141,7 @@ extension WatchLoopAudit {
             let hours = span.1.timeIntervalSince(span.0) / 3600
             guard let pulseUnits, pulseUnits > 0, span.2 > 0 else { return total + span.2 * hours }
             // the nudge keeps 0.15 / 0.05 = 2.999… from losing a pulse
-            return total + (span.2 * hours / pulseUnits + 1e-9).rounded(.down) * pulseUnits
+            return total + (span.2 * hours / pulseUnits + 1E-9).rounded(.down) * pulseUnits
         }
         let given = boluses + temps
         let covered = spans.map { ($0.0, $0.1) }
