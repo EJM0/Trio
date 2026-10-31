@@ -45,6 +45,13 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
     @Injected() private var tempTargetsStorage: TempTargetsStorage!
     @Injected() private var overrideStorage: OverrideStorage!
     @Injected() private var apsManager: APSManager!
+    /// The phone's own algorithm inputs, so the watch's algorithm reads what the phone's would.
+    private lazy var openAPS = OpenAPS(
+        storage: storage,
+        tddStorage: tddStorage,
+        glucoseStorage: glucoseStorage,
+        carbsStorage: carbsStorage
+    )
 
     /// Touched on the main actor only.
     @Published private(set) var state: WatchLoopPhoneState {
@@ -336,7 +343,7 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
             ),
             lowGlucose: settings.low,
             highGlucose: settings.high,
-            pumpHistory: try await pumpHistoryStorage.getPumpHistory(),
+            pumpHistory: try await openAPS.algorithmPumpHistory(),
             // raw: the watch smooths them together with its own readings
             glucose: try await glucoseStorage.getGlucoseForAlgorithm(shouldSmoothGlucose: false, fetchHours: 24),
             carbs: try await carbsStorage.getCarbsForAlgorithm(additionalCarbs: nil, carbsDate: nil),
