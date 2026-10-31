@@ -145,8 +145,10 @@ struct WatchLoopWatchState: Codable {
     /// A dose the pump reported: kept for the algorithm and recorded for the phone. A dose reported again (a bolus
     /// finishing) replaces its earlier form in both.
     mutating func noteDose(_ dose: WatchLoopDose, at now: Date) {
-        history.removeAll { $0.id == dose.syncIdentifier }
-        history.append(contentsOf: dose.historyEvents)
+        let events = dose.historyEvents
+        let ids = Set(events.map(\.id))
+        history.removeAll { ids.contains($0.id) }
+        history.append(contentsOf: events)
         history.sort { $0.timestamp < $1.timestamp }
         pending.removeAll {
             if case let .dose(earlier) = $0.kind { return earlier.syncIdentifier == dose.syncIdentifier }
@@ -239,13 +241,23 @@ extension WatchLoopDose {
                 isSMB: automatic
             )]
         case .tempBasal:
-            return [PumpHistoryEvent(
-                id: syncIdentifier,
-                type: .tempBasal,
-                timestamp: startDate,
-                amount: Decimal(value),
-                duration: Int((endDate.timeIntervalSince(startDate) / 60).rounded())
-            )]
+            // a duration entry and a rate entry at the same time, as the phone's (`PumpEventStored
+            // .toPumpHistoryEvents`): the algorithm pairs them and stops the loop on one without the other
+            return [
+                PumpHistoryEvent(
+                    id: syncIdentifier,
+                    type: .tempBasalDuration,
+                    timestamp: startDate,
+                    durationMin: Int((endDate.timeIntervalSince(startDate) / 60).rounded())
+                ),
+                PumpHistoryEvent(
+                    id: "_\(syncIdentifier)",
+                    type: .tempBasal,
+                    timestamp: startDate,
+                    rate: Decimal(algorithmValue: value),
+                    temp: .absolute
+                )
+            ]
         case .suspend:
             return [PumpHistoryEvent(id: syncIdentifier, type: .pumpSuspend, timestamp: startDate)]
         case .resume:

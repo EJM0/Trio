@@ -420,7 +420,7 @@ struct WatchLoopHistoryView: View {
             let units = String(format: "%.2f U", NSDecimalNumber(decimal: event.amount ?? 0).doubleValue)
             return (event.isSMB ?? false) ? "SMB " + units : String(localized: "Bolus") + " " + units
         case .tempBasal:
-            return String(format: "Temp %.2f U/h", NSDecimalNumber(decimal: event.amount ?? 0).doubleValue)
+            return String(format: "Temp %.2f U/h", NSDecimalNumber(decimal: event.rate ?? 0).doubleValue)
         case .pumpSuspend: return String(localized: "Suspended")
         case .pumpResume: return String(localized: "Resumed")
         default: return event.type.rawValue
