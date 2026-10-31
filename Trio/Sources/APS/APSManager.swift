@@ -792,7 +792,7 @@ final class BaseAPSManager: APSManager, Injectable {
         }
     }
 
-    /// Returns false when the determination is skipped because the pump is suspended.
+    /// Returns false when the determination is skipped: the pump is suspended, or the Watch Loop holds dosing.
     private func enactDetermination() async throws -> Bool {
         guard let determinationID = try await determinationStorage
             .fetchLastDeterminationObjectID(predicate: NSPredicate.predicateFor30MinAgoForDetermination).first
@@ -806,12 +806,12 @@ final class BaseAPSManager: APSManager, Injectable {
 
         guard WatchLoopGate.phoneMayDose else {
             info(.loop, "Determination not enacted: Apple Watch has the pump")
-            return
+            return false
         }
 
         guard await watchLoop.mayDose() else {
             info(.loop, "Determination not enacted: the pump's insulin total is being checked")
-            return
+            return false
         }
 
         if pump.status.pumpStatus.suspended {
