@@ -88,9 +88,12 @@ import WatchKit
             guard state.phase == .handingBack, session == state.session else { return }
             endSession(note: String(localized: "Your iPhone has the pod again."))
         case let .stop(session):
-            guard session == state.session, isActive else { return }
-            endSession(note: String(localized: "Your iPhone took the pod back."))
-            WKInterfaceDevice.current().play(.notification)
+            if session == state.session, isActive {
+                endSession(note: String(localized: "Your iPhone took the pod back."))
+                WKInterfaceDevice.current().play(.notification)
+            }
+            // the phone sends the stop until it hears the watch holds nothing
+            sendStatus(replyTo: nil)
         case let .statusQuery(id): sendStatus(replyTo: id)
         case let .standingCopy(copy): keepStandingCopy(copy)
         case .checkpoint,
@@ -222,12 +225,7 @@ import WatchKit
         isBusy = true
         defer { isBusy = false }
         install(pump)
-        note = String(localized: "Connecting to the pod…")
-        control.takeControl()
-        while Date() < grant.leaseExpiresAt, !(control.isControlReady && !control.isControlReleased) {
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
-        }
-        guard control.isControlReady, !control.isControlReleased else {
+        guard await takeControl(control, of: configuration, until: grant.leaseExpiresAt) else {
             releasePump()
             return decline(String(localized: "The watch couldn't reach the pod. Your iPhone keeps it."))
         }
@@ -301,6 +299,33 @@ import WatchKit
         self.note = note
         drain()
         WatchLogger.shared.info(.treatments, "Watch Loop session \(state.session) ended")
+    }
+
+    /// Takes the pump within the lease. A pod last held by another controller has to be found by its advertisement
+    /// first, which needs the radio, so the screen on: the looper is asked to keep it on, with a tap now and then
+    /// (as Loop's takeover nudges). #177 escalates the take by itself until the pod answers.
+    func takeControl(
+        _ control: ExclusiveDeviceControl,
+        of configuration: SharedDeviceConfiguration,
+        until lease: Date
+    ) async -> Bool {
+        let needsSearch = watchTakeControlNeedsSearch(
+            adopting: configuration,
+            localState: UserDefaults.standard.dictionary(forKey: Self.pumpLocalKey)
+        )
+        note = needsSearch
+            ? String(localized: "Looking for the pod: keep the watch screen on and near the pod.")
+            : String(localized: "Connecting to the pod…")
+        control.takeControl()
+        var nudgedAt = Date()
+        while Date() < lease, !(control.isControlReady && !control.isControlReleased) {
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            if needsSearch, Date().timeIntervalSince(nudgedAt) >= 10 {
+                WKInterfaceDevice.current().play(.click)
+                nudgedAt = Date()
+            }
+        }
+        return control.isControlReady && !control.isControlReleased
     }
 
     private func readOdometer() async -> WatchLoopOdometer? {

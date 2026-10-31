@@ -127,6 +127,17 @@ Each behind its own setting, both needing Watch Loop.
   don't explain is counted, the cycle doses nothing, and doses wait for the phone's word until it has answered once,
   as they do after a hand-back nobody answered.
 
+## Retries
+
+- A grant waits up to 20 s for the phone's own loop to finish talking to the pod; still looping, the Start is
+  refused with "Your iPhone is looping right now".
+- The phone sends a stop again on each overdue check, until the watch reports it holds nothing (at most 30 min): a
+  watch that was off when it was sent hears it when it comes back.
+- Standing aside, the phone asks its pod driver to let go until it does (30 s); a driver that keeps the pod for an
+  unconfirmed command keeps the phone in charge.
+- A takeover of a pod last held by another controller searches for it by its advertisement, which needs the radio:
+  the watch asks the looper to keep its screen on and taps every 10 s until the pod answers.
+
 ## Known limits
 
 - After a take-back the pump may not answer the audit's read; the phone then skips the audit and logs it.

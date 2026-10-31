@@ -36,14 +36,9 @@ extension WatchLoopSession {
         isBusy = true
         defer { isBusy = false }
         offersStartWithoutPhone = false
-        note = String(localized: "Connecting to the pod…")
         install(pump)
-        control.takeControl()
-        let lease = Date().addingTimeInterval(WatchLoopControl.takeoverLease)
-        while Date() < lease, !(control.isControlReady && !control.isControlReleased) {
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
-        }
-        guard control.isControlReady, !control.isControlReleased else {
+        guard await takeControl(control, of: configuration, until: Date().addingTimeInterval(WatchLoopControl.takeoverLease))
+        else {
             releasePump()
             return refuse(String(localized: "Watch Loop start expired before the pod answered."))
         }

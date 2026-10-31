@@ -26,6 +26,12 @@ func watchPumpManager(rawValue: [String: Any]) -> PumpManager? {
     return watchPumpManagersByIdentifier[identifier]?.init(rawState: rawState)
 }
 
+/// Whether taking control of this export here has to find the pod first (it moved to another controller's handle).
+func watchTakeControlNeedsSearch(adopting configuration: SharedDeviceConfiguration, localState: [String: Any]?) -> Bool {
+    let type = watchPumpManagersByIdentifier[configuration.managerIdentifier] as? ExclusiveDeviceControl.Type
+    return type?.takeControlNeedsSearch(adopting: configuration, localState: localState) ?? false
+}
+
 /// What the pump kit keeps of its own on this watch (the pod's Bluetooth handle), for the next adopt.
 func watchPumpLocalState(_ manager: PumpManager?) -> [String: Any]? {
     (manager as? OmniPumpManager)?.localState

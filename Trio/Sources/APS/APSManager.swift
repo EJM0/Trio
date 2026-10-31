@@ -689,6 +689,8 @@ final class BaseAPSManager: APSManager, Injectable {
             bolusProgress.send(0)
             callback?(true, String(localized: "Bolus enacted successfully.", comment: "Success message for enacting a bolus"))
             if !isSMB {
+                // a watch that starts from the copy must know this bolus
+                Task { await self.watchLoop.didLoop() }
                 do {
                     try await determineBasalSync()
                 } catch {
