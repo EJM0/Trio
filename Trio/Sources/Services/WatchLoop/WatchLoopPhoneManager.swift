@@ -543,7 +543,13 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable {
         }
         let basalProfile = await storage.retrieveAsync(OpenAPS.Settings.basalProfile, as: [BasalProfileEntry].self) ?? []
         let delivered = latest.units - start
-        let recorded = WatchLoopAudit.recordedInsulin(sessionDoses, basalProfile: basalProfile, from: releasedAt, to: latest.at)
+        let recorded = WatchLoopAudit.recordedInsulin(
+            sessionDoses,
+            basalProfile: basalProfile,
+            from: releasedAt,
+            to: latest.at,
+            pulseUnits: odometer.deliveryPulseUnits
+        )
         switch WatchLoopAudit.compare(delivered: delivered, recorded: recorded) {
         case .matches:
             info(.watch, "Watch Loop audit: the pump's \(delivered) U match the records")
