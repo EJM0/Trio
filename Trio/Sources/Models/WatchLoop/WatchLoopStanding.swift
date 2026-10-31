@@ -30,9 +30,11 @@ enum WatchLoopStanding {
                 let duration = bolusDuration(Double(truncating: units as NSNumber))
                 return dose(event, .bolus, value: units, end: event.timestamp.addingTimeInterval(duration))
             case .tempBasal:
-                let programmed = event.timestamp.addingTimeInterval(Double(event.duration ?? 0) * 60)
+                // its duration is the entry beside it at the same time (`PumpEventStored.toPumpHistoryEvents`)
+                let minutes = events.first { $0.type == .tempBasalDuration && $0.timestamp == event.timestamp }?.durationMin
+                let programmed = event.timestamp.addingTimeInterval(Double(minutes ?? 0) * 60)
                 let next = later.first { $0.type == .tempBasal || $0.type == .pumpSuspend }?.timestamp
-                return dose(event, .tempBasal, value: event.amount ?? event.rate ?? 0, end: min(programmed, next ?? programmed))
+                return dose(event, .tempBasal, value: event.rate ?? 0, end: min(programmed, next ?? programmed))
             case .pumpSuspend:
                 let resume = later.first { $0.type == .pumpResume }?.timestamp ?? now
                 return dose(event, .suspend, value: 0, end: resume)

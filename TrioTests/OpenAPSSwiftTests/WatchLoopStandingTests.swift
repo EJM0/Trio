@@ -82,15 +82,19 @@ import Testing
 
     @Test("The phone's history as doses: a temp ends at the next one, a suspend at the resume") func doses() {
         let t0 = now.addingTimeInterval(-3600)
+        // each temp as a duration and a rate entry, as the phone writes it for the algorithm
         let history = [
-            PumpHistoryEvent(id: "t1", type: .tempBasal, timestamp: t0, amount: 2, duration: 30),
-            PumpHistoryEvent(id: "t2", type: .tempBasal, timestamp: t0.addingTimeInterval(10 * 60), amount: 0, duration: 30),
+            PumpHistoryEvent(id: "t1", type: .tempBasalDuration, timestamp: t0, durationMin: 30),
+            PumpHistoryEvent(id: "_t1", type: .tempBasal, timestamp: t0, rate: 2, temp: .absolute),
+            PumpHistoryEvent(id: "t2", type: .tempBasalDuration, timestamp: t0.addingTimeInterval(10 * 60), durationMin: 30),
+            PumpHistoryEvent(id: "_t2", type: .tempBasal, timestamp: t0.addingTimeInterval(10 * 60), rate: 0, temp: .absolute),
             PumpHistoryEvent(id: "b", type: .bolus, timestamp: t0.addingTimeInterval(15 * 60), amount: 1),
             PumpHistoryEvent(id: "s", type: .pumpSuspend, timestamp: t0.addingTimeInterval(50 * 60)),
             PumpHistoryEvent(id: "r", type: .pumpResume, timestamp: t0.addingTimeInterval(55 * 60))
         ]
         let doses = WatchLoopStanding.doses(history, now: now)
-        #expect(doses.map(\.syncIdentifier) == ["t1", "t2", "b", "s"])
+        #expect(doses.map(\.syncIdentifier) == ["_t1", "_t2", "b", "s"])
+        #expect(doses[1].endDate == t0.addingTimeInterval(40 * 60))
         #expect(doses[0].endDate == t0.addingTimeInterval(10 * 60))
         #expect(doses[3].endDate == t0.addingTimeInterval(55 * 60))
         // 2 U/h for 10 min, then a 0 temp for 30, a 1 U bolus, the schedule at 1 U/h for the other 15 min
