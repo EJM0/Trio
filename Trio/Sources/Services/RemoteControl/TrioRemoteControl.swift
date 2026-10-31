@@ -70,6 +70,11 @@ class TrioRemoteControl: Injectable {
 
         debug(.remote, "Command authenticated, sent \(Int(timeDifference)) s ago")
 
+        guard WatchLoopGate.phoneMayDose else {
+            await handleWhileWatchLoops(commandPayload)
+            return
+        }
+
         switch commandPayload.commandType {
         case .bolus:
             try await handleBolusCommand(commandPayload)
