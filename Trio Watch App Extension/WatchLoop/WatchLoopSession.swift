@@ -671,7 +671,9 @@ extension PumpManager {
                     let answered = await odometer.refreshDeliveredUnits()
                     if once.claim() { continuation.resume(returning: answered) }
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + timeout) { if once.claim() { continuation.resume(returning: false) } }
+                DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
+                    if once.claim() { continuation.resume(returning: false) }
+                }
             }
         }
         let started = Date()
