@@ -137,9 +137,10 @@ extension WatchLoopSession {
 
         await checkWithPhoneIfNeeded()
         guard state.phase == .active, pumpManager === pump else { return }
+        var enacted = false
         if let determination = result.determination, state.closedLoop, grant.dosingMode.automation != .off, explained {
             do {
-                try await enact(determination, on: pump)
+                enacted = try await enact(determination, on: pump)
                 state.lastError = nil
             } catch {
                 state.lastError = error.localizedDescription
@@ -150,6 +151,11 @@ extension WatchLoopSession {
         }
         state.lastDetermination = result.determination
         state.lastLoopAt = now
+        if var determination = result.determination {
+            // the phone's charts, loop status and Nightscout show the watch's loops from these
+            determination.timestamp = now
+            state.record(.determination(determination, enacted: enacted), at: now)
+        }
         publishDisplay()
         armNotLoopingWatchdog()
         // the cycle settled the command the driver was waiting on
@@ -164,9 +170,10 @@ extension WatchLoopSession {
         sendCheckpoint()
     }
 
-    /// As the phone enacts (`APSManager.enactDetermination`): the temp, then an SMB.
-    private func enact(_ determination: Determination, on pump: PumpManager) async throws {
-        if pump.status.basalDeliveryState?.isSuspended == true { return }
+    /// As the phone enacts (`APSManager.enactDetermination`): the temp, then an SMB. False: skipped, the pump is
+    /// suspended.
+    private func enact(_ determination: Determination, on pump: PumpManager) async throws -> Bool {
+        if pump.status.basalDeliveryState?.isSuspended == true { return false }
         if let rate = determination.rate, let duration = determination.duration {
             try await pump.enactTempBasal(
                 unitsPerHour: Double(truncating: rate as NSNumber),
@@ -176,6 +183,7 @@ extension WatchLoopSession {
         if let units = determination.units, units > 0 {
             try await pump.enactBolus(units: Double(truncating: units as NSNumber), automatic: true)
         }
+        return true
     }
 
     private func currentTemp(_ pump: PumpManager, now: Date) -> TempBasal {

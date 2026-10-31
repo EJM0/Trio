@@ -118,6 +118,16 @@ import WatchKit
                 )
             }
         }
+        // a checkpoint carries every record not yet acknowledged: only a session's newest waits in the queue
+        if case let .checkpoint(newer) = message {
+            for transfer in session.outstandingUserInfoTransfers {
+                if let envelope = try? WatchLoopTransport.decode(transfer.userInfo),
+                   case let .checkpoint(older) = envelope.message, older.session == newer.session
+                {
+                    transfer.cancel()
+                }
+            }
+        }
         session.transferUserInfo(payload)
     }
 
@@ -491,6 +501,24 @@ import WatchKit
         state.tempTargets.append(entry)
         state.record(.tempTarget(target), at: Date())
         Task { await runCycle(reason: "temp target") }
+    }
+
+    /// A meter's BG entered on the watch: among the readings the loop uses, as the phone's History puts one, and
+    /// recorded for the phone, which files it as a manual reading. Like the phone, it starts no cycle: the next
+    /// reading's takes it into account (Kristin Kandschur's feature/untethered-fallback, d4c8552f6).
+    func addManualGlucose(mgdl: Int) {
+        guard state.phase == .active else { return }
+        let now = Date()
+        let reading = BloodGlucose(
+            mbg: mgdl,
+            date: Decimal(Int(now.timeIntervalSince1970 * 1000)),
+            dateString: now,
+            glucose: mgdl,
+            type: "mbg"
+        )
+        state.glucose.append(reading)
+        state.record(.glucose(reading), at: now)
+        WatchLogger.shared.info(.treatments, "Watch Loop: a meter's BG of \(mgdl) mg/dL entered on the watch")
     }
 
     /// The watch's own readings: each new one is a cycle.
