@@ -38,7 +38,10 @@ extension WatchConfig {
             subscribeSetting(\.showGlucoseBubbleWatch, on: $showGlucoseBubbleWatch) { showGlucoseBubbleWatch = $0 }
             subscribeSetting(\.useCriticalAlertsWatch, on: $useCriticalAlertsWatch) { useCriticalAlertsWatch = $0 }
             subscribeSetting(\.watchLoopEnabled, on: $watchLoopEnabled) { watchLoopEnabled = $0 }
-            subscribeSetting(\.watchLoopWithoutPhone, on: $watchLoopWithoutPhone) { watchLoopWithoutPhone = $0 }
+            subscribeSetting(\.watchLoopWithoutPhone, on: $watchLoopWithoutPhone) { watchLoopWithoutPhone = $0 } didSet: { [weak self] on in
+                // the fallback starts from the copy: without it, it is off too
+                if !on { self?.watchLoopFallback = false }
+            }
             subscribeSetting(\.watchLoopFallback, on: $watchLoopFallback) { watchLoopFallback = $0 }
 
             devices = garmin.devices
