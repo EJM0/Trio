@@ -1047,7 +1047,8 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
             },
             basalProfile: basalProfile,
             from: since,
-            to: reading.at
+            to: reading.at,
+            pulseUnits: odometer.deliveryPulseUnits
         )
         let delivered = reading.units - baseline
         guard case let .missing(units) = WatchLoopAudit.compare(delivered: delivered, recorded: recorded) else {
