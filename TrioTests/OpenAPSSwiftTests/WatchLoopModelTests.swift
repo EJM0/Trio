@@ -25,6 +25,21 @@ import Testing
         let messages: [WatchLoopMessage] = [
             .request(WatchLoopRequest(id: UUID(), sentAt: t0, highestSession: 2)),
             .checkpoint(WatchLoopCheckpoint(session: 3, sentAt: t0, startedAt: t0, records: [record], status: nil)),
+            .checkpoint(WatchLoopCheckpoint(session: 3, sentAt: t0, startedAt: t0, records: [
+                WatchLoopRecord(seq: 2, session: 3, loggedAt: t0, kind: .glucose(BloodGlucose(
+                    id: "m", mbg: 120, date: 1_790_000_000_000, dateString: t0, glucose: 120, type: "mbg"
+                ))),
+                WatchLoopRecord(seq: 3, session: 3, loggedAt: t0, kind: .determination(
+                    Determination(
+                        id: UUID(), reason: "COB: 0", units: nil, insulinReq: nil, eventualBG: 110,
+                        sensitivityRatio: nil, rate: 0.5, duration: 30, iob: 1.25, cob: 0, predictions: nil, deliverAt: t0,
+                        carbsReq: nil, temp: .absolute, bg: 120, reservoir: nil, isf: nil, timestamp: t0, tdd: nil,
+                        current_target: nil, minDelta: nil, expectedDelta: nil, minGuardBG: nil, minPredBG: nil,
+                        threshold: nil, carbRatio: nil, received: nil
+                    ),
+                    enacted: true
+                ))
+            ], status: nil)),
             .ack(session: 3, recordIDs: [record.id]),
             .handBack(WatchLoopHandBack(session: 3, records: [record], odometer: WatchLoopOdometer(
                 deliveredAtStart: 10,
