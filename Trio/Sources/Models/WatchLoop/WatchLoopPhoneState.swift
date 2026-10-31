@@ -28,6 +28,9 @@ struct WatchLoopPhoneState: Codable, Equatable {
     var verifiedDelivered: Double?
     var verifiedAt: Date?
     var standingCopySentAt: Date?
+    /// A stop the watch hasn't confirmed; sent again until it does.
+    var stopPendingSession: Int?
+    var stopPendingSince: Date?
 
     static let storedRecordCapacity = 2000
 
@@ -76,6 +79,8 @@ struct WatchLoopPhoneState: Codable, Equatable {
         verifiedDelivered = try? c.decodeIfPresent(Double.self, forKey: .verifiedDelivered)
         verifiedAt = try? c.decodeIfPresent(Date.self, forKey: .verifiedAt)
         standingCopySentAt = try? c.decodeIfPresent(Date.self, forKey: .standingCopySentAt)
+        stopPendingSession = try? c.decodeIfPresent(Int.self, forKey: .stopPendingSession)
+        stopPendingSince = try? c.decodeIfPresent(Date.self, forKey: .stopPendingSince)
         // killed mid-transfer: who has the pump is asked at once, as for a watch gone quiet (`checkOverdue`)
         if role == .transferring {
             role = .lending
