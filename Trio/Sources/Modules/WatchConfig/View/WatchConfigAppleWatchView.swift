@@ -121,7 +121,7 @@ struct WatchConfigAppleWatchView: BaseView {
                 verboseHint: Text(
                     "When this is on, the watch app has a Watch Loop page. Starting it there hands the pod to the watch: it reads the CGM, loops with Trio's algorithm and your settings, and records what it does. The iPhone doesn't dose until the watch hands the pod back or you take it back. Needs Read on Apple Watch in the CGM's settings."
                 ),
-                headerText: String(localized: "Apple Watch Configuration")
+                headerText: String(localized: "Looping on the Watch")
             )
 
             if state.cgmIsG7 {
