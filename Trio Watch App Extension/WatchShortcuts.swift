@@ -34,5 +34,26 @@ struct TrioWatchShortcuts: AppShortcutsProvider {
             shortTitle: "Meal & Bolus",
             systemImageName: "fork.knife"
         )
+        AppShortcut(
+            intent: StartWatchLoopIntent(),
+            phrases: [
+                "Start \(.applicationName) Watch Loop",
+                "\(.applicationName) Watch Loop starten"
+            ],
+            shortTitle: "Start Watch Loop",
+            systemImageName: "applewatch"
+        )
+    }
+}
+
+/// Asks the phone for the pod, as the Watch Loop page's Start does; the app opens, and the page shows the answer.
+struct StartWatchLoopIntent: AppIntent {
+    static var title: LocalizedStringResource = "Start Watch Loop"
+    static var description = IntentDescription("Asks your iPhone to hand the pod to the watch, which then loops.")
+    static var openAppWhenRun = true
+
+    @MainActor func perform() async throws -> some IntentResult {
+        WatchLoopSession.shared.start()
+        return .result()
     }
 }
