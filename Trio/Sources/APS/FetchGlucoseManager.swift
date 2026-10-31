@@ -332,6 +332,12 @@ final class BaseFetchGlucoseManager: FetchGlucoseManager, Injectable {
 
         filteredByDate = newGlucose.filter { $0.dateString > syncDate }
         filtered = glucoseStorage.filterTooFrequentGlucose(filteredByDate, at: syncDate)
+        if filtered.count < filteredByDate.count {
+            debug(
+                .cgm,
+                "Skipped \(filteredByDate.count - filtered.count) glucose readings too close to last CGM reading at \(syncDate)"
+            )
+        }
 
         if filtered.isNotEmpty {
             debug(.cgm, "New glucose found")
@@ -446,7 +452,7 @@ extension BaseFetchGlucoseManager {
     func fetchGlucose(context: NSManagedObjectContext) async throws -> [NSManagedObjectID] {
         // Compound predicate: time window + non-manual + valid date
         let timePredicate = NSPredicate.predicateForOneDayAgoInMinutes
-        let manualPredicate = NSPredicate(format: "isManual == NO")
+        let manualPredicate = NSPredicate.cgmGlucose
         let datePredicate = NSPredicate(format: "date != nil")
 
         let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
