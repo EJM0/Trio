@@ -60,8 +60,7 @@ struct WatchConfigAppleWatchView: BaseView {
                 miniHint: String(localized: "Shows forecast on the Apple Watch"),
                 verboseHint: Text(
                     "Enable this feature to show the forecast on the Apple Watch"
-                ),
-                headerText: String(localized: "Apple Watch Configuration")
+                )
             )
 
             SettingInputSection(
@@ -81,8 +80,7 @@ struct WatchConfigAppleWatchView: BaseView {
                 miniHint: String(localized: "Shows the glucose bubble page on the Apple Watch"),
                 verboseHint: Text(
                     "When this is on, the watch app opens on a page with the glucose bubble, ahead of the chart."
-                ),
-                headerText: String(localized: "Apple Watch Configuration")
+                )
             )
 
             SettingInputSection(
@@ -102,8 +100,7 @@ struct WatchConfigAppleWatchView: BaseView {
                 miniHint: String(localized: "The watch’s urgent low alarm sounds through Silent Mode"),
                 verboseHint: Text(
                     "When this is on, the urgent low alarm the watch raises for its own readings sounds even in Silent Mode. The watch asks for permission the first time."
-                ),
-                headerText: String(localized: "Apple Watch Configuration")
+                )
             )
 
             if state.cgmIsG7 {
