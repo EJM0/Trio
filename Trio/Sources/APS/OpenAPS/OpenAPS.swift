@@ -364,6 +364,13 @@ final class OpenAPS {
         }
     }
 
+    /// The pump history exactly as `determineBasal` reads it: a temp basal as a duration and a rate entry, no
+    /// scheduled basal, no orphaned resume. The Watch Loop's grant carries it to the watch's algorithm.
+    func algorithmPumpHistory() async throws -> [PumpHistoryEvent] {
+        let context = newContext("algorithmPumpHistory")
+        return try await parsePumpHistory(on: context, fetchPumpHistoryObjectIDs(on: context) ?? [])
+    }
+
     func autosense(shouldSmoothGlucose: Bool) async throws -> Autosens? {
         let context = newContext("autosense")
 
