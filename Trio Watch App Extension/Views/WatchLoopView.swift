@@ -396,9 +396,12 @@ struct WatchLoopHistoryView: View {
     }
 }
 
-/// The phone's Loop Status sheet, from the watch's own loop: how recent it is and oref's reasoning.
+/// The phone's Loop Status sheet, from the watch's own loop: how recent it is, oref's values in pills, and its
+/// reasoning (as on feat/direct-to-watch).
 struct WatchLoopStatusView: View {
     let session: WatchLoopSession
+
+    private var state: WatchLoopWatchState { session.state }
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
@@ -410,13 +413,16 @@ struct WatchLoopStatusView: View {
                         .font(.footnote.bold())
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
-                        .foregroundStyle(Color.white)
+                        .foregroundStyle(status.color == .secondary ? Color.white : Color.bgDarkerDarkBlue)
                         .background(status.color, in: Capsule())
-                    if let error = session.state.lastError {
-                        Text(error).font(.caption2).foregroundStyle(.red)
+                    if let error = state.lastError {
+                        Text(error).font(.caption2).foregroundStyle(Color.loopRed)
                     }
-                    if let determination = session.state.lastDetermination {
-                        values(determination)
+                    if let determination = state.lastDetermination {
+                        Text("Latest Raw Algorithm Output").font(.footnote.bold()).padding(.top, 6)
+                        PillFlow(spacing: 4) {
+                            ForEach(tags(determination), id: \.self) { AlgorithmPill(tag: $0) }
+                        }
                         Text("Current Algorithm Reasoning").font(.footnote.bold()).padding(.top, 6)
                         Text(determination.reasonConclusion.prefix(1).uppercased() + determination.reasonConclusion.dropFirst())
                             .font(.caption2)
@@ -430,35 +436,140 @@ struct WatchLoopStatusView: View {
         }
     }
 
-    private func values(_ determination: Determination) -> some View {
-        let format: (Decimal?, String) -> String = { value, unit in
-            value
-                .map {
-                    "\(NSDecimalNumber(decimal: $0).doubleValue.formatted(.number.precision(.fractionLength(0 ... 2)))) \(unit)" }
-                ?? "--"
+    /// As the phone's sheet: enacted within 5 minutes green, within 10 yellow, then red.
+    private func status(now: Date) -> (title: String, color: Color) {
+        guard let deliverAt = state.lastDetermination?.deliverAt else {
+            return (String(localized: "Not looping."), .secondary)
         }
-        return Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 2) {
-            GridRow { Text("IOB").foregroundStyle(.secondary)
-                Text(format(determination.iob, "U")) }
-            GridRow { Text("COB").foregroundStyle(.secondary)
-                Text(format(determination.cob, "g")) }
-            GridRow { Text("Temp").foregroundStyle(.secondary)
-                Text(format(determination.rate, "U/h")) }
-            GridRow { Text("SMB").foregroundStyle(.secondary)
-                Text(format(determination.units, "U")) }
+        let age = now.timeIntervalSince(state.lastLoopAt ?? deliverAt) - 30
+        let color: Color = age <= 5 * 60 ? .loopGreen : age <= 10 * 60 ? .loopYellow : .loopRed
+        guard deliverAt >= now.addingTimeInterval(-5 * 60) else {
+            let minutes = Int((now.timeIntervalSince(deliverAt) / 60).rounded())
+            return (
+                state.closedLoop
+                    ? String(localized: "Trio has not looped in \(minutes) minutes.")
+                    : String(localized: "Trio has not run in \(minutes) minutes."),
+                color
+            )
         }
-        .font(.caption2)
+        let time = deliverAt.formatted(date: .omitted, time: .shortened)
+        return (state.closedLoop ? String(localized: "Enacted at \(time)") : String(localized: "Determined at \(time)"), color)
     }
 
-    /// As the phone's sheet: within 5 minutes green, within 10 yellow, then red.
-    private func status(now: Date) -> (title: String, color: Color) {
-        guard let last = session.state.lastLoopAt else { return (String(localized: "Not looping."), .gray) }
-        let age = now.timeIntervalSince(last)
-        let color: Color = age <= 5 * 60 ? .green : age <= 10 * 60 ? .yellow : .red
-        let time = last.formatted(date: .omitted, time: .shortened)
-        return (
-            session.state.closedLoop ? String(localized: "Enacted at \(time)") : String(localized: "Determined at \(time)"),
-            color
-        )
+    private func tags(_ determination: Determination) -> [String] {
+        let isMmolL = state.grant?.units == .mmolL
+        var tags = determination.reasonParts.map { AlgorithmPill.formatted($0, isMmolL: isMmolL) }
+        if state.grant?.smoothGlucose == true { tags.append("Smoothing: On") }
+        if let tdd = state.grant?.tdd.currentTDD, tdd != 0 {
+            tags
+                .append(
+                    "TDD: \(NSDecimalNumber(decimal: tdd).doubleValue.formatted(.number.precision(.fractionLength(0 ... 1))))"
+                )
+        }
+        return tags
+    }
+}
+
+/// One of the phone's `TagCloudView` pills, in its colors.
+private struct AlgorithmPill: View {
+    let tag: String
+
+    private var color: Color {
+        if tag.contains("SMB Delivery Ratio:") { return .UAM }
+        if tag.contains("Bolus") { return .green }
+        if [
+            "TDD:",
+            "tdd_factor",
+            "Sigmoid function",
+            "Logarithmic formula",
+            "AF:",
+            "Autosens/Dynamic Limit:",
+            "Dynamic ISF/CR",
+            "Basal ratio",
+            "SMB Ratio"
+        ].contains(where: tag.contains) { return .ZT }
+        if tag.contains("Middleware:") { return .red }
+        if tag.contains("Smoothing: On") { return .gray }
+        return .insulin
+    }
+
+    var body: some View {
+        Text(tag)
+            .font(.system(size: 11, weight: .semibold))
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .foregroundStyle(color)
+            .background(color.opacity(0.15), in: Capsule())
+            .overlay(Capsule().stroke(color.opacity(0.4), lineWidth: 1.5))
+    }
+
+    private static let glucoseNames = [
+        "ISF",
+        "Target",
+        "Dev",
+        "BGI",
+        "minPredBG",
+        "minGuardBG",
+        "IOBpredBG",
+        "COBpredBG",
+        "UAMpredBG"
+    ]
+
+    /// As `TagCloudView.formatGlucoseTags`: "minPredBG 150" reads "minPredBG: 150", and glucose values go to mmol/L.
+    static func formatted(_ tag: String, isMmolL: Bool) -> String {
+        guard let name = glucoseNames.first(where: { tag.hasPrefix($0 + ":") || tag.hasPrefix($0 + " ") }) else { return tag }
+        var values = String(tag.dropFirst(name.count)).trimmingCharacters(in: CharacterSet(charactersIn: ": "))
+        if isMmolL, let regex = try? NSRegularExpression(pattern: "-?\\d+\\.?\\d*") {
+            for match in regex.matches(in: values, range: NSRange(values.startIndex..., in: values)).reversed() {
+                guard let range = Range(match.range, in: values),
+                      let mgdl = Decimal(string: String(values[range])) else { continue }
+                values.replaceSubrange(range, with: mgdl.asMmolL.description)
+            }
+        }
+        return "\(name): \(values)"
+    }
+}
+
+/// Lays its pills out in rows, wrapping like the phone's tag cloud.
+private struct PillFlow: Layout {
+    let spacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache _: inout ()) -> CGSize {
+        let rows = rows(width: proposal.width ?? .infinity, subviews: subviews)
+        // in steps with their types: as one expression the arm64_32 archive gave up type-checking it
+        let rowHeights: [CGFloat] = rows.map { row in row.map(\.height).max() ?? 0 }
+        let gaps: CGFloat = spacing * CGFloat(max(rows.count - 1, 0))
+        let height: CGFloat = rowHeights.reduce(0, +) + gaps
+        let rowWidths: [CGFloat] = rows.map { row in row.reduce(CGFloat(0)) { $0 + $1.width } }
+        return CGSize(width: proposal.width ?? rowWidths.max() ?? 0, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal _: ProposedViewSize, subviews: Subviews, cache _: inout ()) {
+        var index = 0
+        var y = bounds.minY
+        for row in rows(width: bounds.width, subviews: subviews) {
+            var x = bounds.minX
+            for size in row {
+                subviews[index].place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+                x += size.width + spacing
+                index += 1
+            }
+            y += (row.map(\.height).max() ?? 0) + spacing
+        }
+    }
+
+    private func rows(width: CGFloat, subviews: Subviews) -> [[CGSize]] {
+        var rows: [[CGSize]] = [[]]
+        var x: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(ProposedViewSize(width: width, height: nil))
+            if x > 0, x + size.width > width {
+                rows.append([])
+                x = 0
+            }
+            rows[rows.count - 1].append(size)
+            x += size.width + spacing
+        }
+        return rows
     }
 }
