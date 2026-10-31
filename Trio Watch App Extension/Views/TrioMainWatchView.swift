@@ -6,9 +6,9 @@ struct TrioMainWatchView: View {
     @State private var state = WatchState.shared
     @State private var watchLoop = WatchLoopSession.shared
 
-    // Pages in order; the bubble page is a phone setting, then chart, devices and alarm snooze, then the Watch Loop.
-    private var bubblePage: Int? { state.showGlucoseBubble ? 1 : nil }
-    private var chartPage: Int { bubblePage.map { $0 + 1 } ?? 1 }
+    // Pages in order: the bubble or the combined view (a phone setting), then chart, devices and alarm snooze, then
+    // the Watch Loop.
+    private let chartPage = 1
     private var peripheralsPage: Int { chartPage + 1 }
     private var snoozePage: Int { peripheralsPage + 1 }
     /// The phone's setting off: no Watch Loop page, but a running session keeps it.
@@ -90,15 +90,8 @@ struct TrioMainWatchView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             TabView(selection: $currentPage) {
-                // Page 1: Combined View of glucose trend and chart view
-                CombinedGlucoseChartview(
-                    state: state,
-                    rotationDegrees: rotationDegrees,
-                    isWatchStateDated: isWatchStateDated || isSessionUnreachable
-                )
-                .tag(0)
-                // Page 2: Current glucose trend in "BG bobble", unless turned off on the phone
-                if let bubblePage {
+                // Page 1: the current glucose in the "BG bubble", or the combined view of trend and chart
+                if state.showGlucoseBubble {
                     ZStack {
                         GlucoseTrendView(
                             state: state,
@@ -121,10 +114,17 @@ struct TrioMainWatchView: View {
                                         7 // Font .body == 14, so half of default size for the SF Symbol image
                                 )
                         }
-                    }.tag(bubblePage)
+                    }.tag(0)
+                } else {
+                    CombinedGlucoseChartview(
+                        state: state,
+                        rotationDegrees: rotationDegrees,
+                        isWatchStateDated: isWatchStateDated || isSessionUnreachable
+                    )
+                    .tag(0)
                 }
 
-                // Page 3: Glucose chart
+                // Page 2: Glucose chart
                 GlucoseChartView(
                     state: state,
                     glucoseValues: state.glucoseValues,
@@ -133,7 +133,7 @@ struct TrioMainWatchView: View {
                 )
                 .tag(chartPage)
 
-                // Page 4: Pump and CGM peripheral info
+                // Page 3: Pump and CGM peripheral info
                 PeripheralsView(
                     state: state,
                     isWatchStateDated: isWatchStateDated || isSessionUnreachable
@@ -152,8 +152,6 @@ struct TrioMainWatchView: View {
                 }
             }
             .onChange(of: lastPage) { _, _ in
-                if currentPage > lastPage { currentPage = lastPage } }
-            .onChange(of: state.showGlucoseBubble) { _, _ in
                 if currentPage > lastPage { currentPage = lastPage } }
             .onAppear {
                 /// Hard reset variables when main view appears

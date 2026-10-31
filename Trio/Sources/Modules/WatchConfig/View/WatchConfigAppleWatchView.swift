@@ -78,9 +78,9 @@ struct WatchConfigAppleWatchView: BaseView {
                 units: state.units,
                 type: .boolean,
                 label: String(localized: "Glucose Bubble on Watch"),
-                miniHint: String(localized: "Shows the glucose bubble page on the Apple Watch"),
+                miniHint: String(localized: "The glucose bubble instead of the combined view on the Apple Watch"),
                 verboseHint: Text(
-                    "When this is on, the watch app opens on a page with the glucose bubble, ahead of the chart."
+                    "On, the watch app opens on the glucose bubble. Off, it opens on the combined view of glucose and chart."
                 ),
                 headerText: String(localized: "Apple Watch Configuration")
             )
