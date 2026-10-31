@@ -3,8 +3,11 @@ import Foundation
 struct NightscoutStatus: JSON {
     let device: String
     let openaps: OpenAPSStatus
-    let pump: NSPumpStatus
-    let uploader: Uploader
+    /// Nil on a loop's status uploaded afterwards: the pump and the phone as they are now weren't its.
+    let pump: NSPumpStatus?
+    let uploader: Uploader?
+    /// A loop's status uploaded afterwards, at the loop's time; nil: Nightscout dates it on arrival.
+    var created_at: Date? = nil
 }
 
 struct OpenAPSStatus: JSON {

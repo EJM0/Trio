@@ -590,6 +590,11 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
             determinationStorage.getOrefDeterminationNotYetUploadedToNightscout(suggestedDeterminationID)
         )
 
+        await uploadEarlierDeviceStatuses(
+            sparing: [fetchedEnactedDetermination?.id, fetchedSuggestedDetermination?.id].compactMap { $0 },
+            to: nightscout
+        )
+
         // Guard to ensure both determinations are not nil
         guard fetchedEnactedDetermination != nil || fetchedSuggestedDetermination != nil else {
             debug(.nightscout, "Device status upload skipped: no new determination")
@@ -662,8 +667,12 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
         // Bolus increment
         let bolusIncrement = settingsManager.preferences.bolusIncrement
 
-        // Gather all relevant data for OpenAPS Status
-        let iob = await fetchedIOBEntry
+        // Gather all relevant data for OpenAPS Status; the phone's IOB goes stale while the watch loops, and one
+        // older than the loop it is uploaded with isn't that loop's
+        let determinedAt = (fetchedSuggestedDetermination ?? fetchedEnactedDetermination)?.deliverAt ?? .distantPast
+        let iob = await fetchedIOBEntry.flatMap { entries in
+            determinedAt.timeIntervalSince(entries.first?.time ?? determinedAt) > 5 * 60 ? nil : entries
+        }
 
         let suggestedToUpload = modifiedSuggestedDetermination ?? lastSuggestedDetermination
         let enactedToUpload = fetchedEnactedDetermination ?? lastEnactedDetermination
@@ -733,6 +742,64 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
         } catch {
             warning(.nightscout, "Device status upload failed", error: error)
         }
+    }
+
+    /// The loops before the newest, each as its own devicestatus at its own time, so that Nightscout's history shows
+    /// them: the Watch Loop's, which reach the phone in batches with the watch's records (the phone doesn't loop
+    /// meanwhile), and any of the phone's own a coalesced or failed upload passed over. The newest stay for the
+    /// regular status. Oldest first; a failure ends the pass, and the next one goes on from there.
+    private func uploadEarlierDeviceStatuses(sparing spared: [UUID], to nightscout: NightscoutAPI) async {
+        let context = CoreDataStack.shared.newTaskContext()
+        context.name = "uploadEarlierDeviceStatuses"
+        guard let results = try? await CoreDataStack.shared.fetchEntitiesAsync(
+            ofType: OrefDetermination.self,
+            onContext: context,
+            predicate: NSPredicate(
+                format: "deliverAt >= %@ AND isUploadedToNS == %@",
+                Date.oneDayAgo as NSDate,
+                false as NSNumber
+            ),
+            key: "deliverAt",
+            ascending: true,
+            fetchLimit: 100
+        ) else { return }
+        let ids: [NSManagedObjectID] = await context.perform {
+            (results as? [OrefDetermination] ?? []).filter { !spared.contains($0.id ?? UUID()) }.map(\.objectID)
+        }
+        for id in ids {
+            guard var determination = await determinationStorage.getOrefDeterminationNotYetUploadedToNightscout([id])
+            else { continue }
+            determination.timestamp = determination.timestamp ?? determination.deliverAt
+            if settingsManager.settings.units == .mmolL {
+                determination.reason = parseReasonGlucoseValuesToMmolL(determination.reason)
+                determination.current_target = determination.current_target?.asMmolL
+                determination.minGuardBG = determination.minGuardBG?.asMmolL
+                determination.minPredBG = determination.minPredBG?.asMmolL
+                determination.threshold = determination.threshold?.asMmolL
+            }
+            let status = NightscoutStatus(
+                device: NightscoutTreatment.local,
+                openaps: OpenAPSStatus(
+                    iob: nil,
+                    suggested: determination,
+                    enacted: determination.received == true ? determination : nil,
+                    version: Bundle.main.releaseVersionNumber ?? "Unknown",
+                    recommendedBolus: nil,
+                    dosingMode: settingsManager.settings.dosingMode.rawValue
+                ),
+                pump: nil,
+                uploader: nil,
+                created_at: determination.deliverAt
+            )
+            do {
+                try await nightscout.uploadDeviceStatus(status)
+                await updateOrefDeterminationAsUploaded([determination])
+            } catch {
+                warning(.nightscout, "Earlier device status upload failed", error: error)
+                return
+            }
+        }
+        if !ids.isEmpty { info(.nightscout, "Earlier device statuses uploaded: \(ids.count)") }
     }
 
     private func updateOrefDeterminationAsUploaded(_ determination: [Determination]) async {
