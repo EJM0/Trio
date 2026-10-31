@@ -25,7 +25,8 @@ struct WatchLoopDose: Codable, Equatable {
 }
 
 /// One thing that happened during a session (after LoopKit/Loop#2545's LoanDoseRecord). Few kinds on purpose: the
-/// phone recomputes TDD and autosens from its pump history, and fills glucose gaps from the sensor's backfill.
+/// phone recomputes TDD and autosens from its pump history, and fills glucose gaps from the sensor's backfill, so of
+/// glucose only a meter's BG travels.
 struct WatchLoopRecord: Codable, Equatable, Identifiable {
     enum Kind: Codable, Equatable {
         /// A bolus, a suspend or a resume when it happens; a temp basal once it has ended.
@@ -37,6 +38,11 @@ struct WatchLoopRecord: Codable, Equatable, Identifiable {
         case override(Override?)
         /// A temp target set on the watch; nil ends the running one.
         case tempTarget(TempTarget?)
+        /// A meter's BG entered on the watch: the phone files it as a manual reading.
+        case glucose(BloodGlucose)
+        /// A cycle of the watch's loop: what oref determined, and whether the watch enacted it. The phone's charts,
+        /// loop status and Nightscout show the watch's loops from these.
+        case determination(Determination, enacted: Bool)
     }
 
     /// For acknowledgement: the phone stores each id once.
