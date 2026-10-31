@@ -1,5 +1,6 @@
 import SwiftUI
 import WatchConnectivity
+import WatchKit
 
 extension Color {
     /// The Watch Loop, as on the phone.
@@ -340,10 +341,18 @@ struct WatchLoopHistoryView: View {
     @ViewBuilder private var glucoseRows: some View {
         let mmol = session.state.grant?.units == .mmolL
         let readings = session.state.allGlucose.filter { $0.dateString >= since }
+        if session.state.phase == .active {
+            NavigationLink { WatchLoopGlucoseEntryView(session: session) } label: {
+                Label("Add BG", systemImage: "plus.circle.fill")
+                    .foregroundStyle(.green)
+            }
+        }
         if readings.isEmpty { Text("No glucose").foregroundStyle(.secondary) }
         ForEach(readings, id: \.id) { reading in
             let value = reading.sgv ?? reading.glucose ?? 0
-            row(reading.dateString, Text(verbatim: mmol ? Decimal(value).asMmolL.description : "\(value)"))
+            let shown = Text(verbatim: mmol ? Decimal(value).asMmolL.description : "\(value)")
+            // a meter's BG is marked: it isn't a sensor reading
+            row(reading.dateString, reading.mbg != nil ? Text(Image(systemName: "drop.circle")) + Text(verbatim: " ") + shown : shown)
         }
     }
 
@@ -393,6 +402,112 @@ struct WatchLoopHistoryView: View {
         case .pumpResume: return String(localized: "Resumed")
         default: return event.type.rawValue
         }
+    }
+}
+
+/// A meter's blood glucose, picked with the crown (or − / +) in the phone's units and saved as a manual reading: the
+/// loop takes it into account from the next reading on, and the phone files it as a manual entry (Kristin Kandschur's
+/// feature/untethered-fallback, d4c8552f6, as on feat/direct-to-watch).
+struct WatchLoopGlucoseEntryView: View {
+    let session: WatchLoopSession
+    @Environment(\.dismiss) private var dismiss
+    @State private var value: Double = 0
+    @State private var confirmDifference = false
+    @FocusState private var crownFocused: Bool
+
+    private var isMmol: Bool { session.state.grant?.units == .mmolL }
+    /// A meter's range: 40–400 mg/dL (2.2–22.2 mmol/L).
+    private var range: ClosedRange<Double> { isMmol ? 2.2 ... 22.2 : 40 ... 400 }
+    private var step: Double { isMmol ? 0.1 : 1 }
+    /// As the phone's `asMgdL`.
+    private var mgdl: Int { isMmol ? Int((value / 0.0555).rounded()) : Int(value.rounded()) }
+    private var shown: String { isMmol ? String(format: "%.1f", value) : "\(Int(value.rounded()))" }
+
+    /// The sensor's newest reading, when it's recent enough to compare with.
+    private var sensorReading: Int? {
+        guard let newest = session.state.allGlucose.first(where: { $0.mbg == nil }),
+              Date().timeIntervalSince(newest.dateString) < 15 * 60
+        else { return nil }
+        return newest.sgv ?? newest.glucose
+    }
+
+    /// Asked before saving a BG far from the sensor (40 mg/dL or 30 %): a typo here doses insulin.
+    private var isFarFromSensor: Bool {
+        guard let sensor = sensorReading, sensor > 0 else { return false }
+        let difference = abs(mgdl - sensor)
+        return difference >= 40 || Double(difference) / Double(sensor) >= 0.3
+    }
+
+    private func display(_ mgdl: Int) -> String {
+        isMmol ? Decimal(mgdl).formattedAsMmolL : "\(mgdl)"
+    }
+
+    /// Where the crown starts: the sensor's last reading, else 100 mg/dL, in the units shown.
+    private var startValue: Double {
+        let start = Double(sensorReading ?? 100)
+        let converted: Double = isMmol ? (start * 0.0555 * 10).rounded() / 10 : start
+        return min(max(converted, range.lowerBound), range.upperBound)
+    }
+
+    var body: some View {
+        VStack(spacing: 6) {
+            HStack {
+                Button { value = max(range.lowerBound, value - step) } label: { Image(systemName: "minus") }
+                    .buttonStyle(.bordered)
+                    .frame(width: 40)
+                Text(shown)
+                    .font(.system(size: 40, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .minimumScaleFactor(0.6)
+                    .frame(maxWidth: .infinity)
+                    .focusable(true)
+                    .focused($crownFocused)
+                    .digitalCrownRotation(
+                        $value,
+                        from: range.lowerBound,
+                        through: range.upperBound,
+                        by: step,
+                        sensitivity: .medium,
+                        isContinuous: false,
+                        isHapticFeedbackEnabled: true
+                    )
+                Button { value = min(range.upperBound, value + step) } label: { Image(systemName: "plus") }
+                    .buttonStyle(.bordered)
+                    .frame(width: 40)
+            }
+            Text(isMmol ? "mmol/L" : "mg/dL")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            if let sensor = sensorReading {
+                Text("Sensor: \(display(sensor))")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            Button {
+                if isFarFromSensor { confirmDifference = true } else { save() }
+            } label: {
+                Text("Save")
+                    .frame(maxWidth: .infinity)
+            }
+            .tint(.green)
+        }
+        .navigationTitle("Add BG")
+        .onAppear {
+            value = startValue
+            crownFocused = true
+        }
+        .confirmationDialog("Save this BG?", isPresented: $confirmDifference) {
+            Button("Save \(shown)") { save() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("\(shown) is far from the sensor's \(display(sensorReading ?? 0)). The loop will use it.")
+        }
+    }
+
+    private func save() {
+        session.addManualGlucose(mgdl: mgdl)
+        WKInterfaceDevice.current().play(.success)
+        dismiss()
     }
 }
 
