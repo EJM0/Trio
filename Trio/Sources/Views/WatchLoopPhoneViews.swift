@@ -119,28 +119,29 @@ private struct WatchLoopLockedView: View {
     }
 }
 
-/// The home screen while the watch has the pod: a glow around the glucose circle, as Trio's rings glow
-/// (Kristin Kandschur, 3010a9a15), gone at the edge of the header.
+/// The home screen while the watch has the pod: a halo behind the glucose bubble, as Trio's rings glow
+/// (Kristin Kandschur, 3010a9a15). The header's background, so it is centred on the bubble and scrolls with it.
 struct WatchLoopHomeGlow: View {
     @ObservedObject var manager: BaseWatchLoopPhoneManager
 
+    /// The bubble is 130 pt drawn at 0.9 (`CurrentGlucoseView`), its edge 58 pt out: the halo is full there and gone
+    /// within the header (`HomeLayout.headerHeight`).
+    private static let radius: CGFloat = 90
+
     private static let glow = Gradient(stops: [
         .init(color: Color.watchLoop.opacity(0.3), location: 0),
-        .init(color: Color.watchLoop.opacity(0.16), location: 0.45),
-        .init(color: Color.watchLoop.opacity(0.05), location: 0.8),
+        .init(color: Color.watchLoop.opacity(0.3), location: 0.62),
+        .init(color: Color.watchLoop.opacity(0.12), location: 0.8),
         .init(color: Color.watchLoop.opacity(0), location: 1)
     ])
 
     var body: some View {
-        GeometryReader { geometry in
-            let radiusY = HomeLayout.headerHeight / 2 + HomeLayout.mealSlotHeight + 56
-            EllipticalGradient(gradient: Self.glow, center: .center, startRadiusFraction: 0, endRadiusFraction: 0.5)
-                .frame(width: geometry.size.width, height: radiusY * 2)
-                .position(x: geometry.size.width / 2, y: geometry.safeAreaInsets.top + HomeLayout.headerHeight / 2)
-        }
-        .opacity(manager.isWatchInCharge ? 1 : 0)
-        .allowsHitTesting(false)
-        .animation(.easeInOut(duration: 0.4), value: manager.isWatchInCharge)
+        RadialGradient(gradient: Self.glow, center: .center, startRadius: 0, endRadius: Self.radius)
+            .frame(width: Self.radius * 2, height: Self.radius * 2)
+            .opacity(manager.isWatchInCharge ? 1 : 0)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+            .animation(.easeInOut(duration: 0.4), value: manager.isWatchInCharge)
     }
 }
 
