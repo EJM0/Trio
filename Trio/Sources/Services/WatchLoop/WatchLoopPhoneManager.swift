@@ -1040,7 +1040,8 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
             return true
         }
         let basalProfile = await storage.retrieveAsync(OpenAPS.Settings.basalProfile, as: [BasalProfileEntry].self) ?? []
-        let history = (try? await pumpHistoryStorage.getPumpHistory()) ?? []
+        // as the algorithm reads it: a temp's duration in its own entry, the schedule not stored as temps
+        let history = (try? await openAPS.algorithmPumpHistory()) ?? []
         let recorded = WatchLoopAudit.recordedInsulin(
             WatchLoopAudit.doses(history, now: reading.at) { [controllablePump] units in
                 controllablePump?.estimatedDuration(toBolus: units) ?? 0
