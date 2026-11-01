@@ -92,7 +92,18 @@ extension WatchLoopSession {
 
     func runCycle(reason: String) async {
         guard state.phase == .active, !cycleRunning, let pump = pumpManager, let grant = state.grant else { return }
-        if let resumingUntil, Date() < resumingUntil { return }
+        let releaseWake = holdProcess(reason: "Watch Loop cycle", upTo: 60)
+        defer { releaseWake() }
+        if let resumingUntil, Date() < resumingUntil {
+            guard reason == "reading" else { return }
+            do {
+                try await Task.sleep(nanoseconds: UInt64(Date().distance(to: resumingUntil) * 1_000_000_000))
+            } catch {
+                return
+            }
+            guard state.phase == .active, pumpManager === pump else { return }
+            self.resumingUntil = nil
+        }
         if let last = state.lastLoopAt, Date().timeIntervalSince(last) < Self.minimumCycleInterval, reason == "reading" { return }
         cycleRunning = true
         defer {
@@ -286,5 +297,35 @@ extension WatchLoopSession {
         guard state.phase == .active else { return }
         if let last = state.lastLoopAt, Date().timeIntervalSince(last) < Self.cycleBackstop - 30 { return }
         await runCycle(reason: "backstop")
+    }
+
+    /// Keeps the process alive while a cycle waits for Bluetooth or the pod. A cycle can outlast the Bluetooth
+    /// wake that started it, so it needs its own activity rather than relying on the app delegate's task hold.
+    private func holdProcess(reason: String, upTo wait: TimeInterval) -> () -> Void {
+        let gate = DispatchSemaphore(value: 0)
+        let once = NSLock()
+        var ended = false
+        let end: (Bool) -> Void = { expired in
+            once.lock()
+            let first = !ended
+            ended = true
+            once.unlock()
+            if first, expired {
+                WatchLogger.shared.warning(.lifecycle, "\(reason) ended when watchOS expired the activity")
+            }
+        }
+        DispatchQueue.global(qos: .userInitiated).async {
+            ProcessInfo.processInfo.performExpiringActivity(withReason: reason) { expired in
+                if expired {
+                    end(true)
+                } else {
+                    _ = gate.wait(timeout: .now() + wait)
+                    end(false)
+                }
+            }
+        }
+        return {
+            gate.signal()
+        }
     }
 }
