@@ -352,7 +352,10 @@ struct WatchLoopHistoryView: View {
             let value = reading.sgv ?? reading.glucose ?? 0
             let shown = Text(verbatim: mmol ? Decimal(value).asMmolL.description : "\(value)")
             // a meter's BG is marked: it isn't a sensor reading
-            row(reading.dateString, reading.mbg != nil ? Text(Image(systemName: "drop.circle")) + Text(verbatim: " ") + shown : shown)
+            row(
+                reading.dateString,
+                reading.mbg != nil ? Text(Image(systemName: "drop.circle")) + Text(verbatim: " ") + shown : shown
+            )
         }
     }
 
