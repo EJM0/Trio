@@ -63,7 +63,6 @@ extension WatchLoopSession {
     }
 
     func armNotHearingFromPhone() {
-        lastHeardFromPhoneAt = Date()
         guard state.phase == .idle, WatchState.shared.watchLoopEnabled,
               case let .tellIfSilent(_, after) = WatchLoopControl.decide(.init(device: .watch, trigger: .phoneHeardWithNoSession))
         else { return disarm(.notHearingFromPhone) }

@@ -70,12 +70,13 @@ extension WatchLoopSession {
         await runCycle(reason: "start")
     }
 
-    private func checkCopyAgainstPump(_ copy: WatchLoopGrant, pump: PumpManager) async {
+    /// False: no total yet, or insulin the copy doesn't explain was booked; the cycle doses nothing then.
+    @discardableResult private func checkCopyAgainstPump(_ copy: WatchLoopGrant, pump: PumpManager) async -> Bool {
         guard let odometer = pump as? PumpDeliveryOdometer, await odometer.refreshDeliveredUnits(),
               let reading = odometer.deliveredUnits
         else {
-            WatchLogger.shared.warning(.treatments, "Watch Loop: no pump total before the first loop")
-            return
+            WatchLogger.shared.warning(.treatments, "Watch Loop: no pump total yet; no dose until there is one")
+            return false
         }
         state.deliveredAtStart = reading.units
         state.deliveredAtStartReadAt = reading.at
@@ -83,7 +84,7 @@ extension WatchLoopSession {
             state.verifiedDelivered = reading.units
             state.verifiedAt = reading.at
         }
-        guard let copied = copy.deliveredUnits, let copiedAt = copy.deliveredUnitsAt else { return }
+        guard let copied = copy.deliveredUnits, let copiedAt = copy.deliveredUnitsAt else { return true }
         let recorded = WatchLoopAudit.recordedInsulin(
             WatchLoopAudit.doses(copy.pumpHistory, now: reading.at) { pump.estimatedDuration(toBolus: $0) },
             basalProfile: copy.basalProfile,
@@ -92,8 +93,9 @@ extension WatchLoopSession {
             pulseUnits: odometer.deliveryPulseUnits
         )
         guard case let .missing(units) = WatchLoopAudit.compare(delivered: reading.units - copied, recorded: recorded)
-        else { return }
+        else { return true }
         bookPlaceholder(units, at: reading.at)
+        return false
     }
 
     /// Insulin the watch's records don't explain, as a bolus in its own history: IOB errs high, so dosing errs low.
@@ -105,7 +107,9 @@ extension WatchLoopSession {
             id: "watchLoop.placeholder.\(Int(date.timeIntervalSince1970))",
             type: .bolus,
             timestamp: date,
-            amount: Decimal(rounded)
+            amount: Decimal(rounded),
+            // in IOB, but never the pump's delivery: it must not explain the next check's insulin
+            isExternal: true
         ))
         state.history.sort { $0.timestamp < $1.timestamp }
         WatchLogger.shared.warning(.treatments, "Watch Loop: \(rounded) U the records don't explain, counted as a bolus")
@@ -114,10 +118,19 @@ extension WatchLoopSession {
     /// At each pump reading of a session: insulin the watch's records don't explain means another controller dosed.
     /// The watch doses nothing in this cycle and waits for the phone's word before each dose, until it has it.
     func pumpTotalIsExplained(_ pump: PumpManager) async -> Bool {
-        guard let odometer = pump as? PumpDeliveryOdometer, let reading = odometer.deliveredUnits,
-              let baseline = state.verifiedDelivered, let since = state.verifiedAt, reading.at > since,
-              let grant = state.grant
-        else { return true }
+        guard let grant = state.grant else { return false }
+        guard let odometer = pump as? PumpDeliveryOdometer, let reading = odometer.deliveredUnits else {
+            WatchLogger.shared.warning(.treatments, "Watch Loop: no pump total; no dose this cycle")
+            return false
+        }
+        guard let baseline = state.verifiedDelivered, let since = state.verifiedAt else {
+            // no total at the start: a start from the copy checks it now, a granted session starts here
+            if state.startedWithoutPhone { return await checkCopyAgainstPump(grant, pump: pump) }
+            state.verifiedDelivered = reading.units
+            state.verifiedAt = reading.at
+            return true
+        }
+        guard reading.at > since else { return true }
         let recorded = WatchLoopAudit.recordedInsulin(
             WatchLoopAudit.doses(state.pumpHistory, now: reading.at) { pump.estimatedDuration(toBolus: $0) },
             basalProfile: grant.basalProfile,
@@ -125,13 +138,21 @@ extension WatchLoopSession {
             to: reading.at,
             pulseUnits: odometer.deliveryPulseUnits
         )
-        state.verifiedDelivered = reading.units
         state.verifiedAt = reading.at
-        guard case let .missing(units) = WatchLoopAudit.compare(delivered: reading.units - baseline, recorded: recorded)
-        else { return true }
-        bookPlaceholder(units, at: reading.at)
-        state.checkWithPhoneBeforeDosing = true
-        return false
+        switch WatchLoopAudit.compare(delivered: reading.units - baseline, recorded: recorded) {
+        case .matches:
+            // only what the records explain moves the baseline: differences under the band add up until they show
+            state.verifiedDelivered = baseline + recorded
+            return true
+        case .overstated:
+            state.verifiedDelivered = reading.units
+            return true
+        case let .missing(units):
+            state.verifiedDelivered = reading.units
+            bookPlaceholder(units, at: reading.at)
+            state.checkWithPhoneBeforeDosing = true
+            return false
+        }
     }
 
     /// After a hand-back nobody answered: a dose waits for the phone's word, which ends the session if the phone
@@ -139,13 +160,13 @@ extension WatchLoopSession {
     func checkWithPhoneIfNeeded() async {
         guard state.checkWithPhoneBeforeDosing else { return }
         note = String(localized: "Checking with your iPhone…")
-        let asked = Date()
         sendStatus(replyTo: nil)
-        let wait = WatchLoopControl.Wait.onScreen.seconds
-        while Date().timeIntervalSince(asked) < wait, (lastHeardFromPhoneAt ?? .distantPast) < asked {
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
+        // A live answer, not any message: one queued long ago says nothing about the phone now. A phone that holds
+        // the pod answers the status with the stop, which ends the session before the dose.
+        if await askPhone() {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            state.checkWithPhoneBeforeDosing = false
         }
-        if (lastHeardFromPhoneAt ?? .distantPast) >= asked { state.checkWithPhoneBeforeDosing = false }
         if state.phase == .active { note = nil }
     }
 
