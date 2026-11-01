@@ -943,6 +943,12 @@ extension MainChartCanvas {
                 viewContext: context
             )
 
+            // at the target, as an override without a target of its own
+            WatchLoopSpansView(
+                y: state.units == .mgdL ? state.currentGlucoseTarget : state.currentGlucoseTarget.asMmolL,
+                now: state.timerDate
+            )
+
             InsulinView(
                 glucoseData: glucose,
                 insulinData: insulin,
