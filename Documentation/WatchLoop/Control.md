@@ -97,13 +97,13 @@ determination: the phone stores it as its own, and Nightscout gets it at its own
 every record not yet acknowledged, so only a session's newest waits in the queue. A pod deactivated or discarded on the
 watch ends the session; the phone forgets the pod.
 
-While it loops, every page of the watch app and its complications show the watch's own IOB, COB, last loop and
-forecast. The phone shows a banner and a glow, locks treatments and the settings the watch doses with, draws its
-chart without the forecast, pauses its glucose alarms (the watch raises them from its own readings), and counts the
-watch's loops as loops, so Not Looping waits for them. Dead man's switches on the watch, scheduled ahead and pushed
-out by each sign of life, warn when it hasn't looped for 20 min, when a hand-back goes unconfirmed for 2 min, and
-with no session when the phone has been silent for 25 min (row 3). An End the pod driver refused with a command
-unconfirmed is offered again after the next cycle reached the pod.
+While it loops, every page of the watch app and its complications show the watch's own IOB, COB, last loop and forecast.
+The phone shows a banner and a glow, locks treatments and the settings the watch doses with, draws the watch's forecast
+from the determinations it receives, pauses its glucose alarms (the watch raises them from its own readings), and counts
+the watch's loops as loops, so Not Looping waits for them. Dead man's switches on the watch, scheduled ahead and pushed
+out by each sign of life, warn when it hasn't looped for 20 min, when a hand-back goes unconfirmed for 2 min, and with
+no session when the phone has been silent for 25 min (row 3). An End the pod driver refused with a command unconfirmed
+is offered again after the next cycle reached the pod.
 
 After a relaunch a session with its pump saved resumes, reports to the phone and doses nothing for 30 s: a phone
 that holds the pump answers with the stop (rows 12, 13).
