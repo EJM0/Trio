@@ -388,6 +388,16 @@ import WatchKit
         guard units > 0, Decimal(units) <= grant.maxBolus else {
             return String(localized: "Above the maximum bolus.")
         }
+        // Not while a cycle sizes or enacts a dose, and no cycle while this one is sent: an SMB is never sized
+        // without a bolus that is on its way.
+        let waitUntil = Date().addingTimeInterval(60)
+        while cycleRunning {
+            guard Date() < waitUntil else { return String(localized: "The watch is looping. Try again in a moment.") }
+            try? await Task.sleep(nanoseconds: 250_000_000)
+        }
+        guard state.phase == .active, pumpManager === pump else { return nil }
+        cycleRunning = true
+        defer { cycleRunning = false }
         let rounded = pump.roundToSupportedBolusVolume(units: units)
         do {
             try await pump.enactBolus(units: rounded, automatic: false)
@@ -494,7 +504,10 @@ import WatchKit
     func updateBolusState(_ status: PumpManagerStatus?) {
         bolusEndTimer?.invalidate()
         bolusEndTimer = nil
+        let wasBolusing = isBolusing
         isBolusing = state.phase == .active && (status?.bolusState ?? .noBolus) != .noBolus
+        // the cycles a bolus held off (`runCycle`) go on at its end
+        if wasBolusing, !isBolusing, state.phase == .active { Task { await runCycle(reason: "bolus ended") } }
         bolusWindow = nil
         guard isBolusing, case let .inProgress(dose) = status?.bolusState else { return }
         bolusWindow = DateInterval(start: dose.startDate, end: max(dose.endDate, dose.startDate))
@@ -517,7 +530,6 @@ import WatchKit
                     WatchLogger.shared.warning(.treatments, "Watch Loop: the bolus couldn't be stopped", error: error)
                 } else {
                     WatchLogger.shared.info(.treatments, "Watch Loop: bolus stopped on the watch")
-                    Task { await self.runCycle(reason: "bolus stopped") }
                 }
                 self.updateBolusState(self.pumpManager?.status)
             }
