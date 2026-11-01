@@ -147,6 +147,22 @@ import Testing
         #expect(WatchLoopIdentity.raw("not-hex") == Data("not-hex".utf8))
     }
 
+    @Test("A span runs from the watch's session start until the phone has the pod back") func spans() {
+        var state = WatchLoopPhoneState()
+        state.role = .standingAside
+        state.sessionStartedAt = t0
+        state.noteSpan(at: t0.addingTimeInterval(600))
+        state.role = .transferring
+        state.noteSpan(at: t0.addingTimeInterval(1200))
+        state.role = .holdsPump
+        state.noteSpan(at: t0.addingTimeInterval(1800))
+        #expect(state.spans == [WatchLoopSpan(start: t0, end: t0.addingTimeInterval(1800))])
+        // uploaded and a day old: gone
+        state.spans[0].uploaded = true
+        state.noteSpan(at: t0.addingTimeInterval(1800 + 24 * 3600 + 1))
+        #expect(state.spans.isEmpty)
+    }
+
     @Test("A saved phone state missing a field keeps the rest") func phoneStateDecodesLeniently() throws {
         let data = try JSONSerialization.data(withJSONObject: ["role": "lending", "session": 4])
         let state = try JSONDecoder().decode(WatchLoopPhoneState.self, from: data)

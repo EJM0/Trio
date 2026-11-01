@@ -20,10 +20,28 @@ struct WatchLoopPhoneState: Codable, Equatable {
     var releasedAt: Date?
     /// Sessions refused as revived claims (control row 19).
     var refusedSessions: [Int] = []
+    /// When the watch had the pod, for the phone's chart and Nightscout.
+    var spans: [WatchLoopSpan] = []
 
     static let storedRecordCapacity = 2000
 
     init() {}
+
+    /// A span opens when the watch takes the pod, from its session's start, and closes when the phone has it back.
+    /// A day of them is kept, and one not yet in Nightscout until it is.
+    mutating func noteSpan(at now: Date) {
+        let running = spans.last.map { $0.end == nil } ?? false
+        switch role {
+        case .lending,
+             .standingAside:
+            if !running { spans.append(WatchLoopSpan(start: min(sessionStartedAt ?? now, now))) }
+        case .holdsPump:
+            if running { spans[spans.count - 1].end = now }
+        case .transferring:
+            break
+        }
+        spans.removeAll { $0.uploaded && ($0.end ?? now) < now.addingTimeInterval(-24 * 3600) }
+    }
 
     mutating func noteStored(_ ids: [UUID]) {
         storedRecordIDs.append(contentsOf: ids.filter { !storedRecordIDs.contains($0) })
@@ -47,7 +65,17 @@ struct WatchLoopPhoneState: Codable, Equatable {
         deliveredAtRelease = try? c.decodeIfPresent(Double.self, forKey: .deliveredAtRelease)
         releasedAt = try? c.decodeIfPresent(Date.self, forKey: .releasedAt)
         refusedSessions = (try? c.decodeIfPresent([Int].self, forKey: .refusedSessions)) ?? d.refusedSessions
+        spans = (try? c.decodeIfPresent([WatchLoopSpan].self, forKey: .spans)) ?? d.spans
     }
+}
+
+/// A stretch of time the watch had the pod.
+struct WatchLoopSpan: Codable, Equatable {
+    let start: Date
+    /// Nil while it runs.
+    var end: Date?
+    /// In Nightscout as a note with its duration.
+    var uploaded = false
 }
 
 /// The one question every phone path that doses, or books as if it had, asks: does the phone hold the pump?
@@ -55,6 +83,7 @@ struct WatchLoopPhoneState: Codable, Equatable {
 enum WatchLoopGate {
     private static let lock = NSLock()
     private static var cachedRole: WatchLoopControl.PhoneRole = loadRole()
+    private static var cachedSpans: [WatchLoopSpan] = []
 
     static let storageKey = "watchLoopPhoneState"
 
@@ -70,10 +99,18 @@ enum WatchLoopGate {
         return cachedRole
     }
 
-    /// Called by the phone manager whenever the state is saved.
-    static func update(_ role: WatchLoopControl.PhoneRole) {
+    /// When the watch had the pod, for the chart's band.
+    static var spans: [WatchLoopSpan] {
         lock.lock()
-        cachedRole = role
+        defer { lock.unlock() }
+        return cachedSpans
+    }
+
+    /// Called by the phone manager whenever the state is saved.
+    static func update(_ state: WatchLoopPhoneState) {
+        lock.lock()
+        cachedRole = state.role
+        cachedSpans = state.spans
         lock.unlock()
     }
 
