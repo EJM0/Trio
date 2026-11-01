@@ -379,8 +379,8 @@ import WatchKit
 
     // MARK: - From the looper
 
-    func setClosedLoop(_ closed: Bool) {
-        state.closedLoop = closed
+    func setDosingMode(_ mode: DosingMode) {
+        state.dosingMode = mode
     }
 
     func bolus(_ units: Double) async -> String? {
@@ -653,7 +653,7 @@ extension WatchLoopSession: PumpManagerDelegate {
     nonisolated var detectedSystemTimeOffset: TimeInterval { 0 }
 
     nonisolated var automaticDosingEnabled: Bool {
-        MainActor.assumeIsolated { state.phase == .active && state.closedLoop }
+        MainActor.assumeIsolated { state.phase == .active && state.dosingMode.automation != .off }
     }
 
     nonisolated func deviceManager(
