@@ -431,6 +431,18 @@ import WatchKit
         sendCheckpoint()
     }
 
+    /// A meter's BG, the watch's own or the grant's; the phone deletes its copy.
+    func deleteGlucose(_ reading: BloodGlucose) {
+        guard state.phase == .active, reading.mbg != nil else { return }
+        if state.glucose.contains(where: { $0.dateString == reading.dateString && $0.mbg != nil }) {
+            state.glucose.removeAll { $0.dateString == reading.dateString && $0.mbg != nil }
+        } else {
+            state.deletedGlucoseDates.append(reading.dateString)
+        }
+        state.record(.glucoseDeleted(at: reading.dateString), at: Date())
+        sendCheckpoint()
+    }
+
     func setOverride(_ override: Override?) {
         guard state.phase == .active else { return }
         state.override = override
