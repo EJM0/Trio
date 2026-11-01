@@ -1,3 +1,4 @@
+import Charts
 import SwiftUI
 import Swinject
 
@@ -116,6 +117,25 @@ private struct WatchLoopLockedView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
         .watchLoopTakeBackDialog(isPresented: $confirmTakeBack, manager: manager)
+    }
+}
+
+/// When the watch had the pod: a band in the Watch Loop's colour at the target, drawn as the override and temp target
+/// bands are, stronger while it runs; one still running reaches now (as on feat/direct-to-watch).
+struct WatchLoopSpansView: ChartContent {
+    let y: Decimal
+    let now: Date
+
+    var body: some ChartContent {
+        ForEach(WatchLoopGate.spans, id: \.start) { span in
+            RuleMark(
+                xStart: .value("Start", span.start, unit: .second),
+                xEnd: .value("End", span.end ?? now, unit: .second),
+                y: .value("Value", y)
+            )
+            .foregroundStyle(Color.watchLoop.opacity(span.end == nil ? 0.4 : 0.25))
+            .lineStyle(.init(lineWidth: 8))
+        }
     }
 }
 

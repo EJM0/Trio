@@ -1735,6 +1735,12 @@ extension MainChartCanvas {
                 viewContext: context
             )
 
+            // at the target, as an override without a target of its own
+            WatchLoopSpansView(
+                y: state.units == .mgdL ? state.currentGlucoseTarget : state.currentGlucoseTarget.asMmolL,
+                now: state.timerDate
+            )
+
             // while the watch loops, the phone's last forecast is stale: the chart shows history only
             if WatchLoopGate.phoneMayDose {
                 ForecastView(
