@@ -34,6 +34,9 @@ import WatchKit
     /// Back from off with the pump: no dose until the phone had the time to say it holds it (control rows 12, 13).
     @ObservationIgnored var resumingUntil: Date?
     @ObservationIgnored var lastHeardFromPhoneAt: Date?
+    /// The watch's own readings of the last three hours, kept while no session runs too: a session starts with
+    /// those since the phone's last, so its first cycle doesn't loop on the phone's older ones.
+    @ObservationIgnored var ownReadings: [BloodGlucose] = []
     /// An End the pod driver refused with a command unconfirmed: offered again after the next contact with the pod.
     @ObservationIgnored var handBackAfterNextContact = false
     /// The watch's own readings that arrived live, for the fallback.
@@ -242,6 +245,7 @@ import WatchKit
             return decline(String(localized: "The watch couldn't reach the pod. Your iPhone keeps it."))
         }
         state.begin(grant, at: Date())
+        state.glucose = ownReadings
         if let odometer = pump as? PumpDeliveryOdometer, await odometer.refreshDeliveredUnits(),
            let reading = odometer.deliveredUnits
         {
@@ -523,8 +527,11 @@ import WatchKit
 
     /// The watch's own readings: each new one is a cycle.
     func noteReadings(_ readings: [BloodGlucose]) {
-        // live, not backfill: the sensor's own reading of the last minute and a half
         let now = Date()
+        let kept = Set(ownReadings.map(\.dateString))
+        ownReadings += readings.filter { !kept.contains($0.dateString) }
+        ownReadings.removeAll { $0.dateString < now.addingTimeInterval(-3 * 3600) }
+        // live, not backfill: the sensor's own reading of the last minute and a half
         liveReadings += readings.filter { now.timeIntervalSince($0.dateString) < 90 && ($0.sgv ?? 0) >= 39 }.map(\.dateString)
         liveReadings.removeAll { now.timeIntervalSince($0) > WatchLoopFallback.readingWindow }
         guard state.phase == .active else {

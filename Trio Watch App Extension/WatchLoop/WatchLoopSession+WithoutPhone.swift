@@ -45,6 +45,8 @@ extension WatchLoopSession {
 
         let session = max(state.session, copy.session) + 1
         state.begin(copy, at: Date())
+        // the fallback starts on one of the watch's own readings: the first cycle uses it
+        state.glucose = ownReadings
         state.session = session
         state.startedWithoutPhone = true
         state.startedByFallback = byFallback

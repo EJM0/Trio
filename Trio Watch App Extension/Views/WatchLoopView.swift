@@ -35,14 +35,14 @@ struct WatchLoopView: View {
                         }
                     }
                     if phase == .active { tiles }
+                    if phase == .active || unsynced > 0 { historyButton }
+                    actions
                     if phase == .active {
                         // remote commands come through the phone's push: without it online they wait or run out
                         note(
                             "Remote boluses and meals (LoopFollow, Nightscout) reach the watch only through your iPhone, while it is online. The watch refuses commands sent more than 10 minutes ago."
                         )
                     }
-                    if phase == .active || unsynced > 0 { historyButton }
-                    actions
                 }
                 .padding(.horizontal, 4)
             }
@@ -384,7 +384,10 @@ struct WatchLoopHistoryView: View {
             let value = reading.sgv ?? reading.glucose ?? 0
             let shown = Text(verbatim: mmol ? Decimal(value).asMmolL.description : "\(value)")
             // a meter's BG is marked: it isn't a sensor reading
-            row(reading.dateString, reading.mbg != nil ? Text(Image(systemName: "drop.circle")) + Text(verbatim: " ") + shown : shown)
+            row(
+                reading.dateString,
+                reading.mbg != nil ? Text(Image(systemName: "drop.circle")) + Text(verbatim: " ") + shown : shown
+            )
         }
     }
 
