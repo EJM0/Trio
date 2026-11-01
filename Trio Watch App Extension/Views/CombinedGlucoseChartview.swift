@@ -298,7 +298,11 @@ struct MinimizedGlucoseChartView: View {
                     .symbolSize(glucosePointSize)
                 }
 
-                TreatmentMarks(markers: state.treatmentMarkers, glucose: filteredValues)
+                // the watch's own while it loops, else the phone's, as on the big chart
+                TreatmentMarks(
+                    markers: state.treatmentMarkers.isEmpty ? state.phoneTreatmentMarkers : state.treatmentMarkers,
+                    glucose: filteredValues
+                )
 
                 if state.showForecast {
                     if state.isForecastCone {

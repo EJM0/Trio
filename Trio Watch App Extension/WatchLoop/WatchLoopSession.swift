@@ -465,6 +465,7 @@ import WatchKit
         )
         state.carbs.append(entry)
         state.record(.carbs(entry), at: Date())
+        publishTreatments()
         Task { await runCycle(reason: "carbs") }
     }
 
@@ -476,6 +477,7 @@ import WatchKit
             state.deletedCarbIDs.append(id)
         }
         state.record(.carbsDeleted(id: id), at: Date())
+        publishTreatments()
         sendCheckpoint()
     }
 
@@ -589,6 +591,8 @@ extension WatchLoopSession: PumpManagerDelegate {
                 guard let dose = Self.dose(event) else { continue }
                 state.noteDose(dose, at: now)
             }
+            // a bolus on the chart as soon as the pump reports it, not at the next cycle
+            publishTreatments()
             completion(nil)
         }
     }

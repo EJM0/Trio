@@ -4,6 +4,7 @@ import Foundation
 /// the forecast from the watch's own determination; the phone's would be stale.
 extension WatchLoopSession {
     func publishDisplay() {
+        publishTreatments()
         let state = WatchState.shared
         guard self.state.phase == .active, let determination = self.state.lastDetermination else {
             state.watchLoopOwnsDisplay = false
@@ -22,6 +23,28 @@ extension WatchLoopSession {
         }
         publishForecast(determination, on: state)
         ComplicationStore.update(from: state)
+    }
+
+    /// The chart's insulin and carb markers while the watch loops, each as soon as the session has it: the phone's
+    /// last day from the grant and the watch's own, as the phone builds `chartBoluses`, `chartSMBs` and `chartCarbs`.
+    /// Empty without a session, so the chart goes back to the phone's.
+    func publishTreatments() {
+        let watchState = WatchState.shared
+        guard state.phase == .active else {
+            watchState.treatmentMarkers = []
+            return
+        }
+        let insulin = state.pumpHistory.compactMap { event -> WatchTreatmentMarker? in
+            guard event.type == .bolus || event.type == .smb, (event.amount ?? 0) > 0 else { return nil }
+            let kind: WatchTreatmentMarker.Kind = event.isSMB == true || event.type == .smb ? .smb : .bolus
+            return WatchTreatmentMarker(id: "\(kind)-\(event.id)", date: event.timestamp, kind: kind)
+        }
+        let carbs = state.allCarbs.compactMap { entry -> WatchTreatmentMarker? in
+            guard entry.isFPU != true, entry.carbs > 0 else { return nil }
+            let date = entry.actualDate ?? entry.createdAt
+            return WatchTreatmentMarker(id: "carbs-\(entry.id ?? "\(date.timeIntervalSince1970)")", date: date, kind: .carbs)
+        }
+        watchState.treatmentMarkers = insulin + carbs
     }
 
     /// As the phone builds it (`AppleWatchManager`): two hours, lines or the cone the phone chose.
