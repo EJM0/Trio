@@ -1161,13 +1161,17 @@ import WatchConnectivity
         }
 
         pumpName = payload[WatchMessageKeys.pumpName] as? String
-        pumpReservoir = (payload[WatchMessageKeys.pumpReservoir] as? NSNumber)?.decimalValue
-        pumpBatteryPercent = (payload[WatchMessageKeys.pumpBatteryPercent] as? NSNumber)?.intValue
-
-        if let timestamp = payload[WatchMessageKeys.pumpExpiresAt] as? TimeInterval {
-            pumpExpiresAt = Date(timeIntervalSince1970: timestamp)
-        } else {
-            pumpExpiresAt = nil
+        // while the watch has the pod, the phone's view of it is stale or a connection loss of its own
+        // (`WatchLoopSession.publishDisplay` sets these)
+        if !watchLoopOwnsDisplay {
+            pumpReservoir = (payload[WatchMessageKeys.pumpReservoir] as? NSNumber)?.decimalValue
+            pumpBatteryPercent = (payload[WatchMessageKeys.pumpBatteryPercent] as? NSNumber)?.intValue
+            if let timestamp = payload[WatchMessageKeys.pumpExpiresAt] as? TimeInterval {
+                pumpExpiresAt = Date(timeIntervalSince1970: timestamp)
+            } else {
+                pumpExpiresAt = nil
+            }
+            pumpStatusMessage = payload[WatchMessageKeys.pumpStatusMessage] as? String
         }
 
         if let timestamp = payload[WatchMessageKeys.pumpActivatedAt] as? TimeInterval {
@@ -1176,7 +1180,6 @@ import WatchConnectivity
             pumpActivatedAt = nil
         }
 
-        pumpStatusMessage = payload[WatchMessageKeys.pumpStatusMessage] as? String
         cgmName = payload[WatchMessageKeys.cgmName] as? String
 
         if let timestamp = payload[WatchMessageKeys.cgmSensorExpiresAt] as? TimeInterval {

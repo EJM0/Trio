@@ -171,6 +171,54 @@ extension WatchLoopAudit {
     }
 }
 
+extension WatchLoopAudit {
+    /// The doses a pump history records, as the audit reads them: a temp ends at its duration or the next temp or
+    /// suspend, a suspend at the resume, a bolus is spread over `bolusDuration`. External insulin is left out: the
+    /// pump never delivered it, and a placeholder booked for unexplained insulin must not explain the next.
+    static func doses(
+        _ history: [PumpHistoryEvent],
+        now: Date,
+        bolusDuration: (Double) -> TimeInterval = { _ in 0 }
+    ) -> [WatchLoopDose] {
+        let events = history.sorted { $0.timestamp < $1.timestamp }
+        return events.enumerated().compactMap { index, event in
+            let later = events[(index + 1)...]
+            switch event.type {
+            case .bolus,
+                 .smb:
+                guard event.isExternal != true else { return nil }
+                let units = event.amount ?? 0
+                let duration = bolusDuration(Double(truncating: units as NSNumber))
+                return dose(event, .bolus, value: units, end: event.timestamp.addingTimeInterval(duration))
+            case .tempBasal:
+                // its duration is the entry beside it at the same time (`PumpEventStored.toPumpHistoryEvents`)
+                let minutes = events.first { $0.type == .tempBasalDuration && $0.timestamp == event.timestamp }?.durationMin
+                let programmed = event.timestamp.addingTimeInterval(Double(minutes ?? 0) * 60)
+                let next = later.first { $0.type == .tempBasal || $0.type == .pumpSuspend }?.timestamp
+                return dose(event, .tempBasal, value: event.rate ?? 0, end: min(programmed, next ?? programmed))
+            case .pumpSuspend:
+                let resume = later.first { $0.type == .pumpResume }?.timestamp ?? now
+                return dose(event, .suspend, value: 0, end: resume)
+            default:
+                return nil
+            }
+        }
+    }
+
+    private static func dose(_ event: PumpHistoryEvent, _ kind: WatchLoopDose.Kind, value: Decimal, end: Date) -> WatchLoopDose {
+        WatchLoopDose(
+            kind: kind,
+            syncIdentifier: event.id,
+            startDate: event.timestamp,
+            endDate: end,
+            value: Double(truncating: value as NSNumber),
+            deliveredUnits: nil,
+            automatic: true,
+            isMutable: false
+        )
+    }
+}
+
 /// LoopKit derives a pump event's identity from its raw bytes, so the phone hex-decodes the dose's `syncIdentifier`
 /// back into the raw it came from (as Loop's LoanSeedIdentity).
 enum WatchLoopIdentity {

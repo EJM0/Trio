@@ -92,7 +92,7 @@ import Testing
             PumpHistoryEvent(id: "s", type: .pumpSuspend, timestamp: t0.addingTimeInterval(50 * 60)),
             PumpHistoryEvent(id: "r", type: .pumpResume, timestamp: t0.addingTimeInterval(55 * 60))
         ]
-        let doses = WatchLoopStanding.doses(history, now: now)
+        let doses = WatchLoopAudit.doses(history, now: now)
         #expect(doses.map(\.syncIdentifier) == ["_t1", "_t2", "b", "s"])
         #expect(doses[1].endDate == t0.addingTimeInterval(40 * 60))
         #expect(doses[0].endDate == t0.addingTimeInterval(10 * 60))
@@ -107,7 +107,7 @@ import Testing
         let t0 = now.addingTimeInterval(-600)
         let history = [PumpHistoryEvent(id: "b", type: .bolus, timestamp: t0, amount: 2)]
         // 2 U at 1.5 U/min: 80 s; read 40 s in, half of it is still to come
-        let doses = WatchLoopStanding.doses(history, now: now) { $0 / 1.5 * 60 }
+        let doses = WatchLoopAudit.doses(history, now: now) { $0 / 1.5 * 60 }
         #expect(doses[0].endDate == t0.addingTimeInterval(80))
         #expect(abs(WatchLoopAudit.insulin(doses[0], from: t0.addingTimeInterval(40), to: now) - 1) < 0.0001)
     }

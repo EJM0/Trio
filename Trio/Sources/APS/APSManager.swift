@@ -809,6 +809,11 @@ final class BaseAPSManager: APSManager, Injectable {
             return false
         }
 
+        guard !WatchLoopGate.automaticDosingHeld else {
+            info(.loop, "Determination not enacted: the watch's insulin isn't checked yet")
+            return false
+        }
+
         guard await watchLoop.mayDose() else {
             info(.loop, "Determination not enacted: the pump's insulin total is being checked")
             return false

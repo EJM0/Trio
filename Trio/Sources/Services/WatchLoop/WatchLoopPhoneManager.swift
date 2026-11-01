@@ -47,6 +47,7 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
     @Injected() private var healthKitManager: HealthKitManager!
     @Injected() private var overrideStorage: OverrideStorage!
     @Injected() private var apsManager: APSManager!
+    @Injected() private var tidepoolManager: TidepoolManager!
     /// The phone's own algorithm inputs, so the watch's algorithm reads what the phone's would.
     private lazy var openAPS = OpenAPS(
         storage: storage,
@@ -63,11 +64,10 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
     /// The watch has the pump, or is handing it over.
     var isWatchInCharge: Bool { state.role != .holdsPump }
 
-    /// The doses the watch recorded in the running session, for the audit at its end.
-    private var sessionDoses: [WatchLoopDose] = []
     private var seen = WatchLoopSeenEnvelopes()
     private var pendingQuery: (id: UUID, onSilence: WatchLoopControl.Decision)?
     private var overdueTimer: Timer?
+    private var isAuditing = false
     /// Insulin a pump reading showed that the phone's records don't explain, while it asks the watch.
     private var unexplained: (units: Double, reading: (units: Double, at: Date))?
     /// What the last copy was made from, so an unchanged one isn't sent again.
@@ -79,6 +79,8 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         WatchLoopGate.update(state)
         DispatchQueue.main.async { [weak self] in
             Task { await self?.uploadSpans() }
+            // a transfer cut off by a kill is resolved now, not a cycle later; an audit waiting for the pod goes on
+            self?.checkOverdue()
             self?.overdueTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated { self?.checkOverdue() }
             }
@@ -226,31 +228,34 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
             return refuse(WatchLoopControl.bolusRefusal(.init(endsAt: odometer.bolusUnderWayEndsAt), now: Date()))
         }
 
-        // the phone's own loop may be talking to the pod: a grant waits for it, briefly
-        var waited = 0
-        while apsManager.isLooping.value, waited < 20 {
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
-            waited += 1
+        // The phone doses nothing more from here, and a loop under way finishes first, so the history and the total
+        // the grant carries include the phone's last dose.
+        state.role = .transferring
+        func keep(_ reason: String) {
+            state.role = .holdsPump
+            refuse(reason)
         }
-        guard !apsManager.isLooping.value else {
-            return refuse(String(localized: "Your iPhone is looping right now. Try again in a moment."))
+        guard await loopFinished(within: 30) else {
+            return keep(String(localized: "Trio is looping. Try again in a minute."))
         }
-
-        _ = await odometer.refreshDeliveredUnits()
+        // the audit at the take-back needs the total at the release
+        guard await odometer.refreshDeliveredUnits(), let deliveredAtRelease = odometer.deliveredUnits?.units else {
+            return keep(String(localized: "Trio couldn't read the pod's insulin total. Try again near the pod."))
+        }
         let session = max(state.session, request.highestSession) + 1
         let grant: WatchLoopGrant
         do {
             grant = try await makeGrant(session: session, pump: pump, cgm: cgm)
         } catch {
             warning(.watch, "Watch Loop grant could not be built", error: error)
-            return refuse(String(localized: "Trio couldn't gather its settings for the watch."))
+            return keep(String(localized: "Trio couldn't gather its settings for the watch."))
         }
 
         pump.releaseControl()
         // the driver keeps the pump while a command to it is unconfirmed
         guard pump.isControlReleased else {
             pump.takeControl()
-            return refuse(WatchLoopControl.unconfirmedCommandRefusal)
+            return keep(WatchLoopControl.unconfirmedCommandRefusal)
         }
 
         var next = state
@@ -259,11 +264,10 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         next.sessionStartedAt = Date()
         next.lastReportAt = Date()
         next.liveStatus = nil
-        next.deliveredAtRelease = odometer.deliveredUnits?.units
+        next.deliveredAtRelease = deliveredAtRelease
         next.releasedAt = Date()
         next.noteSpan(at: Date())
         state = next
-        sessionDoses = []
         info(.watch, "Watch Loop session \(session) granted; the phone let go of the pump")
         send(.grant(grant))
 
@@ -273,6 +277,16 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         guard state.session == session, state.role == .lending, state.lastReportAt == grantedAt, pendingQuery == nil
         else { return }
         await run(.query(.inBackground, onSilence: .takeOnSilence(.watchDidNotTake)))
+    }
+
+    /// A loop under way (`APSManager.isLooping`) ends within `seconds`.
+    @MainActor private func loopFinished(within seconds: TimeInterval) async -> Bool {
+        let deadline = Date().addingTimeInterval(seconds)
+        while apsManager.isLooping.value {
+            guard Date() < deadline else { return false }
+            try? await Task.sleep(nanoseconds: 500_000_000)
+        }
+        return true
     }
 
     private enum GrantError: Error {
@@ -405,6 +419,7 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         let stored = await store(checkpoint.records, carbsAllowed: running)
         send(.ack(session: checkpoint.session, recordIDs: stored))
         if decision == .sendStop { refuse(checkpoint.session) }
+        await reaudit(checkpoint.session, after: checkpoint.records)
     }
 
     @MainActor private func receiveReport(_ report: WatchLoopStatusReport) async {
@@ -482,7 +497,6 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         next.releasedAt = Date()
         next.noteSpan(at: Date())
         state = next
-        sessionDoses = []
         unexplained = nil
         info(.watch, "Watch Loop: standing aside for the watch's session \(session)")
     }
@@ -501,20 +515,19 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
             do {
                 try await store(record.kind, carbsAllowed: carbsAllowed)
                 handled.append(record.id)
+                // at once: a kill mid-batch must not store it again
+                state.noteStored([record.id])
             } catch {
                 // not acknowledged: the watch sends it again
                 warning(.watch, "Watch Loop record \(record.seq) not stored", error: error)
             }
         }
-        state.noteStored(handled)
         return handled
     }
 
     @MainActor private func store(_ kind: WatchLoopRecord.Kind, carbsAllowed: Bool) async throws {
         switch kind {
         case let .dose(dose):
-            sessionDoses.removeAll { $0.syncIdentifier == dose.syncIdentifier }
-            sessionDoses.append(dose)
             try await pumpHistoryStorage.storePumpEvents([Self.pumpEvent(dose)], replacePendingEvents: false)
         case let .carbs(entry):
             guard carbsAllowed else { return }
@@ -635,14 +648,22 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
     // MARK: - Taking the pump back
 
     @MainActor private func receiveHandBack(_ handBack: WatchLoopHandBack) async {
+        // Stored before anything is acknowledged: an acknowledged record is gone from the watch. Carbs of the session
+        // just ended count, it dosed for them; of an older one not, as for its checkpoints.
+        let handled = await store(handBack.records, carbsAllowed: handBack.session == state.session)
+        guard Set(handled) == Set(handBack.records.map(\.id)) else {
+            // not all stored: the stored ones are acknowledged, the hand-back comes again
+            send(.ack(session: handBack.session, recordIDs: handled))
+            return
+        }
         guard handBack.session == state.session, state.role == .lending || state.role == .standingAside else {
-            // a hand-back of a session already over: answer again, harmless to receive twice
+            // a session already over, or taken back meanwhile: its records are in, answer again
             if handBack.session <= state.session { send(.handBackAck(session: handBack.session)) }
+            await reaudit(handBack.session, after: handBack.records)
             return
         }
         let previous = state.role
         state.role = .transferring
-        _ = await store(handBack.records, carbsAllowed: true)
         if handBack.podEnded == true {
             // the pod was deactivated or discarded on the watch: nothing to take back
             (controllablePump as? OmniPumpManager)?.forgetPodEndedElsewhere()
@@ -660,15 +681,22 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
             return
         }
         send(.handBackAck(session: handBack.session))
-        await audit(recordsComplete: true)
+        openAudit(recordsComplete: true)
         finish()
+        await runAudit()
         info(.watch, "Watch Loop session \(handBack.session) handed back")
     }
 
     func takeBack() async -> String? {
-        await MainActor.run { () -> Bool in
-            state.role == .lending || state.role == .standingAside
-        } ? await takeBackNow() : nil
+        switch await MainActor.run(body: { state.role }) {
+        case .holdsPump:
+            return nil
+        case .transferring:
+            return String(localized: "The pod is being handed over. Try again in a moment.")
+        case .lending,
+             .standingAside:
+            return await takeBackNow()
+        }
     }
 
     @MainActor private func takeBackNow() async -> String? {
@@ -680,8 +708,9 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
             return String(localized: "Trio couldn't reach the pod. Try again near it.")
         }
         sendStop(state.session)
-        await audit(recordsComplete: false)
+        openAudit(recordsComplete: false)
         finish()
+        await runAudit()
         info(.watch, "Watch Loop: taken back on the phone")
         return nil
     }
@@ -707,7 +736,6 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         next.releasedAt = nil
         next.noteSpan(at: Date())
         state = next
-        sessionDoses = []
         Task { await uploadSpans() }
     }
 
@@ -721,36 +749,80 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         }
     }
 
-    /// The pump's own total against the records (control document, rule 1). After a hand-back the records are
-    /// complete, so a difference is only reported; after a take-back records may be missing, so the difference is
-    /// booked as a bolus now, which can only overstate IOB.
-    @MainActor private func audit(recordsComplete: Bool) async {
-        guard let odometer = controllablePump as? PumpDeliveryOdometer, await odometer.refreshDeliveredUnits(),
-              let latest = odometer.deliveredUnits, let start = state.deliveredAtRelease, let releasedAt = state.releasedAt
-        else {
-            warning(.watch, "Watch Loop audit skipped: no pump total to compare")
+    /// Opens the audit of a session the phone has just taken back; nothing to audit if the pump was never let go.
+    @MainActor private func openAudit(recordsComplete: Bool) {
+        guard let releasedAt = state.releasedAt else { return }
+        state.openAudit = WatchLoopOpenAudit(
+            session: state.session,
+            releasedAt: releasedAt,
+            deliveredAtRelease: state.deliveredAtRelease,
+            recordsComplete: recordsComplete,
+            takenAt: Date()
+        )
+    }
+
+    /// More of an audited session's records arrived: the audit runs again, and its placeholder follows. Records that
+    /// arrive after a take-back are what the watch still had, so without a total to compare against they end the hold.
+    @MainActor private func reaudit(_ session: Int, after records: [WatchLoopRecord]) async {
+        guard let audit = state.openAudit, audit.session == session, !records.isEmpty else { return }
+        guard audit.deliveredAtRelease != nil else {
+            // nothing to compare against: the records arriving is all the audit can wait for
+            if audit.holdsDosing { releaseHold(String(localized: "The watch's records arrived.")) }
+            state.openAudit = nil
+            return
+        }
+        await runAudit()
+    }
+
+    /// The pod's total against what the pump history records from the release to the take (control document,
+    /// rule 1): the watch's doses as stored, the phone's own, and the schedule. After a hand-back the records are
+    /// complete, so a difference is only reported. After a take-back records may still be missing: the difference is
+    /// booked as a bolus (IOB errs high, so dosing errs low) and rebooked as they arrive; until the pod's total could
+    /// be read, the phone doses nothing by itself.
+    @MainActor private func runAudit() async {
+        guard !isAuditing, var audit = state.openAudit else { return }
+        isAuditing = true
+        defer { isAuditing = false }
+        let odometer = controllablePump as? PumpDeliveryOdometer
+        let firstRun = audit.deliveredAtTake == nil
+        if firstRun {
+            guard state.role == .holdsPump, let odometer, await odometer.refreshDeliveredUnits(),
+                  let reading = odometer.deliveredUnits
+            else {
+                warning(.watch, "Watch Loop audit: no pump total yet")
+                if !audit.recordsComplete, !audit.holdsDosing { hold(&audit) }
+                return
+            }
+            audit.deliveredAtTake = reading.units
+            audit.readAt = reading.at
+        }
+        guard let start = audit.deliveredAtRelease, let total = audit.deliveredAtTake, let readAt = audit.readAt else {
+            // no total at the release: nothing to compare against until the watch's records are known to be in
+            warning(.watch, "Watch Loop audit: no pump total from the release")
+            if !audit.recordsComplete, !audit.holdsDosing { hold(&audit) }
+            if audit.recordsComplete { state.openAudit = nil }
             return
         }
         let basalProfile = await storage.retrieveAsync(OpenAPS.Settings.basalProfile, as: [BasalProfileEntry].self) ?? []
-        let delivered = latest.units - start
+        let history = (try? await openAPS.algorithmPumpHistory()) ?? []
         let recorded = WatchLoopAudit.recordedInsulin(
-            sessionDoses,
+            WatchLoopAudit.doses(history, now: readAt) { [controllablePump] units in
+                controllablePump?.estimatedDuration(toBolus: units) ?? 0
+            },
             basalProfile: basalProfile,
-            from: releasedAt,
-            to: latest.at,
-            pulseUnits: odometer.deliveryPulseUnits
+            from: audit.releasedAt,
+            to: readAt,
+            pulseUnits: odometer?.deliveryPulseUnits
         )
-        // whatever the audit finds is booked or reported here; the check before each dose starts again from now
-        defer { verified(latest) }
+        let delivered = total - start
+        var missing = 0.0
+        // whatever the audit finds is booked or reported here; the check before each dose starts from the take
+        if firstRun { verified((total, readAt)) }
         switch WatchLoopAudit.compare(delivered: delivered, recorded: recorded) {
         case .matches:
             info(.watch, "Watch Loop audit: the pump's \(delivered) U match the records")
         case let .missing(units):
-            guard !recordsComplete else {
-                warning(.watch, "Watch Loop audit: the pump delivered \(units) U more than the complete records")
-                return
-            }
-            await bookPlaceholder(units)
+            missing = units
         case let .overstated(units):
             notify(
                 id: "watchLoop.overstated",
@@ -760,6 +832,100 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
                 )
             )
         }
+        if audit.holdsDosing {
+            audit.holdsDosing = false
+            releaseHold(String(localized: "The pod's insulin has been compared with the watch's records."))
+        }
+        guard !audit.recordsComplete else {
+            if missing > 0 {
+                warning(.watch, "Watch Loop audit: the pump delivered \(missing) U more than the complete records")
+            }
+            state.openAudit = nil
+            return
+        }
+        await rebookPlaceholder(&audit, units: missing)
+        state.openAudit = audit
+    }
+
+    /// Automatic dosing waits for the audit (`WatchLoopGate.automaticDosingHeld`).
+    @MainActor private func hold(_ audit: inout WatchLoopOpenAudit) {
+        audit.holdsDosing = true
+        state.openAudit = audit
+        warning(.watch, "Watch Loop: the phone loops open until the watch's insulin is checked")
+        notify(
+            id: "watchLoop.hold",
+            title: String(localized: "Trio Loops Open for Now"),
+            body: String(
+                localized: "Trio couldn't compare the pod's insulin with the watch's records yet. It doses nothing by itself until it can; boluses still work."
+            )
+        )
+    }
+
+    @MainActor private func releaseHold(_ reason: String) {
+        info(.watch, "Watch Loop: the phone loops closed again")
+        notify(id: "watchLoop.hold", title: String(localized: "Trio Loops Again"), body: reason)
+    }
+
+    /// The placeholder for what the records don't explain, at the time of the reading: replaced when the amount
+    /// changes, removed (here and wherever it was uploaded) when the records explain everything.
+    @MainActor private func rebookPlaceholder(_ audit: inout WatchLoopOpenAudit, units: Double) async {
+        let rounded = (units * 20).rounded(.down) / 20
+        guard rounded != audit.placeholderUnits else { return }
+        let at = audit.readAt ?? audit.takenAt
+        if let id = audit.placeholderID {
+            await deleteInsulin(id: id, units: audit.placeholderUnits, at: at)
+            audit.placeholderID = nil
+            audit.placeholderUnits = 0
+        }
+        let reminders = ["watchLoop.placeholder.2", "watchLoop.placeholder.4"]
+        guard rounded > 0 else {
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: reminders)
+            info(.watch, "Watch Loop audit: the records explain the pod's insulin; the placeholder is removed")
+            notify(
+                id: "watchLoop.placeholder",
+                title: String(localized: "Watch's Insulin Records Arrived"),
+                body: String(localized: "They explain all of the pod's insulin. Trio removed the bolus it had booked.")
+            )
+            return
+        }
+        audit.placeholderID = await pumpHistoryStorage.storeExternalInsulinEvent(
+            amount: Decimal(rounded),
+            timestamp: at
+        )
+        audit.placeholderUnits = audit.placeholderID == nil ? 0 : rounded
+        warning(.watch, "Watch Loop: booked \(rounded) U the records don't explain")
+        notify(
+            id: "watchLoop.placeholder",
+            title: String(localized: "Insulin From the Watch Booked"),
+            body: String(
+                localized: "The pod delivered \(Decimal(rounded).formatted()) U the watch's records don't explain. Trio booked it as a bolus."
+            )
+        )
+        for hours in [2.0, 4.0] {
+            notify(
+                id: "watchLoop.placeholder.\(Int(hours))",
+                title: String(localized: "Check the Watch's Insulin"),
+                body: String(
+                    localized: "Trio booked insulin the watch's records didn't explain. Bring the watch near the phone to replace it with the records."
+                ),
+                after: hours * 3600
+            )
+        }
+    }
+
+    /// As History deletes an entry: Nightscout, Apple Health, Tidepool and the store.
+    @MainActor private func deleteInsulin(id: String, units: Double, at date: Date) async {
+        await nightscoutManager.deleteInsulin(withID: id)
+        await healthKitManager.deleteInsulin(syncID: id)
+        tidepoolManager.deleteInsulin(withSyncId: id, amount: Decimal(units), at: date)
+        let context = CoreDataStack.shared.newTaskContext()
+        let objectID: NSManagedObjectID? = try? await context.perform {
+            let request = PumpEventStored.fetchRequest() as NSFetchRequest<PumpEventStored>
+            request.predicate = NSPredicate(format: "id == %@", id)
+            request.fetchLimit = 1
+            return try context.fetch(request).first?.objectID
+        }
+        if let objectID { await CoreDataStack.shared.deleteObject(identifiedBy: objectID) }
     }
 
     /// Insulin the records don't explain, booked as a bolus now: IOB errs high, so dosing errs low. Reminders follow,
@@ -798,7 +964,15 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
 
     @MainActor private func refreshStandingCopy() async {
         guard settingsManager.settings.watchLoopEnabled, settingsManager.settings.watchLoopWithoutPhone else {
-            if state.standingCopyOut { info(.watch, "Watch Loop: Allow Without iPhone is off; the copy is no longer renewed") }
+            if state.standingCopyOut {
+                // the watch drops its copy with the setting: the phone stops checking for one
+                info(.watch, "Watch Loop: Allow Without iPhone is off; no copy is out")
+                var next = state
+                next.standingCopyOut = false
+                next.verifiedDelivered = nil
+                next.verifiedAt = nil
+                state = next
+            }
             return
         }
         guard let pump = controllablePump, let odometer = pump as? PumpDeliveryOdometer,
@@ -886,7 +1060,7 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         // as the algorithm reads it: a temp's duration in its own entry, the schedule not stored as temps
         let history = (try? await openAPS.algorithmPumpHistory()) ?? []
         let recorded = WatchLoopAudit.recordedInsulin(
-            WatchLoopStanding.doses(history, now: reading.at) { [controllablePump] units in
+            WatchLoopAudit.doses(history, now: reading.at) { [controllablePump] units in
                 controllablePump?.estimatedDuration(toBolus: units) ?? 0
             },
             basalProfile: basalProfile,
@@ -895,9 +1069,35 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
             pulseUnits: odometer.deliveryPulseUnits
         )
         let delivered = reading.units - baseline
-        guard case let .missing(units) = WatchLoopAudit.compare(delivered: delivered, recorded: recorded) else {
+        if let since = state.foreignInsulinSince {
+            guard case let .missing(units) = WatchLoopAudit.compare(delivered: delivered, recorded: recorded) else {
+                verified((baseline + recorded, reading.at))
+                guard Date().timeIntervalSince(since) >= Self.foreignInsulinQuiet else { return false }
+                state.foreignInsulinSince = nil
+                notify(
+                    id: "watchLoop.foreignInsulin",
+                    title: String(localized: "Trio Loops Again"),
+                    body: String(localized: "No insulin from another device for 15 minutes.")
+                )
+                return true
+            }
+            // still another device dosing: booked, and the quiet time starts again
+            await bookPlaceholder(units)
+            verified(reading)
+            state.foreignInsulinSince = Date()
+            return false
+        }
+        let units: Double
+        switch WatchLoopAudit.compare(delivered: delivered, recorded: recorded) {
+        case .matches:
+            // only what the records explain moves the baseline: differences under the band add up until they show
+            verified((baseline + recorded, reading.at))
+            return true
+        case .overstated:
             verified(reading)
             return true
+        case let .missing(missing):
+            units = missing
         }
         warning(.watch, "Watch Loop: the pod delivered \(units) U the iPhone's records don't explain; asking the watch")
         unexplained = (units, reading)
@@ -905,6 +1105,9 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         Task { await run(decision) }
         return false
     }
+
+    /// How long no unexplained insulin must appear before the phone doses by itself again.
+    static let foreignInsulinQuiet: TimeInterval = 15 * 60
 
     @MainActor private func verified(_ reading: (units: Double, at: Date)) {
         var next = state
@@ -916,6 +1119,18 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
     // MARK: - When the watch goes quiet
 
     @MainActor private func checkOverdue() {
+        if let audit = state.openAudit {
+            let actionTime = Double(truncating: settingsManager.pumpSettings.insulinActionCurve as NSNumber) * 3600
+            if Date().timeIntervalSince(audit.takenAt) > actionTime {
+                // the session's insulin has acted: nothing missing from its records can matter any more
+                if audit.holdsDosing {
+                    releaseHold(String(localized: "The watch's insulin from before the take-back has acted."))
+                }
+                state.openAudit = nil
+            } else if audit.holdsDosing {
+                Task { await runAudit() }
+            }
+        }
         if let session = state.stopPendingSession {
             if Date().timeIntervalSince(state.stopPendingSince ?? Date()) < 30 * 60 {
                 send(.stop(session: session))
@@ -950,8 +1165,9 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
             }
             state.tookOverOnSilenceAt = Date()
             sendStop(state.session)
-            await audit(recordsComplete: false)
+            openAudit(recordsComplete: false)
             finish()
+            await runAudit()
             switch tell {
             case .watchNotResponding:
                 notify(
@@ -971,8 +1187,18 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         case .keepPumpOnSilence:
             state.tookOverOnSilenceAt = Date()
             if let unexplained {
+                // Nobody answered for insulin the phone didn't give: a watch out of reach may be looping beside it.
+                // The phone books it and doses nothing by itself until none has appeared for 15 minutes.
                 await bookPlaceholder(unexplained.units)
                 verified(unexplained.reading)
+                state.foreignInsulinSince = Date()
+                notify(
+                    id: "watchLoop.foreignInsulin",
+                    title: String(localized: "Another Device May Be Dosing"),
+                    body: String(
+                        localized: "The pod gave insulin this iPhone didn't, and the watch didn't answer. Trio doses nothing by itself until none appears for 15 minutes. End Watch Loop on the watch if it runs."
+                    )
+                )
             }
             unexplained = nil
         case .sendStop:

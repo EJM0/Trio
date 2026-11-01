@@ -174,4 +174,24 @@ import Testing
         #expect(state.session == 4)
         #expect(state.storedRecordIDs.isEmpty)
     }
+
+    @Test("The audit reads the pump's doses and leaves external insulin out") func dosesFromHistory() {
+        let history = [
+            PumpHistoryEvent(id: "b", type: .bolus, timestamp: t0, amount: 1),
+            PumpHistoryEvent(id: "x", type: .bolus, timestamp: t0, amount: 2, isExternal: true),
+            PumpHistoryEvent(id: "t", type: .tempBasal, timestamp: t0, rate: 1.2),
+            PumpHistoryEvent(id: "_t", type: .tempBasalDuration, timestamp: t0, durationMin: 30)
+        ]
+        let doses = WatchLoopAudit.doses(history, now: t0.addingTimeInterval(3600))
+        #expect(doses.map(\.syncIdentifier).sorted() == ["b", "t"])
+        #expect(doses.first { $0.kind == .tempBasal }?.endDate == t0.addingTimeInterval(30 * 60))
+    }
+
+    @Test("A phone killed mid-transfer comes back lending, its report overdue") func transferringResolves() throws {
+        let data = try JSONSerialization.data(withJSONObject: ["role": "transferring", "session": 4])
+        let state = try JSONDecoder().decode(WatchLoopPhoneState.self, from: data)
+        #expect(state.role == .lending)
+        #expect(state.lastReportAt == .distantPast)
+        #expect(state.session == 4)
+    }
 }

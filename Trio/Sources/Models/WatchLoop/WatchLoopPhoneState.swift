@@ -22,10 +22,14 @@ struct WatchLoopPhoneState: Codable, Equatable {
     var refusedSessions: [Int] = []
     /// When the watch had the pod, for the phone's chart and Nightscout.
     var spans: [WatchLoopSpan] = []
+    /// The audit of the last session taken back, kept while the watch's last records may still arrive.
+    var openAudit: WatchLoopOpenAudit?
     /// The pump's total at the last reading the records explained; dosing waits for one while a copy is out.
     var verifiedDelivered: Double?
     var verifiedAt: Date?
     var standingCopySentAt: Date?
+    /// Since when unexplained insulin went unanswered: another device may be dosing, so the phone doesn't.
+    var foreignInsulinSince: Date?
     /// A stop the watch hasn't confirmed; sent again until it does.
     var stopPendingSession: Int?
     var stopPendingSince: Date?
@@ -73,12 +77,40 @@ struct WatchLoopPhoneState: Codable, Equatable {
         releasedAt = try? c.decodeIfPresent(Date.self, forKey: .releasedAt)
         refusedSessions = (try? c.decodeIfPresent([Int].self, forKey: .refusedSessions)) ?? d.refusedSessions
         spans = (try? c.decodeIfPresent([WatchLoopSpan].self, forKey: .spans)) ?? d.spans
+        openAudit = try? c.decodeIfPresent(WatchLoopOpenAudit.self, forKey: .openAudit)
         verifiedDelivered = try? c.decodeIfPresent(Double.self, forKey: .verifiedDelivered)
         verifiedAt = try? c.decodeIfPresent(Date.self, forKey: .verifiedAt)
         standingCopySentAt = try? c.decodeIfPresent(Date.self, forKey: .standingCopySentAt)
+        foreignInsulinSince = try? c.decodeIfPresent(Date.self, forKey: .foreignInsulinSince)
         stopPendingSession = try? c.decodeIfPresent(Int.self, forKey: .stopPendingSession)
         stopPendingSince = try? c.decodeIfPresent(Date.self, forKey: .stopPendingSince)
+        // killed mid-transfer: who has the pump is asked at once, as for a watch gone quiet (`checkOverdue`)
+        if role == .transferring {
+            role = .lending
+            lastReportAt = .distantPast
+        }
     }
+}
+
+/// A session's audit after the phone took the pod back (control document, rule 1): the pod's total against what the
+/// pump history records from the release to the take. While records may be missing, the difference is booked as a
+/// bolus, replaced each time more of the session's records arrive; until the total could be read at all, the phone
+/// doses nothing by itself.
+struct WatchLoopOpenAudit: Codable, Equatable {
+    let session: Int
+    let releasedAt: Date
+    let deliveredAtRelease: Double?
+    /// A hand-back's records are complete: a difference is only reported.
+    let recordsComplete: Bool
+    let takenAt: Date
+    /// The pod's total after the take, and when it was read.
+    var deliveredAtTake: Double?
+    var readAt: Date?
+    /// The bolus booked for what the records don't explain: its pump event's id and units.
+    var placeholderID: String?
+    var placeholderUnits: Double = 0
+    /// The phone doses nothing by itself until the audit has run.
+    var holdsDosing = false
 }
 
 /// A stretch of time the watch had the pod.
@@ -96,6 +128,7 @@ enum WatchLoopGate {
     private static let lock = NSLock()
     private static var cachedRole: WatchLoopControl.PhoneRole = loadRole()
     private static var cachedSpans: [WatchLoopSpan] = []
+    private static var cachedHold = false
 
     static let storageKey = "watchLoopPhoneState"
 
@@ -103,6 +136,13 @@ enum WatchLoopGate {
         lock.lock()
         defer { lock.unlock() }
         return cachedRole == .holdsPump
+    }
+
+    /// After a take-back the pod's total couldn't be compared with the watch's records yet: the phone loops open.
+    static var automaticDosingHeld: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return cachedHold
     }
 
     static var role: WatchLoopControl.PhoneRole {
@@ -123,6 +163,7 @@ enum WatchLoopGate {
         lock.lock()
         cachedRole = state.role
         cachedSpans = state.spans
+        cachedHold = state.openAudit?.holdsDosing ?? false
         lock.unlock()
     }
 

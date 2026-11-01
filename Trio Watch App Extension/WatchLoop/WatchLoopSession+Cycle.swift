@@ -111,6 +111,12 @@ extension WatchLoopSession {
         guard state.pumpReachable, state.phase == .active, pumpManager === pump else {
             state.lastError = String(localized: "Couldn't reach the pod.")
             WatchLogger.shared.warning(.treatments, "Watch Loop cycle (\(reason)): the pod didn't answer")
+            publishDisplay()
+            return
+        }
+        // as the phone's `verifyStatus`: no loop while a bolus runs; its end starts the next (`updateBolusState`)
+        if case .noBolus = pump.status.bolusState {} else {
+            WatchLogger.shared.info(.treatments, "Watch Loop cycle (\(reason)): a bolus is running, skipped")
             return
         }
 
@@ -156,6 +162,8 @@ extension WatchLoopSession {
             }
         } else {
             state.lastError = nil
+            // held, not just suggested: a temp above the schedule doesn't run on while nothing is enacted
+            if !explained { await endHighTemp(on: pump, grant: grant, now: now) }
         }
         state.lastDetermination = result.determination
         state.lastLoopAt = now
@@ -192,6 +200,22 @@ extension WatchLoopSession {
             try await pump.enactBolus(units: Double(truncating: units as NSNumber), automatic: true)
         }
         return true
+    }
+
+    private func endHighTemp(on pump: PumpManager, grant: WatchLoopGrant, now: Date) async {
+        guard case let .tempBasal(dose) = pump.status.basalDeliveryState else { return }
+        let parts = Calendar.current.dateComponents([.hour, .minute], from: now)
+        let minute = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+        let schedule = grant.basalProfile.sorted { $0.minutes < $1.minutes }
+        guard let scheduled = schedule.last(where: { $0.minutes <= minute })?.rate ?? schedule.first?.rate,
+              Decimal(dose.unitsPerHour) > scheduled
+        else { return }
+        do {
+            try await pump.enactTempBasal(unitsPerHour: 0, for: 0)
+            WatchLogger.shared.info(.treatments, "Watch Loop: the dose is held; the high temp is ended")
+        } catch {
+            WatchLogger.shared.warning(.treatments, "Watch Loop: the high temp couldn't be ended", error: error)
+        }
     }
 
     private func currentTemp(_ pump: PumpManager, now: Date) -> TempBasal {
