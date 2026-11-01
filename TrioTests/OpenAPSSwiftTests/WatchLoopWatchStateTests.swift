@@ -107,11 +107,11 @@ import Testing
     }
 
     @Test("A saved watch state missing a field keeps the rest") func decodesLeniently() throws {
-        let data = try JSONSerialization.data(withJSONObject: ["phase": "active", "session": 7, "closedLoop": false])
+        let data = try JSONSerialization.data(withJSONObject: ["phase": "active", "session": 7, "dosingMode": "open"])
         let state = try JSONDecoder().decode(WatchLoopWatchState.self, from: data)
         #expect(state.phase == .active)
         #expect(state.session == 7)
-        #expect(!state.closedLoop)
+        #expect(state.dosingMode == .open)
         #expect(state.pending.isEmpty)
         #expect(state.nextSeq == 1)
     }

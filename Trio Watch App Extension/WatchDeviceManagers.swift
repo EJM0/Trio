@@ -101,6 +101,11 @@ func watchCGMHasSensorProblem(_ manager: CGMManager?) -> Bool {
     }
 }
 
+/// The sensor's link is up right now: a reading or its backfill is on the radio.
+func watchCGMIsConnected(_ manager: CGMManager?) -> Bool {
+    (manager as? G7CGMManager)?.isConnected ?? false
+}
+
 extension DeviceManager {
     /// What the watch saves, as the phone saves a manager: `managerIdentifier` and `state`.
     var watchRawValue: [String: Any] {
