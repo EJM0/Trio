@@ -440,6 +440,28 @@ struct WatchLoopHistoryView: View {
     }
 }
 
+/// The running bolus as an edge around the treatment button that fills as it is delivered; by the clock, as the pump
+/// itself counts a bolus done (as on feat/direct-to-watch).
+struct BolusProgressRing: View {
+    let window: DateInterval?
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 0.5)) { context in
+            let progress = window.map { min(1, max(0, context.date.timeIntervalSince($0.start) / max($0.duration, 1))) } ?? 0
+            ZStack {
+                Circle().stroke(Color.tabBar.opacity(0.25), lineWidth: 3)
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(Color.tabBar, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.linear(duration: 0.5), value: progress)
+            }
+            .padding(-5)
+        }
+        .allowsHitTesting(false)
+    }
+}
+
 /// A meter's blood glucose, picked with the crown (or − / +) in the phone's units and saved as a manual reading: the
 /// loop takes it into account from the next reading on, and the phone files it as a manual entry (Kristin Kandschur's
 /// feature/untethered-fallback, d4c8552f6, as on feat/direct-to-watch).

@@ -22,6 +22,11 @@ import WatchKit
 
     /// What the Watch Loop page tells the looper: a refusal, a takeover in progress, the session's end.
     var note: String?
+    /// The watch's pump is delivering a bolus: the treatment button stops it and fills as it is delivered.
+    private(set) var isBolusing = false
+    /// The running bolus from start to end, for its progress; nil while it is being started.
+    private(set) var bolusWindow: DateInterval?
+    @ObservationIgnored private var bolusEndTimer: Timer?
     /// A Start or an End in progress.
     var isBusy = false
     /// The phone didn't answer a Start and a usable copy is here: the page offers to start from it.
@@ -308,6 +313,7 @@ import WatchKit
     func endSession(note: String?) {
         releasePump()
         state.end()
+        updateBolusState(nil)
         publishDisplay()
         armNotLoopingWatchdog()
         armNotHearingFromPhone()
@@ -527,6 +533,41 @@ import WatchKit
         WatchLogger.shared.info(.treatments, "Watch Loop: a meter's BG of \(mgdl) mg/dL entered on the watch")
     }
 
+    /// A bolus ends by the clock: the pump reports no change when it runs out, so its end is checked for when it is
+    /// due rather than at the pump's next status read (as on feat/direct-to-watch).
+    func updateBolusState(_ status: PumpManagerStatus?) {
+        bolusEndTimer?.invalidate()
+        bolusEndTimer = nil
+        isBolusing = state.phase == .active && (status?.bolusState ?? .noBolus) != .noBolus
+        bolusWindow = nil
+        guard isBolusing, case let .inProgress(dose) = status?.bolusState else { return }
+        bolusWindow = DateInterval(start: dose.startDate, end: max(dose.endDate, dose.startDate))
+        bolusEndTimer = Timer.scheduledTimer(withTimeInterval: max(1, dose.endDate.timeIntervalSinceNow + 1), repeats: false) {
+            [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.updateBolusState(self.pumpManager?.status)
+            }
+        }
+    }
+
+    /// Stops the running bolus on the pod. A cycle follows, so what it delivered counts at once even if the pod
+    /// reports the stopped bolus only later.
+    func cancelBolus() {
+        pumpManager?.cancelBolus { result in
+            DispatchQueue.main.async {
+                if case let .failure(error) = result {
+                    self.state.lastError = error.localizedDescription
+                    WatchLogger.shared.warning(.treatments, "Watch Loop: the bolus couldn't be stopped", error: error)
+                } else {
+                    WatchLogger.shared.info(.treatments, "Watch Loop: bolus stopped on the watch")
+                    Task { await self.runCycle(reason: "bolus stopped") }
+                }
+                self.updateBolusState(self.pumpManager?.status)
+            }
+        }
+    }
+
     /// The watch's own readings: each new one is a cycle.
     func noteReadings(_ readings: [BloodGlucose]) {
         let now = Date()
@@ -649,7 +690,12 @@ extension WatchLoopSession: PumpManagerDelegate {
     nonisolated func pumpManagerBLEHeartbeatDidFire(_: PumpManager) {}
     nonisolated func pumpManagerMustProvideBLEHeartbeat(_: PumpManager) -> Bool { false }
     nonisolated func pumpManagerWillDeactivate(_: PumpManager) {}
-    nonisolated func pumpManager(_: PumpManager, didUpdate _: PumpManagerStatus, oldStatus _: PumpManagerStatus) {}
+    nonisolated func pumpManager(_ manager: PumpManager, didUpdate status: PumpManagerStatus, oldStatus _: PumpManagerStatus) {
+        MainActor.assumeIsolated {
+            guard isCurrent(manager) else { return }
+            updateBolusState(status)
+        }
+    }
     nonisolated func pumpManagerPumpWasReplaced(_: PumpManager) {}
     nonisolated func pumpManager(_: PumpManager, didUpdatePumpRecordsBasalProfileStartEvents _: Bool) {}
     nonisolated func pumpManager(_: PumpManager, didAdjustPumpClockBy _: TimeInterval) {}
