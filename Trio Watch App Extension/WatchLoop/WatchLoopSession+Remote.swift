@@ -62,7 +62,7 @@ extension WatchLoopSession {
             sentAt: treatment.sentAt,
             now: now,
             maxBolus: grant.maxBolus,
-            maxIOB: grant.preferences.clamped(for: grant.dosingMode).maxIOB,
+            maxIOB: grant.preferences.clamped(for: state.dosingMode).maxIOB,
             iob: state.lastDetermination?.iob,
             iobAt: state.lastLoopAt,
             history: state.pumpHistory
