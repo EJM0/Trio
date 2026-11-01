@@ -36,13 +36,18 @@ struct GlucoseTrendView: View {
     }
 
     var body: some View {
+        // the ring and its minutes count on from the last loop, minute by minute (`WatchState.lastLoopText(at:)`)
+        TimelineView(.everyMinute) { context in content(loopTime: state.lastLoopText(at: context.date)) }
+    }
+
+    private func content(loopTime: String?) -> some View {
         VStack {
             ZStack {
                 Circle()
-                    .stroke(statusColor(for: state.lastLoopTime), lineWidth: state.deviceType.lineWidth)
+                    .stroke(statusColor(for: loopTime), lineWidth: state.deviceType.lineWidth)
                     .frame(width: state.deviceType.circleSize, height: state.deviceType.circleSize)
                     .background(Circle().fill(Color.bgDarkBlue))
-                    .shadow(color: statusColor(for: state.lastLoopTime), radius: state.deviceType.shadowRadius)
+                    .shadow(color: statusColor(for: loopTime), radius: state.deviceType.shadowRadius)
 
                 TrendShape(
                     isWatchStateDated: isWatchStateDated,
@@ -85,8 +90,7 @@ struct GlucoseTrendView: View {
             Text(
                 isWatchStateDated ?
                     String(localized: "STALE DATA", comment: "Information displayed when watch app data outdated or stale.") :
-                    state
-                    .lastLoopTime ?? "--"
+                    loopTime ?? "--"
             )
             .font(.system(size: state.deviceType.minutesAgoFontSize))
             .fontWidth(isWatchStateDated ? .expanded : .standard)

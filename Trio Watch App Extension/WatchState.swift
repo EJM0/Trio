@@ -124,6 +124,12 @@ import WatchConnectivity
     /// When the loop last ran, from the phone's "N min" or the watch's own loop; for the complication's ring.
     var lastLoopDate: Date?
 
+    /// "N min" since the last loop, counted at `now`: the phone's figure and the watch's own loop age between
+    /// updates, and a loop that stops must show it (2026-11-01: "0 min" and a green ring for 13 min without a loop).
+    func lastLoopText(at now: Date) -> String? {
+        lastLoopDate.map { "\(max(0, Int(now.timeIntervalSince($0) / 60))) min" } ?? lastLoopTime
+    }
+
     /// The phone's last successful loop from its most recent state update. Kept separately from the display value,
     /// which is relative and may describe the watch's own loop.
     var phoneLastLoopDate: Date? = {
