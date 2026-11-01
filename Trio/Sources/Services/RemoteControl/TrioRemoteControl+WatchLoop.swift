@@ -69,17 +69,11 @@ extension TrioRemoteControl {
 
     /// The same command, the same id: its time, type and amounts, hashed.
     static func treatmentID(_ payload: CommandPayload) -> UUID {
-        let fields = [
-            payload.commandId ?? "",
-            "\(payload.timestamp)",
-            "\(payload.commandType)",
-            payload.bolusAmount.map { "\($0)" } ?? "",
-            payload.carbs.map { "\($0)" } ?? "",
-            payload.fat.map { "\($0)" } ?? "",
-            payload.protein.map { "\($0)" } ?? "",
-            payload.scheduledTime.map { "\($0)" } ?? "",
-            payload.mealId ?? ""
+        let amounts: [Any?] = [
+            payload.bolusAmount, payload.carbs, payload.fat, payload.protein, payload.scheduledTime, payload.mealId
         ]
+        let described: [String] = amounts.map { value in value.map { "\($0)" } ?? "" }
+        let fields: [String] = [payload.commandId ?? "", "\(payload.timestamp)", "\(payload.commandType)"] + described
         let digest = Array(SHA256.hash(data: Data(fields.joined(separator: "|").utf8)))
         return UUID(uuid: (
             digest[0], digest[1], digest[2], digest[3], digest[4], digest[5], digest[6], digest[7],
