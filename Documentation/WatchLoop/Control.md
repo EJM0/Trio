@@ -92,12 +92,12 @@ as the backstop. A cycle reads the pump first; one that can't reach it doses not
 Otherwise it runs the phone's oref phases (`OrefPipeline`) on the grant's settings, the phone's last day of history and
 the watch's own doses, carbs and readings, enacts as the phone does in the session's dosing mode (the phone's at the
 grant, changeable on the watch), and sends a checkpoint. A cycle a reading starts reaches for the pod only once the
-sensor's link has closed, at most 12 s and 3 s more: the two share the watch's one radio, and a pod command cut off at a
-reading stalls the pod. Bolus, carbs, a meter's BG, overrides and temp targets entered on the watch during a session go
-to the session, are recorded and sent with the next checkpoint, as is each cycle's determination: the phone stores it as
-its own, and Nightscout gets it at its own time. A queued checkpoint carries every record not yet acknowledged, so only
-a session's newest waits in the queue. A pod deactivated or discarded on the watch ends the session; the phone forgets
-the pod.
+sensor's link has closed, at most 12 s and 3 s more, and any other pod command's connect waits while the link is up, at
+most 15 s: the two share the watch's one radio, and a pod command cut off at a reading stalls the pod. Bolus, carbs, a
+meter's BG, overrides and temp targets entered on the watch during a session go to the session, are recorded and sent
+with the next checkpoint, as is each cycle's determination: the phone stores it as its own, and Nightscout gets it at
+its own time. A queued checkpoint carries every record not yet acknowledged, so only a session's newest waits in the
+queue. A pod deactivated or discarded on the watch ends the session; the phone forgets the pod.
 
 While it loops, every page of the watch app and its complications show the watch's own IOB, COB, last loop and forecast.
 The phone shows a banner and a glow, locks treatments and the settings the watch doses with, draws the watch's forecast
