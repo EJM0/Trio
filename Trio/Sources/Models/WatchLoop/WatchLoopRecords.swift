@@ -34,6 +34,8 @@ struct WatchLoopRecord: Codable, Equatable, Identifiable {
         case carbs(CarbsEntry)
         /// A carb entry deleted on the watch, by its id.
         case carbsDeleted(id: String)
+        /// A meter's BG deleted on the watch, by its time: the phone gives each its own id.
+        case glucoseDeleted(at: Date)
         /// An override started on the watch; nil ends the running one.
         case override(Override?)
         /// A temp target set on the watch; nil ends the running one.
