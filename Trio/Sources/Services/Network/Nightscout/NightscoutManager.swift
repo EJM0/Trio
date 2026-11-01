@@ -19,6 +19,7 @@ protocol NightscoutManager: GlucoseSource {
     func uploadTempTargets() async
     func uploadProfiles() async throws
     @discardableResult func uploadNoteTreatment(note: String) async -> Bool
+    @discardableResult func uploadWatchLoopSession(from start: Date, to end: Date) async -> Bool
     func importSettings() async -> ScheduledNightscoutProfile?
     var cgmURL: URL? { get }
 }
@@ -1404,6 +1405,21 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
     }
 
     // TODO: have this checked; this has never actually written anything to file; the entire logic of this function seems broken
+    /// A Watch Loop session as a note with its duration, not an override's "Exercise": Nightscout shows it as a band
+    /// for its duration, and nothing reads it as a running override (as on feat/direct-to-watch).
+    @discardableResult func uploadWatchLoopSession(from start: Date, to end: Date) async -> Bool {
+        let note = NightscoutTreatment(
+            duration: max(1, Int((end.timeIntervalSince(start) / 60).rounded())),
+            eventType: .nsNote,
+            createdAt: start,
+            enteredBy: NightscoutTreatment.local,
+            notes: String(localized: "Watch Loop on Apple Watch"),
+            targetTop: nil,
+            targetBottom: nil
+        )
+        return await uploadNonCoreDataTreatments([note])
+    }
+
     @discardableResult func uploadNoteTreatment(note: String) async -> Bool {
         let uploadedNotes = storage.retrieve(OpenAPS.Nightscout.uploadedNotes, as: [NightscoutTreatment].self) ?? []
         let now = Date()
