@@ -43,6 +43,7 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
     @Injected() private var glucoseStorage: GlucoseStorage!
     @Injected() private var tddStorage: TDDStorage!
     @Injected() private var tempTargetsStorage: TempTargetsStorage!
+    @Injected() private var nightscoutManager: NightscoutManager!
     @Injected() private var overrideStorage: OverrideStorage!
     @Injected() private var apsManager: APSManager!
     /// The phone's own algorithm inputs, so the watch's algorithm reads what the phone's would.
@@ -74,8 +75,9 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
     init(resolver: Resolver) {
         state = Self.load()
         injectServices(resolver)
-        WatchLoopGate.update(state.role)
+        WatchLoopGate.update(state)
         DispatchQueue.main.async { [weak self] in
+            Task { await self?.uploadSpans() }
             self?.overdueTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated { self?.checkOverdue() }
             }
@@ -95,7 +97,7 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         if let data = try? JSONEncoder().encode(state) {
             UserDefaults.standard.set(data, forKey: WatchLoopGate.storageKey)
         }
-        WatchLoopGate.update(state.role)
+        WatchLoopGate.update(state)
     }
 
     // MARK: - The wire
@@ -258,6 +260,7 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         next.liveStatus = nil
         next.deliveredAtRelease = odometer.deliveredUnits?.units
         next.releasedAt = Date()
+        next.noteSpan(at: Date())
         state = next
         sessionDoses = []
         info(.watch, "Watch Loop session \(session) granted; the phone let go of the pump")
@@ -476,6 +479,7 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         next.lastReportAt = Date()
         next.deliveredAtRelease = (pump as? PumpDeliveryOdometer)?.deliveredUnits?.units
         next.releasedAt = Date()
+        next.noteSpan(at: Date())
         state = next
         sessionDoses = []
         unexplained = nil
@@ -677,8 +681,20 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         next.liveStatus = nil
         next.deliveredAtRelease = nil
         next.releasedAt = nil
+        next.noteSpan(at: Date())
         state = next
         sessionDoses = []
+        Task { await uploadSpans() }
+    }
+
+    /// Each finished span as a Nightscout note with its duration; one that didn't go goes with the next, or at launch.
+    @MainActor private func uploadSpans() async {
+        for span in state.spans where !span.uploaded {
+            guard let end = span.end, await nightscoutManager.uploadWatchLoopSession(from: span.start, to: end) else { continue }
+            var next = state
+            if let index = next.spans.firstIndex(where: { $0.start == span.start }) { next.spans[index].uploaded = true }
+            state = next
+        }
     }
 
     /// The pump's own total against the records (control document, rule 1). After a hand-back the records are
