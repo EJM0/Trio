@@ -632,6 +632,7 @@ extension WatchLoopSession: PumpManagerDelegate {
             updateBolusState(status)
         }
     }
+
     nonisolated func pumpManagerPumpWasReplaced(_: PumpManager) {}
     nonisolated func pumpManager(_: PumpManager, didUpdatePumpRecordsBasalProfileStartEvents _: Bool) {}
     nonisolated func pumpManager(_: PumpManager, didAdjustPumpClockBy _: TimeInterval) {}
