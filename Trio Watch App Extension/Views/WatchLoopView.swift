@@ -287,11 +287,24 @@ private struct WatchLoopModeView: View {
     }
 }
 
-/// Glucose, carbs and insulin of the session; a carb entry is deleted by swiping it and confirming.
+/// Glucose, carbs and insulin of the session; a carb entry or a meter's BG is deleted by swiping it and confirming.
 struct WatchLoopHistoryView: View {
     let session: WatchLoopSession
     @State private var kind = Kind.carbs
-    @State private var carbsToDelete: CarbsEntry?
+    @State private var deletion: Deletion?
+
+    /// A swiped entry, deleted once confirmed.
+    enum Deletion {
+        case carbs(CarbsEntry)
+        case glucose(BloodGlucose)
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .carbs: return "Delete this carb entry?"
+            case .glucose: return "Delete this BG?"
+            }
+        }
+    }
 
     enum Kind: CaseIterable {
         case glucose
@@ -326,11 +339,16 @@ struct WatchLoopHistoryView: View {
             }
         }
         .confirmationDialog(
-            "Delete this carb entry?",
-            isPresented: Binding(get: { carbsToDelete != nil }, set: { if !$0 { carbsToDelete = nil } }),
-            presenting: carbsToDelete
-        ) { entry in
-            Button("Delete", role: .destructive) { session.deleteCarbs(entry) }
+            deletion?.title ?? "",
+            isPresented: Binding(get: { deletion != nil }, set: { if !$0 { deletion = nil } }),
+            presenting: deletion
+        ) { deletion in
+            Button("Delete", role: .destructive) {
+                switch deletion {
+                case let .carbs(entry): session.deleteCarbs(entry)
+                case let .glucose(reading): session.deleteGlucose(reading)
+                }
+            }
         }
         .toolbar {
             ToolbarItemGroup(placement: .bottomBar) {
@@ -363,6 +381,11 @@ struct WatchLoopHistoryView: View {
                 reading.dateString,
                 reading.mbg != nil ? Text(Image(systemName: "drop.circle")) + Text(verbatim: " ") + shown : shown
             )
+            .swipeActions {
+                if reading.mbg != nil, session.state.phase == .active {
+                    Button("Delete", role: .destructive) { deletion = .glucose(reading) }
+                }
+            }
         }
     }
 
@@ -377,7 +400,7 @@ struct WatchLoopHistoryView: View {
             )
             .swipeActions {
                 if session.state.phase == .active {
-                    Button("Delete", role: .destructive) { carbsToDelete = entry }
+                    Button("Delete", role: .destructive) { deletion = .carbs(entry) }
                 }
             }
         }
