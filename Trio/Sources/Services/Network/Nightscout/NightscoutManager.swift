@@ -591,10 +591,13 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
             determinationStorage.getOrefDeterminationNotYetUploadedToNightscout(suggestedDeterminationID)
         )
 
-        await uploadEarlierDeviceStatuses(
-            sparing: [fetchedEnactedDetermination?.id, fetchedSuggestedDetermination?.id].compactMap { $0 },
-            to: nightscout
-        )
+        // the watch's loops, stored as the phone's own, each with its time (Watch Loop only)
+        if settingsManager.settings.watchLoopEnabled {
+            await uploadEarlierDeviceStatuses(
+                sparing: [fetchedEnactedDetermination?.id, fetchedSuggestedDetermination?.id].compactMap { $0 },
+                to: nightscout
+            )
+        }
 
         // Guard to ensure both determinations are not nil
         guard fetchedEnactedDetermination != nil || fetchedSuggestedDetermination != nil else {
@@ -672,7 +675,8 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
         // older than the loop it is uploaded with isn't that loop's
         let determinedAt = (fetchedSuggestedDetermination ?? fetchedEnactedDetermination)?.deliverAt ?? .distantPast
         let iob = await fetchedIOBEntry.flatMap { entries in
-            determinedAt.timeIntervalSince(entries.first?.time ?? determinedAt) > 5 * 60 ? nil : entries
+            settingsManager.settings.watchLoopEnabled
+                && determinedAt.timeIntervalSince(entries.first?.time ?? determinedAt) > 5 * 60 ? nil : entries
         }
 
         let suggestedToUpload = modifiedSuggestedDetermination ?? lastSuggestedDetermination

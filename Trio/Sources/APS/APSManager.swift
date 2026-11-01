@@ -796,6 +796,11 @@ final class BaseAPSManager: APSManager, Injectable {
             return false
         }
 
+        guard !WatchLoopGate.automaticDosingHeld else {
+            info(.loop, "Determination not enacted: the watch's insulin isn't checked yet")
+            return false
+        }
+
         if pump.status.pumpStatus.suspended {
             info(.loop, "Determination not enacted: pump suspended")
             return false
