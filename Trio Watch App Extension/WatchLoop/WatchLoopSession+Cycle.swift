@@ -113,6 +113,11 @@ extension WatchLoopSession {
             WatchLogger.shared.warning(.treatments, "Watch Loop cycle (\(reason)): the pod didn't answer")
             return
         }
+        // as the phone's `verifyStatus`: no loop while a bolus runs; its end starts the next (`updateBolusState`)
+        if case .noBolus = pump.status.bolusState {} else {
+            WatchLogger.shared.info(.treatments, "Watch Loop cycle (\(reason)): a bolus is running, skipped")
+            return
+        }
 
         let now = Date()
         let inputs = CycleInputs(
