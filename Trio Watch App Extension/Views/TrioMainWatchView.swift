@@ -226,15 +226,23 @@ struct TrioMainWatchView: View {
                         .tint(isOverrideActive ? Color.purple : nil)
                         .disabled(isPhoneDataUnusable)
 
+                        // while the watch's pump delivers a bolus, the button stops it
                         Button {
-                            showingTreatmentMenuSheet = true
+                            if watchLoop.isBolusing {
+                                watchLoop.cancelBolus()
+                            } else {
+                                showingTreatmentMenuSheet = true
+                            }
                         } label: {
-                            Image(systemName: "plus")
+                            Image(systemName: watchLoop.isBolusing ? "square.fill" : "plus")
                                 .foregroundStyle(Color.bgDarkerDarkBlue)
                         }
                         .controlSize(.large)
                         .buttonStyle(WatchOSButtonStyle(deviceType: state.deviceType))
-                        .disabled(isPhoneDataUnusable)
+                        .overlay {
+                            if watchLoop.isBolusing { BolusProgressRing(window: watchLoop.bolusWindow) }
+                        }
+                        .disabled(!watchLoop.isBolusing && isPhoneDataUnusable)
 
                         Button {
                             showingTempTargetSheet = true
