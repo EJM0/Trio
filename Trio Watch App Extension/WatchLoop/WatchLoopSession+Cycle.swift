@@ -111,6 +111,7 @@ extension WatchLoopSession {
         guard state.pumpReachable, state.phase == .active, pumpManager === pump else {
             state.lastError = String(localized: "Couldn't reach the pod.")
             WatchLogger.shared.warning(.treatments, "Watch Loop cycle (\(reason)): the pod didn't answer")
+            publishDisplay()
             return
         }
         // as the phone's `verifyStatus`: no loop while a bolus runs; its end starts the next (`updateBolusState`)
