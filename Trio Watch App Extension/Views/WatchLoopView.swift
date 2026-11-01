@@ -118,9 +118,9 @@ struct WatchLoopView: View {
             NavigationLink { WatchLoopModeView(session: session) } label: {
                 tile(
                     "Loop Mode",
-                    systemImage: session.state.closedLoop ? "arrow.triangle.2.circlepath" : "hand.raised",
+                    systemImage: session.state.dosingMode.icon,
                     tint: .watchLoop,
-                    value: session.state.closedLoop ? String(localized: "Closed") : String(localized: "Open")
+                    value: session.state.dosingMode.displayName
                 )
             }
             .buttonStyle(.plain)
@@ -172,7 +172,7 @@ struct WatchLoopView: View {
                 .lineLimit(1)
             Text(value ?? "--")
                 .font(.system(.footnote, design: .rounded).weight(.semibold))
-                .lineLimit(1)
+                .lineLimit(2)
                 .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -243,7 +243,7 @@ struct WatchLoopView: View {
     }
 }
 
-/// Closed loop: the watch enacts; open: it only determines, as the phone's open loop.
+/// The phone's dosing modes, for this session: the watch doses in the chosen one as the phone would.
 private struct WatchLoopModeView: View {
     let session: WatchLoopSession
     @Environment(\.dismiss) private var dismiss
@@ -251,32 +251,31 @@ private struct WatchLoopModeView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
-                option(closed: true, "Closed Loop", "arrow.triangle.2.circlepath", "The watch adjusts basal and gives SMBs.")
-                option(closed: false, "Open Loop", "hand.raised", "The watch determines but doses nothing by itself.")
+                ForEach(DosingMode.userSelectable) { option($0) }
             }
             .padding(.horizontal, 4)
         }
         .navigationTitle("Loop Mode")
     }
 
-    private func option(closed: Bool, _ title: LocalizedStringKey, _ symbol: String, _ hint: LocalizedStringKey) -> some View {
+    private func option(_ mode: DosingMode) -> some View {
         Button {
-            session.setClosedLoop(closed)
+            session.setDosingMode(mode)
             dismiss()
         } label: {
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 8) {
-                    Label(title, systemImage: symbol)
+                    Label(mode.displayName, systemImage: mode.icon)
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(Color.watchLoop)
                     Spacer(minLength: 0)
-                    if session.state.closedLoop == closed {
+                    if session.state.dosingMode == mode {
                         Image(systemName: "checkmark")
                             .font(.caption2.weight(.bold))
                             .foregroundStyle(Color.watchLoop)
                     }
                 }
-                Text(hint)
+                Text(mode.miniHint)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -288,10 +287,11 @@ private struct WatchLoopModeView: View {
     }
 }
 
-/// Glucose, carbs and insulin of the session; a carb entry is deleted by swiping it (as Loop's carb list).
+/// Glucose, carbs and insulin of the session; a carb entry is deleted by swiping it and confirming.
 struct WatchLoopHistoryView: View {
     let session: WatchLoopSession
     @State private var kind = Kind.carbs
+    @State private var carbsToDelete: CarbsEntry?
 
     enum Kind: CaseIterable {
         case glucose
@@ -324,6 +324,13 @@ struct WatchLoopHistoryView: View {
             case .carbs: carbRows
             case .insulin: insulinRows
             }
+        }
+        .confirmationDialog(
+            "Delete this carb entry?",
+            isPresented: Binding(get: { carbsToDelete != nil }, set: { if !$0 { carbsToDelete = nil } }),
+            presenting: carbsToDelete
+        ) { entry in
+            Button("Delete", role: .destructive) { session.deleteCarbs(entry) }
         }
         .toolbar {
             ToolbarItemGroup(placement: .bottomBar) {
@@ -370,7 +377,7 @@ struct WatchLoopHistoryView: View {
             )
             .swipeActions {
                 if session.state.phase == .active {
-                    Button("Delete", role: .destructive) { session.deleteCarbs(entry) }
+                    Button("Delete", role: .destructive) { carbsToDelete = entry }
                 }
             }
         }
@@ -586,14 +593,19 @@ struct WatchLoopStatusView: View {
         guard deliverAt >= now.addingTimeInterval(-5 * 60) else {
             let minutes = Int((now.timeIntervalSince(deliverAt) / 60).rounded())
             return (
-                state.closedLoop
+                state.dosingMode.automation != .off
                     ? String(localized: "Trio has not looped in \(minutes) minutes.")
                     : String(localized: "Trio has not run in \(minutes) minutes."),
                 color
             )
         }
         let time = deliverAt.formatted(date: .omitted, time: .shortened)
-        return (state.closedLoop ? String(localized: "Enacted at \(time)") : String(localized: "Determined at \(time)"), color)
+        return (
+            state.dosingMode.automation != .off
+                ? String(localized: "Enacted at \(time)")
+                : String(localized: "Determined at \(time)"),
+            color
+        )
     }
 
     private func tags(_ determination: Determination) -> [String] {

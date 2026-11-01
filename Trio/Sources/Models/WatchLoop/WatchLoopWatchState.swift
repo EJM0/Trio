@@ -21,8 +21,8 @@ struct WatchLoopWatchState: Codable {
     /// Records not yet acknowledged, oldest first.
     var pending: [WatchLoopRecord] = []
     var nextSeq = 1
-    /// Off: the watch suggests and the looper enacts (the phone's open loop).
-    var closedLoop = true
+    /// The dosing mode the watch loops in: the phone's at the grant, then as set on the watch.
+    var dosingMode: DosingMode = .closed
     /// The watch's own doses since the grant, as the algorithm reads them.
     var history: [PumpHistoryEvent] = []
     /// Carbs entered on the watch since the grant.
@@ -54,7 +54,7 @@ struct WatchLoopWatchState: Codable {
         grant = try? c.decodeIfPresent(WatchLoopGrant.self, forKey: .grant)
         pending = (try? c.decodeIfPresent([WatchLoopRecord].self, forKey: .pending)) ?? d.pending
         nextSeq = (try? c.decodeIfPresent(Int.self, forKey: .nextSeq)) ?? d.nextSeq
-        closedLoop = (try? c.decodeIfPresent(Bool.self, forKey: .closedLoop)) ?? d.closedLoop
+        dosingMode = (try? c.decodeIfPresent(DosingMode.self, forKey: .dosingMode)) ?? grant?.dosingMode ?? d.dosingMode
         history = (try? c.decodeIfPresent([PumpHistoryEvent].self, forKey: .history)) ?? d.history
         carbs = (try? c.decodeIfPresent([CarbsEntry].self, forKey: .carbs)) ?? d.carbs
         deletedCarbIDs = (try? c.decodeIfPresent([String].self, forKey: .deletedCarbIDs)) ?? d.deletedCarbIDs
@@ -76,6 +76,7 @@ struct WatchLoopWatchState: Codable {
         session = grant.session
         startedAt = now
         self.grant = grant
+        dosingMode = grant.dosingMode
         history = []
         carbs = []
         deletedCarbIDs = []
