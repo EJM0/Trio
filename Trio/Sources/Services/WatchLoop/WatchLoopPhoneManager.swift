@@ -44,6 +44,7 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
     @Injected() private var tddStorage: TDDStorage!
     @Injected() private var tempTargetsStorage: TempTargetsStorage!
     @Injected() private var nightscoutManager: NightscoutManager!
+    @Injected() private var healthKitManager: HealthKitManager!
     @Injected() private var overrideStorage: OverrideStorage!
     @Injected() private var apsManager: APSManager!
     /// The phone's own algorithm inputs, so the watch's algorithm reads what the phone's would.
@@ -528,6 +529,8 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
                 return try context.fetch(request).first?.objectID
             }
             if let objectID { await carbsStorage.deleteCarbsEntryStored(objectID) }
+        case let .glucoseDeleted(date):
+            try await deleteManualGlucose(at: date)
         case let .override(override):
             if let override {
                 try await overrideStorage.storeOverride(override: override)
@@ -545,6 +548,27 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
             context.name = "watchLoopDetermination"
             await openAPS.processDetermination(determination, on: context, enacted: enacted)
         }
+    }
+
+    /// The manual reading at a meter's BG deleted on the watch, deleted as History deletes one.
+    private func deleteManualGlucose(at date: Date) async throws {
+        let context = CoreDataStack.shared.newTaskContext()
+        let found: (objectID: NSManagedObjectID, id: String?)? = try await context.perform {
+            let request = GlucoseStored.fetchRequest() as NSFetchRequest<GlucoseStored>
+            request.predicate = NSPredicate(
+                format: "isManual == YES AND date >= %@ AND date <= %@",
+                date.addingTimeInterval(-1) as NSDate,
+                date.addingTimeInterval(1) as NSDate
+            )
+            request.fetchLimit = 1
+            return try context.fetch(request).first.map { ($0.objectID, $0.id?.uuidString) }
+        }
+        guard let found else { return }
+        if let id = found.id {
+            await nightscoutManager.deleteGlucose(withID: id, withDate: date)
+            await healthKitManager.deleteGlucose(syncID: id)
+        }
+        await glucoseStorage.deleteGlucose(found.objectID)
     }
 
     private func endRunningOverride() async throws {

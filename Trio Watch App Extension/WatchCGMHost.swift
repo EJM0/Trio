@@ -11,7 +11,10 @@ import WatchKit
 
     private static let storageKey = "WatchCGMManager"
 
-    @ObservationIgnored private(set) var cgmManager: CGMManager?
+    @ObservationIgnored private(set) var cgmManager: CGMManager? {
+        // every pod command waits for the sensor's link (OmniPumpManager.commandConnectDelay)
+        didSet { watchGatePodCommands(on: cgmManager) }
+    }
     /// The export's `state` the manager was built from; a different one builds a new manager.
     @ObservationIgnored private var builtFrom: [String: Any]?
 

@@ -29,6 +29,8 @@ struct WatchLoopWatchState: Codable {
     var carbs: [CarbsEntry] = []
     /// Grant carbs deleted on the watch.
     var deletedCarbIDs: [String] = []
+    /// The grant's meter BGs deleted on the watch, by time.
+    var deletedGlucoseDates: [Date] = []
     /// The watch's own readings since the grant.
     var glucose: [BloodGlucose] = []
     var override: Override?
@@ -67,6 +69,8 @@ struct WatchLoopWatchState: Codable {
         history = (try? c.decodeIfPresent([PumpHistoryEvent].self, forKey: .history)) ?? d.history
         carbs = (try? c.decodeIfPresent([CarbsEntry].self, forKey: .carbs)) ?? d.carbs
         deletedCarbIDs = (try? c.decodeIfPresent([String].self, forKey: .deletedCarbIDs)) ?? d.deletedCarbIDs
+        deletedGlucoseDates = (try? c.decodeIfPresent([Date].self, forKey: .deletedGlucoseDates))
+            ?? d.deletedGlucoseDates
         glucose = (try? c.decodeIfPresent([BloodGlucose].self, forKey: .glucose)) ?? d.glucose
         override = try? c.decodeIfPresent(Override.self, forKey: .override)
         tempTargets = (try? c.decodeIfPresent([TempTarget].self, forKey: .tempTargets)) ?? d.tempTargets
@@ -96,6 +100,7 @@ struct WatchLoopWatchState: Codable {
         history = []
         carbs = []
         deletedCarbIDs = []
+        deletedGlucoseDates = []
         glucose = []
         override = grant.activeOverride
         tempTargets = grant.tempTargets
@@ -119,6 +124,7 @@ struct WatchLoopWatchState: Codable {
         history = []
         carbs = []
         deletedCarbIDs = []
+        deletedGlucoseDates = []
         glucose = []
         override = nil
         tempTargets = []
@@ -177,7 +183,10 @@ struct WatchLoopWatchState: Codable {
     /// The phone's readings, then the watch's own newer ones, newest first as the algorithm reads them.
     var allGlucose: [BloodGlucose] {
         let phoneNewest = grant?.glucose.map(\.dateString).max() ?? .distantPast
-        return ((grant?.glucose ?? []) + glucose.filter { $0.dateString > phoneNewest.addingTimeInterval(60) })
+        let phone = (grant?.glucose ?? []).filter { reading in
+            !deletedGlucoseDates.contains { abs($0.timeIntervalSince(reading.dateString)) < 1 }
+        }
+        return (phone + glucose.filter { $0.dateString > phoneNewest.addingTimeInterval(60) })
             .sorted { $0.dateString > $1.dateString }
     }
 
