@@ -955,7 +955,15 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
 
     @MainActor private func refreshStandingCopy() async {
         guard settingsManager.settings.watchLoopEnabled, settingsManager.settings.watchLoopWithoutPhone else {
-            if state.standingCopyOut { info(.watch, "Watch Loop: Allow Without iPhone is off; the copy is no longer renewed") }
+            if state.standingCopyOut {
+                // the watch drops its copy with the setting: the phone stops checking for one
+                info(.watch, "Watch Loop: Allow Without iPhone is off; no copy is out")
+                var next = state
+                next.standingCopyOut = false
+                next.verifiedDelivered = nil
+                next.verifiedAt = nil
+                state = next
+            }
             return
         }
         guard let pump = controllablePump, let odometer = pump as? PumpDeliveryOdometer,
@@ -1052,9 +1060,35 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
             pulseUnits: odometer.deliveryPulseUnits
         )
         let delivered = reading.units - baseline
-        guard case let .missing(units) = WatchLoopAudit.compare(delivered: delivered, recorded: recorded) else {
+        if let since = state.foreignInsulinSince {
+            guard case let .missing(units) = WatchLoopAudit.compare(delivered: delivered, recorded: recorded) else {
+                verified((baseline + recorded, reading.at))
+                guard Date().timeIntervalSince(since) >= Self.foreignInsulinQuiet else { return false }
+                state.foreignInsulinSince = nil
+                notify(
+                    id: "watchLoop.foreignInsulin",
+                    title: String(localized: "Trio Loops Again"),
+                    body: String(localized: "No insulin from another device for 15 minutes.")
+                )
+                return true
+            }
+            // still another device dosing: booked, and the quiet time starts again
+            await bookPlaceholder(units)
+            verified(reading)
+            state.foreignInsulinSince = Date()
+            return false
+        }
+        let units: Double
+        switch WatchLoopAudit.compare(delivered: delivered, recorded: recorded) {
+        case .matches:
+            // only what the records explain moves the baseline: differences under the band add up until they show
+            verified((baseline + recorded, reading.at))
+            return true
+        case .overstated:
             verified(reading)
             return true
+        case let .missing(missing):
+            units = missing
         }
         warning(.watch, "Watch Loop: the pod delivered \(units) U the iPhone's records don't explain; asking the watch")
         unexplained = (units, reading)
@@ -1062,6 +1096,9 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         Task { await run(decision) }
         return false
     }
+
+    /// How long no unexplained insulin must appear before the phone doses by itself again.
+    static let foreignInsulinQuiet: TimeInterval = 15 * 60
 
     @MainActor private func verified(_ reading: (units: Double, at: Date)) {
         var next = state
@@ -1141,8 +1178,18 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         case .keepPumpOnSilence:
             state.tookOverOnSilenceAt = Date()
             if let unexplained {
+                // Nobody answered for insulin the phone didn't give: a watch out of reach may be looping beside it.
+                // The phone books it and doses nothing by itself until none has appeared for 15 minutes.
                 await bookPlaceholder(unexplained.units)
                 verified(unexplained.reading)
+                state.foreignInsulinSince = Date()
+                notify(
+                    id: "watchLoop.foreignInsulin",
+                    title: String(localized: "Another Device May Be Dosing"),
+                    body: String(
+                        localized: "The pod gave insulin this iPhone didn't, and the watch didn't answer. Trio doses nothing by itself until none appears for 15 minutes. End Watch Loop on the watch if it runs."
+                    )
+                )
             }
             unexplained = nil
         case .sendStop:

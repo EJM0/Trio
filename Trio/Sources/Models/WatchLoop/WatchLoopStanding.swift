@@ -6,10 +6,10 @@ enum WatchLoopStanding {
     /// The phone sends a new copy at least this often, and after a change of insulin, carbs or settings.
     static let refreshInterval: TimeInterval = 30 * 60
 
-    /// A copy older than the insulin's action time can't account for what the pump delivered since.
+    /// A copy is usable for an hour: it is renewed every 30 min while the phone loops, and an older one could start
+    /// the watch beside a phone that is still dosing.
     static func isUsable(_ copy: WatchLoopGrant, now: Date) -> Bool {
-        let actionTime = Double(truncating: copy.pumpSettings.insulinActionCurve as NSNumber) * 3600
-        return now.timeIntervalSince(copy.issuedAt) < actionTime
+        now.timeIntervalSince(copy.issuedAt) < 60 * 60
     }
 }
 

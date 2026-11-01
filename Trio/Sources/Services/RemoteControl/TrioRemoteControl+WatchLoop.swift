@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 extension TrioRemoteControl {
@@ -50,7 +51,8 @@ extension TrioRemoteControl {
             return await logError("Command rejected: the Apple Watch is running the loop and can't be reached.", payload: payload)
         }
         let treatment = WatchLoopRemoteTreatment(
-            id: UUID(),
+            // from the command itself: a push delivered twice is one treatment, and the watch's claim refuses the copy
+            id: Self.treatmentID(payload),
             sentAt: Date(timeIntervalSince1970: payload.timestamp),
             bolus: payload.bolusAmount,
             carbs: carbs,
@@ -63,6 +65,26 @@ extension TrioRemoteControl {
             Task { await self?.reportWatchAnswer(late, payload: payload, late: true) }
         }
         await reportWatchAnswer(answer, payload: payload, late: false)
+    }
+
+    /// The same command, the same id: its time, type and amounts, hashed.
+    static func treatmentID(_ payload: CommandPayload) -> UUID {
+        let fields = [
+            payload.commandId ?? "",
+            "\(payload.timestamp)",
+            "\(payload.commandType)",
+            payload.bolusAmount.map { "\($0)" } ?? "",
+            payload.carbs.map { "\($0)" } ?? "",
+            payload.fat.map { "\($0)" } ?? "",
+            payload.protein.map { "\($0)" } ?? "",
+            payload.scheduledTime.map { "\($0)" } ?? "",
+            payload.mealId ?? ""
+        ]
+        let digest = Array(SHA256.hash(data: Data(fields.joined(separator: "|").utf8)))
+        return UUID(uuid: (
+            digest[0], digest[1], digest[2], digest[3], digest[4], digest[5], digest[6], digest[7],
+            digest[8], digest[9], digest[10], digest[11], digest[12], digest[13], digest[14], digest[15]
+        ))
     }
 
     private func reportWatchAnswer(_ answer: WatchLoopRemoteAnswer, payload: CommandPayload, late: Bool) async {

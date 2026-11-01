@@ -42,7 +42,6 @@ import WatchKit
     @ObservationIgnored var cycleTimeEnded = false
     /// When Pod Not Reachable was last told; nil once a cycle reached the pod.
     @ObservationIgnored var podUnreachableNoticeAt: Date?
-    @ObservationIgnored var lastHeardFromPhoneAt: Date?
     /// The watch's own readings of the last three hours, kept while no session runs too: a session starts with
     /// those since the phone's last, so its first cycle doesn't loop on the phone's older ones.
     @ObservationIgnored var ownReadings: [BloodGlucose] = []
@@ -260,6 +259,9 @@ import WatchKit
         {
             state.deliveredAtStart = reading.units
             state.deliveredAtStartReadAt = reading.at
+            // the total check before each dose (`pumpTotalIsExplained`) starts here
+            state.verifiedDelivered = reading.units
+            state.verifiedAt = reading.at
         }
         note = nil
         sendStatus(replyTo: nil)
