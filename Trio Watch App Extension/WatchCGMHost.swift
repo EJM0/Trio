@@ -1,6 +1,7 @@
 import Foundation
 import LoopAlgorithm
 import LoopKit
+import UserNotifications
 import WatchKit
 
 /// Reads the phone's CGM directly while the phone shares its configuration (the CGM's Read on Apple Watch setting):
@@ -104,6 +105,34 @@ import WatchKit
         statusNote = watchCGMStatusNote(cgmManager)
         lastConnection = watchCGMLastConnection(cgmManager)
         noteSensorProblem(watchCGMHasSensorProblem(cgmManager))
+        updateSearchAlert()
+    }
+
+    @ObservationIgnored private var searchAlertArmed = false
+    private static let searchAlertID = WatchAlarms.notificationPrefix + "sensorSearch"
+
+    /// While the watch looks for a sensor it never connected to with the app out of sight, the looper is asked after
+    /// 10 min to bring it to the front: discovery scans poorly in the background (as LoopKit/Loop#2545's
+    /// SensorSearchAlert). Also called as the app comes forward or goes back.
+    func updateSearchAlert() {
+        let center = UNUserNotificationCenter.current()
+        guard watchCGMIsSearching(cgmManager), WKApplication.shared().applicationState != .active else {
+            if searchAlertArmed { center.removePendingNotificationRequests(withIdentifiers: [Self.searchAlertID]) }
+            searchAlertArmed = false
+            return
+        }
+        guard !searchAlertArmed else { return }
+        searchAlertArmed = true
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "Sensor Not Found")
+        content.body = String(localized: "Open Trio on the watch and keep it open until it connects.")
+        content.sound = .default
+        content.interruptionLevel = .timeSensitive
+        center.add(UNNotificationRequest(
+            identifier: Self.searchAlertID,
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 10 * 60, repeats: false)
+        ))
     }
 
     private func noteSensorProblem(_ problem: Bool) {
