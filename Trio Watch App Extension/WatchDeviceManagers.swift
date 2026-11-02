@@ -100,36 +100,61 @@ func watchCGMHasSensorProblem(_ manager: CGMManager?) -> Bool {
     }
 }
 
-/// The sensor's link is up right now: a reading or its backfill is on the radio.
-func watchCGMIsConnected(_ manager: CGMManager?) -> Bool {
-    (manager as? G7CGMManager)?.isConnected ?? false
+/// Follows the G7's link for `watchWaitForSensorLink`.
+func watchTrackSensorLink(on manager: CGMManager?) {
+    sensorLink.track(manager as? G7CGMManager)
 }
 
-/// While the G7's link is up, and 3 s after it closed, every pod command's connect waits (at most 15 s, in
-/// OmnipodKit), not only the loop's: the two share the watch's one radio, and a pod command cut off then began every
-/// pod stall (as on feat/direct-to-watch, f34b595).
-func watchGatePodCommands(on manager: CGMManager?) {
-    guard let g7 = manager as? G7CGMManager else {
-        OmniPumpManager.commandConnectDelay = nil
-        return
+/// While the G7's link is up (at most 12 s), and until 3 s after it closed, the watch's own pod commands wait: the two
+/// share the watch's one radio, and a pod command cut off then began every pod stall (as on feat/direct-to-watch,
+/// f34b595). Returns how long the link was still up. OmnipodKit's own commands go as in Sport Mode.
+@discardableResult func watchWaitForSensorLink() async -> TimeInterval {
+    let start = Date()
+    while sensorLink.isUp, Date().timeIntervalSince(start) < 12 {
+        try? await Task.sleep(nanoseconds: 250_000_000)
     }
-    let lastSeen = SensorLinkClock()
-    OmniPumpManager.commandConnectDelay = { [weak g7] in
-        guard let g7 else { return 0 }
-        if g7.isConnected {
-            lastSeen.mark()
-            return 1
-        }
-        return max(0, 3 - lastSeen.secondsSince)
-    }
+    let linkOpen = Date().timeIntervalSince(start)
+    let tail = 3 - sensorLink.secondsSinceUp
+    if tail > 0 { try? await Task.sleep(nanoseconds: UInt64(tail * 1_000_000_000)) }
+    return linkOpen
 }
 
-/// When the sensor's link was last seen up; read and written from OmnipodKit's queue.
-private final class SensorLinkClock: @unchecked Sendable {
+private let sensorLink = SensorLink()
+
+/// The G7's link and when it was last up: every change the manager reports marks it, the close included.
+private final class SensorLink: G7StateObserver, @unchecked Sendable {
     private let lock = NSLock()
-    private var date = Date.distantPast
-    func mark() { lock.lock(); date = Date(); lock.unlock() }
-    var secondsSince: TimeInterval { lock.lock(); defer { lock.unlock() }; return Date().timeIntervalSince(date) }
+    private weak var g7: G7CGMManager?
+    private var lastUp = Date.distantPast
+
+    func track(_ manager: G7CGMManager?) {
+        lock.lock()
+        g7 = manager
+        lock.unlock()
+        manager?.addStateObserver(self, queue: .main)
+    }
+
+    var isUp: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let g7, g7.isConnected else { return false }
+        lastUp = Date()
+        return true
+    }
+
+    var secondsSinceUp: TimeInterval {
+        lock.lock()
+        defer { lock.unlock() }
+        return Date().timeIntervalSince(lastUp)
+    }
+
+    func g7StateDidUpdate(_: G7CGMManagerState?) {}
+
+    func g7ConnectionStatusDidChange() {
+        lock.lock()
+        lastUp = Date()
+        lock.unlock()
+    }
 }
 
 extension DeviceManager {

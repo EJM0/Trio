@@ -228,6 +228,7 @@ import WatchKit
         defer { isBusy = false }
         install(pump)
         note = String(localized: "Connecting to the pod…")
+        await watchWaitForSensorLink()
         control.takeControl()
         while Date() < grant.leaseExpiresAt, !(control.isControlReady && !control.isControlReleased) {
             try? await Task.sleep(nanoseconds: 1_000_000_000)
@@ -263,6 +264,7 @@ import WatchKit
         }
         isBusy = true
         defer { isBusy = false }
+        await watchWaitForSensorLink()
         let odometer = await readOdometer()
         control.releaseControl()
         guard control.isControlReleased else {
@@ -320,6 +322,7 @@ import WatchKit
     /// The pod's end on the watch: deactivated, or discarded when it can't be reached. The phone forgets it.
     func endPod(discard: Bool) async -> String? {
         guard state.phase == .active, let pump = pumpManager else { return nil }
+        await watchWaitForSensorLink()
         let failure: String? = await withCheckedContinuation { continuation in
             if discard {
                 watchDiscardPod(pump) { continuation.resume(returning: nil) }
@@ -399,6 +402,7 @@ import WatchKit
         cycleRunning = true
         defer { cycleRunning = false }
         let rounded = pump.roundToSupportedBolusVolume(units: units)
+        await watchWaitForSensorLink()
         do {
             try await pump.enactBolus(units: rounded, automatic: false)
             WatchLogger.shared.info(.bolus, "Watch Loop bolus enacted: \(rounded) U")
@@ -523,6 +527,13 @@ import WatchKit
     /// Stops the running bolus on the pod. A cycle follows, so what it delivered counts at once even if the pod
     /// reports the stopped bolus only later.
     func cancelBolus() {
+        Task {
+            await watchWaitForSensorLink()
+            sendCancelBolus()
+        }
+    }
+
+    private func sendCancelBolus() {
         pumpManager?.cancelBolus { result in
             DispatchQueue.main.async {
                 if case let .failure(error) = result {
@@ -680,6 +691,9 @@ extension WatchLoopSession: PumpManagerDelegate {
         MainActor.assumeIsolated { state.phase == .active && state.dosingMode.automation != .off }
     }
 
+    /// A display hint for pump screens; the watch shows none.
+    nonisolated var automatedTreatmentState: AutomatedTreatmentState? { nil }
+
     nonisolated func deviceManager(
         _: DeviceManager,
         logEventForDeviceIdentifier _: String?,
@@ -695,51 +709,31 @@ extension WatchLoopSession: PumpManagerDelegate {
     nonisolated func deviceManager(_: DeviceManager, recordAnalyticsEvent _: String, properties _: [AnyHashable: Any]?) {}
 
     /// The pod's alerts (expiry, low reservoir, faults) are the watch's while it holds the pod.
-    nonisolated func issueAlert(_ alert: Alert) {
-        MainActor.assumeIsolated {
+    nonisolated func issueAlert(_ alert: Alert) async {
+        await MainActor.run {
             notify(alert.backgroundContent.title, alert.backgroundContent.body)
             WatchLogger.shared.info(.treatments, "Pod alert: \(alert.identifier.alertIdentifier)")
         }
     }
 
-    nonisolated func retractAlert(identifier _: Alert.Identifier) {}
+    nonisolated func retractAlert(identifier _: Alert.Identifier) async {}
 
-    nonisolated func doesIssuedAlertExist(identifier _: Alert.Identifier, completion: @escaping (Result<Bool, Error>) -> Void) {
-        completion(.success(false))
-    }
+    nonisolated func doesIssuedAlertExist(identifier _: Alert.Identifier) async throws -> Bool { false }
 
-    nonisolated func lookupAllUnretracted(
-        managerIdentifier _: String,
-        completion: @escaping (Result<[PersistedAlert], Error>) -> Void
-    ) {
-        completion(.success([]))
-    }
+    nonisolated func lookupAllUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }
 
-    nonisolated func lookupAllUnacknowledgedUnretracted(
-        managerIdentifier _: String,
-        completion: @escaping (Result<[PersistedAlert], Error>) -> Void
-    ) {
-        completion(.success([]))
-    }
+    nonisolated func lookupAllUnacknowledgedUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }
 
-    nonisolated func recordRetractedAlert(_: Alert, at _: Date) {}
+    nonisolated func recordRetractedAlert(_: Alert, at _: Date) async throws {}
 }
 
 extension PumpManager {
     func enactTempBasal(unitsPerHour: Double, for duration: TimeInterval) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            enactTempBasal(unitsPerHour: unitsPerHour, for: duration) { error in
-                if let error { continuation.resume(throwing: error) } else { continuation.resume() }
-            }
-        }
+        try await enactTempBasal(decisionId: nil, unitsPerHour: unitsPerHour, for: duration)
     }
 
     func enactBolus(units: Double, automatic: Bool) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            enactBolus(units: units, activationType: automatic ? .automatic : .manualRecommendationAccepted) { error in
-                if let error { continuation.resume(throwing: error) } else { continuation.resume() }
-            }
-        }
+        try await enactBolus(decisionId: nil, units: units, activationType: automatic ? .automatic : .manualRecommendationAccepted)
     }
 
     /// The pump's own status read, at most `timeout` long. True when it answered. A real read where the pump offers
