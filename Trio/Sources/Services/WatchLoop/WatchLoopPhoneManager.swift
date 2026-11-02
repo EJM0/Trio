@@ -1,7 +1,6 @@
 import CoreData
 import Foundation
 import LoopKit
-import OmnipodKit
 import Swinject
 import UserNotifications
 import WatchConnectivity
@@ -561,15 +560,6 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
         }
         let previous = state.role
         state.role = .transferring
-        if handBack.podEnded == true {
-            // the pod was deactivated or discarded on the watch: nothing to take back
-            (controllablePump as? OmniPumpManager)?.forgetPodEndedElsewhere()
-            controllablePump?.takeControl()
-            send(.handBackAck(session: handBack.session))
-            finish()
-            info(.watch, "Watch Loop session \(handBack.session) ended with the pod on the watch")
-            return
-        }
         guard await take(within: 30) else {
             // the watch keeps the pump and offers it again
             controllablePump?.releaseControl()

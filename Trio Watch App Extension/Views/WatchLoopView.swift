@@ -12,10 +12,6 @@ struct WatchLoopView: View {
     let session: WatchLoopSession
     @State private var confirmStart = false
     @State private var confirmEnd = false
-    @State private var confirmDeactivate = false
-    @State private var confirmDiscard = false
-    @State private var podFailure: String?
-    @State private var isEndingPod = false
 
     private var phase: WatchLoopWatchState.Phase { session.state.phase }
     private var unsynced: Int { session.state.pending.count }
@@ -45,27 +41,6 @@ struct WatchLoopView: View {
         }
         .confirmationDialog("Hand the pod back to your iPhone?", isPresented: $confirmEnd) {
             Button("Hand Back") { Task { await session.end() } }
-        }
-        .confirmationDialog(
-            "Deactivate the pod? It stops delivering insulin. Remove it, then pair a new pod on your iPhone.",
-            isPresented: $confirmDeactivate
-        ) {
-            Button("Deactivate Pod", role: .destructive) { endPod(discard: false) }
-        }
-        .confirmationDialog(
-            "Discard the pod without reaching it? It may keep beeping until you remove it.",
-            isPresented: $confirmDiscard
-        ) {
-            Button("Discard Pod", role: .destructive) { endPod(discard: true) }
-        }
-    }
-
-    private func endPod(discard: Bool) {
-        isEndingPod = true
-        podFailure = nil
-        Task {
-            podFailure = await session.endPod(discard: discard)
-            isEndingPod = false
         }
     }
 
@@ -183,10 +158,10 @@ struct WatchLoopView: View {
     // MARK: - Actions
 
     @ViewBuilder private var actions: some View {
-        if session.isBusy || isEndingPod {
+        if session.isBusy {
             HStack(spacing: 8) {
                 ProgressView().frame(width: 20)
-                Text(isEndingPod ? "Ending the pod…" : phase == .handingBack ? "Handing back…" : "Starting…")
+                Text(phase == .handingBack ? "Handing back…" : "Starting…")
                     .font(.footnote)
             }
             .padding(.top, 4)
@@ -207,20 +182,6 @@ struct WatchLoopView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.blue)
-                if let podFailure {
-                    card(tint: .orange) {
-                        Label(podFailure, systemImage: "exclamationmark.triangle.fill").font(.footnote)
-                    }
-                    Button(role: .destructive) { confirmDiscard = true } label: {
-                        Label("Discard Pod", systemImage: "trash")
-                    }
-                    .tint(.red)
-                } else {
-                    Button(role: .destructive) { confirmDeactivate = true } label: {
-                        Label("Deactivate Pod", systemImage: "xmark.circle")
-                    }
-                    .tint(.orange)
-                }
             case .handingBack,
                  .requested:
                 EmptyView()
