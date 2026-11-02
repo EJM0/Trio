@@ -371,6 +371,7 @@ final class BaseWatchLoopPhoneManager: WatchLoopPhoneManager, Injectable, Observ
             refusedBefore: state.refusedSessions.contains(session)
         )
         let decision = WatchLoopControl.decide(situation(.watchClaims(claim)))
+        if case .takeOnSilence = decision, pendingQuery == nil { return await run(decision) }
         if decision == .renewHold { state.lastReportAt = Date() }
         if decision == .sendStop { refuse(session) }
         if decision == .standAside { await standAside(for: session, startedAt: report.startedAt) }

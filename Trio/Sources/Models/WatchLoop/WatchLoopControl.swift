@@ -240,11 +240,17 @@ enum WatchLoopControl {
             // Rows 6 and 12 · A session the phone has ended: the watch missed the stop, so it gets it again.
             case .closed:
                 return s.phoneRole == .holdsPump ? .sendStop : .nothing
-            // Row 16 · The watch reporting on the live session is still there, unless it says it cannot reach the
-            // pump (row 14), which is not renewed. A session the phone stood aside for (row 17) is renewed alike.
+            // Row 16 · The watch reporting on the live session is still there. A session the phone stood aside for
+            // (row 17) is renewed alike.
+            // Row 14 · Unless it says it cannot reach the pump, which it tells at once after a cycle that missed it:
+            // the same answer as to an overdue query, so with the phone beside the body the pump is taken back now.
             case .current:
                 let holds = s.phoneRole == .lending || s.phoneRole == .standingAside
-                return holds && claim.pumpReachable != false ? .renewHold : .nothing
+                guard holds else { return .nothing }
+                guard claim.pumpReachable != false else {
+                    return s.sensorFresh ? .takeOnSilence(.watchNotResponding) : .nothing
+                }
+                return .renewHold
             case .newer:
                 guard s.phoneRole == .holdsPump else { return .nothing }
                 // Row 19 · A watch back from off claiming a session started before this phone took over on silence.
