@@ -43,6 +43,15 @@ func watchPumpReservoir(_ manager: PumpManager?) -> Double? {
     (manager as? OmniPumpManager)?.state.podState?.lastInsulinMeasurements?.reservoirLevel
 }
 
+/// What the peripherals page shows, as the phone's home header: the pod's reading, the fork's fill-based estimate
+/// while the pod reports only 50+ U, or the phone's "50+ U" sentinel (`0xDEAD_BEEF`) without one. Display only: the
+/// loop keeps the pod's own reading.
+func watchPumpReservoirForDisplay(_ manager: PumpManager?) -> Decimal? {
+    guard let omni = manager as? OmniPumpManager, omni.state.podState?.lastInsulinMeasurements?.reservoirLevel != nil
+    else { return nil }
+    return omni.state.estimatedReservoirLevel.map { Decimal($0) } ?? Decimal(UInt32(0xDEAD_BEEF))
+}
+
 func watchPumpExpiresAt(_ manager: PumpManager?) -> Date? {
     (manager as? OmniPumpManager)?.state.podState?.expiresAt
 }

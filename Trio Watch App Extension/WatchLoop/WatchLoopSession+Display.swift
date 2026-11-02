@@ -28,7 +28,7 @@ extension WatchLoopSession {
         if inFront { publishForecast(determination, on: state) }
         // The pod as this watch last read it: a failed read keeps the last valid values, and a connection loss
         // shows only when the watch's own reach for the pod failed.
-        if let reservoir = watchPumpReservoir(pumpManager) { state.pumpReservoir = Decimal(reservoir) }
+        if let reservoir = watchPumpReservoirForDisplay(pumpManager) { state.pumpReservoir = reservoir }
         if let expiresAt = watchPumpExpiresAt(pumpManager) { state.pumpExpiresAt = expiresAt }
         state.pumpStatusMessage = self.state.pumpReachable ? nil : String(localized: "Connection Lost")
         ComplicationStore.update(from: state)
