@@ -13,7 +13,7 @@ let watchCGMManagersByIdentifier: [String: (CGMManager & DeviceConfigurationShar
 ]
 
 let watchPumpManagersByIdentifier: [String: (PumpManager & DeviceConfigurationSharing).Type] = [
-    OmniPumpManager.pluginIdentifier: OmniPumpManager.self
+    "Omni": OmniPumpManager.self
 ]
 
 /// A pump manager built from the phone's export and this watch's saved `localState` (the pod's handle here).
