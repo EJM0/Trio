@@ -47,7 +47,7 @@ Not fallbacks: noisy readings, a sensor warming up or failing. They are the CGM'
 | 11 | Watch silent, phone away | nobody; the pump runs its schedule |
 | 12 | Watch back from off, phone holds the pump | phone; the watch stands aside |
 | 13 | Watch back from off, nobody answers | watch carries on |
-| 14 | Watch cannot reach the pump, phone near | phone: "holds it but cannot reach it" counts as silence |
+| 14 | Watch cannot reach the pump, phone near | watch says so at once; phone: "holds it but cannot reach it" counts as silence |
 | 15 | Watch out of reach, phone away | nobody |
 | 16 | Phone moves during a session | watch; each checkpoint renews its hold |
 | 17 | Phone returns, watch started alone and alive | watch; the phone stands aside |
@@ -88,7 +88,7 @@ A transfer that does not complete returns to the state before it, or to the rest
 
 `WatchLoopSession` holds the session: it asks for the pump (`start`), builds the phone's pump from the grant's export
 and takes it within the lease, then runs a cycle on each CGM reading, with a background refresh 6 min after each cycle
-as the backstop. A cycle reads the pump first; one that can't reach it doses nothing and reports nothing (row 14).
+as the backstop. A cycle reads the pump first; one that can't reach it doses nothing and sends no checkpoint, only a status report saying so (row 14), so a phone asleep in the background need not wait for its overdue query.
 Otherwise it runs the phone's oref phases (`OrefPipeline`) on the grant's settings, the phone's last day of history and
 the watch's own doses, carbs and readings, enacts as the phone does in the session's dosing mode (the phone's at the
 grant, changeable on the watch), and sends a checkpoint. A cycle a reading starts reaches for the pod only once the

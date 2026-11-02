@@ -85,39 +85,6 @@ struct ChartSelectionRow: View {
     let glucoseColorScheme: GlucoseColorScheme
     let isSmoothingEnabled: Bool
 
-    private var glucoseToDisplay: Decimal {
-        units == .mgdL ? Decimal(selectedGlucose.glucose) : Decimal(selectedGlucose.glucose).asMmolL
-    }
-
-    /// mmol/L is written to one decimal even when it is a whole number — 8 reads as 8.0, the
-    /// way the rest of the app writes it — and both units go through a formatter so the
-    /// decimal separator follows the locale rather than `Decimal.description`'s hard dot.
-    ///
-    /// Cached like every other formatter in `Formatters.swift`: the row is rebuilt on every
-    /// scrub step and `ViewThatFits` evaluates each candidate, so building one per call would
-    /// allocate several `NumberFormatter`s a frame while the finger is down.
-    private static let mgdLFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.locale = .current
-        formatter.maximumFractionDigits = 0
-        return formatter
-    }()
-
-    private static let mmolLFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.locale = .current
-        formatter.minimumFractionDigits = 1
-        formatter.maximumFractionDigits = 1
-        return formatter
-    }()
-
-    private func glucoseString(_ value: Decimal) -> String {
-        let formatter = units == .mgdL ? Self.mgdLFormatter : Self.mmolLFormatter
-        return formatter.string(from: value as NSDecimalNumber) ?? value.description
-    }
-
     private var pointMarkColor: Color {
         selectionMarkColor(
             for: selectedGlucose,
@@ -212,12 +179,16 @@ struct ChartSelectionRow: View {
     @ViewBuilder private var glucoseGroup: some View {
         // verbatim: brackets have nothing to translate, and Xcode would otherwise extract
         // them into the string catalog
-        let open = Text(verbatim: "(")
-        let close = Text(verbatim: ")")
-        let gap = Text(verbatim: " ")
-        let reading = Text(glucoseString(glucoseToDisplay)).foregroundStyle(pointMarkColor)
-        let smoothed = smoothedToDisplay
-            .map { (open + Text(glucoseString($0)) + close).foregroundStyle(.secondary) }
+        let reading = Text(Decimal(selectedGlucose.glucose).formatted(for: units)).foregroundStyle(pointMarkColor)
+        let smoothed = smoothedToDisplay.map {
+            (
+                Text(verbatim: "(")
+                    + Text(Image(systemName: "sparkles"))
+                    + Text(verbatim: " ")
+                    + Text($0.formatted(for: units))
+                    + Text(verbatim: ")")
+            ).foregroundStyle(.secondary)
+        }
 
         item(
             icon: "drop.fill",
@@ -238,7 +209,7 @@ struct ChartSelectionRow: View {
     /// has no smoothed value of its own.
     private var smoothedToDisplay: Decimal? {
         guard isSmoothingEnabled, let smoothed = selectedGlucose.smoothedGlucose else { return nil }
-        return units == .mgdL ? smoothed.decimalValue : smoothed.decimalValue.asMmolL
+        return smoothed.decimalValue
     }
 
     /// One value, with the glyph that labels it, laid out in the width `template` needs —

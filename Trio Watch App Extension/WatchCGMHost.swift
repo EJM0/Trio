@@ -1,6 +1,7 @@
 import Foundation
-import HealthKit
+import LoopAlgorithm
 import LoopKit
+import UserNotifications
 import WatchKit
 
 /// Reads the phone's CGM directly while the phone shares its configuration (the CGM's Read on Apple Watch setting):
@@ -12,8 +13,8 @@ import WatchKit
     private static let storageKey = "WatchCGMManager"
 
     @ObservationIgnored private(set) var cgmManager: CGMManager? {
-        // every pod command waits for the sensor's link (OmniPumpManager.commandConnectDelay)
-        didSet { watchGatePodCommands(on: cgmManager) }
+        // the watch's pod commands wait for the sensor's link (watchWaitForSensorLink)
+        didSet { watchTrackSensorLink(on: cgmManager) }
     }
     /// The export's `state` the manager was built from; a different one builds a new manager.
     @ObservationIgnored private var builtFrom: [String: Any]?
@@ -104,6 +105,34 @@ import WatchKit
         statusNote = watchCGMStatusNote(cgmManager)
         lastConnection = watchCGMLastConnection(cgmManager)
         noteSensorProblem(watchCGMHasSensorProblem(cgmManager))
+        updateSearchAlert()
+    }
+
+    @ObservationIgnored private var searchAlertArmed = false
+    private static let searchAlertID = WatchAlarms.notificationPrefix + "sensorSearch"
+
+    /// While the watch looks for a sensor it never connected to with the app out of sight, the looper is asked after
+    /// 10 min to bring it to the front: discovery scans poorly in the background (as LoopKit/Loop#2545's
+    /// SensorSearchAlert). Also called as the app comes forward or goes back.
+    func updateSearchAlert() {
+        let center = UNUserNotificationCenter.current()
+        guard watchCGMIsSearching(cgmManager), WKApplication.shared().applicationState != .active else {
+            if searchAlertArmed { center.removePendingNotificationRequests(withIdentifiers: [Self.searchAlertID]) }
+            searchAlertArmed = false
+            return
+        }
+        guard !searchAlertArmed else { return }
+        searchAlertArmed = true
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "Sensor Not Found")
+        content.body = String(localized: "Open Trio on the watch and keep it open until it connects.")
+        content.sound = .default
+        content.interruptionLevel = .timeSensitive
+        center.add(UNNotificationRequest(
+            identifier: Self.searchAlertID,
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 10 * 60, repeats: false)
+        ))
     }
 
     private func noteSensorProblem(_ problem: Bool) {
@@ -138,12 +167,12 @@ import WatchKit
     /// The watch's own readings in the form the phone sends them.
     static func readings(from samples: [NewGlucoseSample]) -> [BloodGlucose] {
         samples.filter { !$0.wasUserEntered }.map { sample in
-            let value = Int(sample.quantity.doubleValue(for: HKUnit(from: "mg/dL")))
+            let value = Int(sample.quantity.doubleValue(for: .milligramsPerDeciliter))
             return BloodGlucose(
                 id: UUID().uuidString,
                 sgv: value,
                 direction: direction(sample.trend),
-                date: Decimal(Int(sample.date.timeIntervalSince1970 * 1000)),
+                date: Decimal(Int64(sample.date.timeIntervalSince1970 * 1000)),
                 dateString: sample.date,
                 unfiltered: Decimal(value),
                 glucose: value,
@@ -181,7 +210,7 @@ extension WatchCGMHost: CGMManagerDelegate {
     nonisolated func cgmManager(_: CGMManager, hasNew _: [PersistedCgmEvent]) {}
 
     /// The phone owns the sensor; a manager passed its configuration lets go when the phone stops sharing.
-    nonisolated func cgmManagerWantsDeletion(_: CGMManager) {}
+    nonisolated func cgmManagerWantsDeletion(_: CGMManager) async {}
 
     nonisolated func cgmManagerDidUpdateState(_ manager: CGMManager) {
         MainActor.assumeIsolated {
@@ -209,39 +238,24 @@ extension WatchCGMHost: CGMManagerDelegate {
         message: String,
         completion: ((Error?) -> Void)?
     ) {
-        WatchLogger.shared.debug(.data, "CGM \(type): \(message)")
+        watchLogDeviceEvent("CGM \(type): \(message)", type: type, message: message, category: .data)
         completion?(nil)
     }
 
     nonisolated func deviceManager(_: DeviceManager, recordAnalyticsEvent _: String, properties _: [AnyHashable: Any]?) {}
 
     // The phone issues the sensor's alerts; the watch only logs them.
-    nonisolated func issueAlert(_ alert: Alert) {
+    nonisolated func issueAlert(_ alert: Alert) async {
         WatchLogger.shared.info(.data, "Alert from the watch's CGM, not shown: \(alert.identifier.value)")
     }
 
-    nonisolated func retractAlert(identifier _: Alert.Identifier) {}
+    nonisolated func retractAlert(identifier _: Alert.Identifier) async {}
 
-    nonisolated func doesIssuedAlertExist(
-        identifier _: Alert.Identifier,
-        completion: @escaping (Swift.Result<Bool, Error>) -> Void
-    ) {
-        completion(.success(false))
-    }
+    nonisolated func doesIssuedAlertExist(identifier _: Alert.Identifier) async throws -> Bool { false }
 
-    nonisolated func lookupAllUnretracted(
-        managerIdentifier _: String,
-        completion: @escaping (Swift.Result<[PersistedAlert], Error>) -> Void
-    ) {
-        completion(.success([]))
-    }
+    nonisolated func lookupAllUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }
 
-    nonisolated func lookupAllUnacknowledgedUnretracted(
-        managerIdentifier _: String,
-        completion: @escaping (Swift.Result<[PersistedAlert], Error>) -> Void
-    ) {
-        completion(.success([]))
-    }
+    nonisolated func lookupAllUnacknowledgedUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }
 
-    nonisolated func recordRetractedAlert(_: Alert, at _: Date) {}
+    nonisolated func recordRetractedAlert(_: Alert, at _: Date) async throws {}
 }

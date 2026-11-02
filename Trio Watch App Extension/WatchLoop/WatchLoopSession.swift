@@ -38,6 +38,10 @@ import WatchKit
     @ObservationIgnored var cycleRunning = false
     /// Back from off with the pump: no dose until the phone had the time to say it holds it (control rows 12, 13).
     @ObservationIgnored var resumingUntil: Date?
+    /// watchOS ended the running cycle's background time: it starts no further pod command.
+    @ObservationIgnored var cycleTimeEnded = false
+    /// When Pod Not Reachable was last told; nil once a cycle reached the pod.
+    @ObservationIgnored var podUnreachableNoticeAt: Date?
     /// The watch's own readings of the last three hours, kept while no session runs too: a session starts with
     /// those since the phone's last, so its first cycle doesn't loop on the phone's older ones.
     @ObservationIgnored var ownReadings: [BloodGlucose] = []
@@ -278,6 +282,7 @@ import WatchKit
         }
         isBusy = true
         defer { isBusy = false }
+        await watchWaitForSensorLink()
         let odometer = await readOdometer()
         control.releaseControl()
         guard control.isControlReleased else {
@@ -340,6 +345,7 @@ import WatchKit
         note = needsSearch
             ? String(localized: "Looking for the pod: keep the watch screen on and near the pod.")
             : String(localized: "Connecting to the pod…")
+        await watchWaitForSensorLink()
         control.takeControl()
         var nudgedAt = Date()
         while Date() < lease, !(control.isControlReady && !control.isControlReleased) {
@@ -362,26 +368,6 @@ import WatchKit
             deliveredLatest: latest.units,
             latestReadAt: latest.at
         )
-    }
-
-    // MARK: - The pod on the watch
-
-    /// The pod's end on the watch: deactivated, or discarded when it can't be reached. The phone forgets it.
-    func endPod(discard: Bool) async -> String? {
-        guard state.phase == .active, let pump = pumpManager else { return nil }
-        let failure: String? = await withCheckedContinuation { continuation in
-            if discard {
-                watchDiscardPod(pump) { continuation.resume(returning: nil) }
-            } else {
-                watchDeactivatePod(pump) { error in continuation.resume(returning: error?.localizedDescription) }
-            }
-        }
-        if let failure { return failure }
-        send(.handBack(WatchLoopHandBack(session: state.session, records: state.pending, odometer: nil, podEnded: true)))
-        state.phase = .handingBack
-        // without the phone's answer the session still ends: there is no pod left to loop
-        endSession(note: String(localized: "Pod ended. Pair a new one on your iPhone."))
-        return nil
     }
 
     func install(_ pump: PumpManager) {
@@ -413,11 +399,25 @@ import WatchKit
                 state.end()
                 return
             }
+            // Off for longer than insulin's action time: what another device gave meanwhile can't be timed, so the
+            // records go to the phone and the session doesn't resume (as LoopKit/Loop#2545's resume).
+            if let grant = state.grant, let last = state.lastLoopAt ?? state.startedAt,
+               Date().timeIntervalSince(last) > Double(truncating: grant.pumpSettings.insulinActionCurve as NSNumber) * 3600
+            {
+                WatchLogger.shared.info(.treatments, "Watch Loop session \(state.session) not resumed: off past insulin's action time")
+                endSession(note: String(localized: "The watch was off too long to go on. Your iPhone takes the pod back."))
+                return
+            }
             install(pump)
             control?.takeControl()
             state.phase = .active
             let decision = WatchLoopControl.decide(.init(device: .watch, trigger: .backFromOff))
-            if case let .query(wait, _) = decision { resumingUntil = Date().addingTimeInterval(wait.seconds) }
+            if case let .query(wait, _) = decision {
+                resumingUntil = Date().addingTimeInterval(wait.seconds)
+                // the phone's answer comes in this window: a relaunched app is not suspended before it (as
+                // LoopKit/Loop#2545's resume, which holds the rebuild)
+                _ = holdProcess(reason: "Watch Loop resume", upTo: wait.seconds) {}
+            }
             WatchLogger.shared.info(.treatments, "Watch Loop session \(state.session) resumed after a relaunch")
             DispatchQueue.main.async {
                 self.sendStatus(replyTo: nil)
@@ -450,6 +450,7 @@ import WatchKit
         cycleRunning = true
         defer { cycleRunning = false }
         let rounded = pump.roundToSupportedBolusVolume(units: units)
+        await watchWaitForSensorLink()
         do {
             try await pump.enactBolus(units: rounded, automatic: false)
             WatchLogger.shared.info(.bolus, "Watch Loop bolus enacted: \(rounded) U")
@@ -547,7 +548,7 @@ import WatchKit
         let now = Date()
         let reading = BloodGlucose(
             mbg: mgdl,
-            date: Decimal(Int(now.timeIntervalSince1970 * 1000)),
+            date: Decimal(Int64(now.timeIntervalSince1970 * 1000)),
             dateString: now,
             glucose: mgdl,
             type: "mbg"
@@ -581,6 +582,13 @@ import WatchKit
     /// Stops the running bolus on the pod. A cycle follows, so what it delivered counts at once even if the pod
     /// reports the stopped bolus only later.
     func cancelBolus() {
+        Task {
+            await watchWaitForSensorLink()
+            sendCancelBolus()
+        }
+    }
+
+    private func sendCancelBolus() {
         pumpManager?.cancelBolus { result in
             DispatchQueue.main.async {
                 if case let .failure(error) = result {
@@ -615,11 +623,13 @@ import WatchKit
         Task { await runCycle(reason: "reading") }
     }
 
-    func notify(_ title: String, _ body: String) {
+    /// Time-sensitive unless said otherwise: the watch's warnings reach the looper through a Focus.
+    func notify(_ title: String, _ body: String, level: UNNotificationInterruptionLevel = .timeSensitive) {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
+        content.interruptionLevel = level
         UNUserNotificationCenter.current().add(UNNotificationRequest(
             identifier: "trio.watch.watchLoop.\(UUID().uuidString)",
             content: content,
@@ -746,6 +756,9 @@ extension WatchLoopSession: PumpManagerDelegate {
         MainActor.assumeIsolated { state.phase == .active && state.dosingMode.automation != .off }
     }
 
+    /// A display hint for pump screens; the watch shows none.
+    nonisolated var automatedTreatmentState: AutomatedTreatmentState? { nil }
+
     nonisolated func deviceManager(
         _: DeviceManager,
         logEventForDeviceIdentifier _: String?,
@@ -753,7 +766,7 @@ extension WatchLoopSession: PumpManagerDelegate {
         message: String,
         completion: ((Error?) -> Void)?
     ) {
-        WatchLogger.shared.debug(.treatments, "Pump \(type): \(message)")
+        watchLogDeviceEvent("Pump \(type): \(message)", type: type, message: message, category: .treatments)
         completion?(nil)
     }
 
@@ -761,51 +774,36 @@ extension WatchLoopSession: PumpManagerDelegate {
     nonisolated func deviceManager(_: DeviceManager, recordAnalyticsEvent _: String, properties _: [AnyHashable: Any]?) {}
 
     /// The pod's alerts (expiry, low reservoir, faults) are the watch's while it holds the pod.
-    nonisolated func issueAlert(_ alert: Alert) {
-        MainActor.assumeIsolated {
-            notify(alert.backgroundContent.title, alert.backgroundContent.body)
+    nonisolated func issueAlert(_ alert: Alert) async {
+        await MainActor.run {
+            // as LoopKit/Loop#2545's WatchAlertPresenter: critical and time-sensitive alerts break through a Focus
+            notify(
+                alert.backgroundContent.title,
+                alert.backgroundContent.body,
+                level: alert.interruptionLevel == .active ? .active : .timeSensitive
+            )
             WatchLogger.shared.info(.treatments, "Pod alert: \(alert.identifier.alertIdentifier)")
         }
     }
 
-    nonisolated func retractAlert(identifier _: Alert.Identifier) {}
+    nonisolated func retractAlert(identifier _: Alert.Identifier) async {}
 
-    nonisolated func doesIssuedAlertExist(identifier _: Alert.Identifier, completion: @escaping (Result<Bool, Error>) -> Void) {
-        completion(.success(false))
-    }
+    nonisolated func doesIssuedAlertExist(identifier _: Alert.Identifier) async throws -> Bool { false }
 
-    nonisolated func lookupAllUnretracted(
-        managerIdentifier _: String,
-        completion: @escaping (Result<[PersistedAlert], Error>) -> Void
-    ) {
-        completion(.success([]))
-    }
+    nonisolated func lookupAllUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }
 
-    nonisolated func lookupAllUnacknowledgedUnretracted(
-        managerIdentifier _: String,
-        completion: @escaping (Result<[PersistedAlert], Error>) -> Void
-    ) {
-        completion(.success([]))
-    }
+    nonisolated func lookupAllUnacknowledgedUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }
 
-    nonisolated func recordRetractedAlert(_: Alert, at _: Date) {}
+    nonisolated func recordRetractedAlert(_: Alert, at _: Date) async throws {}
 }
 
 extension PumpManager {
     func enactTempBasal(unitsPerHour: Double, for duration: TimeInterval) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            enactTempBasal(unitsPerHour: unitsPerHour, for: duration) { error in
-                if let error { continuation.resume(throwing: error) } else { continuation.resume() }
-            }
-        }
+        try await enactTempBasal(decisionId: nil, unitsPerHour: unitsPerHour, for: duration)
     }
 
     func enactBolus(units: Double, automatic: Bool) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            enactBolus(units: units, activationType: automatic ? .automatic : .manualRecommendationAccepted) { error in
-                if let error { continuation.resume(throwing: error) } else { continuation.resume() }
-            }
-        }
+        try await enactBolus(decisionId: nil, units: units, activationType: automatic ? .automatic : .manualRecommendationAccepted)
     }
 
     /// The pump's own status read, at most `timeout` long. True when it answered. A real read where the pump offers

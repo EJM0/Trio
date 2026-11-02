@@ -1,6 +1,7 @@
 import G7SensorKit
 import LoopKit
 import OmnipodKit
+import WatchKit
 
 // The device managers the watch can be passed, by identifier, for managers built from another controller's exported
 // configuration. The one place the watch names a device kit (as LoopKit/Loop#2545's WatchDeviceManagers).
@@ -46,18 +47,6 @@ func watchPumpExpiresAt(_ manager: PumpManager?) -> Date? {
     (manager as? OmniPumpManager)?.state.podState?.expiresAt
 }
 
-/// Deactivates the pod from the watch and forgets it.
-func watchDeactivatePod(_ manager: PumpManager?, completion: @escaping (Error?) -> Void) {
-    guard let omni = manager as? OmniPumpManager else { return completion(nil) }
-    omni.deactivateAndForgetPod(completion: completion)
-}
-
-/// Forgets a pod that can't be reached to deactivate (it keeps beeping until removed).
-func watchDiscardPod(_ manager: PumpManager?, completion: @escaping () -> Void) {
-    guard let omni = manager as? OmniPumpManager else { return completion() }
-    omni.discardPod(completion: completion)
-}
-
 /// A CGM manager built from another controller's export and this watch's saved `localState`.
 func watchCGMManager(adopting configuration: SharedDeviceConfiguration, localState: [String: Any]?) -> CGMManager? {
     watchCGMManagersByIdentifier[configuration.managerIdentifier]?.init(adopting: configuration, localState: localState)
@@ -84,6 +73,11 @@ func watchCGMStatusNote(_ manager: CGMManager?) -> String? {
 
 let watchCGMStatusDidChange = G7CGMManager.statusDidChange
 
+/// The watch looks for a sensor it has never connected to.
+func watchCGMIsSearching(_ manager: CGMManager?) -> Bool {
+    (manager as? G7CGMManager)?.isSearchingForSensor ?? false
+}
+
 func watchCGMSensorName(_ manager: CGMManager?) -> String? {
     (manager as? G7CGMManager)?.sensorName
 }
@@ -106,36 +100,74 @@ func watchCGMHasSensorProblem(_ manager: CGMManager?) -> Bool {
     }
 }
 
-/// The sensor's link is up right now: a reading or its backfill is on the radio.
-func watchCGMIsConnected(_ manager: CGMManager?) -> Bool {
-    (manager as? G7CGMManager)?.isConnected ?? false
-}
-
-/// While the G7's link is up, and 3 s after it closed, every pod command's connect waits (at most 15 s, in
-/// OmnipodKit), not only the loop's: the two share the watch's one radio, and a pod command cut off then began every
-/// pod stall (as on feat/direct-to-watch, f34b595).
-func watchGatePodCommands(on manager: CGMManager?) {
-    guard let g7 = manager as? G7CGMManager else {
-        OmniPumpManager.commandConnectDelay = nil
-        return
-    }
-    let lastSeen = SensorLinkClock()
-    OmniPumpManager.commandConnectDelay = { [weak g7] in
-        guard let g7 else { return 0 }
-        if g7.isConnected {
-            lastSeen.mark()
-            return 1
-        }
-        return max(0, 3 - lastSeen.secondsSince)
+/// Logs a kit's line; a raw packet line (a hex dump alone, or behind G7SensorKit's "backfill" or "control") only with
+/// Trio in front: a sensor link writes over a hundred, written out at every wake (kristinkand 001202d52).
+func watchLogDeviceEvent(_ line: String, type: DeviceLogEntryType, message: String, category: WatchLogEntry.Category) {
+    let words = message.split(separator: " ")
+    let isRawDump = (type == .send || type == .receive) && words.last.map { $0.count >= 2 && $0.allSatisfy(\.isHexDigit) } == true
+        && (words.count == 1 || (words.count == 2 && ["backfill", "control"].contains(words[0])))
+    guard isRawDump else { return WatchLogger.shared.debug(category, line) }
+    DispatchQueue.main.async {
+        guard WKApplication.shared().applicationState == .active else { return }
+        WatchLogger.shared.debug(category, line)
     }
 }
 
-/// When the sensor's link was last seen up; read and written from OmnipodKit's queue.
-private final class SensorLinkClock: @unchecked Sendable {
+/// Follows the G7's link for `watchWaitForSensorLink`.
+func watchTrackSensorLink(on manager: CGMManager?) {
+    sensorLink.track(manager as? G7CGMManager)
+}
+
+/// While the G7's link is up (at most 12 s), and until 3 s after it closed, the watch's own pod commands wait: the two
+/// share the watch's one radio, and a pod command cut off then began every pod stall (as on feat/direct-to-watch,
+/// f34b595). Returns how long the link was still up. OmnipodKit's own commands go as in Sport Mode.
+@discardableResult func watchWaitForSensorLink() async -> TimeInterval {
+    let start = Date()
+    while sensorLink.isUp, Date().timeIntervalSince(start) < 12 {
+        try? await Task.sleep(nanoseconds: 250_000_000)
+    }
+    let linkOpen = Date().timeIntervalSince(start)
+    let tail = 3 - sensorLink.secondsSinceUp
+    if tail > 0 { try? await Task.sleep(nanoseconds: UInt64(tail * 1_000_000_000)) }
+    return linkOpen
+}
+
+private let sensorLink = SensorLink()
+
+/// The G7's link and when it was last up: every change the manager reports marks it, the close included.
+private final class SensorLink: G7StateObserver, @unchecked Sendable {
     private let lock = NSLock()
-    private var date = Date.distantPast
-    func mark() { lock.lock(); date = Date(); lock.unlock() }
-    var secondsSince: TimeInterval { lock.lock(); defer { lock.unlock() }; return Date().timeIntervalSince(date) }
+    private weak var g7: G7CGMManager?
+    private var lastUp = Date.distantPast
+
+    func track(_ manager: G7CGMManager?) {
+        lock.lock()
+        g7 = manager
+        lock.unlock()
+        manager?.addStateObserver(self, queue: .main)
+    }
+
+    var isUp: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let g7, g7.isConnected else { return false }
+        lastUp = Date()
+        return true
+    }
+
+    var secondsSinceUp: TimeInterval {
+        lock.lock()
+        defer { lock.unlock() }
+        return Date().timeIntervalSince(lastUp)
+    }
+
+    func g7StateDidUpdate(_: G7CGMManagerState?) {}
+
+    func g7ConnectionStatusDidChange() {
+        lock.lock()
+        lastUp = Date()
+        lock.unlock()
+    }
 }
 
 extension DeviceManager {

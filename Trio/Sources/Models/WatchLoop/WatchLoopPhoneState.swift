@@ -129,6 +129,7 @@ enum WatchLoopGate {
     private static var cachedRole: WatchLoopControl.PhoneRole = loadRole()
     private static var cachedSpans: [WatchLoopSpan] = []
     private static var cachedHold = false
+    private static var cachedLastReport: Date?
 
     static let storageKey = "watchLoopPhoneState"
 
@@ -151,6 +152,15 @@ enum WatchLoopGate {
         return cachedRole
     }
 
+    /// The watch loops and reported within 10 min: it is awake for its own readings, and a wake from the phone would
+    /// only draw on its background time (kristinkand 001202d52).
+    static var watchLoopsAndReports: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard cachedRole == .lending || cachedRole == .standingAside, let last = cachedLastReport else { return false }
+        return Date().timeIntervalSince(last) < 10 * 60
+    }
+
     /// When the watch had the pod, for the chart's band.
     static var spans: [WatchLoopSpan] {
         lock.lock()
@@ -164,6 +174,7 @@ enum WatchLoopGate {
         cachedRole = state.role
         cachedSpans = state.spans
         cachedHold = state.openAudit?.holdsDosing ?? false
+        cachedLastReport = state.lastReportAt
         lock.unlock()
     }
 

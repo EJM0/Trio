@@ -253,7 +253,7 @@ extension UserInterfaceSettings {
                                     Spacer()
 
                                     Group {
-                                        Text(state.units == .mgdL ? state.low.description : state.low.asMmolL.description)
+                                        Text(state.low.formatted(for: state.units))
                                             .foregroundColor(!displayPickerLowThreshold ? .primary : .accentColor)
 
                                         Text(state.units == .mgdL ? " mg/dL" : " mmol/L").foregroundColor(.secondary)
@@ -266,8 +266,7 @@ extension UserInterfaceSettings {
                                 .accessibilityElement(children: .ignore)
                                 .accessibilityLabel(Text("Low Threshold"))
                                 .accessibilityValue(Text(
-                                    (state.units == .mgdL ? state.low.description : state.low.asMmolL.description)
-                                        + " " + state.units.spokenValue
+                                    state.low.formatted(for: state.units) + " " + state.units.spokenValue
                                 ))
                                 .accessibilityHint(Text(
                                     displayPickerLowThreshold
@@ -290,8 +289,7 @@ extension UserInterfaceSettings {
                                         PickerSettingsProvider.shared.generatePickerValues(from: setting, units: state.units),
                                         id: \.self
                                     ) { value in
-                                        let displayValue = state.units == .mgdL ? value : value.asMmolL
-                                        Text("\(displayValue.description)").tag(value)
+                                        Text(value.formatted(for: state.units)).tag(value)
                                     }
                                 }
                                 .pickerStyle(WheelPickerStyle())
@@ -305,7 +303,7 @@ extension UserInterfaceSettings {
                                     Spacer()
 
                                     Group {
-                                        Text(state.units == .mgdL ? state.high.description : state.high.asMmolL.description)
+                                        Text(state.high.formatted(for: state.units))
                                             .foregroundColor(!displayPickerHighThreshold ? .primary : .accentColor)
 
                                         Text(state.units == .mgdL ? " mg/dL" : " mmol/L").foregroundColor(.secondary)
@@ -318,8 +316,7 @@ extension UserInterfaceSettings {
                                 .accessibilityElement(children: .ignore)
                                 .accessibilityLabel(Text("High Threshold"))
                                 .accessibilityValue(Text(
-                                    (state.units == .mgdL ? state.high.description : state.high.asMmolL.description)
-                                        + " " + state.units.spokenValue
+                                    state.high.formatted(for: state.units) + " " + state.units.spokenValue
                                 ))
                                 .accessibilityHint(Text(
                                     displayPickerHighThreshold
@@ -341,8 +338,7 @@ extension UserInterfaceSettings {
                                         PickerSettingsProvider.shared.generatePickerValues(from: setting, units: state.units),
                                         id: \.self
                                     ) { value in
-                                        let displayValue = state.units == .mgdL ? value : value.asMmolL
-                                        Text("\(displayValue.description)").tag(value)
+                                        Text(value.formatted(for: state.units)).tag(value)
                                     }
                                 }
                                 .pickerStyle(WheelPickerStyle())
@@ -367,7 +363,7 @@ extension UserInterfaceSettings {
                                             AnyView(
                                                 VStack(alignment: .leading, spacing: 10) {
                                                     Text(
-                                                        "Default values are based on internationally accepted Time in Range values of \(state.units == .mgdL ? "70" : 70.formattedAsMmolL)-\(state.units == .mgdL ? "180" : 180.formattedAsMmolL) \(state.units.rawValue)."
+                                                        "Default values are based on internationally accepted Time in Range values of \(70.formatted(for: state.units))-\(180.formatted(for: state.units)) \(state.units.rawValue)."
                                                     ).bold()
                                                     Text(
                                                         "These thresholds drive the chart band colors, statistics in-range buckets, Live Activity colors, and Contact Image colors."
@@ -886,11 +882,6 @@ private struct GlucoseColorGradientPreview: View {
         return min(max(CGFloat(truncating: raw as NSNumber), 0), 1)
     }
 
-    private func axisValue(_ value: Decimal) -> String {
-        let display = units == .mgdL ? value : value.asMmolL
-        return "\(display)"
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             RoundedRectangle(cornerRadius: 8)
@@ -920,7 +911,7 @@ private struct GlucoseColorGradientPreview: View {
             Image(systemName: "arrowtriangle.up.fill")
                 .font(.system(size: 7))
                 .foregroundColor(.primary.opacity(0.55))
-            Text(axisValue(value))
+            Text(value.formatted(for: units))
                 .font(.caption2)
                 .foregroundColor(.secondary)
         }
