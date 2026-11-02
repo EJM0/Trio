@@ -112,10 +112,11 @@ extension WatchLoopSession {
         }
         // the pod only once the sensor's link has closed: both share the watch's one radio, and a pod command cut off
         // at a reading began every pod stall (2026-11-01 01:10, as on feat/direct-to-watch, 11d2412 and 19aa4dd)
+        let linkOpen = await watchWaitForSensorLink()
         if reason == "reading" {
-            await waitForSensorQuiet()
-            guard state.phase == .active, pumpManager === pump else { return }
+            WatchLogger.shared.info(.treatments, String(format: "Watch Loop: the sensor's link closed after %.1f s", linkOpen))
         }
+        guard state.phase == .active, pumpManager === pump else { return }
 
         // control row 14: a cycle that can't reach the pump doses nothing and reports nothing
         state.pumpReachable = await pump.refreshStatus(timeout: 30)
@@ -242,21 +243,6 @@ extension WatchLoopSession {
                 closedLoop: state.dosingMode.automation != .off
             )
         )))
-    }
-
-    /// The G7 closes its link a few seconds after a reading: waits for that, at most 12 s, then 3 s more. The sensor
-    /// kit holds the app 30 s past the close, which covers the wait.
-    private func waitForSensorQuiet() async {
-        let start = Date()
-        while watchCGMIsConnected(WatchCGMHost.shared.cgmManager), Date().timeIntervalSince(start) < 12 {
-            try? await Task.sleep(nanoseconds: 250_000_000)
-        }
-        let linkOpen = Date().timeIntervalSince(start)
-        try? await Task.sleep(nanoseconds: 3_000_000_000)
-        WatchLogger.shared.info(
-            .treatments,
-            String(format: "Watch Loop: the sensor's link closed after %.1f s", linkOpen)
-        )
     }
 
     /// The watch's last resort: a background refresh runs a cycle no reading has.
