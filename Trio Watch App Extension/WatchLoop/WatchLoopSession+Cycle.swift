@@ -297,7 +297,7 @@ extension WatchLoopSession {
     /// watchOS ends the hold by calling the block again with `expired`, or calls it only so when it grants no time: the
     /// waiting call lets go at once, as an app that holds on past that gets less background time from then on, the
     /// time it had is logged, and `onExpire` tells the cycle to start nothing new (kristinkand 001202d52).
-    private func holdProcess(
+    func holdProcess(
         reason: String,
         upTo wait: TimeInterval,
         onExpire: @escaping @MainActor () -> Void

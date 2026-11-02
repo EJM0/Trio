@@ -350,11 +350,25 @@ import WatchKit
                 state.end()
                 return
             }
+            // Off for longer than insulin's action time: what another device gave meanwhile can't be timed, so the
+            // records go to the phone and the session doesn't resume (as LoopKit/Loop#2545's resume).
+            if let grant = state.grant, let last = state.lastLoopAt ?? state.startedAt,
+               Date().timeIntervalSince(last) > Double(truncating: grant.pumpSettings.insulinActionCurve as NSNumber) * 3600
+            {
+                WatchLogger.shared.info(.treatments, "Watch Loop session \(state.session) not resumed: off past insulin's action time")
+                endSession(note: String(localized: "The watch was off too long to go on. Your iPhone takes the pod back."))
+                return
+            }
             install(pump)
             control?.takeControl()
             state.phase = .active
             let decision = WatchLoopControl.decide(.init(device: .watch, trigger: .backFromOff))
-            if case let .query(wait, _) = decision { resumingUntil = Date().addingTimeInterval(wait.seconds) }
+            if case let .query(wait, _) = decision {
+                resumingUntil = Date().addingTimeInterval(wait.seconds)
+                // the phone's answer comes in this window: a relaunched app is not suspended before it (as
+                // LoopKit/Loop#2545's resume, which holds the rebuild)
+                _ = holdProcess(reason: "Watch Loop resume", upTo: wait.seconds) {}
+            }
             WatchLogger.shared.info(.treatments, "Watch Loop session \(state.session) resumed after a relaunch")
             DispatchQueue.main.async {
                 self.sendStatus(replyTo: nil)
@@ -543,11 +557,13 @@ import WatchKit
         Task { await runCycle(reason: "reading") }
     }
 
-    func notify(_ title: String, _ body: String) {
+    /// Time-sensitive unless said otherwise: the watch's warnings reach the looper through a Focus.
+    func notify(_ title: String, _ body: String, level: UNNotificationInterruptionLevel = .timeSensitive) {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
+        content.interruptionLevel = level
         UNUserNotificationCenter.current().add(UNNotificationRequest(
             identifier: "trio.watch.watchLoop.\(UUID().uuidString)",
             content: content,
@@ -694,7 +710,12 @@ extension WatchLoopSession: PumpManagerDelegate {
     /// The pod's alerts (expiry, low reservoir, faults) are the watch's while it holds the pod.
     nonisolated func issueAlert(_ alert: Alert) async {
         await MainActor.run {
-            notify(alert.backgroundContent.title, alert.backgroundContent.body)
+            // as LoopKit/Loop#2545's WatchAlertPresenter: critical and time-sensitive alerts break through a Focus
+            notify(
+                alert.backgroundContent.title,
+                alert.backgroundContent.body,
+                level: alert.interruptionLevel == .active ? .active : .timeSensitive
+            )
             WatchLogger.shared.info(.treatments, "Pod alert: \(alert.identifier.alertIdentifier)")
         }
     }

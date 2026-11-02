@@ -67,6 +67,11 @@ func watchCGMStatusNote(_ manager: CGMManager?) -> String? {
 
 let watchCGMStatusDidChange = G7CGMManager.statusDidChange
 
+/// The watch looks for a sensor it has never connected to.
+func watchCGMIsSearching(_ manager: CGMManager?) -> Bool {
+    (manager as? G7CGMManager)?.isSearchingForSensor ?? false
+}
+
 func watchCGMSensorName(_ manager: CGMManager?) -> String? {
     (manager as? G7CGMManager)?.sensorName
 }
