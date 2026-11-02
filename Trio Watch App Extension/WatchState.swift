@@ -610,7 +610,7 @@ import WatchConnectivity
         guard let (latest, value) = own.last else { return }
         newestReadingIsOwn = true
         glucoseValues += own.map { (date: $0.0.dateString, glucose: range.display($0.1), color: range.color($0.1)) }
-        currentGlucose = range.isMmol ? Decimal(value).formattedAsMmolL : "\(value)"
+        currentGlucose = range.isMmol ? Decimal(value).formatted(for: .mmolL) : "\(value)"
         let inRange = Decimal(value) > range.low && Decimal(value) < range.high
         currentGlucoseColorString = inRange ? "#ffffff" : range.color(value).toHexString()
         trend = latest.direction?.rawValue

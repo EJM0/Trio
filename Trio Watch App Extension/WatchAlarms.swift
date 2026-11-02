@@ -24,7 +24,7 @@ import WatchKit
         else { return }
         let range = state.glucoseRange
         let mgdl = Decimal(value)
-        let formatted = range.isMmol ? "\(mgdl.formattedAsMmolL) mmol/L" : "\(value) mg/dL"
+        let formatted = range.isMmol ? "\(mgdl.formatted(for: .mmolL)) mmol/L" : "\(value) mg/dL"
         let body = [formatted, Self.arrow(latest.direction)].filter { !$0.isEmpty }.joined(separator: " ")
         if mgdl <= range.urgentLowAlarm {
             alarm("urgentLow", title: String(localized: "Urgent Low"), body: body, every: 5 * 60)
