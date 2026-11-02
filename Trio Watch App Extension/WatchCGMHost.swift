@@ -140,7 +140,7 @@ import WatchKit
                 id: UUID().uuidString,
                 sgv: value,
                 direction: direction(sample.trend),
-                date: Decimal(Int(sample.date.timeIntervalSince1970 * 1000)),
+                date: Decimal(Int64(sample.date.timeIntervalSince1970 * 1000)),
                 dateString: sample.date,
                 unfiltered: Decimal(value),
                 glucose: value,
