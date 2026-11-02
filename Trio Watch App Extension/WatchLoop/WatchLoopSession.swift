@@ -317,27 +317,6 @@ import WatchKit
         )
     }
 
-    // MARK: - The pod on the watch
-
-    /// The pod's end on the watch: deactivated, or discarded when it can't be reached. The phone forgets it.
-    func endPod(discard: Bool) async -> String? {
-        guard state.phase == .active, let pump = pumpManager else { return nil }
-        await watchWaitForSensorLink()
-        let failure: String? = await withCheckedContinuation { continuation in
-            if discard {
-                watchDiscardPod(pump) { continuation.resume(returning: nil) }
-            } else {
-                watchDeactivatePod(pump) { error in continuation.resume(returning: error?.localizedDescription) }
-            }
-        }
-        if let failure { return failure }
-        send(.handBack(WatchLoopHandBack(session: state.session, records: state.pending, odometer: nil, podEnded: true)))
-        state.phase = .handingBack
-        // without the phone's answer the session still ends: there is no pod left to loop
-        endSession(note: String(localized: "Pod ended. Pair a new one on your iPhone."))
-        return nil
-    }
-
     private func install(_ pump: PumpManager) {
         pump.delegateQueue = .main
         pump.pumpManagerDelegate = self

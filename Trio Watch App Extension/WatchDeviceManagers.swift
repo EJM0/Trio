@@ -40,18 +40,6 @@ func watchPumpExpiresAt(_ manager: PumpManager?) -> Date? {
     (manager as? OmniPumpManager)?.state.podState?.expiresAt
 }
 
-/// Deactivates the pod from the watch and forgets it.
-func watchDeactivatePod(_ manager: PumpManager?, completion: @escaping (Error?) -> Void) {
-    guard let omni = manager as? OmniPumpManager else { return completion(nil) }
-    omni.deactivateAndForgetPod(completion: completion)
-}
-
-/// Forgets a pod that can't be reached to deactivate (it keeps beeping until removed).
-func watchDiscardPod(_ manager: PumpManager?, completion: @escaping () -> Void) {
-    guard let omni = manager as? OmniPumpManager else { return completion() }
-    omni.discardPod(completion: completion)
-}
-
 /// A CGM manager built from another controller's export and this watch's saved `localState`.
 func watchCGMManager(adopting configuration: SharedDeviceConfiguration, localState: [String: Any]?) -> CGMManager? {
     watchCGMManagersByIdentifier[configuration.managerIdentifier]?.init(adopting: configuration, localState: localState)
