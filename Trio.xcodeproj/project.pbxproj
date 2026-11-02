@@ -1166,7 +1166,6 @@
 		A4200D4F1ED8494CBB9895B6 /* CGMSensorDisplayState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11C000000000000000C001 /* CGMSensorDisplayState.swift */; };
 		A4CEF7BBB9594AD1A935A000 /* LoopKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3818AA4C274C26A300843DB3 /* LoopKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		1EB5165261AB48C3AB179F12 /* G7SensorKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA75E2D8DBD690069D5B8 /* G7SensorKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		94FA2D8955104ACDAC466B45 /* LoopAlgorithm in Frameworks */ = {isa = PBXBuildFile; productRef = 35DC28AD6CC545F8A1BCB678 /* LoopAlgorithm */; };
 		5FBCD285F86A4019AC162401 /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 2247D636FA9F4FA9BB7A59AB /* CryptoSwift */; };
 		E6F95378516C489AAF95C3D0 /* AlgorithmLoggingShim.swift in Sources */ = {isa = PBXBuildFile; fileRef = 003825BBFA684CCFA8DA2929 /* AlgorithmLoggingShim.swift */; };
 		0837687032AA45E78964F162 /* Rounding.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD6B7CB12C7B6F0800B75029 /* Rounding.swift */; };
@@ -2508,7 +2507,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				5FBCD285F86A4019AC162401 /* CryptoSwift in Frameworks */,
-				94FA2D8955104ACDAC466B45 /* LoopAlgorithm in Frameworks */,
 				4B2E5E56B4A54D5EA8608486 /* LoopKit.framework in Frameworks */,
 				6D8C9F25D38C472594698C88 /* G7SensorKit.framework in Frameworks */,
 			);
@@ -5472,7 +5470,6 @@
 			);
 			name = "Trio Watch App";
 			packageProductDependencies = (
-				35DC28AD6CC545F8A1BCB678 /* LoopAlgorithm */,
 				2247D636FA9F4FA9BB7A59AB /* CryptoSwift */,
 			);
 			productName = "TrioWatch Watch App";
@@ -7598,11 +7595,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DD868FD92E381E1C005D3308 /* XCRemoteSwiftPackageReference "Swift-JWT" */;
 			productName = SwiftJWT;
-		};
-		35DC28AD6CC545F8A1BCB678 /* LoopAlgorithm */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 5E12FE112EBC0000000000A0 /* XCLocalSwiftPackageReference "LoopAlgorithm" */;
-			productName = LoopAlgorithm;
 		};
 		2247D636FA9F4FA9BB7A59AB /* CryptoSwift */ = {
 			isa = XCSwiftPackageProductDependency;

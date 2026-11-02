@@ -1,5 +1,5 @@
 import Foundation
-import HealthKit
+import LoopAlgorithm
 import LoopKit
 import WatchKit
 
@@ -135,7 +135,7 @@ import WatchKit
     /// The watch's own readings in the form the phone sends them.
     static func readings(from samples: [NewGlucoseSample]) -> [BloodGlucose] {
         samples.filter { !$0.wasUserEntered }.map { sample in
-            let value = Int(sample.quantity.doubleValue(for: HKUnit(from: "mg/dL")))
+            let value = Int(sample.quantity.doubleValue(for: .milligramsPerDeciliter))
             return BloodGlucose(
                 id: UUID().uuidString,
                 sgv: value,
@@ -177,7 +177,7 @@ extension WatchCGMHost: CGMManagerDelegate {
     nonisolated func cgmManager(_: CGMManager, hasNew _: [PersistedCgmEvent]) {}
 
     /// The phone owns the sensor; a manager passed its configuration lets go when the phone stops sharing.
-    nonisolated func cgmManagerWantsDeletion(_: CGMManager) {}
+    nonisolated func cgmManagerWantsDeletion(_: CGMManager) async {}
 
     nonisolated func cgmManagerDidUpdateState(_ manager: CGMManager) {
         MainActor.assumeIsolated {
@@ -212,32 +212,17 @@ extension WatchCGMHost: CGMManagerDelegate {
     nonisolated func deviceManager(_: DeviceManager, recordAnalyticsEvent _: String, properties _: [AnyHashable: Any]?) {}
 
     // The phone issues the sensor's alerts; the watch only logs them.
-    nonisolated func issueAlert(_ alert: Alert) {
+    nonisolated func issueAlert(_ alert: Alert) async {
         WatchLogger.shared.info(.data, "Alert from the watch's CGM, not shown: \(alert.identifier.value)")
     }
 
-    nonisolated func retractAlert(identifier _: Alert.Identifier) {}
+    nonisolated func retractAlert(identifier _: Alert.Identifier) async {}
 
-    nonisolated func doesIssuedAlertExist(
-        identifier _: Alert.Identifier,
-        completion: @escaping (Swift.Result<Bool, Error>) -> Void
-    ) {
-        completion(.success(false))
-    }
+    nonisolated func doesIssuedAlertExist(identifier _: Alert.Identifier) async throws -> Bool { false }
 
-    nonisolated func lookupAllUnretracted(
-        managerIdentifier _: String,
-        completion: @escaping (Swift.Result<[PersistedAlert], Error>) -> Void
-    ) {
-        completion(.success([]))
-    }
+    nonisolated func lookupAllUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }
 
-    nonisolated func lookupAllUnacknowledgedUnretracted(
-        managerIdentifier _: String,
-        completion: @escaping (Swift.Result<[PersistedAlert], Error>) -> Void
-    ) {
-        completion(.success([]))
-    }
+    nonisolated func lookupAllUnacknowledgedUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }
 
-    nonisolated func recordRetractedAlert(_: Alert, at _: Date) {}
+    nonisolated func recordRetractedAlert(_: Alert, at _: Date) async throws {}
 }
