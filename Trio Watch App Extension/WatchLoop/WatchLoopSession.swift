@@ -36,6 +36,8 @@ import WatchKit
     @ObservationIgnored var cycleRunning = false
     /// Back from off with the pump: no dose until the phone had the time to say it holds it (control rows 12, 13).
     @ObservationIgnored var resumingUntil: Date?
+    /// watchOS ended the running cycle's background time: it starts no further pod command.
+    @ObservationIgnored var cycleTimeEnded = false
     /// When Pod Not Reachable was last told; nil once a cycle reached the pod.
     @ObservationIgnored var podUnreachableNoticeAt: Date?
     @ObservationIgnored var lastHeardFromPhoneAt: Date?
@@ -682,7 +684,7 @@ extension WatchLoopSession: PumpManagerDelegate {
         message: String,
         completion: ((Error?) -> Void)?
     ) {
-        WatchLogger.shared.debug(.treatments, "Pump \(type): \(message)")
+        watchLogDeviceEvent("Pump \(type): \(message)", type: type, message: message, category: .treatments)
         completion?(nil)
     }
 

@@ -209,7 +209,7 @@ extension WatchCGMHost: CGMManagerDelegate {
         message: String,
         completion: ((Error?) -> Void)?
     ) {
-        WatchLogger.shared.debug(.data, "CGM \(type): \(message)")
+        watchLogDeviceEvent("CGM \(type): \(message)", type: type, message: message, category: .data)
         completion?(nil)
     }
 

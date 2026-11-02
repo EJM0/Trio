@@ -1021,8 +1021,10 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 lastContextUpdate = state.date
                 logTransfer("context", [WatchMessageKeys.watchState: context])
                 // With Trio on the active watch face this wakes the watch app at once, so the face shows the new
-                // state; the rest waits for the context (as kristinkand/Trio 73c64f2).
-                if !session.isReachable, session.isComplicationEnabled, session.remainingComplicationUserInfoTransfers > 0,
+                // state; the rest waits for the context (as kristinkand/Trio 73c64f2). Not while the watch loops and
+                // reports: it updates its face from its own readings, and each wake draws on its background time.
+                if !session.isReachable, !WatchLoopGate.watchLoopsAndReports, session.isComplicationEnabled,
+                   session.remainingComplicationUserInfoTransfers > 0,
                    state.date.timeIntervalSince(lastComplicationTransfer) >= Self.complicationTransferInterval
                 {
                     session.transferCurrentComplicationUserInfo([WatchMessageKeys.watchState: context])
