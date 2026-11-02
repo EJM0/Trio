@@ -1,10 +1,14 @@
 import Foundation
+import WatchKit
 
 /// What every page shows while the watch loops (as LoopKit/Loop#2545's glance model): IOB, COB, the last loop and
-/// the forecast from the watch's own determination; the phone's would be stale.
+/// the forecast from the watch's own determination; the phone's would be stale. In the background nobody sees the
+/// screens: the forecast and the chart's markers wait for the app to come forward, the complication's values don't
+/// (kristinkand 001202d52).
 extension WatchLoopSession {
     func publishDisplay() {
-        publishTreatments()
+        let inFront = WKApplication.shared().applicationState == .active
+        if inFront { publishTreatments() }
         let state = WatchState.shared
         guard self.state.phase == .active, let determination = self.state.lastDetermination else {
             state.watchLoopOwnsDisplay = false
@@ -21,7 +25,7 @@ extension WatchLoopSession {
             state.lastLoopTime = "\(max(0, Int(Date().timeIntervalSince(loopedAt) / 60))) min"
             state.lastLoopDate = loopedAt
         }
-        publishForecast(determination, on: state)
+        if inFront { publishForecast(determination, on: state) }
         // The pod as this watch last read it: a failed read keeps the last valid values, and a connection loss
         // shows only when the watch's own reach for the pod failed.
         if let reservoir = watchPumpReservoir(pumpManager) { state.pumpReservoir = Decimal(reservoir) }

@@ -1,6 +1,7 @@
 import G7SensorKit
 import LoopKit
 import OmnipodKit
+import WatchKit
 
 // The device managers the watch can be passed, by identifier, for managers built from another controller's exported
 // configuration. The one place the watch names a device kit (as LoopKit/Loop#2545's WatchDeviceManagers).
@@ -86,6 +87,19 @@ func watchCGMHasSensorProblem(_ manager: CGMManager?) -> Bool {
          .gracePeriod,
          .warmup: return true
     default: return false
+    }
+}
+
+/// Logs a kit's line; a raw packet line (a hex dump alone, or behind G7SensorKit's "backfill" or "control") only with
+/// Trio in front: a sensor link writes over a hundred, written out at every wake (kristinkand 001202d52).
+func watchLogDeviceEvent(_ line: String, type: DeviceLogEntryType, message: String, category: WatchLogEntry.Category) {
+    let words = message.split(separator: " ")
+    let isRawDump = (type == .send || type == .receive) && words.last.map { $0.count >= 2 && $0.allSatisfy(\.isHexDigit) } == true
+        && (words.count == 1 || (words.count == 2 && ["backfill", "control"].contains(words[0])))
+    guard isRawDump else { return WatchLogger.shared.debug(category, line) }
+    DispatchQueue.main.async {
+        guard WKApplication.shared().applicationState == .active else { return }
+        WatchLogger.shared.debug(category, line)
     }
 }
 
