@@ -455,7 +455,7 @@ struct WatchLoopGlucoseEntryView: View {
     }
 
     private func display(_ mgdl: Int) -> String {
-        isMmol ? Decimal(mgdl).formattedAsMmolL : "\(mgdl)"
+        isMmol ? Decimal(mgdl).formatted(for: .mmolL) : "\(mgdl)"
     }
 
     /// Where the crown starts: the sensor's last reading, else 100 mg/dL, in the units shown.
