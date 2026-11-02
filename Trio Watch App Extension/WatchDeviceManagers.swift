@@ -4,9 +4,10 @@ import LoopKit
 // The device managers the watch can be passed, by identifier, for managers built from another controller's exported
 // configuration. The one place the watch names a device kit (as LoopKit/Loop#2545's WatchDeviceManagers).
 
-/// Keyed by each manager's `pluginIdentifier`, which is what its export carries.
+/// Keyed by each manager's `pluginIdentifier`, which is what its export carries. Stated, as Trio's device catalog
+/// does: LoopKit exposes it only per instance.
 let watchCGMManagersByIdentifier: [String: (CGMManager & DeviceConfigurationSharing).Type] = [
-    G7CGMManager.pluginIdentifier: G7CGMManager.self
+    "G7CGMManager": G7CGMManager.self
 ]
 
 /// A CGM manager built from another controller's export and this watch's saved `localState`.
