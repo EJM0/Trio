@@ -95,8 +95,17 @@ import Testing
                 .takeOnSilence(.watchNotResponding)
         )
         #expect(C.afterQuery(.holdsPumpButCannotReach, onSilence: .keepPumpOnSilence) == .keepPumpOnSilence)
-        // and its report does not renew its hold
-        #expect(phone(.watchClaims(.init(session: .current, pumpReachable: false)), role: .lending) == .nothing)
+        // its report, sent at once after a cycle that missed the pump, is that answer: taken back with the phone near
+        // the body, and never a renewed hold
+        #expect(
+            phone(.watchClaims(.init(session: .current, pumpReachable: false)), role: .lending) ==
+                .takeOnSilence(.watchNotResponding)
+        )
+        #expect(
+            phone(.watchClaims(.init(session: .current, pumpReachable: false)), role: .standingAside) ==
+                .takeOnSilence(.watchNotResponding)
+        )
+        #expect(phone(.watchClaims(.init(session: .current, pumpReachable: false)), role: .lending, sensorFresh: false) == .nothing)
     }
 
     @Test("A watch that holds nothing is answered like silence") func holdsNothing() {

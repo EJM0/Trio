@@ -36,6 +36,8 @@ import WatchKit
     @ObservationIgnored var cycleRunning = false
     /// Back from off with the pump: no dose until the phone had the time to say it holds it (control rows 12, 13).
     @ObservationIgnored var resumingUntil: Date?
+    /// When Pod Not Reachable was last told; nil once a cycle reached the pod.
+    @ObservationIgnored var podUnreachableNoticeAt: Date?
     @ObservationIgnored var lastHeardFromPhoneAt: Date?
     /// The watch's own readings of the last three hours, kept while no session runs too: a session starts with
     /// those since the phone's last, so its first cycle doesn't loop on the phone's older ones.
@@ -129,7 +131,7 @@ import WatchKit
         session.transferUserInfo(payload)
     }
 
-    private func sendStatus(replyTo id: UUID?) {
+    func sendStatus(replyTo id: UUID?) {
         send(.statusReport(WatchLoopStatusReport(
             replyTo: id,
             session: state.session,
@@ -472,7 +474,7 @@ import WatchKit
         let now = Date()
         let reading = BloodGlucose(
             mbg: mgdl,
-            date: Decimal(Int(now.timeIntervalSince1970 * 1000)),
+            date: Decimal(Int64(now.timeIntervalSince1970 * 1000)),
             dateString: now,
             glucose: mgdl,
             type: "mbg"

@@ -118,14 +118,18 @@ extension WatchLoopSession {
         }
         guard state.phase == .active, pumpManager === pump else { return }
 
-        // control row 14: a cycle that can't reach the pump doses nothing and reports nothing
+        // control row 14: a cycle that can't reach the pump doses nothing. It says so at once rather than waiting for
+        // the phone's overdue query, which a phone asleep in the background asks late (2026-11-02: 18 min).
         state.pumpReachable = await pump.refreshStatus(timeout: 30)
         guard state.pumpReachable, state.phase == .active, pumpManager === pump else {
             state.lastError = String(localized: "Couldn't reach the pod.")
             WatchLogger.shared.warning(.treatments, "Watch Loop cycle (\(reason)): the pod didn't answer")
+            if state.phase == .active { sendStatus(replyTo: nil) }
+            notePodUnreachable()
             publishDisplay()
             return
         }
+        podUnreachableNoticeAt = nil
         // as the phone's `verifyStatus`: no loop while a bolus runs; its end starts the next (`updateBolusState`)
         if case .noBolus = pump.status.bolusState {} else {
             WatchLogger.shared.info(.treatments, "Watch Loop cycle (\(reason)): a bolus is running, skipped")
@@ -245,6 +249,23 @@ extension WatchLoopSession {
         )))
     }
 
+    /// No loop for 10 min because the pod doesn't answer: the looper is told, and again every 10 min while it lasts.
+    private func notePodUnreachable() {
+        let now = Date()
+        guard now.timeIntervalSince(state.lastLoopAt ?? state.startedAt ?? now) >= Self.podUnreachableNotice,
+              now.timeIntervalSince(podUnreachableNoticeAt ?? .distantPast) >= Self.podUnreachableNotice
+        else { return }
+        podUnreachableNoticeAt = now
+        WKInterfaceDevice.current().play(.failure)
+        notify(
+            String(localized: "Pod Not Reachable"),
+            String(localized: "The watch can't reach the pod and isn't looping. Keep the watch near the pod, or hand back to your iPhone.")
+        )
+        WatchLogger.shared.warning(.treatments, "Watch Loop: Pod Not Reachable told")
+    }
+
+    static let podUnreachableNotice: TimeInterval = 10 * 60
+
     /// The watch's last resort: a background refresh runs a cycle no reading has.
     private func scheduleBackstop() {
         guard state.phase == .active else { return }
@@ -265,31 +286,20 @@ extension WatchLoopSession {
 
     /// Keeps the process alive while a cycle waits for Bluetooth or the pod. A cycle can outlast the Bluetooth
     /// wake that started it, so it needs its own activity rather than relying on the app delegate's task hold.
+    /// watchOS ends the hold by calling the block again with `expired`: the waiting call lets go at once, as an app
+    /// that holds on past that gets less background time from then on (kristinkand 001202d52).
     private func holdProcess(reason: String, upTo wait: TimeInterval) -> () -> Void {
         let gate = DispatchSemaphore(value: 0)
-        let once = NSLock()
-        var ended = false
-        let end: (Bool) -> Void = { expired in
-            once.lock()
-            let first = !ended
-            ended = true
-            once.unlock()
-            if first, expired {
+        DispatchQueue.global(qos: .userInitiated).async {
+            ProcessInfo.processInfo.performExpiringActivity(withReason: reason) { expired in
+                guard expired else {
+                    _ = gate.wait(timeout: .now() + wait)
+                    return
+                }
+                gate.signal()
                 WatchLogger.shared.warning(.lifecycle, "\(reason) ended when watchOS expired the activity")
             }
         }
-        DispatchQueue.global(qos: .userInitiated).async {
-            ProcessInfo.processInfo.performExpiringActivity(withReason: reason) { expired in
-                if expired {
-                    end(true)
-                } else {
-                    _ = gate.wait(timeout: .now() + wait)
-                    end(false)
-                }
-            }
-        }
-        return {
-            gate.signal()
-        }
+        return { gate.signal() }
     }
 }
