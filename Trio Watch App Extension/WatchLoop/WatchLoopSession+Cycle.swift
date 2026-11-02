@@ -234,6 +234,8 @@ extension WatchLoopSession {
         guard let scheduled = schedule.last(where: { $0.minutes <= minute })?.rate ?? schedule.first?.rate,
               Decimal(dose.unitsPerHour) > scheduled
         else { return }
+        // as every pod command of a cycle: none once watchOS ended its time; the next cycle ends the temp
+        guard !cycleTimeEnded else { return }
         do {
             try await pump.enactTempBasal(unitsPerHour: 0, for: 0)
             WatchLogger.shared.info(.treatments, "Watch Loop: the dose is held; the high temp is ended")
