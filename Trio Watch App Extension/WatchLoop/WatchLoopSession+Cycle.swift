@@ -92,7 +92,8 @@ extension WatchLoopSession {
 
     func runCycle(reason: String) async {
         guard state.phase == .active, !cycleRunning, let pump = pumpManager, let grant = state.grant else { return }
-        let releaseWake = holdProcess(reason: "Watch Loop cycle", upTo: 60)
+        cycleTimeEnded = false
+        let releaseWake = holdProcess(reason: "Watch Loop cycle", upTo: 60) { [weak self] in self?.cycleTimeEnded = true }
         defer { releaseWake() }
         if let resumingUntil, Date() < resumingUntil {
             guard reason == "reading" else { return }
@@ -118,6 +119,11 @@ extension WatchLoopSession {
         }
         guard state.phase == .active, pumpManager === pump else { return }
 
+        // a pod command watchOS freezes half-way is how pod-link stalls begin: none starts once the cycle's time ended
+        guard !cycleTimeEnded else {
+            WatchLogger.shared.warning(.treatments, "Watch Loop cycle (\(reason)): no background time left for the pod")
+            return
+        }
         // control row 14: a cycle that can't reach the pump doses nothing. It says so at once rather than waiting for
         // the phone's overdue query, which a phone asleep in the background asks late (2026-11-02: 18 min).
         state.pumpReachable = await pump.refreshStatus(timeout: 30)
@@ -201,12 +207,14 @@ extension WatchLoopSession {
     private func enact(_ determination: Determination, on pump: PumpManager) async throws -> Bool {
         if pump.status.basalDeliveryState?.isSuspended == true { return false }
         if let rate = determination.rate, let duration = determination.duration {
+            guard !cycleTimeEnded else { throw WatchLoopCycleError.noBackgroundTime }
             try await pump.enactTempBasal(
                 unitsPerHour: Double(truncating: rate as NSNumber),
                 for: Double(truncating: duration as NSNumber) * 60
             )
         }
         if let units = determination.units, units > 0 {
+            guard !cycleTimeEnded else { throw WatchLoopCycleError.noBackgroundTime }
             try await pump.enactBolus(units: Double(truncating: units as NSNumber), automatic: true)
         }
         return true
@@ -286,10 +294,16 @@ extension WatchLoopSession {
 
     /// Keeps the process alive while a cycle waits for Bluetooth or the pod. A cycle can outlast the Bluetooth
     /// wake that started it, so it needs its own activity rather than relying on the app delegate's task hold.
-    /// watchOS ends the hold by calling the block again with `expired`: the waiting call lets go at once, as an app
-    /// that holds on past that gets less background time from then on (kristinkand 001202d52).
-    private func holdProcess(reason: String, upTo wait: TimeInterval) -> () -> Void {
+    /// watchOS ends the hold by calling the block again with `expired`, or calls it only so when it grants no time: the
+    /// waiting call lets go at once, as an app that holds on past that gets less background time from then on, the
+    /// time it had is logged, and `onExpire` tells the cycle to start nothing new (kristinkand 001202d52).
+    private func holdProcess(
+        reason: String,
+        upTo wait: TimeInterval,
+        onExpire: @escaping @MainActor () -> Void
+    ) -> () -> Void {
         let gate = DispatchSemaphore(value: 0)
+        let started = Date()
         DispatchQueue.global(qos: .userInitiated).async {
             ProcessInfo.processInfo.performExpiringActivity(withReason: reason) { expired in
                 guard expired else {
@@ -297,9 +311,21 @@ extension WatchLoopSession {
                     return
                 }
                 gate.signal()
-                WatchLogger.shared.warning(.lifecycle, "\(reason) ended when watchOS expired the activity")
+                WatchLogger.shared.warning(
+                    .lifecycle,
+                    String(format: "%@: background time ended by watchOS after %.1f s", reason, Date().timeIntervalSince(started))
+                )
+                Task { @MainActor in onExpire() }
             }
         }
         return { gate.signal() }
+    }
+}
+
+enum WatchLoopCycleError: LocalizedError {
+    case noBackgroundTime
+
+    var errorDescription: String? {
+        String(localized: "watchOS gave the watch no background time for the pod.")
     }
 }

@@ -30,6 +30,8 @@ import UserNotifications
                 WatchLogger.shared.didEnterBackground()
             } else if newScenePhase == .active {
                 WatchState.shared.refreshIfNeeded()
+                // the forecast and markers a background cycle left out
+                WatchLoopSession.shared.publishDisplay()
                 // looking at the watch is a wake that is not the sensor's own
                 WatchCGMHost.shared.recheckAcquisition()
             }
