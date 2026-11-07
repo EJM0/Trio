@@ -10,9 +10,7 @@ enum WatchShortcut {
     /// Asks the main view to open the "Meal & Bolus" flow, whether the app was running or just launched.
     @MainActor static func openMealBolus() {
         WatchState.shared.isMealBolusShortcutPending = true
-        Task {
-            await WatchLogger.shared.log("⌚️ Opening Meal & Bolus from a shortcut")
-        }
+        WatchLogger.shared.info(.lifecycle, "Opening Meal & Bolus from a shortcut")
     }
 
     /// Handles a deep link; returns `false` for URLs that are not a watch shortcut.
