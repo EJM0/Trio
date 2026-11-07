@@ -179,15 +179,13 @@ struct ChartSelectionRow: View {
     @ViewBuilder private var glucoseGroup: some View {
         // verbatim: brackets have nothing to translate, and Xcode would otherwise extract
         // them into the string catalog
+        let open = Text(verbatim: "(")
+        let close = Text(verbatim: ")")
+        let gap = Text(verbatim: " ")
+        let sparkle = Text(Image(systemName: "sparkles")) + gap
         let reading = Text(Decimal(selectedGlucose.glucose).formatted(for: units)).foregroundStyle(pointMarkColor)
         let smoothed = smoothedToDisplay.map {
-            (
-                Text(verbatim: "(")
-                    + Text(Image(systemName: "sparkles"))
-                    + Text(verbatim: " ")
-                    + Text($0.formatted(for: units))
-                    + Text(verbatim: ")")
-            ).foregroundStyle(.secondary)
+            (open + sparkle + Text($0.formatted(for: units)) + close).foregroundStyle(.secondary)
         }
 
         item(
@@ -200,7 +198,7 @@ struct ChartSelectionRow: View {
             // a reading that has no smoothed value, so the row never reflows mid-scrub; with
             // it off the box is just the reading and the row is that much tighter.
             template: isSmoothingEnabled
-                ? Text(glucoseTemplate) + gap + open + Text(glucoseTemplate) + close
+                ? Text(glucoseTemplate) + gap + open + sparkle + Text(glucoseTemplate) + close
                 : Text(glucoseTemplate)
         )
     }
