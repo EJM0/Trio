@@ -1196,6 +1196,7 @@
 		09725ACC30349E5B00B148F3 /* TreatmentOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09725ACB30349E5B00B148F3 /* TreatmentOverlay.swift */; };
 		0D7AB67562C24F4CAFAC384F /* StatRangePickerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 615B601240124254942C278D /* StatRangePickerTests.swift */; };
 		E6F95378516C489AAF95C3D0 /* AlgorithmLoggingShim.swift in Sources */ = {isa = PBXBuildFile; fileRef = 003825BBFA684CCFA8DA2929 /* AlgorithmLoggingShim.swift */; };
+		DDFF20502DB2C11900AB8A96 /* WatchStateSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDFF204F2DB2C11900AB8A96 /* WatchStateSnapshot.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -5964,6 +5965,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DDFF20502DB2C11900AB8A96 /* WatchStateSnapshot.swift in Sources */,
 				09725ACC30349E5B00B148F3 /* TreatmentOverlay.swift in Sources */,
 				BDDAF9F12D00554500B34E7A /* SelectionPopoverView.swift in Sources */,
 				09A1697C2EE302EB0026711D /* ScannedProductRow.swift in Sources */,
