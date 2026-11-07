@@ -78,19 +78,20 @@ extension Calibrations {
                     let calibration = Calibration(x: Double(unfiltered), y: Double(glucose))
 
                     calibrationService.addCalibration(calibration)
+                    info(.cgm, "Calibration added: BG \(glucose) mg/dL")
                 } else {
-                    debug(.service, "Glucose is stale for calibration")
+                    debug(.cgm, "Calibration not added, no recent glucose")
                     issueStaleGlucoseAlert()
                     return
                 }
             } catch {
-                debug(.default, "\(DebuggingIdentifiers.failed) Failed to add calibration: \(error)")
+                warning(.cgm, "Adding calibration failed", error: error)
             }
         }
 
         /// Surfaces the "glucose too stale to calibrate against" condition as
         /// a one-shot info alert through `TrioAlertManager`. Mirrors the old
-        /// `info(.service, …)` banner path that ran via `router.alertMessage`.
+        /// `info(.ui, …)` banner path that ran via `router.alertMessage`.
         private func issueStaleGlucoseAlert() {
             let content = Alert.Content(
                 title: String(localized: "Calibration unavailable"),

@@ -20,18 +20,24 @@ struct TrioMainWatchView: View {
     // treatments
     @State private var selectedTreatment: TreatmentOption?
 
-    /// Advanced by a timer, so the view goes stale even when nothing new arrives.
+    /// Ticks the bubble's staleness and the switch to the watch's own readings.
     @State private var now = Date()
-    @Environment(\.scenePhase) private var scenePhase
 
-    /// Dated by the newest reading, or by the last update when there is none. The extra minute covers the
-    /// next reading's delivery; unchanged messages are not resent, so the last update alone would go stale.
+    /// The bubble is dated by its newest reading, the watch's own included; without readings, by the last update.
+    private var isReadingDated: Bool {
+        guard let newestReading = state.glucoseValues.last?.date else { return isWatchStateDated }
+        return now.timeIntervalSince(newestReading) > 6 * 60
+    }
+
     var isWatchStateDated: Bool {
-        if let newestReading = state.glucoseValues.last?.date {
-            return now.timeIntervalSince(newestReading) > 6 * 60
+        // If `lastWatchStateUpdate` is nil, treat as "dated"
+        guard let lastUpdateTimestamp = state.lastWatchStateUpdate else {
+            return true
         }
-        guard let lastUpdateTimestamp = state.lastWatchStateUpdate else { return true }
-        return now.timeIntervalSince1970 - lastUpdateTimestamp > 5 * 60
+        let now = Date().timeIntervalSince1970
+        let secondsSinceUpdate = now - lastUpdateTimestamp
+        // Return true if last update older than 5 min, so 1 loop cycle
+        return secondsSinceUpdate > 5 * 60
     }
 
     var isSessionUnreachable: Bool {
@@ -65,19 +71,14 @@ struct TrioMainWatchView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             TabView(selection: $currentPage) {
-                // Page 1: Combined View of glucose trend and chart view
-                CombinedGlucoseChartview(
-                    state: state,
-                    rotationDegrees: rotationDegrees,
-                    isWatchStateDated: isWatchStateDated || isSessionUnreachable
-                )
-                .tag(0)
-                // Page 2: Current glucose trend in "BG bobble"
+                // Page 1: Current glucose trend in "BG bobble"
                 ZStack {
                     GlucoseTrendView(
                         state: state,
                         rotationDegrees: rotationDegrees,
-                        isWatchStateDated: isWatchStateDated || isSessionUnreachable
+                        isWatchStateDated: isReadingDated,
+                        // the phone's readings still come: a state of the watch's own link is no reason to hide the minutes
+                        sensorStateText: state.phoneReadingsAreFresh(at: now) ? nil : WatchCGMHost.shared.sensorStateText
                     )
 
                     if state.showSyncingAnimation {
@@ -95,34 +96,32 @@ struct TrioMainWatchView: View {
                                     7 // Font .body == 14, so half of default size for the SF Symbol image
                             )
                     }
-                }.tag(1)
+                }
+                .containerBackground(trioBackgroundColor, for: .tabView)
+                .tag(0)
 
-                // Page 3: Glucose chart
+                // Page 2: Glucose chart
                 GlucoseChartView(
                     state: state,
                     glucoseValues: state.glucoseValues
                 )
-                .tag(2)
+                .containerBackground(trioBackgroundColor, for: .tabView)
+                .tag(1)
 
-                // Page 4: Pump and CGM peripheral info
-                PeripheralsView(
-                    state: state,
-                    isWatchStateDated: isWatchStateDated || isSessionUnreachable
-                )
-                .tag(3)
+                // Page 3: Alarm snooze
+                AlarmSnoozeView(state: state)
+                    .containerBackground(trioBackgroundColor, for: .tabView)
+                    .tag(2)
             }
             .onAppear {
                 /// Hard reset variables when main view appears
                 /// Reset `bolusAmount` and `recommendedBolus` to ensure no stale / old value is set when user opens bolus input or meal combo the next time.
                 state.bolusAmount = 0
                 state.recommendedBolus = 0
-                // Like the phone's Treatments view, every new bolus starts without reduced or super bolus.
-                state.useReducedBolus = false
-                state.useSuperBolus = false
             }
-            .background(trioBackgroundColor)
+            // each page draws the phone's gradient: a vertical page view covers anything behind it
             .tabViewStyle(.verticalPage)
-            .digitalCrownRotation($currentPage.doubleBinding(), from: 0, through: 3, by: 1)
+            .digitalCrownRotation($currentPage.doubleBinding(), from: 0, through: 2, by: 1)
             .onChange(of: state.trend) { _, newTrend in
                 withAnimation {
                     updateRotation(for: newTrend)
@@ -244,19 +243,9 @@ struct TrioMainWatchView: View {
                     continueToBolus = false
                 }
             }
-            // The "Meal & Bolus" complication or App Intent, on launch or while running.
-            .onAppear {
-                openMealBolusShortcutIfPending()
-            }
-            .onChange(of: state.isMealBolusShortcutPending) { _, isPending in
-                if isPending { openMealBolusShortcutIfPending() }
-            }
         }
         .ignoresSafeArea()
         .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { now = $0 }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .active { now = Date() }
-        }
     }
 
     private func updateRotation(for trend: String?) {
@@ -275,33 +264,6 @@ struct TrioMainWatchView: View {
             rotationDegrees = 90
         default:
             rotationDegrees = 0
-        }
-    }
-
-    /// Starts the "Meal & Bolus" flow from its first step, closing whatever was open, as if picked from the
-    /// treatment menu.
-    private func openMealBolusShortcutIfPending() {
-        guard state.isMealBolusShortcutPending else { return }
-        state.isMealBolusShortcutPending = false
-
-        showingTreatmentMenuSheet = false
-        showingOverrideSheet = false
-        showingTempTargetSheet = false
-
-        state.carbsAmount = 0
-        state.bolusAmount = 0
-        state.recommendedBolus = 0
-        state.useReducedBolus = false
-        state.useSuperBolus = false
-
-        navigationPath = NavigationPath()
-
-        // Push once the dismissals and the pop to root have settled: on a cold launch, or with a sheet still
-        // closing, a push in the same update is dropped and the app stays on the main screen.
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 400_000_000)
-            continueToBolus = true
-            navigationPath.append(NavigationDestinations.carbsInput)
         }
     }
 

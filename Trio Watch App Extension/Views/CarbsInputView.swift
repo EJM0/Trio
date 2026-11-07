@@ -103,11 +103,16 @@ struct CarbsInputView: View {
             .disabled(!(carbsAmount > 0.0) || carbsAmount > effectiveCarbsLimit)
         }
         .background(trioBackgroundColor)
-        // The clock would crowd the on-board badge in the toolbar.
-        .persistentSystemOverlays(.hidden)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                OnBoardToolbarBadge(systemImage: "fork.knife", value: state.cob, unit: "g", color: .orange, state: state)
+                Image(systemName: "fork.knife")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 14, height: 14)
+                    .padding()
+                    .background(Color.orange)
+                    .foregroundStyle(.white)
+                    .clipShape(Circle())
             }
         }
     }

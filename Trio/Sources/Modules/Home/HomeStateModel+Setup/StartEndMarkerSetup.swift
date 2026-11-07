@@ -58,5 +58,14 @@ extension Home.StateModel {
     func updateStartEndMarkers() {
         startMarker = Date(timeIntervalSinceNow: -MainChartHelper.Config.chartHistorySeconds)
         endMarker = forecastEndMarker
+
+        // Target profiles are built at setup and end at a midnight;
+        // rebuild them when the chart window moves past the last one
+        // cf. https://github.com/nightscout/Trio/issues/1581
+        if let lastEnd = targetProfiles.last?.endTime,
+           lastEnd < endMarker.timeIntervalSinceReferenceDate
+        {
+            targetProfiles = processFetchedTargets(bgTargets, startMarker: startMarker)
+        }
     }
 }

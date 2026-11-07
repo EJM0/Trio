@@ -443,7 +443,7 @@ final class GlucoseAlertCoordinator: Injectable {
                 return Decimal(latest.glucose)
             }
         } catch {
-            debug(.service, "GlucoseAlertCoordinator: glucose fetch failed: \(error)")
+            warning(.alerts, "Fetching latest glucose for glucose alerts failed", error: error)
             return nil
         }
     }

@@ -6,10 +6,23 @@ struct GlucoseChartView: View {
     let state: WatchState
     let glucoseValues: [(date: Date, glucose: Double, color: Color)]
 
-    /// This chart's own zoom, kept across launches — see `WatchChartTimeWindow`.
-    @AppStorage(WatchChartTimeWindow.fullScreenStorageKey) private var timeWindow: WatchChartTimeWindow = .threeHours
+    @State private var timeWindow: TimeWindow = .threeHours
 
-    typealias TimeWindow = WatchChartTimeWindow
+    enum TimeWindow: Int {
+        case threeHours = 3
+        case sixHours = 6
+        case twelveHours = 12
+        case twentyFourHours = 24
+
+        var next: TimeWindow {
+            switch self {
+            case .threeHours: return .sixHours
+            case .sixHours: return .twelveHours
+            case .twelveHours: return .twentyFourHours
+            case .twentyFourHours: return .threeHours
+            }
+        }
+    }
 
     private var futureOffset: TimeInterval {
         guard state.showForecast else { return 0 }
@@ -200,11 +213,6 @@ struct GlucoseChartView: View {
                     }
                 }
                 .chartYScale(domain: yAxisDomain)
-                // `withAnimation` doesn't reach an `@AppStorage` write, so the chart animates itself —
-                // on zoom and whenever new readings or a new forecast arrive.
-                .animation(.easeInOut, value: timeWindow)
-                .animation(.easeInOut, value: glucoseValues.last?.date)
-                .animation(.easeInOut, value: state.forecastStartDate)
                 .chartPlotStyle { plotContent in
                     plotContent
                         .background(
@@ -218,7 +226,9 @@ struct GlucoseChartView: View {
         }
         .padding(.horizontal, 6)
         .onTapGesture {
-            timeWindow = timeWindow.next
+            withAnimation {
+                timeWindow = timeWindow.next
+            }
         }
     }
 }

@@ -52,49 +52,31 @@ enum WatchMessageKeys {
     static let bolusIncrement = "bolusIncrement"
     static let confirmBolusFaster = "confirmBolusFaster"
 
-    // Bolus calculator options, mirroring the phone's Treatments view
-    /// Whether the options are enabled in the phone's settings ("fatty meals", "sweet meals").
-    static let isReducedBolusAvailable = "isReducedBolusAvailable"
-    static let isSuperBolusAvailable = "isSuperBolusAvailable"
-    /// Sent with `requestBolusRecommendation`; at most one of the two is set.
-    static let useReducedBolus = "useReducedBolus"
-    static let useSuperBolus = "useSuperBolus"
-
     // Notification Actions
     static let snoozeDuration = "snoozeDuration"
-
-    // Peripherals (pump + CGM device info)
-    /// Sub-dictionary wrapping every peripheral field, mirroring `forecastData`.
-    /// Rides along with every watch state push, and is also sent on its own when
-    /// a peripheral change has to reach a watch that is out of range.
-    static let peripheralData = "peripheralData"
-    static let peripheralsUpdatedAt = "peripheralsUpdatedAt"
-    static let pumpName = "pumpName"
-    static let pumpReservoir = "pumpReservoir"
-    static let pumpBatteryPercent = "pumpBatteryPercent"
-    static let pumpExpiresAt = "pumpExpiresAt"
-    static let pumpActivatedAt = "pumpActivatedAt"
-    static let pumpStatusMessage = "pumpStatusMessage"
-    static let cgmName = "cgmName"
-    static let cgmSensorExpiresAt = "cgmSensorExpiresAt"
-    static let cgmProgressPercent = "cgmProgressPercent"
-    static let cgmProgressState = "cgmProgressState"
-    static let cgmStatusMessage = "cgmStatusMessage"
+    static let snoozeUntilDate = "snoozeUntilDate"
 
     // Forecast
     static let showForecastWatch = "showForecastWatch"
+    /// Whether the watch's own urgent low alarm should use Critical Alerts.
+    static let useCriticalAlertsWatch = "useCriticalAlertsWatch"
+    /// Latest CGM export for the watch's own sensor link; can be absent while the phone is starting.
+    static let watchSensorConfiguration = "watchSensorConfiguration"
+    /// The CGM's Read on Apple Watch; independent of whether the phone's CGM manager is loaded yet.
+    static let watchReadsSensor = "watchReadsSensor"
+    /// mg/dL bounds, target and color scheme the watch colors its own readings by.
+    static let glucoseRangeLow = "glucoseRangeLow"
+    static let glucoseRangeHigh = "glucoseRangeHigh"
+    static let glucoseRangeTarget = "glucoseRangeTarget"
+    static let glucoseColorScheme = "glucoseColorScheme"
+    /// mg/dL of the phone's glucose alarms that are on, the most cautious of each; 0: none.
+    static let glucoseAlarmUrgentLow = "glucoseAlarmUrgentLow"
+    static let glucoseAlarmLow = "glucoseAlarmLow"
+    static let glucoseAlarmHigh = "glucoseAlarmHigh"
     static let isForecastCone = "isForecastCone"
     static let forecastData = "forecastData"
     static let forecastStartDate = "forecastStartDate"
     static let forecastConeMin = "forecastConeMin"
     static let forecastConeMax = "forecastConeMax"
     static let forecastLines = "forecastLines"
-
-    /// The last 24 hours of glucose, compact (`WatchGlucoseTrace`); the watch colors them by the range and scheme.
-    static let glucoseTrace = "glucoseTrace"
-    /// mg/dL of the glucose range and the current target, and the color scheme, to color the readings by.
-    static let glucoseRangeLow = "glucoseRangeLow"
-    static let glucoseRangeHigh = "glucoseRangeHigh"
-    static let glucoseRangeTarget = "glucoseRangeTarget"
-    static let glucoseColorScheme = "glucoseColorScheme"
 }

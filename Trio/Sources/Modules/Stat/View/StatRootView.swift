@@ -487,39 +487,49 @@ extension Stat {
                     glucoseStatsCard
                 }
 
-                HStack {
-                    var hintText: String {
-                        switch state.selectedGlucoseChartType {
-                        case .percentileByTime:
-                            String(
-                                localized: "Tap and hold the AGP graph, or tap a segment of the Time-in-Range bar, to reveal more details."
-                            )
-                        case .distributionByTime:
-                            String(localized: "Tap a segment of the Time-in-Range bar to reveal more details.")
-                        case .percentileByDay:
-                            String(
-                                localized: "Tap a percentile or tap and hold a bar to reveal more details. Swipe to scroll through time."
-                            )
-                        case .distributionByDay:
-                            String(
-                                localized: "Tap and hold a bar in the chart to reveal more details. Swipe to scroll through time."
-                            )
-                        }
+                if state.selectedGlucoseChartType == .glycemiaRiskIndex {
+                    StatCard {
+                        GRIExplanationView(result: GRICalculator.calculate(
+                            glucoseValues: state.glucoseFromPersistence.map { Int($0.glucose) }
+                        ), units: state.units)
                     }
-                    Image(systemName: "hand.draw.fill")
-                        .foregroundStyle(Color.primary)
-                        .padding(.leading)
-                    VStack(alignment: .leading) {
-                        Text(hintText)
-                        // Only while the day picker is on screen — it is the
-                        // thing the gesture acts on.
-                        if isDayPickerVisible {
-                            Text("Tap and hold the selected date to return to today.")
+                } else {
+                    HStack {
+                        var hintText: String {
+                            switch state.selectedGlucoseChartType {
+                            case .percentileByTime:
+                                String(
+                                    localized: "Tap and hold the AGP graph, or tap a segment of the Time-in-Range bar, to reveal more details."
+                                )
+                            case .distributionByTime:
+                                String(localized: "Tap a segment of the Time-in-Range bar to reveal more details.")
+                            case .percentileByDay:
+                                String(
+                                    localized: "Tap a percentile or tap and hold a bar to reveal more details. Swipe to scroll through time."
+                                )
+                            case .distributionByDay:
+                                String(
+                                    localized: "Tap and hold a bar in the chart to reveal more details. Swipe to scroll through time."
+                                )
+                            case .glycemiaRiskIndex:
+                                ""
+                            }
                         }
-                    }
-                    .foregroundStyle(Color.secondary)
-                    .padding(.trailing)
-                }.font(.footnote)
+                        Image(systemName: "hand.draw.fill")
+                            .foregroundStyle(Color.primary)
+                            .padding(.leading)
+                        VStack(alignment: .leading) {
+                            Text(hintText)
+                            // Only while the day picker is on screen — it is the
+                            // thing the gesture acts on.
+                            if isDayPickerVisible {
+                                Text("Tap and hold the selected date to return to today.")
+                            }
+                        }
+                        .foregroundStyle(Color.secondary)
+                        .padding(.trailing)
+                    }.font(.footnote)
+                }
             }
         }
 
@@ -567,6 +577,11 @@ extension Stat {
                                 state: state
                             )
                         }
+
+                    case .glycemiaRiskIndex:
+                        GRIChartView(result: GRICalculator.calculate(
+                            glucoseValues: state.glucoseFromPersistence.map { Int($0.glucose) }
+                        ), units: state.units)
 
                     case .percentileByTime:
                         GlucosePercentileChart(
