@@ -1195,6 +1195,7 @@
 		BDDAF9F12D00554500B34E7A /* SelectionPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDDAF9F02D00554500B34E7A /* SelectionPopoverView.swift */; };
 		09725ACC30349E5B00B148F3 /* TreatmentOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09725ACB30349E5B00B148F3 /* TreatmentOverlay.swift */; };
 		0D7AB67562C24F4CAFAC384F /* StatRangePickerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 615B601240124254942C278D /* StatRangePickerTests.swift */; };
+		E6F95378516C489AAF95C3D0 /* AlgorithmLoggingShim.swift in Sources */ = {isa = PBXBuildFile; fileRef = 003825BBFA684CCFA8DA2929 /* AlgorithmLoggingShim.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -2479,6 +2480,7 @@
 		09725ACB30349E5B00B148F3 /* TreatmentOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentOverlay.swift; sourceTree = "<group>"; };
 		615B601240124254942C278D /* StatRangePickerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatRangePickerTests.swift; sourceTree = "<group>"; };
 		7C1E5A0B2F1D4E6A9B3C8D21 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		003825BBFA684CCFA8DA2929 /* AlgorithmLoggingShim.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Trio/Sources/APS/OpenAPSSwift/AlgorithmLoggingShim.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -4562,6 +4564,7 @@
 		BDFF7A9C2D25FA730016C40C /* Trio Watch App Extension */ = {
 			isa = PBXGroup;
 			children = (
+				003825BBFA684CCFA8DA2929 /* AlgorithmLoggingShim.swift */,
 				7C1E5A0B2F1D4E6A9B3C8D21 /* Info.plist */,
 				7461B194383D4B959304E145 /* WatchAlarms.swift */,
 				32A6B8C5BEE64685991B67FD /* WatchCGMHost.swift */,
@@ -6917,6 +6920,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E6F95378516C489AAF95C3D0 /* AlgorithmLoggingShim.swift in Sources */,
 				0837687032AA45E78964F162 /* Rounding.swift in Sources */,
 				8813B0159CB74F608F398155 /* GlucoseColorScheme.swift in Sources */,
 				CF563B8194B24A6AA568D9FC /* DynamicGlucoseColor.swift in Sources */,
@@ -7448,13 +7452,14 @@
 				TARGETED_DEVICE_FAMILY = 4;
 				WATCHOS_DEPLOYMENT_TARGET = 10.6;
 				PRODUCT_MODULE_NAME = Trio;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG TRIO_ALGORITHM_PACKAGE $(inherited)";
 			};
 			name = Debug;
 		};
 		BDFF79A22D25AA890016C40C /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "TRIO_ALGORITHM_PACKAGE $(inherited)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
