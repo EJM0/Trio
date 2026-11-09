@@ -27,7 +27,19 @@ final class TrioWatchAppDelegate: NSObject, WKApplicationDelegate {
                     if Thread.isMainThread { expire() } else { DispatchQueue.main.sync(execute: expire) }
                 }
                 WatchCGMHost.shared.recheckAcquisition()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5) { self.complete(task) }
+                // and the complications' refresh: the phone's latest context, then a new snapshot
+                Task { @MainActor in
+                    await WatchBackgroundRefresh.refresh()
+                    self.complete(task)
+                }
+                continue
+            }
+            if task is WKWatchConnectivityRefreshBackgroundTask {
+                // held until the phone's message is delivered and the complications reloaded
+                Task { @MainActor in
+                    await WatchBackgroundRefresh.settle()
+                    self.complete(task)
+                }
                 continue
             }
             guard task is WKBluetoothAlertRefreshBackgroundTask else {

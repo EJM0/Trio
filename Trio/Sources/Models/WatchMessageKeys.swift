@@ -59,6 +59,13 @@ enum WatchMessageKeys {
     /// Sent with `requestBolusRecommendation`; at most one of the two is set.
     static let useReducedBolus = "useReducedBolus"
     static let useSuperBolus = "useSuperBolus"
+    static let lastLoopDate = "lastLoopDate"
+    static let lowGlucoseLimit = "lowGlucoseLimit"
+    static let highGlucoseLimit = "highGlucoseLimit"
+
+    static let complicationCornerValue = "complicationCornerValue"
+    static let complicationSecondaryValue = "complicationSecondaryValue"
+    static let complicationStaleMinutes = "complicationStaleMinutes"
 
     // Notification Actions
     static let snoozeDuration = "snoozeDuration"
