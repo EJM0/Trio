@@ -1,6 +1,5 @@
 import Foundation
 import LoopKit
-import UserNotifications
 import WatchKit
 
 /// Reads the phone's CGM directly while the phone shares its configuration (the CGM's Read on Apple Watch setting):
@@ -18,21 +17,9 @@ import WatchKit
 
     /// For the glucose bubble.
     private(set) var isReadingDirectly = false
-    private var linkStateText: String?
-    private var lifecycleStateText: String?
-    /// Shown in place of the minutes. A fresh reading of the watch's own proves the link, so a link note (a code, a
-    /// search) the sensor kit has not cleared yet stays hidden while there is one.
-    var sensorStateText: String? {
-        WatchState.shared.hasFreshOwnReading ? lifecycleStateText : linkStateText ?? lifecycleStateText
-    }
-
+    private(set) var sensorStateText: String?
     /// The sensor needs a look; set by its lifecycle and by a reading the sensor marks unreliable.
     private(set) var hasSensorProblem = false
-    /// When the watch last asked to be opened for a pairing.
-    @ObservationIgnored private var lastPairingNotice: Date?
-    private static let pairingNoticeID = WatchAlarms.notificationPrefix + "pairing"
-    /// As kristinkand/Trio fb7e6a5ea: often enough to be seen, not a nag through the night.
-    private static let pairingNoticeInterval: TimeInterval = 20 * 60
 
     /// A background refresh this long after each reading re-checks acquisition, in case watchOS froze the app before
     /// it lodged the next connect. Past the G7's 35 s tail clearance, so a connect never lands in its advertising tail.
@@ -115,35 +102,8 @@ import WatchKit
 
     private func updateStatus() {
         isReadingDirectly = cgmManager != nil
-        linkStateText = cgmManager?.watchLinkStateText
-        lifecycleStateText = cgmManager?.watchSensorStateText
+        sensorStateText = cgmManager?.watchSensorStateText
         noteSensorProblem(cgmManager?.watchHasSensorProblem ?? false)
-        askToBeOpenedForPairing((cgmManager?.watchNeedsAppInFront ?? false) && !WatchState.shared.hasFreshOwnReading)
-    }
-
-    /// A pairing waits for Trio on the screen: in the background, a notification asks for it, and goes once the
-    /// pairing has gone through.
-    private func askToBeOpenedForPairing(_ needed: Bool) {
-        let center = UNUserNotificationCenter.current()
-        guard needed else {
-            if lastPairingNotice != nil {
-                lastPairingNotice = nil
-                center.removeDeliveredNotifications(withIdentifiers: [Self.pairingNoticeID])
-            }
-            return
-        }
-        guard WKApplication.shared().applicationState != .active,
-              (lastPairingNotice ?? .distantPast).addingTimeInterval(Self.pairingNoticeInterval) < Date()
-        else { return }
-        lastPairingNotice = Date()
-        WatchLogger.shared.info(.data, "A sensor pairing waits for Trio on the screen: asking to be opened")
-        WatchAlarms.shared.notify(
-            id: Self.pairingNoticeID,
-            title: String(localized: "Open Trio to Pair the Sensor"),
-            body: String(
-                localized: "The watch can only pair with the sensor while Trio is open. Accept a Bluetooth pairing request if one appears."
-            )
-        )
     }
 
     private func noteSensorProblem(_ problem: Bool) {
@@ -202,9 +162,8 @@ extension WatchCGMHost: CGMManagerDelegate {
                 let readings = Self.readings(from: samples)
                 guard !readings.isEmpty else { return }
                 WatchLogger.shared.info(.data, "Direct reading: \(readings.count) sample(s)")
+                noteSensorProblem(cgmManager?.watchHasSensorProblem ?? false)
                 WatchState.shared.applyOwnReadings(readings)
-                // a reading is news of the link too: the status the kit may not have posted
-                updateStatus()
                 WatchAlarms.shared.check(own: readings)
                 scheduleAcquisitionBackstop()
             case .unreliableData:
