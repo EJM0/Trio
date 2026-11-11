@@ -94,7 +94,7 @@ struct CarbsInputView: View {
                     state.carbsAmount = Int(min(carbsAmount, effectiveCarbsLimit))
                     navigationPath.append(NavigationDestinations.bolusInput)
                 } else {
-                    state.sendCarbsRequest(Int(min(carbsAmount, effectiveCarbsLimit)))
+                    state.sendCarbsEntry(Int(min(carbsAmount, effectiveCarbsLimit)))
                     navigationPath.append(NavigationDestinations.acknowledgmentPending)
                 }
             }
@@ -105,6 +105,9 @@ struct CarbsInputView: View {
         .background(trioBackgroundColor)
         // The clock would crowd the on-board badge in the toolbar.
         .persistentSystemOverlays(.hidden)
+        // The entry's 2 min clock restarts whenever the user touches it
+        .onAppear { state.markEntryEdited() }
+        .onChange(of: carbsAmount) { state.markEntryEdited() }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 OnBoardToolbarBadge(systemImage: "fork.knife", value: state.cob, unit: "g", color: .orange, state: state)

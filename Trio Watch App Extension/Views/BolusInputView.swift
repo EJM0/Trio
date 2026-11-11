@@ -130,8 +130,7 @@ struct BolusInputView: View {
 
                     Button(actionButtonLabel) {
                         if isCarbsOnly {
-                            state.sendCarbsRequest(state.carbsAmount)
-                            state.carbsAmount = 0 // reset carbs in state
+                            state.sendCarbsEntry(state.carbsAmount)
                             navigationPath.append(NavigationDestinations.acknowledgmentPending)
                         } else {
                             state.bolusAmount = min(bolusAmount, effectiveBolusLimit)
@@ -158,7 +157,10 @@ struct BolusInputView: View {
                 )
             }
         }
+        // The entry's 2 min clock restarts whenever the amount changes, including a recommendation landing
+        .onChange(of: bolusAmount) { state.markEntryEdited() }
         .onAppear {
+            state.markEntryEdited()
             // As on the phone, the amount starts at 0 and the recommendation is only offered in the pill; the user
             // takes it (normal, reduced or super) by tapping it. Only ask for one when no amount is set yet, e.g. not
             // when coming back from the confirmation screen.
