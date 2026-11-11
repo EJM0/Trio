@@ -417,7 +417,7 @@
     },
     "NSAlarmKitUsageDescription" : {
       "comment" : "Privacy - Alarm Kit Usage Description",
-      "extractionState" : "stale",
+      "extractionState" : "extracted_with_value",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -973,19 +973,19 @@
       "localizations" : {
         "bg" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Календарът се използва за създаване на нови събития за кръвна захар."
           }
         },
         "cs" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Kalendář se používá k vytváření nových událostí s glykémií."
           }
         },
         "da" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "needs_review",
             "value" : "Calendar is used to create new glucose events."
           }
         },
@@ -998,36 +998,36 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Calendar is used to create a new glucose events."
+            "value" : "Calendar is used to create new glucose events."
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "needs_review",
             "value" : "Calendar is used to create new glucose events."
           }
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "« Calendrier » est utilisé pour créer de nouveaux événements avec la mesure de glucose."
           }
         },
         "he" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "needs_review",
             "value" : "Calendar is used to create new glucose events."
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Il calendario viene utilizzato per creare nuovi eventi di glucosio."
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "새로운 혈당 일정을 생성하기 위해 캘린더가 사용됩니다."
           }
         },
@@ -1039,67 +1039,67 @@
         },
         "nl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Agenda wordt gebruikt om nieuwe glucose gebeurtenissen aan te maken."
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Kalendarz jest używany do tworzenia nowych zdarzeń o glikemii."
           }
         },
         "pt-PT" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "needs_review",
             "value" : "Calendar is used to create new glucose events."
           }
         },
         "ro" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "needs_review",
             "value" : "Calendar is used to create new glucose events."
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "needs_review",
             "value" : "Calendar is used to create new glucose events."
           }
         },
         "sv" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "needs_review",
             "value" : "Calendar is used to create new glucose events."
           }
         },
         "tr" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "needs_review",
             "value" : "Calendar is used to create new glucose events."
           }
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "needs_review",
             "value" : "Calendar is used to create new glucose events."
           }
         },
         "vi" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Lịch được sử dụng để tạo các sự kiện đo đường huyết mới."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "日历权限用于新建血糖事件记录。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "行事曆用於建立新的血糖事件。"
           }
         }

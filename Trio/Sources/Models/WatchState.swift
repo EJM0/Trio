@@ -44,6 +44,7 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     /// Latest CGM export while the CGM's Read on Apple Watch is on; nil until the phone has loaded its CGM manager.
     var watchSensorConfiguration: Data? = nil
     var watchReadsSensor: Bool = false
+    var useCriticalAlertsWatch: Bool = false
     /// The range and color scheme the watch colors its own readings by.
     var glucoseRangeLow: Decimal = 70
     var glucoseRangeHigh: Decimal = 180
@@ -60,6 +61,7 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         // apart from the chain below, which is at the edge of the type checker's budget
         let watchSensorIsEqual = lhs.watchSensorConfiguration == rhs.watchSensorConfiguration &&
             lhs.watchReadsSensor == rhs.watchReadsSensor &&
+            lhs.useCriticalAlertsWatch == rhs.useCriticalAlertsWatch &&
             lhs.glucoseRangeLow == rhs.glucoseRangeLow &&
             lhs.glucoseRangeHigh == rhs.glucoseRangeHigh &&
             lhs.glucoseRangeTarget == rhs.glucoseRangeTarget &&
@@ -136,6 +138,7 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(isForecastCone)
         hasher.combine(watchSensorConfiguration)
         hasher.combine(watchReadsSensor)
+        hasher.combine(useCriticalAlertsWatch)
         hasher.combine(glucoseRangeLow)
         hasher.combine(glucoseRangeHigh)
         hasher.combine(glucoseRangeTarget)

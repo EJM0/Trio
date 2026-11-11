@@ -364,6 +364,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
                 watchState.showForecast = self.settingsManager.settings.showForecastWatch
                 watchState.isForecastCone = self.settingsManager.settings.forecastDisplayType == .cone
+                watchState.useCriticalAlertsWatch = self.settingsManager.settings.useCriticalAlertsWatch
 
                 // the watch reads the sensor itself while the CGM shares its configuration (G7: Read on Apple Watch),
                 // as LoopKit/Loop#2545's WatchDataManager does
@@ -600,7 +601,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
         dictionary[WatchMessageKeys.forecastData] = forecastData
 
-        dictionary[WatchMessageKeys.useCriticalAlertsWatch] = settingsManager.settings.useCriticalAlertsWatch
+        dictionary[WatchMessageKeys.useCriticalAlertsWatch] = state.useCriticalAlertsWatch
         dictionary[WatchMessageKeys.watchSensorConfiguration] = state.watchSensorConfiguration
         dictionary[WatchMessageKeys.watchReadsSensor] = state.watchReadsSensor
         dictionary[WatchMessageKeys.glucoseRangeLow] = NSDecimalNumber(decimal: state.glucoseRangeLow).doubleValue
