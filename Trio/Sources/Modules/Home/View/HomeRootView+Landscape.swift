@@ -145,6 +145,11 @@ extension Home.RootView {
     /// The scrub readout, in the corner the chart's own content reaches last. Renders from
     /// `chartReadoutDate` rather than `chartSelection` directly, exactly as the meal slot
     /// does, so a hole in either series can't flicker it (see `updateChartReadout`).
+    ///
+    /// Shown by `isChartReadoutVisible`, not by `chartReadoutDate` being set: the date
+    /// outlives the readout so it has values to fade out with, and keying on it left the
+    /// card up for good after the first inspect. Stays mounted and fades on opacity for the
+    /// same reason the meal slot does — a removal transition doesn't survive the glass panel.
     @ViewBuilder private var landscapeSelectionPopover: some View {
         if let readoutDate = chartReadoutDate,
            let selectedGlucose = ChartSelectionLookup.glucose(at: readoutDate, in: state.glucoseFromPersistence)
@@ -161,7 +166,7 @@ extension Home.RootView {
                 glucoseColorScheme: state.glucoseColorScheme,
                 isSmoothingEnabled: state.settingsManager.settings.smoothGlucose
             )
-            .transition(.opacity)
+            .opacity(isChartReadoutVisible ? 1 : 0)
         }
     }
 }
