@@ -62,6 +62,7 @@ enum WatchMessageKeys {
 
     // Notification Actions
     static let snoozeDuration = "snoozeDuration"
+    static let snoozeUntilDate = "snoozeUntilDate"
 
     // Peripherals (pump + CGM device info)
     /// Sub-dictionary wrapping every peripheral field, mirroring `forecastData`.

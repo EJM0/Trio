@@ -238,7 +238,7 @@ struct ChartSelectionRow: View {
     /// has no smoothed value of its own.
     private var smoothedToDisplay: Decimal? {
         guard isSmoothingEnabled, let smoothed = selectedGlucose.smoothedGlucose else { return nil }
-        return units == .mgdL ? smoothed.decimalValue : smoothed.decimalValue.asMmolL
+        return smoothed.decimalValue
     }
 
     /// One value, with the glyph that labels it, laid out in the width `template` needs —

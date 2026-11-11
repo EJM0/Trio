@@ -31,6 +31,7 @@ import WatchConnectivity
     var lastLoopTime: String? = "--"
     var overridePresets: [OverridePresetWatch] = []
     var tempTargetPresets: [TempTargetPresetWatch] = []
+    var snoozeUntilDate: Date = .distantPast
 
     /// treatments inputs
     /// used to store carbs for combined meal-bolus-treatments
@@ -167,27 +168,16 @@ import WatchConnectivity
             } else {
                 session.activate()
             }
-            Task {
-                await WatchLogger.shared.log("⌚️ WCSession setup complete.")
-            }
+            WatchLogger.shared.debug(.connectivity, "Session set up")
         } else {
-            Task {
-                await WatchLogger.shared.log("⌚️ WCSession is not supported on this device")
-            }
+            WatchLogger.shared.error(.connectivity, "Watch connectivity not supported on this device")
         }
     }
 
     // MARK: – Handle Acknowledgement Messages FROM Phone
 
     func handleAcknowledgment(success: Bool, message: String, isFinal: Bool = true) {
-        Task {
-            await WatchLogger.shared.log("Handling acknowledgment: \(message), success: \(success), isFinal: \(isFinal)")
-        }
-
         if success {
-            Task {
-                await WatchLogger.shared.log("⌚️ Acknowledgment received: \(message)")
-            }
             acknowledgementStatus = .success
             acknowledgmentMessage = message
 
@@ -196,10 +186,6 @@ import WatchConnectivity
                 self.showCommsAnimation = false
             }
         } else {
-            Task {
-                await WatchLogger.shared.log("⌚️ Acknowledgment failed: \(message)")
-            }
-
             // Hide progress animation
             DispatchQueue.main.async {
                 self.showCommsAnimation = false
@@ -216,9 +202,6 @@ import WatchConnectivity
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                 self.showAcknowledgmentBanner = false
                 self.showSyncingAnimation = false // Just ensure this is 100% set to false
-                Task {
-                    await WatchLogger.shared.log("Cleared ack banner and syncing animation")
-                }
             }
         }
     }
@@ -230,18 +213,12 @@ import WatchConnectivity
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         DispatchQueue.main.async {
             if let error = error {
-                Task {
-                    await WatchLogger.shared.log("⌚️ Watch session activation failed: \(error)", force: true)
-                    await WatchLogger.shared.log("⌚️ Saving logs to disk as fallback!")
-                    await WatchLogger.shared.persistLogsLocally()
-                }
+                WatchLogger.shared.error(.connectivity, "Session activation failed", error: error)
                 return
             }
 
             if activationState == .activated {
-                Task {
-                    await WatchLogger.shared.log("⌚️ Watch session activated with state: \(activationState.rawValue)")
-                }
+                WatchLogger.shared.info(.connectivity, "Session activated, phone reachable: \(session.isReachable)")
 
                 self.handleSessionActivated(session)
             }
@@ -250,10 +227,6 @@ import WatchConnectivity
 
     private func handleSessionActivated(_ session: WCSession) {
         isReachable = session.isReachable
-
-        Task {
-            await WatchLogger.shared.log("⌚️ Watch isReachable after activation: \(session.isReachable)")
-        }
 
         let context = session.receivedApplicationContext
         if !context.isEmpty {
@@ -272,18 +245,17 @@ import WatchConnectivity
 
     /// Handles incoming messages from the paired iPhone when Phone is in the foreground
     func session(_: WCSession, didReceiveMessage message: [String: Any]) {
-        Task {
-            await WatchLogger.shared.log("⌚️ Watch received data: \(message)")
-        }
+        if WatchLogger.shared.handlePhoneMessage(message) { return }
 
         // Ack at top level — no `watchState` wrapper, no staleness check.
         if let acknowledged = message[WatchMessageKeys.acknowledged] as? Bool,
            let ackMessage = message[WatchMessageKeys.message] as? String,
            let ackCodeRaw = message[WatchMessageKeys.ackCode] as? String
         {
-            Task {
-                await WatchLogger.shared
-                    .log("⌚️ Handling ack with message: \(ackMessage), success: \(acknowledged), ackCode: \(ackCodeRaw)")
+            if acknowledged {
+                WatchLogger.shared.info(.treatments, "Phone confirmed request (\(ackCodeRaw)): \(ackMessage)")
+            } else {
+                WatchLogger.shared.warning(.treatments, "Phone rejected request (\(ackCodeRaw)): \(ackMessage)")
             }
             DispatchQueue.main.async {
                 self.showSyncingAnimation = false
@@ -294,9 +266,7 @@ import WatchConnectivity
 
         // Recommended bolus is also not part of the WatchState message.
         if let recommendedBolus = message[WatchMessageKeys.recommendedBolus] as? NSNumber {
-            Task {
-                await WatchLogger.shared.log("⌚️ Received recommended bolus: \(recommendedBolus)")
-            }
+            WatchLogger.shared.debug(.bolus, "Bolus recommendation of \(recommendedBolus) U received")
             DispatchQueue.main.async {
                 self.recommendedBolus = recommendedBolus.decimalValue
                 self.showBolusCalculationProgress = false
@@ -310,13 +280,17 @@ import WatchConnectivity
     }
 
     func session(_: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        if WatchLogger.shared.handlePhoneMessage(userInfo) { return }
         if handlePeripheralPayload(userInfo) { return }
-
         handleIncomingWatchStatePayload(userInfo)
     }
 
     func session(_: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
         handleIncomingWatchStatePayload(applicationContext)
+    }
+
+    func session(_: WCSession, didFinish fileTransfer: WCSessionFileTransfer, error: (any Error)?) {
+        WatchLogger.shared.transferFinished(fileTransfer, error: error)
     }
 
     /// Standalone peripheral payload — sent on its own when a peripheral change
@@ -328,13 +302,12 @@ import WatchConnectivity
     private func handlePeripheralPayload(_ dictionary: [String: Any]) -> Bool {
         guard let payload = dictionary[WatchMessageKeys.peripheralData] as? [String: Any] else { return false }
 
-        Task { await WatchLogger.shared.log("⌚️ Received standalone peripheral data") }
+        WatchLogger.shared.debug(.data, "Received standalone peripheral data")
         DispatchQueue.main.async {
             self.processPeripheralData(payload)
         }
         return true
     }
-
     private func handleIncomingWatchStatePayload(_ dictionary: [String: Any]) {
         DispatchQueue.main.async {
             self.acceptWatchStatePayload(dictionary)
@@ -347,7 +320,7 @@ import WatchConnectivity
         guard let payload = dictionary[WatchMessageKeys.watchState] as? [String: Any],
               let timestamp = payload[WatchMessageKeys.date] as? TimeInterval
         else {
-            Task { await WatchLogger.shared.log("⌚️ Faulty watch state payload — skipping", force: true) }
+            WatchLogger.shared.warning(.data, "Watch state payload malformed, skipped")
             return false
         }
         let date = Date(timeIntervalSince1970: timestamp)
@@ -356,14 +329,18 @@ import WatchConnectivity
         // the watch app wakes after long disuse; without it, every payload
         // schedules merge + UI work.
         guard date >= Date().addingTimeInterval(-Self.maxAcceptableMessageAgeInMinutes) else {
-            Task { await WatchLogger.shared.log("⌚️ Skipping stale watch state (\(date))") }
+            if WatchLogger.shared.shouldLog("staleState") {
+                WatchLogger.shared.debug(.data, "Stale watch state from \(date) skipped")
+            }
             adoptGlucoseTrace(fromStale: payload)
             return false
         }
 
         // The same state can arrive both as a message and as the application context.
         if let lastAccepted = lastAcceptedStateDate, date <= lastAccepted {
-            Task { await WatchLogger.shared.log("⌚️ Skipping duplicate watch state (\(date))") }
+            if WatchLogger.shared.shouldLog("duplicateState") {
+                WatchLogger.shared.debug(.data, "Duplicate watch state from \(date) skipped")
+            }
             return false
         }
 
@@ -380,7 +357,7 @@ import WatchConnectivity
               newest > glucoseValues.last?.date ?? .distantPast
         else { return }
 
-        Task { await WatchLogger.shared.log("⌚️ Taking over glucose readings from stale watch state") }
+        WatchLogger.shared.debug(.data, "Taking over glucose readings from stale watch state")
         applyGlucoseTrace(trace, from: payload)
     }
 
@@ -424,11 +401,7 @@ import WatchConnectivity
 
     func session(_: WCSession, didFinish _: WCSessionUserInfoTransfer, error: (any Error)?) {
         if let error = error {
-            Task {
-                await WatchLogger.shared.log("⌚️ transferUserInfo failed with error: \(error)")
-                await WatchLogger.shared.log("⌚️ Saving logs to disk as fallback!")
-                await WatchLogger.shared.persistLogsLocally()
-            }
+            WatchLogger.shared.warning(.connectivity, "User info transfer to the phone failed", error: error)
         }
     }
 
@@ -436,8 +409,8 @@ import WatchConnectivity
     /// Updates the local reachability status
     func sessionReachabilityDidChange(_ session: WCSession) {
         DispatchQueue.main.async {
-            Task {
-                await WatchLogger.shared.log("⌚️ Watch reachability changed: \(session.isReachable)")
+            if WatchLogger.shared.shouldLog("reachability", state: "\(session.isReachable)") {
+                WatchLogger.shared.debug(.connectivity, "Phone reachable: \(session.isReachable)")
             }
 
             self.isReachable = session.isReachable
@@ -465,7 +438,7 @@ import WatchConnectivity
     /// it will request a new watch state update from the iPhone app and, if the request could be sent, show a syncing animation.
     private func forceConditionalWatchStateUpdate() {
         if isWatchStateRequestInFlight {
-            Task { await WatchLogger.shared.log("⌚️ WatchState request already in flight — not sending another") }
+            WatchLogger.shared.debug(.connectivity, "State request already in flight, not sending another")
             return
         }
         // A push that just arrived is shown already, or will be after the foreground debounce. One still
@@ -473,14 +446,12 @@ import WatchConnectivity
         if let receivedAt = lastStateReceivedAt, Date().timeIntervalSince(receivedAt) < 15,
            pendingData.isEmpty || isAppActive
         {
-            Task { await WatchLogger.shared.log("⌚️ WatchState just received — not requesting another") }
+            WatchLogger.shared.debug(.connectivity, "State just received, not requesting another")
             return
         }
 
         guard let lastUpdateTimestamp = lastWatchStateUpdate else {
-            Task {
-                await WatchLogger.shared.log("Forcing initial WatchState update")
-            }
+            WatchLogger.shared.debug(.data, "No watch state yet, requesting one")
 
             // If there's no recorded timestamp, we must force a fresh update immediately.
             requestWatchStateUpdateWithSyncingAnimation()
@@ -489,12 +460,10 @@ import WatchConnectivity
 
         let now = Date().timeIntervalSince1970
         let secondsSinceUpdate = now - lastUpdateTimestamp
-        Task {
-            await WatchLogger.shared.log("Time since last update: \(secondsSinceUpdate) seconds")
-        }
 
         // If more than 15 seconds have elapsed since the last update, force an(other) update.
         if secondsSinceUpdate > 15 {
+            WatchLogger.shared.debug(.data, "Watch state \(Int(secondsSinceUpdate)) s old, requesting update")
             requestWatchStateUpdateWithSyncingAnimation()
             return
         }
@@ -520,9 +489,7 @@ import WatchConnectivity
             }
             guard self.showSyncingAnimation, self.pendingData.isEmpty else { return }
             self.showSyncingAnimation = false
-            Task {
-                await WatchLogger.shared.log("⌚️ No WatchState answer from iPhone — hiding syncing animation")
-            }
+            WatchLogger.shared.debug(.connectivity, "No state answer from the phone, hiding syncing animation")
         }
     }
 
@@ -546,10 +513,6 @@ import WatchConnectivity
             {
                 DispatchQueue.main.async {
                     self.showSyncingAnimation = false
-                }
-
-                Task {
-                    await WatchLogger.shared.log("⌚️ Received acknowledgment: \(ackMessage), success: \(acknowledged)")
                 }
 
                 switch ackCode {
@@ -585,15 +548,10 @@ import WatchConnectivity
            let lastTimestamp = lastWatchStateUpdate,
            incomingTimestamp <= lastTimestamp
         {
-            Task {
-                await WatchLogger.shared.log("Skipping UI update — outdated WatchState (\(incomingTimestamp))")
-            }
+            WatchLogger.shared.debug(.data, "Outdated watch state skipped")
             return
         }
 
-        Task {
-            await WatchLogger.shared.log("Merging new WatchState data with keys: \(newData.keys.joined(separator: ", "))")
-        }
 
         pendingData.merge(newData) { _, newVal in newVal }
         finalizeWorkItem?.cancel()
@@ -613,9 +571,6 @@ import WatchConnectivity
 
         // 2) Create and schedule a new finalization
         let workItem = DispatchWorkItem { [self] in
-            Task {
-                await WatchLogger.shared.log("⏳ Debounced update fired")
-            }
             self.finalizePendingData()
         }
         finalizeWorkItem = workItem
@@ -635,19 +590,11 @@ import WatchConnectivity
     private func finalizePendingData() {
         finalizeWorkItem = nil
         guard !pendingData.isEmpty else {
-            Task {
-                await WatchLogger.shared.log("⚠️ finalizePendingData called with empty data")
-            }
-
             // If we have no actual data, just end syncing
             DispatchQueue.main.async {
                 self.showSyncingAnimation = false
             }
             return
-        }
-
-        Task {
-            await WatchLogger.shared.log("⌚️ Finalizing pending data")
         }
 
         // Actually set your main UI properties here
@@ -661,22 +608,13 @@ import WatchConnectivity
             self.showSyncingAnimation = false
         }
 
-        Task {
-            await WatchLogger.shared.log("✅ Watch UI update complete")
-        }
+        WatchLogger.shared.debug(.data, "Watch state applied")
     }
 
     /// Updates the UI properties
     private func processRawDataForWatchState(_ message: [String: Any]) {
-        Task {
-            await WatchLogger.shared.log("Processing raw WatchState data with keys: \(message.keys.joined(separator: ", "))")
-        }
-
         if let timestamp = message[WatchMessageKeys.date] as? TimeInterval {
             lastWatchStateUpdate = timestamp
-            Task {
-                await WatchLogger.shared.log("Updated lastWatchStateUpdate: \(timestamp)")
-            }
         }
 
         if let currentGlucose = message[WatchMessageKeys.currentGlucose] as? String {
@@ -794,6 +732,10 @@ import WatchConnectivity
 
         if let isForecastCone = message[WatchMessageKeys.isForecastCone] as? Bool {
             self.isForecastCone = isForecastCone
+        }
+
+        if let snoozeTimestamp = message[WatchMessageKeys.snoozeUntilDate] as? TimeInterval {
+            snoozeUntilDate = Date(timeIntervalSince1970: snoozeTimestamp)
         }
 
         if let forecastPayload = message[WatchMessageKeys.forecastData] as? [String: Any] {

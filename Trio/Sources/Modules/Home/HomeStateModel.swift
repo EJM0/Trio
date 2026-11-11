@@ -8,6 +8,7 @@ import Observation
 import OmnipodKit
 import SwiftDate
 import SwiftUI
+import SyaiKit
 
 extension Home {
     @Observable final class StateModel: BaseStateModel<Provider> {
@@ -45,6 +46,8 @@ extension Home {
             ?? BGTargets(units: .mgdL, userPreferredUnits: .mgdL, targets: [])
         var targetProfiles: [TargetProfile] = []
         var timerDate = Date()
+        var alarmsSnoozeUntil: Date = UserDefaults.standard
+            .object(forKey: "UserNotificationsManager.snoozeUntilDate") as? Date ?? .distantPast
         var dosingMode: DosingMode = .open
         var isLooping = false
         var statusTitle = ""
@@ -119,6 +122,10 @@ extension Home {
         var determinationsFromPersistence: [OrefDetermination] = []
         var enactedAndNonEnactedDeterminations: [OrefDetermination] = []
         var fetchedTDDs: [TDD] = []
+        var homeStatsPanelRange: HomeStatsPanelRange = .today
+        /// Stats panel figures for ranges longer than the chart's glucose window, tagged with
+        /// the range they were computed for; see `refreshExtendedStatsPanel(force:)`.
+        var extendedStatsPanel: (range: HomeStatsPanelRange, stats: HomeStatsPanelStats)?
         var insulinFromPersistence: [PumpEventStored] = []
         var tempBasals: [PumpEventStored] = []
         var suspendAndResumeEvents: [PumpEventStored] = []
@@ -479,7 +486,7 @@ extension Home {
                 try controller.performFetch()
                 republish()
             } catch {
-                debug(.default, "\(DebuggingIdentifiers.failed) Failed to re-anchor fetch window for \(T.self): \(error)")
+                warning(.ui, "Moving home fetch window for \(T.self) failed", error: error)
             }
         }
 
@@ -488,6 +495,10 @@ extension Home {
         /// Debounces the forecast recompute — the most expensive `onContentChange` callback,
         /// which a manual re-determine fires twice in quick succession.
         @ObservationIgnored var forecastUpdateTask: Task<Void, Never>?
+
+        /// In-flight fetch for `extendedStatsPanel`; a newer refresh cancels it so results land in order.
+        @ObservationIgnored var extendedStatsPanelTask: Task<Void, Never>?
+        @ObservationIgnored var extendedStatsPanelRefreshedAt: Date?
 
         typealias PumpEvent = PumpEventStored.EventType
 
@@ -575,8 +586,9 @@ extension Home {
             broadcaster.register(BGTargetsObserver.self, observer: self)
             broadcaster.register(PumpReservoirObserver.self, observer: self)
             broadcaster.register(PumpDeactivatedObserver.self, observer: self)
+            broadcaster.register(SnoozeObserver.self, observer: self)
 
-            timer.eventHandler = {
+            timer.eventHandler = { [weak self] in
                 DispatchQueue.main.async { [weak self] in
                     guard let self else { return }
                     self.timerDate = Date()
@@ -684,9 +696,6 @@ extension Home {
                 .receive(on: DispatchQueue.main)
                 .map { [weak self] error in
                     self?.errorDate = error == nil ? nil : Date()
-                    if let error = error {
-                        debug(.default, "APSManager lastError: \(String(describing: error))")
-                    }
                     return error?.localizedDescription
                 }
                 .weakAssign(to: \.errorMessage, on: self)
@@ -754,6 +763,7 @@ extension Home {
             lowTTlowersSens = settingsManager.preferences.lowTemptargetLowersSensitivity
             settingHalfBasalTarget = settingsManager.preferences.halfBasalExerciseTarget
             maxIOB = settingsManager.preferences.maxIOB
+            homeStatsPanelRange = settingsManager.settings.homeStatsPanelRange
         }
 
         @MainActor private func setupCGMSettings() async {
@@ -888,7 +898,11 @@ extension Home {
 
                 if let schedule = BasalRateSchedule(
                     dailyItems: basalProfile
-                        .map { RepeatingScheduleValue(startTime: TimeInterval($0.minutes * 60), value: Double($0.rate)) }
+                        .map {
+                            RepeatingScheduleValue(
+                                startTime: TimeInterval($0.minutes * 60),
+                                value: Double($0.rate).roundedDouble(toPlaces: 3)
+                            ) }
                 ) {
                     self.pumpInitialSettings.basalSchedule = schedule
                 }
@@ -936,8 +950,13 @@ extension Home.StateModel:
     BasalProfileObserver,
     BGTargetsObserver,
     PumpReservoirObserver,
-    PumpDeactivatedObserver
+    PumpDeactivatedObserver,
+    SnoozeObserver
 {
+    @MainActor func snoozeDidChange(_ untilDate: Date) {
+        alarmsSnoozeUntil = untilDate
+    }
+
     func determinationDidUpdate(_: Determination) {
         waitForSuggestion = false
     }
@@ -973,6 +992,11 @@ extension Home.StateModel:
         showCarbsRequiredBadge = settingsManager.settings.showCarbsRequiredBadge
         enableQuickPickTreatments = settingsManager.settings.enableQuickPickTreatments
         forecastDisplayType = settingsManager.settings.forecastDisplayType
+        homeStatsPanelRange = settingsManager.settings.homeStatsPanelRange
+        // range, face or time-in-range type may have changed
+        Task { @MainActor in
+            refreshExtendedStatsPanel(force: true)
+        }
         cgmAvailable = (fetchGlucoseManager.cgmGlucoseSourceType != CGMType.none)
         displayPumpStatusHighlightMessage()
         displayPumpStatusBadge()
@@ -1021,7 +1045,7 @@ extension Home.StateModel:
         }
     }
 
-    func pumpReservoirDidChange(_: Decimal) {
+    func pumpReservoirDidChange(_: Decimal?) {
         setupReservoir()
         displayPumpStatusHighlightMessage()
         displayPumpStatusBadge()

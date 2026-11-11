@@ -300,7 +300,7 @@ struct GlucoseSectorChart: View {
                     ),
                     (String(localized: "Average"), average.formatted(for: units)),
                     (String(localized: "Median"), median.formatted(for: units)),
-                    (String(localized: "SD"), formatSD(standardDeviation))
+                    (String(localized: "SD"), standardDeviation.formatted(for: units))
                 ]
             )
 
@@ -317,19 +317,19 @@ struct GlucoseSectorChart: View {
                 items: [
                     (
                         String(
-                            localized: "Normal (\(Decimal(timeInRangeType.bottomThreshold).formatted(for: units))-\(highLimit.formatted(for: units)))"
+                            localized: "TIR (\(Decimal(timeInRangeType.bottomThreshold).formatted(for: units))-\(highLimit.formatted(for: units)))"
                         ),
                         formatPercentage(Decimal(glucoseValues.count) / total * 100)
                     ),
                     (
                         String(
-                            localized: "\(timeInRangeType == .timeInTightRange ? "TITR" : "TING") (\(Decimal(timeInRangeType.bottomThreshold).formatted(for: units))-\(Decimal(timeInRangeType.topThreshold).formatted(for: units)))"
+                            localized: "TITR (\(Decimal(timeInRangeType.bottomThreshold).formatted(for: units))-\(Decimal(timeInRangeType.topThreshold).formatted(for: units)))"
                         ),
                         formatPercentage(Decimal(tight) / total * 100)
                     ),
                     (String(localized: "Average"), average.formatted(for: units)),
                     (String(localized: "Median"), median.formatted(for: units)),
-                    (String(localized: "SD"), formatSD(standardDeviation))
+                    (String(localized: "SD"), standardDeviation.formatted(for: units))
                 ]
             )
 
@@ -357,7 +357,7 @@ struct GlucoseSectorChart: View {
                     ),
                     (String(localized: "Average"), average.formatted(for: units)),
                     (String(localized: "Median"), median.formatted(for: units)),
-                    (String(localized: "SD"), formatSD(standardDeviation))
+                    (String(localized: "SD"), standardDeviation.formatted(for: units))
                 ]
             )
         }
@@ -393,15 +393,6 @@ struct GlucoseSectorChart: View {
 
         let standardDeviation = sqrt(sumOfSquares / Double(values.count))
         return (average, median, standardDeviation)
-    }
-
-    /// Formats the standard deviation value based on glucose units.
-    /// - Parameter sd: The standard deviation as a Double.
-    /// - Returns: A formatted string representing the standard deviation.
-    private func formatSD(_ sd: Double) -> String {
-        units == .mgdL ? sd.formatted(
-            .number.grouping(.never).rounded().precision(.fractionLength(0))
-        ) : sd.formattedAsMmolL
     }
 }
 

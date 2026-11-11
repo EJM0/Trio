@@ -64,6 +64,8 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var forecastConeMax: [Double] = []
     var forecastLines: [String: [Double]] = [:] // "iob" / "cob" / "uam" / "zt" -> values
 
+    var snoozeUntilDate: Date = .distantPast
+
     static func == (lhs: WatchState, rhs: WatchState) -> Bool {
         // Split into groups: a single `&&` chain over this many comparisons
         // blows past the type checker's expression budget.
@@ -101,7 +103,8 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
             lhs.forecastStartDate == rhs.forecastStartDate &&
             lhs.forecastConeMin == rhs.forecastConeMin &&
             lhs.forecastConeMax == rhs.forecastConeMax &&
-            lhs.forecastLines == rhs.forecastLines
+            lhs.forecastLines == rhs.forecastLines &&
+            lhs.snoozeUntilDate == rhs.snoozeUntilDate
 
         let pumpIsEqual = lhs.pumpName == rhs.pumpName &&
             lhs.pumpReservoir == rhs.pumpReservoir &&
@@ -150,6 +153,7 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(forecastConeMin)
         hasher.combine(forecastConeMax)
         hasher.combine(forecastLines)
+        hasher.combine(snoozeUntilDate)
         // `peripheralsUpdatedAt` is deliberately excluded from both `==` and
         // `hash(into:)`: it is a send stamp, not content, and including it
         // would make every snapshot compare unequal.

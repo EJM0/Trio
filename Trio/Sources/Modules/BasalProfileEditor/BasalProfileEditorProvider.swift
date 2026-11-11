@@ -18,17 +18,20 @@ extension BasalProfileEditor {
             // from this list.
             deviceManager.pumpManager?.supportedBasalRates
                 .filter { $0 > 0 }
-                .map { Decimal($0) }
+                .map { Decimal($0).rounded(scale: 3) }
         }
 
         func saveProfile(_ profile: [BasalProfileEntry]) -> AnyPublisher<Void, Error> {
             guard let pump = deviceManager?.pumpManager else {
-                debugPrint("\(DebuggingIdentifiers.failed) No pump found; cannot save basal profile!")
+                warning(.settings, "Basal profile not saved, no pump connected")
                 return Fail(error: NSError()).eraseToAnyPublisher()
             }
 
             let syncValues = profile.map {
-                RepeatingScheduleValue(startTime: TimeInterval($0.minutes * 60), value: Double($0.rate))
+                RepeatingScheduleValue(
+                    startTime: TimeInterval($0.minutes * 60),
+                    value: Double($0.rate).roundedDouble(toPlaces: 3)
+                )
             }
 
             return Future { promise in

@@ -110,6 +110,10 @@ struct TrioMainWatchView: View {
                     isWatchStateDated: isWatchStateDated || isSessionUnreachable
                 )
                 .tag(3)
+
+                // Page 5: Alarm snooze
+                AlarmSnoozeView(state: state)
+                    .tag(4)
             }
             .onAppear {
                 /// Hard reset variables when main view appears
@@ -122,7 +126,7 @@ struct TrioMainWatchView: View {
             }
             .background(trioBackgroundColor)
             .tabViewStyle(.verticalPage)
-            .digitalCrownRotation($currentPage.doubleBinding(), from: 0, through: 3, by: 1)
+            .digitalCrownRotation($currentPage.doubleBinding(), from: 0, through: 4, by: 1)
             .onChange(of: state.trend) { _, newTrend in
                 withAnimation {
                     updateRotation(for: newTrend)

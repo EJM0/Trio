@@ -232,8 +232,7 @@ struct SettingInputSection<VerboseHint: View>: View {
     private func displayString(for setting: PickerSetting, decimalValue: Decimal) -> String {
         switch setting.type {
         case .glucose:
-            let displayValue = units == .mmolL ? decimalValue.asMmolL : decimalValue
-            return "\(displayValue.description) \(units.rawValue)"
+            return decimalValue.formatted(withUnits: units)
         case .factor:
             return "\(decimalValue * 100) \(String(localized: "%", comment: "Percentage symbol"))"
         case .multiplier:
@@ -255,8 +254,7 @@ struct SettingInputSection<VerboseHint: View>: View {
     private func accessibilityValueString(for setting: PickerSetting, decimalValue: Decimal) -> String {
         switch setting.type {
         case .glucose:
-            let displayValue = units == .mmolL ? decimalValue.asMmolL : decimalValue
-            return "\(displayValue.description) \(units.spokenValue)"
+            return decimalValue.formatted(for: units) + " " + units.spokenValue
         case .factor:
             return "\(decimalValue * 100) \(UnitSpelling.spoken("%"))"
         case .multiplier:

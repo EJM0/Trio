@@ -114,7 +114,7 @@ struct CarbEntryEditorView: View {
         )
         .font(.headline)
         .foregroundStyle(Color.white)
-        .frame(width: UIScreen.main.bounds.width * 0.9, alignment: .center)
+        .containerRelativeFrame(.horizontal) { width, _ in width * 0.9 }
         .frame(height: 50)
         .background(buttonBackgroundColor)
         .clipShape(RoundedRectangle(cornerRadius: 15))
