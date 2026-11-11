@@ -152,11 +152,6 @@ enum AlarmSoundCatalog {
         ("synth.caf", String(localized: "Synth")),
         ("mood_synth.caf", String(localized: "Mood Synth")),
         ("crying.caf", String(localized: "Crying")),
-        ("two_tone.caf", String(localized: "Two Tone")),
-        ("doorbell.caf", String(localized: "Doorbell")),
-        ("ascend.caf", String(localized: "Ascend")),
-        ("flutter.caf", String(localized: "Flutter")),
-        ("cascade.caf", String(localized: "Cascade")),
         ("glass_bell.caf", String(localized: "Glass Bell")),
         ("harp.caf", String(localized: "Harp")),
         ("meow.caf", String(localized: "Meow")),
@@ -164,7 +159,12 @@ enum AlarmSoundCatalog {
         ("hard_saw_wave.caf", String(localized: "Hard Saw Wave")),
         ("sine_wave.caf", String(localized: "Sine Wave")),
         ("open_can.caf", String(localized: "Open Can")),
-        ("open_wrapper.caf", String(localized: "Open Wrapper"))
+        ("open_wrapper.caf", String(localized: "Open Wrapper")),
+        ("two_tone.caf", String(localized: "Two Tone")),
+        ("doorbell.caf", String(localized: "Doorbell")),
+        ("ascend.caf", String(localized: "Ascend")),
+        ("flutter.caf", String(localized: "Flutter")),
+        ("cascade.caf", String(localized: "Cascade"))
     ].map { filename, name in
         Entry(
             id: filename,

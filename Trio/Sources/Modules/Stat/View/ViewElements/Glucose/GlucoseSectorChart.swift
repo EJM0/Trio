@@ -178,7 +178,7 @@ struct GlucoseSectorChart: View {
         emphasized: Bool = false
     ) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(formatPercentage(value, tight: true))
+            Text((value / 100).formatted(.upToOneDecimalPercent))
                 .font(emphasized ? .title3.weight(.semibold) : .body)
                 .monospacedDigit()
                 .foregroundStyle(color)
@@ -240,7 +240,7 @@ struct GlucoseSectorChart: View {
             Text(descriptor)
                 .font(.subheadline)
                 .foregroundStyle(Color.secondary)
-            Text(formatPercentage(value, tight: true))
+            Text((value / 100).formatted(.upToOneDecimalPercent))
                 .foregroundStyle(color)
         }
     }
@@ -292,11 +292,11 @@ struct GlucoseSectorChart: View {
                 items: [
                     (
                         String(localized: "Very High (>\(Decimal(250).formatted(for: units)))"),
-                        formatPercentage(Decimal(veryHigh) / total * 100)
+                        (Decimal(veryHigh) / total).formatted(.upToOneDecimalPercent)
                     ),
                     (
                         String(localized: "High (\(highLimit.formatted(for: units))-\(Decimal(250).formatted(for: units)))"),
-                        formatPercentage(Decimal(high) / total * 100)
+                        (Decimal(high) / total).formatted(.upToOneDecimalPercent)
                     ),
                     (String(localized: "Average"), average.formatted(for: units)),
                     (String(localized: "Median"), median.formatted(for: units)),
@@ -319,13 +319,13 @@ struct GlucoseSectorChart: View {
                         String(
                             localized: "TIR (\(Decimal(timeInRangeType.bottomThreshold).formatted(for: units))-\(highLimit.formatted(for: units)))"
                         ),
-                        formatPercentage(Decimal(glucoseValues.count) / total * 100)
+                        (Decimal(glucoseValues.count) / total).formatted(.upToOneDecimalPercent)
                     ),
                     (
                         String(
                             localized: "TITR (\(Decimal(timeInRangeType.bottomThreshold).formatted(for: units))-\(Decimal(timeInRangeType.topThreshold).formatted(for: units)))"
                         ),
-                        formatPercentage(Decimal(tight) / total * 100)
+                        (Decimal(tight) / total).formatted(.upToOneDecimalPercent)
                     ),
                     (String(localized: "Average"), average.formatted(for: units)),
                     (String(localized: "Median"), median.formatted(for: units)),
@@ -349,11 +349,11 @@ struct GlucoseSectorChart: View {
                         String(
                             localized: "Low (\(Decimal(54).formatted(for: units))-\(Decimal(timeInRangeType.bottomThreshold).formatted(for: units)))"
                         ),
-                        formatPercentage(Decimal(low) / total * 100)
+                        (Decimal(low) / total).formatted(.upToOneDecimalPercent)
                     ),
                     (
                         String(localized: "Very Low (<\(Decimal(54).formatted(for: units)))"),
-                        formatPercentage(Decimal(veryLow) / total * 100)
+                        (Decimal(veryLow) / total).formatted(.upToOneDecimalPercent)
                     ),
                     (String(localized: "Average"), average.formatted(for: units)),
                     (String(localized: "Median"), median.formatted(for: units)),
@@ -361,20 +361,6 @@ struct GlucoseSectorChart: View {
                 ]
             )
         }
-    }
-
-    /// Formats a percentage value to a string with one decimal place.
-    /// - Parameter value: A decimal value representing the percentage.
-    /// - Returns: A formatted percentage string
-    private func formatPercentage(_ value: Decimal, tight: Bool = false) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .percent
-        formatter.minimumFractionDigits = value == 100 ? 0 : 1
-        formatter.maximumFractionDigits = value == 100 ? 0 : 1
-        if tight {
-            formatter.positiveSuffix = "%"
-        }
-        return formatter.string(from: NSDecimalNumber(decimal: value / 100)) ?? "0%"
     }
 
     /// Calculates statistical values for a given array of glucose readings.

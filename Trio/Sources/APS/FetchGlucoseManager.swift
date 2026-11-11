@@ -337,10 +337,9 @@ final class BaseFetchGlucoseManager: FetchGlucoseManager, Injectable {
         }
 
         if filtered.isNotEmpty {
-            debug(.cgm, "New glucose found")
+            debug(.cgm, "Storing \(filtered.count) new glucose readings")
             try await glucoseStorage.storeGlucose(filtered)
         }
-        debug(.cgm, "Storing \(filtered.count) new glucose readings")
 
         // Smooth after calibrations and backfill too, not only after new readings
         if settingsManager.settings.smoothGlucose, calibrations.isNotEmpty || newGlucose.isNotEmpty {

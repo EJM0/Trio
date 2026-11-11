@@ -77,19 +77,6 @@ extension Treatments {
             return formatter
         }
 
-        private var gluoseFormatter: NumberFormatter {
-            let formatter = NumberFormatter()
-            formatter.numberStyle = .decimal
-            if state.units == .mmolL {
-                formatter.maximumIntegerDigits = 2
-                formatter.maximumFractionDigits = 1
-            } else {
-                formatter.maximumIntegerDigits = 3
-                formatter.maximumFractionDigits = 0
-            }
-            return formatter
-        }
-
         private var fractionDigits: Int {
             if state.units == .mmolL {
                 return 1
@@ -696,7 +683,7 @@ extension Treatments {
             // Scanned carbs are carbs, so this goes through the same path as typed macros and
             // follows an already accepted recommendation.
             debug(
-                .bolus,
+                .bolusState,
                 "syncScannedAmounts: carbs=\(state.carbs) scannedCarbs=\(state.scannedCarbs) totalCarbs=\(state.carbs + state.scannedCarbs)"
             )
             Task { @MainActor in

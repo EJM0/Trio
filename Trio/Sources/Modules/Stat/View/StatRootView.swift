@@ -483,10 +483,6 @@ extension Stat {
             } else {
                 timeInRangeCard
 
-                if !isGlucoseDaySelected, !state.selectedGlucoseChartType.spansDays {
-                    glucoseStatsCard
-                }
-
                 if state.selectedGlucoseChartType == .glycemiaRiskIndex {
                     StatCard {
                         GRIExplanationView(result: GRICalculator.calculate(
@@ -494,41 +490,47 @@ extension Stat {
                         ), units: state.units)
                     }
                 } else {
-                    HStack {
-                        var hintText: String {
-                            switch state.selectedGlucoseChartType {
-                            case .percentileByTime:
-                                String(
-                                    localized: "Tap and hold the AGP graph, or tap a segment of the Time-in-Range bar, to reveal more details."
-                                )
-                            case .distributionByTime:
-                                String(localized: "Tap a segment of the Time-in-Range bar to reveal more details.")
-                            case .percentileByDay:
-                                String(
-                                    localized: "Tap a percentile or tap and hold a bar to reveal more details. Swipe to scroll through time."
-                                )
-                            case .distributionByDay:
-                                String(
-                                    localized: "Tap and hold a bar in the chart to reveal more details. Swipe to scroll through time."
-                                )
-                            case .glycemiaRiskIndex:
-                                ""
-                            }
+                    if !isGlucoseDaySelected, !state.selectedGlucoseChartType.spansDays {
+                        glucoseStatsCard
+                    }
+
+                    var hintText: String? {
+                        switch state.selectedGlucoseChartType {
+                        case .glycemiaRiskIndex:
+                            nil
+                        case .percentileByTime:
+                            String(
+                                localized: "Tap and hold the AGP graph, or tap a segment of the Time-in-Range bar, to reveal more details."
+                            )
+                        case .distributionByTime:
+                            String(localized: "Tap a segment of the Time-in-Range bar to reveal more details.")
+                        case .percentileByDay:
+                            String(
+                                localized: "Tap a percentile or tap and hold a bar to reveal more details. Swipe to scroll through time."
+                            )
+                        case .distributionByDay:
+                            String(
+                                localized: "Tap and hold a bar in the chart to reveal more details. Swipe to scroll through time."
+                            )
                         }
-                        Image(systemName: "hand.draw.fill")
-                            .foregroundStyle(Color.primary)
-                            .padding(.leading)
-                        VStack(alignment: .leading) {
-                            Text(hintText)
-                            // Only while the day picker is on screen — it is the
-                            // thing the gesture acts on.
-                            if isDayPickerVisible {
-                                Text("Tap and hold the selected date to return to today.")
+                    }
+                    if let hintText {
+                        HStack {
+                            Image(systemName: "hand.draw.fill")
+                                .foregroundStyle(Color.primary)
+                                .padding(.leading)
+                            VStack(alignment: .leading) {
+                                Text(hintText)
+                                // Only while the day picker is on screen — it is the
+                                // thing the gesture acts on.
+                                if isDayPickerVisible {
+                                    Text("Tap and hold the selected date to return to today.")
+                                }
                             }
-                        }
-                        .foregroundStyle(Color.secondary)
-                        .padding(.trailing)
-                    }.font(.footnote)
+                            .foregroundStyle(Color.secondary)
+                            .padding(.trailing)
+                        }.font(.footnote)
+                    }
                 }
             }
         }

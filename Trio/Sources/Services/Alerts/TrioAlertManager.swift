@@ -194,18 +194,18 @@ final class BaseTrioAlertManager: TrioAlertManager, Injectable {
             // AlarmKit pierces silent/Focus and survives app suspension.
             if alarmScheduler == nil { alarmScheduler = CriticalAlertAlarmScheduler() }
             let scheduled = alarmScheduler?.scheduleAlarm(for: alert) { [weak self] in
-                Task { @MainActor in self?.playAudioFallback(soundNamed: soundName, playback: playback, for: alert.identifier) }
+                Task { @MainActor in self?.playAudioFallback(soundNamed: soundName, for: alert.identifier, playback: playback) }
             } ?? false
             guard !scheduled else { return }
             // Fallback: in-process audio. Only sounds while Trio is running.
-            playAudioFallback(soundNamed: soundName, playback: playback, for: alert.identifier)
+            playAudioFallback(soundNamed: soundName, for: alert.identifier, playback: playback)
         }
     }
 
     @MainActor private func playAudioFallback(
         soundNamed soundName: String,
-        playback: AlarmSoundPlayback = .untilAcknowledged,
-        for identifier: Alert.Identifier
+        for identifier: Alert.Identifier,
+        playback: AlarmSoundPlayback = .untilAcknowledged
     ) {
         if criticalAudioPlayer == nil { criticalAudioPlayer = CriticalAlertAudioPlayer() }
         criticalAudioOwner = identifier

@@ -225,13 +225,10 @@ final class BaseUserNotificationsManager: NSObject, UserNotificationsManager, In
     func requestNotificationPermissions(completion: @escaping (Bool) -> Void) {
         debug(.alerts, "Requesting notification permission")
         requestAuthorizationPreferringCriticalAlerts { granted in
-            if granted {
-                info(.alerts, "Notification permission granted")
-                DispatchQueue.main.async {
-                    completion(granted)
-                }
-            } else {
-                warning(.alerts, "Notification permission not granted")
+            guard granted else { return }
+            info(.alerts, "Notification permission granted")
+            DispatchQueue.main.async {
+                completion(granted)
             }
         }
     }

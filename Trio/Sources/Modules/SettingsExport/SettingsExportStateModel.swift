@@ -1062,8 +1062,8 @@ extension SettingsExport {
                                     category: category,
                                     subcategory: presetName,
                                     name: String(localized: "Basal Rate Adjustment"),
-                                    value: String(format: "%.0f%%", preset.percentage),
-                                    unit: ""
+                                    value: String(format: "%.0f", preset.percentage),
+                                    unit: "%"
                                 ))
 
                                 processedOverridePresets.append(.init(
