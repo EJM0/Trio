@@ -30,15 +30,15 @@ struct TrioMainWatchView: View {
         return now.timeIntervalSince(newestReading) > 6 * 60
     }
 
+    /// IOB, COB and the buttons go by the phone's state: dated by the phone's newest reading (the watch's own don't
+    /// count), or by the last update when there is none. The extra minute covers the next reading's delivery;
+    /// unchanged messages are not resent, so the last update alone would go stale.
     var isWatchStateDated: Bool {
-        // If `lastWatchStateUpdate` is nil, treat as "dated"
-        guard let lastUpdateTimestamp = state.lastWatchStateUpdate else {
-            return true
+        if let phoneNewestReading = state.phoneNewestReading {
+            return now.timeIntervalSince(phoneNewestReading) > 6 * 60
         }
-        let now = Date().timeIntervalSince1970
-        let secondsSinceUpdate = now - lastUpdateTimestamp
-        // Return true if last update older than 5 min, so 1 loop cycle
-        return secondsSinceUpdate > 5 * 60
+        guard let lastUpdateTimestamp = state.lastWatchStateUpdate else { return true }
+        return now.timeIntervalSince1970 - lastUpdateTimestamp > 5 * 60
     }
 
     /// Left of the bubble: the phone while it syncs; the watch with waves while its link to the sensor is up; the

@@ -1367,6 +1367,9 @@
     "This build of Trio can't send reports. Please share your logs on Discord or Facebook instead." : {
 
     },
+    "Tidepool Login Required" : {
+
+    },
     "Title (optional)" : {
 
     },
@@ -1508,6 +1511,9 @@
 
     },
     "Up to %lld screenshots or photos." : {
+
+    },
+    "Uploads to Tidepool are paused. Tap to log in." : {
 
     },
     "You've sent several reports today. Please try again tomorrow." : {
