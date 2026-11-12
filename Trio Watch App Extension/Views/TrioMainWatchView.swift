@@ -23,6 +23,13 @@ struct TrioMainWatchView: View {
 
     /// Ticks the bubble's staleness and the switch to the watch's own readings.
     @State private var now = Date()
+    private static let ticker = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
+
+    /// The bubble goes stale by reading age.
+    private var isReadingDated: Bool {
+        guard let newestReading = state.glucoseValues.last?.date else { return isWatchStateDated }
+        return now.timeIntervalSince(newestReading) > 6 * 60
+    }
 
     /// The bubble is dated by its newest reading, the watch's own included; without readings, by the last update.
     private var isReadingDated: Bool {
@@ -30,14 +37,10 @@ struct TrioMainWatchView: View {
         return now.timeIntervalSince(newestReading) > 6 * 60
     }
 
-    /// IOB, COB and the buttons go by the phone's state: dated by the phone's newest reading (the watch's own don't
-    /// count), or by the last update when there is none. The extra minute covers the next reading's delivery;
-    /// unchanged messages are not resent, so the last update alone would go stale.
+    /// IOB, COB and the buttons go by the phone's last update, so a CGM gap doesn't block treatments.
     var isWatchStateDated: Bool {
-        if let phoneNewestReading = state.phoneNewestReading {
-            return now.timeIntervalSince(phoneNewestReading) > 6 * 60
-        }
         guard let lastUpdateTimestamp = state.lastWatchStateUpdate else { return true }
+        // Return true if last update older than 5 min, so 1 loop cycle
         return now.timeIntervalSince1970 - lastUpdateTimestamp > 5 * 60
     }
 
@@ -284,7 +287,7 @@ struct TrioMainWatchView: View {
             }
         }
         .ignoresSafeArea()
-        .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { now = $0 }
+        .onReceive(Self.ticker) { now = $0 }
     }
 
     private func updateRotation(for trend: String?) {
