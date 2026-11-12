@@ -350,6 +350,7 @@ extension Stat.StateModel {
                  .percentileByDay:
                 return true
             case .distributionByTime,
+                 .glycemiaRiskIndex,
                  .percentileByTime:
                 return false
             }
@@ -363,8 +364,8 @@ extension Stat.StateModel {
                  .percentileByDay:
                 return true
             case .distributionByTime,
-                 .percentileByTime,
-                 .glycemiaRiskIndex:
+                 .glycemiaRiskIndex,
+                 .percentileByTime:
                 return false
             }
         }
@@ -442,9 +443,10 @@ extension Stat.StateModel {
 
         var id: Self { self }
 
+        /// Today is the custom range's default.
         init(_ range: HomeStatsPanelRange) {
             switch range {
-            case .today: self = .today
+            case .today: self = .custom
             case .day: self = .day
             case .week: self = .week
             case .month: self = .month
