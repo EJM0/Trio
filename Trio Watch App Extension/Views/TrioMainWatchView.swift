@@ -25,12 +25,6 @@ struct TrioMainWatchView: View {
     @State private var now = Date()
     private static let ticker = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
 
-    /// The bubble goes stale by reading age.
-    private var isReadingDated: Bool {
-        guard let newestReading = state.glucoseValues.last?.date else { return isWatchStateDated }
-        return now.timeIntervalSince(newestReading) > 6 * 60
-    }
-
     /// The bubble is dated by its newest reading, the watch's own included; without readings, by the last update.
     private var isReadingDated: Bool {
         guard let newestReading = state.glucoseValues.last?.date else { return isWatchStateDated }
