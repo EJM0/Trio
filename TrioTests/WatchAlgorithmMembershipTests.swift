@@ -17,6 +17,39 @@ import Testing
         #expect(missing.isEmpty, "Missing from the Trio Watch App target: \(missing.sorted())")
     }
 
+    /// The pure code the watch loop runs besides the algorithm: every file in `APS/WatchLoan` and these.
+    static let watchLoopSources = [
+        "Trio/Sources/Services/BolusCalculator/BolusCalculator.swift",
+        "Trio/Sources/Services/BolusSafety/BolusSafetyEvaluator.swift",
+        "Trio/Sources/Services/Alerts/GlucoseAlarmEvaluation.swift",
+        "Trio/Sources/Services/Alerts/ForecastedGlucoseEvaluator.swift",
+        "Trio/Sources/Models/GlucoseAlerts/GlucoseAlert.swift",
+        "Trio/Sources/Models/GlucoseAlerts/GlucoseAlertType.swift",
+        "Trio/Sources/Models/GlucoseAlerts/GlucoseAlertConfiguration.swift",
+        "Trio/Sources/Models/GlucoseAlerts/DayNightOptions.swift",
+        "Trio/Sources/Models/GlucoseAlerts/AlarmSoundCatalog.swift",
+        "Trio/Sources/Models/GlucoseAlerts/DeviceAlertSeverity.swift"
+    ]
+
+    @Test("Watch app compiles the loop's shared sources, Foundation and LoopKit only") func testWatchCompilesLoopSources() throws {
+        let loanDirectory = Self.repoRoot.appendingPathComponent("Trio/Sources/APS/WatchLoan")
+        let loanFiles = try FileManager.default.contentsOfDirectory(atPath: loanDirectory.path)
+            .filter { $0.hasSuffix(".swift") }
+            .map { "Trio/Sources/APS/WatchLoan/\($0)" }
+        try #require(loanFiles.count >= 4)
+        let expected = Set(loanFiles + Self.watchLoopSources)
+
+        let missing = expected.subtracting(try Self.watchAppSources())
+        #expect(missing.isEmpty, "Missing from the Trio Watch App target: \(missing.sorted())")
+
+        let allowedImports: Set<String> = ["Foundation", "LoopKit"]
+        for file in expected.sorted() {
+            let source = try String(contentsOf: Self.repoRoot.appendingPathComponent(file), encoding: .utf8)
+            let imports = source.matches(of: try Regex(#"(?m)^import (\w+)"#)).compactMap { $0[1].substring.map(String.init) }
+            #expect(Set(imports).isSubset(of: allowedImports), "\(file) imports \(imports)")
+        }
+    }
+
     /// Expands the `sources` entries and the model and helper lists of the package's `Trio` target.
     private static func packageSources() throws -> Set<String> {
         let manifest = try String(

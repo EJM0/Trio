@@ -36,6 +36,13 @@ struct WatchLoanSnapshot: Codable {
         var supportedBolusVolumes: [Double]
     }
 
+    /// A stored CGM reading before smoothing, for the watch to smooth its own readings with the phone's history.
+    struct RawReading: Codable, Equatable {
+        var id: UUID
+        var date: Date
+        var glucose: Int16
+    }
+
     struct OdometerReading: Codable, Equatable {
         var units: Double
         var at: Date
@@ -65,6 +72,9 @@ struct WatchLoanSnapshot: Codable {
     var releaseReading: OdometerReading
     var podEndsAt: Date?
     var sensorEndsAt: Date?
+    /// The phone's glucose smoothing setting, and its smoothing window (24 h of CGM readings, raw) when it is on.
+    var smoothGlucose = false
+    var smoothingWindow: [RawReading] = []
 
     var timeZone: TimeZone? { TimeZone(identifier: timeZoneIdentifier) }
 
