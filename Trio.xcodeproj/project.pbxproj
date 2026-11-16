@@ -7,6 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A7A10A000000000000000002 /* WatchLoan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A000000000000000001 /* WatchLoan.swift */; };
+		A7A10A000000000000000004 /* WatchLoanMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A000000000000000003 /* WatchLoanMessage.swift */; };
+		A7A10A000000000000000006 /* WatchLoanState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A000000000000000005 /* WatchLoanState.swift */; };
+		A7A10A000000000000000008 /* WatchLoanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A000000000000000007 /* WatchLoanStore.swift */; };
+		A7A10A00000000000000000A /* WatchLoanGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A000000000000000009 /* WatchLoanGate.swift */; };
+		A7A10A00000000000000000E /* LoanWorld.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A00000000000000000D /* LoanWorld.swift */; };
+		A7A10A000000000000000010 /* WatchLoanFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A00000000000000000F /* WatchLoanFlowTests.swift */; };
+		A7A10A000000000000000014 /* WatchLoanInvariantTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A000000000000000013 /* WatchLoanInvariantTests.swift */; };
+		A7A10A000000000000000016 /* WatchLoanPhoneDecisionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A000000000000000015 /* WatchLoanPhoneDecisionTests.swift */; };
+		A7A10A000000000000000018 /* WatchLoanStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A000000000000000017 /* WatchLoanStoreTests.swift */; };
+		A7A10A00000000000000001A /* WatchLoanWatchDecisionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A000000000000000019 /* WatchLoanWatchDecisionTests.swift */; };
 		477F2885616B2839D22FF0A4 /* PumpStatusStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C7EA1FA38A1728182C949F4 /* PumpStatusStorageTests.swift */; };
 		3A627606ABC518974CC60B55 /* PumpStatusStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0E3EA2038BADFBCBC8801A4 /* PumpStatusStorage.swift */; };
 		4AB6E54D1659F6137A70BF74 /* PumpStatusStored+helper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EE4D8D4BA1BD69A89CA1C13 /* PumpStatusStored+helper.swift */; };
@@ -1252,6 +1263,17 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A7A10A000000000000000001 /* WatchLoan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoan.swift; sourceTree = "<group>"; };
+		A7A10A000000000000000003 /* WatchLoanMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanMessage.swift; sourceTree = "<group>"; };
+		A7A10A000000000000000005 /* WatchLoanState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanState.swift; sourceTree = "<group>"; };
+		A7A10A000000000000000007 /* WatchLoanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanStore.swift; sourceTree = "<group>"; };
+		A7A10A000000000000000009 /* WatchLoanGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanGate.swift; sourceTree = "<group>"; };
+		A7A10A00000000000000000D /* LoanWorld.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoanWorld.swift; sourceTree = "<group>"; };
+		A7A10A00000000000000000F /* WatchLoanFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanFlowTests.swift; sourceTree = "<group>"; };
+		A7A10A000000000000000013 /* WatchLoanInvariantTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanInvariantTests.swift; sourceTree = "<group>"; };
+		A7A10A000000000000000015 /* WatchLoanPhoneDecisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanPhoneDecisionTests.swift; sourceTree = "<group>"; };
+		A7A10A000000000000000017 /* WatchLoanStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanStoreTests.swift; sourceTree = "<group>"; };
+		A7A10A000000000000000019 /* WatchLoanWatchDecisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanWatchDecisionTests.swift; sourceTree = "<group>"; };
 		5C7EA1FA38A1728182C949F4 /* PumpStatusStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PumpStatusStorageTests.swift; sourceTree = "<group>"; };
 		A0E3EA2038BADFBCBC8801A4 /* PumpStatusStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PumpStatusStorage.swift; sourceTree = "<group>"; };
 		1EE4D8D4BA1BD69A89CA1C13 /* PumpStatusStored+helper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PumpStatusStored+helper.swift"; sourceTree = "<group>"; };
@@ -2459,6 +2481,30 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		A7A10A00000000000000001B /* WatchLoan */ = {
+			isa = PBXGroup;
+			children = (
+				A7A10A000000000000000001 /* WatchLoan.swift */,
+				A7A10A000000000000000003 /* WatchLoanMessage.swift */,
+				A7A10A000000000000000005 /* WatchLoanState.swift */,
+				A7A10A000000000000000007 /* WatchLoanStore.swift */,
+			);
+			path = WatchLoan;
+			sourceTree = "<group>";
+		};
+		A7A10A00000000000000001C /* WatchLoanTests */ = {
+			isa = PBXGroup;
+			children = (
+				A7A10A00000000000000000D /* LoanWorld.swift */,
+				A7A10A00000000000000000F /* WatchLoanFlowTests.swift */,
+				A7A10A000000000000000013 /* WatchLoanInvariantTests.swift */,
+				A7A10A000000000000000015 /* WatchLoanPhoneDecisionTests.swift */,
+				A7A10A000000000000000017 /* WatchLoanStoreTests.swift */,
+				A7A10A000000000000000019 /* WatchLoanWatchDecisionTests.swift */,
+			);
+			path = WatchLoanTests;
+			sourceTree = "<group>";
+		};
 		0610F7D6D2EC00E3BA1569F0 /* ConfigEditor */ = {
 			isa = PBXGroup;
 			children = (
@@ -3084,6 +3130,8 @@
 				CE95BF562BA5F5FE00DC3DE3 /* PluginManager.swift */,
 				3811DF0F25CAAAE200A708ED /* APSManager.swift */,
 				38BF021E25E7F0DE00579895 /* DeviceDataManager.swift */,
+				A7A10A000000000000000009 /* WatchLoanGate.swift */,
+				A7A10A00000000000000001B /* WatchLoan */,
 				38DAB289260D349500F74C1A /* FetchGlucoseManager.swift */,
 				38192E06261BA9960094D973 /* FetchTreatmentsManager.swift */,
 				3856933F270B57A00002C50D /* CGM */,
@@ -3540,6 +3588,7 @@
 				A1EF5D9A309CEF01007282CC /* DurationFormattingTests.swift */,
 				A1A0EDF43097CE470028A032 /* PercentFormattingTests.swift */,
 				DDDD0FFD2F4E231600F9C645 /* Mocks */,
+				A7A10A00000000000000001C /* WatchLoanTests */,
 				DDDD0FFA2F4E22C000F9C645 /* GlucoseSmoothingTests.swift */,
 				CA0924000000000000000005 /* GRICalculatorTests.swift */,
 				DDDD0FFC2F4E22C000F9C645 /* GlucoseNativeConversionTests.swift */,
@@ -5813,6 +5862,11 @@
 				19B0EF2128F6D66200069496 /* Statistics.swift in Sources */,
 				DDF847E82C5DABA30049BB3B /* WatchConfigAppleWatchView.swift in Sources */,
 				3811DF1025CAAAE200A708ED /* APSManager.swift in Sources */,
+				A7A10A000000000000000002 /* WatchLoan.swift in Sources */,
+				A7A10A000000000000000004 /* WatchLoanMessage.swift in Sources */,
+				A7A10A000000000000000006 /* WatchLoanState.swift in Sources */,
+				A7A10A000000000000000008 /* WatchLoanStore.swift in Sources */,
+				A7A10A00000000000000000A /* WatchLoanGate.swift in Sources */,
 				3870FF4725EC187A0088248F /* BloodGlucose.swift in Sources */,
 				C1A0DE000000000000000000 /* BloodGlucose+LoopKit.swift in Sources */,
 				C1A0DE000000000000000002 /* PumpHistoryEvent+LoopKit.swift in Sources */,
@@ -6595,6 +6649,12 @@
 				BD11A001000000000000A00E /* DanaKitAlertEmissionTests.swift in Sources */,
 				BD11A001000000000000A00D /* AlertCatalogRegistryEntriesTests.swift in Sources */,
 				BD11A001000000000000A00C /* NotLoopingMonitorTests.swift in Sources */,
+				A7A10A00000000000000000E /* LoanWorld.swift in Sources */,
+				A7A10A000000000000000010 /* WatchLoanFlowTests.swift in Sources */,
+				A7A10A000000000000000014 /* WatchLoanInvariantTests.swift in Sources */,
+				A7A10A000000000000000016 /* WatchLoanPhoneDecisionTests.swift in Sources */,
+				A7A10A000000000000000018 /* WatchLoanStoreTests.swift in Sources */,
+				A7A10A00000000000000001A /* WatchLoanWatchDecisionTests.swift in Sources */,
 				BD11A001000000000000A00B /* TrioModalAlertSchedulerTests.swift in Sources */,
 				BD11A001000000000000A00A /* GlucoseAlertCoordinatorTests.swift in Sources */,
 				BD11A011000000000000A01A /* CGMManagerAlertOwnershipTests.swift in Sources */,
