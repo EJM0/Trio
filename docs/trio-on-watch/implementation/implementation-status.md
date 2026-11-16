@@ -991,10 +991,10 @@ SwiftFormat reformatted `Trio Watch App Tests/Unit Tests.swift` again; reverted.
 | M4E-03 | The ledger keeps `lastForeignSessionHandled`, saved after the audit. `start()` and every kit report compare it with the kit's persisted `foreignSessionDetectedAt`. `DeviceDataManager`'s dedupe is in memory, for logging only. | `foreignSessionDurable` |
 | M4C-01 | Not the single path: the gather is still separate from `createProfiles`/`autosense`/`determineBasal`. `gatheredInputsMatchProduction` now also runs the phone's own pipeline on the same store and clock and compares every stage directly (16 scenarios), besides the goldens. Making the live pipeline gather through `orefInputs` rewires file writes, the iob-on-throw order and the simulation path, which is parity-sensitive and outside M4; flagged for the maintainer. | `gatheredInputsMatchProduction` |
 | V3-1 | Record batches of any epoch are merged by sync identifier (already so); only control messages are epoch-filtered. | `olderEpochRecords` |
-| V3-6 | A faulted pod (`deliveredUnitsAreFinal`) or a delivered total below the last reading: the audit books nothing and alerts "Pod Total Not Checked". | `untrustworthyTotal` ×2 |
+| V3-6, M4R-01 | A faulted pod (`deliveredUnitsAreFinal`) is audited with its final total and no bolus remainder; it's skipped only when that reading predates the window. A delivered total below the last reading books nothing and alerts "Pod Total Not Checked" (copy says insulin on board may read too low). | `faultedPod`, `decreasingTotal` |
 | V3-7 | `NightscoutManager` skips the device status (IOB, loop, pump) while the gate says the phone isn't the owner. | `nightscoutStatus` |
 | M4E-06 | Whole excess booked past the band. | audit `tolerance` |
-| M4E-11 | The host re-issues the silence steps from the same anchor on a snooze change, as `NotLoopingMonitor` does. | not tested |
+| M4E-11 | The host re-issues the silence steps from the same anchor on a snooze change, as `NotLoopingMonitor` does. | `silenceStepsAfterSnooze` |
 | M4C-02 | Audits and recomputes run one at a time (task chain); each reads its entry from the ledger. | coordinator suite |
 | M4C-03 | A message id is marked seen after its event ran. | `dedupe` |
 | M4C-04 | The pump-idle wait is cancelled at the timeout, and `awaitPumpIdle` stops polling when cancelled. Timeout injectable. | `pumpIdleTimeout` |
@@ -1012,3 +1012,10 @@ SwiftFormat reformatted `Trio Watch App Tests/Unit Tests.swift` again; reverted.
 New strings: "No update from Trio on Watch for \(minutes) min. Check your watch." (now interpolated), "Trio on Watch recorded \(amount) more insulin …", "Your pod delivered \(amount) that Trio on Watch didn't record …", "Pod Total Not Checked", "Trio couldn't check your pod's delivered insulin against your history, so it added nothing. Check your insulin history."
 
 Tests after the fixes (same simulator): loan, decision, flow, invariant and `NotLoopingMonitor` suites 136 / 136 (1 known issue, the double's control). Full `Trio Tests`: 1216 total, 1169 passed, 0 failed, 46 skipped, 1 expected failure. `Trio` with `TRIO_ON_WATCH=YES` builds.
+
+### M4 re-review follow-ups (2026-11-16)
+
+- M4R-01: faulted pod audited with its final total (above).
+- Equivalence: `gatheredInputsAcrossDST` runs the non-flat time-of-day scenarios a few hours after each Europe/Berlin DST change (the pod's and phone's zone in the tests; the 24 h window spans the change) through the snapshot encode/decode round trip and compares every stage with the phone's own pipeline on the same store and clock. The goldens scenarios already went through the round trip.
+- Snooze re-issue of the watch-silence steps tested (`silenceStepsAfterSnooze`).
+- Full `Trio Tests`: 1219 total, 1172 passed, 0 failed, 46 skipped, 1 expected failure.
