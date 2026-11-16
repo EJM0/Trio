@@ -239,7 +239,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     }
 
     private func endRefusal() -> LoanRefusal? {
-        if intent != nil { return .unconfirmedCommand }
+        if !intents.isEmpty { return .unconfirmedCommand }
         guard let pump else { return nil }
         if pump.status.deliveryIsUncertain { return .deliveryUncertain }
         if pump.status.bolusState != .noBolus { return .bolusRunning }
