@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C4A00080000000000000002 /* OrefInputsSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00080000000000000001 /* OrefInputsSelectionTests.swift */; };
 		0C4A00070000000000000002 /* OrefRunStageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00070000000000000001 /* OrefRunStageTests.swift */; };
 		0C4A00060000000000000002 /* OrefInputs+Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00060000000000000001 /* OrefInputs+Selection.swift */; };
 		0C4A00050000000000000002 /* OrefRunCharacterizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00050000000000000001 /* OrefRunCharacterizationTests.swift */; };
@@ -1261,6 +1262,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0C4A00080000000000000001 /* OrefInputsSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrefInputsSelectionTests.swift; sourceTree = "<group>"; };
 		0C4A00070000000000000001 /* OrefRunStageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrefRunStageTests.swift; sourceTree = "<group>"; };
 		0C4A00060000000000000001 /* OrefInputs+Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrefInputs+Selection.swift"; sourceTree = "<group>"; };
 		0C4A00050000000000000001 /* OrefRunCharacterizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrefRunCharacterizationTests.swift; sourceTree = "<group>"; };
@@ -2492,6 +2494,7 @@
 		0C4A00010000000000000001 /* OpenAPSCharacterization */ = {
 			isa = PBXGroup;
 			children = (
+				0C4A00080000000000000001 /* OrefInputsSelectionTests.swift */,
 				0C4A00050000000000000001 /* OrefRunCharacterizationTests.swift */,
 				0C4A00010000000000000004 /* OrefCharacterizationTests.swift */,
 				0C4A00010000000000000002 /* OrefCharacterizationScenarios.swift */,
@@ -6560,6 +6563,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C4A00080000000000000002 /* OrefInputsSelectionTests.swift in Sources */,
 				0C4A00070000000000000002 /* OrefRunStageTests.swift in Sources */,
 				0C4A00050000000000000002 /* OrefRunCharacterizationTests.swift in Sources */,
 				0C4A00010000000000000005 /* OrefCharacterizationTests.swift in Sources */,
