@@ -200,6 +200,7 @@ import Testing
 
 /// `microBolusAllowed` against trio-oref's determine-basal.js, run by `js/determine-basal-jsc.js` under
 /// JavaScriptCore's `jsc` from the inputs this suite records. Each scenario runs with SMBs allowed and not.
+/// JS gets `outputs.profile`, without the injected `supportedBasalRates` and `suspendOnly`; neither matters at these rates.
 @Suite(
     "OrefRun micro bolus flag: oref JS parity",
     .serialized,
@@ -328,7 +329,8 @@ import Testing
             units: determination.units,
             reason: determination.reason
         )
-        // JS gets the port's unrounded meal COB and prints it raw; the port prints it rounded
+        // JS gets the port's unrounded meal COB and prints it raw; the port prints it rounded.
+        // Whether the port should round meal COB like meal/total.js is open (M1b re-review R2-02)
         js.reason = js.reason.replacingOccurrences(of: #"COB: [0-9.]+,"#, with: "COB: _,", options: .regularExpression)
         swift.reason = swift.reason.replacingOccurrences(of: #"COB: [0-9.]+,"#, with: "COB: _,", options: .regularExpression)
         #expect(swift == js)
