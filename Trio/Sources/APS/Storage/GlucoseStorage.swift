@@ -47,9 +47,11 @@ final class BaseGlucoseStorage: GlucoseStorage, Injectable {
     }
 
     private let makeContext: () -> NSManagedObjectContext
+    private let now: () -> Date
 
-    init(resolver: Resolver, contextProvider: (() -> NSManagedObjectContext)? = nil) {
+    init(resolver: Resolver, contextProvider: (() -> NSManagedObjectContext)? = nil, now: @escaping () -> Date = Date.init) {
         makeContext = contextProvider ?? { CoreDataStack.shared.newTaskContext() }
+        self.now = now
         injectServices(resolver)
     }
 
@@ -434,7 +436,7 @@ final class BaseGlucoseStorage: GlucoseStorage, Injectable {
     /// uses the default 24h because its sensitivity algorithm needs that full window.
     func getGlucoseForAlgorithm(shouldSmoothGlucose: Bool, fetchHours: Decimal) async throws -> [BloodGlucose] {
         let context = makeContext()
-        let cutoff = OrefInputs.glucoseStart(hours: fetchHours, now: Date())
+        let cutoff = OrefInputs.glucoseStart(hours: fetchHours, now: now())
 
         let results = try await CoreDataStack.shared.fetchEntitiesAsync(
             ofType: GlucoseStored.self,

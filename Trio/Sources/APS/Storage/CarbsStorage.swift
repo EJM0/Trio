@@ -45,9 +45,11 @@ final class BaseCarbsStorage: CarbsStorage, Injectable {
     }
 
     private let makeContext: () -> NSManagedObjectContext
+    private let now: () -> Date
 
-    init(resolver: Resolver, contextProvider: (() -> NSManagedObjectContext)? = nil) {
+    init(resolver: Resolver, contextProvider: (() -> NSManagedObjectContext)? = nil, now: @escaping () -> Date = Date.init) {
         makeContext = contextProvider ?? { CoreDataStack.shared.newTaskContext() }
+        self.now = now
         injectServices(resolver)
     }
 
@@ -441,7 +443,7 @@ final class BaseCarbsStorage: CarbsStorage, Injectable {
             onContext: context,
             predicate: NSPredicate(
                 format: "date >= %@",
-                OrefInputs.carbsStart(now: Date(), timeZone: TimeZone.current) as NSDate
+                OrefInputs.carbsStart(now: now(), timeZone: TimeZone.current) as NSDate
             ),
             key: "date",
             ascending: false

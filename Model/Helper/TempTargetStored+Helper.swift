@@ -6,8 +6,10 @@ extension NSPredicate {
         NSPredicate(format: "isPreset == %@", true as NSNumber)
     }
 
-    static var lastActiveTempTarget: NSPredicate {
-        let date = Date.oneDayAgo
+    static var lastActiveTempTarget: NSPredicate { lastActiveTempTarget(now: Date()) }
+
+    static func lastActiveTempTarget(now: Date) -> NSPredicate {
+        let date = Calendar.current.date(byAdding: .day, value: -1, to: now)!
         return NSPredicate(
             format: "date >= %@ AND enabled == %@",
             date as NSDate,

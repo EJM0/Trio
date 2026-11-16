@@ -29,9 +29,11 @@ final class BaseTDDStorage: TDDStorage, Injectable {
     @Injected() private var storage: FileStorage!
 
     private let makeContext: () -> NSManagedObjectContext
+    private let now: () -> Date
 
-    init(resolver: Resolver, contextProvider: (() -> NSManagedObjectContext)? = nil) {
+    init(resolver: Resolver, contextProvider: (() -> NSManagedObjectContext)? = nil, now: @escaping () -> Date = Date.init) {
         makeContext = contextProvider ?? { CoreDataStack.shared.newTaskContext() }
+        self.now = now
         injectServices(resolver)
     }
 
@@ -249,16 +251,16 @@ final class BaseTDDStorage: TDDStorage, Injectable {
     func hasSufficientTDD() async throws -> Bool {
         let context = makeContext()
         context.name = "hasSufficientTDD"
-        return try await BaseTDDStorage.hasSufficientTDD(context: context)
+        return try await BaseTDDStorage.hasSufficientTDD(context: context, now: now())
     }
 
     /// internal function with context exposed to enable testing
-    static func hasSufficientTDD(context: NSManagedObjectContext) async throws -> Bool {
+    static func hasSufficientTDD(context: NSManagedObjectContext, now: Date) async throws -> Bool {
         try await context.perform {
             let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "TDDStored")
             fetchRequest.predicate = NSPredicate(
                 format: "date > %@ AND total > 0",
-                OrefInputs.sufficientTDDStart(now: Date()) as NSDate
+                OrefInputs.sufficientTDDStart(now: now) as NSDate
             )
             fetchRequest.resultType = .countResultType
 

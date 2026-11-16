@@ -77,7 +77,7 @@ import Testing
         rows.append((OrefInputs.sufficientTDDStart(now: now).addingTimeInterval(-60), 30))
         try await insertTDD(rows)
 
-        let phone = try await BaseTDDStorage.hasSufficientTDD(context: stack.newTaskContext())
+        let phone = try await BaseTDDStorage.hasSufficientTDD(context: stack.newTaskContext(), now: now)
         let selected = OrefInputs.hasSufficientTDD(rows.map { OrefInputs.TDDRow(date: $0.date, total: $0.total) }, now: now)
 
         #expect(phone == selected)
