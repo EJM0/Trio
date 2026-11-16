@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A7A40A000000000000000012 /* WatchLoanAuditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A000000000000000011 /* WatchLoanAuditTests.swift */; };
+		A7A40A000000000000000002 /* WatchLoanSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A000000000000000001 /* WatchLoanSnapshot.swift */; };
+		A7A40A000000000000000004 /* WatchLoanRecords.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A000000000000000003 /* WatchLoanRecords.swift */; };
+		A7A40A000000000000000006 /* WatchLoanAudit.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A000000000000000005 /* WatchLoanAudit.swift */; };
 		0C4A00080000000000000002 /* OrefInputsSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00080000000000000001 /* OrefInputsSelectionTests.swift */; };
 		0C4A00070000000000000002 /* OrefRunStageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00070000000000000001 /* OrefRunStageTests.swift */; };
 		0C4A00060000000000000002 /* OrefInputs+Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00060000000000000001 /* OrefInputs+Selection.swift */; };
@@ -1364,6 +1368,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A7A40A000000000000000011 /* WatchLoanAuditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanAuditTests.swift; sourceTree = "<group>"; };
+		A7A40A000000000000000001 /* WatchLoanSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanSnapshot.swift; sourceTree = "<group>"; };
+		A7A40A000000000000000003 /* WatchLoanRecords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanRecords.swift; sourceTree = "<group>"; };
+		A7A40A000000000000000005 /* WatchLoanAudit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanAudit.swift; sourceTree = "<group>"; };
 		0C4A00080000000000000001 /* OrefInputsSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrefInputsSelectionTests.swift; sourceTree = "<group>"; };
 		0C4A00070000000000000001 /* OrefRunStageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrefRunStageTests.swift; sourceTree = "<group>"; };
 		0C4A00060000000000000001 /* OrefInputs+Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrefInputs+Selection.swift"; sourceTree = "<group>"; };
@@ -2635,6 +2643,9 @@
 				A7A10A000000000000000003 /* WatchLoanMessage.swift */,
 				A7A10A000000000000000005 /* WatchLoanState.swift */,
 				A7A10A000000000000000007 /* WatchLoanStore.swift */,
+				A7A40A000000000000000001 /* WatchLoanSnapshot.swift */,
+				A7A40A000000000000000003 /* WatchLoanRecords.swift */,
+				A7A40A000000000000000005 /* WatchLoanAudit.swift */,
 			);
 			path = WatchLoan;
 			sourceTree = "<group>";
@@ -2648,6 +2659,7 @@
 				A7A10A000000000000000013 /* WatchLoanInvariantTests.swift */,
 				A7A10A000000000000000015 /* WatchLoanPhoneDecisionTests.swift */,
 				A7A10A000000000000000017 /* WatchLoanStoreTests.swift */,
+				A7A40A000000000000000011 /* WatchLoanAuditTests.swift */,
 				A7A10A000000000000000019 /* WatchLoanWatchDecisionTests.swift */,
 			);
 			path = WatchLoanTests;
@@ -6032,6 +6044,9 @@
 				A7A10A000000000000000004 /* WatchLoanMessage.swift in Sources */,
 				A7A10A000000000000000006 /* WatchLoanState.swift in Sources */,
 				A7A10A000000000000000008 /* WatchLoanStore.swift in Sources */,
+				A7A40A000000000000000002 /* WatchLoanSnapshot.swift in Sources */,
+				A7A40A000000000000000004 /* WatchLoanRecords.swift in Sources */,
+				A7A40A000000000000000006 /* WatchLoanAudit.swift in Sources */,
 				A7A10A00000000000000000A /* WatchLoanGate.swift in Sources */,
 				3870FF4725EC187A0088248F /* BloodGlucose.swift in Sources */,
 				C1A0DE000000000000000000 /* BloodGlucose+LoopKit.swift in Sources */,
@@ -6832,6 +6847,7 @@
 				A7A10A000000000000000014 /* WatchLoanInvariantTests.swift in Sources */,
 				A7A10A000000000000000016 /* WatchLoanPhoneDecisionTests.swift in Sources */,
 				A7A10A000000000000000018 /* WatchLoanStoreTests.swift in Sources */,
+				A7A40A000000000000000012 /* WatchLoanAuditTests.swift in Sources */,
 				A7A10A00000000000000001A /* WatchLoanWatchDecisionTests.swift in Sources */,
 				BD11A001000000000000A00B /* TrioModalAlertSchedulerTests.swift in Sources */,
 				BD11A001000000000000A00A /* GlucoseAlertCoordinatorTests.swift in Sources */,
