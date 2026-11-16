@@ -97,6 +97,18 @@ import Testing
         )
     ]
 
+    /// Newest first, as fetched; minutes ago, nil for a reading without a date
+    static let glucoseCases: [String: [(minutesAgo: Double?, glucose: Int16)]] = [
+        "none": [],
+        "one-fresh": [(2, 120)],
+        "window-of-four": [(0.5, 140), (5.5, 132), (10.5, 125), (15.5, 118)],
+        "edge-inside": [(1, 150), (20 - 10.0 / 60, 130)],
+        "edge-outside": [(1, 150), (20 + 10.0 / 60, 130)],
+        "latest-stale": [(25, 99), (30, 101), (35, 104)],
+        "latest-without-date": [(nil, 77), (3, 90), (8, 95)],
+        "falling": [(1, 80), (6, 95), (11, 110)]
+    ]
+
     static var goldenURL: URL {
         URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("goldens/bolus-calculator.json")
     }
@@ -151,19 +163,8 @@ import Testing
         let context = stack.newTaskContext()
         let manager = Self.manager()
         let now = Date()
-        // newest first, as fetched; minutes ago, nil for a reading without a date
-        let cases: [String: [(minutesAgo: Double?, glucose: Int16)]] = [
-            "none": [],
-            "one-fresh": [(2, 120)],
-            "window-of-four": [(0.5, 140), (5.5, 132), (10.5, 125), (15.5, 118)],
-            "edge-inside": [(1, 150), (20 - 10.0 / 60, 130)],
-            "edge-outside": [(1, 150), (20 + 10.0 / 60, 130)],
-            "latest-stale": [(25, 99), (30, 101), (35, 104)],
-            "latest-without-date": [(nil, 77), (3, 90), (8, 95)],
-            "falling": [(1, 80), (6, 95), (11, 110)]
-        ]
         var actual: [String: [String: String]] = [:]
-        for (name, readings) in cases {
+        for (name, readings) in Self.glucoseCases {
             actual[name] = await context.perform {
                 let objects = readings.map { reading -> GlucoseStored in
                     let object = GlucoseStored(context: context)
@@ -174,6 +175,34 @@ import Testing
                 let variables = manager.updateGlucoseVariables(with: objects)
                 return ["currentBG": "\(variables.currentBG)", "deltaBG": "\(variables.deltaBG)"]
             }
+        }
+        try GoldenFile.check(
+            actual,
+            at: Self.goldenURL.deletingLastPathComponent().appendingPathComponent("bolus-calculator-glucose.json")
+        )
+    }
+
+    @Test("BolusCalculator.calculate matches the golden") func pureCalculatorMatchesGolden() throws {
+        var actual: [String: [String: String]] = [:]
+        for (name, testCase) in Self.cases {
+            let now = Date()
+            actual[name] = Self.summary(
+                BolusCalculator.calculate(testCase.input(now: now), now: now, roundBolus: Self.roundDownToPodIncrement)
+            )
+        }
+        try GoldenFile.check(actual, at: Self.goldenURL)
+    }
+
+    @Test("BolusCalculator.glucoseVariables matches the golden") func pureGlucoseVariablesMatchGolden() throws {
+        let now = Date()
+        var actual: [String: [String: String]] = [:]
+        for (name, readings) in Self.glucoseCases {
+            let variables = BolusCalculator.glucoseVariables(
+                readings: readings
+                    .map { reading in (reading.minutesAgo.map { now.addingTimeInterval(-$0 * 60) }, reading.glucose) },
+                now: now
+            )
+            actual[name] = ["currentBG": "\(variables.currentBG)", "deltaBG": "\(variables.deltaBG)"]
         }
         try GoldenFile.check(
             actual,

@@ -710,6 +710,7 @@
 		BD7DA9A92AE06E9200601B20 /* BolusCalculatorStateModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD7DA9A82AE06E9200601B20 /* BolusCalculatorStateModel.swift */; };
 		BD7DA9AC2AE06EB900601B20 /* BolusCalculatorConfigRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD7DA9AB2AE06EB900601B20 /* BolusCalculatorConfigRootView.swift */; };
 		BD7DB88E2D2C4A17003D3155 /* BolusCalculationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD7DB88D2D2C4A0A003D3155 /* BolusCalculationManager.swift */; };
+		0C4B00040000000000000002 /* BolusCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4B00040000000000000001 /* BolusCalculator.swift */; };
 		BD8207C42D2B42E60023339D /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6B1A8D182B14D91600E76752 /* WidgetKit.framework */; };
 		BD8207C52D2B42E60023339D /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6B1A8D1A2B14D91600E76752 /* SwiftUI.framework */; };
 		BD8207CE2D2B42E70023339D /* Trio Watch Complication Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BD8207C32D2B42E50023339D /* Trio Watch Complication Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -1950,6 +1951,7 @@
 		BD7DA9A82AE06E9200601B20 /* BolusCalculatorStateModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BolusCalculatorStateModel.swift; sourceTree = "<group>"; };
 		BD7DA9AB2AE06EB900601B20 /* BolusCalculatorConfigRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BolusCalculatorConfigRootView.swift; sourceTree = "<group>"; };
 		BD7DB88D2D2C4A0A003D3155 /* BolusCalculationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BolusCalculationManager.swift; sourceTree = "<group>"; };
+		0C4B00040000000000000001 /* BolusCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BolusCalculator.swift; sourceTree = "<group>"; };
 		BD8207C32D2B42E50023339D /* Trio Watch Complication Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Trio Watch Complication Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD8E6B202D9036CA00ABF8FA /* OnboardingProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingProvider.swift; sourceTree = "<group>"; };
 		BD8E6B222D9036F700ABF8FA /* OnboardingDataFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingDataFlow.swift; sourceTree = "<group>"; };
@@ -4379,6 +4381,7 @@
 			isa = PBXGroup;
 			children = (
 				BD7DB88D2D2C4A0A003D3155 /* BolusCalculationManager.swift */,
+				0C4B00040000000000000001 /* BolusCalculator.swift */,
 			);
 			path = BolusCalculator;
 			sourceTree = "<group>";
@@ -6177,6 +6180,7 @@
 				DD30B9CE2E062AA300DA677C /* ForecastGenerator+Forecasts.swift in Sources */,
 				BDB8998A2C565D0C006F3298 /* CarbsGlucose+helper.swift in Sources */,
 				BD7DB88E2D2C4A17003D3155 /* BolusCalculationManager.swift in Sources */,
+				0C4B00040000000000000002 /* BolusCalculator.swift in Sources */,
 				38F37828261260DC009DB701 /* Color+Extensions.swift in Sources */,
 				BDCD47AF2C1F3F1700F8BCD5 /* OverrideStored+helper.swift in Sources */,
 				3811DE3F25C9D4A100A708ED /* SettingsStateModel.swift in Sources */,
