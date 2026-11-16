@@ -129,7 +129,7 @@ extension WatchLoanHost {
             snapshot: snapshot,
             records: records.loopRecords(bolusIncrement: bolusIncrement),
             now: now,
-            currentTemp: Self.currentTemp(pump.status.basalDeliveryState, now: now),
+            currentTemp: currentTemp(pump.status.basalDeliveryState, now: now),
             autosens: cycleInfo.autosens,
             microBolusAllowed: microBolusAllowed
         )
@@ -203,13 +203,21 @@ extension WatchLoanHost {
         }
     }
 
-    /// The phone's current-temp rule (`APSManager.fetchCurrentTempBasal`) on the pump's own state.
-    static func currentTemp(_ state: PumpManagerStatus.BasalDeliveryState?, now: Date) -> TempBasal {
-        if case let .tempBasal(dose) = state {
+    /// The phone's current-temp rule (`APSManager.fetchCurrentTempBasal`) on the pump's own state; between states,
+    /// the newest temp basal in the history.
+    func currentTemp(_ state: PumpManagerStatus.BasalDeliveryState?, now: Date) -> TempBasal {
+        switch state {
+        case let .tempBasal(dose):
             let minutes = max(0, Int((dose.endDate.timeIntervalSince1970 - now.timeIntervalSince1970) / 60))
             return TempBasal(duration: minutes, rate: Decimal(dose.unitsPerHour), temp: .absolute, timestamp: now)
+        case .active,
+             .pumpInoperable:
+            return TempBasal(duration: 0, rate: 0, temp: .absolute, timestamp: now)
+        default:
+            let bolusIncrement = snapshot?.oref.preferences?.bolusIncrement ?? Preferences().bolusIncrement
+            let history = (snapshot?.oref.pumpHistory ?? []) + records.loopRecords(bolusIncrement: bolusIncrement).pumpHistory
+            return WatchLoopInputs.fallbackTemp(history, now: now)
         }
-        return TempBasal(duration: 0, rate: 0, temp: .absolute, timestamp: now)
     }
 
     private func finish(start: Date, confirmed: Bool) {

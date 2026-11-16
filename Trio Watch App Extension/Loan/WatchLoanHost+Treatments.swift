@@ -223,13 +223,16 @@ extension WatchLoanHost {
     static func text(for rejection: BolusSafetyRejection) -> String {
         switch rejection {
         case let .exceedsMaxBolus(maxBolus):
-            return String(localized: "More than your max bolus of \(maxBolus.description) U.", comment: "Watch bolus refusal")
+            return String(
+                localized: "More than your max bolus of \(WatchLoanAlerts.insulin(maxBolus)).",
+                comment: "Watch bolus refusal; the value is an amount of insulin with its unit"
+            )
         case .iobUnavailable:
             return String(localized: "Insulin on board can't be worked out right now.", comment: "Watch bolus refusal")
         case let .exceedsMaxIOB(_, maxIOB):
             return String(
-                localized: "This would go over your max IOB of \(maxIOB.description) U.",
-                comment: "Watch bolus refusal"
+                localized: "This would go over your max IOB of \(WatchLoanAlerts.insulin(maxIOB)).",
+                comment: "Watch bolus refusal; the value is an amount of insulin with its unit"
             )
         case .recentBolusWithinWindow:
             return String(localized: "A bolus was given in the last few minutes.", comment: "Watch bolus refusal")
