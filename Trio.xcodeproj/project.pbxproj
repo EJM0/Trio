@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A7A40A000000000000000018 /* AppleWatchManager+WatchLoan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A000000000000000017 /* AppleWatchManager+WatchLoan.swift */; };
 		A7A40A00000000000000000E /* LoanPumpDouble.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A00000000000000000D /* LoanPumpDouble.swift */; };
 		A7A40A000000000000000010 /* WatchLoanSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A00000000000000000F /* WatchLoanSnapshotTests.swift */; };
 		A7A40A000000000000000012 /* WatchLoanAuditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A000000000000000011 /* WatchLoanAuditTests.swift */; };
@@ -1375,6 +1376,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A7A40A000000000000000017 /* AppleWatchManager+WatchLoan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppleWatchManager+WatchLoan.swift"; sourceTree = "<group>"; };
 		A7A40A00000000000000000D /* LoanPumpDouble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoanPumpDouble.swift; sourceTree = "<group>"; };
 		A7A40A00000000000000000F /* WatchLoanSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanSnapshotTests.swift; sourceTree = "<group>"; };
 		A7A40A000000000000000011 /* WatchLoanAuditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanAuditTests.swift; sourceTree = "<group>"; };
@@ -3732,6 +3734,7 @@
 			isa = PBXGroup;
 			children = (
 				BDA25EE32D260CCF00035F34 /* AppleWatchManager.swift */,
+				A7A40A000000000000000017 /* AppleWatchManager+WatchLoan.swift */,
 				A7A40A00000000000000000B /* WatchLoanPumpAdapter.swift */,
 				A7A40A000000000000000007 /* WatchLoanCoordinator.swift */,
 				A7A40A000000000000000009 /* WatchLoanPhoneHost.swift */,
@@ -6724,6 +6727,7 @@
 				BD4ED4FD2CF9D5E8000EDC9C /* AppState.swift in Sources */,
 				DDF847DD2C5C28720049BB3B /* LiveActivitySettingsDataFlow.swift in Sources */,
 				BDA25EE42D260CD500035F34 /* AppleWatchManager.swift in Sources */,
+				A7A40A000000000000000018 /* AppleWatchManager+WatchLoan.swift in Sources */,
 				A7A40A00000000000000000C /* WatchLoanPumpAdapter.swift in Sources */,
 				A7A40A000000000000000008 /* WatchLoanCoordinator.swift in Sources */,
 				A7A40A00000000000000000A /* WatchLoanPhoneHost.swift in Sources */,

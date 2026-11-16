@@ -4,6 +4,18 @@ import Testing
 
 @testable import Trio
 
+final class Flag {
+    private let lock = NSLock()
+    private var value = false
+    var isSet: Bool { lock.lock()
+        defer { lock.unlock() }
+        return value }
+
+    func set() { lock.lock()
+        value = true
+        lock.unlock() }
+}
+
 final class TestClock {
     var now = LoanFixture.now
     func advance(_ seconds: TimeInterval) { now = now.addingTimeInterval(seconds) }
@@ -155,14 +167,24 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         let ledgerStore: WatchLoanStore<WatchLoanLedger>
         let coordinator: WatchLoanCoordinator
 
-        init(state: PhoneLoanState? = nil, ledger: WatchLoanLedger? = nil) throws {
+        init(
+            state: PhoneLoanState? = nil,
+            ledger: WatchLoanLedger? = nil,
+            pumpIdleTimeout: TimeInterval = WatchLoanCoordinator.defaultPumpIdleTimeout
+        ) throws {
             host = FakeLoanHost(clock: clock)
             store = WatchLoanStoreTests.temporaryStore()
             ledgerStore = WatchLoanStoreTests.temporaryStore(WatchLoanLedger.self)
             if let state { try store.save(state) }
             if let ledger { try ledgerStore.save(ledger) }
             let clock = clock
-            coordinator = WatchLoanCoordinator(host: host, store: store, ledgerStore: ledgerStore, now: { clock.now })
+            coordinator = WatchLoanCoordinator(
+                host: host,
+                store: store,
+                ledgerStore: ledgerStore,
+                now: { clock.now },
+                pumpIdleTimeout: pumpIdleTimeout
+            )
         }
 
         /// A coordinator after a relaunch: same files, same pump.
@@ -312,8 +334,8 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(rig.transport.cancelled == 1)
         #expect(rig.transport.stops == [WatchLoanStop(kind: .revoke, epoch: 2)])
         #expect(rig.host.returnedHome == 1)
-        // 1.0 U the watch didn't record, less the tolerance
-        #expect(rig.host.auditAmounts == [0.8])
+        // 1.0 U the watch didn't record
+        #expect(rig.host.auditAmounts == [1.0])
         #expect(rig.host.auditRows.first?.id == WatchLoanAudit.auditBolusIDPrefix + "1")
         #expect(rig.host.notices.count == 1)
     }
@@ -341,7 +363,7 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         rig.double.odometer = 10.5
         rig.double.bolusUnderWayEndsAt = rig.clock.now.addingTimeInterval(20)
         await rig.coordinator.takeBack()
-        #expect(rig.host.auditAmounts == [0.8])
+        #expect(rig.host.auditAmounts == [1.0])
         let ledger = try #require(try rig.ledgerStore.load().get())
         #expect(ledger.audits.last?.bolusRemainder == 0.5)
     }
@@ -354,13 +376,13 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         rig.clock.advance(1800)
         rig.double.odometer = 11
         await rig.coordinator.takeBack()
-        #expect(rig.host.auditAmounts == [0.8])
+        #expect(rig.host.auditAmounts == [1.0])
 
         let lateID = UUID()
         let late = try rig.batch(epoch: 1, id: lateID, doses: [(-20, 0.6)])
         await rig.coordinator.receive(late)
-        #expect(rig.host.auditAmounts == [0.2])
-        #expect(rig.host.bookedAuditUnits == [0.8, 0.2])
+        #expect(rig.host.auditAmounts == [0.4])
+        #expect(rig.host.bookedAuditUnits == [1.0, 0.4])
 
         await rig.coordinator.receive(late)
         #expect(rig.host.auditBookings.count == 2)
@@ -368,7 +390,7 @@ final class FakeLoanHost: WatchLoanPhoneHost {
 
         await rig.coordinator.receive(try rig.batch(epoch: 1, doses: [(-10, 0.4)]))
         #expect(rig.host.auditRows.isEmpty)
-        #expect(rig.host.bookedAuditUnits == [0.8, 0.2, 0])
+        #expect(rig.host.bookedAuditUnits == [1.0, 0.4, 0])
         #expect(await rig.coordinator.state == .home(epoch: 2, lastLoan: .superseding(epoch: 1, at: rig.clock.now)))
     }
 
@@ -392,14 +414,14 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         try await rig.lend()
         rig.double.odometer = 11
         await rig.coordinator.takeBack()
-        #expect(rig.host.auditAmounts == [0.8])
+        #expect(rig.host.auditAmounts == [1.0])
 
         rig.clock.advance(600)
         rig.double.odometer = 11.5
         await rig.coordinator.handle(.foreignPodSession)
         #expect(!rig.double.commands.contains("stopSuperseding"))
         #expect(rig.host.alerts.filter { $0 == .watchContactedPodAfterTakeBack }.count == 1)
-        #expect(rig.host.auditAmounts == [1.3])
+        #expect(rig.host.auditAmounts == [1.5])
 
         await rig.coordinator.handle(.foreignPodSession)
         #expect(rig.host.alerts.filter { $0 == .watchContactedPodAfterTakeBack }.count == 2)
@@ -411,14 +433,87 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(!rig.double.refusesSessions)
     }
 
-    @Test("Outside the window a foreign session ends the kit's scope and alerts") func foreignSessionAfterWindow() async throws {
+    @Test(
+        "Outside the window a foreign session ends the kit's scope, releases the pod and alerts"
+    ) func foreignSessionAfterWindow() async throws {
         let rig = try Rig()
         try await rig.lend()
         await rig.coordinator.takeBack()
         rig.clock.advance(WatchLoan.resumeWindow + 1)
+        let before = rig.double.commands.count
         await rig.coordinator.handle(.foreignPodSession)
-        #expect(rig.double.commands.contains("stopSuperseding"))
+        #expect(Array(rig.double.commands.dropFirst(before)) == ["stopSuperseding", "releaseControl"])
+        #expect(rig.double.isControlReleased)
         #expect(rig.host.alerts.last == .unexpectedPodSession)
+
+        // Use the pod on this iPhone lifts it again
+        await rig.coordinator.usePodOnThisPhone()
+        #expect(!rig.double.isControlReleased)
+    }
+
+    @Test(
+        "A foreign session the phone never handled (lost report, crash) is handled at the next start, once"
+    ) func foreignSessionDurable() async throws {
+        let rig = try Rig()
+        try await rig.lend()
+        rig.double.odometer = 11
+        await rig.coordinator.takeBack()
+        // the kit saw the stale watch; the report never reached the coordinator
+        rig.clock.advance(300)
+        rig.double.foreignSessionDetectedAt = rig.clock.now
+        rig.double.odometer = 11.5
+
+        let relaunched = rig.relaunched()
+        await relaunched.start()
+        #expect(rig.host.alerts.filter { $0 == .watchContactedPodAfterTakeBack }.count == 1)
+        #expect(rig.host.auditAmounts == [1.5])
+        #expect(try rig.ledgerStore.load().get()?.lastForeignSessionHandled == rig.clock.now)
+
+        await rig.relaunched().start()
+        #expect(rig.host.alerts.filter { $0 == .watchContactedPodAfterTakeBack }.count == 1)
+    }
+
+    @Test(
+        "A faulted pod, or a delivered total that went down, books nothing and alerts",
+        arguments: [true, false]
+    ) func untrustworthyTotal(faulted: Bool) async throws {
+        let rig = try Rig()
+        try await rig.lend()
+        if faulted {
+            rig.double.deliveredUnitsAreFinal = true
+            rig.double.odometer = 12
+        } else {
+            rig.double.odometer = 9
+        }
+        await rig.coordinator.takeBack()
+        #expect(rig.host.auditBookings.isEmpty)
+        #expect(rig.host.alerts.contains(.podTotalUnreliable))
+        #expect(await rig.coordinator.state == .home(epoch: 2, lastLoan: .superseding(epoch: 1, at: rig.clock.now)))
+    }
+
+    @Test("Records from an older loan are still merged and acknowledged") func olderEpochRecords() async throws {
+        let rig = try Rig(state: .home(epoch: 4, lastLoan: LoanRecord(epoch: 3)))
+        let id = UUID()
+        await rig.coordinator.receive(try rig.batch(epoch: 1, id: id, doses: [(-30, 0.5)]))
+        #expect(rig.host.booked.count == 1)
+        #expect(rig.transport.recordAcks == [WatchLoanRecordAck(epoch: 1, batchID: id)])
+        #expect(await rig.coordinator.state == .home(epoch: 4, lastLoan: LoanRecord(epoch: 3)))
+    }
+
+    @Test("A pump that never goes idle: the wait is cancelled, nothing is released, the watch is refused") func pumpIdleTimeout(
+    ) async throws {
+        let rig = try Rig(pumpIdleTimeout: 0.3)
+        let stopped = Flag()
+        rig.host.idle = {
+            while !Task.isCancelled { try? await Task.sleep(nanoseconds: 20_000_000) }
+            stopped.set()
+        }
+        try await rig.receive(F.message(0, .request(requestID: F.requestA)))
+        #expect(await rig.coordinator.state == .home(epoch: 1, lastLoan: nil))
+        #expect(rig.double.commands.isEmpty)
+        #expect(rig.transport.messages == [F.message(1, .refused(requestID: F.requestA, reason: .releaseRefused))])
+        try await Task.sleep(nanoseconds: 200_000_000)
+        #expect(stopped.isSet)
     }
 
     @Test("The watch's released stop ends the window and the kit's scope") func releasedStopClearsWindow() async throws {
@@ -452,7 +547,7 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         await rig.coordinator.takeBack()
         let loan = LoanRecord.superseding(epoch: 1, at: rig.clock.now)
         let until = Int(try #require(loan.supersededUntil).timeIntervalSince1970)
-        #expect(rig.host.auditAmounts == [0.8])
+        #expect(rig.host.auditAmounts == [1.0])
 
         // crash after the audit, before `home` was persisted
         try rig.store.save(.takingBack(epoch: 2, loan: loan))
@@ -462,7 +557,7 @@ final class FakeLoanHost: WatchLoanPhoneHost {
 
         #expect(await relaunched.state == .home(epoch: 2, lastLoan: loan))
         #expect(rig.double.commands.suffix(3) == ["takeControlSuperseding(\(until))", "tempBasal(0.0)", "refreshDeliveredUnits"])
-        #expect(rig.host.auditAmounts == [0.8])
+        #expect(rig.host.auditAmounts == [1.0])
         #expect(rig.host.auditBookings.count == 1)
         #expect(rig.host.alarms.last { $0.alarm == .phoneNotLooping }?.armed == true)
     }
@@ -572,6 +667,8 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         double.releaseControl()
         await withKnownIssue {
             _ = await double.refreshDeliveredUnits()
+        } matching: { issue in
+            String(describing: issue).contains("doesn't hold the pod")
         }
     }
 

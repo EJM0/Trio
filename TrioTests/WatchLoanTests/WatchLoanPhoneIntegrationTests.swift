@@ -1,3 +1,4 @@
+import Combine
 import CoreData
 import Foundation
 import LoopKit
@@ -31,6 +32,7 @@ import Testing
     private struct Rig {
         let resolver: Resolver
         let context: NSManagedObjectContext
+        let gateStore: WatchLoanStore<PhoneLoanState>
         let host: BaseWatchLoanPhoneHost
         var pumpHistory: PumpHistoryStorage { resolver.resolve(PumpHistoryStorage.self)! }
         var glucoseStorage: GlucoseStorage { resolver.resolve(GlucoseStorage.self)! }
@@ -54,15 +56,21 @@ import Testing
     private static func makeRig() async throws -> Rig {
         let stack = try await CoreDataStack.createForTests()
         let context = stack.newTaskContext()
-        let gate = WatchLoanGate(store: WatchLoanStoreTests.temporaryStore())
+        let gateStore: WatchLoanStore<PhoneLoanState> = WatchLoanStoreTests.temporaryStore()
+        let gate = WatchLoanGate(store: gateStore)
         let resolver = Assembler([
             StorageAssembly(), ServiceAssembly(), APSAssembly(), NetworkAssembly(), UIAssembly(), SecurityAssembly(),
             TestAssembly(testContext: context),
             LoanTestAssembly(context: context, gate: gate)
         ]).resolver
-        return Rig(resolver: resolver, context: context, host: BaseWatchLoanPhoneHost(resolver: resolver, contextProvider: {
-            context
-        }))
+        return Rig(
+            resolver: resolver,
+            context: context,
+            gateStore: gateStore,
+            host: BaseWatchLoanPhoneHost(resolver: resolver, contextProvider: {
+                context
+            })
+        )
     }
 
     static func record(_ date: Date, _ dose: DoseEntry, raw: String = UUID().uuidString) -> WatchLoanRecordBatch.PumpEventRecord {
@@ -270,5 +278,63 @@ import Testing
         #expect(double.commands.filter { $0 == "syncDeliveryLimits" }.count == limits + 1)
         #expect(double.commands.filter { $0 == "setBLEHeartbeatRequest" }.count == heartbeats + 1)
         await rig.clearStoredPump()
+    }
+
+    // MARK: Small checks
+
+    @Test("Pump history carries external insulin, so the audit can leave it out") func externalInsulinMapped() async throws {
+        let rig = try await Self.makeRig()
+        await rig.pumpHistory.storeExternalInsulinEvent(amount: 2, timestamp: Date().addingTimeInterval(-60))
+        let events = try await rig.host.bookedEvents(since: Date().addingTimeInterval(-600))
+        #expect(events.map(\.isExternal) == [true])
+    }
+
+    @Test("No Nightscout device status while Apple Watch holds the pump") func nightscoutStatus() async throws {
+        let rig = try await Self.makeRig()
+        let nightscout = try #require(rig.resolver.resolve(NightscoutManager.self) as? BaseNightscoutManager)
+        #expect(nightscout.isDeviceStatusUploadAllowed)
+        try rig.gateStore.save(.lent(epoch: 1))
+        #expect(!nightscout.isDeviceStatusUploadAllowed)
+        try rig.gateStore.save(.home(epoch: 2, lastLoan: LoanRecord(epoch: 1)))
+        #expect(nightscout.isDeviceStatusUploadAllowed)
+    }
+
+    #if !TRIO_ON_WATCH
+        @Test("With the build flag off, Start is refused before anything else") func featureOff() async throws {
+            let rig = try await Self.makeRig()
+            #expect(await rig.host.startRefusal() == .featureOff)
+        }
+    #endif
+
+    @Test("Only loan payloads are routed to the coordinator") func routing() {
+        #expect(WatchLoanWireKey.isLoanPayload([WatchLoanWireKey.records: Data()]))
+        #expect(WatchLoanWireKey.isLoanPayload([WatchLoanWireKey.message: Data(), "watchLogs": "x"]))
+        #expect(!WatchLoanWireKey.isLoanPayload([WatchMessageKeys.snoozeDuration: 5]))
+        #expect(!WatchLoanWireKey.isLoanPayload([WatchMessageKeys.bolus: 1.0, WatchMessageKeys.carbs: 10]))
+        #expect(!WatchLoanWireKey.isLoanPayload(["watchLogs": "x"]))
+    }
+
+    @Test(
+        "Not-looping alarm: loop dates schedule as before; disarmed nothing is pending; re-armed it counts from then"
+    ) func notLoopingArming() {
+        let subject = PassthroughSubject<Date, Never>()
+        let spy = SpyAlertManager()
+        let monitor = NotLoopingMonitor(loopDates: subject.eraseToAnyPublisher(), trioAlertManager: spy)
+        subject.send(Date().addingTimeInterval(-600))
+        func firstDelay() -> TimeInterval? {
+            spy.issuedAlerts.last { $0.identifier.alertIdentifier == "loop.notActive.w1" }.flatMap {
+                if case let .delayed(interval) = $0.trigger { return interval } else { return nil }
+            }
+        }
+        // anchored on the loop 10 min ago, as before
+        #expect(abs((firstDelay() ?? 0) - 600) < 5)
+
+        let issued = spy.issuedAlerts.count
+        monitor.setArmed(false)
+        subject.send(Date())
+        #expect(spy.issuedAlerts.count == issued)
+
+        monitor.setArmed(true)
+        #expect(abs((firstDelay() ?? 0) - 1200) < 5)
     }
 }

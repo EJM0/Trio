@@ -74,7 +74,8 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
     let scheduledBasal = PassthroughSubject<Bool?, Never>()
     let suspended = PassthroughSubject<Bool, Never>()
     let foreignPodSession = PassthroughSubject<Date, Never>()
-    @Persisted(key: "BaseDeviceDataManager.lastForeignPodSession") private var lastForeignPodSession: Date? = nil
+    // logging only: the loan coordinator keeps which foreign session it handled
+    private var lastForeignPodSession: Date?
 
     @SyncAccess private var pumpUpdateCancellable: AnyCancellable?
     private var pumpUpdatePromise: Future<Bool, Never>.Promise?

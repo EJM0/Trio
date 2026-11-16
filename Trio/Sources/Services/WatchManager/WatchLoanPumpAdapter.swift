@@ -13,6 +13,8 @@ protocol SupersedingDeviceControl: ExclusiveDeviceControl {
     /// When the pump started delivering, for an audit over its whole life.
     var deliveryStartedAt: Date? { get }
     var deliveryEndsAt: Date? { get }
+    /// A faulted pump delivers nothing more; its delivered total is its last.
+    var deliveredUnitsAreFinal: Bool { get }
 }
 
 typealias LoanablePump = PumpDeliveryOdometer & PumpManagerUI & SupersedingDeviceControl
@@ -59,6 +61,7 @@ final class WatchLoanPumpAdapter {
     var pulse: Double { manager.deliveryPulseUnits }
     var startedAt: Date? { manager.deliveryStartedAt }
     var endsAt: Date? { manager.deliveryEndsAt }
+    var isFaulted: Bool { manager.deliveredUnitsAreFinal }
 
     func cancelTempBasal() async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
@@ -111,7 +114,8 @@ final class WatchLoanPumpAdapter {
         )
     }
 
-    /// What a bolus under way at `reading` has still to deliver, in whole pulses.
+    /// What a bolus under way at `reading` has still to deliver, in whole pulses. OmnipodKit derives the end
+    /// time from the pod's `bolusNotDelivered` at that status read, at the rate `estimatedDuration` uses.
     func bolusRemainder(at reading: Date) -> Double {
         guard let endsAt = manager.bolusUnderWayEndsAt, endsAt > reading else { return 0 }
         let secondsPerUnit = manager.estimatedDuration(toBolus: 1)

@@ -43,6 +43,7 @@ final class LoanPumpDouble: PumpManagerUI, SupersedingDeviceControl, PumpDeliver
     var deliveredUnits: (units: Double, at: Date)?
     var deliveryStartedAt: Date? = Date(timeIntervalSince1970: 1_799_900_000)
     var deliveryEndsAt: Date?
+    var deliveredUnitsAreFinal = false
     var foreignSessionDetectedAt: Date?
     var clock: () -> Date = Date.init
 

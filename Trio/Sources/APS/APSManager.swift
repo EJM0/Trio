@@ -589,7 +589,7 @@ final class BaseAPSManager: APSManager, Injectable {
 
     func awaitPumpIdle() async {
         await loopGuard.waitForLoop()
-        while pumpManager?.status.bolusState ?? .noBolus != .noBolus {
+        while !Task.isCancelled, pumpManager?.status.bolusState ?? .noBolus != .noBolus {
             try? await Task.sleep(nanoseconds: 500_000_000)
         }
         await deviceDataManager.awaitPumpEventStorage()

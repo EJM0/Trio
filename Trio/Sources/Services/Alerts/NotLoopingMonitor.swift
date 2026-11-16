@@ -30,7 +30,7 @@ final class NotLoopingMonitor: Injectable {
     private var lastLoopDate = Date()
     /// Off while Apple Watch holds the pump: the phone doesn't loop then, and the watch has its own series.
     private var isArmed = true
-    private var armedAt = Date()
+    private var armedAt = Date.distantPast
 
     /// Minutes of staleness for each Time-Sensitive warning step.
     private static let warningMinutes: [Int] = [20, 40, 60, 80, 100]

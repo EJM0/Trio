@@ -59,6 +59,8 @@ struct WatchLoanLedger: Codable, Equatable {
     var audits: [Audit] = []
     var inbox = WatchLoanInbox()
     var lastBatchAt: Date?
+    /// The kit's latest foreign-session time this phone has handled, saved after the audit it caused.
+    var lastForeignSessionHandled: Date?
 
     mutating func save(_ audit: Audit) {
         audits.removeAll { $0.epoch == audit.epoch && $0.start == audit.start }
@@ -78,7 +80,7 @@ extension WatchLoanStore where State == WatchLoanLedger {
 /// State is persisted before any pump action; pump results come back as epoch-tagged events.
 actor WatchLoanCoordinator {
     /// Leaves room within `WatchLoan.phoneWorstCaseLend` for the temp cancel, the read and the release.
-    static let pumpIdleTimeout: TimeInterval = 40
+    static let defaultPumpIdleTimeout: TimeInterval = 40
     static let statusQueryTimeout: TimeInterval = 5
     /// Booked events this long before an audit window, to see a temp or suspend already running at its start.
     static let auditLookBehind: TimeInterval = 12 * 60 * 60
@@ -87,6 +89,7 @@ actor WatchLoanCoordinator {
     private let store: WatchLoanStore<PhoneLoanState>
     private let ledgerStore: WatchLoanStore<WatchLoanLedger>
     private let now: () -> Date
+    private let pumpIdleTimeout: TimeInterval
 
     private(set) var state: PhoneLoanState
     private(set) var ledger: WatchLoanLedger
@@ -95,17 +98,22 @@ actor WatchLoanCoordinator {
     private var isDraining = false
     private var pendingStatus: CheckedContinuation<WatchLoanState?, Never>?
     private var grantTimer: Task<Void, Never>?
+    /// Audits run one at a time: each reads its ledger entry, awaits the stores and writes the entry back.
+    private var auditChain: Task<Void, Never>?
+    private var isCheckingForeignSession = false
 
     init(
         host: WatchLoanPhoneHost,
         store: WatchLoanStore<PhoneLoanState> = .phone,
         ledgerStore: WatchLoanStore<WatchLoanLedger> = .ledger,
-        now: @escaping () -> Date = Date.init
+        now: @escaping () -> Date = Date.init,
+        pumpIdleTimeout: TimeInterval = defaultPumpIdleTimeout
     ) {
         self.host = host
         self.store = store
         self.ledgerStore = ledgerStore
         self.now = now
+        self.pumpIdleTimeout = pumpIdleTimeout
         switch store.load() {
         case let .success(state): self.state = state ?? .initial
         case .failure: state = .unreadable
@@ -120,9 +128,24 @@ actor WatchLoanCoordinator {
 
     func start() async {
         host.onForeignPodSession { [weak self] in
-            Task { await self?.handle(.foreignPodSession) }
+            Task { await self?.checkForeignSession() }
         }
         await handle(.relaunched)
+        await checkForeignSession()
+    }
+
+    /// Handles a foreign session the kit reports and this phone hasn't handled yet. It reads the kit's own
+    /// persisted time, so a report lost to a crash or to launch order is handled at the next check.
+    func checkForeignSession() async {
+        guard !isCheckingForeignSession, let detectedAt = host.pump?.foreignSessionDetectedAt,
+              detectedAt > ledger.lastForeignSessionHandled ?? .distantPast
+        else { return }
+        isCheckingForeignSession = true
+        await handle(.foreignPodSession)
+        ledger.lastForeignSessionHandled = detectedAt
+        saveLedger()
+        isCheckingForeignSession = false
+        await checkForeignSession()
     }
 
     /// Queues `event` and returns once the queue, including results it caused, has run.
@@ -159,21 +182,21 @@ actor WatchLoanCoordinator {
         case let .stop(stop):
             await handle(.receivedStop(stop))
         case let .message(envelope):
-            guard ledger.inbox.accept(envelope.messageID) else {
+            guard !ledger.inbox.seen.contains(envelope.messageID) else {
                 debug(.watch, "Duplicate watch loan message dropped")
                 return
             }
-            saveLedger()
             if case let .status(watchState) = envelope.message.kind, let pendingStatus {
                 self.pendingStatus = nil
                 pendingStatus.resume(returning: watchState)
-                return
-            }
-            guard WatchLoanInbox.passes(envelope.message, phoneEpoch: state.epoch) else {
+            } else if WatchLoanInbox.passes(envelope.message, phoneEpoch: state.epoch) {
+                await handle(.received(envelope.message))
+            } else {
                 debug(.watch, "Watch loan message from an older loan dropped")
-                return
             }
-            await handle(.received(envelope.message))
+            // seen once handled: a crash before this lets the watch's resend through, and every row is idempotent
+            _ = ledger.inbox.accept(envelope.messageID)
+            saveLedger()
         case let .unsupportedVersion(version):
             warning(.watch, "Watch loan message from protocol version \(version) dropped")
         case .malformed:
@@ -273,7 +296,7 @@ actor WatchLoanCoordinator {
             }
 
         case .awaitPumpIdle:
-            guard await finishes(within: Self.pumpIdleTimeout, { [host] in await host.awaitPumpIdle() }) else {
+            guard await finishes(within: pumpIdleTimeout, { [host] in await host.awaitPumpIdle() }) else {
                 warning(.watch, "Trio on Watch start stopped: the loop, a bolus or pump events didn't finish in time")
                 return failPumpStep()
             }
@@ -298,7 +321,7 @@ actor WatchLoanCoordinator {
                     start: reading.at,
                     startUnits: reading.units,
                     basalProfile: await host.basalProfile(),
-                    timeZoneIdentifier: TimeZone.current.identifier,
+                    timeZoneIdentifier: pump.status.timeZone.identifier,
                     pulse: pump.pulse
                 ))
                 saveLedger()
@@ -340,7 +363,10 @@ actor WatchLoanCoordinator {
             guard let pump = host.pump else { break }
             switch verdict {
             case let .keepCommanding(until): await pump.keepSuperseding(until: until)
-            case .refuse: await pump.endSuperseding()
+            case .refuse:
+                // stop now, even if the kit's own scope hasn't run out; Use the pod on this iPhone lifts it
+                await pump.endSuperseding()
+                _ = await pump.release()
             }
 
         case .cancelOutstandingTransfers:
@@ -441,7 +467,7 @@ actor WatchLoanCoordinator {
         )
         guard let messageData = try? WatchLoanWire.encode(envelope) else { return reject(.snapshotIncomplete) }
         let size = messageData.count + snapshotData.count
-        guard size <= WatchLoanSnapshot.maxMessageBytes else {
+        guard size <= WatchLoanSnapshot.grantBudgetBytes else {
             warning(.watch, "Grant too large for a live message: \(size) bytes")
             return reject(.snapshotIncomplete)
         }
@@ -460,6 +486,20 @@ actor WatchLoanCoordinator {
     // MARK: - Audit
 
     private func audit(_ scope: AuditScope) async {
+        await serializedAudit { await self.auditNow(scope) }
+    }
+
+    private func serializedAudit(_ work: @escaping () async -> Void) async {
+        let previous = auditChain
+        let task = Task {
+            await previous?.value
+            await work()
+        }
+        auditChain = task
+        await task.value
+    }
+
+    private func auditNow(_ scope: AuditScope) async {
         let pump = host.pump
         var entry: WatchLoanLedger.Audit
         if case let .loan(epoch) = scope, let loanAudit = ledger.audits.last(where: { $0.epoch == epoch }) {
@@ -481,6 +521,11 @@ actor WatchLoanCoordinator {
         }
 
         if let pump, let reading = pump.deliveredUnits, reading.at >= entry.end ?? .distantPast, reading.at >= entry.start {
+            guard !pump.isFaulted, reading.units >= entry.endUnits ?? entry.startUnits else {
+                warning(.watch, "Delivered-total audit skipped: the pod is faulted or its delivered total went down")
+                host.alert(.podTotalUnreliable)
+                return
+            }
             entry.end = reading.at
             entry.endUnits = reading.units
             entry.bolusRemainder = pump.bolusRemainder(at: reading.at)
@@ -492,10 +537,16 @@ actor WatchLoanCoordinator {
 
     /// Late records explain more of the window: recompute its audit bolus (replace, never add).
     private func recomputeAudits(after batch: WatchLoanRecordBatch) async {
-        guard var entry = ledger.audits.last(where: { $0.epoch == batch.epoch && $0.end != nil })
-            ?? ledger.audits.last(where: { $0.epoch == nil && $0.end != nil })
-        else { return }
-        await recompute(&entry)
+        await serializedAudit {
+            guard var entry = await self.ledger.audits.last(where: { $0.epoch == batch.epoch && $0.end != nil })
+                ?? self.ledger.audits.last(where: { $0.epoch == nil && $0.end != nil })
+            else { return }
+            await self.recompute(&entry)
+            await self.saveAudit(entry)
+        }
+    }
+
+    private func saveAudit(_ entry: WatchLoanLedger.Audit) {
         ledger.save(entry)
         saveLedger()
     }
@@ -520,7 +571,8 @@ actor WatchLoanCoordinator {
             basalProfile: entry.basalProfile,
             timeZone: timeZone,
             pulse: entry.pulse,
-            events: events
+            events: events,
+            ownBolusID: entry.bolusID
         )
         let result = WatchLoanAudit.evaluate(input)
         if result.unexplained != entry.bookedUnits {
@@ -572,12 +624,13 @@ actor WatchLoanCoordinator {
     private func finishes(within seconds: TimeInterval, _ work: @escaping () async -> Void) async -> Bool {
         let once = ResumeOnce()
         return await withCheckedContinuation { continuation in
-            Task {
+            let worker = Task {
                 await work()
                 once.resume(continuation, returning: true)
             }
             Task {
                 try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                worker.cancel()
                 once.resume(continuation, returning: false)
             }
         }

@@ -2,6 +2,7 @@ import Combine
 import CoreData
 import Foundation
 import G7SensorKit
+import HealthKit
 import LoopKit
 import LoopKitUI
 import Swinject
@@ -28,11 +29,21 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
     private let resolver: Resolver
     private let makeContext: () -> NSManagedObjectContext
     private var subscriptions = Set<AnyCancellable>()
+    private lazy var openAPS = OpenAPS(
+        storage: fileStorage,
+        tddStorage: tddStorage,
+        glucoseStorage: glucoseStorage,
+        carbsStorage: carbsStorage,
+        contextProvider: makeContext
+    )
+    /// While the watch-silence alarm is armed, the last batch it counts from; re-issued when a snooze changes.
+    private var silenceAnchor: Date?
 
     init(resolver: Resolver, contextProvider: (() -> NSManagedObjectContext)? = nil) {
         self.resolver = resolver
         makeContext = contextProvider ?? { CoreDataStack.shared.newTaskContext() }
         injectServices(resolver)
+        resolver.resolve(Broadcaster.self)?.register(SnoozeObserver.self, observer: self)
     }
 
     var pump: WatchLoanPumpAdapter? { WatchLoanPumpAdapter(deviceDataManager.pumpManager) }
@@ -98,12 +109,6 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         guard let cgm = sharedCGM else { throw WatchLoanHostError.noSharedCGM }
         let settings = settingsManager.settings
         let now = Date()
-        let openAPS = OpenAPS(
-            storage: fileStorage,
-            tddStorage: tddStorage,
-            glucoseStorage: glucoseStorage,
-            carbsStorage: carbsStorage
-        )
         // the hand-off cancelled the temp basal before the release
         let oref = try await openAPS.orefInputs(
             for: settings.dosingMode,
@@ -161,12 +166,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
     {
         let context = makeContext()
         context.name = "watchLoanAdjustments"
-        let openAPS = OpenAPS(
-            storage: fileStorage,
-            tddStorage: tddStorage,
-            glucoseStorage: glucoseStorage,
-            carbsStorage: carbsStorage
-        )
+        let openAPS = openAPS
         return try await context.perform {
             let override = try openAPS.fetchActiveOverrides(on: context).first.flatMap { override in
                 override.date.map { start in
@@ -301,16 +301,14 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         case .phoneNoWatchUpdates:
             let steps = Self.watchSilenceMinutes + [Self.watchSilenceCriticalMinutes]
             steps.forEach { trioAlertManager.retractAlert(identifier: Self.silenceID($0)) }
+            silenceAnchor = armed ? anchor : nil
             guard armed else { return }
             for minutes in steps {
                 let remaining = anchor.addingTimeInterval(TimeInterval(minutes * 60)).timeIntervalSinceNow
                 guard remaining > 0 else { continue }
                 let content = Alert.Content(
                     title: String(localized: "No updates from Apple Watch"),
-                    body: String(
-                        format: String(localized: "No update from Trio on Watch for %d min. Check your watch."),
-                        minutes
-                    ),
+                    body: String(localized: "No update from Trio on Watch for \(minutes) min. Check your watch."),
                     acknowledgeActionButtonLabel: String(localized: "OK")
                 )
                 trioAlertManager.issueAlert(Alert(
@@ -333,18 +331,14 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
     }
 
     func auditNotice(units: Double, isShortfall: Bool) {
-        let amount = Decimal(units).rounded(scale: 2).formatted(.number.precision(.fractionLength(0 ... 2)))
-        let unit = String(localized: "U", comment: "Insulin unit")
+        let number = Formatter.bolusFormatter.string(from: Decimal(units).rounded(scale: 2) as NSNumber) ?? "\(units)"
+        let amount = "\(number) \(HKUnit.internationalUnit().localizedShortUnitString)"
         if isShortfall {
             issue(
                 alertIdentifier: "auditShortfall",
                 title: String(localized: "Check Your Insulin History"),
                 body: String(
-                    format: String(
-                        localized: "Trio on Watch recorded %1$@ %2$@ more insulin than your pod reports delivering. Insulin on board may read high for a while."
-                    ),
-                    amount,
-                    unit
+                    localized: "Trio on Watch recorded \(amount) more insulin than your pod reports delivering. Insulin on board may read high for a while."
                 )
             )
         } else {
@@ -352,11 +346,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
                 alertIdentifier: "auditExcess",
                 title: String(localized: "Insulin Added to History"),
                 body: String(
-                    format: String(
-                        localized: "Your pod delivered %1$@ %2$@ that Trio on Watch didn't record. Trio counts it as insulin on board, so insulin on board may read high for a while."
-                    ),
-                    amount,
-                    unit
+                    localized: "Your pod delivered \(amount) that Trio on Watch didn't record. Trio counts it as insulin on board, so insulin on board may read high for a while."
                 )
             )
         }
@@ -433,6 +423,13 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
                     localized: "Trio couldn't read which device controls your pump. Your pump finishes any running temp basal and then follows its basal schedule."
                 )
             )
+        case .podTotalUnreliable:
+            return (
+                String(localized: "Pod Total Not Checked"),
+                String(
+                    localized: "Trio couldn't check your pod's delivered insulin against your history, so it added nothing. Check your insulin history."
+                )
+            )
         case .endRefused,
              .phoneDidNotAnswer,
              .podUnreachable,
@@ -455,4 +452,12 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
 
 enum WatchLoanHostError: Error {
     case noSharedCGM
+}
+
+extension BaseWatchLoanPhoneHost: SnoozeObserver {
+    /// A snooze clears pending non-critical notifications; re-arm from the same anchor, as `NotLoopingMonitor` does.
+    func snoozeDidChange(_: Date) {
+        guard let silenceAnchor else { return }
+        setAlarm(.phoneNoWatchUpdates, armed: true, anchor: silenceAnchor)
+    }
 }

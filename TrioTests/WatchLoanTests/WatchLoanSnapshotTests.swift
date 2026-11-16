@@ -198,7 +198,7 @@ import Testing
             message: WatchLoanMessage(epoch: 3, kind: .grant(requestID: Self.requestID, expiresAt: LoanFixture.now))
         ))
         print("Watch loan grant size: snapshot JSON \(json.count) B, compressed \(wire.count) B, envelope \(envelope.count) B")
-        #expect(wire.count + envelope.count <= WatchLoanSnapshot.maxMessageBytes)
+        #expect(wire.count + envelope.count <= WatchLoanSnapshot.grantBudgetBytes)
         #expect(try WatchLoanSnapshot.decode(wire).oref.tddHistory.count == 2880)
     }
 
@@ -251,8 +251,40 @@ import Testing
         #expect(received.missingParts.isEmpty)
 
         let outputs = try OrefRun.run(received.oref)
-        for (stage, json) in try OrefRunCharacterizationTests.stages(outputs, clock: clock) {
+        let stages = try OrefRunCharacterizationTests.stages(outputs, clock: clock)
+        for (stage, json) in stages {
             try OrefGoldens.check(json, clock: clock, scenario: scenarioName, stage: stage)
         }
+
+        // and directly against the phone's own pipeline, on the same store and clock
+        try await openAPS.createProfiles(for: scenario.dosingMode)
+        _ = try await openAPS.autosense(shouldSmoothGlucose: scenario.smoothGlucose)
+        let determination = try await openAPS.determineBasal(
+            for: scenario.dosingMode,
+            currentTemp: scenario.currentTemp,
+            supportedBasalRates: scenario.supportedBasalRates,
+            shouldSmoothGlucose: scenario.smoothGlucose,
+            clock: scenario.clock
+        )
+        let phone: [String: String] = try [
+            "pumpprofile": OrefGoldens.canonical(file: OpenAPS.Settings.pumpProfile, as: Profile.self, in: storage),
+            "profile": OrefGoldens.canonical(file: OpenAPS.Settings.profile, as: Profile.self, in: storage),
+            "autosens": OrefGoldens.canonical(file: OpenAPS.Settings.autosense, as: Autosens.self, in: storage),
+            "trio_custom_oref_variables": OrefGoldens.canonical(
+                file: OpenAPS.Monitor.trio_custom_oref_variables,
+                as: TrioCustomOrefVariables.self,
+                in: storage
+            ),
+            "iob": OrefGoldens.canonical(file: OpenAPS.Monitor.iob, as: [IobResult].self, in: storage),
+            "determination": OrefGoldens.canonical(determination)
+        ]
+        for (stage, json) in stages {
+            guard let phoneJSON = phone[stage] else { continue }
+            #expect(
+                try OrefGoldens.normalize(json, clock: clock) == OrefGoldens.normalize(phoneJSON, clock: clock),
+                "\(scenarioName): \(stage) differs from the phone's own pipeline"
+            )
+        }
+        #expect(phone.count == 6)
     }
 }
