@@ -115,3 +115,74 @@ import Testing
         }
     }
 }
+
+/// Changes the process time zone, which races every suite running in parallel, so it runs only on
+/// request and alone: `TRIO_TZ_ESCAPE=1 … -only-testing:TrioTests/ProcessTimeZoneEscapeTests`.
+@Suite(
+    "Explicit time zones ignore the process time zone",
+    .serialized,
+    .enabled(if: ProcessInfo.processInfo.environment["TRIO_TZ_ESCAPE"] == "1", "changes the process time zone")
+) struct ProcessTimeZoneEscapeTests {
+    @Test("OrefRun, TDD and alarm windows match their Europe/Berlin results") func noEscape() throws {
+        let berlin = try #require(TimeZone(identifier: "Europe/Berlin"))
+        let profile = [
+            BasalProfileEntry(start: "00:00", minutes: 0, rate: 0.5),
+            BasalProfileEntry(start: "06:00", minutes: 360, rate: 1),
+            BasalProfileEntry(start: "12:00", minutes: 720, rate: 1.5)
+        ]
+        let now = try #require(ISO8601DateFormatter().date(from: "2026-06-15T05:40:10Z"))
+        func tdd() -> Decimal {
+            OrefInputs.tddInsulin(
+                pumpHistory: [
+                    PumpHistoryEvent(id: "temp", type: .tempBasal, timestamp: now - 4 * 3600, amount: 2, duration: 60),
+                    PumpHistoryEvent(
+                        id: "schedule",
+                        type: .tempBasal,
+                        timestamp: now - 20 * 3600,
+                        amount: 1,
+                        duration: 1440,
+                        isScheduledBasal: true
+                    )
+                ],
+                basalProfile: profile,
+                now: now,
+                timeZone: berlin,
+                roundToSupportedBasalRate: { $0 }
+            ).scheduledBasal
+        }
+        var nightAlarm = GlucoseAlert(type: .low)
+        nightAlarm.activeOption = .night
+        // 23:30 CEST: night in Berlin, morning in Kiritimati
+        let lateEvening = try #require(ISO8601DateFormatter().date(from: "2026-06-15T21:30:00Z"))
+        let berlinTDD = tdd()
+
+        let savedTZ = ProcessInfo.processInfo.environment["TZ"]
+        setenv("TZ", "Pacific/Kiritimati", 1)
+        tzset()
+        NSTimeZone.resetSystemTimeZone()
+        defer {
+            if let savedTZ { setenv("TZ", savedTZ, 1) } else { unsetenv("TZ") }
+            tzset()
+            NSTimeZone.resetSystemTimeZone()
+        }
+        try #require(TimeZone.current.identifier == "Pacific/Kiritimati")
+        try #require(Calendar.current.timeZone.identifier == "Pacific/Kiritimati")
+
+        for name in OrefTimeOfDayCharacterizationTests.scenarioNames {
+            let scenario = OrefTimeOfDayCharacterizationTests.scenario(name)
+            var inputs = try OrefRunCharacterizationTests.inputs(for: scenario)
+            inputs.timeZone = berlin
+            let outputs = try OrefRun.run(inputs)
+            for (stage, json) in try OrefRunCharacterizationTests.stages(outputs, clock: scenario.clock) {
+                try OrefGoldens.check(json, clock: scenario.clock, scenario: name, stage: stage)
+            }
+        }
+        #expect(tdd() == berlinTDD)
+        #expect(GlucoseAlarmEvaluation.isEligible(
+            nightAlarm,
+            at: lateEvening,
+            configuration: GlucoseAlertConfiguration(),
+            timeZone: berlin
+        ))
+    }
+}
