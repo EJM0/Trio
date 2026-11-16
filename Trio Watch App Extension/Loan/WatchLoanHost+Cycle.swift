@@ -358,8 +358,9 @@ extension WatchLoanHost {
         switch kind {
         case .bolus: return true
         case let .tempBasal(rate, _): return rate > (lastOutputs?.profile.currentBasal ?? 0)
-        case .resume: return true
-        case .suspend: return false
+        // resume restores the scheduled basal: a pending intent must never keep the pump suspended
+        case .resume,
+             .suspend: return false
         }
     }
 
