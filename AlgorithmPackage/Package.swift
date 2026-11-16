@@ -66,7 +66,8 @@ let package = Package(
             path: "Sources",
             sources: [
                 "APS/OpenAPSSwift",
-                "APS/Extensions/DecimalExtensions.swift"
+                "APS/Extensions/DecimalExtensions.swift",
+                "APS/Storage/ScheduledBasalInference.swift"
             ] + algorithmModels + algorithmHelpers,
             swiftSettings: [.define("TRIO_ALGORITHM_PACKAGE")]
         ),
