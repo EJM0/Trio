@@ -412,19 +412,7 @@ final class BaseGlucoseStorage: GlucoseStorage, Injectable {
     }
 
     func filterTooFrequentGlucose(_ glucose: [BloodGlucose], at date: Date) -> [BloodGlucose] {
-        var lastDate = date
-        var filtered: [BloodGlucose] = []
-        let sorted = glucose.sorted { $0.date < $1.date }
-
-        for entry in sorted {
-            guard entry.dateString.addingTimeInterval(-Config.filterTime) > lastDate else {
-                continue
-            }
-            filtered.append(entry)
-            lastDate = entry.dateString
-        }
-
-        return filtered
+        OrefInputs.filterTooFrequentGlucose(glucose, at: date, filterTime: Config.filterTime)
     }
 
     func fetchLatestGlucose(context: NSManagedObjectContext) throws -> GlucoseStored? {
@@ -478,59 +466,39 @@ final class BaseGlucoseStorage: GlucoseStorage, Injectable {
         }
     }
 
-    /// The glucose value the algorithm consumes for a stored reading: the smoothed value when
-    /// smoothing is on and a valid non-zero smoothed CGM value exists, otherwise the raw value
-    /// (finger pricks/manual entries always use the raw value — cf.
-    /// https://github.com/nightscout/Trio/issues/1054).
+    /// The glucose value the algorithm consumes for a stored reading.
     static func algorithmGlucoseValue(
         for glucose: GlucoseStored,
         shouldSmoothGlucose: Bool,
         roundingBehavior: NSDecimalNumberHandler
     ) -> Int16 {
-        if shouldSmoothGlucose {
-            if !glucose.isManual, let smoothedGlucose = glucose.smoothedGlucose, smoothedGlucose != 0 {
-                return smoothedGlucose.rounding(accordingToBehavior: roundingBehavior).int16Value
-            } else {
-                return glucose.glucose
-            }
-        } else {
-            return glucose.glucose
-        }
+        OrefInputs.algorithmGlucoseValue(
+            glucose: glucose.glucose,
+            smoothedGlucose: glucose.smoothedGlucose?.decimalValue,
+            isManual: glucose.isManual,
+            shouldSmoothGlucose: shouldSmoothGlucose,
+            roundingBehavior: roundingBehavior
+        )
     }
 
     /// Maps a `GlucoseStored` to the `BloodGlucose` the algorithm consumes, reproducing exactly
-    /// the coercions the old `AlgorithmGlucose` → JSON → `JSONBridge.glucose` round-trip applied:
-    /// - CGM readings populate `sgv`, manual readings populate `glucose` (driven by `isManual`).
-    /// - `dateString` is the stored reading date. The old path round-tripped it through an ISO8601
-    ///   fractional-seconds string, truncating it to millisecond precision; we keep the full-precision
-    ///   `Date` instead, since the extra sub-millisecond precision is harmless to the algorithm and
-    ///   the JSON representation is unaffected (`dateString` still encodes to 3-digit-ms ISO8601).
-    /// - `date` is the unix-millisecond timestamp as a `Decimal`.
-    /// - `type` is always "sgv" (matching the old hardcoded encode).
+    /// the coercions the old `AlgorithmGlucose` → JSON → `JSONBridge.glucose` round-trip applied.
+    /// `dateString` keeps the full-precision stored date; the old path truncated it to milliseconds,
+    /// which is harmless to the algorithm, and its JSON encoding is unchanged.
     static func mapToBloodGlucose(
         _ glucose: GlucoseStored,
         shouldSmoothGlucose: Bool,
         roundingBehavior: NSDecimalNumberHandler
     ) -> BloodGlucose {
-        let glucoseValue = algorithmGlucoseValue(
-            for: glucose,
+        OrefInputs.bloodGlucose(
+            id: glucose.id,
+            date: glucose.date,
+            glucose: glucose.glucose,
+            smoothedGlucose: glucose.smoothedGlucose?.decimalValue,
+            isManual: glucose.isManual,
+            direction: glucose.direction,
             shouldSmoothGlucose: shouldSmoothGlucose,
             roundingBehavior: roundingBehavior
-        )
-        let isManual = glucose.isManual
-        // The ?? Date() is problematic, but this is how it worked previously
-        // so we'll retain it
-        let dateString = glucose.date ?? Date()
-        let dateMilliseconds = Decimal(Int64(dateString.timeIntervalSince1970 * 1000))
-
-        return BloodGlucose(
-            id: glucose.id?.uuidString ?? UUID().uuidString,
-            sgv: isManual ? nil : Int(glucoseValue),
-            direction: glucose.direction.flatMap { BloodGlucose.Direction(rawValue: $0) },
-            date: dateMilliseconds,
-            dateString: dateString,
-            glucose: isManual ? Int(glucoseValue) : nil,
-            type: "sgv"
         )
     }
 
