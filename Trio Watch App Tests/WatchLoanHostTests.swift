@@ -493,7 +493,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.violations.isEmpty)
     }
 
-    @Test("Each command adds its own intent: a pending bolus survives a reduction, a suspend and a relaunch")  func intentList(
+    @Test("Each command adds its own intent: a pending bolus survives a reduction, a suspend and a relaunch") func intentList(
     ) async throws {
         let world = LoanFixture()
         try await world.startLoan(glucose: 100)
@@ -567,7 +567,25 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(boluses.first?.bookedIntent == false)
     }
 
-    @Test("A stopped watch keeps reading the sensor and keeps its glucose alarms, unless superseded")  func stoppedAlarms() async throws {
+    @Test("Resume goes out while a bolus is unconfirmed; another bolus doesn't") func resumeWhilePending() async throws {
+        let world = LoanFixture()
+        try await world.startLoan(glucose: 120)
+        await world.reading(120)
+        world.pump?.commandError = .communication(nil)
+        world.pump?.makesDeliveryUncertainOnError = true
+        await world.host.requestBolus(units: 1)
+        #expect(world.host.intents.count == 1)
+        world.pump?.commandError = nil
+        await world.host.suspendInsulin()
+        await world.host.resumeInsulin()
+        let commands = world.pump?.commands ?? []
+        #expect((commands.lastIndex(of: "suspend") ?? .max) < (commands.lastIndex(of: "resume") ?? -1))
+        #expect(world.host.intents.count == 1, "the bolus intent stays; suspend and resume settled")
+        let outcome = await world.host.command(.bolus(units: 0.5, automatic: false))
+        #expect(outcome == .notSent)
+    }
+
+    @Test("A stopped watch keeps reading the sensor and keeps its glucose alarms, unless superseded") func stoppedAlarms() async throws {
         var low = GlucoseAlert(type: .low)
         low.thresholdMgDL = 70
         let world = LoanFixture()
@@ -584,8 +602,9 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.pump?.commands.count == commands, "alarms only, no commands")
     }
 
-    @Test("An unreadable state file is a stop: nothing is commanded, the user is told, the pod released (W38)")
-    func unreadableState() async throws {
+    @Test(
+        "An unreadable state file is a stop: nothing is commanded, the user is told, the pod released (W38)"
+    ) func unreadableState() async throws {
         let world = LoanFixture()
         try await world.startLoan()
         try Data("not json".utf8).write(to: world.files.url(.state))
