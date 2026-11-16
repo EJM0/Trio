@@ -24,20 +24,21 @@ extension OrefInputs {
 
     // MARK: - Carbs
 
-    static func carbsStart(now: Date) -> Date {
-        Calendar.current.date(byAdding: .day, value: -1, to: now)!
+    /// One calendar day back in `timeZone`: 23 or 25 h across a DST change.
+    static func carbsStart(now: Date, timeZone: TimeZone) -> Date {
+        WallClock.calendar(in: timeZone).date(byAdding: .day, value: -1, to: now)!
     }
 
     /// Entries of the last day, newest first.
-    static func carbs(_ carbs: [CarbsEntry], now: Date) -> [CarbsEntry] {
-        let start = carbsStart(now: now)
+    static func carbs(_ carbs: [CarbsEntry], now: Date, timeZone: TimeZone) -> [CarbsEntry] {
+        let start = carbsStart(now: now, timeZone: timeZone)
         return carbs.filter { $0.createdAt >= start }.sorted { $0.createdAt > $1.createdAt }
     }
 
     // MARK: - Pump history
 
     static func pumpHistoryStart(now: Date) -> Date {
-        Calendar.current.date(byAdding: .minute, value: -1440, to: now)!
+        now - TimeInterval(minutes: 1440)
     }
 
     /// Orphaned resumes are looked for in 48 h: the 24 h history plus 24 h for the suspend before it.

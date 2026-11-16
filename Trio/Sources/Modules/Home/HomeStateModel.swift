@@ -174,7 +174,8 @@ extension Home {
                     event.timestamp.map { ($0, event.type == EventType.pumpSuspend.rawValue) }
                 },
                 profile: basalProfile,
-                now: now
+                now: now,
+                timeZone: TimeZone.current
             )
         }
 

@@ -77,7 +77,7 @@ import Testing
         rows.append((OrefInputs.sufficientTDDStart(now: now).addingTimeInterval(-60), 30))
         try await insertTDD(rows)
 
-        let phone = try await BaseTDDStorage.hasSufficientTDD(context: stack.newTaskContext())
+        let phone = try await BaseTDDStorage.hasSufficientTDD(context: stack.newTaskContext(), now: now)
         let selected = OrefInputs.hasSufficientTDD(rows.map { OrefInputs.TDDRow(date: $0.date, total: $0.total) }, now: now)
 
         #expect(phone == selected)
@@ -122,7 +122,7 @@ import Testing
 
     @Test("Carbs: same one-day window and order") func carbs() async throws {
         let now = Date()
-        let start = OrefInputs.carbsStart(now: now)
+        let start = OrefInputs.carbsStart(now: now, timeZone: TimeZone.current)
         let dates = [start.addingTimeInterval(-60), start.addingTimeInterval(60), now.addingTimeInterval(-600)]
         let context = stack.newTaskContext()
         try await context.perform {
@@ -139,10 +139,21 @@ import Testing
             .getCarbsForAlgorithm()
         let selected = OrefInputs.carbs(
             dates.map { OrefInputs.carbsEntry(id: nil, date: $0, carbs: 20, fat: 0, protein: 0, isFPU: false) },
-            now: now
+            now: now,
+            timeZone: TimeZone.current
         )
 
         #expect(phone.count == 2)
         #expect(phone.map(\.createdAt) == selected.map(\.createdAt))
+    }
+
+    @Test("Carbs: one calendar day in the given zone, 23 h on its spring-forward day") func carbsWindowTimeZone() throws {
+        // 12:00 EDT on 2026-03-08, the America/New_York spring-forward day; Europe/Berlin changes on 2026-03-29
+        let now = try #require(ISO8601DateFormatter().date(from: "2026-03-08T16:00:00Z"))
+        let newYork = try #require(TimeZone(identifier: "America/New_York"))
+        let berlin = try #require(TimeZone(identifier: "Europe/Berlin"))
+
+        #expect(now.timeIntervalSince(OrefInputs.carbsStart(now: now, timeZone: newYork)) == 23 * 3600)
+        #expect(now.timeIntervalSince(OrefInputs.carbsStart(now: now, timeZone: berlin)) == 24 * 3600)
     }
 }

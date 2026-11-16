@@ -33,7 +33,7 @@ import Testing
             try context.save()
         }
 
-        return try await BaseTDDStorage.hasSufficientTDD(context: context)
+        return try await BaseTDDStorage.hasSufficientTDD(context: context, now: Date())
     }
 
     @Test("Confirm samples from last 7 days enables Dynamic ISF") func testPercentSamplesEnablingLogic() async throws {

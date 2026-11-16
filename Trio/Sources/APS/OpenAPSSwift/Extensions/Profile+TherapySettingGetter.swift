@@ -7,7 +7,7 @@ extension Profile {
             return currentBasal ?? 0
         }
 
-        let calendar = Calendar.current
+        let calendar = WallClock.calendar
 
         // Get today's midnight
         let startOfDay = calendar.startOfDay(for: time)
@@ -39,7 +39,7 @@ extension Profile {
             return sens ?? 200
         }
 
-        let calendar = Calendar.current
+        let calendar = WallClock.calendar
         let startOfDay = calendar.startOfDay(for: time)
         let nowMinutes = calendar.dateComponents([.minute], from: startOfDay, to: time).minute ?? 0
 
@@ -65,7 +65,7 @@ extension Profile {
     func carbRatioFor(time: Date = Date()) -> Decimal {
         // First: try using the dynamic schedule
         if let carbRatios = carbRatios, !carbRatios.schedule.isEmpty {
-            let calendar = Calendar.current
+            let calendar = WallClock.calendar
             let startOfDay = calendar.startOfDay(for: time)
             let nowMinutes = calendar.dateComponents([.minute], from: startOfDay, to: time).minute ?? 0
 

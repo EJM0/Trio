@@ -10,6 +10,7 @@ final class OpenAPS {
     private let glucoseStorage: GlucoseStorage
     private let carbsStorage: CarbsStorage
     private let makeContext: () -> NSManagedObjectContext
+    private let now: () -> Date
 
     let jsonConverter = JSONConverter()
 
@@ -24,13 +25,15 @@ final class OpenAPS {
         tddStorage: TDDStorage,
         glucoseStorage: GlucoseStorage,
         carbsStorage: CarbsStorage,
-        contextProvider: (() -> NSManagedObjectContext)? = nil
+        contextProvider: (() -> NSManagedObjectContext)? = nil,
+        now: @escaping () -> Date = Date.init
     ) {
         self.storage = storage
         self.tddStorage = tddStorage
         self.glucoseStorage = glucoseStorage
         self.carbsStorage = carbsStorage
         makeContext = contextProvider ?? { CoreDataStack.shared.newTaskContext() }
+        self.now = now
     }
 
     static let dateFormatter: ISO8601DateFormatter = {
@@ -113,7 +116,7 @@ final class OpenAPS {
         let results = try await CoreDataStack.shared.fetchEntitiesAsync(
             ofType: PumpEventStored.self,
             onContext: context,
-            predicate: NSPredicate.pumpHistoryLast1440Minutes,
+            predicate: NSPredicate.pumpHistoryLast1440Minutes(now: now()),
             key: "timestamp",
             ascending: false,
             batchSize: 50
@@ -182,7 +185,7 @@ final class OpenAPS {
         PumpHistoryEvent(
             id: UUID().uuidString,
             type: .bolus,
-            timestamp: Date().addingTimeInterval(-1),
+            timestamp: now().addingTimeInterval(-1),
             amount: simulatedBolusAmount,
             duration: 0,
             isSMB: true,
@@ -195,7 +198,7 @@ final class OpenAPS {
         let results = try await CoreDataStack.shared.fetchEntitiesAsync(
             ofType: PumpEventStored.self,
             onContext: context,
-            predicate: NSPredicate.pumpHistoryLast48h,
+            predicate: NSPredicate.pumpHistoryLast48h(now: now()),
             key: "timestamp",
             ascending: true,
             batchSize: 250
@@ -284,7 +287,8 @@ final class OpenAPS {
             basalProfile: basalProfile,
             clock: clock,
             carbs: carbs,
-            glucose: glucose
+            glucose: glucose,
+            timeZone: TimeZone.current
         )
 
         // IOB calculation
@@ -292,7 +296,8 @@ final class OpenAPS {
             pumphistory: pumpHistory,
             profile: profile,
             clock: clock,
-            autosens: autosens
+            autosens: autosens,
+            timeZone: TimeZone.current
         )
 
         // TODO: refactor this to core data
@@ -300,7 +305,7 @@ final class OpenAPS {
             storage.save(iob, as: Monitor.iob)
         }
 
-        // Determine basal; the determination time is Date(), not `clock`
+        // Determine basal; the determination time is now(), not `clock`
         let orefDetermination = try OrefRun.determine(
             glucose: glucose,
             currentTemp: currentTemp,
@@ -310,8 +315,10 @@ final class OpenAPS {
             meal: meal,
             preferences: preferences,
             hasSufficientTDD: hasSufficientTdd,
+            microBolusAllowed: true,
             trioCustomOrefVariables: trioCustomOrefVariables,
-            currentTime: Date()
+            currentTime: now(),
+            timeZone: TimeZone.current
         )
 
         debug(
@@ -340,7 +347,7 @@ final class OpenAPS {
 
     func prepareTrioCustomOrefVariables(on context: NSManagedObjectContext) async throws -> RawJSON {
         try await context.perform {
-            let now = Date()
+            let now = self.now()
 
             // Retrieve user preferences
             let userPreferences = self.storage.retrieve(OpenAPS.Settings.preferences, as: Preferences.self)
@@ -404,11 +411,12 @@ final class OpenAPS {
             profile: profile,
             carbs: carbs,
             tempTargets: tempTargets,
-            clock: Date()
+            clock: now(),
+            timeZone: TimeZone.current
         )
 
         debug(.algorithm, "Autosens ratio \(autosens.ratio)")
-        autosens.timestamp = Date()
+        autosens.timestamp = now()
         await storage.saveAsync(autosens, as: Settings.autosense)
 
         return autosens
@@ -451,7 +459,7 @@ final class OpenAPS {
             dosingMode: dosingMode
         )
 
-        let clock = Date()
+        let clock = now()
         do {
             // Decode the raw settings into native models. The bundled-defaults
             // fallback still happens in loadFileFromStorageAsync above, so decoding
@@ -471,7 +479,8 @@ final class OpenAPS {
                 carbRatios: carbRatios,
                 tempTargets: tempTargets,
                 preferences: adjustedPreferences,
-                clock: clock
+                clock: clock,
+                timeZone: TimeZone.current
             )
 
             // Save the profiles
@@ -547,7 +556,7 @@ extension OpenAPS {
         try CoreDataStack.shared.fetchEntities(
             ofType: TempTargetStored.self,
             onContext: context,
-            predicate: NSPredicate.lastActiveTempTarget,
+            predicate: NSPredicate.lastActiveTempTarget(now: now()),
             key: "date",
             ascending: false,
             fetchLimit: 1
@@ -558,7 +567,7 @@ extension OpenAPS {
         try CoreDataStack.shared.fetchEntities(
             ofType: OverrideStored.self,
             onContext: context,
-            predicate: NSPredicate.lastActiveOverride,
+            predicate: NSPredicate.lastActiveOverride(now: now()),
             key: "date",
             ascending: false,
             fetchLimit: 1

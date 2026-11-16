@@ -1,0 +1,81 @@
+{
+  "carbs-required" : [
+    "determination iob nil zt nil carbsReq 9: ",
+    "determination iob nil zt nil carbsReq 10: issue glucose.carbsRequired.00000000-0000-0000-0000-000000000001 timeSensitive sound-1.caf",
+    "determination iob nil zt nil carbsReq 25: ",
+    "determination iob nil zt nil carbsReq 9.5: retract glucose.carbsRequired.00000000-0000-0000-0000-000000000001",
+    "determination iob nil zt nil carbsReq 30: issue glucose.carbsRequired.00000000-0000-0000-0000-000000000001 timeSensitive sound-1.caf",
+    "determination iob nil zt nil carbsReq nil: retract glucose.carbsRequired.00000000-0000-0000-0000-000000000001"
+  ],
+  "day-and-night-windows" : [
+    "reading 75 at 2026-06-15T19:50:00Z: issue glucose.low.00000000-0000-0000-0000-000000000001 timeSensitive sound-1.caf",
+    "reading 75 at 2026-06-15T20:00:00Z: retract glucose.low.00000000-0000-0000-0000-000000000001",
+    "reading 69 at 2026-06-15T20:05:00Z: issue glucose.low.00000000-0000-0000-0000-000000000002 timeSensitive sound-2.caf",
+    "reading 255 at 2026-06-16T03:55:00Z: retract glucose.low.00000000-0000-0000-0000-000000000002, issue glucose.high.00000000-0000-0000-0000-000000000003 timeSensitive sound-3.caf",
+    "reading 255 at 2026-06-16T04:00:00Z: retract glucose.high.00000000-0000-0000-0000-000000000003",
+    "reading 78 at 2026-06-16T04:05:00Z: issue glucose.low.00000000-0000-0000-0000-000000000001 timeSensitive sound-1.caf"
+  ],
+  "disabled-alarms-and-urgent-low-floor" : [
+    "reading 50 at 2026-06-15T10:00:00Z: issue glucose.urgentLow.00000000-0000-0000-0000-000000000001 critical sound-1.caf",
+    "reading 200 at 2026-06-15T10:05:00Z: retract glucose.urgentLow.00000000-0000-0000-0000-000000000001"
+  ],
+  "forecasted-low" : [
+    "determination iob [110, 100, 92, 85, 80, 76, 73] zt nil carbsReq nil: ",
+    "determination iob [110, 100, 92, 85, 72, 68, 65] zt nil carbsReq nil: issue glucose.forecastedLow.00000000-0000-0000-0000-000000000001 timeSensitive sound-1.caf",
+    "determination iob [110, 100, 92, 85, 76, 72, 69] zt nil carbsReq nil: ",
+    "determination iob [110, 100, 92, 85, 77, 73, 70] zt nil carbsReq nil: retract glucose.forecastedLow.00000000-0000-0000-0000-000000000001",
+    "determination iob [110, 100, 92, 85, 90, 86, 83] zt [110, 100, 92, 85, 70, 66, 63] carbsReq nil: issue glucose.forecastedLow.00000000-0000-0000-0000-000000000001 timeSensitive sound-1.caf",
+    "determination iob nil zt nil carbsReq nil: retract glucose.forecastedLow.00000000-0000-0000-0000-000000000001",
+    "determination iob [100, 90] zt nil carbsReq nil: ",
+    "determination iob [110, 100, 92, 85, 60, 56, 53] zt nil carbsReq nil: issue glucose.forecastedLow.00000000-0000-0000-0000-000000000001 timeSensitive sound-1.caf",
+    "reading 65 at 2026-06-15T10:00:00Z: issue glucose.low.00000000-0000-0000-0000-000000000002 timeSensitive sound-2.caf",
+    "determination iob [110, 100, 92, 85, 60, 56, 53] zt nil carbsReq nil: retract glucose.forecastedLow.00000000-0000-0000-0000-000000000001",
+    "reading 76 at 2026-06-15T10:05:00Z: retract glucose.low.00000000-0000-0000-0000-000000000002",
+    "determination iob [110, 100, 92, 85, 60, 56, 53] zt nil carbsReq nil: issue glucose.forecastedLow.00000000-0000-0000-0000-000000000001 timeSensitive sound-1.caf"
+  ],
+  "interruption-level-and-sound" : [
+    "reading 190 at 2026-06-15T10:00:00Z: issue glucose.high.00000000-0000-0000-0000-000000000001 critical none",
+    "reading 70 at 2026-06-15T10:05:00Z: issue glucose.low.00000000-0000-0000-0000-000000000002 timeSensitive sound-2.caf, retract glucose.high.00000000-0000-0000-0000-000000000001"
+  ],
+  "low-urgent-low-high-sequence" : [
+    "reading 80 at 2026-06-15T10:00:00Z: ",
+    "reading 72 at 2026-06-15T10:05:00Z: issue glucose.low.00000000-0000-0000-0000-000000000002 timeSensitive sound-2.caf",
+    "reading 70 at 2026-06-15T10:10:00Z: ",
+    "reading 76 at 2026-06-15T10:15:00Z: ",
+    "reading 77 at 2026-06-15T10:20:00Z: retract glucose.low.00000000-0000-0000-0000-000000000002",
+    "reading 53 at 2026-06-15T10:25:00Z: issue glucose.urgentLow.00000000-0000-0000-0000-000000000001 critical sound-1.caf",
+    "reading 58 at 2026-06-15T10:30:00Z: ",
+    "reading 59 at 2026-06-15T10:35:00Z: retract glucose.urgentLow.00000000-0000-0000-0000-000000000001, issue glucose.low.00000000-0000-0000-0000-000000000002 timeSensitive sound-2.caf",
+    "reading 60 at 2026-06-15T10:40:00Z: ",
+    "reading 300 at 2026-06-15T10:45:00Z: retract glucose.low.00000000-0000-0000-0000-000000000002, issue glucose.high.00000000-0000-0000-0000-000000000003 timeSensitive sound-3.caf",
+    "reading 266 at 2026-06-15T10:50:00Z: ",
+    "reading 265 at 2026-06-15T10:55:00Z: retract glucose.high.00000000-0000-0000-0000-000000000003"
+  ],
+  "night-inside-the-day" : [
+    "reading 210 at 2026-06-14T23:20:00Z: ",
+    "reading 210 at 2026-06-14T23:30:00Z: issue glucose.high.00000000-0000-0000-0000-000000000001 timeSensitive sound-1.caf",
+    "reading 210 at 2026-06-15T05:00:00Z: retract glucose.high.00000000-0000-0000-0000-000000000001"
+  ],
+  "per-alarm-snooze" : [
+    "reading 60 at 2026-06-15T10:00:00Z: ",
+    "reading 60 at 2026-06-15T10:10:00Z: issue glucose.low.00000000-0000-0000-0000-000000000001 timeSensitive sound-1.caf",
+    "reading 60 at 2026-06-15T10:15:00Z: ",
+    "reading 200 at 2026-06-15T10:20:00Z: retract glucose.low.00000000-0000-0000-0000-000000000001, issue glucose.high.00000000-0000-0000-0000-000000000002 timeSensitive sound-2.caf"
+  ],
+  "several-alarms-of-one-type" : [
+    "reading 180 at 2026-06-15T10:00:00Z: issue glucose.high.00000000-0000-0000-0000-000000000001 timeSensitive sound-1.caf",
+    "reading 249 at 2026-06-15T10:05:00Z: ",
+    "reading 260 at 2026-06-15T10:10:00Z: issue glucose.high.00000000-0000-0000-0000-000000000002 timeSensitive sound-2.caf",
+    "reading 244 at 2026-06-15T10:15:00Z: retract glucose.high.00000000-0000-0000-0000-000000000002",
+    "reading 176 at 2026-06-15T10:20:00Z: ",
+    "reading 79 at 2026-06-15T10:25:00Z: issue glucose.low.00000000-0000-0000-0000-000000000003 timeSensitive sound-3.caf, retract glucose.high.00000000-0000-0000-0000-000000000001",
+    "reading 60 at 2026-06-15T10:30:00Z: issue glucose.low.00000000-0000-0000-0000-000000000004 timeSensitive sound-4.caf",
+    "reading 70 at 2026-06-15T10:35:00Z: retract glucose.low.00000000-0000-0000-0000-000000000004",
+    "reading 85 at 2026-06-15T10:40:00Z: retract glucose.low.00000000-0000-0000-0000-000000000003"
+  ],
+  "urgent-low-retracts-firing-low" : [
+    "reading 65 at 2026-06-15T10:00:00Z: issue glucose.low.00000000-0000-0000-0000-000000000001 timeSensitive sound-1.caf",
+    "reading 50 at 2026-06-15T10:05:00Z: issue glucose.urgentLow.00000000-0000-0000-0000-000000000002 critical sound-2.caf, retract glucose.low.00000000-0000-0000-0000-000000000001",
+    "reading 64 at 2026-06-15T10:10:00Z: retract glucose.urgentLow.00000000-0000-0000-0000-000000000002, issue glucose.low.00000000-0000-0000-0000-000000000001 timeSensitive sound-1.caf"
+  ]
+}

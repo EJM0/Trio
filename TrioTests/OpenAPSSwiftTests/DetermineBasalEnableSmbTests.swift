@@ -88,7 +88,20 @@ import Testing
             profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
             adjustedTargetGlucose: inputs.adjustedTargetGlucose,
             minGuardGlucose: inputs.minGuardGlucose,
-            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: true,
+            trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
+        )
+        #expect(decision.isEnabled == false)
+    }
+
+    @Test("Should disable SMB when micro boluses are not allowed") func disableWhenMicroBolusNotAllowed() throws {
+        var inputs = createDefaultInputs()
+        inputs.profile.enableSMBAlways = true
+        let decision = try DosingEngine.makeSMBDosingDecision(
+            profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
+            adjustedTargetGlucose: inputs.adjustedTargetGlucose,
+            minGuardGlucose: inputs.minGuardGlucose,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: false,
             trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
         )
         #expect(decision.isEnabled == false)
@@ -103,7 +116,7 @@ import Testing
             profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
             adjustedTargetGlucose: inputs.adjustedTargetGlucose,
             minGuardGlucose: inputs.minGuardGlucose,
-            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: true,
             trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
         )
         #expect(decision.isEnabled == false)
@@ -119,7 +132,7 @@ import Testing
             profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
             adjustedTargetGlucose: inputs.adjustedTargetGlucose,
             minGuardGlucose: inputs.minGuardGlucose,
-            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: true,
             trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
         )
         #expect(decision.isEnabled == false)
@@ -135,7 +148,7 @@ import Testing
             profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
             adjustedTargetGlucose: inputs.adjustedTargetGlucose,
             minGuardGlucose: inputs.minGuardGlucose,
-            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: true,
             trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
         )
         #expect(decision.isEnabled == false)
@@ -163,7 +176,7 @@ import Testing
             profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
             adjustedTargetGlucose: inputs.adjustedTargetGlucose,
             minGuardGlucose: inputs.minGuardGlucose,
-            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: true,
             trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
         )
         #expect(decision.isEnabled == false)
@@ -180,7 +193,7 @@ import Testing
             profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
             adjustedTargetGlucose: inputs.adjustedTargetGlucose,
             minGuardGlucose: inputs.minGuardGlucose,
-            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: true,
             trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
         )
         #expect(decision.isEnabled == true)
@@ -205,7 +218,7 @@ import Testing
             profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
             adjustedTargetGlucose: inputs.adjustedTargetGlucose,
             minGuardGlucose: inputs.minGuardGlucose,
-            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: true,
             trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
         )
         #expect(decision.isEnabled == true)
@@ -230,7 +243,7 @@ import Testing
             profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
             adjustedTargetGlucose: inputs.adjustedTargetGlucose,
             minGuardGlucose: inputs.minGuardGlucose,
-            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: true,
             trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
         )
         #expect(decision.isEnabled == true)
@@ -246,7 +259,7 @@ import Testing
             profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
             adjustedTargetGlucose: inputs.adjustedTargetGlucose,
             minGuardGlucose: inputs.minGuardGlucose,
-            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: true,
             trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
         )
         #expect(decision.isEnabled == true)
@@ -262,7 +275,7 @@ import Testing
             profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
             adjustedTargetGlucose: inputs.adjustedTargetGlucose,
             minGuardGlucose: inputs.minGuardGlucose,
-            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: true,
             trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
         )
         #expect(decision.isEnabled == true)
@@ -282,7 +295,7 @@ import Testing
             profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
             adjustedTargetGlucose: inputs.adjustedTargetGlucose,
             minGuardGlucose: inputs.minGuardGlucose,
-            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: true,
             trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
         )
         #expect(decision.isEnabled == false)
@@ -300,7 +313,7 @@ import Testing
             profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
             adjustedTargetGlucose: inputs.adjustedTargetGlucose,
             minGuardGlucose: inputs.minGuardGlucose,
-            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: true,
             trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
         )
         #expect(decision.isEnabled == true)
@@ -320,7 +333,7 @@ import Testing
             profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
             adjustedTargetGlucose: inputs.adjustedTargetGlucose,
             minGuardGlucose: inputs.minGuardGlucose,
-            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: true,
             trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
         )
         #expect(decision.isEnabled == false)
@@ -340,7 +353,7 @@ import Testing
             profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
             adjustedTargetGlucose: inputs.adjustedTargetGlucose,
             minGuardGlucose: inputs.minGuardGlucose,
-            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: true,
             trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
         )
         #expect(decision.isEnabled == false)
@@ -358,7 +371,7 @@ import Testing
             profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
             adjustedTargetGlucose: inputs.adjustedTargetGlucose,
             minGuardGlucose: inputs.minGuardGlucose,
-            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: true,
             trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
         )
         #expect(decision.isEnabled == true)
@@ -376,7 +389,7 @@ import Testing
             profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
             adjustedTargetGlucose: inputs.adjustedTargetGlucose,
             minGuardGlucose: inputs.minGuardGlucose,
-            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: true,
             trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
         )
         #expect(decision.isEnabled == false)
@@ -394,7 +407,7 @@ import Testing
             profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
             adjustedTargetGlucose: inputs.adjustedTargetGlucose,
             minGuardGlucose: inputs.minGuardGlucose,
-            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: true,
             trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
         )
         #expect(decision.isEnabled == false)
@@ -412,7 +425,7 @@ import Testing
             profile: inputs.profile, meal: inputs.meal, currentGlucose: inputs.currentGlucose,
             adjustedTargetGlucose: inputs.adjustedTargetGlucose,
             minGuardGlucose: inputs.minGuardGlucose,
-            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus,
+            threshold: inputs.threshold, glucoseStatus: inputs.glucoseStatus, microBolusAllowed: true,
             trioCustomOrefVariables: inputs.trioCustomOrefVariables, clock: inputs.clock
         )
         #expect(decision.isEnabled == true)

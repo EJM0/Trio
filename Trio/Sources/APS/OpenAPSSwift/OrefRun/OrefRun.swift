@@ -30,7 +30,8 @@ enum OrefRun {
                 activeTempTarget: inputs.activeTempTarget,
                 dosingMode: inputs.dosingMode
             ),
-            clock: inputs.clock
+            clock: inputs.clock,
+            timeZone: inputs.timeZone
         )
         // the phone reads profile, autosens and the custom variables back from JSON files; same round trips here
         let profile = try JSONBridge.profile(from: profiles.profile.rawJSON)
@@ -46,7 +47,8 @@ enum OrefRun {
                 profile: profile,
                 carbs: inputs.carbs,
                 tempTargets: inputs.tempTargets,
-                clock: inputs.clock
+                clock: inputs.clock,
+                timeZone: inputs.timeZone
             )
             computed.timestamp = inputs.clock
             autosens = try JSONBridge.from(string: computed.rawJSON)
@@ -69,9 +71,16 @@ enum OrefRun {
             basalProfile: inputs.basalProfile,
             clock: inputs.clock,
             carbs: inputs.carbs,
-            glucose: glucose
+            glucose: glucose,
+            timeZone: inputs.timeZone
         )
-        let iob = try iob(pumphistory: inputs.pumpHistory, profile: determinationProfile, clock: inputs.clock, autosens: autosens)
+        let iob = try iob(
+            pumphistory: inputs.pumpHistory,
+            profile: determinationProfile,
+            clock: inputs.clock,
+            autosens: autosens,
+            timeZone: inputs.timeZone
+        )
 
         let trioCustomOrefVariables = try JSONBridge.trioCustomOrefVariables(
             from: trioCustomOrefVariables(
@@ -91,8 +100,10 @@ enum OrefRun {
             meal: meal,
             preferences: preferences,
             hasSufficientTDD: inputs.hasSufficientTDD,
+            microBolusAllowed: inputs.microBolusAllowed,
             trioCustomOrefVariables: trioCustomOrefVariables,
-            currentTime: inputs.clock
+            currentTime: inputs.clock,
+            timeZone: inputs.timeZone
         )
 
         return Outputs(
@@ -157,31 +168,34 @@ enum OrefRun {
         carbRatios: CarbRatios,
         tempTargets: [TempTarget],
         preferences: Preferences,
-        clock: Date
+        clock: Date,
+        timeZone: TimeZone
     ) throws -> (pumpProfile: Profile, profile: Profile) {
-        let pumpProfile = try ProfileGenerator.generate(
-            pumpSettings: pumpSettings,
-            bgTargets: bgTargets,
-            basalProfile: basalProfile,
-            isf: insulinSensitivities,
-            preferences: preferences,
-            carbRatios: carbRatios,
-            tempTargets: tempTargets,
-            clock: clock
-        )
+        try WallClock.$boundTimeZone.withValue(timeZone) {
+            let pumpProfile = try ProfileGenerator.generate(
+                pumpSettings: pumpSettings,
+                bgTargets: bgTargets,
+                basalProfile: basalProfile,
+                isf: insulinSensitivities,
+                preferences: preferences,
+                carbRatios: carbRatios,
+                tempTargets: tempTargets,
+                clock: clock
+            )
 
-        let profile = try ProfileGenerator.generate(
-            pumpSettings: pumpSettings,
-            bgTargets: bgTargets,
-            basalProfile: basalProfile,
-            isf: insulinSensitivities,
-            preferences: preferences,
-            carbRatios: carbRatios,
-            tempTargets: tempTargets,
-            clock: clock
-        )
+            let profile = try ProfileGenerator.generate(
+                pumpSettings: pumpSettings,
+                bgTargets: bgTargets,
+                basalProfile: basalProfile,
+                isf: insulinSensitivities,
+                preferences: preferences,
+                carbRatios: carbRatios,
+                tempTargets: tempTargets,
+                clock: clock
+            )
 
-        return (pumpProfile, profile)
+            return (pumpProfile, profile)
+        }
     }
 
     // MARK: - Autosens
@@ -200,46 +214,49 @@ enum OrefRun {
         carbs: [CarbsEntry],
         tempTargets: [TempTarget],
         clock: Date,
+        timeZone: TimeZone,
         includeDeviationsForTesting: Bool = false
     ) throws -> Autosens {
-        // both runs use identical inputs, so compute the treatments once;
-        // gated on the same count as the generate early return
-        let precomputedTreatments = glucose.count >= 72 ? try IobHistory.calcTempTreatments(
-            history: pumpHistory.map { $0.computedEvent() },
-            profile: profile,
-            clock: clock,
-            autosens: nil,
-            zeroTempDuration: nil
-        ) : nil
+        try WallClock.$boundTimeZone.withValue(timeZone) {
+            // both runs use identical inputs, so compute the treatments once;
+            // gated on the same count as the generate early return
+            let precomputedTreatments = glucose.count >= 72 ? try IobHistory.calcTempTreatments(
+                history: pumpHistory.map { $0.computedEvent() },
+                profile: profile,
+                clock: clock,
+                autosens: nil,
+                zeroTempDuration: nil
+            ) : nil
 
-        // this logic is from prepare/autosens.js
-        let ratio8h = try AutosensGenerator.generate(
-            glucose: glucose,
-            pumpHistory: pumpHistory,
-            basalProfile: basalProfile,
-            profile: profile,
-            carbs: carbs,
-            tempTargets: tempTargets,
-            maxDeviations: 96,
-            clock: clock,
-            includeDeviationsForTesting: includeDeviationsForTesting,
-            precomputedTreatments: precomputedTreatments
-        )
+            // this logic is from prepare/autosens.js
+            let ratio8h = try AutosensGenerator.generate(
+                glucose: glucose,
+                pumpHistory: pumpHistory,
+                basalProfile: basalProfile,
+                profile: profile,
+                carbs: carbs,
+                tempTargets: tempTargets,
+                maxDeviations: 96,
+                clock: clock,
+                includeDeviationsForTesting: includeDeviationsForTesting,
+                precomputedTreatments: precomputedTreatments
+            )
 
-        let ratio24h = try AutosensGenerator.generate(
-            glucose: glucose,
-            pumpHistory: pumpHistory,
-            basalProfile: basalProfile,
-            profile: profile,
-            carbs: carbs,
-            tempTargets: tempTargets,
-            maxDeviations: 288,
-            clock: clock,
-            includeDeviationsForTesting: includeDeviationsForTesting,
-            precomputedTreatments: precomputedTreatments
-        )
+            let ratio24h = try AutosensGenerator.generate(
+                glucose: glucose,
+                pumpHistory: pumpHistory,
+                basalProfile: basalProfile,
+                profile: profile,
+                carbs: carbs,
+                tempTargets: tempTargets,
+                maxDeviations: 288,
+                clock: clock,
+                includeDeviationsForTesting: includeDeviationsForTesting,
+                precomputedTreatments: precomputedTreatments
+            )
 
-        return ratio8h.ratio < ratio24h.ratio ? ratio8h : ratio24h
+            return ratio8h.ratio < ratio24h.ratio ? ratio8h : ratio24h
+        }
     }
 
     // MARK: - Determination
@@ -313,17 +330,20 @@ enum OrefRun {
         pumphistory: [PumpHistoryEvent],
         profile: Profile,
         clock: Date,
-        autosens: Autosens?
+        autosens: Autosens?,
+        timeZone: TimeZone
     ) throws -> [IobResult] {
-        // FIXME: For now we'll just remove duplicate suspends here (ISSUE-399)
-        let pumphistory = pumphistory.removingDuplicateSuspendResumeEvents()
+        try WallClock.$boundTimeZone.withValue(timeZone) {
+            // FIXME: For now we'll just remove duplicate suspends here (ISSUE-399)
+            let pumphistory = pumphistory.removingDuplicateSuspendResumeEvents()
 
-        return try IobGenerator.generate(
-            history: pumphistory,
-            profile: profile,
-            clock: clock,
-            autosens: autosens
-        )
+            return try IobGenerator.generate(
+                history: pumphistory,
+                profile: profile,
+                clock: clock,
+                autosens: autosens
+            )
+        }
     }
 
     static func meal(
@@ -332,16 +352,19 @@ enum OrefRun {
         basalProfile: [BasalProfileEntry],
         clock: Date,
         carbs: [CarbsEntry],
-        glucose: [BloodGlucose]
+        glucose: [BloodGlucose],
+        timeZone: TimeZone
     ) throws -> ComputedCarbs? {
-        try MealGenerator.generate(
-            pumpHistory: pumphistory,
-            profile: profile,
-            basalProfile: basalProfile,
-            clock: clock,
-            carbHistory: carbs,
-            glucoseHistory: glucose
-        )
+        try WallClock.$boundTimeZone.withValue(timeZone) {
+            try MealGenerator.generate(
+                pumpHistory: pumphistory,
+                profile: profile,
+                basalProfile: basalProfile,
+                clock: clock,
+                carbHistory: carbs,
+                glucoseHistory: glucose
+            )
+        }
     }
 
     /// `preferences` are already clamped for the dosing mode. The returned determination's
@@ -355,36 +378,40 @@ enum OrefRun {
         meal: ComputedCarbs?,
         preferences: Preferences,
         hasSufficientTDD: Bool,
+        microBolusAllowed: Bool,
         trioCustomOrefVariables: TrioCustomOrefVariables,
-        currentTime: Date
+        currentTime: Date,
+        timeZone: TimeZone
     ) throws -> Determination? {
-        var preferences = preferences
-        if !hasSufficientTDD, preferences.useNewFormula || (preferences.useNewFormula && preferences.sigmoid) {
-            debug(.algorithm, "Dynamic ISF off for this run: not enough TDD history")
-            preferences.useNewFormula = false
-            preferences.sigmoid = false
-        }
+        try WallClock.$boundTimeZone.withValue(timeZone) {
+            var preferences = preferences
+            if !hasSufficientTDD, preferences.useNewFormula || (preferences.useNewFormula && preferences.sigmoid) {
+                debug(.algorithm, "Dynamic ISF off for this run: not enough TDD history")
+                preferences.useNewFormula = false
+                preferences.sigmoid = false
+            }
 
-        guard let meal = meal, let autosens = autosens else {
-            throw DeterminationError.missingInputs
-        }
+            guard let meal = meal, let autosens = autosens else {
+                throw DeterminationError.missingInputs
+            }
 
-        var determination = try DeterminationGenerator.generate(
-            profile: profile,
-            preferences: preferences,
-            currentTemp: currentTemp,
-            iobData: iob,
-            mealData: meal,
-            autosensData: autosens,
-            glucose: glucose,
-            microBolusAllowed: true,
-            trioCustomOrefVariables: trioCustomOrefVariables,
-            currentTime: currentTime
-        )
-        // AAPS does it the same way: timestamp starts as deliverAt and is updated once enacted
-        if let deliverAt = determination?.deliverAt {
-            determination?.timestamp = deliverAt
+            var determination = try DeterminationGenerator.generate(
+                profile: profile,
+                preferences: preferences,
+                currentTemp: currentTemp,
+                iobData: iob,
+                mealData: meal,
+                autosensData: autosens,
+                glucose: glucose,
+                microBolusAllowed: microBolusAllowed,
+                trioCustomOrefVariables: trioCustomOrefVariables,
+                currentTime: currentTime
+            )
+            // AAPS does it the same way: timestamp starts as deliverAt and is updated once enacted
+            if let deliverAt = determination?.deliverAt {
+                determination?.timestamp = deliverAt
+            }
+            return determination
         }
-        return determination
     }
 }

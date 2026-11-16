@@ -6,7 +6,7 @@ import Testing
 
 /// Characterization goldens for the production path: `OpenAPS.createProfiles`, `autosense` and
 /// `determineBasal`, run against in-memory Core Data and settings files, in the order `APSManager` uses.
-/// Dates are written relative to the scenario clock; values `OpenAPS` takes from `Date()` become `<now>`.
+/// Dates are written relative to the scenario clock, which `OpenAPS` and the stores get as `now`; values taken from it become `<now>`.
 @Suite("OpenAPS characterization goldens", .serialized) struct OrefCharacterizationTests {
     let resolver: Resolver
 
@@ -25,7 +25,7 @@ import Testing
         "production path matches golden",
         arguments: OrefCharacterizationScenarios.allNames
     ) func productionPathMatchesGolden(scenarioName: String) async throws {
-        let clock = scenarioName == "simulation" ? Date() : OrefCharacterizationScenarios.makeClock()
+        let clock = OrefCharacterizationScenarios.makeClock()
         let scenario = OrefCharacterizationScenarios.build(scenarioName, clock: clock)
         let stages = try await runProductionPath(scenario)
 
@@ -52,12 +52,14 @@ import Testing
         let storage = InMemoryFileStorage()
         scenario.seed(into: storage)
 
+        let now = { scenario.clock }
         let openAPS = OpenAPS(
             storage: storage,
-            tddStorage: BaseTDDStorage(resolver: resolver, contextProvider: contextProvider),
-            glucoseStorage: BaseGlucoseStorage(resolver: resolver, contextProvider: contextProvider),
-            carbsStorage: BaseCarbsStorage(resolver: resolver, contextProvider: contextProvider),
-            contextProvider: contextProvider
+            tddStorage: BaseTDDStorage(resolver: resolver, contextProvider: contextProvider, now: now),
+            glucoseStorage: BaseGlucoseStorage(resolver: resolver, contextProvider: contextProvider, now: now),
+            carbsStorage: BaseCarbsStorage(resolver: resolver, contextProvider: contextProvider, now: now),
+            contextProvider: contextProvider,
+            now: now
         )
 
         if let simulation = scenario.simulation {
@@ -111,7 +113,7 @@ import Testing
         ]
     }
 
-    /// cob.json is spaced from `deliverAt`, which is `Date()`; rebase it onto the clock in whole seconds.
+    /// cob.json is spaced from `deliverAt`; rebase it onto the clock in whole seconds.
     private func cobRelativeToDelivery(_ storage: FileStorage, determination: Determination?, clock: Date) throws -> [CobEntry] {
         guard let entries = storage.retrieve(OpenAPS.Monitor.cob, as: [CobEntry].self),
               let deliverAt = determination?.deliverAt
@@ -193,7 +195,7 @@ enum OrefGoldens {
         init(_ description: String) { self.description = description }
     }
 
-    /// Keys whose value `OpenAPS` takes from `Date()`, not from the scenario clock.
+    /// Keys whose value `OpenAPS` takes from its `now`, not from the scenario data.
     static let wallClockKeys: Set<String> = ["deliverAt", "timestamp", "date"]
 
     static var isRecording: Bool {

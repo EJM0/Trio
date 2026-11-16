@@ -1,5 +1,4 @@
 import Foundation
-import LoopKit
 
 /// Glucose-driven alarm types Trio supports today. Order is priority order
 /// (`urgentLow` highest), matching how `AlarmType.priority` works in

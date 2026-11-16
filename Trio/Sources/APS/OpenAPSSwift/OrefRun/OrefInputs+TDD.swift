@@ -7,6 +7,7 @@ extension OrefInputs {
         pumpHistory: [PumpHistoryEvent],
         basalProfile: [BasalProfileEntry],
         now: Date,
+        timeZone: TimeZone,
         roundToSupportedBasalRate: @escaping (_ unitsPerHour: Double) -> Double
     ) -> (bolus: Decimal, tempBasal: Decimal, scheduledBasal: Decimal) {
         // Group events by type once to avoid multiple filters
@@ -23,7 +24,8 @@ extension OrefInputs {
         let scheduledBasalSegments = ScheduledBasalInference.segments(
             events: timelineEvents(from: pumpHistory),
             profile: basalProfile,
-            now: now
+            now: now,
+            timeZone: timeZone
         )
 
         let suspensions = suspensionSpans(
