@@ -46,7 +46,7 @@ import Foundation
     }
 
     /// Set by a test or the watch app to receive algorithm log output; defaults to discarding it.
-    nonisolated(unsafe) var algorithmLogSink: ((AlgorithmLogLevel, Logger.Category, String) -> Void)?
+    nonisolated(unsafe) var algorithmLogSink: ((AlgorithmLogLevel, Logger.Category, String, Swift.Error?) -> Void)?
 
     func debug(
         _ category: Logger.Category,
@@ -56,7 +56,7 @@ import Foundation
         function _: String = #function,
         line _: UInt = #line
     ) {
-        algorithmLogSink?(.debug, category, message())
+        algorithmLogSink?(.debug, category, message(), nil)
     }
 
     func info(
@@ -66,7 +66,7 @@ import Foundation
         function _: String = #function,
         line _: UInt = #line
     ) {
-        algorithmLogSink?(.info, category, message)
+        algorithmLogSink?(.info, category, message, nil)
     }
 
     func warning(
@@ -78,7 +78,7 @@ import Foundation
         function _: String = #function,
         line _: UInt = #line
     ) {
-        algorithmLogSink?(.warning, category, composed(message, description, maybeError))
+        algorithmLogSink?(.warning, category, composed(message, description), maybeError)
     }
 
     func error(
@@ -90,7 +90,7 @@ import Foundation
         function _: String = #function,
         line _: UInt = #line
     ) {
-        algorithmLogSink?(.error, category, composed(message, description, maybeError))
+        algorithmLogSink?(.error, category, composed(message, description), maybeError)
     }
 
     func fault(
@@ -102,11 +102,11 @@ import Foundation
         function _: String = #function,
         line _: UInt = #line
     ) {
-        algorithmLogSink?(.fault, category, composed(message, description, maybeError))
+        algorithmLogSink?(.fault, category, composed(message, description), maybeError)
     }
 
-    private func composed(_ message: String, _ description: String?, _ error: Swift.Error?) -> String {
-        [message, description, error.map { String(describing: $0) }].compactMap { $0 }.joined(separator: ": ")
+    private func composed(_ message: String, _ description: String?) -> String {
+        [message, description].compactMap { $0 }.joined(separator: ": ")
     }
 
 #endif

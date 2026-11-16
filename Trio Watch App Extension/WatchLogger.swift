@@ -52,7 +52,7 @@ final class WatchLogger: Sendable {
     }
 
     // Receives the shared algorithm code's log lines through AlgorithmLoggingShim
-    func algorithm(_ level: AlgorithmLogLevel, _: Logger.Category, _ message: String) {
+    func algorithm(_ level: AlgorithmLogLevel, _: Logger.Category, _ message: String, error: Error?) {
         let watchLevel: WatchLogEntry.Level = switch level {
         case .debug: .debug
         case .info: .info
@@ -60,7 +60,7 @@ final class WatchLogger: Sendable {
         case .error: .error
         case .fault: .fault
         }
-        log(watchLevel, .algorithm, message)
+        log(watchLevel, .algorithm, Self.message(message, error: error))
     }
 
     // At most one line per key and interval while the state stays the same
