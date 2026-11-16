@@ -9,20 +9,28 @@ final class OpenAPS {
     private let tddStorage: TDDStorage
     private let glucoseStorage: GlucoseStorage
     private let carbsStorage: CarbsStorage
+    private let makeContext: () -> NSManagedObjectContext
 
     let jsonConverter = JSONConverter()
 
     private func newContext(_ name: String) -> NSManagedObjectContext {
-        let context = CoreDataStack.shared.newTaskContext()
+        let context = makeContext()
         context.name = name
         return context
     }
 
-    init(storage: FileStorage, tddStorage: TDDStorage, glucoseStorage: GlucoseStorage, carbsStorage: CarbsStorage) {
+    init(
+        storage: FileStorage,
+        tddStorage: TDDStorage,
+        glucoseStorage: GlucoseStorage,
+        carbsStorage: CarbsStorage,
+        contextProvider: (() -> NSManagedObjectContext)? = nil
+    ) {
         self.storage = storage
         self.tddStorage = tddStorage
         self.glucoseStorage = glucoseStorage
         self.carbsStorage = carbsStorage
+        makeContext = contextProvider ?? { CoreDataStack.shared.newTaskContext() }
     }
 
     static let dateFormatter: ISO8601DateFormatter = {
