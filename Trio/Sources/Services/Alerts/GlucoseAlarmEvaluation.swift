@@ -63,7 +63,7 @@ enum GlucoseAlarmEvaluation {
         configuration: GlucoseAlertConfiguration,
         firing: inout Set<UUID>,
         now: Date,
-        calendar: Calendar = .current
+        timeZone: TimeZone
     ) -> [Action] {
         var actions: [Action] = []
         // Iterate in type priority order so we can suppress lesser low-family
@@ -77,7 +77,7 @@ enum GlucoseAlarmEvaluation {
                 retractIfFiring(alarm, firing: &firing, actions: &actions)
                 continue
             }
-            if isEligible(alarm, at: now, configuration: configuration, calendar: calendar) {
+            if isEligible(alarm, at: now, configuration: configuration, timeZone: timeZone) {
                 if breached(type: alarm.type, latestMgDL: latestMgDL, thresholdMgDL: alarm.thresholdMgDL) {
                     fireIfNeeded(alarm, valueMgDL: latestMgDL, firing: &firing, actions: &actions)
                 } else if shouldRetract(type: alarm.type, latestMgDL: latestMgDL, thresholdMgDL: alarm.thresholdMgDL) {
@@ -100,7 +100,7 @@ enum GlucoseAlarmEvaluation {
         configuration: GlucoseAlertConfiguration,
         firing: inout Set<UUID>,
         now: Date,
-        calendar: Calendar = .current
+        timeZone: TimeZone
     ) -> [Action] {
         var actions: [Action] = []
         // Suppress forecasted-low if any urgent-low or low alarm is already
@@ -113,7 +113,7 @@ enum GlucoseAlarmEvaluation {
 
         for alarm in alarms where alarm.type == .forecastedLow {
             guard !lowFamilyFiring,
-                  isEligible(alarm, at: now, configuration: configuration, calendar: calendar),
+                  isEligible(alarm, at: now, configuration: configuration, timeZone: timeZone),
                   let forecast
             else {
                 retractIfFiring(alarm, firing: &firing, actions: &actions)
@@ -136,11 +136,11 @@ enum GlucoseAlarmEvaluation {
         configuration: GlucoseAlertConfiguration,
         firing: inout Set<UUID>,
         now: Date,
-        calendar: Calendar = .current
+        timeZone: TimeZone
     ) -> [Action] {
         var actions: [Action] = []
         for alarm in alarms where alarm.type == .carbsRequired {
-            guard isEligible(alarm, at: now, configuration: configuration, calendar: calendar),
+            guard isEligible(alarm, at: now, configuration: configuration, timeZone: timeZone),
                   let carbsRequired, carbsRequired >= alarm.thresholdMgDL
             else {
                 retractIfFiring(alarm, firing: &firing, actions: &actions)
@@ -156,8 +156,10 @@ enum GlucoseAlarmEvaluation {
         _ alarm: GlucoseAlert,
         at date: Date,
         configuration: GlucoseAlertConfiguration,
-        calendar: Calendar
+        timeZone: TimeZone
     ) -> Bool {
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
         guard alarm.shouldEvaluate else { return false }
         if let until = alarm.snoozedUntil, until > date { return false }
         switch alarm.activeOption {

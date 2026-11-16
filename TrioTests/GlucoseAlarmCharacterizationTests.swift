@@ -234,7 +234,8 @@ import UserNotifications
                     alarms: scenario.alarms,
                     configuration: scenario.configuration,
                     firing: &firing,
-                    now: ISO8601DateFormatter().date(from: at)!
+                    now: ISO8601DateFormatter().date(from: at)!,
+                    timeZone: TimeZone.current
                 )
                 log.append("reading \(value) at \(at): " + describe(actions))
             case let .determination(iob, zt, carbsReq):
@@ -244,13 +245,15 @@ import UserNotifications
                     alarms: scenario.alarms,
                     configuration: scenario.configuration,
                     firing: &firing,
-                    now: Date()
+                    now: Date(),
+                    timeZone: TimeZone.current
                 ) + GlucoseAlarmEvaluation.evaluateCarbsRequired(
                     determination.carbsReq,
                     alarms: scenario.alarms,
                     configuration: scenario.configuration,
                     firing: &firing,
-                    now: Date()
+                    now: Date(),
+                    timeZone: TimeZone.current
                 )
                 let iobText = iob.map { "\($0)" } ?? "nil"
                 let ztText = zt.map { "\($0)" } ?? "nil"

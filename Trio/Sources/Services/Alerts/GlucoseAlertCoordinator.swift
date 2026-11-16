@@ -115,7 +115,8 @@ final class GlucoseAlertCoordinator: Injectable {
             alarms: snapshot,
             configuration: configuration,
             firing: &firingAlertIDs,
-            now: now
+            now: now,
+            timeZone: TimeZone.current
         ))
     }
 
@@ -134,7 +135,8 @@ final class GlucoseAlertCoordinator: Injectable {
             alarms: alertsSnapshot,
             configuration: configurationSnapshot,
             firing: &firingAlertIDs,
-            now: Date()
+            now: Date(),
+            timeZone: TimeZone.current
         ))
     }
 
@@ -152,7 +154,8 @@ final class GlucoseAlertCoordinator: Injectable {
             alarms: alertsSnapshot,
             configuration: configurationSnapshot,
             firing: &firingAlertIDs,
-            now: Date()
+            now: Date(),
+            timeZone: TimeZone.current
         ))
     }
 
