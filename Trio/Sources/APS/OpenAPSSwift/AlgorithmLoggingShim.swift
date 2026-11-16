@@ -37,8 +37,16 @@ import Foundation
         }
     }
 
-    /// Set by a test to capture algorithm log output; defaults to discarding it.
-    nonisolated(unsafe) var algorithmLogSink: ((Logger.Category, String) -> Void)?
+    enum AlgorithmLogLevel {
+        case debug
+        case info
+        case warning
+        case error
+        case fault
+    }
+
+    /// Set by a test or the watch app to receive algorithm log output; defaults to discarding it.
+    nonisolated(unsafe) var algorithmLogSink: ((AlgorithmLogLevel, Logger.Category, String) -> Void)?
 
     func debug(
         _ category: Logger.Category,
@@ -48,7 +56,7 @@ import Foundation
         function _: String = #function,
         line _: UInt = #line
     ) {
-        algorithmLogSink?(category, message())
+        algorithmLogSink?(.debug, category, message())
     }
 
     func info(
@@ -58,43 +66,47 @@ import Foundation
         function _: String = #function,
         line _: UInt = #line
     ) {
-        algorithmLogSink?(category, message)
+        algorithmLogSink?(.info, category, message)
     }
 
     func warning(
         _ category: Logger.Category,
         _ message: String,
-        description _: String? = nil,
-        error _: Swift.Error? = nil,
+        description: String? = nil,
+        error maybeError: Swift.Error? = nil,
         file _: String = #file,
         function _: String = #function,
         line _: UInt = #line
     ) {
-        algorithmLogSink?(category, message)
+        algorithmLogSink?(.warning, category, composed(message, description, maybeError))
     }
 
     func error(
         _ category: Logger.Category,
         _ message: String,
-        description _: String? = nil,
-        error _: Swift.Error? = nil,
+        description: String? = nil,
+        error maybeError: Swift.Error? = nil,
         file _: String = #file,
         function _: String = #function,
         line _: UInt = #line
     ) {
-        algorithmLogSink?(category, message)
+        algorithmLogSink?(.error, category, composed(message, description, maybeError))
     }
 
     func fault(
         _ category: Logger.Category,
         _ message: String,
-        description _: String? = nil,
-        error _: Swift.Error? = nil,
+        description: String? = nil,
+        error maybeError: Swift.Error? = nil,
         file _: String = #file,
         function _: String = #function,
         line _: UInt = #line
     ) {
-        algorithmLogSink?(category, message)
+        algorithmLogSink?(.fault, category, composed(message, description, maybeError))
+    }
+
+    private func composed(_ message: String, _ description: String?, _ error: Swift.Error?) -> String {
+        [message, description, error.map { String(describing: $0) }].compactMap { $0 }.joined(separator: ": ")
     }
 
 #endif
