@@ -351,6 +351,74 @@ import Testing
 @Suite("Watch loop rules") struct WatchLoopRulesTests {
     let now = Date(timeIntervalSince1970: 1_800_000_000)
 
+    private func smb(_ name: String, at date: Date, mutable: Bool) -> NewPumpEvent {
+        NewPumpEvent(
+            date: date,
+            dose: DoseEntry(
+                type: .bolus,
+                startDate: date,
+                endDate: date.addingTimeInterval(12),
+                value: 0.3,
+                unit: .units,
+                decisionId: nil,
+                deliveredUnits: mutable ? nil : 0.3,
+                automatic: true,
+                isMutable: mutable
+            ),
+            raw: Data(name.utf8),
+            title: name
+        )
+    }
+
+    private func booking(_ name: String, at date: Date) -> (String, WatchLoanStoredPumpEvent) {
+        let event = smb(name, at: date, mutable: false)
+        return (event.dose!.syncIdentifier!, WatchLoanStoredPumpEvent(
+            record: .init(date: date, raw: event.raw, title: name, dose: event.dose!),
+            storedAt: date,
+            bookedIntent: true,
+            acknowledged: true
+        ))
+    }
+
+    @Test(
+        "A late finalization of an earlier SMB never replaces a later SMB's booking; a new kit record replaces the closest"
+    )  func bookingReplacement() {
+        var stored: [String: WatchLoanStoredPumpEvent] = [:]
+        WatchLoopInputs.store(
+            [smb("earlier", at: now, mutable: true)],
+            into: &stored,
+            replacePendingEvents: false,
+            at: now,
+            pulseUnits: 0.05
+        )
+        let (laterKey, later) = booking("intent-later", at: now.addingTimeInterval(300))
+        let (closeKey, close) = booking("intent-close", at: now.addingTimeInterval(480))
+        stored[laterKey] = later
+        stored[closeKey] = close
+
+        // the earlier SMB's finalization arrives late: an update, and it started before both bookings' windows
+        WatchLoopInputs.store(
+            [smb("earlier", at: now, mutable: false)],
+            into: &stored,
+            replacePendingEvents: false,
+            at: now.addingTimeInterval(600),
+            pulseUnits: 0.05
+        )
+        #expect(stored[laterKey] != nil && stored[closeKey] != nil)
+
+        // the kit's own record of the second booked SMB: replaces that booking and names it for the phone
+        WatchLoopInputs.store(
+            [smb("kit-close", at: now.addingTimeInterval(482), mutable: false)],
+            into: &stored,
+            replacePendingEvents: false,
+            at: now.addingTimeInterval(700),
+            pulseUnits: 0.05
+        )
+        #expect(stored[closeKey] == nil && stored[laterKey] != nil)
+        let replacing = stored.values.first { $0.record.title == "kit-close" }
+        #expect(replacing?.record.replacesSyncIdentifier == closeKey)
+    }
+
     @Test("Between pump states the current temp is the newest temp of the last 20 minutes, as on the phone") func fallbackTemp() {
         func temp(_ minutesAgo: Double, rate: Decimal, duration: Int) -> [PumpHistoryEvent] {
             OrefInputs.pumpHistoryEvents(

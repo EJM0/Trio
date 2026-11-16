@@ -189,9 +189,10 @@ extension WatchLoopInputs {
     /// A kit dose recorded within this window around a booked or pending command is that command's.
     static let doseMatchWindow: TimeInterval = 10 * 60
 
-    /// The phone's pump history rules (`PumpHistoryStorage.storePumpEvents`): one event per sync identifier, a finalized
-    /// one never changes, and a complete pending report drops the pending events it no longer has. A kit dose that
-    /// matches a dose the watch booked replaces the booking.
+    /// Mirrors the phone's pump history rules (`PumpHistoryStorage.storePumpEvents`): one event per sync identifier, a
+    /// finalized one never changes, and a complete pending report drops the pending events it no longer has. Events
+    /// without a sync identifier are dropped (OmnipodKit always sets one). A new kit record of a dose the watch booked
+    /// replaces the closest booking and names it, so the phone deletes its copy.
     static func store(
         _ events: [NewPumpEvent],
         into stored: inout [String: WatchLoanStoredPumpEvent],
@@ -204,13 +205,13 @@ extension WatchLoopInputs {
             guard let dose = event.dose, !event.raw.isEmpty, let key = dose.syncIdentifier else { continue }
             asserted.insert(key)
             if let existing = stored[key], !existing.record.dose.isMutable { continue }
-            if let booked = stored
-                .first(where: { $0.value.bookedIntent && sameDose($0.value.record.dose, dose, pulseUnits: pulseUnits) })
-            {
-                stored[booked.key] = nil
+            var replaces = stored[key]?.record.replacesSyncIdentifier
+            if stored[key] == nil, let booked = closestBooking(for: dose, in: stored, pulseUnits: pulseUnits) {
+                stored[booked] = nil
+                replaces = booked
             }
             stored[key] = WatchLoanStoredPumpEvent(
-                record: .init(date: event.date, raw: event.raw, title: event.title, dose: dose),
+                record: .init(date: event.date, raw: event.raw, title: event.title, dose: dose, replacesSyncIdentifier: replaces),
                 storedAt: stored[key]?.storedAt ?? now,
                 bookedIntent: false,
                 acknowledged: false
@@ -223,9 +224,27 @@ extension WatchLoopInputs {
         }
     }
 
-    /// Same type, the same amount to the pulse, started within the match window.
-    static func sameDose(_ a: DoseEntry, _ b: DoseEntry, pulseUnits: Double) -> Bool {
-        guard a.type == b.type, abs(a.startDate.timeIntervalSince(b.startDate)) <= doseMatchWindow else { return false }
+    /// The booking a kit dose stands for, by the intent's own rule: same type and amount to the pulse, starting from
+    /// 60 s before the booked command to 10 min after it; the closest if several.
+    static func closestBooking(
+        for dose: DoseEntry,
+        in stored: [String: WatchLoanStoredPumpEvent],
+        pulseUnits: Double
+    ) -> String? {
+        stored
+            .filter { $0.value.bookedIntent && sameDose($0.value.record.dose, dose, pulseUnits: pulseUnits) }
+            .min {
+                abs($0.value.record.dose.startDate.timeIntervalSince(dose.startDate)) <
+                    abs($1.value.record.dose.startDate.timeIntervalSince(dose.startDate)) }?
+            .key
+    }
+
+    /// `kit` is the kit's dose of the command `booked` stands for: same type, the same amount to the pulse, starting from
+    /// 60 s before the booked command to 10 min after it.
+    static func sameDose(_ booked: DoseEntry, _ kit: DoseEntry, pulseUnits: Double) -> Bool {
+        let offset = kit.startDate.timeIntervalSince(booked.startDate)
+        guard booked.type == kit.type, offset >= -60, offset <= doseMatchWindow else { return false }
+        let (a, b) = (booked, kit)
         switch a.type {
         case .bolus: return abs(a.programmedUnits - b.programmedUnits) < pulseUnits
         case .tempBasal: return abs(a.unitsPerHour - b.unitsPerHour) < pulseUnits
