@@ -29,7 +29,7 @@ After a take-back the other controller never heard about, that controller keeps 
   - Each is a second commander changing delivery behind the owner's back. While the stale controller is quiet, the pod's scheduled basal is the fail-safe.
 - Status reads stop too. Each read is a handshake, which moves the pod's counter on, so the owner would see a foreign session of its own and stop too. For the same reason there is no retry handshake after the resync that found the foreign session.
 - This controller's own counter, saved late, is not a foreign session. The last EAP SQN the pod accepted from this controller is saved at once, outside the pod state the host persists. A resync at or below it is this controller's own counter catching up.
-- An adopt is bounded by the release it came from. An export made after the exporter released the pod carries the EAP SQN at the release (`releasedEapSqn`). The adopter's resync up to it is expected; one beyond it is a session since the release, another controller's, so the adopter refuses. Without the bound, an adopt still in flight when the exporter takes the pod back (a Take Back between the export and the adopter's first handshake) would absorb the exporter's new session and both would command. An export made without a release (the offline start) carries no bound and works as before.
+- An adopt is bounded by the release it came from. An export made after the exporter released the pod carries the EAP SQN at the release (`releasedEapSqn`). The adopter's resync up to it is expected; one beyond it is a session since the release, another controller's, so the adopter refuses. Without the bound, an adopt still in flight when the exporter takes the pod back (a Take Back between the export and the adopter's first handshake) would absorb the exporter's new session and both would command. While the bound is set, every handshake attempt sends the SQN right after the release, so an attempt that never reached the pod can't carry the adopter past a session made since. An export made without a release (the offline start) carries no bound and works as before.
 
 **Patch** (on #177 @ `3d21d9c`, about 230 lines of source plus tests)
 
@@ -42,7 +42,7 @@ The handshake decisions are `PodState` methods, called by `BlePodComms.establish
 - `handshakeResynced(to:lastAcceptedHere:)`;
 - `sessionEstablished()`.
 
-`PodState.releasedEapSqn` is set on an export made after a release, kept through the adopt and a relaunch, and spent by the adopter's first session. `handshakeResynced` treats a resync beyond it as foreign.
+`PodState.releasedEapSqn` is set on an export made after a release, kept through the adopt and a relaunch, and spent by the adopter's first session. `nextHandshakeSqn` sends `releasedEapSqn + 1` while it is set, and `handshakeResynced` treats a resync beyond it as foreign. It is also cleared by a resync this controller's own accepted counter explains, and by the takes that call `expectSessionResync`: a dated take, `takeControlLiftingRefusal()`, and a plain take after this controller's own release. `exportConfiguration()` waits out a session in progress before it reads the bound.
 
 `AcceptedEapSqn` holds the last SQN the pod accepted from this controller, in this device's own `UserDefaults` (never exported), keyed by the pod's lot and sequence numbers. It is written right after the pod accepts a handshake and removed when the pod is forgotten.
 
@@ -71,6 +71,7 @@ Pods that were never shared behave exactly as before.
 - Only one side of a pairing ever makes a dated take (in Trio, the phone). Two scopes in opposite directions would leave both controllers commanding, and the kit can't detect that. A future takeover from the other side first needs this side's scope ended, by a release or an acknowledgement.
 - To lift a refusal without superseding anyone (the other controller is known to have stopped), call `takeControlLiftingRefusal()`. Don't pass a future date for that: it would open a scope after a refusal whose source is unknown.
 - Call `stopSupersedingAnotherController()` when the peer acknowledges that it stopped.
+- Export only after `releaseControl()` has succeeded (`isControlReleased` is true), never from a grant built earlier: only an export after the release bounds the adopt.
 - On `refusesSessions`: stop, alert and call `releaseControl()`. Taking control again is the user's decision.
 - `takeControl(…)` and `stopSupersedingAnotherController()` wait out a session in progress, so call them off the main thread.
 
@@ -103,6 +104,7 @@ Bounded adopt: the Take Back between export and adopt (the adopt refuses, the ph
 - Handshake attempts that never reached the pod (a link drop mid-EAP) still advance the stale controller's counter. A stale controller with at least *n* such attempts is accepted after the owner's *n* handshakes. It runs one full session and is refused at the next one. A superseding owner reports it, and its audit covers it.
 - Some kit guards are checked by reading only, because a `BlePodComms` can't be built without a Bluetooth central: the `init` condition, the refusals in `establishNewSession` and `bleRunSession`, letting go of the link, and saving `AcceptedEapSqn`.
 - Our reading of the protocol, not a pod trace: that a resync-answered handshake leaves the pod's counter unchanged, and that a message under stale keys is dropped.
+- A bounded adopt can lock itself out when nobody else is involved. The adopter's first handshake (at the released SQN + 1) reaches the pod and is accepted, but the reply is lost. The retry sends the same SQN, gets a resync beyond the bound, and refuses. The pod can't tell this apart from the exporter's own session at that SQN, so failing closed is the default. The host shows it as "pod used by another device", and the user takes the pod back or lends it again.
 - None of this has run on hardware.
 
 Best,
