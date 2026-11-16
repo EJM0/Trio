@@ -514,21 +514,21 @@ final class BaseAPSManager: APSManager, Injectable {
                 return false
             }
 
-            guard glucose.count > 2 else {
-                debug(.loop, "Glucose check failed: \(glucose.count) readings in the last hour, need 3")
+            switch LoopGlucoseGuard.check(lastHour: glucose.map(\.date), now: Date()) {
+            case let .notEnoughReadings(count):
+                debug(.loop, "Glucose check failed: \(count) readings in the last hour, need 3")
                 invalidGlucoseError =
                     String(
                         localized: "Not enough glucose data. You need at least three glucose readings in the last six hours to run the algorithm."
                     )
                 return false
-            }
-
-            let dateOfLastGlucose = glucose.first?.date
-            guard dateOfLastGlucose ?? Date() >= Date().addingTimeInterval(-12.minutes.timeInterval) else {
+            case .stale:
                 debug(.loop, "Glucose check failed: latest reading older than 12 min")
                 invalidGlucoseError =
                     String(localized: "Glucose data is stale. The most recent glucose reading is from more than 12 minutes ago.")
                 return false
+            case nil:
+                break
             }
 
             info(.loop, "Glucose ready: BG \(glucose.first?.glucose ?? 0) mg/dL, \(glucose.count) recent readings")

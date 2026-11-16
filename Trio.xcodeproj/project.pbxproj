@@ -1273,6 +1273,8 @@
 		B0434EC61B2CE438CFCCAF3A /* WatchLoanSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07728EF983A630F27D25197A /* WatchLoanSnapshot.swift */; };
 		E6696E98C73CB932F8EBCCD2 /* WatchLoanRecords.swift in Sources */ = {isa = PBXBuildFile; fileRef = B42DCAB6A96EE7C563F2CEB0 /* WatchLoanRecords.swift */; };
 		DA3293248C12B6B8805C0CD7 /* WatchLoanRecords.swift in Sources */ = {isa = PBXBuildFile; fileRef = B42DCAB6A96EE7C563F2CEB0 /* WatchLoanRecords.swift */; };
+		05FA25794A4C050E08995350 /* LoopGlucoseGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A339416D1522F68A8C8B749 /* LoopGlucoseGuard.swift */; };
+		C7473A8F5629AFCA41E07597 /* LoopGlucoseGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A339416D1522F68A8C8B749 /* LoopGlucoseGuard.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -2546,6 +2548,7 @@
 		A49CC4631C6E392363783224 /* BolusSafetyEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BolusSafetyEvaluator.swift; sourceTree = "<group>"; };
 		07728EF983A630F27D25197A /* WatchLoanSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanSnapshot.swift; sourceTree = "<group>"; };
 		B42DCAB6A96EE7C563F2CEB0 /* WatchLoanRecords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanRecords.swift; sourceTree = "<group>"; };
+		0A339416D1522F68A8C8B749 /* LoopGlucoseGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopGlucoseGuard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -2677,6 +2680,7 @@
 		A7A10A00000000000000001B /* WatchLoan */ = {
 			isa = PBXGroup;
 			children = (
+				0A339416D1522F68A8C8B749 /* LoopGlucoseGuard.swift */,
 				B42DCAB6A96EE7C563F2CEB0 /* WatchLoanRecords.swift */,
 				07728EF983A630F27D25197A /* WatchLoanSnapshot.swift */,
 				A7A10A000000000000000001 /* WatchLoan.swift */,
@@ -6001,6 +6005,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				05FA25794A4C050E08995350 /* LoopGlucoseGuard.swift in Sources */,
 				E6696E98C73CB932F8EBCCD2 /* WatchLoanRecords.swift in Sources */,
 				DB0DACA460F7BAE6C1E85A39 /* WatchLoanSnapshot.swift in Sources */,
 				B28C7B48709DF4865FE703D8 /* BolusSafetyEvaluator.swift in Sources */,
@@ -6958,6 +6963,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C7473A8F5629AFCA41E07597 /* LoopGlucoseGuard.swift in Sources */,
 				DA3293248C12B6B8805C0CD7 /* WatchLoanRecords.swift in Sources */,
 				B0434EC61B2CE438CFCCAF3A /* WatchLoanSnapshot.swift in Sources */,
 				C4FEF4F298F7D455A39E187A /* BolusSafetyEvaluator.swift in Sources */,
