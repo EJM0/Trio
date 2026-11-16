@@ -69,7 +69,7 @@ extension OrefInputs {
         let historyStart = pumpHistoryStart(now: now)
         return candidates
             .filter { $0.timestamp >= historyStart && !orphaned.contains($0.offset) }
-            .sorted { ($0.timestamp, $0.offset) > ($1.timestamp, $1.offset) }
+            .sorted { ($0.timestamp, $1.offset) > ($1.timestamp, $0.offset) }
             .map(\.event)
     }
 
