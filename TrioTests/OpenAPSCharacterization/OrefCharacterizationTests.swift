@@ -33,7 +33,7 @@ import Testing
             try OrefGoldens.check(json, clock: clock, scenario: scenarioName, stage: stage)
         }
         if OrefGoldens.isRecording {
-            Issue.record("goldens recorded for \(scenarioName); re-run without TRIO_RECORD_GOLDENS to compare")
+            Issue.record("goldens recorded for \(scenarioName); re-run without TRIO_RECORD_CHARACTERIZATION to compare")
         }
     }
 
@@ -177,7 +177,7 @@ enum OrefGoldens {
     static let wallClockKeys: Set<String> = ["deliverAt", "timestamp", "date"]
 
     static var isRecording: Bool {
-        ProcessInfo.processInfo.environment["TRIO_RECORD_GOLDENS"] == "1"
+        ProcessInfo.processInfo.environment["TRIO_RECORD_CHARACTERIZATION"] == "1"
     }
 
     static var goldensDirectory: URL {
