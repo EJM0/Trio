@@ -351,6 +351,23 @@ import Testing
 @Suite("Watch loop rules") struct WatchLoopRulesTests {
     let now = Date(timeIntervalSince1970: 1_800_000_000)
 
+    @Test("Between pump states the current temp is the newest temp of the last 20 minutes, as on the phone")  func fallbackTemp() {
+        func temp(_ minutesAgo: Double, rate: Decimal, duration: Int) -> [PumpHistoryEvent] {
+            OrefInputs.pumpHistoryEvents(
+                id: UUID().uuidString,
+                timestamp: now.addingTimeInterval(-minutesAgo * 60),
+                type: EventType.tempBasal.rawValue,
+                bolus: nil,
+                tempBasal: (duration: duration, rate: rate.nearestDouble, tempType: TempType.absolute.rawValue)
+            )
+        }
+        let history = temp(5, rate: 2, duration: 30) + temp(15, rate: 1, duration: 30)
+        let current = WatchLoopInputs.fallbackTemp(history, now: now)
+        #expect(current.rate == 2 && current.duration == 25)
+        let stale = WatchLoopInputs.fallbackTemp(temp(25, rate: 2, duration: 30), now: now)
+        #expect(stale.rate == 0 && stale.duration == 0)
+    }
+
     @Test("Start needs a Series 6, SE (2nd generation) or later") func supportedModels() {
         for model in ["Watch6,1", "Watch6,10", "Watch6,18", "Watch7,1", "Watch7,12"] {
             #expect(WatchLoopPolicy.isSupportedWatch(modelIdentifier: model), "\(model)")
@@ -367,7 +384,10 @@ import Testing
     }
 
     @Test("Not-looping series at 20 to 120 minutes after the last confirmed cycle") func notLooping() {
-        #expect(WatchLoopPolicy.notLoopingDates(after: now).map { $0.timeIntervalSince(now) / 60 } == [20, 40, 60, 80, 100, 120])
+        #expect(
+            WatchLoopPolicy.notLoopingDates(after: now).map { $0.timeIntervalSince(now) / 60 }
+                == [20, 40, 60, 80, 100, 120, 180, 240, 300, 360]
+        )
     }
 
     @Test("The gate holds back insulin while delivery is uncertain, never reductions") func gate() {

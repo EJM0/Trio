@@ -462,8 +462,16 @@ extension BaseFetchGlucoseManager {
     }
 
     func fetchGlucose(context: NSManagedObjectContext) async throws -> [NSManagedObjectID] {
+        try await Self.fetchSmoothingWindow(context: context, now: Date())
+    }
+
+    /// The readings the smoothing pass reads, oldest first. `now` is a seam for tests.
+    static func fetchSmoothingWindow(context: NSManagedObjectContext, now: Date) async throws -> [NSManagedObjectID] {
         // Compound predicate: time window + non-manual + valid date
-        let timePredicate = NSPredicate.predicateForOneDayAgoInMinutes
+        let timePredicate = NSPredicate(
+            format: "date >= %@",
+            Calendar.current.date(byAdding: .minute, value: -1440, to: now)! as NSDate
+        )
         let manualPredicate = NSPredicate.cgmGlucose
         let datePredicate = NSPredicate(format: "date != nil")
 
@@ -501,30 +509,35 @@ extension BaseFetchGlucoseManager {
         let startTime = Date()
 
         do {
-            // get objectIDs
-            let objectIDs = try await fetchGlucose(context: context)
-
-            try await context.perform {
-                // Load managed objects from object IDs
-                // Filtering (isManual, date) already done at DB level in fetchGlucose
-                let glucoseReadings = objectIDs.compactMap {
-                    context.object(with: $0) as? GlucoseStored
-                }
-
-                guard !glucoseReadings.isEmpty else { return }
-
-                let smoothed = OrefInputs.exponentiallySmoothedGlucose(glucoseReadings.map { ($0.date, $0.glucose) })
-                for (object, value) in zip(glucoseReadings, smoothed) {
-                    if let value { object.smoothedGlucose = value as NSDecimalNumber }
-                }
-
-                try context.save()
-            }
+            try await Self.smoothStoredGlucose(context: context, now: startTime)
 
             let duration = Date().timeIntervalSince(startTime)
             debug(.cgm, String(format: "Glucose smoothing took %.3f s", duration))
         } catch {
             warning(.cgm, "Glucose smoothing failed", error: error)
+        }
+    }
+
+    /// The smoothing pass on the stored readings. `now` is a seam for tests.
+    static func smoothStoredGlucose(context: NSManagedObjectContext, now: Date) async throws {
+        // get objectIDs
+        let objectIDs = try await fetchSmoothingWindow(context: context, now: now)
+
+        try await context.perform {
+            // Load managed objects from object IDs
+            // Filtering (isManual, date) already done at DB level in fetchGlucose
+            let glucoseReadings = objectIDs.compactMap {
+                context.object(with: $0) as? GlucoseStored
+            }
+
+            guard !glucoseReadings.isEmpty else { return }
+
+            let smoothed = OrefInputs.exponentiallySmoothedGlucose(glucoseReadings.map { ($0.date, $0.glucose) })
+            for (object, value) in zip(glucoseReadings, smoothed) {
+                if let value { object.smoothedGlucose = value as NSDecimalNumber }
+            }
+
+            try context.save()
         }
     }
 }
