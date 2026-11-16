@@ -1289,6 +1289,8 @@
 		860635CDA0AA0C70BC5E75A3 /* WatchLoanAlerts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E334FF103AB8B3E4A1D3141 /* WatchLoanAlerts.swift */; };
 		A84C8590A47EF690C9042405 /* WatchLoanCGM.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB700C49A7E447D575EDEAD4 /* WatchLoanCGM.swift */; };
 		C6B8F2C63CE20E553AFD0C82 /* WatchLoanRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BFF8B004F3796056F93688D /* WatchLoanRuntime.swift */; };
+		963794A7E5E810BA69EE512E /* LoanPumpDouble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76D5CE4C2253239145F1C070 /* LoanPumpDouble.swift */; };
+		9A949314EB275A2083325BA5 /* WatchLoanHostTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 785D46BC40C065649E4E0469 /* WatchLoanHostTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -2575,6 +2577,8 @@
 		2E334FF103AB8B3E4A1D3141 /* WatchLoanAlerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanAlerts.swift; sourceTree = "<group>"; };
 		BB700C49A7E447D575EDEAD4 /* WatchLoanCGM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanCGM.swift; sourceTree = "<group>"; };
 		7BFF8B004F3796056F93688D /* WatchLoanRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanRuntime.swift; sourceTree = "<group>"; };
+		76D5CE4C2253239145F1C070 /* LoanPumpDouble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoanPumpDouble.swift; sourceTree = "<group>"; };
+		785D46BC40C065649E4E0469 /* WatchLoanHostTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanHostTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -4721,6 +4725,8 @@
 		BDFF7AA02D25FAA80016C40C /* Trio Watch App Tests */ = {
 			isa = PBXGroup;
 			children = (
+				785D46BC40C065649E4E0469 /* WatchLoanHostTests.swift */,
+				76D5CE4C2253239145F1C070 /* LoanPumpDouble.swift */,
 				BDFF7A8A2D25F97D0016C40C /* Unit Tests.swift */,
 			);
 			path = "Trio Watch App Tests";
@@ -7157,6 +7163,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9A949314EB275A2083325BA5 /* WatchLoanHostTests.swift in Sources */,
+				963794A7E5E810BA69EE512E /* LoanPumpDouble.swift in Sources */,
 				BDFF7A8B2D25F97D0016C40C /* Unit Tests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
