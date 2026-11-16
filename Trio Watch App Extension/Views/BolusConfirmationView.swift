@@ -76,6 +76,16 @@ struct BolusConfirmationView: View {
                 WKInterfaceDevice.current().play(.success)
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    // while the watch holds the pump it doses itself; an expired entry takes the refusal path below
+                    if let host = LoanTreatments.host, let limits = host.bolusLimits, state.isEntryFresh() {
+                        let units = LoanTreatments.units(bolusAmount, increment: limits.increment)
+                        let carbs = Decimal(state.carbsAmount)
+                        state.clearEntry()
+                        host.bolus = .idle
+                        Task { await host.requestBolus(units: units, carbs: carbs) }
+                        navigationPath.append(LoanBolusRequest(units: units, withCarbs: carbs > 0, requestedAt: Date()))
+                        return
+                    }
                     // Sends carbs and bolus, or refuses an entry older than 2 min; either way the entry is cleared
                     state.sendConfirmedEntry(bolusAmount: bolusAmount)
                     navigationPath.append(NavigationDestinations.acknowledgmentPending)

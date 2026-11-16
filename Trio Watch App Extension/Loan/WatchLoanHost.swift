@@ -95,6 +95,8 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     /// watch doesn't report itself in control before then.
     var awaitingFirstReading = false
     var isInControl: Bool { state.mayCommandPump && !awaitingFirstReading }
+    /// The last loan notice, so the screens can keep a refusal on screen until the user dismisses it.
+    var lastAlert: LoanAlert?
 
     @ObservationIgnored let env: WatchLoanEnvironment
     @ObservationIgnored let records: WatchLoanRecordStore
@@ -294,6 +296,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             env.transport.send([WatchLoanWireKey.message: data])
             WatchLogger.shared.info(.connectivity, "Sent \(stop.kind.rawValue), released \(stop.released)")
         case let .alert(alert):
+            lastAlert = alert
             alerts.post(alert)
         case .audit,
              .awaitPumpIdle,
