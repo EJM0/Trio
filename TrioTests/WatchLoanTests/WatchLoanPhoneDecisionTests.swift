@@ -442,6 +442,17 @@ enum LoanFixture {
         }
     }
 
+    @Test("P46 takingBack + \"Use the pod on this iPhone\" (the kit refuses the plain take): as P43") func p46() {
+        let takingBack = PhoneLoanState.takingBack(epoch: 5, loan: LoanRecord(epoch: 4))
+        let (state, effects) = decide(takingBack, .usePodOnThisPhoneConfirmed)
+        let next = PhoneLoanState.takingBack(epoch: 6, loan: LoanRecord(epoch: nil))
+        #expect(state == next)
+        #expect(effects == takeBackEffects(next, from: takingBack) + [.alert(.podTakenOnThisPhone)])
+        #expect(decide(state, .takeControlResult(epoch: 6, succeeded: true)).1.contains(.audit(.podLifetime)))
+        let inWindow = PhoneLoanState.takingBack(epoch: 5, loan: F.superseding(4))
+        #expect(decide(inWindow, .usePodOnThisPhoneConfirmed).0 == .takingBack(epoch: 6, loan: F.superseding(4)))
+    }
+
     @Test("P45 \"Use the pod on this iPhone\" inside a Take Back window from a known watch loan: keep that window") func p45() {
         let home = PhoneLoanState.home(epoch: 5, lastLoan: F.superseding(4))
         let (state, effects) = decide(home, .usePodOnThisPhoneConfirmed)

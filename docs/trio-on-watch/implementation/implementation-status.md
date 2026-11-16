@@ -886,6 +886,140 @@ Branch `feat/trio-on-watch` at `df5cda433` (M1, M1b, M2a, M2b, M3 merged, plus t
 - Flakes: none this run. The known ones (`FileStorageTests` "Can parse mmol/L settings to mg/dL", `PumpStatusStorageTests` "A suspend and resume are stored in order") passed in the full run, so no isolated re-run was needed.
 - Each build reformatted `Trio Watch App Tests/Unit Tests.swift` (SwiftFormat joined a `@Test` attribute onto its `func` line); reverted after every step. `Package.resolved` stayed clean.
 
+## M4: phone side of a loan (2026-11-16)
+
+Branch `feat/tow-phone` off `feat/trio-on-watch` @ `e7a865ef4`, merged with `feat/trio-on-watch` @ `485051ea4` for the reviews (kit pins LoopKit `7fd4d1a7`, OmnipodKit `c23daca`). Every row P1–P45 is executed as written; the review round added P46 (see below).
+
+### Components
+
+| Component | Where | What it does |
+|---|---|---|
+| `WatchLoanSnapshot` | `APS/WatchLoan/WatchLoanSnapshot.swift` (shared) | The grant snapshot, its wire format (compact JSON, lzfse) and the validator both devices use (`missingParts`, `refusal(for:)`). |
+| `WatchLoanRecordBatch`, `WatchLoanRecordAck`, `WatchLoanInbox` | `APS/WatchLoan/WatchLoanRecords.swift` (shared) | Record batches (finalized `NewPumpEvent`s by raw/sync identifier, running temp as status only, carbs and deletions, glucose), the ack, wire keys, persisted dedupe and the epoch filter. |
+| `WatchLoanAudit` | `APS/WatchLoan/WatchLoanAudit.swift` (shared, pure) | Delivered-total audit (V2-8, R-2, R-3, C-4, `.podLifetime`). |
+| `WatchLoanPumpAdapter` | `Services/WatchManager/WatchLoanPumpAdapter.swift` | The only place that calls the kit: `SupersedingDeviceControl` (OmnipodKit conformance), release, the three takes, scope end/restore, temp cancel, delivered-total read, export, bolus remainder. Kit calls that wait out a session run off the main thread. A kit pin change touches this file only. |
+| `WatchLoanCoordinator` | `Services/WatchManager/WatchLoanCoordinator.swift` | Actor. One event at a time through `WatchLoan.decide`; executes the effects in order; feeds release and take results back as epoch-tagged events. Ledger (`Documents/watch-loan-ledger.json`): release readings, audits, seen message ids, last batch time. |
+| `BaseWatchLoanPhoneHost` | `Services/WatchManager/WatchLoanPhoneHost.swift` | Start preconditions, snapshot builder, merge, audit booking, alarms and alerts. |
+| Transport | `AppleWatchManager.swift` (`WatchLoanTransport`) | Same `WCSession`. Loan payloads are routed to the coordinator before any other handling. |
+
+Other changes: `APSManager.awaitPumpIdle()` (loop guard, bolus, pump-event storage); `DeviceDataManager.resyncPumpAfterTakeBack()`, `awaitPumpEventStorage()`, `foreignPodSession`; `NotLoopingMonitor.setArmed(_:)`; `PumpHistoryStorage.getPumpHistory(since:)`, `replaceTaggedBolus`; `OpenAPS.orefInputs(...)`; `PumpConfig.KitScreenToken` on the kit settings and setup screens; `Config.xcconfig` turns `TRIO_ON_WATCH = YES` into the Swift condition `TRIO_ON_WATCH`. Only `startRefusal()` depends on it (flag off: `featureOff`); gate, store, Take Back, P43, merge and audit run regardless (D-2).
+
+### Effect mapping
+
+| Effect | Host action |
+|---|---|
+| `persist` | Atomic write of the phone file; on failure nothing more runs and the state stays. A loan whose window was just cleared (P31/P32) calls `stopSupersedingAnotherController()`. `takingBack` → `home` re-sends delivery limits and the heartbeat request (M3C-10). |
+| `awaitPumpIdle` | `APSManager.awaitPumpIdle()`, bounded at 40 s (inside the 60 s worst-case lend). Timeout = release refused (P7). |
+| `cancelTemp` | Temp 0 U/h for 0 min, always (R-1). |
+| `refreshDeliveredUnits` | Real status read. In `lending` it stores the release reading before the release (SM-14). |
+| `releaseControl` | `releaseControl()`, then `isControlReleased` read at once → `releaseResult`. |
+| `takeControl(until)` | `until` set → `takeControl(supersedingAnotherControllerUntil:)`; nil with an unknown peer (P43, P24) → `takeControlLiftingRefusal()`; else plain `takeControl()`. Result = not released and not refusing. |
+| `podSession(.keepCommanding)` | Restore the scope with a dated take only if the kit lost it (refusing); never a plain take. |
+| `podSession(.refuse)` | `stopSupersedingAnotherController()`, then `releaseControl()` (host contract; P43/P46 lift it). |
+| `audit` | Recompute and replace the tagged bolus `trio-watch-loan-audit-<epoch>` (or `-pod-<activation>`). On a foreign session the phone reads the pod first if it holds it. |
+| `send(.grant)` | Export only after the release held; snapshot built, checked with `missingParts`, sized, sent with `sendMessage` only. |
+| Other `send`, `sendStop` | `sendMessage` when reachable (falls back to `transferUserInfo` on error), else `transferUserInfo`. |
+| `cancelOutstandingTransfers` | Cancels the queued user-info transfers that carry loan keys. |
+| `arm`/`disarm` | `phoneNotLooping` → `NotLoopingMonitor.setArmed`; `phoneNoWatchUpdates` → 30/60/90 min time-sensitive and 120 min critical "No updates from Apple Watch", anchored on the last batch (persisted, kept across relaunch). |
+
+Host decisions that aren't rows (flag if you disagree):
+- A pump step that fails mid-list stops the list. In `lending` it reports the release as refused (P7: back home, nothing released). In `takingBack` it alerts `takeBackPodUnreachable` and leaves the phone in `takingBack`; Take Back again (P22) or a relaunch (P37) redoes it.
+- A grant that can't be built or sent live is fed back as `grantRejected` (P11, automatic retake). The watch never had it.
+- The audit books the whole excess in whole pulses once it passes pulse + 0.15 U (M4E-06; the band only suppresses noise). External (pen) insulin and the audit's own tagged bolus don't count as pod delivery; other audits' tagged boluses do. Temps count in whole pulses, scheduled basal comes from the basal profile in the grant's (pod's) zone, scheduled-basal rows are ignored, suspended spans deliver nothing. The tagged bolus is timestamped at the reading it explains, so a later reading moves it forward (IOB errs high).
+- `.podLifetime` uses the current basal profile and the pump's time zone from pod activation; a profile edit during the pod's life skews it.
+- Late records recompute the audit of their epoch, else the latest pod-lifetime audit.
+- Below the phone's epoch only `request`, `handBack` and `records` envelopes pass the inbox; `stop`/`revoke` always pass; record batches are always merged (never drop insulin). Batches of another record version are not merged and not acked.
+
+### Snapshot
+
+Contents: versions (snapshot schema, protocol, app build, pump and CGM plugin and state version), request id, epoch, `expiresAt` (now + 30 s), phone time, time zone, `OrefInputs` as the phone gathers them (`OpenAPS.orefInputs`: settings, unclamped preferences, dosing mode, schedules, temp target and override as oref reads them, 10 days of TDD rows, `hasSufficientTDD`, 24 h glucose, pump history and carbs per `OrefInputs+Selection`, the fresh autosens if any), override and temp target at the grant with end times, bolus calculator settings, the glucose alarms and their configuration, pump export and G7 `SharedDeviceConfiguration` (binary plists), delivery pulse, release reading, pod and sensor end.
+
+Size (budget 80 % of the cap, `grantBudgetBytes` = 52,428 B; worst case: 288 readings, an SMB and a temp every 5 min, 8 meals, 2880 TDD rows, all alarms): JSON 513,309 B, compressed 48,764 B, envelope 205 B. Limit used: 65,536 B for the whole live message (`WCSession` payload limit as commonly cited; not measured on a device). Fallback if a real payload is too big: today the phone refuses locally and retakes (P11). The next step would be pre-aggregating TDD rows (largest part) or sending the snapshot ahead with `transferFile`, keyed by request id, while the grant itself stays a live message.
+
+### Tests
+
+New: `WatchLoanAuditTests` (13), `WatchLoanSnapshotTests` (5, one with 16 scenarios), `WatchLoanCoordinatorTests` (24), `WatchLoanPhoneIntegrationTests` (7), helper `LoanPumpDouble`. Fresh simulator "Trio-M4 iPhone 17", iOS 27.2, `1AA6E67F-FFAC-415B-8254-9D3A7DA56AE6`; derived data in the session scratchpad (`dd-m4`).
+
+| Requirement | Test |
+|---|---|
+| R-1 | `takeBack`, `takeBackCancelFails` |
+| R-2 | `takeBackDuringBolus`, audit `bolusRemainder` |
+| R-3 | `lateRecords`, audit `recompute` |
+| C-1 | `foreignSessionInWindow`, `foreignSessionAfterWindow`, `releasedStopClearsWindow` |
+| C-3 | `relaunchRedo` (same window, one booking) |
+| C-4 | `bookedIntent` (coordinator and audit) |
+| M3C-01 | `lendRefused`, `preconditions`, `kitScreens` |
+| M3C-02 | `lendWaitsForLoop` (real `BaseAPSManager` loop guard), `lendWaitsForBolus` |
+| M3C-10 | `takeBack` (host call), `resyncAfterTakeBack` (real `DeviceDataManager`) |
+| Snapshot | `roundTrip`, `completeness`, `validator`, `size`, `gatheredInputsMatchProduction` (gathered from the stores, over the wire, through `OrefRun`: byte-exact with the production goldens, 16 scenarios) |
+| Merge | `mergeIdempotent`, `purgeProtection`, `carbDeletion`, `taggedBolus` |
+| Transport | `dedupe` (persisted across relaunch), `epochFilter`, `inboxCapacity`, `recordsOtherVersion`, `grantNotLive` |
+| Pump double | `noCommandWhileReleased`; `doubleCatchesCommand` is the known-issue control showing the double fails a test |
+
+Mutation checks (reverted): remainder forced to 0 fails `takeBackDuringBolus`; dropping the loop-guard wait fails `lendWaitsForLoop` (the double also flags the loop's temp on a released pump).
+
+| Run | Total | Passed | Failed | Skipped |
+|---|---|---|---|---|
+| New suites | 49 | 48 + 1 known issue | 0 | 0 |
+| Full `Trio Tests` | 1204 | 1157 + 1 expected failure | 0 | 46 |
+
+Builds: `Trio` with the flag off and with `TRIO_ON_WATCH=YES` (`-DTRIO_ON_WATCH` reaches swiftc): both succeed.
+
+### New strings (catalog sync left to the maintainer's IDE build)
+
+"No updates from Apple Watch"; "No update from Trio on Watch for %d min. Check your watch."; "Apple Watch Didn't Confirm"; "Open Trio to check, or take back your pump."; "Trio on Watch Didn't Start"; "Trio closed while starting Trio on Watch. Open Trio to check, or take back your pump."; "Can't Reach Your Pump"; "Keep your iPhone close to your pod. Nothing is giving insulin automatically."; "Your pump keeps running the last temp basal until it ends (at most 2 hours), then your scheduled basal."; "Apple Watch Is in Control"; "End Trio on Watch on your watch, so your history comes back first."; "Trio on Watch Stopped"; "Your watch stopped controlling your pump. Take back your pump on this iPhone."; "Apple Watch Contacted Your Pod"; "Apple Watch contacted your pod after you took it back. Trio counts any insulin it gave. Open Trio on your watch to stop it."; "Another Device Used Your Pod"; "iPhone stopped sending commands to your pod."; "Open Trio to use the pod on this iPhone."; "Pod in Use on This iPhone"; "If another device still runs this pod, it stops when it next reaches your pod."; "Insulin Added to History"; "Your pod delivered %1$@ %2$@ that Trio on Watch didn't record. Trio counts it as insulin on board, so insulin on board may read high for a while."; "Check Your Insulin History"; "Trio on Watch recorded %1$@ %2$@ more insulin than your pod reports delivering. Insulin on board may read high for a while.". Reused: "OK", "U", and the gate's unreadable-state strings.
+
+### Not verified or deferred
+
+- Nothing ran on a device or with a real pod or watch: `sendMessage` size limit, `transferUserInfo` cancellation, kit timing of release and take, Omnipod pulse rounding of temps against the audit's whole-pulse rule.
+- No UI: the Take Back, "Use the pod on this iPhone" and Start-facts surfaces (M6) call `takeBack()`, `usePodOnThisPhone()` and read the snapshot fields.
+- A glucose-alert snooze clears pending non-critical notifications, including the 30/60/90 min watch-silence steps; the 120 min critical step survives. Not re-armed on snooze yet.
+- The 40 s pump-idle timeout path has no test (it would take 40 s).
+- `BaseWatchLoanPhoneHost.snapshot` and the precondition wiring with the flag on are covered by compile only; their logic is tested through `preconditionRefusal` and the fake host.
+- Only the tip commit was built and tested, not each commit on its own.
+
+### Worktree hygiene
+
+SwiftFormat reformatted `Trio Watch App Tests/Unit Tests.swift` again; reverted. `Package.resolved` and the submodules unchanged.
+
+### Review fixes (M4 reviews C and E, v3 amendments)
+
+| Item | Change | Test |
+|---|---|---|
+| M4E-01 | `getPumpHistory` maps `isExternal`; the audit leaves external insulin out. | `externalInsulin`, `externalInsulinMapped` |
+| M4E-02 | The audit excludes only its own tagged bolus (`ownBolusID`); earlier audits' boluses count as delivered. | `otherAuditBolus` |
+| M4E-03 | The ledger keeps `lastForeignSessionHandled`, saved after the audit. `start()` and every kit report compare it with the kit's persisted `foreignSessionDetectedAt`. `DeviceDataManager`'s dedupe is in memory, for logging only. | `foreignSessionDurable` |
+| M4C-01 | Not the single path: the gather is still separate from `createProfiles`/`autosense`/`determineBasal`. `gatheredInputsMatchProduction` now also runs the phone's own pipeline on the same store and clock and compares every stage directly (16 scenarios), besides the goldens. Making the live pipeline gather through `orefInputs` rewires file writes, the iob-on-throw order and the simulation path, which is parity-sensitive and outside M4; flagged for the maintainer. | `gatheredInputsMatchProduction` |
+| V3-1 | Record batches of any epoch are merged by sync identifier (already so); only control messages are epoch-filtered. | `olderEpochRecords` |
+| V3-6, M4R-01 | A faulted pod (`deliveredUnitsAreFinal`) is audited with its final total and no bolus remainder; it's skipped only when that reading predates the window. A delivered total below the last reading books nothing and alerts "Pod Total Not Checked" (copy says insulin on board may read too low). | `faultedPod`, `decreasingTotal` |
+| V3-7 | `NightscoutManager` skips the device status (IOB, loop, pump) while the gate says the phone isn't the owner. | `nightscoutStatus` |
+| M4E-06 | Whole excess booked past the band. | audit `tolerance` |
+| M4E-11 | The host re-issues the silence steps from the same anchor on a snooze change, as `NotLoopingMonitor` does. | `silenceStepsAfterSnooze` |
+| M4C-02 | Audits and recomputes run one at a time (task chain); each reads its entry from the ledger. | coordinator suite |
+| M4C-03 | A message id is marked seen after its event ran. | `dedupe` |
+| M4C-04 | The pump-idle wait is cancelled at the timeout, and `awaitPumpIdle` stops polling when cancelled. Timeout injectable. | `pumpIdleTimeout` |
+| M4C-05 | Loan transport in `AppleWatchManager+WatchLoan.swift`; the main file keeps the property and two early returns (`WatchLoanWireKey.isLoanPayload`). | `routing` |
+| M4C-06 | Grant budget 80 % of the 65,536 B cap; worst case 48,927 B + 205 B. | `size` |
+| M4C-07 | Interpolated `String(localized:)`; amounts with `Formatter.bolusFormatter` and `HKUnit.internationalUnit().localizedShortUnitString`. | — |
+| M4C-08 | One lazily built `OpenAPS` in the host. | — |
+| M4C-09 | Flag-off `.featureOff`; `NotLoopingMonitor` unchanged for loop dates (`armedAt` starts at `.distantPast`, so the baseline anchor is untouched), disarm and re-arm; routing. `withKnownIssue` gets `matching:`. | `featureOff`, `notLoopingArming`, `routing` |
+| M4E-04 | Loan audits use the pump's time zone. | — |
+| M4E-05 | Kept: OmnipodKit derives `bolusUnderWayEndsAt` from the pod's `bolusNotDelivered` at that status read, at the rate `estimatedDuration` uses, so the remainder equals it to the pulse. | `takeBackDuringBolus` |
+| M4E-08 | Release on a `.refuse` verdict. | `foreignSessionAfterWindow` |
+| M4E-09 | New row P46: "Use the pod on this iPhone" also in `takingBack`. The invariant search and `LoanWorld`'s recovery offer it there when the phone's kit refuses; the search passes. | `p46`, invariant |
+| M4E-07 | Skipped as agreed: a take-back stuck on an unreachable pod still waits for a tap (alarmed). | — |
+
+New strings: "No update from Trio on Watch for \(minutes) min. Check your watch." (now interpolated), "Trio on Watch recorded \(amount) more insulin …", "Your pod delivered \(amount) that Trio on Watch didn't record …", "Pod Total Not Checked", "Trio couldn't check your pod's delivered insulin against your history, so it added nothing. Check your insulin history."
+
+Tests after the fixes (same simulator): loan, decision, flow, invariant and `NotLoopingMonitor` suites 136 / 136 (1 known issue, the double's control). Full `Trio Tests`: 1216 total, 1169 passed, 0 failed, 46 skipped, 1 expected failure. `Trio` with `TRIO_ON_WATCH=YES` builds.
+
+### M4 re-review follow-ups (2026-11-16)
+
+- M4R-01: faulted pod audited with its final total (above).
+- Equivalence: `gatheredInputsAcrossDST` runs the non-flat time-of-day scenarios a few hours after each Europe/Berlin DST change (the pod's and phone's zone in the tests; the 24 h window spans the change) through the snapshot encode/decode round trip and compares every stage with the phone's own pipeline on the same store and clock. The goldens scenarios already went through the round trip.
+- Snooze re-issue of the watch-silence steps tested (`silenceStepsAfterSnooze`).
+- Full `Trio Tests`: 1219 total, 1172 passed, 0 failed, 46 skipped, 1 expected failure.
+
 ## M5: watch loan host and loop (2026-11-16)
 
 Branch `feat/tow-watch-loop` off `feat/trio-on-watch` @ `8b5227851`. Local signed commits, not pushed. Kit pins unchanged (LoopKit `7fd4d1a7`, OmnipodKit `c23daca`, G7SensorKit `08d48863`).

@@ -256,5 +256,6 @@ final class RoundingAPSManagerStub: APSManager {
     func roundBolus(amount: Decimal) -> Decimal { BolusCalculatorCharacterizationTests.roundDownToPodIncrement(amount) }
     let lastError = CurrentValueSubject<Error?, Never>(nil)
     func cancelBolus(_: ((Bool, String) -> Void)?) async {}
+    func awaitPumpIdle() async {}
     let iobFileDidUpdate = PassthroughSubject<Void, Never>()
 }
