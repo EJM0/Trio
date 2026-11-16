@@ -177,3 +177,19 @@ Stale watch: with V2-6/R-4, a watch that contacts the pod after Take Back sees t
 **Open, for A2 (M2b):** the kit rule must tell "foreign session after I took control by a deliberate takeover" (phone: audit + alert, keep commanding) apart from "foreign session while I believed I was the only holder" (refuse). The host passes that context.
 
 R-5 / N-3, same principle: a write-ahead intent the kit has no record of is resolved through the odometer. If it can't be resolved, the intended dose is booked as delivered (IOB errs high) and the user is alerted. There is no reductions-only mode.
+
+### v3 amendments (2026-11-16, after issue #1784 field evidence)
+
+Source: `research/kristinkand-test-log-1784.md` (184 field tests on a different implementation; treated as evidence, not specification).
+
+| # | Amendment | Resolves |
+|---|---|---|
+| V3-1 | Record batches and hand-back records from an earlier epoch (for example a loan the phone gave up on) are still merged by sync identifier. Only control messages are ignored by epoch. The odometer audit stays the backstop. | P1 |
+| V3-2 | watchOS runtime rules for the watch host. No work on the main thread. Complete every background task within its budget, and never stretch a WatchConnectivity refresh task. Hold background time for each whole cycle and release it on every path. | P3 |
+| V3-3 | Fixed-width integers (Int64) for every timestamp, epoch, sequence, counter and checksum on the watch path. Build and test for `arm64_32`. | P4 |
+| V3-4 | Holding with no pod contact for about 5 min triggers a time-sensitive "Can't reach your pod. Open Trio on your watch." notice, deduplicated. | P2 |
+| V3-5 | Every pod and CGM connect attempt is logged with the app state, the time until the drop, and the error. | P5 |
+| V3-6 | Audit guards: if the pod is faulted, or its counter goes down, the audit books nothing and raises an alert. | P6 |
+| V3-7 | During a loan the phone doesn't upload its stale pre-loan IOB or loop status to Nightscout. | P7 |
+| V3-8 | Start keeps the watch app in front until the first watch-side G7 reading after adoption. | P9 |
+| V3-9 | ADR-002's "Known conflict" is reworded: field evidence shows hundreds of Bluetooth wakes a day with no workout session, but a Trio complication was on the watch face in those tests. E2 runs with and without a complication. The decision stands. | ADR-002 |
