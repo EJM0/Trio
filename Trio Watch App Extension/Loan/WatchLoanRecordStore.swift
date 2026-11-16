@@ -1,21 +1,13 @@
 import Foundation
 import LoopKit
 
-/// What the watch recorded during a loan, kept for oref and sent to the phone until it acknowledges. Pump events are
-/// kept as the phone's pump history keeps them: one per sync identifier, a finalized one never changes, and a
-/// complete pending report drops the pending events it no longer has. Called from the kit's queue and from main.
+/// What the watch recorded during a loan, kept for oref and sent to the phone until it acknowledges. Pump events follow
+/// the phone's pump history rules (`WatchLoopInputs.store`). Called from the kit's queue and the file queue.
 final class WatchLoanRecordStore {
-    struct PumpEvent: Codable {
-        var record: WatchLoanRecordBatch.PumpEventRecord
-        var storedAt: Date
-        /// A dose booked by the watch for a command whose outcome stayed unknown.
-        var bookedIntent: Bool
-        var acknowledged: Bool
-    }
-
     struct Contents: Codable {
         var epoch: Int64 = 0
-        var pumpEvents: [String: PumpEvent] = [:]
+        var pulseUnits: Double = 0.05
+        var pumpEvents: [String: WatchLoanStoredPumpEvent] = [:]
         var glucose: [BloodGlucose] = []
         var carbs: [CarbsEntry] = []
         var acknowledgedGlucose: Set<String> = []
@@ -68,29 +60,13 @@ final class WatchLoanRecordStore {
 
     func storePumpEvents(_ events: [NewPumpEvent], replacePendingEvents: Bool, at now: Date) throws {
         try mutate { contents in
-            var asserted = Set<String>()
-            for event in events {
-                guard let dose = event.dose, !event.raw.isEmpty, let key = dose.syncIdentifier else { continue }
-                asserted.insert(key)
-                if let existing = contents.pumpEvents[key], !existing.record.dose.isMutable { continue }
-                let record = WatchLoanRecordBatch.PumpEventRecord(
-                    date: event.date,
-                    raw: event.raw,
-                    title: event.title,
-                    dose: dose
-                )
-                contents.pumpEvents[key] = PumpEvent(
-                    record: record,
-                    storedAt: contents.pumpEvents[key]?.storedAt ?? now,
-                    bookedIntent: false,
-                    acknowledged: false
-                )
-            }
-            if replacePendingEvents {
-                for (key, event) in contents.pumpEvents where event.record.dose.isMutable && !asserted.contains(key) {
-                    contents.pumpEvents[key] = nil
-                }
-            }
+            WatchLoopInputs.store(
+                events,
+                into: &contents.pumpEvents,
+                replacePendingEvents: replacePendingEvents,
+                at: now,
+                pulseUnits: contents.pulseUnits
+            )
         }
     }
 
@@ -128,7 +104,7 @@ final class WatchLoanRecordStore {
         let event = NewPumpEvent(date: intent.createdAt, dose: dose, raw: raw, title: "Unconfirmed command booked as delivered")
         guard let key = event.dose?.syncIdentifier, let booked = event.dose else { return }
         try mutate { contents in
-            contents.pumpEvents[key] = PumpEvent(
+            contents.pumpEvents[key] = WatchLoanStoredPumpEvent(
                 record: .init(date: event.date, raw: raw, title: event.title, dose: booked),
                 storedAt: intent.createdAt,
                 bookedIntent: true,
@@ -137,20 +113,11 @@ final class WatchLoanRecordStore {
         }
     }
 
-    /// Whether the kit recorded a dose that matches the intent.
+    /// Whether the kit recorded this command's dose.
     func kitRecorded(_ intent: WatchDoseIntent) -> Bool {
         lock.withLock {
-            contents.pumpEvents.values.contains { event in
-                guard !event.bookedIntent, event.record.dose.startDate >= intent.createdAt.addingTimeInterval(-60) else {
-                    return false
-                }
-                switch intent.kind {
-                case .bolus: return event.record.dose.type == .bolus
-                case .tempBasal: return event.record.dose.type == .tempBasal
-                case .suspend: return event.record.dose.type == .suspend
-                case .resume: return event.record.dose.type == .resume
-                }
-            }
+            contents.pumpEvents.values
+                .contains { !$0.bookedIntent && intent.matches($0.record.dose, pulseUnits: contents.pulseUnits) }
         }
     }
 

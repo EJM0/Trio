@@ -60,8 +60,8 @@ extension WatchLoanHost {
             bolus = .failed(String(localized: "Trio on Watch doesn't control the pump.", comment: "Watch bolus failure"))
             return nil
         }
-        if intent != nil { await resolveIntent() }
-        guard intent == nil, !pump.status.deliveryIsUncertain else {
+        if !intents.isEmpty { await resolveIntents() }
+        guard intents.isEmpty, !pump.status.deliveryIsUncertain else {
             bolus = .failed(String(
                 localized: "The pump hasn't confirmed the last command. Check recent doses before trying again.",
                 comment: "Watch bolus failure"
@@ -118,12 +118,12 @@ extension WatchLoanHost {
         }
 
         WatchLogger.shared.info(.bolus, "Watch bolus of \(units) U requested, IOB \(currentIOB.map { "\($0) U" } ?? "unknown")")
-        let sent = await command(.bolus(units: units, automatic: false))
-        if sent {
+        let outcome = await command(.bolus(units: units, automatic: false))
+        if outcome == .confirmed {
             bolus = .accepted
             return pump
         }
-        if intent != nil {
+        if outcome == .uncertain {
             bolus = .uncertain
         } else {
             bolus =
@@ -179,15 +179,15 @@ extension WatchLoanHost {
 
     func suspendInsulin() async {
         await serially {
-            let done = await self.command(.suspend)
-            WatchLogger.shared.info(.treatments, "Insulin suspend from the watch: \(done ? "done" : "failed")")
+            let outcome = await self.command(.suspend)
+            WatchLogger.shared.info(.treatments, "Insulin suspend from the watch: \(outcome)")
         }
     }
 
     func resumeInsulin() async {
         await serially {
-            let done = await self.command(.resume)
-            WatchLogger.shared.info(.treatments, "Insulin resume from the watch: \(done ? "done" : "failed")")
+            let outcome = await self.command(.resume)
+            WatchLogger.shared.info(.treatments, "Insulin resume from the watch: \(outcome)")
         }
         await runCycle(trigger: .user)
     }

@@ -175,3 +175,93 @@ enum WatchLoopInputs {
         return OrefInputs.TDDRow(date: inputs.clock, total: insulin.bolus + insulin.tempBasal + insulin.scheduledBasal)
     }
 }
+
+/// A pump event the watch keeps: the kit's record, when it was stored, and whether the watch booked it for a
+/// command whose outcome stayed unknown.
+struct WatchLoanStoredPumpEvent: Codable {
+    var record: WatchLoanRecordBatch.PumpEventRecord
+    var storedAt: Date
+    var bookedIntent: Bool
+    var acknowledged: Bool
+}
+
+extension WatchLoopInputs {
+    /// A kit dose recorded within this window around a booked or pending command is that command's.
+    static let doseMatchWindow: TimeInterval = 10 * 60
+
+    /// The phone's pump history rules (`PumpHistoryStorage.storePumpEvents`): one event per sync identifier, a finalized
+    /// one never changes, and a complete pending report drops the pending events it no longer has. A kit dose that
+    /// matches a dose the watch booked replaces the booking.
+    static func store(
+        _ events: [NewPumpEvent],
+        into stored: inout [String: WatchLoanStoredPumpEvent],
+        replacePendingEvents: Bool,
+        at now: Date,
+        pulseUnits: Double
+    ) {
+        var asserted = Set<String>()
+        for event in events {
+            guard let dose = event.dose, !event.raw.isEmpty, let key = dose.syncIdentifier else { continue }
+            asserted.insert(key)
+            if let existing = stored[key], !existing.record.dose.isMutable { continue }
+            if let booked = stored
+                .first(where: { $0.value.bookedIntent && sameDose($0.value.record.dose, dose, pulseUnits: pulseUnits) })
+            {
+                stored[booked.key] = nil
+            }
+            stored[key] = WatchLoanStoredPumpEvent(
+                record: .init(date: event.date, raw: event.raw, title: event.title, dose: dose),
+                storedAt: stored[key]?.storedAt ?? now,
+                bookedIntent: false,
+                acknowledged: false
+            )
+        }
+        if replacePendingEvents {
+            for (key, event) in stored where event.record.dose.isMutable && !event.bookedIntent && !asserted.contains(key) {
+                stored[key] = nil
+            }
+        }
+    }
+
+    /// Same type, the same amount to the pulse, started within the match window.
+    static func sameDose(_ a: DoseEntry, _ b: DoseEntry, pulseUnits: Double) -> Bool {
+        guard a.type == b.type, abs(a.startDate.timeIntervalSince(b.startDate)) <= doseMatchWindow else { return false }
+        switch a.type {
+        case .bolus: return abs(a.programmedUnits - b.programmedUnits) < pulseUnits
+        case .tempBasal: return abs(a.unitsPerHour - b.unitsPerHour) < pulseUnits
+        default: return true
+        }
+    }
+
+    /// The phone's current temp when the pump is between states (`APSManager.fetchCurrentTempBasal`): the newest temp
+    /// basal of the last 20 minutes with what is left of it, otherwise none.
+    static func fallbackTemp(_ history: [PumpHistoryEvent], now: Date) -> TempBasal {
+        let since = now.addingTimeInterval(-20 * 60)
+        guard let rate = history.filter({ $0.type == .tempBasal && $0.timestamp >= since })
+            .max(by: { $0.timestamp < $1.timestamp }),
+            let duration = history.first(where: { $0.type == .tempBasalDuration && $0.timestamp == rate.timestamp })?
+            .durationMin
+        else { return TempBasal(duration: 0, rate: 0, temp: .absolute, timestamp: now) }
+        let elapsed = Int((now.timeIntervalSince1970 - rate.timestamp.timeIntervalSince1970) / 60)
+        return TempBasal(duration: max(0, duration - elapsed), rate: rate.rate ?? 0, temp: .absolute, timestamp: now)
+    }
+}
+
+extension WatchDoseIntent {
+    /// The kit recorded this command: a dose of its kind and amount near the time it was sent.
+    func matches(_ dose: DoseEntry, pulseUnits: Double) -> Bool {
+        guard dose.startDate >= createdAt.addingTimeInterval(-60),
+              dose.startDate <= createdAt.addingTimeInterval(WatchLoopInputs.doseMatchWindow)
+        else { return false }
+        switch kind {
+        case let .bolus(units, _):
+            return dose.type == .bolus && abs(dose.programmedUnits - units.nearestDouble) < pulseUnits
+        case let .tempBasal(rate, _):
+            return dose.type == .tempBasal && abs(dose.unitsPerHour - rate.nearestDouble) < pulseUnits
+        case .suspend:
+            return dose.type == .suspend
+        case .resume:
+            return dose.type == .resume
+        }
+    }
+}
