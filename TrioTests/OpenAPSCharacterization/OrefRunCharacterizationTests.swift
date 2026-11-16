@@ -17,10 +17,17 @@ import Testing
     ) func orefRunMatchesGolden(scenarioName: String) throws {
         let clock = OrefCharacterizationScenarios.makeClock()
         let scenario = OrefCharacterizationScenarios.build(scenarioName, clock: clock)
-        let inputs: OrefInputs = try roundTrip(try Self.inputs(for: scenario))
+        let inputs: OrefInputs = try Self.roundTrip(try Self.inputs(for: scenario))
 
         let outputs = try OrefRun.run(inputs)
 
+        for (stage, json) in try Self.stages(outputs, clock: clock) {
+            try OrefGoldens.check(json, clock: clock, scenario: scenarioName, stage: stage)
+        }
+    }
+
+    /// The outputs as the production goldens hold them.
+    static func stages(_ outputs: OrefRun.Outputs, clock: Date) throws -> [(String, String)] {
         let determination = try #require(outputs.determination)
         // cob.json as OpenAPS writes it, rebased from deliverAt onto the clock like the production golden
         let cob = (determination.cobProjection ?? []).enumerated().map { index, cob in
@@ -28,7 +35,7 @@ import Testing
         }
 
         // the profile, autosens and iob goldens were read back from their files
-        let stages: [(String, String)] = [
+        return [
             ("pumpprofile", try OrefGoldens.canonical(roundTrip(outputs.pumpProfile))),
             ("profile", try OrefGoldens.canonical(roundTrip(outputs.profile))),
             ("autosens", try OrefGoldens.canonical(roundTrip(outputs.autosens))),
@@ -37,12 +44,9 @@ import Testing
             ("cob", try OrefGoldens.canonical(roundTrip(cob))),
             ("determination", try OrefGoldens.canonical(determination))
         ]
-        for (stage, json) in stages {
-            try OrefGoldens.check(json, clock: clock, scenario: scenarioName, stage: stage)
-        }
     }
 
-    private func roundTrip<T: Codable>(_ value: T) throws -> T {
+    static func roundTrip<T: Codable>(_ value: T) throws -> T {
         try JSONCoding.decoder.decode(T.self, from: JSONCoding.encoder.encode(value))
     }
 
