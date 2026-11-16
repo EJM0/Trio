@@ -13,7 +13,7 @@ protocol WatchManager {
 /// Main implementation of the Watch communication manager
 /// Handles bidirectional communication between iPhone and Apple Watch
 final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchManager {
-    private var session: WCSession?
+    private(set) var session: WCSession?
 
     @Injected() var broadcaster: Broadcaster!
     @Injected() private var apsManager: APSManager!
@@ -27,6 +27,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     @Injected() private var bolusCalculationManager: BolusCalculationManager!
     @Injected() private var iobService: IOBService!
     @Injected() private var notificationsManager: UserNotificationsManager!
+    @Injected() var watchLoanCoordinator: WatchLoanCoordinator!
 
     private var units: GlucoseUnits = .mgdL
     private var glucoseColorScheme: GlucoseColorScheme = .staticColor
@@ -630,6 +631,11 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             if message.count == 1 { return }
         }
 
+        if WatchLoanWireKey.isLoanPayload(message) {
+            forwardLoanPayload(message)
+            return
+        }
+
         Task { @MainActor [weak self] in
             guard let self else { return }
 
@@ -768,6 +774,11 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     func session(_: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
         if let logs = userInfo["watchLogs"] as? String {
             WatchLogIngest.legacyRecords(from: logs).forEach(TrioLogger.sink.accept)
+        }
+
+        if WatchLoanWireKey.isLoanPayload(userInfo) {
+            forwardLoanPayload(userInfo)
+            return
         }
 
         if let snoozeMinutes = userInfo[WatchMessageKeys.snoozeDuration] as? Int {

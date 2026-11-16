@@ -85,9 +85,10 @@ Events:
 | P40 | `home` | Take Back, results, timer, holding | — | [] | `p40` |
 | P41 | `unreadable` | `foreignPodSession` | — | podSession(refuse), audit(podLifetime), alert unexpectedPodSession | `p41` |
 | P42 | `lending(e)`/`takingBack(e)` | a result for another epoch | — | [] (late result from an earlier hand-off) | `p42` |
-| P43 | `home(e, L)`, L nil, without window or window closed | `usePodOnThisPhoneConfirmed` (M3E-03, M3R-03) | `takingBack(e+1, loan(nil))` | take back to e+1 with no window, alert podTakenOnThisPhone; the result audits the pod lifetime; a further foreign session is refused again; other states: [] | `p43` |
+| P43 | `home(e, L)`, L nil, without window or window closed | `usePodOnThisPhoneConfirmed` (M3E-03, M3R-03) | `takingBack(e+1, loan(nil))` | take back to e+1 with no window, alert podTakenOnThisPhone; the result audits the pod lifetime; a further foreign session is refused again; `lending`, `lent`, `unreadable`: [] | `p43` |
 | P44 | `home(_, W(w))`, clock set back before `takenAt` | `foreignPodSession` | — | podSession(refuse), … (window ended) | `p44` |
 | P45 | `home(e, W(w))`, window open | `usePodOnThisPhoneConfirmed` | `takingBack(e+1, W(w))` | take back to e+1 keeping W(w), alert; the result audits loan w | `p45` |
+| P46 | `takingBack(e, L)` (a plain take the kit keeps refusing, M4E-09) | `usePodOnThisPhoneConfirmed` | `takingBack(e+1, …)` | as P43/P45 with L in place of the last loan | `p46` |
 
 ## Watch
 

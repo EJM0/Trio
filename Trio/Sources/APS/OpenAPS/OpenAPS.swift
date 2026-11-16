@@ -492,6 +492,69 @@ final class OpenAPS {
         }
     }
 
+    /// The oref inputs as `createProfiles`, `autosense` and `determineBasal` gather them, for `OrefRun.run` on another device.
+    func orefInputs(
+        for dosingMode: DosingMode,
+        currentTemp: TempBasal,
+        supportedBasalRates: [Decimal],
+        shouldSmoothGlucose: Bool
+    ) async throws -> OrefInputs {
+        let context = newContext("orefInputs")
+        let clock = now()
+
+        async let pumpHistoryObjectIDs = fetchPumpHistoryObjectIDs(on: context) ?? []
+        async let carbsFetch = carbsStorage.getCarbsForAlgorithm(additionalCarbs: nil, carbsDate: nil)
+        async let glucoseFetch = glucoseStorage.getGlucoseForAlgorithm(
+            shouldSmoothGlucose: shouldSmoothGlucose,
+            fetchHours: OrefInputs.autosensGlucoseHours
+        )
+        async let hasSufficientTddForDynamic = tddStorage.hasSufficientTDD()
+        async let getPumpSettings = loadFileFromStorageAsync(name: Settings.settings)
+        async let getBGTargets = loadFileFromStorageAsync(name: Settings.bgTargets)
+        async let getBasalProfile = loadFileFromStorageAsync(name: Settings.basalProfile)
+        async let getInsulinSensitivities = loadFileFromStorageAsync(name: Settings.insulinSensitivities)
+        async let getCarbRatios = loadFileFromStorageAsync(name: Settings.carbRatios)
+        async let getTempTargets = loadFileFromStorageAsync(name: Settings.tempTargets)
+
+        let (activeTempTarget, activeOverride, tddRows) = try await context.perform {
+            let tempTarget = try self.fetchActiveTempTargets(on: context).first
+                .flatMap { tempTarget -> OrefInputs.TempTargetState? in
+                    guard tempTarget.enabled, let target = tempTarget.target?.decimalValue else { return nil }
+                    return OrefInputs.TempTargetState(target: target, halfBasalTarget: tempTarget.halfBasalTarget?.decimalValue)
+                }
+            let override = try self.fetchActiveOverrides(on: context).first.map(OrefInputs.OverrideState.init)
+            let rows = try self.fetchHistoricalTDDData(from: OrefInputs.tddHistoryStart(now: clock), on: context).map {
+                OrefInputs.TDDRow(date: $0["date"] as? Date, total: ($0["total"] as? NSDecimalNumber)?.decimalValue)
+            }
+            return (tempTarget, override, rows)
+        }
+
+        let autosens = storage.retrieve(Settings.autosense, as: Autosens.self)
+        return try await OrefInputs(
+            pumpSettings: JSONBridge.pumpSettings(from: getPumpSettings),
+            bgTargets: JSONBridge.bgTargets(from: getBGTargets),
+            basalProfile: JSONBridge.basalProfile(from: getBasalProfile),
+            insulinSensitivities: JSONBridge.insulinSensitivities(from: getInsulinSensitivities),
+            carbRatios: JSONBridge.carbRatios(from: getCarbRatios),
+            tempTargets: JSONBridge.tempTargets(from: getTempTargets),
+            preferences: storage.retrieve(OpenAPS.Settings.preferences, as: Preferences.self),
+            dosingMode: dosingMode,
+            microBolusAllowed: true,
+            activeTempTarget: activeTempTarget,
+            activeOverride: activeOverride,
+            tddHistory: OrefInputs.tddHistory(tddRows, now: clock),
+            hasSufficientTDD: hasSufficientTddForDynamic,
+            glucose: glucoseFetch,
+            pumpHistory: parsePumpHistory(on: context, pumpHistoryObjectIDs),
+            carbs: carbsFetch,
+            currentTemp: currentTemp,
+            supportedBasalRates: supportedBasalRates,
+            autosens: OrefRun.isAutosensFresh(autosens, now: clock) ? autosens : nil,
+            clock: clock,
+            timeZone: TimeZone.current
+        )
+    }
+
     private func loadJSON(name: String) -> String {
         try! String(contentsOf: Foundation.Bundle.main.url(forResource: "json/\(name)", withExtension: "json")!)
     }

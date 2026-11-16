@@ -241,7 +241,7 @@ struct LoanWorld: Hashable {
         session(.phone)
         settle()
         if case .stopped = watch { onWatch(.stopAcknowledged) }
-        if case .home = phone, phoneKit.refuses { onPhone(.usePodOnThisPhoneConfirmed) }
+        if phoneKit.refuses, phone.mayCommandPump || phone.isTakingBack { onPhone(.usePodOnThisPhoneConfirmed) }
         settle()
     }
 
@@ -341,5 +341,12 @@ struct LoanWorld: Hashable {
         world.onWatch(.startTapped)
         world.settle()
         return world
+    }
+}
+
+extension PhoneLoanState {
+    var isTakingBack: Bool {
+        if case .takingBack = self { return true }
+        return false
     }
 }

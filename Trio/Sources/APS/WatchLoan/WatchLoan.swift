@@ -40,6 +40,7 @@ enum LoanAlert: Equatable, Hashable {
     case unexpectedPodSession
     case podTakenOnThisPhone
     case loanStateUnreadable
+    case podTotalUnreliable
     // Watch
     case phoneDidNotAnswer
     case startRefused(LoanRefusal)
@@ -244,7 +245,19 @@ enum WatchLoan {
             }
 
         case .usePodOnThisPhoneConfirmed:
-            guard case let .home(epoch, lastLoan) = state else { return (state, []) }
+            let epoch: Int64
+            let lastLoan: LoanRecord?
+            switch state {
+            case let .home(homeEpoch, homeLoan):
+                (epoch, lastLoan) = (homeEpoch, homeLoan)
+            case let .takingBack(takingBackEpoch, loan):
+                // a plain take-back the kit keeps refusing
+                (epoch, lastLoan) = (takingBackEpoch, loan)
+            case .lending,
+                 .lent,
+                 .unreadable:
+                return (state, [])
+            }
             // Keep commanding through another device's sessions only while a Take Back from a known watch loan allows it
             let loan = lastLoan.flatMap { $0.epoch != nil && $0.isSuperseding(at: context.now) ? $0 : nil }
                 ?? LoanRecord(epoch: nil)

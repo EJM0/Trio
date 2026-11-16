@@ -28,6 +28,9 @@ final class NotLoopingMonitor: Injectable {
     @Injected() private var broadcaster: Broadcaster!
 
     private var lastLoopDate = Date()
+    /// Off while Apple Watch holds the pump: the phone doesn't loop then, and the watch has its own series.
+    private var isArmed = true
+    private var armedAt = Date.distantPast
 
     /// Minutes of staleness for each Time-Sensitive warning step.
     private static let warningMinutes: [Int] = [20, 40, 60, 80, 100]
@@ -79,12 +82,23 @@ final class NotLoopingMonitor: Injectable {
             .store(in: &subscriptions)
     }
 
+    /// Arming counts from now when the last loop is older, so a stale loop date still leaves the whole series pending.
+    func setArmed(_ armed: Bool) {
+        guard armed != isArmed else { return }
+        isArmed = armed
+        if armed { armedAt = Date() }
+        info(.loop, armed ? "Not-looping alarm armed" : "Not-looping alarm disarmed while Apple Watch holds the pump")
+        rescheduleAlarm()
+    }
+
     private func rescheduleAlarm() {
         // Retract first — clears pending UN, modal timer, and throttler so the
         // next issueAlert isn't blocked by 5-min duplicate suppression.
         for identifier in Self.allIDs {
             trioAlertManager.retractAlert(identifier: identifier)
         }
+
+        guard isArmed else { return }
 
         // Skip when Trio isn't expected to be auto-enacting: open loop, an
         // active manual temp basal, or a suspended pump. In all three the
@@ -111,7 +125,7 @@ final class NotLoopingMonitor: Injectable {
     /// mid-window re-arm keeps the original schedule. A step whose moment has
     /// already passed is skipped rather than fired late.
     private func issue(identifier: Alert.Identifier, after minutes: Int, level: Alert.InterruptionLevel, now: Date) {
-        let fireDate = lastLoopDate.addingTimeInterval(TimeInterval(minutes * 60))
+        let fireDate = max(lastLoopDate, armedAt).addingTimeInterval(TimeInterval(minutes * 60))
         let remaining = fireDate.timeIntervalSince(now)
         guard remaining > 0 else { return }
         let content = Alert.Content(

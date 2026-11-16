@@ -35,7 +35,7 @@ import Testing
         event { $0.onPhone(.takeBackTapped(watchAnswer: nil), crashAfter: $1) }
         event { let answer = $0.watch
             $0.onPhone(.takeBackTapped(watchAnswer: answer), crashAfter: $1) }
-        if case .home = world.phoneOnDisk, world.phoneKit.refuses {
+        if world.phoneKit.refuses, world.phoneOnDisk.mayCommandPump || world.phoneOnDisk.isTakingBack {
             event { $0.onPhone(.usePodOnThisPhoneConfirmed, crashAfter: $1) }
         }
         if world.requestCount < requests { event { $0.onWatch(.startTapped, crashAfter: $1) } }
