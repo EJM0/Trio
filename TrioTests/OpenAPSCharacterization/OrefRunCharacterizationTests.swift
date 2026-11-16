@@ -151,15 +151,15 @@ import Testing
                     smbIsOff: $0.smbIsOff,
                     target: $0.target,
                     duration: $0.duration,
-                    advancedSettings: false,
+                    advancedSettings: $0.advancedSettings,
                     isfAndCr: $0.isfAndCr,
                     isf: $0.isf,
                     cr: $0.cr,
-                    smbIsScheduledOff: false,
-                    start: nil,
-                    end: nil,
-                    smbMinutes: nil,
-                    uamMinutes: nil
+                    smbIsScheduledOff: $0.smbIsScheduledOff,
+                    start: $0.start,
+                    end: $0.end,
+                    smbMinutes: $0.smbMinutes,
+                    uamMinutes: $0.uamMinutes
                 )
             },
             tddHistory: tddHistory,
