@@ -9,8 +9,9 @@ enum WatchLoopPolicy {
         inForeground || allowsMicroBolusInBackground
     }
 
-    /// Minutes after the last cycle that confirmed the pump's state, as on the phone.
-    static let notLoopingMinutes = [20, 40, 60, 80, 100, 120]
+    /// Minutes after the last cycle that confirmed the pump's state: the phone's 20 to 120, then hourly to the 6-hour
+    /// resume horizon, since the watch has no critical alert to end on.
+    static let notLoopingMinutes = [20, 40, 60, 80, 100, 120, 180, 240, 300, 360]
     /// A cycle confirms the pump's state only with a status at most this old; the kit refreshes older ones.
     static let pumpStatusMaxAge: TimeInterval = 6 * 60
     static let batteryWarningLevel: Float = 0.2
