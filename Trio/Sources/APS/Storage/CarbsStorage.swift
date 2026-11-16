@@ -439,7 +439,7 @@ final class BaseCarbsStorage: CarbsStorage, Injectable {
         let results = try await CoreDataStack.shared.fetchEntitiesAsync(
             ofType: CarbEntryStored.self,
             onContext: context,
-            predicate: NSPredicate.predicateForOneDayAgo,
+            predicate: NSPredicate(format: "date >= %@", OrefInputs.carbsStart(now: Date()) as NSDate),
             key: "date",
             ascending: false
         )
@@ -461,19 +461,13 @@ final class BaseCarbsStorage: CarbsStorage, Injectable {
 
     /// Converts CoreData stored carb entries into a struct that the oref algorithm can use
     static func mapToCarbsEntry(_ carbEntry: CarbEntryStored) -> CarbsEntry {
-        // The old encode used `date ?? Date()` for both created_at and actualDate.
-        let date = carbEntry.date ?? Date()
-        return CarbsEntry(
-            id: carbEntry.id?.uuidString,
-            createdAt: date,
-            actualDate: date,
-            carbs: Decimal(algorithmValue: carbEntry.carbs),
-            fat: Decimal(algorithmValue: carbEntry.fat),
-            protein: Decimal(algorithmValue: carbEntry.protein),
-            note: nil,
-            enteredBy: CarbsEntry.local,
-            isFPU: carbEntry.isFPU,
-            fpuID: nil
+        OrefInputs.carbsEntry(
+            id: carbEntry.id,
+            date: carbEntry.date,
+            carbs: carbEntry.carbs,
+            fat: carbEntry.fat,
+            protein: carbEntry.protein,
+            isFPU: carbEntry.isFPU
         )
     }
 

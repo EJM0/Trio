@@ -186,75 +186,64 @@ enum ParityScenarios {
         )
     }
 
-    /// Mirrors the production Swift path: OpenAPSSwift.makeProfile → autosense
-    /// (8h/24h, min ratio) → meal → iob (deduped suspend/resume) → determineBasal.
+    /// The production stages in `OrefRun`: profile → autosens (8h/24h, min ratio) → meal → iob
+    /// (deduped suspend/resume) → determination. Every stage sees the profile with supported basal rates.
     static func runPipeline(_ scenario: ParityScenario) throws -> ParityPipelineOutputs {
-        var profile = try ProfileGenerator.generate(
-            pumpSettings: scenario.pumpSettings,
-            bgTargets: scenario.bgTargets,
-            basalProfile: scenario.basalProfile,
-            isf: scenario.isf,
-            preferences: scenario.preferences,
-            carbRatios: scenario.carbRatios,
-            tempTargets: scenario.tempTargets,
-            clock: scenario.clock
+        let profile = OrefRun.determinationProfile(
+            try OrefRun.profiles(
+                pumpSettings: scenario.pumpSettings,
+                bgTargets: scenario.bgTargets,
+                basalProfile: scenario.basalProfile,
+                insulinSensitivities: scenario.isf,
+                carbRatios: scenario.carbRatios,
+                tempTargets: scenario.tempTargets,
+                preferences: scenario.preferences,
+                clock: scenario.clock
+            ).profile,
+            supportedBasalRates: ParityInputs.supportedBasalRates(),
+            dosingMode: .closed
         )
-        // production injects this at determineBasal; the pipeline mirrors that here
-        profile.supportedBasalRates = ParityInputs.supportedBasalRates()
 
-        let ratio8h = try AutosensGenerator.generate(
+        let autosens = try OrefRun.autosens(
             glucose: scenario.glucose,
             pumpHistory: scenario.pumpHistory,
             basalProfile: scenario.basalProfile,
             profile: profile,
             carbs: scenario.carbs,
             tempTargets: scenario.tempTargets,
-            maxDeviations: 96,
             clock: scenario.clock,
             includeDeviationsForTesting: true
         )
-        let ratio24h = try AutosensGenerator.generate(
-            glucose: scenario.glucose,
-            pumpHistory: scenario.pumpHistory,
-            basalProfile: scenario.basalProfile,
+
+        let meal = try OrefRun.meal(
+            pumphistory: scenario.pumpHistory,
             profile: profile,
+            basalProfile: scenario.basalProfile,
+            clock: scenario.clock,
             carbs: scenario.carbs,
-            tempTargets: scenario.tempTargets,
-            maxDeviations: 288,
-            clock: scenario.clock,
-            includeDeviationsForTesting: true
-        )
-        let autosens = ratio8h.ratio < ratio24h.ratio ? ratio8h : ratio24h
-
-        let meal = try MealGenerator.generate(
-            pumpHistory: scenario.pumpHistory,
-            profile: profile,
-            basalProfile: scenario.basalProfile,
-            clock: scenario.clock,
-            carbHistory: scenario.carbs,
-            glucoseHistory: scenario.glucose
+            glucose: scenario.glucose
         )
 
-        let iob = try IobGenerator.generate(
-            history: scenario.pumpHistory.removingDuplicateSuspendResumeEvents(),
+        let iob = try OrefRun.iob(
+            pumphistory: scenario.pumpHistory,
             profile: profile,
             clock: scenario.clock,
             autosens: autosens
         )
 
-        guard let mealData = meal else {
+        guard meal != nil else {
             throw ParityError("meal generation returned nil for \(scenario.name)")
         }
 
-        let determination = try DeterminationGenerator.generate(
-            profile: profile,
-            preferences: scenario.preferences,
-            currentTemp: scenario.currentTemp,
-            iobData: iob,
-            mealData: mealData,
-            autosensData: autosens,
+        let determination = try OrefRun.determine(
             glucose: scenario.glucose,
-            microBolusAllowed: true,
+            currentTemp: scenario.currentTemp,
+            iob: iob,
+            profile: profile,
+            autosens: autosens,
+            meal: meal,
+            preferences: scenario.preferences,
+            hasSufficientTDD: true,
             trioCustomOrefVariables: scenario.orefVariables,
             currentTime: scenario.clock
         )

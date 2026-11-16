@@ -456,8 +456,7 @@ final class BaseAPSManager: APSManager, Injectable {
     }
 
     func autosense() async throws -> Bool {
-        guard let autosense = await storage.retrieveAsync(OpenAPS.Settings.autosense, as: Autosens.self),
-              (autosense.timestamp ?? .distantPast).addingTimeInterval(30.minutes.timeInterval) > Date()
+        guard OrefRun.isAutosensFresh(await storage.retrieveAsync(OpenAPS.Settings.autosense, as: Autosens.self), now: Date())
         else {
             let result = try await openAPS.autosense(
                 shouldSmoothGlucose: settingsManager.settings.smoothGlucose
