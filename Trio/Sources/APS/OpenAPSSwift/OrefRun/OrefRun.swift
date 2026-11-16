@@ -199,7 +199,8 @@ enum OrefRun {
         profile: Profile,
         carbs: [CarbsEntry],
         tempTargets: [TempTarget],
-        clock: Date
+        clock: Date,
+        includeDeviationsForTesting: Bool = false
     ) throws -> Autosens {
         // both runs use identical inputs, so compute the treatments once;
         // gated on the same count as the generate early return
@@ -221,6 +222,7 @@ enum OrefRun {
             tempTargets: tempTargets,
             maxDeviations: 96,
             clock: clock,
+            includeDeviationsForTesting: includeDeviationsForTesting,
             precomputedTreatments: precomputedTreatments
         )
 
@@ -233,6 +235,7 @@ enum OrefRun {
             tempTargets: tempTargets,
             maxDeviations: 288,
             clock: clock,
+            includeDeviationsForTesting: includeDeviationsForTesting,
             precomputedTreatments: precomputedTreatments
         )
 
