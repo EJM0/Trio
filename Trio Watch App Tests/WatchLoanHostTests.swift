@@ -493,7 +493,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.violations.isEmpty)
     }
 
-    @Test("Each command adds its own intent: a pending bolus survives a reduction, a suspend and a relaunch")  func intentList(
+    @Test("Each command adds its own intent: a pending bolus survives a reduction, a suspend and a relaunch") func intentList(
     ) async throws {
         let world = LoanFixture()
         try await world.startLoan(glucose: 100)
@@ -567,7 +567,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(boluses.first?.bookedIntent == false)
     }
 
-    @Test("A stopped watch keeps reading the sensor and keeps its glucose alarms, unless superseded")  func stoppedAlarms() async throws {
+    @Test("A stopped watch keeps reading the sensor and keeps its glucose alarms, unless superseded") func stoppedAlarms() async throws {
         var low = GlucoseAlert(type: .low)
         low.thresholdMgDL = 70
         let world = LoanFixture()
@@ -584,8 +584,9 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.pump?.commands.count == commands, "alarms only, no commands")
     }
 
-    @Test("An unreadable state file is a stop: nothing is commanded, the user is told, the pod released (W38)")
-    func unreadableState() async throws {
+    @Test(
+        "An unreadable state file is a stop: nothing is commanded, the user is told, the pod released (W38)"
+    ) func unreadableState() async throws {
         let world = LoanFixture()
         try await world.startLoan()
         try Data("not json".utf8).write(to: world.files.url(.state))
