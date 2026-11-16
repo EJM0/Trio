@@ -65,6 +65,14 @@ enum WatchLoanWireKey {
     static func isLoanPayload(_ payload: [String: Any]) -> Bool {
         all.contains { payload[$0] != nil }
     }
+
+    /// In the phone's reply to the watch's status query: the phone's loan epoch.
+    static let phoneEpoch = "watchLoanPhoneEpoch"
+
+    static func isStatusQuery(_ payload: [String: Any]) -> Bool {
+        guard let data = payload[message] as? Data, case let .message(envelope) = WatchLoanWire.decode(data) else { return false }
+        return envelope.message.kind == .statusQuery
+    }
 }
 
 /// Which incoming messages the phone passes on. Persisted, so a relaunch keeps dropping what it saw.

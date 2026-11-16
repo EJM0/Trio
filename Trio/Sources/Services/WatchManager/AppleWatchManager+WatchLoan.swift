@@ -7,6 +7,12 @@ extension BaseWatchManager: WatchLoanTransport {
         Task { await coordinator.receive(payload) }
     }
 
+    /// The watch asks after a relaunch whether the loan it holds still stands.
+    func answerLoanStatusQuery(_ replyHandler: @escaping ([String: Any]) -> Void) {
+        guard let coordinator = watchLoanCoordinator else { return replyHandler([:]) }
+        Task { replyHandler(await coordinator.statusAnswer()) }
+    }
+
     var isReachable: Bool { session?.isReachable ?? false }
 
     func sendLive(_ payload: [String: Any]) -> Bool {

@@ -171,6 +171,11 @@ actor WatchLoanCoordinator {
         await handle(.usePodOnThisPhoneConfirmed)
     }
 
+    /// The reply to the watch's status query: this phone's epoch, nothing while its state can't be read.
+    func statusAnswer() -> [String: Any] {
+        state.epoch.map { [WatchLoanWireKey.phoneEpoch: NSNumber(value: $0)] } ?? [:]
+    }
+
     // MARK: - Transport in
 
     func receive(_ payload: [String: Any]) async {
