@@ -96,11 +96,13 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
 
     func makeHost() -> WatchLoanHost {
         let factory = LoanPumpFactory(
-            adopt: { [unowned self] _, _ in
+            adopt: { [weak self] _, _ in
+                guard let self else { return nil }
                 adopted += 1
                 return newDouble()
             },
-            restore: { [unowned self] raw in
+            restore: { [weak self] raw in
+                guard let self else { return nil }
                 restored += 1
                 let double = newDouble()
                 double.isControlReleased = raw["released"] as? Bool ?? false
@@ -115,13 +117,13 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
             notifier: notifier,
             pumpFactory: factory,
             cgm: nil,
-            now: { [unowned self] in clock },
-            isForeground: { [unowned self] in foreground },
-            batteryLevel: { [unowned self] in battery },
-            notificationsAllowed: { [unowned self] in notificationsAllowed },
-            modelIdentifier: { [unowned self] in model },
+            now: { [weak self] in self?.clock ?? Date() },
+            isForeground: { [weak self] in self?.foreground ?? false },
+            batteryLevel: { [weak self] in self?.battery },
+            notificationsAllowed: { [weak self] in self?.notificationsAllowed ?? false },
+            modelIdentifier: { [weak self] in self?.model },
             appBuild: "1",
-            beginActivity: { [unowned self] _ in activity },
+            beginActivity: { [weak self] _ in self?.activity ?? FakeActivity() },
             phoneAnswerTimeout: 0.2
         ))
         return created
@@ -129,12 +131,13 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
 
     private func newDouble() -> LoanPumpDouble {
         let double = LoanPumpDouble(pod: pod)
-        double.now = { [unowned self] in onMain { clock } }
+        double.now = { [weak self] in onMain { self?.clock ?? Date() } }
         // End cancels the temp after `returning` is saved, before the release
-        double.hostMayCommand = { [unowned self] command in
+        double.hostMayCommand = { [weak self] command in
             onMain {
-                if case .returning = host.state { return command.hasPrefix("temp 0.0 U/h 0 min") }
-                return host.state.mayCommandPump
+                guard let state = self?.host?.state else { return false }
+                if case .returning = state { return command.hasPrefix("temp 0.0 U/h 0 min") }
+                return state.mayCommandPump
             }
         }
         configure(double)
@@ -287,7 +290,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.pump?.takeControlCalls == 1)
         #expect(world.pump?.heartbeatRequests == [nil] && world.pump?.mustProvideHeartbeat == [false])
         #expect(world.transport.messages.last?.kind == .holding)
-        #expect(world.notifier.notLooping.count == 6)
+        #expect(world.notifier.notLooping.count == 10)
         #expect(world.host.awaitingFirstReading && !world.host.isInControl)
 
         await world.reading(160)
@@ -295,7 +298,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         let commands = try #require(world.pump?.commands)
         #expect(commands.contains { $0.hasPrefix("temp") })
         #expect(!commands.contains { $0.contains("SMB") }, "a background wake runs oref without micro boluses")
-        #expect(world.host.intent == nil)
+        #expect(world.host.intents.isEmpty)
         #expect(world.host.loop.lastConfirmedCycleAt != nil)
         #expect(world.transport.batches.last?.epoch == 1)
         #expect(world.activity.ended)
@@ -345,7 +348,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.host.state == .stopped(epoch: 1, reason: .foreignSession))
         #expect(world.pump?.releaseCalls == 1)
         #expect(world.transport.stops.contains { $0.kind == .stop && $0.epoch == 1 })
-        #expect(world.notifier.notLooping.count == 6, "a stopped watch keeps its not-looping series")
+        #expect(world.notifier.notLooping.count == 10, "a stopped watch keeps its not-looping series")
         #expect(world.violations.isEmpty)
     }
 
@@ -454,7 +457,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         world.activity.isExpired = true
         await world.reading(160)
         #expect(world.pump?.commands.isEmpty == true)
-        #expect(world.host.intent == nil)
+        #expect(world.host.intents.isEmpty)
         #expect(try world.files.read(.intent) == nil)
     }
 
@@ -468,8 +471,8 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         world.pump?.makesDeliveryUncertainOnError = true
         await world.host.requestBolus(units: 1)
         #expect(world.host.bolus == .uncertain)
-        let intent = try #require(world.host.intent)
-        #expect(try world.files.load(WatchDoseIntent.self, from: .intent) == intent)
+        let intent = try #require(world.host.intents.first)
+        #expect(try world.files.load([WatchDoseIntent].self, from: .intent) == [intent])
 
         // still uncertain: no command that adds insulin
         let before = world.pump?.commands.count ?? 0
@@ -482,7 +485,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         world.pump?.commandError = nil
         world.pod.delivered += 1
         await world.host.runCycle(trigger: .user)
-        #expect(world.host.intent == nil)
+        #expect(world.host.intents.isEmpty)
         let booked = world.host.records.snapshot.pumpEvents.values.filter(\.bookedIntent)
         #expect(booked.count == 1 && booked.first?.record.dose.deliveredUnits == 1)
         #expect(world.notifier.posted.contains("trio.loan.bookedIntent"))
@@ -490,14 +493,136 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.violations.isEmpty)
     }
 
+    @Test("Each command adds its own intent: a pending bolus survives a reduction, a suspend and a relaunch")  func intentList(
+    ) async throws {
+        let world = LoanFixture()
+        try await world.startLoan(glucose: 100)
+        await world.reading(100)
+        world.pump?.commandError = .communication(nil)
+        world.pump?.makesDeliveryUncertainOnError = true
+        await world.host.requestBolus(units: 1)
+        #expect(world.host.intents.count == 1)
+
+        // falling glucose: the reduction still goes out, and adds its own intent when it isn't confirmed either
+        await world.reading(70)
+        await world.reading(55)
+        #expect(world.pump?.commands.contains { $0.hasPrefix("temp 0.0") } == true)
+        await world.host.suspendInsulin()
+        let kinds = world.host.intents.map(\.kind)
+        #expect(kinds.first == .bolus(units: 1, automatic: false))
+        #expect(kinds.contains(.suspend) && kinds.contains { if case .tempBasal = $0 { true } else { false } })
+        #expect(try world.files.load([WatchDoseIntent].self, from: .intent)?.count == kinds.count)
+
+        // a relaunch keeps all of them; once the kit is certain the bolus is booked and the reductions settle
+        world.transport.phoneEpoch = 1
+        await world.relaunch()
+        #expect(world.host.intents.map(\.kind) == kinds)
+        world.pump?.deliveryIsUncertain = false
+        world.pump?.commandError = nil
+        world.pod.delivered += 1
+        await world.host.runCycle(trigger: .user)
+        #expect(world.host.intents.isEmpty)
+        let booked = world.host.records.snapshot.pumpEvents.values.filter(\.bookedIntent)
+        #expect(booked.map(\.record.dose.type) == [.bolus])
+        #expect(world.violations.isEmpty)
+    }
+
+    @Test("A recovered bolus is booked once, whether the kit's record comes before or after the booking", arguments: [
+        true,
+        false
+    ]) func recoveredBolus(kitFirst: Bool) async throws {
+        let world = LoanFixture()
+        try await world.startLoan(glucose: 120)
+        await world.reading(120)
+        world.pump?.commandError = .communication(nil)
+        world.pump?.makesDeliveryUncertainOnError = true
+        await world.host.requestBolus(units: 1)
+        let intent = try #require(world.host.intents.first)
+        world.pump?.commandError = nil
+        let dose = DoseEntry(
+            type: .bolus,
+            startDate: intent.createdAt.addingTimeInterval(2),
+            endDate: intent.createdAt.addingTimeInterval(42),
+            value: 1,
+            unit: .units,
+            decisionId: nil,
+            deliveredUnits: 1,
+            automatic: false
+        )
+        world.pod.delivered += 1
+        if kitFirst {
+            // the kit recovers the dose at the status read and reports it on its queue, after the read returns
+            world.pump?.recoverOnStatus = dose
+            await world.host.runCycle(trigger: .user)
+        } else {
+            world.pump?.deliveryIsUncertain = false
+            await world.host.runCycle(trigger: .user)
+            #expect(world.host.records.snapshot.pumpEvents.values.contains { $0.bookedIntent })
+            world.pump?.reportLater(dose)
+            try await Task.sleep(nanoseconds: 100_000_000)
+        }
+        #expect(world.host.intents.isEmpty)
+        let boluses = world.host.records.snapshot.pumpEvents.values.filter { $0.record.dose.type == .bolus }
+        #expect(boluses.count == 1, "\(boluses.map(\.record.dose.programmedUnits))")
+        #expect(boluses.first?.bookedIntent == false)
+    }
+
+    @Test("A stopped watch keeps reading the sensor and keeps its glucose alarms, unless superseded")  func stoppedAlarms() async throws {
+        var low = GlucoseAlert(type: .low)
+        low.thresholdMgDL = 70
+        let world = LoanFixture()
+        try await world.startLoan(glucose: 100, alarms: [low])
+        await world.reading(100)
+        world.pod.holder = .phone
+        await world.reading(95)
+        try await Task.sleep(nanoseconds: 200_000_000)
+        await world.host.serially {}
+        #expect(world.host.state == .stopped(epoch: 1, reason: .foreignSession))
+        let commands = world.pump?.commands.count
+        await world.reading(62)
+        #expect(world.notifier.pending[WatchLoanAlerts.glucosePrefix + low.id.uuidString] != nil)
+        #expect(world.pump?.commands.count == commands, "alarms only, no commands")
+    }
+
+    @Test("An unreadable state file is a stop: nothing is commanded, the user is told, the pod released (W38)")
+    func unreadableState() async throws {
+        let world = LoanFixture()
+        try await world.startLoan()
+        try Data("not json".utf8).write(to: world.files.url(.state))
+        await world.relaunch()
+        #expect(world.host.state == .stopped(epoch: 0, reason: .unconfirmed))
+        #expect(world.pump?.releaseCalls == 1)
+        #expect(world.notifier.posted.contains { $0.hasPrefix("trio.loan.alert.") })
+        #expect(world.violations.isEmpty)
+    }
+
+    @Test("Acknowledging a stop books an unsettled bolus and sends it before forgetting it") func retireBooks() async throws {
+        let world = LoanFixture()
+        try await world.startLoan(glucose: 120)
+        await world.reading(120)
+        world.pump?.commandError = .communication(nil)
+        world.pump?.makesDeliveryUncertainOnError = true
+        await world.host.requestBolus(units: 1)
+        #expect(world.host.intents.count == 1)
+        await world.host.receive([WatchLoanWireKey.message: try WatchLoanWire.encode(WatchLoanStop(kind: .revoke, epoch: 2))])
+        await world.host.stopAcknowledged()
+        try await Task.sleep(nanoseconds: 300_000_000)
+        #expect(world.host.state == .idle(epoch: 1))
+        #expect(world.host.intents.isEmpty)
+        let lastBatch = try #require(world.transport.batches.last)
+        #expect(lastBatch.pumpEvents.contains { $0.dose.type == .bolus && $0.dose.deliveredUnits == 1 })
+        #expect(world.notifier.posted.contains("trio.loan.bookedIntent"))
+    }
+
     @Test("Not-looping series: armed at holding, moved only by a confirmed cycle, removed at hand-back") func deadMan() async throws {
         let world = LoanFixture()
         let start = world.clock
         try await world.startLoan()
         let armed = world.notifier.notLooping
-        #expect(armed.count == 6)
+        #expect(armed.count == 10)
         #expect(abs(armed[0].timeIntervalSince(start) - 20 * 60) < 5)
         #expect(abs(armed[5].timeIntervalSince(start) - 120 * 60) < 5)
+        #expect(abs(armed[9].timeIntervalSince(start) - 6 * 3600) < 5, "hourly to the 6-hour resume horizon")
 
         await world.reading(160)
         let moved = world.notifier.notLooping
@@ -584,7 +709,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
     @Test("A daily summary counts readings, cycles and wakes, and starts over each day") func dailySummary() async throws {
         let world = LoanFixture()
         try await world.startLoan()
-        world.host.noteWake("WKBluetoothAlertRefreshBackgroundTask")
+        await world.host.noteWake("WKBluetoothAlertRefreshBackgroundTask")
         await world.reading(160)
         await world.reading(160)
         var summary = world.host.cycleInfo.summary
@@ -592,7 +717,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(summary.wakes["WKBluetoothAlertRefreshBackgroundTask"] == 1)
         #expect(WatchLoanHost.summaryLine(summary, until: world.clock, battery: 1).contains("readings 2"))
         world.clock = world.clock.addingTimeInterval(24 * 3600)
-        world.host.noteWake("WKApplicationRefreshBackgroundTask")
+        await world.host.noteWake("WKApplicationRefreshBackgroundTask")
         summary = world.host.cycleInfo.summary
         #expect(summary.readings == 0 && summary.wakes == ["WKApplicationRefreshBackgroundTask": 1])
     }

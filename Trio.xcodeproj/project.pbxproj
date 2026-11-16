@@ -1304,6 +1304,7 @@
 		963794A7E5E810BA69EE512E /* LoanPumpDouble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76D5CE4C2253239145F1C070 /* LoanPumpDouble.swift */; };
 		9A949314EB275A2083325BA5 /* WatchLoanHostTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 785D46BC40C065649E4E0469 /* WatchLoanHostTests.swift */; };
 		D30010F72BED95FED9517E95 /* WatchLoanAudit.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A000000000000000005 /* WatchLoanAudit.swift */; };
+		2249B2CFA752FCF240EEA112 /* WatchLoopPhoneEquivalenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CA5406C1EAE1FC6C5BD7B24 /* WatchLoopPhoneEquivalenceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -2604,6 +2605,7 @@
 		7BFF8B004F3796056F93688D /* WatchLoanRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanRuntime.swift; sourceTree = "<group>"; };
 		76D5CE4C2253239145F1C070 /* LoanPumpDouble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoanPumpDouble.swift; sourceTree = "<group>"; };
 		785D46BC40C065649E4E0469 /* WatchLoanHostTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanHostTests.swift; sourceTree = "<group>"; };
+		8CA5406C1EAE1FC6C5BD7B24 /* WatchLoopPhoneEquivalenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoopPhoneEquivalenceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -2754,6 +2756,7 @@
 		A7A10A00000000000000001C /* WatchLoanTests */ = {
 			isa = PBXGroup;
 			children = (
+				8CA5406C1EAE1FC6C5BD7B24 /* WatchLoopPhoneEquivalenceTests.swift */,
 				E8137CE85978D906526135B7 /* WatchLoopInputsTests.swift */,
 				A7A10A00000000000000000D /* LoanWorld.swift */,
 				A7A10A00000000000000000F /* WatchLoanFlowTests.swift */,
@@ -6891,6 +6894,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2249B2CFA752FCF240EEA112 /* WatchLoopPhoneEquivalenceTests.swift in Sources */,
 				F5D48D8065F088E7EFF8DB2F /* WatchLoopInputsTests.swift in Sources */,
 				0C4A00080000000000000002 /* OrefInputsSelectionTests.swift in Sources */,
 				0C4A00070000000000000002 /* OrefRunStageTests.swift in Sources */,
@@ -7714,6 +7718,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "$(TRIO_ON_WATCH_INFOPLIST_$(TRIO_ON_WATCH))";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Trio uses Bluetooth to connect to your insulin pump and glucose sensor.";
 				INFOPLIST_KEY_CFBundleDisplayName = "$(APP_DISPLAY_NAME)";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "$(BUNDLE_IDENTIFIER)";
