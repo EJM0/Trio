@@ -103,3 +103,71 @@ The one failure is step 8, `swift test` on `AlgorithmPackage`, which fails to **
 - The build-phase SwiftFormat reformatted one line in `Trio Watch App Tests/Unit Tests.swift` (it joined a `@Test(...)` attribute onto the `func` line). Reverted with `git checkout`.
 - `Trio.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`: unchanged.
 - Submodules: `git submodule status` unchanged and no dirty files inside any submodule.
+
+## M2b: kit pins and the foreign-session rule (2026-11-16)
+
+Branch `feat/tow-kits`, off `feat/trio-on-watch` @ `349f49523`. Implements V2-6 and V2-29, plus the V2-7b context and the E safety conditions C-1 and C-2.
+
+> [!IMPORTANT]
+> The kit commits below exist only in this machine's submodule repositories, on local branches named `trio-on-watch`. Nobody else can check out or build `feat/tow-kits` until the maintainer mirrors them to loopandlearn (LoopKit `trio-on-watch`, OmnipodKit `trio-on-watch`) and updates the submodule URLs or branches. `.gitmodules` is unchanged.
+
+### Pins
+
+| Submodule | Before | After | Content |
+|---|---|---|---|
+| LoopKit | `babddf04` | `7fd4d1a7` | `babddf04` + cherry-pick of LoopKit#687 (`a78fe3bb`, author jeremybarnum). Nothing else from LoopKit `next-dev`; #695/#696 break the other kits. |
+| OmnipodKit | `6fdf0e0e` | `b647ea98` | loopandlearn/OmnipodKit#177 @ `3d21d9c` (jeremybarnum `sportmode/next-dev`) + `d5606d67`, `2e5f9bdc`, `b647ea98` (below). `6fdf0e0e` is an ancestor. |
+| G7SensorKit | `08d48863` | unchanged | |
+
+### The rule (OmnipodKit)
+
+- An adopt or a take expects one EAP SQN resync. Any later resync on a shared pod is a foreign session.
+  - Every foreign session is reported: `foreignSessionDetectedAt` is updated, which reaches the host as `pumpManagerDidUpdateState`.
+- If the foreign session falls outside a superseding take, the kit sets `refusesSessions`. From then on, until the host takes control again:
+  - no session runs and nothing is sent: no bolus, no temp of any rate including zero, no suspend, no resume, no basal schedule, no alert acknowledgement, no status read;
+  - there is no handshake at all, not even the retry after the resync that found the foreign session;
+  - every refusal returns `PodCommsError.podUsedByAnotherController`.
+- A superseding take is `takeControl(supersedingAnotherControllerUntil:)` with a date. It is for a Take Back from a peer that has not acknowledged `stopped`; the host passes takeover + 6 h.
+  - Until that date, or until `stopSupersedingAnotherController()` (the peer acknowledged), foreign sessions are reported but don't stop this device (V2-7b).
+  - A plain `takeControl()` (End, lend, adopt) is never superseding (C-1).
+- Pods never shared are unchanged.
+- C-2: when a link is (re)connected, the kit always handshakes, so a stale device meets the refusal. A link restored after a relaunch used to reuse the saved session keys without a handshake (#177 and stock). On a shared pod it now handshakes again. Both points come from reading the code.
+- Why reductions are refused too: see `omnipodkit-177-proposal.md`.
+
+### Verification
+
+| # | Step | Result |
+|---|---|---|
+| 1 | OmniTests, all (scratch workspace: LoopKit `7fd4d1a7`'s parent + #687, RileyLinkKit `52a652c9`), fresh iPhone 17 / iOS 27.2 simulator | 255 run, 0 failed, 3 skipped. `DeviceHandoffTests`: 37, of which 9 are new |
+| 2 | Mutation checks on the new tests | Rule removed (never refuse): 14 failures. Scope expiry ignored: the scope test fails. No report: 6 tests fail. Each mutation was reverted |
+| 3 | `OmnipodKit-watchOS` for the watchOS simulator and `arm64_32`; `OmnipodKitPlugin` for iOS | Build succeeded |
+| 4 | Trio iOS app, `X -scheme Trio` on a fresh "Trio-M2b iPhone 17" (iOS 27.2) | Exit 0. DanaKit, MedtrumKit, MinimedKit, LibreTransmitter, LibreLoop, G7SensorKit, OmnipodKit, LoopKit (and LoopKit-watchOS) compiled as part of it |
+| 5 | Full `Trio Tests`, three runs on the same simulator | Run 1: 933 passed, 19 failed, 44 skipped. Run 2: 940 / 12 / 44. Run 3: **952 / 0 / 44** (= M0) |
+| 6 | The 10 suites that failed in run 1, run alone | 55 passed, 0 failed, 1 skipped |
+| 7 | A/B: the same full run with the old pins (`babddf04`, `6fdf0e0e`) | 952 / 0 / 44 |
+
+#### Runs 1–2 failures
+
+All the failures in runs 1 and 2 are test-host crashes ("Restarting after unexpected exit"), a different set of tests each time. The four crash reports show heap corruption:
+- `___BUG_IN_CLIENT_OF_LIBMALLOC_POINTER_BEING_FREED_WAS_NOT_ALLOCATED` in `-[_UIAppearance _handleSetterInvocation:]`, called from `TrioApp.configureTabBarAppearance()` ← `TrioApp.init()` ← `BolusSafetyValidatorTests.init()` / `BolusCalculatorTests.init()`;
+- later malloc traps in unrelated code.
+
+No crash report has a LoopKit, OmnipodKit or RileyLink frame. Four suites build `TrioApp()` in a stored property (`let resolver = TrioApp().resolver`), so parallel Swift Testing suites run UIAppearance setters off the main thread at the same time.
+
+The machine's load average was 90–175 during the runs, from other agents' builds. Probable cause (inferred, not proven): a pre-existing race in those tests that load makes more likely. Run 3 and the baseline A/B both passed clean. It is not fixed here because it is out of M2b's scope; it's worth a follow-up.
+
+### Not executed or not verified
+
+- No hardware: no pod and no watch device.
+- The pod side of the rule is not verified. It is modelled by a pod double in `DeviceHandoffTests`, so these are our reading of the protocol, not traces:
+  - that a resync-answered handshake leaves the pod's counter unchanged;
+  - that a message under stale keys is dropped.
+- The restored-link handshake (C-2) has no unit test, because a `BlePodComms` needs a Bluetooth central. It was checked by reading the code only.
+- The watch app was not built here (M2a). Nothing in the Trio app calls the new API yet (M4/M5).
+- The kits' own test suites other than OmniTests were not run.
+
+### Worktree hygiene
+
+- The build-phase SwiftFormat reformatted `Trio Watch App Tests/Unit Tests.swift` again (as in M0). Reverted.
+- `Package.resolved`: unchanged.
+- No dirty files inside any submodule.
