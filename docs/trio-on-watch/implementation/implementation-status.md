@@ -297,3 +297,101 @@ New behaviour notes:
 
 Results at `79c90f7b6`: full `X test` passed, 1004 total, 960 passed, 0 failed, 44 skipped (+4 = the four tests of the new selection suite). Both characterization suites: production 17/17, `OrefRun` 16/16. Package source typecheck passed.
 
+
+## M1b: pure calculations (2026-11-16)
+
+Branch `feat/tow-pure-calcs`, worktree `~/workspaces/Trio-tow-pure-calcs`, on `feat/tow-oref-run` at `3d55e4102` (rebased from `d40070789`). Local signed commits, not pushed. Each item is a characterization commit (goldens recorded on the unmodified code) followed by the change.
+
+| Commit | Subject |
+|---|---|
+| `d8a5375ec` | Add time-of-day characterization goldens |
+| `97bd472ed` | Look up oref schedules in an explicit time zone |
+| `c24226f65` | Make microBolusAllowed an explicit oref input |
+| `4f986dc85` | Add bolus calculator characterization goldens |
+| `ed4e49788` | Extract the bolus calculator math into a pure type |
+| `137121345` | Add glucose alarm characterization goldens |
+| `ce5190c3c` | Extract glucose alarm decisions into a pure type |
+
+### What was done
+
+**Time zone (V2-23).** `OrefInputs.timeZone`. Every time-of-day lookup in the oref Swift port goes through `WallClock`: `secondsIntoDay` (profile basal/ISF/CR/target lookups, autosens, IOB temp-basal splits, `DosingEngine` hour and minute checks), the `Profile` getters (`basalFor`, `sensitivityFor`, `carbRatioFor`, now on `WallClock.calendar`) and the reason-string `jsDateString`. `WallClock.boundTimeZone` is a `@TaskLocal`; unbound it is `TimeZone.current`, as before. The stages `profiles`, `autosens`, `meal`, `iob` and `determine` take `timeZone:` and bind it for their body; `run` passes `inputs.timeZone`; `OpenAPS` and the parity pipeline pass `TimeZone.current`. The one zone-dependent selection rule, `OrefInputs.carbsStart` (one calendar day back, 23 or 25 h across DST), takes `timeZone:` too; `CarbsStorage` passes `TimeZone.current`. The other selection windows are fixed durations. Calendar elapsed-minutes semantics in the `Profile` getters are unchanged (only the calendar's zone is set). A task-local instead of a parameter through every generator keeps the parity-sensitive generator signatures untouched; it is read synchronously inside the stage, and the oref code has no concurrency hops.
+
+**`microBolusAllowed` (N-1).** `OrefInputs.microBolusAllowed`, passed to `OrefRun.determine` (was hard-coded `true` there). `OpenAPS` passes `true`. False makes `DosingEngine.determineSMBDelivery` return before sizing an SMB, so oref falls through to its normal high-temp logic; no determination field is stripped.
+
+**Bolus calculator (ADR-005, V2-24).** `Trio/Sources/Services/BolusCalculator/BolusCalculator.swift`, Foundation only. `CalculationInput` and `CalculationResult` moved there unchanged. The manager keeps every fetch (settings, schedules, Core Data glucose and determination, backdating) and calls:
+- `BolusCalculator.calculate(_ input: CalculationInput, now: Date, roundBolus: (Decimal) -> Decimal) -> CalculationResult` (was `calculateInsulin(input:)`; `now` replaces `Date()`, `roundBolus` is `apsManager.roundBolus`)
+- `BolusCalculator.glucoseVariables(readings: [(date: Date?, glucose: Int16)], now: Date) -> BolusCalculator.GlucoseVariables` (was `updateGlucoseVariables(with:)`)
+
+Not moved: `getCurrentSettingValue` (the watch has the profile's current values from its own `OrefRun`), the determination fallbacks and the backdated-carbs rule in `prepareCalculationInput`.
+
+**Glucose alarms (ADR-006, V2-16).** `Trio/Sources/Services/Alerts/GlucoseAlarmEvaluation.swift`, Foundation only, over the Codable `GlucoseAlert` list and `GlucoseAlertConfiguration`:
+- `evaluateReading(latestMgDL:alarms:configuration:firing:now:calendar:) -> [Action]`
+- `evaluateForecast(_ determination:alarms:configuration:firing:now:calendar:) -> [Action]`
+- `evaluateCarbsRequired(_ carbsRequired: Decimal?, alarms:configuration:firing:now:calendar:) -> [Action]`
+- `Action` is `.fire(GlucoseAlert, valueMgDL:)` or `.retract(GlucoseAlert)`; `firing: inout Set<UUID>` is the coordinator's firing set. Also `breached`, `shouldRetract`, `isEligible`, `recoveryMarginMgDL`, `readingFreshnessWindow` (moved from the coordinator).
+
+`GlucoseAlertCoordinator` keeps the launch quiet window, the CGM-ownership retraction, the Core Data fetch of the latest reading, snooze handling, and the alert content (title, body, interruption level, sound, identifier).
+
+### Characterization
+
+| Suite | Recorded through | Content |
+|---|---|---|
+| `OrefRun time-of-day goldens` | `OrefRun.run` (OpenAPS reads `Date()`, so the clock can't be fixed there) | closed-loop baseline with non-flat basal/ISF/CR/target schedules at 07:40 CEST, at 03:20 CEST on the spring-forward day and at 06:40 CET on the fall-back day; all seven stages per scenario. Enabled only in Europe/Berlin |
+| `Bolus calculator characterization goldens` | `BaseBolusCalculationManager` with an `APSManager` stub that rounds down to 0.05 U | 23 input cases (standard, fatty meal, super bolus, both, override-adjusted ISF/CR/target, glucose and min predicted below / at 54, loop 15 min ± 10 s, COB cap, IOB above max IOB, negative correction with and without super bolus / fatty meal, no glucose, flat / falling delta, max bolus and max IOB caps, rounding, repeating decimals); 8 glucose-delta cases |
+| `Glucose alarm characterization goldens` | `GlucoseAlertCoordinator` with an alert manager spy | 10 step sequences: low / urgent low / high hysteresis, urgent low suppressing low, disabled alarms and the urgent-low floor, per-alarm snooze, day and night windows (wrapping and not), several alarms of one type, interruption level and sound, forecasted low with low-family suppression, carbs required |
+
+The characterization commits widen access only: `updateGlucoseVariables` and its struct; the coordinator's `evaluationQueue`, `alertsSnapshot`, `configurationSnapshot`, `applyReadingBasedEvaluation`, and `launchedAt` (`let` → `var`). After each extraction the same goldens are checked through the phone type and through the pure function.
+
+### Commands and results
+
+`X` = `xcodebuild -workspace Trio.xcworkspace -scheme "Trio Tests" -destination 'platform=iOS Simulator,id=D20E4570-0D6D-4323-9741-B253097ECCD7,arch=arm64' -derivedDataPath $DD test`. Simulator "TOW-M1b-pure-calcs", iPhone 17 Pro, iOS 27.2, created for M1b. Recording (before the rebase): `TEST_RUNNER_TRIO_RECORD_GOLDENS=1`; M1 has since moved it to `TEST_RUNNER_TRIO_RECORD_CHARACTERIZATION=1`.
+
+| # | Command | Result |
+|---|---|---|
+| 1 | record at `d40070789` + test files: `X -only-testing:` the three new suites | recorded; then compare run on the same sources passed (5/5, with `OrefRunCharacterizationTests`) |
+| 2 | after `e6167f1a5`: time-of-day, `OrefRunCharacterizationTests`, `OrefCharacterizationTests`, `ParityGoldenTests`, `WallClockParityTests` | passed, 9 |
+| 3 | after `6d80072f7`: `OrefRunMicroBolusTests` + the three oref characterization suites | passed, 7 |
+| 4 | after `94c273893`: bolus characterization, `BolusCalculatorTests`, `AlgorithmSuggestedBolusTests` | passed 17, skipped 1 (the source-disabled flaky test) |
+| 5 | after `3c04e0149`: alarm characterization, `GlucoseAlertCoordinatorTests`, `ForecastedGlucoseEvaluatorTests`, `GlucoseAlertTests`, `GlucoseAlertConfigurationTests`, `ContainerResolutionTests` | passed, 56 |
+| 6 | full `X` at `3c04e0149` | passed: 1009 total, 965 passed, 0 failed, 44 skipped (M1 at `d40070789`: 998 / 954 / 0 / 44; +11 new tests). Skips as in M0 |
+| 7 | mutation: recovery margin 5 → 4, and `minPredBG < 54` → `<= 54` | both coordinator/manager and pure golden tests failed; reverted |
+| 8 | package source list `swiftc -typecheck` (as in M1) | passed (81 files) |
+
+New behavior tests: another zone (America/New_York) looks the non-flat schedules up at its own local time; the same local time in Asia/Tokyo reproduces the Berlin golden byte for byte; the `Profile` getters follow the bound zone. `microBolusAllowed = false` on two SMB scenarios gives no units, no "low temp" or "Microbolusing" in the reason, the same `insulinReq` and predictions, and a 30 min temp above the profile basal.
+
+### Quirks preserved
+
+- `Profile.basalFor` / `sensitivityFor` / `carbRatioFor` use elapsed minutes since midnight, `WallClock` uses wall-clock minutes; on DST days they disagree by an hour. The goldens record it (the getters are fallbacks, so the profile values come from `WallClock`).
+- The time zone is read once per stage instead of at every lookup; it only differs if the system zone changes mid-stage.
+- Bolus: current glucose is the newest reading of any age, even one without a date, while the delta uses only dated readings from the last 20 min. Negative wholeCalc skips the fraction and fatty-meal factor; super bolus is still added. `minPredBG`/glucose 54 is allowed, 53 is not. Loop staleness is strictly over 15 min. Rounding is applied once in the calculator; the Treatments screen rounds the result again.
+- Alarms: no hysteresis for carbs required; snooze ends at its instant (`snoozedUntil == now` fires); urgent-low recovery at threshold + 5 immediately lets low fire; disabled urgent-low alarms still fire. The reading path's unreachable `forecastedLow` early return was dropped (the loop only visits reading-driven types).
+
+### Bugs and oddities found, not fixed
+
+- The bolus recommendation can be **negative**: with IOB above max IOB, `min(…, maxIOB - iob)` goes below 0 after the `max(…, 0)` (golden `iob-above-max-iob`: −1 U with the stub; without a pump `roundBolus` returns it unchanged). `TreatmentsStateModel` does not clamp it. I did not check what the UI or a real driver's rounding shows.
+- `GlucoseAlertType` imports LoopKit and its `defaultSoundFilename` reaches `AlarmSoundCatalog` → `DeviceAlertSeverity` (LoopKit). The new pure evaluator is Foundation only, but its model types are not yet (M2a). `BolusCalculator` and `GlucoseAlarmEvaluation` also use Trio's `debug` and `Decimal.rounded(toPlaces:)`.
+- `BolusCalculatorVariables.lastLoopDate` and `insulinRequired`/`evBG` are filled but never read.
+
+### Not verified
+
+- `swift test` on `AlgorithmPackage` (toolchain, M0); only `swiftc -typecheck`.
+- Determination-path alarm steps use the coordinator's `Date()`, so day/night and snooze are characterized on the reading path only.
+- The bolus manager's input gathering (`prepareCalculationInput`, `getCurrentSettingValue`, backdating) has no characterization; it was not changed.
+- No device, in-vitro or in-vivo run; no watch build (M2a). Xcode 26.2 not installed.
+
+### Worktree hygiene
+
+SwiftFormat reformatted `Trio Watch App Tests/Unit Tests.swift` on every build; reverted each time. `Package.resolved` and submodules unchanged. No `actual-*.json` left.
+
+### After the rebase onto M1 `3d55e4102`
+
+Conflicts: `OrefRun.swift` (M1's stage changes, including `autosens(includeDeviationsForTesting:)`) re-done with the same `timeZone:` threading, and this status file. Also threaded: `ParityScenarios.runPipeline` (now on the `OrefRun` stages) passes `TimeZone.current` and `microBolusAllowed: true`; `carbsStart`/`carbs` take `timeZone:`. No golden was re-recorded.
+
+| # | Command | Result |
+|---|---|---|
+| 1 | all characterization and parity suites: `OrefCharacterizationTests`, `OrefRunCharacterizationTests`, `OrefRunMicroBolusTests`, `OrefTimeOfDayCharacterizationTests`, `OrefInputsSelectionTests`, `OrefRunStageTests`, `BolusCalculatorCharacterizationTests`, `GlucoseAlarmCharacterizationTests`, `ParityGoldenTests`, `WallClockParityTests` | passed, 22 (M1's 17 production scenarios and all M1b goldens unchanged, no `actual-*.json`); run twice |
+| 2 | full `X` (run 1) | host app crashed early: `malloc: pointer being freed was not allocated` while several suites started in parallel (`TrioApp()` inits in the log). 16 in-flight tests reported as crashed. Not reproduced in runs 2 and 3 |
+| 3 | full `X` (runs 2 and 3) | 1015 total, 970 passed, 1 failed, 44 skipped. The failure is `FileStorageTests` "Can parse mmol/L settings to mg/dL" (the order-dependent flake in `.claude/rules/testing.md`); `FileStorageTests` alone: 9/9 passed |
+| 4 | package source list `swiftc -typecheck` | passed (82 files) |
+
+The crash in run 1 has no crash report on the host, so its cause is not identified. I don't think it comes from M1b, because nothing in M1b frees memory by hand, but that is not verified.
