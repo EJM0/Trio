@@ -12,18 +12,21 @@ enum WatchLoanAudit {
         /// What a bolus under way at `end` has still to deliver. It will be delivered, so it counts as delivered.
         var bolusRemainder: Double
         var basalProfile: [BasalProfileEntry]
-        /// The pump's schedule zone. A loan uses the grant's zone.
+        /// The pump's schedule zone.
         var timeZone: TimeZone
         var pulse: Double
         /// Booked events from before `start` (to see a running temp or suspend) through `end`, any order.
-        /// Scheduled-basal rows are ignored: scheduled basal comes from the profile.
+        /// Scheduled-basal rows are ignored: scheduled basal comes from the profile. External insulin (pen, syringe)
+        /// never came from the pump; other audits' tagged boluses did.
         var events: [PumpHistoryEvent]
+        /// The tagged bolus this audit replaces, so it doesn't explain itself.
+        var ownBolusID: String
     }
 
     struct Result: Equatable {
         var expected: Double
         var actual: Double
-        /// What to book as the tagged audit bolus: whole pulses, 0 within tolerance.
+        /// What to book as the tagged audit bolus: the whole excess in whole pulses once past the tolerance, else 0.
         var unexplained: Double
         /// More booked than delivered, beyond tolerance.
         var isShortfall: Bool
@@ -38,7 +41,7 @@ enum WatchLoanAudit {
         let expected = expectedDelivery(input)
         let excess = actual - expected
         let band = tolerance(pulse: input.pulse)
-        let unexplained = excess > band ? floorToPulse(excess - band, pulse: input.pulse) : 0
+        let unexplained = excess > band ? floorToPulse(excess, pulse: input.pulse) : 0
         return Result(expected: expected, actual: actual, unexplained: unexplained, isShortfall: excess < -band)
     }
 
@@ -47,11 +50,12 @@ enum WatchLoanAudit {
     static func expectedDelivery(_ input: Input) -> Double {
         let window = DateInterval(start: input.start, end: max(input.start, input.end))
         let events = input.events
-            .filter { !$0.id.hasPrefix(auditBolusIDPrefix) && !($0.isScheduledBasal ?? false) }
+            .filter { $0.id != input.ownBolusID && !($0.isScheduledBasal ?? false) }
             .sorted { $0.timestamp < $1.timestamp }
 
         let boluses = events
             .filter { $0.type == .bolus && window.contains($0.timestamp) && $0.timestamp < window.end }
+            .filter { $0.isExternal != true || $0.id.hasPrefix(auditBolusIDPrefix) }
             .reduce(0.0) { $0 + ($1.amount.map { NSDecimalNumber(decimal: $0).doubleValue } ?? 0) }
 
         let suspensions = suspendedSpans(events, window: window)

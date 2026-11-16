@@ -408,7 +408,8 @@ final class BasePumpHistoryStorage: PumpHistoryStorage, Injectable {
                         id: event.id ?? UUID().uuidString,
                         type: .bolus,
                         timestamp: event.timestamp ?? Date(),
-                        amount: event.bolus?.amount as Decimal?
+                        amount: event.bolus?.amount as Decimal?,
+                        isExternal: event.bolus?.isExternal
                     )
                 case PumpEventStored.EventType.tempBasal.rawValue:
                     return PumpHistoryEvent(

@@ -11,8 +11,15 @@ import Testing
 
     static func at(_ minutes: Double) -> Date { start.addingTimeInterval(minutes * 60) }
 
-    static func bolus(_ minutes: Double, _ units: Decimal, id: String = UUID().uuidString) -> PumpHistoryEvent {
-        PumpHistoryEvent(id: id, type: .bolus, timestamp: at(minutes), amount: units)
+    static let ownID = WatchLoanAudit.auditBolusIDPrefix + "3"
+
+    static func bolus(
+        _ minutes: Double,
+        _ units: Decimal,
+        id: String = UUID().uuidString,
+        external: Bool = false
+    ) -> PumpHistoryEvent {
+        PumpHistoryEvent(id: id, type: .bolus, timestamp: at(minutes), amount: units, isExternal: external)
     }
 
     static func temp(_ minutes: Double, rate: Decimal, duration: Int, scheduled: Bool = false) -> PumpHistoryEvent {
@@ -42,7 +49,8 @@ import Testing
             basalProfile: profile,
             timeZone: berlin,
             pulse: 0.05,
-            events: events
+            events: events,
+            ownBolusID: ownID
         )
     }
 
@@ -118,23 +126,40 @@ import Testing
         #expect(abs(expected - 2.25) < 1E-9)
     }
 
-    @Test("Excess beyond one pulse plus 0.15 U is booked as whole pulses; within it nothing is") func tolerance() {
+    @Test("Past one pulse plus 0.15 U the whole excess is booked in whole pulses; within it nothing is") func tolerance() {
         #expect(WatchLoanAudit.evaluate(Self.input(delivered: 2.2)).unexplained == 0)
         let result = WatchLoanAudit.evaluate(Self.input(delivered: 3.0))
-        #expect(abs(result.unexplained - 0.8) < 1E-9)
-        #expect(WatchLoanAudit.evaluate(Self.input(delivered: 2.27)).unexplained == 0.05)
+        #expect(abs(result.unexplained - 1.0) < 1E-9)
+        #expect(abs(WatchLoanAudit.evaluate(Self.input(delivered: 2.27)).unexplained - 0.25) < 1E-9)
     }
 
-    @Test("Booked boluses count; the tagged audit bolus never does") func boluses() {
+    @Test("Pump boluses count; this audit's own bolus and external insulin don't") func boluses() {
         let events = [
             Self.bolus(20, 1.0),
             Self.bolus(40, 0.5),
-            Self.bolus(60, 0.8, id: WatchLoanAudit.auditBolusIDPrefix + "3"),
+            Self.bolus(60, 0.8, id: Self.ownID, external: true),
+            Self.bolus(70, 3.0, external: true),
             Self.bolus(130, 4.0)
         ]
         let result = WatchLoanAudit.evaluate(Self.input(delivered: 3.5, events: events))
         #expect(abs(result.expected - 3.5) < 1E-9)
         #expect(result.unexplained == 0)
+    }
+
+    @Test("A pen dose logged in the window doesn't hide pod insulin nobody booked") func externalInsulin() {
+        // 3 U the pod delivered without a record, and a 3 U pen dose the user logged
+        let result = WatchLoanAudit.evaluate(Self.input(delivered: 5.0, events: [Self.bolus(30, 3.0, external: true)]))
+        #expect(abs(result.unexplained - 3.0) < 1E-9)
+    }
+
+    @Test(
+        "Another audit's tagged bolus counts as pod insulin, so a pod-lifetime audit doesn't book it again"
+    ) func otherAuditBolus() {
+        // a loan audit already booked 1 U; the pod-lifetime audit over the same span sees it as delivered
+        let loanAudit = Self.bolus(60, 1.0, id: WatchLoanAudit.auditBolusIDPrefix + "1", external: true)
+        var input = Self.input(delivered: 3.0, events: [loanAudit])
+        input.ownBolusID = WatchLoanAudit.auditBolusIDPrefix + "pod-1"
+        #expect(WatchLoanAudit.evaluate(input).unexplained == 0)
     }
 
     @Test("A bolus under way counts its undelivered remainder as delivered") func bolusRemainder() {
@@ -147,17 +172,17 @@ import Testing
         #expect(withRemainder.unexplained == 0)
         // nothing booked yet for it: the whole bolus, delivered part plus remainder, is unexplained
         let unbooked = WatchLoanAudit.evaluate(Self.input(delivered: 3.2, remainder: 0.8))
-        #expect(abs(unbooked.unexplained - 1.8) < 1E-9)
+        #expect(abs(unbooked.unexplained - 2.0) < 1E-9)
     }
 
     @Test("Late records shrink the audit bolus: the amount is recomputed, never added") func recompute() {
         let before = WatchLoanAudit.evaluate(Self.input(delivered: 4.0))
-        #expect(abs(before.unexplained - 1.8) < 1E-9)
+        #expect(abs(before.unexplained - 2.0) < 1E-9)
         let partly = WatchLoanAudit.evaluate(Self.input(delivered: 4.0, events: [
             Self.bolus(30, 1.0),
-            Self.bolus(60, 1.8, id: WatchLoanAudit.auditBolusIDPrefix + "3")
+            Self.bolus(60, 2.0, id: Self.ownID, external: true)
         ]))
-        #expect(abs(partly.unexplained - 0.8) < 1E-9)
+        #expect(abs(partly.unexplained - 1.0) < 1E-9)
         let fully = WatchLoanAudit.evaluate(Self.input(delivered: 4.0, events: [Self.bolus(30, 1.0), Self.bolus(31, 1.0)]))
         #expect(fully.unexplained == 0)
         #expect(!fully.isShortfall)
@@ -181,6 +206,6 @@ import Testing
         input.endUnits = 24 + 8 + 2
         let result = WatchLoanAudit.evaluate(input)
         #expect(abs(result.expected - 32) < 1E-9)
-        #expect(abs(result.unexplained - 1.8) < 1E-9)
+        #expect(abs(result.unexplained - 2.0) < 1E-9)
     }
 }
