@@ -45,7 +45,7 @@ final class GlucoseAlertCoordinator: Injectable {
     /// notification (5-min window), but the in-app banner can re-pop. Skipping
     /// the first ~30s lets the picture settle.
     private static let launchQuietWindow: TimeInterval = 30
-    var launchedAt = Date()
+    private let launchedAt: Date
     private var isInLaunchQuietWindow: Bool {
         Date().timeIntervalSince(launchedAt) < Self.launchQuietWindow
     }
@@ -58,7 +58,8 @@ final class GlucoseAlertCoordinator: Injectable {
         )
     }
 
-    init(resolver: Resolver) {
+    init(resolver: Resolver, launchedAt: Date = Date()) {
+        self.launchedAt = launchedAt
         injectServices(resolver)
         let store = GlucoseAlertsStore.shared
         alertsSnapshot = store.alerts

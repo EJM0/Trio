@@ -278,8 +278,7 @@ import UserNotifications
         ]).resolver
         let spy = AlertManagerSpy()
         (resolver as! Container).register(TrioAlertManager.self) { _ in spy }
-        let coordinator = GlucoseAlertCoordinator(resolver: resolver)
-        coordinator.launchedAt = .distantPast
+        let coordinator = GlucoseAlertCoordinator(resolver: resolver, launchedAt: .distantPast)
         coordinator.alertsSnapshot = scenario.alarms
         coordinator.configurationSnapshot = scenario.configuration
 
