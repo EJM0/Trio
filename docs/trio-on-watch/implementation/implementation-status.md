@@ -309,6 +309,9 @@ Branch `feat/tow-platform`, off `feat/trio-on-watch` @ `349f49523`. Build and pl
 | `2f6504a96` | Add TRIO_ON_WATCH flag for watch capabilities |
 | `a8c59d2d8` | Compile shared algorithm code in watch app |
 | `58986d817` | Route watch algorithm logs to WatchLogger |
+| `c5f0a1a18` | Merge feat/trio-on-watch into feat/tow-platform (M1 + M2b; adds M1's 9 files to the watch target) |
+| `4659d3d41` | Check watch algorithm sources against the package |
+| `f3d057878` | Format watch algorithm errors like WatchLogger |
 
 ### What changed
 
@@ -322,11 +325,11 @@ Branch `feat/tow-platform`, off `feat/trio-on-watch` @ `349f49523`. Build and pl
     - `com.apple.developer.usernotifications.time-sensitive`: the dead-man and glucose alerts (§8) must use the time-sensitive level. The phone app already has this entitlement.
     - Nothing else. No app group, keychain group, HealthKit or workout mode is needed for M2a–M5 as designed.
   - The flag does not yet define a Swift compilation condition. M3/M5 add one when there is code to gate (D-2: the gate and Take Back stay unconditional).
-- **Shared algorithm code on the watch:** the watch app target now compiles `Trio/Sources/APS/OpenAPSSwift/**` (46 files plus `AlgorithmLoggingShim.swift`), `APS/Extensions/DecimalExtensions.swift`, and the 17 models and 8 helpers listed in `AlgorithmPackage/Package.swift` (73 files). The entries are one contiguous, path-sorted block at the end of the watch app's Sources phase and of the PBXBuildFile section. M1's `OrefRun/*` and new models get added to that block when M1 is merged.
+- **Shared algorithm code on the watch:** the watch app target now compiles `Trio/Sources/APS/OpenAPSSwift/**` (46 files plus `AlgorithmLoggingShim.swift`), `APS/Extensions/DecimalExtensions.swift`, and the 17 models and 8 helpers listed in `AlgorithmPackage/Package.swift` (73 files). The entries are one contiguous, path-sorted block at the end of the watch app's Sources phase and of the PBXBuildFile section. The merge of `feat/trio-on-watch` (M1 + M2b) added M1's 9 files to that block, so it now holds 82, matching the package (see review follow-ups).
   - `PRODUCT_MODULE_NAME = Trio` on the watch app, as in #1749 and the package (whose module is also `Trio`). `BloodGlucose.swift` calls `Trio.rounded(...)`, which needs that module name. `Trio Watch App Tests/Unit Tests.swift` now uses `@testable import Trio` (C-09 #7).
   - No string catalog change: the watch app already bundles `Localizable.xcstrings`, and the Xcode build does not generate string symbols, so the C-09 #3 failure (SwiftPM only) does not apply here.
   - Nothing is linked: no LoopKit, OmnipodKit or G7SensorKit (M2b/M5).
-- **Algorithm logging on the watch (C-09 #2):** `AlgorithmLoggingShim.swift` is active for `TRIO_ALGORITHM_PACKAGE || os(watchOS)`. Its sink now carries the level, and `warning`/`error`/`fault` include `description` and `error` in the message as the app logger does. The watch app sets `algorithmLogSink = WatchLogger.shared.algorithm` at launch. Lines keep their level and use a new `WatchLogEntry.Category.algorithm`, which reaches the phone's log as `Watch/Algorithm`. Nothing in the package used the sink before this change.
+- **Algorithm logging on the watch (C-09 #2):** `AlgorithmLoggingShim.swift` is active for `TRIO_ALGORITHM_PACKAGE || os(watchOS)`. Its sink now carries the level and the error. `warning`/`error`/`fault` join `description` onto the message as the app logger does, and the watch formats the error with `WatchLogger.message(_:error:)` ("(domain code: description)"), the same as its own lines (M2aC-04). The watch app sets `algorithmLogSink = WatchLogger.shared.algorithm` at launch. Lines keep their level and use a new `WatchLogEntry.Category.algorithm`, which reaches the phone's log as `Watch/Algorithm`. Nothing in the package used the sink before this change.
 
 ### Verification
 
@@ -358,7 +361,49 @@ The shim was also type-checked alone for macOS with `-D TRIO_ALGORITHM_PACKAGE` 
 - E1 (D-1): whether TestFlight / App Store Connect accepts a watch bundle that declares `bluetooth-central`. The flag stays off until E1 runs. The flag-on browser build (fastlane) would also need the time-sensitive capability on the watch App ID.
 - Intermediate commits were not built on their own. Only the tip was built and tested.
 - No run on a device or on the CI toolchain (Xcode 26.2). Nothing installed or launched, so the algorithm log route was compiled but not exercised at runtime.
-- The C-09 #1 drift check (watch Sources phase vs `Package.swift`) is not added. The membership was generated from `Package.swift` for this commit only.
+- The membership check only fails when a package source is missing from the watch target. A watch-only extra file is not flagged; that is harmless.
+
+### Review follow-ups (M2a review C)
+
+- **M2aC-02 (done):** the merge commit adds `OrefRun/OrefInputs.swift`, `OrefInputs+Mapping.swift`, `OrefInputs+Selection.swift`, `OrefInputs+TDD.swift`, `OrefRun.swift`, `Models/DosingMode.swift`, `Models/Preferences+DosingMode.swift`, `Helpers/TempTargetCalculations.swift` and `APS/Storage/ScheduledBasalInference.swift` to the watch target, which brings it to 82. `TrioTests/WatchAlgorithmMembershipTests.swift` reads `AlgorithmPackage/Package.swift` (the `sources` entries, with directories expanded, plus the model and helper lists) and the watch app's Sources phase from `project.pbxproj`, resolving full paths through the groups. It fails with the list of missing paths. It runs in the normal `Trio Tests` scheme, so CI runs it too. A negative run was done: with `OrefRun.swift` removed from the watch phase, the test failed and named that file.
+- **M2aC-04 (done):** see the logging bullet above.
+- **M2aC-05 (documented, no code):** an older phone skips watch log lines whose category it doesn't know. In practice that doesn't happen here. The watch app is embedded in the iOS app and installed from it, so after an update the watch is the same build as the phone or older, never newer. An older watch never sends `algorithm`. Only a phone downgrade with a newer watch app still installed could hit it, and then those lines are skipped, not misattributed.
+- **M2aC-03 (accepted):** "flag off = today" holds exactly for the iOS app, not for the watch app. The watch app now requires watchOS 10.6, so watches on 10.0–10.5 must update first. It also compiles the 82 shared algorithm files, and the shim and sink are active with the flag off, although nothing calls the algorithm on the watch yet. The PR must say "the watch app now requires watchOS 10.6".
+- **M2aC-06 (open, M7):** CI never builds with the flag on. Add a build-only step `xcodebuild -scheme "Trio Watch App" -destination 'generic/platform=watchOS Simulator' TRIO_ON_WATCH=YES build` (or an M7 checklist item), so a typo in the `_YES` paths surfaces.
+- **M2aC-07:** no change. E1 still decides whether `bluetooth-central` is accepted.
+
+#### Browser build with the flag on (M2aC-01)
+
+Flag-off browser builds need nothing new. For a flag-on build through the GitHub Actions / fastlane path, the maintainer (or builder) must:
+
+1. On [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/identifiers/list), open the **Trio Watch App** identifier (`org.nightscout.TEAMID.trio.watchkitapp`), enable **Time Sensitive Notifications**, and save. The `identifiers` lane does not add it: `configure_bundle_id` for the watch only adds App Groups and HealthKit, and the existing guide already handles time-sensitive as a manual step for `Trio`.
+2. Regenerate the match profiles: run **3. Create Certificates** (`fastlane certs`, match with `MATCH_READONLY=false`). The stored appstore profile for `…watchkitapp` predates the capability, and with that profile gym fails with "Provisioning profile … doesn't include the com.apple.developer.usernotifications.time-sensitive entitlement" (the same error as step 7 above, locally). If match keeps the old profile, set `FORCE_NUKE_CERTS=true` for one run, then remove it (the guide's existing renewal path). To verify: I have not checked whether `certs` alone replaces a profile that became invalid after a capability change.
+3. Set the flag for that build. Browser builders have no local `ConfigOverride.xcconfig`, and the CI runner writes one for `DEV_BRANCH_WARNING_DISABLED` already, so the flag fits that pattern.
+
+The Fastfile needs no change. `match` already requests the `…watchkitapp` profile, `update_code_signing_settings` only sets the profile and identity for "Trio Watch App", and `CODE_SIGN_ENTITLEMENTS` still comes from the flag. The change belongs in the workflow. Proposed, not applied (`.github/workflows/build_trio.yml`, after "Configure Dev Branch Warning"):
+
+```diff
++      # Experimental: Trio on Watch. Off unless the repository variable TRIO_ON_WATCH is true.
++      # Needs Time Sensitive Notifications on the Trio Watch App identifier and regenerated certificates.
++      - name: Configure Trio on Watch
++        if: vars.TRIO_ON_WATCH == 'true'
++        run: |
++          echo 'TRIO_ON_WATCH = YES' >> ConfigOverride.xcconfig
++          echo "::warning::Trio on Watch (experimental) enabled for this build."
+```
+
+Add the identifier step to `fastlane/testflight.md` only when the flag is offered to builders (after E1 and E2), not now.
+
+#### Re-verification after the merge (tip of this branch)
+
+| Step | Command | Result |
+|---|---|---|
+| Watch, simulator, flag off | `X -scheme "Trio Watch App" WATCH build` | 0 |
+| Watch, simulator, flag on | same + `TRIO_ON_WATCH=YES` | 0 |
+| iOS app, flag off | `X -scheme Trio PHONE build` | 0 |
+| Watch tests | `X -scheme "Trio Watch AppTests" WATCH test` | 0; 21 / 21 passed |
+| Full `Trio Tests` | `X -scheme "Trio Tests" PHONE test` | 0; 1005 total, 961 passed, 0 failed, 44 skipped (M1 tip: 1004 / 960 / 0 / 44; +1 = the membership test). Two earlier full runs on the same tree failed: 9 tests the first time and 66 the second. Both times the test host crashed while `BolusSafetyValidatorTests.init()` built `TrioApp()` (`let resolver = TrioApp().resolver`): heap corruption inside `TrioApp.init` (`FileProtectionFixer`, `configureTabBarAppearance`), with every test still in flight marked failed. That file and `TrioApp.swift` are unchanged since `349f49523`. The suites that failed in the first run, re-run in isolation, passed 20 / 20. Pre-existing flake, worse under machine load; not caused by M2a |
+| Membership test, negative | `OrefRun.swift` removed from the watch phase, `-only-testing:TrioTests/WatchAlgorithmMembershipTests` | 1 (expected): the test failed and reported `Trio/Sources/APS/OpenAPSSwift/OrefRun/OrefRun.swift` as missing. The project file was restored afterwards |
 
 ### Worktree hygiene
 
