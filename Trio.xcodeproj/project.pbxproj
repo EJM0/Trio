@@ -12,8 +12,10 @@
 		A7A10A000000000000000006 /* WatchLoanState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A000000000000000005 /* WatchLoanState.swift */; };
 		A7A10A000000000000000008 /* WatchLoanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A000000000000000007 /* WatchLoanStore.swift */; };
 		A7A10A00000000000000000A /* WatchLoanGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A000000000000000009 /* WatchLoanGate.swift */; };
+		A7A10A00000000000000000C /* SpyPumpManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A00000000000000000B /* SpyPumpManager.swift */; };
 		A7A10A00000000000000000E /* LoanWorld.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A00000000000000000D /* LoanWorld.swift */; };
 		A7A10A000000000000000010 /* WatchLoanFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A00000000000000000F /* WatchLoanFlowTests.swift */; };
+		A7A10A000000000000000012 /* WatchLoanGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A000000000000000011 /* WatchLoanGateTests.swift */; };
 		A7A10A000000000000000014 /* WatchLoanInvariantTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A000000000000000013 /* WatchLoanInvariantTests.swift */; };
 		A7A10A000000000000000016 /* WatchLoanPhoneDecisionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A000000000000000015 /* WatchLoanPhoneDecisionTests.swift */; };
 		A7A10A000000000000000018 /* WatchLoanStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A000000000000000017 /* WatchLoanStoreTests.swift */; };
@@ -1268,8 +1270,10 @@
 		A7A10A000000000000000005 /* WatchLoanState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanState.swift; sourceTree = "<group>"; };
 		A7A10A000000000000000007 /* WatchLoanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanStore.swift; sourceTree = "<group>"; };
 		A7A10A000000000000000009 /* WatchLoanGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanGate.swift; sourceTree = "<group>"; };
+		A7A10A00000000000000000B /* SpyPumpManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpyPumpManager.swift; sourceTree = "<group>"; };
 		A7A10A00000000000000000D /* LoanWorld.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoanWorld.swift; sourceTree = "<group>"; };
 		A7A10A00000000000000000F /* WatchLoanFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanFlowTests.swift; sourceTree = "<group>"; };
+		A7A10A000000000000000011 /* WatchLoanGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanGateTests.swift; sourceTree = "<group>"; };
 		A7A10A000000000000000013 /* WatchLoanInvariantTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanInvariantTests.swift; sourceTree = "<group>"; };
 		A7A10A000000000000000015 /* WatchLoanPhoneDecisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanPhoneDecisionTests.swift; sourceTree = "<group>"; };
 		A7A10A000000000000000017 /* WatchLoanStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanStoreTests.swift; sourceTree = "<group>"; };
@@ -2497,6 +2501,7 @@
 			children = (
 				A7A10A00000000000000000D /* LoanWorld.swift */,
 				A7A10A00000000000000000F /* WatchLoanFlowTests.swift */,
+				A7A10A000000000000000011 /* WatchLoanGateTests.swift */,
 				A7A10A000000000000000013 /* WatchLoanInvariantTests.swift */,
 				A7A10A000000000000000015 /* WatchLoanPhoneDecisionTests.swift */,
 				A7A10A000000000000000017 /* WatchLoanStoreTests.swift */,
@@ -5107,6 +5112,7 @@
 			isa = PBXGroup;
 			children = (
 				DDDD0FFE2F4E231B00F9C645 /* MockTDDStorage.swift */,
+				A7A10A00000000000000000B /* SpyPumpManager.swift */,
 			);
 			path = Mocks;
 			sourceTree = "<group>";
@@ -6649,8 +6655,10 @@
 				BD11A001000000000000A00E /* DanaKitAlertEmissionTests.swift in Sources */,
 				BD11A001000000000000A00D /* AlertCatalogRegistryEntriesTests.swift in Sources */,
 				BD11A001000000000000A00C /* NotLoopingMonitorTests.swift in Sources */,
+				A7A10A00000000000000000C /* SpyPumpManager.swift in Sources */,
 				A7A10A00000000000000000E /* LoanWorld.swift in Sources */,
 				A7A10A000000000000000010 /* WatchLoanFlowTests.swift in Sources */,
+				A7A10A000000000000000012 /* WatchLoanGateTests.swift in Sources */,
 				A7A10A000000000000000014 /* WatchLoanInvariantTests.swift in Sources */,
 				A7A10A000000000000000016 /* WatchLoanPhoneDecisionTests.swift in Sources */,
 				A7A10A000000000000000018 /* WatchLoanStoreTests.swift in Sources */,

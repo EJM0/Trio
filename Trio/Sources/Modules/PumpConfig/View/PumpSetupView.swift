@@ -12,6 +12,8 @@ extension PumpConfig {
         weak var setupDelegate: PumpManagerOnboardingDelegate?
 
         func makeUIViewController(context _: UIViewControllerRepresentableContext<PumpSetupView>) -> UIViewController {
+            if let handedOver = PumpConfig.handedOverViewController() { return handedOver }
+
             // var setupViewController: PumpManagerSetupViewController & UIViewController & CompletionNotifying
             var setupViewController: SetupUIResult<
                 PumpManagerViewController,
