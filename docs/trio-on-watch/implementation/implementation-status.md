@@ -316,7 +316,7 @@ Branch `feat/tow-pure-calcs`, worktree `~/workspaces/Trio-tow-pure-calcs`, on `f
 
 **Time zone (V2-23).** `OrefInputs.timeZone`. Every time-of-day lookup in the oref Swift port goes through `WallClock`: `secondsIntoDay` (profile basal/ISF/CR/target lookups, autosens, IOB temp-basal splits, `DosingEngine` hour and minute checks), the `Profile` getters (`basalFor`, `sensitivityFor`, `carbRatioFor`, now on `WallClock.calendar`) and the reason-string `jsDateString`. `WallClock.boundTimeZone` is a `@TaskLocal`; unbound it is `TimeZone.current`, as before. The stages `profiles`, `autosens`, `meal`, `iob` and `determine` take `timeZone:` and bind it for their body; `run` passes `inputs.timeZone`; `OpenAPS` and the parity pipeline pass `TimeZone.current`. The one zone-dependent selection rule, `OrefInputs.carbsStart` (one calendar day back, 23 or 25 h across DST), takes `timeZone:` too; `CarbsStorage` passes `TimeZone.current`. The other selection windows are fixed durations. Calendar elapsed-minutes semantics in the `Profile` getters are unchanged (only the calendar's zone is set). A task-local instead of a parameter through every generator keeps the parity-sensitive generator signatures untouched; it is read synchronously inside the stage, and the oref code has no concurrency hops.
 
-**`microBolusAllowed` (N-1).** `OrefInputs.microBolusAllowed`, passed to `OrefRun.determine` (was hard-coded `true` there). `OpenAPS` passes `true`. False makes `DosingEngine.determineSMBDelivery` return before sizing an SMB, so oref falls through to its normal high-temp logic; no determination field is stripped.
+**`microBolusAllowed` (N-1).** `OrefInputs.microBolusAllowed`, passed to `OrefRun.determine` (was hard-coded `true` there). `OpenAPS` passes `true`. No determination field is stripped. As first committed, false only gated `determineSMBDelivery`; the review (M1b-01) showed that is not oref's non-SMB path. See the review fixes below.
 
 **Bolus calculator (ADR-005, V2-24).** `Trio/Sources/Services/BolusCalculator/BolusCalculator.swift`, Foundation only. `CalculationInput` and `CalculationResult` moved there unchanged. The manager keeps every fetch (settings, schedules, Core Data glucose and determination, backdating) and calls:
 - `BolusCalculator.calculate(_ input: CalculationInput, now: Date, roundBolus: (Decimal) -> Decimal) -> CalculationResult` (was `calculateInsulin(input:)`; `now` replaces `Date()`, `roundBolus` is `apsManager.roundBolus`)
@@ -395,3 +395,37 @@ Conflicts: `OrefRun.swift` (M1's stage changes, including `autosens(includeDevia
 | 4 | package source list `swiftc -typecheck` | passed (82 files) |
 
 The crash in run 1 has no crash report on the host, so its cause is not identified. I don't think it comes from M1b, because nothing in M1b frees memory by hand, but that is not verified.
+
+### Review fixes (M1b review, 2026-11-16)
+
+| Commit | Subject | Finding |
+|---|---|---|
+| `c30abf9c3` | Follow oref JS when micro boluses are not allowed | M1b-01 |
+| `5cc83fd3f` | Look up TDD scheduled basal in an explicit time zone | M1b-02, M1b-04 |
+| `be9f90eb1` | Test the carbs window in its own time zone | M1b-03 |
+| `c025100e4` | Require an explicit time zone for alarm windows | M1b-04 |
+| `445f9268b` | Inject the alert coordinator's launch time | M1b-07 |
+| `c844aade8` | Add a process time zone escape test | M1b-04 |
+| `d04deb8ed` | Keep LoopKit out of the glucose alarm models | M1b-08 |
+| `ae0f568ee` | Use a fixed 24 h pump history window | M1b-09 |
+
+- **M1b-01.** `microBolusAllowed = false` now does what trio-oref's `determine-basal.js` does. `enable_smb` returns false ("SMB disabled (!microBolusAllowed)"), so `smbIsEnabled` is false in the top-of-hour neutral-temp cancel and in both "don't cancel SMB zero temp" guards. The "currenttemp rate != lastTemp rate" cancel runs only when micro boluses are allowed (JS line 678). With `true` nothing changes: every golden and the parity suite are unchanged.
+  - JS reference: `TrioTests/OpenAPSCharacterization/js/determine-basal-jsc.js` runs `trio-oref/lib/determine-basal/determine-basal.js` (with `glucose-get-last.js`, `basal-set-temp.js`, `round-basal.js`) under JavaScriptCore's `jsc` (`/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc`), with shims for `require`, `lodash/endsWith`, `console` and `process.stderr`. `OrefRunMicroBolusJSParityTests` records the determination inputs from `OrefRun.run` (`TRIO_RECORD_CHARACTERIZATION=1`); `TZ=Europe/Berlin jsc determine-basal-jsc.js -- trio-oref/lib js-inputs-….json` writes `js-determination-….json`. Goldens in `goldens/micro-bolus-js/`.
+  - 5 scenarios × allowed / not allowed, all equal to JS in rate, duration, units and reason: SMB plus low temp; delta below expected with a zero temp running (JS line 1403: not allowed sets the scheduled basal as temp); in range with a zero temp running (line 1429: same); top of the hour with `skip_neutral_temps` (line 1286: not allowed cancels the temp); temp mismatch (line 678: allowed cancels, not allowed carries on to a high temp).
+  - The reason's `COB:` value is masked in the comparison: JS gets the port's unrounded meal COB and prints it raw, the port prints it rounded. Feeding JS a rounded COB (as `meal/total.js` would) moves minPredBG by 1 mg/dL: a pre-existing port difference, not M1b.
+  - Mutation: both gates removed → the four not-allowed scenarios that reach those lines fail; the allowed ones pass.
+- **M1b-02.** `ScheduledBasalInference.segments` and `delivery`, and `OrefInputs.tddInsulin`, take `timeZone:`. TDDStorage, Home (`activeBasalDelivery`) and the basal chart pass `TimeZone.current`. Test: same history at 14:30 CEST and 14:30 JST gives the same scheduled basal; Tokyo at the Berlin instant differs. Mutation (inference back on `Calendar.current`) caught.
+- **M1b-03.** `carbsStart` on the America/New_York spring-forward day: 23 h in New York, 24 h in Berlin. Mutation (`Calendar.current`) caught.
+- **M1b-04.** Explicit zone on every shared entry point: `OrefRun` stages, `carbsStart`/`carbs`, `tddInsulin`, `ScheduledBasalInference`, and `GlucoseAlarmEvaluation` (`timeZone:` replaces `calendar: = .current`; the coordinator passes `TimeZone.current`; the watch passes the grant's zone per ADR-004). The bolus calculator has no time-of-day input. The task-local stays inside the generators; it is unbound only when a test calls a generator directly. `ProcessTimeZoneEscapeTests` sets the process zone to Pacific/Kiritimati (`TZ`, `tzset`, `resetSystemTimeZone`), then checks `OrefRun.run` against the three time-of-day goldens, `tddInsulin` against its Berlin result, and an alarm's night window, all with an explicit Europe/Berlin. Because changing the process zone races every parallel suite, it runs only with `TRIO_TZ_ESCAPE=1` and alone. Passed; mutation (`WallClock.timeZone` ignoring the binding) caught.
+- **M1b-07.** `launchedAt` is `private let`, injected through `init(resolver:launchedAt:)` (default `Date()`). The coordinator golden still builds the full assembly; I didn't reduce it to stubs.
+- **M1b-08.** The LoopKit dependency was `DeviceAlertSeverity.init?(level: Alert.InterruptionLevel)`, reached from `GlucoseAlertType.defaultSoundFilename` through `AlarmSoundCatalog`. Moving only `defaultSoundFilename` would not make the models Foundation-only, because `GlucoseAlert.init(type:)` and its decoder fall back to it. So that one initializer moved to `DeviceAlertSeverity+InterruptionLevel.swift` (imports LoopKit), and `GlucoseAlertType` and `DeviceAlertSeverity` dropped `import LoopKit`. `swiftc -typecheck` of the package sources plus `BolusCalculator`, `GlucoseAlarmEvaluation`, `ForecastedGlucoseEvaluator` and the alarm models (`GlucoseAlert`, `GlucoseAlertType`, `GlucoseAlertConfiguration`, `DayNightOptions`, `AlarmSoundCatalog`, `DeviceAlertSeverity`) passes with Foundation only.
+- **M1b-09.** `pumpHistoryStart` is `now - 1440 min` (same instant as before); `WallClock`'s doc names both pieces of state.
+- Not fixed here, as agreed: M1b-05 (negative bolus recommendation), M1b-06 (parallel `TrioApp()` crash).
+
+| # | Command | Result |
+|---|---|---|
+| 1 | 22 targeted suites (all characterization, parity, DetermineBasal SMB/early-exit/aggressive, selection, stage, inference, finalization, alarm, bolus, device alerts, container) | passed, 169 |
+| 2 | `TRIO_TZ_ESCAPE=1`, `ProcessTimeZoneEscapeTests` alone | passed, 1 |
+| 3 | full `X` at `ae0f568ee` | passed: 1020 total, 975 passed, 0 failed, 45 skipped (+1 skip: the env-gated escape test). No crash and no FileStorage flake in this run |
+| 4 | package source list and the alarm/bolus closure, `swiftc -typecheck` | passed |
+
