@@ -34,19 +34,24 @@ final class WatchLoanRecordStore {
 
     init(files: WatchLoanFiles) {
         self.files = files
+        contents = Contents()
+    }
+
+    /// Reads the saved records; on the file queue.
+    func load() {
         do {
-            contents = try files.load(Contents.self, from: .records) ?? Contents()
+            let saved = try files.load(Contents.self, from: .records) ?? Contents()
+            lock.withLock { contents = saved }
         } catch {
             WatchLogger.shared.error(.loop, "Watch records can't be read; starting empty", error: error)
-            contents = Contents()
         }
     }
 
     var snapshot: Contents { lock.withLock { contents } }
 
     /// A new loan starts with no records.
-    func reset(epoch: Int64) throws {
-        try mutate { $0 = Contents(epoch: epoch) }
+    func reset(epoch: Int64, pulseUnits: Double) throws {
+        try mutate { $0 = Contents(epoch: epoch, pulseUnits: pulseUnits) }
     }
 
     private func mutate<T>(_ change: (inout Contents) -> T) throws -> T {
