@@ -51,6 +51,7 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
     @Injected() private var bluetoothProvider: BluetoothStateManager!
     @Injected() private var trioAlertManager: TrioAlertManager!
     @Injected() private var deviceLogStore: DeviceLogStore!
+    @Injected() private var watchLoanGate: WatchLoanGate!
     // lazy to avoid circular dependency (NightscoutManager → PumpHistoryStorage)
     private var resolver: Resolver?
     // serializes event batches: a PM may report again before the prior store finished
@@ -84,7 +85,7 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
 
                 // Re-apply the latest CGM-aligned heartbeat request to a freshly set pump
                 if let heartbeatRequest = lastPumpHeartbeatRequest {
-                    pumpManager.setBLEHeartbeatRequest(heartbeatRequest)
+                    sendBLEHeartbeatRequest(heartbeatRequest)
                 }
 
                 trioAlertManager?.register(responder: pumpManager, for: pumpManager.pluginIdentifier)
@@ -124,10 +125,12 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
                     maximumBolus: LoopQuantity(unit: .internationalUnit, doubleValue: Double(pumpSettings.maxBolus))
                 )
 
-                processQueue.async {
-                    pumpManager.syncDeliveryLimits(limits: deliveryLimits) { result in
-                        if case let .failure(error) = result {
-                            warning(.pump, "Syncing delivery limits to the pump failed", error: error)
+                if watchLoanGate.permits("Delivery limits sync") {
+                    processQueue.async {
+                        pumpManager.syncDeliveryLimits(limits: deliveryLimits) { result in
+                            if case let .failure(error) = result {
+                                warning(.pump, "Syncing delivery limits to the pump failed", error: error)
+                            }
                         }
                     }
                 }
@@ -265,14 +268,14 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
         // A CGM with its own heartbeat relieves the pump; retract any standing request
         if providesBLEHeartbeat {
             lastPumpHeartbeatRequest = nil
-            pumpManager?.setBLEHeartbeatRequest(nil)
+            sendBLEHeartbeatRequest(nil)
         }
     }
 
     func updatePumpBLEHeartbeat(lastCGMReadingDate: Date?, expectedCGMReadingInterval: TimeInterval?) {
         guard !cgmProvidesBLEHeartbeat else {
             lastPumpHeartbeatRequest = nil
-            pumpManager?.setBLEHeartbeatRequest(nil)
+            sendBLEHeartbeatRequest(nil)
             return
         }
         // Tell the pump when the next CGM reading is due so it can align its BLE heartbeat (LoopKit#599)
@@ -281,6 +284,11 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
             expectedCGMReadingInterval: expectedCGMReadingInterval ?? .minutes(5)
         )
         lastPumpHeartbeatRequest = request
+        sendBLEHeartbeatRequest(request)
+    }
+
+    private func sendBLEHeartbeatRequest(_ request: PumpHeartbeatRequest?) {
+        guard watchLoanGate.permits("BLE heartbeat request") else { return }
         pumpManager?.setBLEHeartbeatRequest(request)
     }
 
@@ -294,6 +302,8 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
             debug(.pump, "Pump update skipped: loop is running")
             return
         }
+
+        guard watchLoanGate.permits("Pump data refresh") else { return }
 
         func update(_: Future<Bool, Never>.Promise?) {}
 

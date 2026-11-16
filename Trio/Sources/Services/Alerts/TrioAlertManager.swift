@@ -48,6 +48,7 @@ final class BaseTrioAlertManager: TrioAlertManager, Injectable {
 
     @Injected() private var alertHistoryStorage: AlertHistoryStorage!
     @Injected() private var broadcaster: Broadcaster!
+    @Injected() private var watchLoanGate: WatchLoanGate!
 
     let muter: AlertMuter
     private let throttler: AlertThrottler
@@ -385,6 +386,8 @@ final class BaseTrioAlertManager: TrioAlertManager, Injectable {
     private func acknowledgeOnDevice(identifier: Alert.Identifier) {
         guard let responder = queue.sync(execute: { responders[identifier.managerIdentifier]?.ref as? AlertResponder })
         else { return }
+        // Omnipod acknowledges with a pod command
+        guard !(responder is PumpManager) || watchLoanGate.permits("Alert acknowledgement", userInitiated: true) else { return }
         Task {
             do {
                 try await responder.acknowledgeAlert(alertIdentifier: identifier.alertIdentifier)

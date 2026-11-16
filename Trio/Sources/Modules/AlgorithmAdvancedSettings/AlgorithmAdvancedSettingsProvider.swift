@@ -7,6 +7,7 @@ extension AlgorithmAdvancedSettings {
     final class Provider: BaseProvider, AlgorithmAdvancedSettingsProvider {
         private let processQueue = DispatchQueue(label: "AlgorithmAdvancedSettingsProvider.processQueue")
         @Injected() private var broadcaster: Broadcaster!
+        @Injected() private var watchLoanGate: WatchLoanGate!
 
         func settings() -> PumpSettings {
             storage.retrieve(OpenAPS.Settings.settings, as: PumpSettings.self)
@@ -36,6 +37,9 @@ extension AlgorithmAdvancedSettings {
             guard let pump = deviceManager?.pumpManager else {
                 save(settings)
                 return Just(()).setFailureType(to: Error.self).eraseToAnyPublisher()
+            }
+            if let refusal = watchLoanGate.refusal("Delivery limits sync", userInitiated: true) {
+                return Fail(error: APSError.invalidPumpState(message: refusal)).eraseToAnyPublisher()
             }
             let limits = DeliveryLimits(
                 maximumBasalRate: LoopQuantity(unit: .internationalUnitsPerHour, doubleValue: Double(settings.maxBasal)),

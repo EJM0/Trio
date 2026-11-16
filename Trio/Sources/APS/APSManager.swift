@@ -134,6 +134,7 @@ final class BaseAPSManager: APSManager, Injectable {
     @Injected() private var tddStorage: TDDStorage!
     @Injected() private var broadcaster: Broadcaster!
     @Injected() private var trioAlertManager: TrioAlertManager!
+    @Injected() private var watchLoanGate: WatchLoanGate!
     @Persisted(key: "lastLoopStartDate") private var lastLoopStartDate: Date = .distantPast
     private var lastDosingMode: DosingMode?
     @Persisted(key: "lastLoopDate") var lastLoopDate: Date = .distantPast {
@@ -308,6 +309,8 @@ final class BaseAPSManager: APSManager, Injectable {
                 return
             }
 
+            guard watchLoanGate.permits("Loop") else { return }
+
             // Atomic check-and-set via actor — eliminates the race between
             // checking isLooping.value and sending isLooping(true).
             guard await loopGuard.tryStart(
@@ -442,6 +445,9 @@ final class BaseAPSManager: APSManager, Injectable {
         guard let pump = pumpManager else {
             return APSError.invalidPumpState(message: String(localized: "Pump not set"))
         }
+        if let refusal = watchLoanGate.refusal("Bolus", userInitiated: true) {
+            return APSError.invalidPumpState(message: refusal)
+        }
         let status = pump.status.pumpStatus
 
         guard !status.bolusing else {
@@ -469,7 +475,7 @@ final class BaseAPSManager: APSManager, Injectable {
 
     /// Calculates and stores the Total Daily Dose (TDD)
     private func calculateAndStoreTDD() async throws {
-        guard let pumpManager else { return }
+        guard let pumpManager, watchLoanGate.permits("Total daily dose") else { return }
 
         let basalProfile = storage.retrieve(OpenAPS.Settings.basalProfile, as: [BasalProfileEntry].self) ?? []
 
@@ -711,6 +717,10 @@ final class BaseAPSManager: APSManager, Injectable {
 
     func cancelBolus(_ callback: ((Bool, String) -> Void)?) async {
         guard let pump = pumpManager, pump.status.pumpStatus.bolusing else { return }
+        if let refusal = watchLoanGate.refusal("Bolus cancel", userInitiated: true) {
+            callback?(false, refusal)
+            return
+        }
         debug(.bolus, "Cancelling bolus")
         do {
             _ = try await pump.cancelBolus()
@@ -779,7 +789,10 @@ final class BaseAPSManager: APSManager, Injectable {
     }
 
     /// Returns false when the determination is skipped because the pump is suspended.
-    private func enactDetermination() async throws -> Bool {
+    func enactDetermination() async throws -> Bool {
+        if let refusal = watchLoanGate.refusal("Determination") {
+            throw APSError.invalidPumpState(message: refusal)
+        }
         guard let determinationID = try await determinationStorage
             .fetchLastDeterminationObjectID(predicate: NSPredicate.predicateFor30MinAgoForDetermination).first
         else {
@@ -1513,8 +1526,8 @@ extension BaseAPSManager: SettingsObserver {
     }
 
     /// Clears a Trio-set temp so a basal test starts from the scheduled rate.
-    private func cancelAutomaticTempBasal() async {
-        guard let pump = pumpManager else { return }
+    func cancelAutomaticTempBasal() async {
+        guard let pump = pumpManager, watchLoanGate.permits("Temp basal cancel") else { return }
 
         // A temp the user set on the pump is theirs to cancel.
         guard !isManualTempBasal else { return }
