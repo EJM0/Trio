@@ -594,3 +594,43 @@ No act-before-persist, epoch-reuse or silent-stop problem found in the changed r
 **Merge M3.** M3E-01 to M3E-10 are resolved, and the adopt race is fixed on the machine side. M3R-01 to M3R-05 are minor and can land in M4 or M5.
 
 **Gate for M5** (it depends on these): the bounded adopt in the kit; the host mapping a refused adopt to `foreignPodSession`; and M2b-02 fixed. Until then the two-commander proof covers the decision logic only, not the kit.
+
+## Bounded adopt review
+
+Reviewer: the same independent agent. Delta only: OmnipodKit `trio-on-watch` `1450b24..0f10883` ("Bound an adopt to the session the exporter released"), Trio `feat/tow-kits-adopt` `4426ecbb6` (pin) and `fcaf2291c` (docs). The commit is signed and the submodule is clean. Line numbers are at `0f10883`.
+
+### Runs
+
+Fresh iPhone 17 / iOS 27.2 simulator (deleted afterwards), scratch copy of OmnipodKit, LoopKit and RileyLinkKit from the `feat/tow-kits-adopt` worktree, `-only-testing:OmniTests/DeviceHandoffTests`. Logs `ad-*.log` and `scripts/mutate3.py` are in `/private/tmp/claude-501/-Users-dnzxy-workspaces-Trio/3f8cbd66-3ec5-4539-8f2f-f9e5df9ae9dc/scratchpad/m2b-review`.
+
+| Run | Result |
+|---|---|
+| base | 50/50 pass |
+| bound check removed from `handshakeResynced` | 5 failures |
+| bound not spent in `sessionEstablished` | 1 failure |
+| `expectSessionResync` doesn't clear the bound | **survives** |
+| export never carries the bound | 8 failures |
+| bound not persisted (`rawValue`) | 8 failures |
+| **review test: one handshake attempt by the adopter lost before it reached the pod** | **fails at `0f10883`**: the adopt absorbs the phone's Take Back session (BA-01) |
+| BA-01 fix (below) plus the review test | 51/51 pass |
+
+### Checked, holds
+
+- **Export.** `sharedConfiguration` always sets `releasedEapSqn` explicitly: the SQN when released, nil when not. A stale bound in the exporter's own state can't leak, and the exporter keeps none (tested). The adopter gets it through `sharedFacts` → `adopted()`, and `rawValue` persists it, so an adopt relaunched before its first session keeps it (tested). `localState` doesn't carry it.
+- **Repeated adopt** of an old configuration after the bound was spent (against V2-4) resets the counter to the bound. The resync it causes is at or below `AcceptedEapSqn`, so it is classified as this device's own and nobody is refused.
+- **The phone's own resync after its take** never meets a bound: only adopters carry one, and the exporter's own state carries none.
+- **Offline start** (export without a release) carries no bound and is unchanged (tested).
+- **Host signal.** A refused adopt shows `refusesSessions` together with `foreignSessionDetectedAt`. A take that fails only for reach shows neither. The caveat: a false refusal (BA-02) looks the same as a refused adopt.
+
+### Findings
+
+| ID | Sev | Where | Failure scenario | Fix |
+|---|---|---|---|---|
+| BA-01 | **major** | `OmniPumpManager+DeviceHandoff.swift:166-168` (`nextHandshakeSqn`), `:178-180` | The bound is checked only when the pod answers with a resync. Each handshake attempt increments the adopter's counter, including attempts that never reach the pod (a link drop mid-EAP). Sequence: the watch adopts at bound E, its first attempt (E+1) is lost, the phone's Take Back handshakes E+1 and is accepted, then the watch sends E+2 > E+1. **The pod accepts it, with no resync**, so the bound never fires. The watch's session runs and spends the bound, and both controllers command. This is exactly the flaky-watch-link situation that makes a user tap Take Back. Reproduced with the review test above. | While `releasedEapSqn` is set, every handshake sends `releasedEapSqn + 1` (`nextHandshakeSqn` returns it and sets `eapSeq`). Any session since the release, including the phone's E+1, then makes the adopter's E+1 resync beyond the bound, so it refuses. Also clear the bound in `handshakeResynced`'s `AcceptedEapSqn` branch, so a repeated adopt doesn't loop on the same SQN. Tried in scratch: the review test and all 50 existing tests pass. Add the review test to the suite. |
+| BA-02 | minor | same | Trade-off of BA-01's fix: suppose the adopter's E+1 reached the pod and was accepted but the reply was lost. Resending E+1 then resyncs beyond the bound, and the legit adopter refuses, a false lockout that fails closed. The pod can't tell this apart from the phone's own E+1, so failing closed is the right default. Without the fix, the same loss leaves the adopt working but keeps BA-01 open. | Document it in the proposal's limits. The host maps it to the same "pod used by another device" path, and the user takes back or re-lends. |
+| BA-03 | minor | `OmniPumpManager+DeviceHandoff.swift:71-74` | The bound is read from the manager's state without `podStateLock`. If the export is taken while a session that started before the release is still handshaking (`releaseConnectionForLoan` waits for a command under way), the bound can be read before that handshake's increment. It is then one too low, and the legit adopt refuses (fails closed). V2-2's drain makes this unlikely. Similarly, an export taken *before* the release carries no bound at all, which reopens the race. | Read the SQN under `podStateLock` in `exportConfiguration` (it waits out a session, like `markSharedWithAnotherController`). Host contract: export only after `releaseControl()` has succeeded, never from a grant built earlier. |
+| BA-04 | nit | `:273`; the docs' "cleared by any take" | Clearing the bound in `expectSessionResync` has no test (its mutation survives). It also runs only on a dated take or on a plain take after a release, not on "any take". | Add one assertion (an adopter with a bound, released and then taken plainly, has no bound), and correct the wording. |
+
+**Verdict: fix BA-01 before M5 relies on the bounded adopt.** As written, the bound stops the race only when the adopter's first handshake attempt reaches the pod. BA-03's host-contract line and lock read are cheap and should go in now. BA-02 and BA-04 are doc and test changes. Everything else in the delta holds.
+
+Not verified: hardware and pod-side behaviour, as before. In particular, whether a mid-EAP drop can leave the pod's counter unchanged while ours moved; BA-01 assumes it can, which is the same assumption as M2b-06. The full OmniTests and Trio builds (I trusted the author's BA3 to BA5).
