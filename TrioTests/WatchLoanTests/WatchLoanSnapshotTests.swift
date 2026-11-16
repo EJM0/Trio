@@ -214,7 +214,35 @@ import Testing
         arguments: parityScenarios
     ) func gatheredInputsMatchProduction(scenarioName: String) async throws {
         let clock = OrefCharacterizationScenarios.makeClock()
-        let scenario = OrefCharacterizationScenarios.build(scenarioName, clock: clock)
+        try await Self.checkEquivalence(
+            OrefCharacterizationScenarios.build(scenarioName, clock: clock),
+            name: scenarioName,
+            goldens: true
+        )
+    }
+
+    /// Non-flat schedules a few hours after each Europe/Berlin DST change (the pod's zone in the tests),
+    /// compared with the phone's own pipeline on the same store and clock.
+    @Test(
+        "Gathered inputs match the phone's pipeline across a DST change",
+        arguments: ["time-of-day-dst-spring-forward", "time-of-day-dst-fall-back"]
+    ) func gatheredInputsAcrossDST(scenarioName: String) async throws {
+        let scenario = OrefTimeOfDayCharacterizationTests.scenario(scenarioName)
+        #expect(TimeZone.current.identifier == "Europe/Berlin")
+        let window = DateInterval(start: scenario.clock.addingTimeInterval(-24 * 3600), end: scenario.clock)
+        #expect(
+            TimeZone.current.isDaylightSavingTime(for: window.start) != TimeZone.current
+                .isDaylightSavingTime(for: window.end)
+        )
+        try await Self.checkEquivalence(scenario, name: scenarioName, goldens: false)
+    }
+
+    static func checkEquivalence(
+        _ scenario: OrefCharacterizationScenario,
+        name scenarioName: String,
+        goldens: Bool
+    ) async throws {
+        let clock = scenario.clock
         let resolver = Assembler([
             StorageAssembly(), ServiceAssembly(), APSAssembly(), NetworkAssembly(), UIAssembly(), SecurityAssembly()
         ]).resolver
@@ -247,13 +275,17 @@ import Testing
             supportedBasalRates: scenario.supportedBasalRates,
             shouldSmoothGlucose: scenario.smoothGlucose
         )
+        #expect(!gathered.glucose.isEmpty && !gathered.pumpHistory.isEmpty)
         let received = try WatchLoanSnapshot.decode(Self.snapshot(oref: gathered).encoded())
         #expect(received.missingParts.isEmpty)
+        #expect(received.oref.timeZone.identifier == TimeZone.current.identifier)
 
         let outputs = try OrefRun.run(received.oref)
         let stages = try OrefRunCharacterizationTests.stages(outputs, clock: clock)
-        for (stage, json) in stages {
-            try OrefGoldens.check(json, clock: clock, scenario: scenarioName, stage: stage)
+        if goldens {
+            for (stage, json) in stages {
+                try OrefGoldens.check(json, clock: clock, scenario: scenarioName, stage: stage)
+            }
         }
 
         // and directly against the phone's own pipeline, on the same store and clock

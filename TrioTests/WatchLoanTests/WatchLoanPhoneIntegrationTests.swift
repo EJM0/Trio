@@ -14,14 +14,19 @@ import Testing
     private final class LoanTestAssembly: Assembly {
         let context: NSManagedObjectContext
         let gate: WatchLoanGate
+        let alertManager: TrioAlertManager?
 
-        init(context: NSManagedObjectContext, gate: WatchLoanGate) {
+        init(context: NSManagedObjectContext, gate: WatchLoanGate, alertManager: TrioAlertManager?) {
             self.context = context
             self.gate = gate
+            self.alertManager = alertManager
         }
 
         func assemble(container: Container) {
             container.register(WatchLoanGate.self) { _ in self.gate }
+            if let alertManager {
+                container.register(TrioAlertManager.self) { _ in alertManager }
+            }
             container.register(DeviceDataManager.self) { r in BaseDeviceDataManager(resolver: r) }.inObjectScope(.container)
             container.register(CarbEntryMutationService.self) { r in
                 BaseCarbEntryMutationService(resolver: r, contextProvider: { self.context })
@@ -53,7 +58,7 @@ import Testing
         }
     }
 
-    private static func makeRig() async throws -> Rig {
+    private static func makeRig(alertManager: TrioAlertManager? = nil) async throws -> Rig {
         let stack = try await CoreDataStack.createForTests()
         let context = stack.newTaskContext()
         let gateStore: WatchLoanStore<PhoneLoanState> = WatchLoanStoreTests.temporaryStore()
@@ -61,7 +66,7 @@ import Testing
         let resolver = Assembler([
             StorageAssembly(), ServiceAssembly(), APSAssembly(), NetworkAssembly(), UIAssembly(), SecurityAssembly(),
             TestAssembly(testContext: context),
-            LoanTestAssembly(context: context, gate: gate)
+            LoanTestAssembly(context: context, gate: gate, alertManager: alertManager)
         ]).resolver
         return Rig(
             resolver: resolver,
@@ -336,5 +341,34 @@ import Testing
 
         monitor.setArmed(true)
         #expect(abs((firstDelay() ?? 0) - 1200) < 5)
+    }
+
+    @Test(
+        "A snooze change re-issues the pending \"No updates from Apple Watch\" steps from the same anchor"
+    ) func silenceStepsAfterSnooze() async throws {
+        let spy = SpyAlertManager()
+        let rig = try await Self.makeRig(alertManager: spy)
+        let anchor = Date().addingTimeInterval(-40 * 60)
+        func pending() -> [Int] {
+            spy.issuedAlerts.compactMap { alert -> Int? in
+                guard alert.identifier.managerIdentifier == "trio.watchloan",
+                      case let .delayed(interval) = alert.trigger else { return nil }
+                return Int((interval / 60).rounded())
+            }
+        }
+        rig.host.setAlarm(.phoneNoWatchUpdates, armed: true, anchor: anchor)
+        #expect(pending() == [20, 50, 80])
+        #expect(spy.issuedAlerts.last?.interruptionLevel == .critical)
+
+        let before = spy.issuedAlerts.count
+        await MainActor.run { rig.host.snoozeDidChange(Date().addingTimeInterval(1800)) }
+        #expect(spy.issuedAlerts.count == before + 3)
+        #expect(Array(pending().suffix(3)) == [20, 50, 80])
+        #expect(spy.retractedIdentifiers.filter { $0.managerIdentifier == "trio.watchloan" }.count == 8)
+
+        rig.host.setAlarm(.phoneNoWatchUpdates, armed: false, anchor: Date())
+        let disarmed = spy.issuedAlerts.count
+        await MainActor.run { rig.host.snoozeDidChange(Date().addingTimeInterval(1800)) }
+        #expect(spy.issuedAlerts.count == disarmed)
     }
 }
