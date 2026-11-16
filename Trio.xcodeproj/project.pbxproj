@@ -1227,6 +1227,7 @@
 		FFBB8B26CB829814DA884D66 /* TempBasal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38A0364125ED069400FCBB52 /* TempBasal.swift */; };
 		C93DB6AC40C708E8D78D3C72 /* TempTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3871F39B25ED892B0013ECB5 /* TempTarget.swift */; };
 		D568735EC9107415007D28D9 /* TrioCustomOrefVariables.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1935363F28496F7D001E0B16 /* TrioCustomOrefVariables.swift */; };
+		EF807F5AE222CFCC7D5E877A /* WatchAlgorithmMembershipTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B7D3CA93660FC5AD549E12F /* WatchAlgorithmMembershipTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -2464,6 +2465,7 @@
 		0DBD1C7F72B3794CB211AD23 /* AlgorithmLoggingShim.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlgorithmLoggingShim.swift; sourceTree = "<group>"; };
 		689B9168DD5F93A622FB73F9 /* TrioOnWatch-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "TrioOnWatch-Info.plist"; sourceTree = "<group>"; };
 		858B7BD9A2DE093F7BB86E95 /* TrioOnWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TrioOnWatch.entitlements; sourceTree = "<group>"; };
+		1B7D3CA93660FC5AD549E12F /* WatchAlgorithmMembershipTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAlgorithmMembershipTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -3713,6 +3715,7 @@
 				3B997DCE2DC00A3A006B6BB2 /* JSONImporterTests.swift */,
 				CE1F6DD82BADF4620064EB8D /* PluginManagerTests.swift */,
 				DC01A00D2E9F100000000004 /* DeviceCatalogTests.swift */,
+				1B7D3CA93660FC5AD549E12F /* WatchAlgorithmMembershipTests.swift */,
 				98546920BB7247B0AC73449A /* ContainerResolutionTests.swift */,
 				7AF74BBFE9F7B8CA9187C4DB /* RemoteMealMutationPayloadTests.swift */,
 				3B5CD2C72D4AECD500CE213C /* OpenAPSSwiftTests */,
@@ -6708,6 +6711,7 @@
 				3BAC929B2E55FF5300B853DA /* DetermineBasalEnableSmbTests.swift in Sources */,
 				CE1F6DD92BADF4620064EB8D /* PluginManagerTests.swift in Sources */,
 				DC01A00E2E9F100000000005 /* DeviceCatalogTests.swift in Sources */,
+				EF807F5AE222CFCC7D5E877A /* WatchAlgorithmMembershipTests.swift in Sources */,
 				10DAA318F47843A4B894173D /* ContainerResolutionTests.swift in Sources */,
 				940584C38CB62676214A2107 /* RemoteMealMutationPayloadTests.swift in Sources */,
 				3B1C5C432D68E269004E9273 /* Extensions.swift in Sources */,
