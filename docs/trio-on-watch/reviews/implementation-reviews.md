@@ -508,3 +508,26 @@ No other watch-reachable `Calendar.current`/`TimeZone.current` read remains in t
 | R2-02 | major (pre-existing port difference, not M1b; needs sign-off) | `Meal/MealTotal.swift:177-202` vs `trio-oref/lib/meal/total.js` `mealCOB: Math.round(mealCOB)` | **The masked `COB:` value hides a real port difference, but not a `microBolusAllowed` one.** JS meal rounds `mealCOB` to an integer before determine-basal; the Swift meal passes it unrounded (17.086), and Swift determine-basal predicts with it. I fed JS the rounded COB (as JS-era Trio did) for all 10 inputs. Doses stayed equal in all 10, but minPredBG, minGuardBG and eventual BG moved by 1–2 mg/dL and `insulinReq` by 0.02 U. At a rounding or threshold edge, that changes an SMB or temp. Within the M1b test, masking is acceptable, because JS and Swift get the same unrounded COB, so the comparison isolates the flag. | Raise it with the maintainer: either round `mealCOB` in `MealTotal` (a behaviour change, so re-record the parity and characterization goldens with sign-off), or document it as intended. Keep the mask, with a comment pointing at this decision. |
 
 **Verdict: not yet.** M1b-01..09 are resolved. The blocker is R2-01, which comes from M1 and makes both M1 and M1b CI fail every evening (Berlin time). Fix it first with an injected clock and re-recorded goldens; then M1b is merge. R2-02 goes to the maintainer as a separate decision and does not block M1b.
+
+## M1b final check
+
+Delta `269a8a84b..e87909b0d` (5 commits). Fresh iPhone 17 / iOS 27.2 simulator (deleted afterwards). Logs `scratchpad/m1b-final-*.log`; worktree untouched.
+
+**Results:**
+- **Production behaviour is identical.**
+  - The only production construction sites pass no clock: `APSManager.swift:199` builds `OpenAPS(...)`, and `StorageAssembly` builds `BaseTDDStorage(resolver:)` / `BaseGlucoseStorage(resolver:)` / `BaseCarbsStorage(resolver:)`. So `now` defaults to `Date.init`.
+  - Each former `Date()` became one `now()` call at the same point. That includes the two separate reads in `autosense` (clock and timestamp), and the pump-history, 48 h orphan, last-temp-target and last-override predicates.
+  - The new `lastActiveTempTarget(now:)` / `lastActiveOverride(now:)` use the same expression as `Date.oneDayAgo` (`Calendar.current` −1 day), and the no-argument forms still exist for the other callers.
+- **Every time read on the characterized algorithm path goes through the seam, verified empirically.** The scenario clock is now 2026-06-15 07:40:10 CEST, five months before the real date. Any `Date()` left on the path would make glucose and pump history months stale and break every golden; all pass. The remaining `Date()` reads in these files are outside the oref input path or only fallbacks:
+  - fallbacks: the `?? Date()` for nil row dates and the simulation's `carbsDate ?? Date()`;
+  - the stored forecast row date;
+  - `processAndSave`;
+  - TDD row creation in `calculateTDD` / `calculateWeightedAverage` (TDD rows are seeded in the goldens; the watch passes its own `now`).
+- **Goldens are unchanged** (no golden file in the diff). At **20:50 CET**, inside the window that failed before, 17 suites with 104 tests all passed: production, `OrefRun`, micro-bolus and its JS parity, time-of-day, selection, stage, bolus, alarm, coordinator, parity, wall-clock parity, enable-SMB, scheduled-basal inference, pump-event finalization, DynISF enable, and pump-event predicates. The escape test, run alone with `TEST_RUNNER_TRIO_TZ_ESCAPE=1`, passed.
+- **The CI step is sane.** It is a separate `test-without-building` step after "Run tests", on the same `$DESTINATION` and DerivedData, with `pipefail`, its own log, and `TEST_RUNNER_TRIO_TZ_ESCAPE=1`. The main run (parallel testing off) skips the suite because the variable is unset. Nits:
+  - it is skipped when the main tests fail (default `if: success()`), which is fine;
+  - it adds no `.timings` line;
+  - the outcome-report step doesn't read `xcodebuild-tz-escape.log`, so a failure shows only as a red step.
+- **R2-02:** accepted by the maintainer as documented; the JS parity suite notes the profile and the COB mask (`53eb9837e`).
+
+**Verdict: merge.**
