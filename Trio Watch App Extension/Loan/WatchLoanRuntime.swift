@@ -26,8 +26,10 @@ import WatchKit
                     return level < 0 ? nil : level
                 },
                 notificationsAllowed: {
-                    await UNUserNotificationCenter.current().notificationSettings().authorizationStatus == .authorized
+                    let settings = await UNUserNotificationCenter.current().notificationSettings()
+                    return settings.authorizationStatus == .authorized && settings.timeSensitiveSetting == .enabled
                 },
+                modelIdentifier: { WatchLoanRuntime.modelIdentifier },
                 appBuild: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "",
                 beginActivity: { ExpiringActivity(reason: $0) }
             ))
@@ -36,10 +38,20 @@ import WatchKit
             host = created
             WatchLogger.shared.info(
                 .lifecycle,
-                "Trio on Watch host started, watchOS \(WKInterfaceDevice.current().systemVersion), battery \(Int(max(0, WKInterfaceDevice.current().batteryLevel) * 100)) %"
+                "Trio on Watch host started \(WKApplication.shared().applicationState == .background ? "in the background (system relaunch)" : "in front"), model \(modelIdentifier ?? "unknown"), watchOS \(WKInterfaceDevice.current().systemVersion), battery \(Int(max(0, WKInterfaceDevice.current().batteryLevel) * 100)) %"
             )
             Task { await created.relaunch() }
         #endif
+    }
+
+    /// `hw.machine`, or the simulated model in the simulator.
+    nonisolated static var modelIdentifier: String? {
+        if let simulated = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] { return simulated }
+        var size = 0
+        guard sysctlbyname("hw.machine", nil, &size, nil, 0) == 0, size > 0 else { return nil }
+        var buffer = [CChar](repeating: 0, count: size)
+        guard sysctlbyname("hw.machine", &buffer, &size, nil, 0) == 0 else { return nil }
+        return String(cString: buffer)
     }
 
     /// A WatchConnectivity payload; true when it was a loan payload.
@@ -187,6 +199,7 @@ final class UserNotificationLoanNotifier: WatchLoanNotifier {
             "Background tasks: \(counts.map { "\($0.key) \($0.value)" }.sorted().joined(separator: ", "))"
         )
         for task in tasks {
+            WatchLoanRuntime.host?.noteWake(String(describing: type(of: task)))
             guard let host = WatchLoanRuntime.host else {
                 task.setTaskCompletedWithSnapshot(false)
                 continue

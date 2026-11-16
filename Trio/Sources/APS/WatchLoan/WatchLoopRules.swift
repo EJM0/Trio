@@ -21,6 +21,15 @@ enum WatchLoopPolicy {
     /// Without a confirmed cycle this long, and two cycles in a row without the pod, the user is told.
     static let podLinkNoticeDelay: TimeInterval = 5 * 60
 
+    /// Background Bluetooth alerts need a Series 6 or later or an SE (2nd generation): `Watch6,x` and up.
+    /// Older models (Series 4/5, SE 1st generation: `Watch5,x`) would accept a loan and never wake.
+    static func isSupportedWatch(modelIdentifier: String) -> Bool {
+        guard modelIdentifier.hasPrefix("Watch"),
+              let major = Int(modelIdentifier.dropFirst(5).prefix { $0 != "," })
+        else { return false }
+        return major >= 6
+    }
+
     static func notLoopingDates(after lastConfirmedCycle: Date) -> [Date] {
         notLoopingMinutes.map { lastConfirmedCycle.addingTimeInterval(TimeInterval($0 * 60)) }
     }

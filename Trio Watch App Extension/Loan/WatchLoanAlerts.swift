@@ -135,7 +135,15 @@ final class WatchLoanAlerts {
         case .watchBatteryLow:
             return String(localized: "Charge your watch to at least 30 % first.", comment: "Watch refusal reason")
         case .notificationsOff:
-            return String(localized: "Allow notifications for Trio on your watch first.", comment: "Watch refusal reason")
+            return String(
+                localized: "Allow notifications and time-sensitive notifications for Trio on your watch first.",
+                comment: "Watch refusal reason"
+            )
+        case .unsupportedWatch:
+            return String(
+                localized: "Trio on Watch needs Apple Watch Series 6 or later, or SE (2nd generation) or later.",
+                comment: "Watch refusal reason"
+            )
         case .bolusRunning:
             return String(localized: "Wait until the bolus is finished.", comment: "Watch refusal reason")
         case .deliveryUncertain,

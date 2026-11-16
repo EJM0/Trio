@@ -351,6 +351,15 @@ import Testing
 @Suite("Watch loop rules") struct WatchLoopRulesTests {
     let now = Date(timeIntervalSince1970: 1_800_000_000)
 
+    @Test("Start needs a Series 6, SE (2nd generation) or later") func supportedModels() {
+        for model in ["Watch6,1", "Watch6,10", "Watch6,18", "Watch7,1", "Watch7,12"] {
+            #expect(WatchLoopPolicy.isSupportedWatch(modelIdentifier: model), "\(model)")
+        }
+        for model in ["Watch5,4", "Watch5,9", "Watch4,1", "arm64", "Watch", ""] {
+            #expect(!WatchLoopPolicy.isSupportedWatch(modelIdentifier: model), "\(model)")
+        }
+    }
+
     @Test("Micro boluses only in the foreground, as a constant") func microBolus() {
         #expect(!WatchLoopPolicy.allowsMicroBolusInBackground)
         #expect(!WatchLoopPolicy.microBolusAllowed(inForeground: false))

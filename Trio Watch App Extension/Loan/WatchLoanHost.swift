@@ -38,7 +38,10 @@ struct WatchLoanEnvironment {
     var isForeground: () -> Bool
     /// 0 to 1, nil when unknown.
     var batteryLevel: () -> Float?
+    /// Notifications and time-sensitive delivery are both allowed.
     var notificationsAllowed: () async -> Bool
+    /// `hw.machine`, for example `Watch6,2`; nil when unknown.
+    var modelIdentifier: () -> String?
     var appBuild: String
     var timeZone: () -> TimeZone = { TimeZone.current }
     /// Holds background time for a piece of work; the host ends it on every path.
@@ -192,6 +195,9 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     static let minimumStartBattery: Float = 0.3
 
     private func startRefusal() async -> LoanRefusal? {
+        guard let model = env.modelIdentifier(), WatchLoopPolicy.isSupportedWatch(modelIdentifier: model) else {
+            return .unsupportedWatch
+        }
         if !env.transport.isReachable { return .phoneUnreachable }
         if let level = env.batteryLevel(), level < Self.minimumStartBattery { return .watchBatteryLow }
         let notificationsAllowed = await env.notificationsAllowed()
@@ -454,8 +460,42 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
 
     func deviceError(_ error: Error) {
         if WatchLoanAlerts.isBluetoothBudgetError(error) {
+            noteSummary { $0.budgetErrors += 1 }
             alerts.postBluetoothBudget()
         }
+    }
+
+    /// A background task the app was handed, by type.
+    func noteWake(_ type: String) {
+        noteSummary { $0.wakes[type, default: 0] += 1 }
+    }
+
+    /// Adds to today's counts; the first note of a new day logs yesterday's line and starts over.
+    func noteSummary(_ change: (inout WatchLoanCycleInfo.DailySummary) -> Void) {
+        let now = env.now()
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = snapshot?.timeZone ?? env.timeZone()
+        if let since = cycleInfo.summary.since, !calendar.isDate(since, inSameDayAs: now) {
+            WatchLogger.shared.info(.lifecycle, Self.summaryLine(cycleInfo.summary, until: now, battery: env.batteryLevel()))
+            cycleInfo.summary = WatchLoanCycleInfo.DailySummary()
+        }
+        if cycleInfo.summary.since == nil {
+            cycleInfo.summary.since = now
+            cycleInfo.summary.batteryAtStart = env.batteryLevel()
+        }
+        change(&cycleInfo.summary)
+        saveCycleInfo()
+    }
+
+    static func summaryLine(_ summary: WatchLoanCycleInfo.DailySummary, until now: Date, battery: Float?) -> String {
+        let hours = max(now.timeIntervalSince(summary.since ?? now) / 3600, 1 / 60)
+        let expected = Int(hours * 12)
+        let wakes = summary.wakes.sorted { $0.key < $1.key }.map { "\($0.key) \($0.value)" }.joined(separator: ", ")
+        let drain = summary.batteryAtStart.flatMap { start in battery.map { (start - $0) * 100 / Float(hours) } }
+        return "Daily summary over \(String(format: "%.1f", hours)) h: readings \(summary.readings) of \(expected) expected, "
+            + "cycles \(summary.cycles) (\(summary.confirmed) confirmed), wakes \(wakes.isEmpty ? "none" : wakes), "
+            + "Bluetooth budget errors \(summary.budgetErrors), longest reading gap \(summary.longestGapSeconds / 60) min, "
+            + "battery \(drain.map { String(format: "%.1f %%/h", $0) } ?? "unknown")"
     }
 
     func issueKitAlert(_ alert: Alert) async {
