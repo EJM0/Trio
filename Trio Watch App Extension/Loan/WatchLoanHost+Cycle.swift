@@ -9,7 +9,8 @@ extension WatchLoanHost {
 
     /// The CGM manager's new readings: store, check glucose alarms, then loop once.
     func receiveReadings(_ readings: [BloodGlucose]) async {
-        guard let snapshot, state.mayCommandPump || isReturning else { return }
+        await loaded.value
+        guard let snapshot, readsGlucose else { return }
         let previous = (snapshot.oref.glucose + records.snapshot.glucose).map(\.dateString).max()
         let kept: [BloodGlucose]
         do {
@@ -44,9 +45,19 @@ extension WatchLoanHost {
         await runCycle(trigger: .reading)
     }
 
-    private var isReturning: Bool {
-        if case .returning = state { return true }
-        return false
+    /// The watch keeps the sensor, and its glucose alarms, until the loan is over: a stopped watch's user may be far
+    /// from the phone. A superseded one isn't: the phone has the pod and its own alarms.
+    private var readsGlucose: Bool {
+        switch state {
+        case .holding,
+             .returning:
+            return true
+        case let .stopped(_, reason):
+            return reason != .superseded
+        case .idle,
+             .requesting:
+            return false
+        }
     }
 
     /// Holds background time for the whole cycle and gives it back on every path.
