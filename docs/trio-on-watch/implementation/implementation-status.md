@@ -138,7 +138,7 @@ Branch `feat/tow-kits`, off `feat/trio-on-watch` @ `349f49523`. Implements V2-6 
 
 | # | Step | Result |
 |---|---|---|
-| 1 | OmniTests, all (scratch workspace: LoopKit `7fd4d1a7`'s parent + #687, RileyLinkKit `52a652c9`), fresh iPhone 17 / iOS 27.2 simulator | 255 run, 0 failed, 3 skipped. `DeviceHandoffTests`: 37, of which 9 are new |
+| 1 | OmniTests, all, against the pinned submodules (LoopKit `7fd4d1a7`, RileyLinkKit `52a652c9`), on a fresh iPhone 17 / iOS 27.2 simulator | 255 run, 0 failed, 3 skipped. `DeviceHandoffTests`: 37, of which 9 are new |
 | 2 | Mutation checks on the new tests | Rule removed (never refuse): 14 failures. Scope expiry ignored: the scope test fails. No report: 6 tests fail. Each mutation was reverted |
 | 3 | `OmnipodKit-watchOS` for the watchOS simulator and `arm64_32`; `OmnipodKitPlugin` for iOS | Build succeeded |
 | 4 | Trio iOS app, `X -scheme Trio` on a fresh "Trio-M2b iPhone 17" (iOS 27.2) | Exit 0. DanaKit, MedtrumKit, MinimedKit, LibreTransmitter, LibreLoop, G7SensorKit, OmnipodKit, LoopKit (and LoopKit-watchOS) compiled as part of it |
