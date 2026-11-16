@@ -109,19 +109,14 @@ final class OpenAPS {
         }
     }
 
-    /// Object IDs of the pump events oref reads, newest first. The 48 h fetch also covers the orphaned-resume check.
     private func fetchPumpHistoryObjectIDs(on context: NSManagedObjectContext) async throws -> [NSManagedObjectID]? {
-        let now = Date()
         let results = try await CoreDataStack.shared.fetchEntitiesAsync(
             ofType: PumpEventStored.self,
             onContext: context,
-            predicate: NSPredicate(
-                format: "timestamp >= %@ AND \(NSPredicate.notScheduledBasal)",
-                OrefInputs.orphanedResumeWindowStart(now: now) as NSDate
-            ),
+            predicate: NSPredicate.pumpHistoryLast1440Minutes,
             key: "timestamp",
-            ascending: true,
-            batchSize: 250
+            ascending: false,
+            batchSize: 50
         )
 
         return try await context.perform {
@@ -129,13 +124,7 @@ final class OpenAPS {
                 throw CoreDataError.fetchError(function: #function, file: #file)
             }
 
-            return OrefInputs.algorithmPumpEvents(
-                pumpEventResults,
-                type: { $0.type },
-                timestamp: { $0.timestamp },
-                isScheduledBasal: { $0.tempBasal?.isScheduledBasal == true },
-                now: now
-            ).map(\.objectID)
+            return pumpEventResults.map(\.objectID)
         }
     }
 
@@ -147,12 +136,20 @@ final class OpenAPS {
         // Empty history returns an empty array, which also drops any simulated bolus.
         guard !pumpHistoryObjectIDs.isEmpty else { return [] }
 
+        // Addresses https://github.com/nightscout/Trio/issues/898
+        //
+        // On a cold start (new user, fresh onboarding, or pump disconnected > 24h),
+        // the oldest event in pump history can be a resume with no preceding pump
+        // activity. oref interprets this as the end of a suspend that never started,
+        // which drives negative IOB and can cause excessive insulin delivery.
+        let orphanedResumes = try await fetchOrphanedResumes(on: context)
+
         // Execute all operations on the background context
         return await context.perform {
             // Load and map pump events to native algorithm models
             var events = OpenAPS.nativePumpHistory(
                 pumpHistoryObjectIDs,
-                orphanedResumes: [],
+                orphanedResumes: orphanedResumes,
                 from: context
             )
 
@@ -191,6 +188,27 @@ final class OpenAPS {
             isSMB: true,
             isExternal: false
         )
+    }
+
+    /// Detects a cold-start orphaned resume: returns the resume's object ID if it's an orphaned resume
+    private func fetchOrphanedResumes(on context: NSManagedObjectContext) async throws -> [NSManagedObjectID] {
+        let results = try await CoreDataStack.shared.fetchEntitiesAsync(
+            ofType: PumpEventStored.self,
+            onContext: context,
+            predicate: NSPredicate.pumpHistoryLast48h,
+            key: "timestamp",
+            ascending: true,
+            batchSize: 250
+        )
+
+        return try await context.perform {
+            guard let pumpEventResultsFull = results as? [PumpEventStored] else {
+                throw CoreDataError.fetchError(function: #function, file: #file)
+            }
+
+            return OrefInputs.orphanedResumes(in: pumpEventResultsFull, type: { $0.type }, timestamp: { $0.timestamp })
+                .map(\.objectID)
+        }
     }
 
     func determineBasal(

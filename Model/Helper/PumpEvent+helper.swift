@@ -90,6 +90,11 @@ extension NSPredicate {
         return NSPredicate(format: "timestamp >= %@ AND \(notScheduledBasal)", date as NSDate)
     }
 
+    static var pumpHistoryLast48h: NSPredicate {
+        let date = OrefInputs.orphanedResumeWindowStart(now: Date())
+        return NSPredicate(format: "timestamp >= %@ AND \(notScheduledBasal)", date as NSDate)
+    }
+
     static var pumpHistoryLast24h: NSPredicate {
         let date = Date.oneDayAgo
         return NSPredicate(format: "timestamp >= %@", date as NSDate)
