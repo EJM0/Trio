@@ -281,6 +281,8 @@ enum OrefCharacterizationScenarios {
              "suspend-resume-same-instant-on-disk":
             // ties: which of the two the fetch returns first decides orphan pairing and duplicate removal
             scenario.pumpEvents += [
+                // pairs the tied resume, so both reach duplicate removal, which keeps the first
+                .suspend(id: "suspend-pre", minutesAgo: 100),
                 .suspend(id: "suspend-tie", minutesAgo: 90 + 10.0 / 60),
                 .resume(id: "resume-tie", minutesAgo: 90 + 10.0 / 60)
             ]

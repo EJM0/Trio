@@ -1,50 +1,50 @@
 [
   {
-    "cob" : 18.156,
+    "cob" : 17.152,
     "time" : "clock+0ms"
   },
   {
-    "cob" : 16.556,
+    "cob" : 15.552,
     "time" : "clock+300000ms"
   },
   {
-    "cob" : 14.956,
+    "cob" : 13.952,
     "time" : "clock+600000ms"
   },
   {
-    "cob" : 13.356,
+    "cob" : 12.352,
     "time" : "clock+900000ms"
   },
   {
-    "cob" : 11.756,
+    "cob" : 10.752,
     "time" : "clock+1200000ms"
   },
   {
-    "cob" : 10.156,
+    "cob" : 9.152,
     "time" : "clock+1500000ms"
   },
   {
-    "cob" : 8.556,
+    "cob" : 7.552,
     "time" : "clock+1800000ms"
   },
   {
-    "cob" : 6.956,
+    "cob" : 5.952,
     "time" : "clock+2100000ms"
   },
   {
-    "cob" : 5.356,
+    "cob" : 4.352,
     "time" : "clock+2400000ms"
   },
   {
-    "cob" : 3.756,
+    "cob" : 2.752,
     "time" : "clock+2700000ms"
   },
   {
-    "cob" : 2.156,
+    "cob" : 1.152,
     "time" : "clock+3000000ms"
   },
   {
-    "cob" : 0.556,
+    "cob" : 0,
     "time" : "clock+3300000ms"
   },
   {

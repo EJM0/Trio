@@ -136,7 +136,7 @@ import Testing
     }
 
     private func storedDeterminationCount(_ context: NSManagedObjectContext) async throws -> Int {
-        return try await context.perform {
+        try await context.perform {
             try context.count(for: OrefDetermination.fetchRequest())
         }
     }
