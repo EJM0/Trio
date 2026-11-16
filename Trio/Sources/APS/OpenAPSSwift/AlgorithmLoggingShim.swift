@@ -7,9 +7,10 @@ import Foundation
 // `AlgorithmPackage/Package.swift`, which compiles the oref algorithm (plus its
 // models) as a standalone macOS-capable module so `swift test` can run the
 // algorithm suite without building the iOS app or booting a simulator.
+// The watch app compiles it too and routes the output to its own logger.
 //
 
-#if TRIO_ALGORITHM_PACKAGE
+#if TRIO_ALGORITHM_PACKAGE || os(watchOS)
 
     /// Stands in for the app's `Logger` so `Logger.Category` resolves in the package.
     enum Logger {
