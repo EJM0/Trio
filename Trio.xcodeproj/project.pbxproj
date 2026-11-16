@@ -1303,6 +1303,7 @@
 		C6B8F2C63CE20E553AFD0C82 /* WatchLoanRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BFF8B004F3796056F93688D /* WatchLoanRuntime.swift */; };
 		963794A7E5E810BA69EE512E /* LoanPumpDouble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76D5CE4C2253239145F1C070 /* LoanPumpDouble.swift */; };
 		9A949314EB275A2083325BA5 /* WatchLoanHostTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 785D46BC40C065649E4E0469 /* WatchLoanHostTests.swift */; };
+		D30010F72BED95FED9517E95 /* WatchLoanAudit.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A000000000000000005 /* WatchLoanAudit.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -7066,6 +7067,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D30010F72BED95FED9517E95 /* WatchLoanAudit.swift in Sources */,
 				C6B8F2C63CE20E553AFD0C82 /* WatchLoanRuntime.swift in Sources */,
 				A84C8590A47EF690C9042405 /* WatchLoanCGM.swift in Sources */,
 				860635CDA0AA0C70BC5E75A3 /* WatchLoanAlerts.swift in Sources */,

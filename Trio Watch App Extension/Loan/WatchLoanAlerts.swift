@@ -83,6 +83,7 @@ final class WatchLoanAlerts {
             )
         case .loanStateUnreadable,
              .podTakenOnThisPhone,
+             .podTotalUnreliable,
              .startDidNotFinish,
              .takeBackPodUnreachable,
              .takeBackUseEnd,
