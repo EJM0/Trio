@@ -604,6 +604,7 @@
 		BD11797B2F4E22C100F90001 /* AlarmSoundCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11797C2F4E22C100F90001 /* AlarmSoundCatalog.swift */; };
 		BD11797D2F4E22C100F90001 /* AlarmWindowIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11797E2F4E22C100F90001 /* AlarmWindowIcon.swift */; };
 		BD1179832F4E22C100F90001 /* DeviceAlertSeverity.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1179842F4E22C100F90001 /* DeviceAlertSeverity.swift */; };
+		0C4B00060000000000000002 /* DeviceAlertSeverity+InterruptionLevel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4B00060000000000000001 /* DeviceAlertSeverity+InterruptionLevel.swift */; };
 		BD1179852F4E22C100F90001 /* DeviceAlertSeverityConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1179862F4E22C100F90001 /* DeviceAlertSeverityConfig.swift */; };
 		BD1179872F4E22C100F90001 /* DeviceAlertsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1179882F4E22C100F90001 /* DeviceAlertsStore.swift */; };
 		BD1179892F4E22C100F90001 /* DeviceAlarmsDataFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11798A2F4E22C100F90001 /* DeviceAlarmsDataFlow.swift */; };
@@ -1850,6 +1851,7 @@
 		BD11797C2F4E22C100F90001 /* AlarmSoundCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmSoundCatalog.swift; sourceTree = "<group>"; };
 		BD11797E2F4E22C100F90001 /* AlarmWindowIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmWindowIcon.swift; sourceTree = "<group>"; };
 		BD1179842F4E22C100F90001 /* DeviceAlertSeverity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceAlertSeverity.swift; sourceTree = "<group>"; };
+		0C4B00060000000000000001 /* DeviceAlertSeverity+InterruptionLevel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DeviceAlertSeverity+InterruptionLevel.swift"; sourceTree = "<group>"; };
 		BD1179862F4E22C100F90001 /* DeviceAlertSeverityConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceAlertSeverityConfig.swift; sourceTree = "<group>"; };
 		BD1179882F4E22C100F90001 /* DeviceAlertsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceAlertsStore.swift; sourceTree = "<group>"; };
 		BD11798A2F4E22C100F90001 /* DeviceAlarmsDataFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceAlarmsDataFlow.swift; sourceTree = "<group>"; };
@@ -4166,6 +4168,7 @@
 				BD1179552F4E22C100F90001 /* GlucoseAlertConfiguration.swift */,
 				BD1179572F4E22C100F90001 /* GlucoseAlertType.swift */,
 				BD1179842F4E22C100F90001 /* DeviceAlertSeverity.swift */,
+				0C4B00060000000000000001 /* DeviceAlertSeverity+InterruptionLevel.swift */,
 				BD1179862F4E22C100F90001 /* DeviceAlertSeverityConfig.swift */,
 			);
 			path = GlucoseAlerts;
@@ -6141,6 +6144,7 @@
 				BD11797B2F4E22C100F90001 /* AlarmSoundCatalog.swift in Sources */,
 				BD11797D2F4E22C100F90001 /* AlarmWindowIcon.swift in Sources */,
 				BD1179832F4E22C100F90001 /* DeviceAlertSeverity.swift in Sources */,
+				0C4B00060000000000000002 /* DeviceAlertSeverity+InterruptionLevel.swift in Sources */,
 				BD1179852F4E22C100F90001 /* DeviceAlertSeverityConfig.swift in Sources */,
 				BD1179872F4E22C100F90001 /* DeviceAlertsStore.swift in Sources */,
 				BD1179892F4E22C100F90001 /* DeviceAlarmsDataFlow.swift in Sources */,

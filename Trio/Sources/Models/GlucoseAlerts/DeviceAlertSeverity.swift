@@ -1,5 +1,4 @@
 import Foundation
-import LoopKit
 
 /// Coarse-grained tier the user configures for device alarms. Wraps
 /// `Alert.InterruptionLevel` plus its visible behavior:
@@ -13,14 +12,6 @@ enum DeviceAlertSeverity: String, Codable, CaseIterable, Identifiable {
     case normal
 
     var id: String { rawValue }
-
-    init?(level: Alert.InterruptionLevel) {
-        switch level {
-        case .critical: self = .critical
-        case .timeSensitive: self = .timeSensitive
-        case .active: self = .normal
-        }
-    }
 
     var displayName: String {
         switch self {
