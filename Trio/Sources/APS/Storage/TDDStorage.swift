@@ -68,6 +68,7 @@ final class BaseTDDStorage: TDDStorage, Injectable {
             pumpHistory: pumpHistory,
             basalProfile: basalProfile,
             now: Date(),
+            timeZone: TimeZone.current,
             roundToSupportedBasalRate: pumpManager.roundToSupportedBasalRate
         )
         let (bolus, temp, scheduled) = (insulin.bolus, insulin.tempBasal, insulin.scheduledBasal)

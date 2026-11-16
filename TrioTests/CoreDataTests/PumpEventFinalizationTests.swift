@@ -685,7 +685,8 @@ import Testing
         let segments = ScheduledBasalInference.segments(
             events: OrefInputs.timelineEvents(from: history),
             profile: [BasalProfileEntry(start: "00:00", minutes: 0, rate: 1.0)],
-            now: now
+            now: now,
+            timeZone: TimeZone.current
         )
         let insulin = OrefInputs.calculateScheduledBasalInsulin(
             segments,
@@ -719,7 +720,8 @@ import Testing
         let segments = ScheduledBasalInference.segments(
             events: events,
             profile: [BasalProfileEntry(start: "00:00", minutes: 0, rate: 1.0)],
-            now: now
+            now: now,
+            timeZone: TimeZone.current
         )
         #expect(!segments.isEmpty, "The hour since the row was reported is still swept")
     }
@@ -749,7 +751,8 @@ import Testing
         let segments = ScheduledBasalInference.segments(
             events: OrefInputs.timelineEvents(from: history),
             profile: [BasalProfileEntry(start: "00:00", minutes: 0, rate: 1.0)],
-            now: now
+            now: now,
+            timeZone: TimeZone.current
         )
 
         // the temp basal covers the whole window, so scheduled basal is not billed on top of it
@@ -774,7 +777,8 @@ import Testing
         let segments = ScheduledBasalInference.segments(
             events: OrefInputs.timelineEvents(from: history),
             profile: [BasalProfileEntry(start: "00:00", minutes: 0, rate: 1.0)],
-            now: now
+            now: now,
+            timeZone: TimeZone.current
         )
 
         #expect(!segments.isEmpty, "No row covers the last half hour, so the profile fills it")
