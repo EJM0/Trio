@@ -406,3 +406,105 @@ Branch `feat/tow-platform`, worktree `~/workspaces/Trio-tow-platform`, commits `
 | M2aC-07 | minor | `Trio Watch App Extension/TrioOnWatch-Info.plist` | It uses `UIBackgroundModes` with `bluetooth-central`, as Loop does (B: `WatchApp/Info.plist:39-42`). That's correct, and the plist merges with the generated one. Whether TestFlight accepts it without `com.apple.developer.bluetooth-central-background` is still E1. | None now. Keep the flag off for users until E1 passes (V2-28). |
 
 **Verdict: approve with changes.** The flag-off build is equivalent to today's except for the 10.6 minimum (M2aC-03). The module rename is free of side effects, and the log route is correct. M2aC-02 must be done in the M1+M2a merge, and M2aC-01 must be documented before anyone builds flag-on through the browser path. The rest are minor.
+
+## M1b review
+
+Branch `feat/tow-pure-calcs` @ `133d3a5d1` (8 commits on `3d55e4102`), worktree `~/workspaces/Trio-tow-pure-calcs`. Read against the M1b section of `implementation-status.md`, V2-21/23/24/16 and ADR-004/005/006. Same method as M1:
+- a scratch copy (`scratchpad/m1-mut`), set to a given commit with `scratchpad/m1b-settree.sh <sha>`;
+- a fresh iPhone 17 / iOS 27.2 simulator (deleted afterwards);
+- `CI=true`; logs `scratchpad/m1b-*.log`.
+
+The worktree was not touched.
+
+### Provenance and regression
+
+- **Goldens against the code before each change.** Every M1b golden was added once and never changed afterwards.
+
+  | Goldens | Run at | Result |
+  |---|---|---|
+  | time of day (3 scenarios) | `d8a5375ec`, before the time-zone change | 3/3 passed |
+  | bolus calculator (23 + 8 cases) | `4f986dc85`, before the extraction | 2/2 tests passed |
+  | glucose alarms (10 sequences) | `137121345`, before the extraction | passed |
+
+- **Clean HEAD:** 11 suites, 31 tests, all passed. The suites: M1's 17 production goldens, `OrefRun` goldens, micro-bolus, time-of-day, selection, stage, bolus, alarm and coordinator suites, 14 parity goldens, and wall-clock parity. **I found no change to phone behaviour:**
+  - the phone binds `TimeZone.current` per stage, which equals the old unbound reads;
+  - `jsDateString` now uses the same zone;
+  - the calculator and alarm bodies are verbatim moves; `now`/`Date()` and `roundBolus` are passed at the same points;
+  - the alarm action order is preserved (actions are applied in the order the old in-loop calls ran).
+
+### Mutation tests on HEAD
+
+| Mutation | Caught? |
+|---|---|
+| `basalFor` back to `Calendar.current` | yes (profile-getter test) |
+| `carbsStart` ignores `timeZone` (`Calendar.current`) | **no** (all suites green) |
+| `OrefRun.determine` ignores `microBolusAllowed` (always true) | yes (`OrefRunMicroBolusTests`) |
+| fatty-meal factor dropped | yes (`fatty-meal`, `fatty-meal-and-super-bolus`) |
+| super bolus only when the total is positive | yes (`negative-correction-with-super-bolus`) |
+| stale loop at 16 min instead of 15 | yes (`loop-stale`) |
+| glucose delta window 15 instead of 20 min | yes (`edge-inside`, `window-of-four`) |
+| `currentBG < 54` → `<= 54` | yes (`glucose-at-54`) |
+| snooze `until > now` → `>=` | yes (`per-alarm-snooze`) |
+| urgent low no longer suppresses low | yes (2 sequences) |
+| forecasted low no longer suppressed by the low family | yes (`forecasted-low`) |
+
+### Findings
+
+| ID | Sev | Where | Failure scenario | Recommended fix |
+|---|---|---|---|---|
+| M1b-01 | major (blocks M5; dormant on the phone, which passes `true`) | `DosingEngine.swift:757`, `DetermineBasalGenerator.swift:333`, `DetermineBasal+Helpers.swift:201` vs `trio-oref/lib/determine-basal/determine-basal.js:72-73, 678, 1286, 1403, 1429` | In oref, `microBolusAllowed = false` makes `enable_smb` return false ("SMB disabled (!microBolusAllowed)"). That `enableSMB = false` drives three other branches: the MDT top-of-hour neutral-temp cancel, and both "if in SMB mode, don't cancel SMB zero temp" guards, which instead set basal as temp. The currenttemp ≠ lastTemp cancel also runs only when micro boluses are allowed. The Swift port was written for `true` only: the flag gates `determineSMBDelivery` and nothing else. `makeSMBDosingDecision` ignores it, so `smbIsEnabled` stays true in `skipNeutralTempBasal`, `glucoseFallingFasterThanExpected` and `eventualOrForecastGlucoseLessThanMax`, and the lastTemp check runs regardless. Scenario on the watch's temp-only background wake (V2-21): eventual BG above min BG, delta below expected, a zero temp running. oref without SMB sets the scheduled basal as temp; the Swift path keeps SMB-mode behaviour and leaves the zero temp. The M1b test checks only the SMB branch, so this is not "oref's non-SMB path" as the status doc claims. | Pass `microBolusAllowed` into `makeSMBDosingDecision` (disabled, with oref's reason) and into the lastTemp check. Then record JS-parity goldens with `microBolusAllowed = false` from `trio-oref` for the scenarios that reach lines 1286/1403/1429/678. Until then, document that `false` is not oref-equivalent and keep it out of M5. |
+| M1b-02 | major (M5; phone unaffected) | `ScheduledBasalInference.swift:83, 107` via `OrefInputs.tddInsulin` (`OrefInputs+TDD.swift:6`) | The time-zone binding has an escape on the TDD path. Scheduled-basal inference reads `Calendar.current` for profile boundaries and the minute of day, and `tddInsulin` is a shared entry point (C-03: the watch writes its own TDD rows) that binds nothing. A watch whose zone differs from the grant computes TDD on its own local day boundaries. TDD feeds DynISF (`currentTDD`, weighted average), so the watch's ISF drifts from the phone's. | Give `tddInsulin` a `timeZone:` (bind it, or pass a `Calendar` into `ScheduledBasalInference`). Add a test: same history and profile, bound zone ≠ process zone, result equal to the process-zone result shifted accordingly. |
+| M1b-03 | minor | `OrefInputs+Selection.swift:28` | `carbsStart(now:timeZone:)` is the one zone-dependent window (23 or 25 h across DST), but the mutation that ignores the zone survives every suite. The carb window on the DST day in the grant zone is untested. | One `OrefInputsSelectionTests` case: `now` on the America/New_York spring-forward day, `timeZone` NY, expecting a 23 h window. It must differ from the same call with Europe/Berlin. |
+| M1b-04 | minor (design) | `Date+MinutesFromMidnight.swift:31-43` | **Task-local or parameter?** The task-local keeps the generators' signatures and parity untouched, and it is read synchronously (no detached tasks or callbacks in the oref code; the `WallClock` offset cache is keyed by zone identifier, so mixed zones are safe). But its silent fallback to `TimeZone.current` is exactly how M1b-02 slipped through, and Trio's style is explicit parameters. The Tokyo test proves there is no escape inside `run` for the scenarios it covers. It doesn't cover helpers outside the stages. | **Keep the task-local inside the generators.** Require an explicit zone on every shared entry point: the stages (done), `tddInsulin`, `carbsStart` (done), and the alarm evaluation (`calendar: = .current` default at `GlucoseAlarmEvaluation.swift:66`; decide grant zone vs watch zone for day/night windows, ADR-004). Add one serialized escape-detector test that sets `NSTimeZone.default` to a far zone, runs `OrefRun.run` and `tddInsulin` bound to Europe/Berlin, and compares against the Berlin goldens. |
+| M1b-05 | major (pre-existing, not M1b; safety) | `BolusCalculator.swift:103-109` | With IOB above max IOB, `min(max(x, 0), maxIOB − iob)` gives a **negative** recommendation (golden `iob-above-max-iob`: −1 U), and `TreatmentsStateModel` does not clamp it. The author found and documented this. The watch bolus (V2-24) would inherit it. | A separate, signed-off bug-fix PR on `dev`: clamp at 0 after the max-IOB limit, re-record that one golden. Required before M5 uses the calculator. |
+| M1b-06 | minor (pre-existing, not M1b) | `TrioTests/BolusCalculatorTests/BolusCalculatorTests.swift:18`, `BolusSafetyTests/BolusSafetyValidatorTests.swift:8` (also `CalibrationsTests`, `PluginManagerTests`) | **The `malloc: pointer being freed was not allocated` crash.** I reproduced it three times: once in my mutation run, once on unmodified HEAD, and **once on M1's code `3d55e4102` with only `BolusCalculatorTests` and `BolusSafetyValidatorTests`** (`-test-iterations 8`). These suites build `TrioApp().resolver` per test instance, and Swift Testing runs them in parallel. The log shows 5 concurrent `TrioApp.init()` calls right before the double free. **M1b's code doesn't cause it.** More parallel suites only make it likelier. `FileStorageTests` is the known order-dependent flake. | Separate PR: one shared resolver (`static let`) per suite, or `.serialized` on these suites. |
+| M1b-07 | minor | `GlucoseAlertCoordinator.swift:31-35, 48, 106`; `GlucoseAlarmCharacterizationTests.swift:268-281`; `BolusCalculationManager` `updateGlucoseVariables` | **The widened test seams are acceptable under `@testable`, with one exception: `launchedAt` is now a public mutable `var`.** Also, the coordinator-path golden builds a full `Assembler` graph per scenario, which means a real `FetchGlucoseManager` (timer, CGM source), `SettingsManager`, and subscriptions to `GlucoseAlertsStore.shared` and the broadcaster, all alive next to the host app's. A host-app `GlucoseAlertsStore` change can overwrite `alertsSnapshot` mid-test (flake risk), and it adds load to M1b-06. | Inject `launchedAt` through `init` (default `Date()`) and keep it `private`. Now that the pure golden exists, reduce the coordinator test to a thin wiring check with stubs, not the full assembly. |
+| M1b-08 | minor (M2a) | `GlucoseAlertType.swift:2, 85`; `GlucoseAlarmEvaluation.swift` | **LoopKit coupling.** `GlucoseAlarmEvaluation` is Foundation-only, but its model types are not: `GlucoseAlertType` imports LoopKit for `defaultSoundFilename` → `AlarmSoundCatalog` → `DeviceAlertSeverity`. It also uses `Determination`, `ForecastedGlucoseEvaluator` and Trio's `debug`. Whether this blocks the watch depends on M2a/#1749 shipping LoopKit on watchOS. | Move `defaultSoundFilename` into a phone-only `GlucoseAlertType+Sound.swift`, and list the evaluator's closure of files in the watch target, as was done for the package. |
+| M1b-09 | nit | `OrefInputs+Selection.swift:41`; `Date+MinutesFromMidnight.swift:19` | `pumpHistoryStart` still uses `Calendar.current`. That's harmless, because adding minutes is absolute time, but it is the only window not on the explicit-zone story. `WallClock`'s doc line still says the cache is "the one piece of state", and the task-local is a second implicit input. | Use a fixed `TimeInterval(minutes: 1440)` or a note. Update the doc line. |
+
+**Verdict: merge after fixes for M1b-03 and M1b-04's escape-detector test (small); track M1b-01 and M1b-02 as M5 blockers.** If the maintainer wants M1b to deliver its stated scope ("oref's non-SMB path", "explicit time zone"), fix M1b-01 and M1b-02 here instead; then the verdict is not yet until they land. M1b-05 and M1b-06 are pre-existing and go to separate PRs on `dev`; M1b-05 (negative bolus) needs a maintainer decision before any watch bolus work. Phone behaviour: unchanged on everything I exercised.
+
+Not verified: a full Trio Tests run at `133d3a5d1` (the TrioApp crash makes it nondeterministic), JS-side recording for M1b-01, a watch build, device runs, Xcode 26.2.
+
+## M1b re-review
+
+Delta `133d3a5d1..269a8a84b` (9 commits). Fresh iPhone 17 / iOS 27.2 simulator (deleted afterwards). Logs `scratchpad/m1b-rr-*.log`; worktrees untouched.
+
+### Findings resolved
+
+| ID | Status | Evidence |
+|---|---|---|
+| M1b-01 | resolved | Details below. |
+| M1b-02 | resolved | `tddInsulin(timeZone:)` → `ScheduledBasalInference.segments(timeZone:)` / `delivery(timeZone:)`; the phone, Home and BasalChart pass `TimeZone.current`. |
+| M1b-03 | resolved | The `carbsStart` zone mutation is now caught by the New York 23 h test. |
+| M1b-04 | resolved, one caveat | Details below. |
+| M1b-07 | resolved | `launchedAt` is a `private let` injected through `init`. |
+| M1b-08 | resolved | The only LoopKit import left in `Models/GlucoseAlerts` is the phone-only `DeviceAlertSeverity+InterruptionLevel.swift`. I typechecked `GlucoseAlarmEvaluation`, `ForecastedGlucoseEvaluator`, every other `Models/GlucoseAlerts` file and `BolusCalculator.swift`, together with the AlgorithmPackage source list, for `arm64-apple-watchos10.6-simulator` (`-D TRIO_ALGORITHM_PACKAGE`): 0 errors. |
+| M1b-09 | resolved | `pumpHistoryStart` is a fixed 1440 min; the `WallClock` doc line is updated. |
+
+**M1b-01: `microBolusAllowed`.**
+- **The change matches trio-oref.** In `isProfileSmbEnabled` the check sits after scheduled-off and before the high-temp-target check, as in `enable_smb`, so the downstream `smbIsEnabled` uses now equal JS `microBolusAllowed && enableSMB` (lines 1209/1286/1403/1429/1489). The currenttemp ≠ lastTemp cancel is gated (JS 678). The remaining `microBolusAllowed` check in `determineSMBDelivery` is now redundant but harmless.
+- **The JS harness is faithful.**
+  - The `require` resolver and the `lodash/endsWith` shim (2-argument form, the only one `round-basal.js` uses) are correct.
+  - `currentTime` as an ISO string is accepted by JS (`new Date(currentTime)`).
+  - JS gets the same post-stage Swift inputs: profile, IOB, meal, autosens, custom variables, clamped preferences, the determination glucose window. JS computes glucose status itself with `glucose-get-last.js`, an independent check.
+  - I re-ran `TZ=Europe/Berlin jsc …` on all 10 recorded inputs: byte-identical to the committed `js-determination-*.json`.
+  - Small gap: JS gets `outputs.profile` without the injected `supportedBasalRates`/`suspendOnly`. That's harmless for these rates, but say so in the suite doc.
+- **Mutations caught.** Dropping the `enable_smb` gate fails `DetermineBasalEnableSmbTests` and 3 JS scenarios. Dropping the lastTemp gate fails `temp-mismatch`/false.
+- **`true` is byte-identical.** Every `smb-allowed` JS comparison passes; M1's production goldens and the 14 parity goldens pass (but see the iob time-of-day issue below).
+
+**M1b-04: the escape test is strong but opt-in.** `ProcessTimeZoneEscapeTests` (process zone Pacific/Kiritimati, bound Europe/Berlin) passes on HEAD, and it catches three escape mutations separately:
+- the `WallClock` offset reading `TimeZone.current` (golden check);
+- `ScheduledBasalInference` back to `Calendar.current` (TDD expectation);
+- `isEligible` without the zone (alarm expectation).
+
+No other watch-reachable `Calendar.current`/`TimeZone.current` read remains in the oref, TDD, alarm or bolus closure (`BGTargets.currentTarget` / `TherapySettingsUtil.parseTime` are reached only from the phone bolus manager). The caveat: it runs only with `TRIO_TZ_ESCAPE=1`, so CI never exercises it. Add a CI step or test plan that runs it alone.
+
+### New findings
+
+| ID | Sev | Where | Failure scenario | Recommended fix |
+|---|---|---|---|---|
+| R2-01 | **major (pre-existing from M1, blocks CI for M1 and M1b)** | `OrefCharacterizationScenarios.makeClock` (`Date()`-based clock); goldens `*/iob.json` | **The M1 characterization goldens fail depending on the time of day.** The production path must use `Date()`, so the scenario clock is "now". The IOB projection runs about 4 h ahead, and once that horizon crosses local midnight, the temp-basal split at the day boundary changes the last iob points (`netbasalinsulin` −4.8 → −4.85, `basaliob` ±0.001…0.05). Observed on **M1's own code `3d55e4102`**: at 20:05 Berlin, `autosens-8h-24h-differ`; at 20:08, 14 scenarios. HEAD behaved the same at the same minutes, so M1b is not the cause. The scheme pins Europe/Berlin, so every CI or local run between about 20:00 and 24:00 Berlin fails. My earlier "merge" verdicts for M1 were based on runs at about 19:15 and missed this. | Inject a clock into `OpenAPS` the way M1 injected the Core Data context (a `now: () -> Date` provider, default `Date()`, behaviour-neutral). Then pin the characterization clock to a fixed morning instant, and re-record from the original sources with the same provenance check. A stop-gap of skipping when the horizon crosses midnight is weaker; don't use it. |
+| R2-02 | major (pre-existing port difference, not M1b; needs sign-off) | `Meal/MealTotal.swift:177-202` vs `trio-oref/lib/meal/total.js` `mealCOB: Math.round(mealCOB)` | **The masked `COB:` value hides a real port difference, but not a `microBolusAllowed` one.** JS meal rounds `mealCOB` to an integer before determine-basal; the Swift meal passes it unrounded (17.086), and Swift determine-basal predicts with it. I fed JS the rounded COB (as JS-era Trio did) for all 10 inputs. Doses stayed equal in all 10, but minPredBG, minGuardBG and eventual BG moved by 1–2 mg/dL and `insulinReq` by 0.02 U. At a rounding or threshold edge, that changes an SMB or temp. Within the M1b test, masking is acceptable, because JS and Swift get the same unrounded COB, so the comparison isolates the flag. | Raise it with the maintainer: either round `mealCOB` in `MealTotal` (a behaviour change, so re-record the parity and characterization goldens with sign-off), or document it as intended. Keep the mask, with a comment pointing at this decision. |
+
+**Verdict: not yet.** M1b-01..09 are resolved. The blocker is R2-01, which comes from M1 and makes both M1 and M1b CI fail every evening (Berlin time). Fix it first with an injected clock and re-recorded goldens; then M1b is merge. R2-02 goes to the maintainer as a separate decision and does not block M1b.
