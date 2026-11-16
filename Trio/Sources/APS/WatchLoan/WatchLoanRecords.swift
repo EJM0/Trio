@@ -60,6 +60,11 @@ enum WatchLoanWireKey {
     static let recordsAck = "watchLoanRecordsAck"
 
     static let all = [message, snapshot, records, recordsAck]
+
+    /// Loan payloads go to the loan coordinator; every other watch message keeps its existing path.
+    static func isLoanPayload(_ payload: [String: Any]) -> Bool {
+        all.contains { payload[$0] != nil }
+    }
 }
 
 /// Which incoming messages the phone passes on. Persisted, so a relaunch keeps dropping what it saw.

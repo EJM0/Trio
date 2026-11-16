@@ -5,6 +5,8 @@ struct WatchLoanSnapshot: Codable {
     static let currentSchemaVersion = 1
     /// The largest payload `WCSession.sendMessage` carries, for the whole message.
     static let maxMessageBytes = 65536
+    /// A grant uses at most this much, leaving room for the dictionary encoding `sendMessage` adds.
+    static let grantBudgetBytes = maxMessageBytes * 4 / 5
     static let maxClockOffset: TimeInterval = 60
     static let endingSoonWindow: TimeInterval = 6 * 60 * 60
 
