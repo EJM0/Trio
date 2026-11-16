@@ -7,6 +7,20 @@ extension BaseWatchManager: WatchLoanTransport {
         Task { await coordinator.receive(payload) }
     }
 
+    /// Only the watch's loan status query comes with a reply handler; anything else takes the usual path.
+    func session(
+        _ session: WCSession,
+        didReceiveMessage message: [String: Any],
+        replyHandler: @escaping ([String: Any]) -> Void
+    ) {
+        guard WatchLoanWireKey.isStatusQuery(message) else {
+            self.session(session, didReceiveMessage: message)
+            replyHandler([:])
+            return
+        }
+        answerLoanStatusQuery(replyHandler)
+    }
+
     /// The watch asks after a relaunch whether the loan it holds still stands.
     func answerLoanStatusQuery(_ replyHandler: @escaping ([String: Any]) -> Void) {
         guard let coordinator = watchLoanCoordinator else { return replyHandler([:]) }
