@@ -813,3 +813,46 @@ No silent no-dosing state found:
 ### Verdict
 
 **Merge after M4E-01, M4E-02 and M4E-03.** Each is lost or double-counted insulin in the audit path, and each is small and testable. The host contract is followed, and the rest is sound. M4E-04 to M4E-13 can go into M5 or M7.
+
+## M4 safety re-review (Agent E)
+
+Fix round on `feat/tow-phone`: `eebb277d9` (merge), then `6cab336e0`, `534e103e4`, `9af757735`, `2de1d8c99`, `58dedd337`.
+
+Basis: code reading only. I did not build or run the tests.
+
+| Item | Status | Evidence | Note |
+|---|---|---|---|
+| M4E-01 pen insulin | **Resolved** | `WatchLoanAudit.swift` bolus filter `isExternal != true \|\| tagged audit`; `PumpHistoryStorage` now maps `isExternal` into `PumpHistoryEvent` | Tagged audit boluses (stored `isExternal = true`) still count, which is correct. |
+| M4E-02 double booking | **Resolved** | `ownBolusID` excluded only; `recompute` passes `entry.bolusID` | A pod-lifetime audit counts an earlier loan's audit bolus as delivered. When that loan bolus later shrinks because late records arrive, the pod-lifetime figure stays right, because those records then explain the same units. |
+| M4E-03 lost foreign sessions | **Resolved** | `ledger.lastForeignSessionHandled`, saved after `handle(.foreignPodSession)` drains, including its audit; `checkForeignSession()` runs at `start()` and on every report and re-checks after each run; `DeviceDataManager` keeps the date for logging only; test `foreignSessionDurable` | Still depends on the kit persisting `foreignSessionDetectedAt` (the F4/M2b-03 family, kit side). |
+| M4E-04 pod time zone | Resolved | `pump.status.timeZone` in the loan audit | – |
+| M4E-06 full excess | Resolved | `floorToPulse(excess)` once past the band | – |
+| M4E-08 release on refuse | Resolved | `.refuse` leads to `endSuperseding()` plus `release()` | A released kit in `home` fails closed: the loop errors and `NotLoopingMonitor` plus `unexpectedPodSession` fire. P43 lifts it through `resumeControl`. |
+| M4E-05 | Accepted as is | OmnipodKit derives `bolusUnderWayEndsAt` from `bolusNotDelivered` at the status read | So the remainder rests on the pod's own figure. |
+| M4E-11 snooze re-issue | Implemented, untested | `implementation-status.md` | Add the test before M7. |
+| M4C-01 equivalence test | Accept | 16 staged scenarios on the same store and clock | Make sure the scenarios include a snapshot encode/decode round trip (SM-25) and a DST change in the pod's time zone. |
+
+### P46 ("Use the pod on this iPhone" in `takingBack`) against C-1 and R-4
+
+The machine reuses the P43 rule: it keeps the takeover window only if the `takingBack` loan is a known watch loan **still inside** its window, and otherwise uses `LoanRecord(epoch: nil)`.
+
+| `takingBack` origin | Take used | Can a superseded watch still command? |
+|---|---|---|
+| User Take Back, window open | Dated take with the same window | The C-1 situation. The phone keeps commanding through the watch's sessions, and the watch's own kit refuses at its next handshake (R-4). |
+| User Take Back, window expired (stuck more than 6 h) | `takeControlLiftingRefusal()`, no scope | Only for the documented single stale session: one that reaches the pod before the phone's first handshake is absorbed. The take result then runs refresh and a **pod-lifetime audit after that handshake**, so its insulin is booked. Any later watch session makes the phone refuse (and release), and the watch refuses through R-4. Two-commander exposure is bounded to one session and audited. |
+| End (watch acknowledged release), `grantRejected` (watch never adopted), unreadable file | Lifting, no scope | The watch released, never held, or is unknown. Same bound as above. |
+
+**Conclusion.** P46 never lifts a refusal *with a scope* for a peer outside a valid C-1 window. So it creates no new path to two commanders beyond the kit's documented single-session limit, and the post-take audit covers that limit. P46 replaces the `takingBack` loan with `epoch: nil`. Its pod-lifetime audit then also covers the never-run loan-*e* audit window, so nothing is lost, and late loan-*e* records fall back to recomputing the pod-lifetime audit. **Accepted.**
+
+### V3-6 (faulted pod, or delivered total going down: book nothing and alert)
+
+- **Total going down: correct.** It means a different pod or a corrupt reading, so skipping and alerting is the right call.
+- **Faulted pod: I'd change it.** `deliveredUnitsAreFinal` (`OmniPumpManager+DeviceHandoff.swift:518`) states that the total *is* final. That makes it the most trustworthy reading the audit will ever get, and it is exactly when an unrecorded watch dose matters, because the user is about to start a new pod on the phone with IOB under-counted. Booking nothing errs low, which is the unsafe direction for IOB.
+
+| ID | Sev | Change |
+|---|---|---|
+| M4R-01 | minor | For a faulted pod, audit with the final total and `bolusRemainder = 0` (a faulted pod delivers nothing more). Skip only when that reading is older than the window start. Keep the skip-and-alert for a total that goes down. If the skip stays as is, change the alert copy to say insulin on board may be **too low**, not only "check your history". |
+
+### Verdict
+
+**Merge M4.** The three majors are resolved and tested. P46 is consistent with C-1 and R-4. V3-6 is acceptable for a total that goes down. M4R-01 (the faulted pod) and the untested snooze re-issue go to M7.
