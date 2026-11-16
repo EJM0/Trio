@@ -429,3 +429,33 @@ The crash in run 1 has no crash report on the host, so its cause is not identifi
 | 3 | full `X` at `ae0f568ee` | passed: 1020 total, 975 passed, 0 failed, 45 skipped (+1 skip: the env-gated escape test). No crash and no FileStorage flake in this run |
 | 4 | package source list and the alarm/bolus closure, `swiftc -typecheck` | passed |
 
+
+### Re-review fix (R2-01, 2026-11-16)
+
+| Commit | Subject |
+|---|---|
+| `0cb1ded50` | Inject a clock into OpenAPS and its algorithm fetches |
+| `dc024e740` | Pin the characterization clock to a fixed morning |
+| `6dc0dcbd5` | Run the time zone escape test in CI |
+| `53eb9837e` | Note the JS parity profile and COB mask |
+
+- **Clock seam.** `OpenAPS`, `BaseGlucoseStorage`, `BaseCarbsStorage` and `BaseTDDStorage` take `now: () -> Date` (default `Date.init`, next to `contextProvider`). Every time read on the characterization path goes through it:
+  - the profile, autosens and determination clocks, the autosens timestamp, the custom-variables and TDD windows, and the simulated bolus timestamp;
+  - the pump-history (24 h, 48 h), active temp target and active override predicates (new `(now:)` forms; the existing `static var`s call them with `Date()`);
+  - the glucose, carbs and TDD-sufficiency fetch windows.
+
+  Production passes nothing, so each read is still `Date()` at the same point. `determineBasal(clock:)` keeps its `Date()` default, and stored forecast dates still read `Date()`; neither reaches a golden.
+- **Pinned clock.** `OrefCharacterizationScenarios.makeClock()` is 2026-06-15 07:40:10 CEST for every M1 scenario, `simulation` included; the production-path test injects it as `now`. The M1b time-of-day, JS-parity, bolus and alarm suites already used fixed clocks or no time of day.
+- **Provenance.** I made a throwaway worktree at `ae8efa8d7` (baseline + context injection) at `~/workspaces/Trio-tow-m1b-record` and applied only the same clock seam there (the 7 production files above, plus the `hasSufficientTDD(context:now:)` call in `DynamicISFEnableTests`). I copied in the current scenario and production-test files, built with `CI=true` into separate derived data on the same simulator, and recorded with `TRIO_RECORD_CHARACTERIZATION=1`. All 17 goldens came out byte-identical to the committed ones, so none changed. Two compare runs passed there. The worktree was then removed with `git worktree remove --force /Users/dnzxy/workspaces/Trio-tow-m1b-record`.
+- **Proof.** Every run was on simulator `D20E4570-…`:
+
+  | Run | Process zone, local time | Result |
+  |---|---|---|
+  | fixed clock, all characterization suites | Europe/Berlin, 20:18 | 27/27 passed |
+  | control: `makeClock()` back on real time | Europe/Berlin, 20:20 | 2/2 suites failed (`autosens-8h-24h-differ/iob`, `defaults-no-settings/iob`, …): the evening failure is reproducible right now |
+  | fixed clock; scheme `TZ` set to Europe/Moscow for the run only (not committed) | Europe/Moscow, 22:21 | 19 passed, 8 skipped (the Berlin-gated suites); all 17 production scenarios passed |
+  | full `X` | Europe/Berlin, 20:22 | 1020 total, 975 passed, 0 failed, 45 skipped |
+
+  I didn't wait for a real 22:30 in Berlin: the Moscow run puts the process at local 22:21, which is the failing mechanism (the IOB projection crossing local midnight).
+- **Escape test in CI.** `unit_tests.yml` gains a step after "Run tests": `TEST_RUNNER_TRIO_TZ_ESCAPE=1 xcodebuild test-without-building … -only-testing:TrioTests/ProcessTimeZoneEscapeTests`. It reuses the build and runs alone. Locally that exact command passed (1 test). Not verified on GitHub Actions.
+- R2-02 (meal COB rounding) is untouched; the mask's comment now points at it.
