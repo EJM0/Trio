@@ -20,6 +20,8 @@ protocol PumpHistoryStorage {
     /// Replaces the tagged bolus with `id` by `amount` at `timestamp`; 0 removes it. Returns the old row's id
     /// when it was already uploaded to Nightscout.
     func replaceTaggedBolus(id: String, amount: Decimal, timestamp: Date) async throws -> String?
+    /// Deletes the rows with these sync identifiers. Returns the ids of the deleted rows already uploaded to Nightscout.
+    func deletePumpEvents(syncIdentifiers: [String]) async throws -> [String]
     func getPumpHistoryNotYetUploadedToNightscout() async throws -> [NightscoutTreatment]
     func getPumpHistoryNotYetUploadedToHealth() async throws -> [PumpHistoryEvent]
     func getPumpHistoryNotYetUploadedToTidepool() async throws -> [PumpHistoryEvent]
@@ -340,6 +342,25 @@ final class BasePumpHistoryStorage: PumpHistoryStorage, Injectable {
             } catch {
                 warning(.storage, "Saving external insulin failed", error: error)
             }
+        }
+    }
+
+    func deletePumpEvents(syncIdentifiers: [String]) async throws -> [String] {
+        guard !syncIdentifiers.isEmpty else { return [] }
+        let context = makeContext()
+        context.name = "deletePumpEvents"
+        return try await context.perform {
+            let request = PumpEventStored.fetchRequest() as NSFetchRequest<PumpEventStored>
+            request.predicate = NSPredicate(format: "syncIdentifier IN %@", syncIdentifiers)
+            var uploadedIDs: [String] = []
+            for existing in try context.fetch(request) {
+                if existing.isUploadedToNS, let id = existing.id { uploadedIDs.append(id) }
+                context.delete(existing)
+            }
+            guard context.hasChanges else { return [] }
+            try context.save()
+            self.updateSubject.send(())
+            return uploadedIDs
         }
     }
 

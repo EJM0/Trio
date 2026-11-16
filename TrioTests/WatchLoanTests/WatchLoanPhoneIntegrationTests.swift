@@ -139,6 +139,44 @@ import Testing
         #expect(try await rig.count(GlucoseStored.self) == 2)
     }
 
+    @Test("A kit record that replaces a watch booking deletes the phone's copy of the booking") func replacedBooking(
+    ) async throws {
+        let rig = try await Self.makeRig()
+        let start = Date().addingTimeInterval(-900)
+        func batch(_ records: [WatchLoanRecordBatch.PumpEventRecord]) -> WatchLoanRecordBatch {
+            WatchLoanRecordBatch(
+                version: WatchLoanRecordBatch.currentVersion, batchID: UUID(), epoch: 1, sentAt: Date(), pumpEvents: records,
+                runningTemp: nil, carbs: [], deletedCarbIDs: [], glucose: []
+            )
+        }
+        let dose = DoseEntry(
+            type: .bolus,
+            startDate: start,
+            endDate: start,
+            value: 1,
+            unit: .units,
+            decisionId: nil,
+            deliveredUnits: 1,
+            automatic: false
+        )
+        let booked = Self.record(start, dose, raw: "trio-watch-intent-\(UUID().uuidString)")
+        try await rig.host.merge(batch([booked]))
+        #expect(try await rig.count(PumpEventStored.self) == 1)
+
+        var kit = Self.record(start.addingTimeInterval(2), dose)
+        kit.replacesSyncIdentifier = booked.newPumpEvent.dose?.syncIdentifier
+        try await rig.host.merge(batch([kit]))
+        #expect(try await rig.count(PumpEventStored.self) == 1)
+        #expect(try await rig.count(
+            PumpEventStored.self,
+            NSPredicate(format: "syncIdentifier == %@", kit.newPumpEvent.dose!.syncIdentifier!)
+        ) == 1)
+    }
+
+    @Test("The status query's reply-handler delegate method is visible to WatchConnectivity") func replyHandlerSelector() {
+        #expect(BaseWatchManager.instancesRespond(to: NSSelectorFromString("session:didReceiveMessage:replyHandler:")))
+    }
+
     @Test("The phone driver's pending report doesn't purge merged watch doses") func purgeProtection() async throws {
         let rig = try await Self.makeRig()
         let now = Date().addingTimeInterval(-600)
