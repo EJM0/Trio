@@ -197,3 +197,19 @@ Tests on this revision (same simulator, `1991CB91-59A3-4174-8F99-6F6C2B7279D2`):
 
 - The 1081 passed are the 952 baseline tests plus 129 watch loan tests.
 - The 45 skipped are the 44 baseline skips plus the `TRIO_STRESS`-gated two-Start search.
+
+### M3 re-review items (2026-11-16)
+
+- **M3R-01:** `lateLoanOneMessages` delivers every late loan-1 message (request, grantRejected, holding, records, handBack, status, stop with and without `released`; grant, refused, handBackAck, revoke) while loan 2 is `lending` or `lent`. Neither device changes state, except that a watch still requesting learns the newer epoch, and no pump action starts.
+- **New, from M3R-01:** a late loan-1 revoke used to cancel loan 2's request. W21 now keeps the request and learns the epoch, so a grant from before the revoke is stale.
+- **M3R-02:** `released` decodes with `decodeIfPresent`, defaulting to false. The stop format is documented as "only optional keys".
+- **M3R-03:** "Use the pod on this iPhone" and Take Back from an unreadable file take without a window when the other device is unknown. Only a Take Back from a known watch loan opens one; P43 inside such a window keeps it (P45).
+- **M3R-04:** unchanged here. It is for M2b/M4: clear the kit's window on `releaseControl()`.
+- **M3R-05:** `unreadableStateFile` flow tests cover `lending`, `lent` and `takingBack`.
+- **M3C-09:** left for the maintainer's IDE build. The four new catalog keys are:
+  - "Trio couldn't read which device controls your pump, so it won't send pump commands."
+  - "Your pump is handed over to Apple Watch, so iPhone won't send pump commands."
+  - "Trio stopped sending pump commands"
+  - "Trio couldn't read which device controls your pump. Your pump finishes any running temp basal and then follows its basal schedule."
+
+Tests: the watch loan suites ran 134 tests: 133 passed, 0 failed, 1 skipped (the `TRIO_STRESS` search). Full `Trio Tests`: 1130 total, 1085 passed, 0 failed, 45 skipped.
