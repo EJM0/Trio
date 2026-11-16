@@ -1280,6 +1280,15 @@
 		41514AA6C942AE873DDC2B73 /* WatchLoopRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A965F844A31FB2AA407E7AB /* WatchLoopRules.swift */; };
 		2E13D65DD2BC4B8D784C84BA /* WatchLoopRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A965F844A31FB2AA407E7AB /* WatchLoopRules.swift */; };
 		F5D48D8065F088E7EFF8DB2F /* WatchLoopInputsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8137CE85978D906526135B7 /* WatchLoopInputsTests.swift */; };
+		B633811178250896210EF570 /* WatchLoanFiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26346DA9716E1FBF19D39A04 /* WatchLoanFiles.swift */; };
+		8513C421EC917E3E233CFB33 /* WatchLoanRecordStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2BF3EA085308026D4AC3989 /* WatchLoanRecordStore.swift */; };
+		AC84A498A05E103A66FDDCDC /* WatchLoanPump.swift in Sources */ = {isa = PBXBuildFile; fileRef = C866069850C7C2551AA7C2B1 /* WatchLoanPump.swift */; };
+		8E38E577DB7E3115D6D13CEC /* WatchLoanHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 456CFCDAD0115FBA5F9FFA72 /* WatchLoanHost.swift */; };
+		3AF7D998364099E596394827 /* WatchLoanHost+Cycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C61A005B17C02D690491558 /* WatchLoanHost+Cycle.swift */; };
+		47E93965E7DE28B1C4A9AAB5 /* WatchLoanHost+Treatments.swift in Sources */ = {isa = PBXBuildFile; fileRef = C980ECAC5A2C8057D4EEDBEA /* WatchLoanHost+Treatments.swift */; };
+		860635CDA0AA0C70BC5E75A3 /* WatchLoanAlerts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E334FF103AB8B3E4A1D3141 /* WatchLoanAlerts.swift */; };
+		A84C8590A47EF690C9042405 /* WatchLoanCGM.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB700C49A7E447D575EDEAD4 /* WatchLoanCGM.swift */; };
+		C6B8F2C63CE20E553AFD0C82 /* WatchLoanRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BFF8B004F3796056F93688D /* WatchLoanRuntime.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -2557,6 +2566,15 @@
 		A1CF6D6B9080D5FBC4C83AC8 /* WatchLoopInputs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoopInputs.swift; sourceTree = "<group>"; };
 		0A965F844A31FB2AA407E7AB /* WatchLoopRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoopRules.swift; sourceTree = "<group>"; };
 		E8137CE85978D906526135B7 /* WatchLoopInputsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoopInputsTests.swift; sourceTree = "<group>"; };
+		26346DA9716E1FBF19D39A04 /* WatchLoanFiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanFiles.swift; sourceTree = "<group>"; };
+		B2BF3EA085308026D4AC3989 /* WatchLoanRecordStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanRecordStore.swift; sourceTree = "<group>"; };
+		C866069850C7C2551AA7C2B1 /* WatchLoanPump.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanPump.swift; sourceTree = "<group>"; };
+		456CFCDAD0115FBA5F9FFA72 /* WatchLoanHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanHost.swift; sourceTree = "<group>"; };
+		8C61A005B17C02D690491558 /* WatchLoanHost+Cycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchLoanHost+Cycle.swift"; sourceTree = "<group>"; };
+		C980ECAC5A2C8057D4EEDBEA /* WatchLoanHost+Treatments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchLoanHost+Treatments.swift"; sourceTree = "<group>"; };
+		2E334FF103AB8B3E4A1D3141 /* WatchLoanAlerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanAlerts.swift; sourceTree = "<group>"; };
+		BB700C49A7E447D575EDEAD4 /* WatchLoanCGM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanCGM.swift; sourceTree = "<group>"; };
+		7BFF8B004F3796056F93688D /* WatchLoanRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanRuntime.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -4684,6 +4702,7 @@
 		BDFF7A9C2D25FA730016C40C /* Trio Watch App Extension */ = {
 			isa = PBXGroup;
 			children = (
+				D3B0A23B4AECB420F5676B6A /* Loan */,
 				DDFF204D2DB2C00B00AB8A96 /* WatchStateSnapshot.swift */,
 				DDFF20492DB29EF500AB8A96 /* WatchLogger.swift */,
 				BDA25EE52D260D5800035F34 /* WatchState.swift */,
@@ -5546,6 +5565,22 @@
 				8A54068ABDAE4898B243DF14 /* QuickPickTreatmentsView.swift */,
 			);
 			path = QuickPickTreatments;
+			sourceTree = "<group>";
+		};
+		D3B0A23B4AECB420F5676B6A /* Loan */ = {
+			isa = PBXGroup;
+			children = (
+				7BFF8B004F3796056F93688D /* WatchLoanRuntime.swift */,
+				BB700C49A7E447D575EDEAD4 /* WatchLoanCGM.swift */,
+				2E334FF103AB8B3E4A1D3141 /* WatchLoanAlerts.swift */,
+				C980ECAC5A2C8057D4EEDBEA /* WatchLoanHost+Treatments.swift */,
+				8C61A005B17C02D690491558 /* WatchLoanHost+Cycle.swift */,
+				456CFCDAD0115FBA5F9FFA72 /* WatchLoanHost.swift */,
+				C866069850C7C2551AA7C2B1 /* WatchLoanPump.swift */,
+				B2BF3EA085308026D4AC3989 /* WatchLoanRecordStore.swift */,
+				26346DA9716E1FBF19D39A04 /* WatchLoanFiles.swift */,
+			);
+			path = Loan;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -6977,6 +7012,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C6B8F2C63CE20E553AFD0C82 /* WatchLoanRuntime.swift in Sources */,
+				A84C8590A47EF690C9042405 /* WatchLoanCGM.swift in Sources */,
+				860635CDA0AA0C70BC5E75A3 /* WatchLoanAlerts.swift in Sources */,
+				47E93965E7DE28B1C4A9AAB5 /* WatchLoanHost+Treatments.swift in Sources */,
+				3AF7D998364099E596394827 /* WatchLoanHost+Cycle.swift in Sources */,
+				8E38E577DB7E3115D6D13CEC /* WatchLoanHost.swift in Sources */,
+				AC84A498A05E103A66FDDCDC /* WatchLoanPump.swift in Sources */,
+				8513C421EC917E3E233CFB33 /* WatchLoanRecordStore.swift in Sources */,
+				B633811178250896210EF570 /* WatchLoanFiles.swift in Sources */,
 				2E13D65DD2BC4B8D784C84BA /* WatchLoopRules.swift in Sources */,
 				089B945A5B78DBE8A5D9D6D0 /* WatchLoopInputs.swift in Sources */,
 				C7473A8F5629AFCA41E07597 /* LoopGlucoseGuard.swift in Sources */,

@@ -18,6 +18,8 @@ enum WatchLoopPolicy {
     /// Readings closer than this to the previous one are dropped, as the phone's glucose store does.
     static let glucoseFilterTime: TimeInterval = 3.5 * 60
     static let recordsRetention: TimeInterval = 48 * 60 * 60
+    /// Without a confirmed cycle this long, and two cycles in a row without the pod, the user is told.
+    static let podLinkNoticeDelay: TimeInterval = 5 * 60
 
     static func notLoopingDates(after lastConfirmedCycle: Date) -> [Date] {
         notLoopingMinutes.map { lastConfirmedCycle.addingTimeInterval(TimeInterval($0 * 60)) }
