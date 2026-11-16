@@ -51,6 +51,12 @@ struct OrefCharacterizationScenario {
         let isfAndCr: Bool
         let isf: Bool
         let cr: Bool
+        var advancedSettings = false
+        var smbIsScheduledOff = false
+        var start: Decimal?
+        var end: Decimal?
+        var smbMinutes: Decimal?
+        var uamMinutes: Decimal?
     }
 
     struct Simulation {
@@ -94,7 +100,10 @@ enum OrefCharacterizationScenarios {
         "basal-testing-suspend-only",
         "basal-testing-dynisf-on",
         "defaults-no-settings",
-        "simulation"
+        "simulation",
+        "autosens-8h-24h-differ",
+        "carbs-glucose-window-gap",
+        "override-advanced"
     ]
 
     /// Whole-second clock, so every fixture date survives the millisecond ISO8601 round trip.
@@ -222,6 +231,48 @@ enum OrefCharacterizationScenarios {
                 carbsDate: clock.addingTimeInterval(-70),
                 bolus: 1
             )
+        case "autosens-8h-24h-differ":
+            // resistant over 24 h, less so over the last 8 h: the two ratios differ and neither is 1
+            preferences.maxUAMSMBBasalMinutes = 90
+            scenario.preferences = preferences
+            scenario.carbs = []
+            scenario.glucose = glucose(clock: clock) { index in
+                let slope = index < 96 ? 0.5 : 3
+                return 120 + Int((Double(11 - index % 12) * slope).rounded())
+            }
+        case "carbs-glucose-window-gap":
+            // the pre-meal reading falls outside the determination's glucose window (6.5 h)
+            scenario.glucose = glucose(clock: clock, base: 120, tail: [154, 158, 162, 166, 170, 174])
+                .filter { $0.date >= clock.addingTimeInterval(-346 * 60) || $0.date <= clock.addingTimeInterval(-425 * 60) }
+            scenario.carbs = [
+                OrefCharacterizationScenario.Carb(id: uuid(1), date: clock.addingTimeInterval(-345 * 60), carbs: 200),
+                // older than the window and maxMealAbsorptionTime
+                OrefCharacterizationScenario.Carb(id: uuid(2), date: clock.addingTimeInterval(-420 * 60), carbs: 20)
+            ]
+        case "override-advanced":
+            preferences.maxSMBBasalMinutes = 30
+            preferences.maxUAMSMBBasalMinutes = 90
+            scenario.preferences = preferences
+            scenario.glucose = glucose(clock: clock, base: 150, tail: [168, 176, 185, 193, 201, 210])
+            var override = OrefCharacterizationScenario.ActiveOverride(
+                date: clock.addingTimeInterval(-(15 * 60 + 10)),
+                percentage: 110,
+                target: 105,
+                duration: 120,
+                indefinite: false,
+                smbIsOff: false,
+                isfAndCr: true,
+                isf: true,
+                cr: true
+            )
+            override.advancedSettings = true
+            // SMBs off for every hour [0, 24); swapping start and end turns them back on
+            override.smbIsScheduledOff = true
+            override.start = 0
+            override.end = 24
+            override.smbMinutes = 45
+            override.uamMinutes = 60
+            scenario.override = override
         default:
             preconditionFailure("unknown scenario \(name)")
         }
@@ -248,6 +299,18 @@ enum OrefCharacterizationScenarios {
                 date: clock.addingTimeInterval(-Double(130 + index * 300)),
                 glucose: Int16(value),
                 smoothed: smoothedOffset.map { Decimal(value) + $0 }
+            )
+        }
+    }
+
+    /// 288 readings at 5 min, newest 2 min 10 s ago, newest first; `value` takes the index, 0 being newest.
+    static func glucose(clock: Date, value: (Int) -> Int) -> [OrefCharacterizationScenario.Glucose] {
+        (0 ..< 288).map { index in
+            OrefCharacterizationScenario.Glucose(
+                id: uuid(1000 + index),
+                date: clock.addingTimeInterval(-Double(130 + index * 300)),
+                glucose: Int16(value(index)),
+                smoothed: nil
             )
         }
     }
@@ -375,6 +438,12 @@ extension OrefCharacterizationScenario {
                 object.isfAndCr = override.isfAndCr
                 object.isf = override.isf
                 object.cr = override.cr
+                object.advancedSettings = override.advancedSettings
+                object.smbIsScheduledOff = override.smbIsScheduledOff
+                object.start = override.start.map { NSDecimalNumber(decimal: $0) }
+                object.end = override.end.map { NSDecimalNumber(decimal: $0) }
+                object.smbMinutes = override.smbMinutes.map { NSDecimalNumber(decimal: $0) }
+                object.uamMinutes = override.uamMinutes.map { NSDecimalNumber(decimal: $0) }
             }
 
             try context.save()
