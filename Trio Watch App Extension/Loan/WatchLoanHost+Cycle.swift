@@ -13,7 +13,8 @@ extension WatchLoanHost {
         let previous = (snapshot.oref.glucose + records.snapshot.glucose).map(\.dateString).max()
         let kept: [BloodGlucose]
         do {
-            kept = try records.storeGlucose(readings, newestKnown: previous)
+            let records = records
+            kept = try await WatchLoanFiles.io { try records.storeGlucose(readings, newestKnown: previous) }
         } catch {
             WatchLogger.shared.error(.loop, "Storing glucose failed", error: error)
             alerts.postNotSaved()
@@ -117,7 +118,10 @@ extension WatchLoanHost {
         )
         // the phone books today's insulin before each determination
         let tdd = WatchLoopInputs.tddRow(inputs, roundToSupportedBasalRate: pump.roundToSupportedBasalRate)
-        do { try records.storeTDD(tdd) } catch {
+        do {
+            let records = records
+            try await WatchLoanFiles.io { try records.storeTDD(tdd) }
+        } catch {
             WatchLogger.shared.warning(.loop, "Storing the TDD row failed", error: error)
         }
         inputs.tddHistory = OrefInputs.tddHistory(inputs.tddHistory + [tdd], now: now)
@@ -167,7 +171,7 @@ extension WatchLoanHost {
         updateLoopStatus(outputs, pump: pump)
         finish(start: start, confirmed: confirmed)
         checkBattery()
-        sendRecords(epoch: epoch)
+        await sendRecords(epoch: epoch)
 
         // the heaviest stage runs after the commands, on its 30-minute cadence
         if !OrefRun.isAutosensFresh(cycleInfo.autosens, now: now) {
@@ -220,9 +224,8 @@ extension WatchLoanHost {
     }
 
     func saveCycleInfo() {
-        do { try env.files.save(cycleInfo, to: .cycle) } catch {
-            WatchLogger.shared.warning(.loop, "Saving the cycle info failed", error: error)
-        }
+        let (files, info) = (env.files, cycleInfo)
+        WatchLoanFiles.later("the cycle info") { try files.save(info, to: .cycle) }
     }
 
     private func updateLoopStatus(_ outputs: OrefRun.Outputs, pump: LoanPump) {
@@ -266,7 +269,9 @@ extension WatchLoanHost {
             deliveredBefore: pump.deliveredUnits?.units
         )
         do {
-            try env.files.save(pending, to: .intent)
+            // the cycle waits for the write: nothing is sent before the intent is on disk
+            let files = env.files
+            try await WatchLoanFiles.io { try files.save(pending, to: .intent) }
         } catch {
             WatchLogger.shared.error(.loop, "Command not sent: saving its intent failed", error: error)
             alerts.postNotSaved()
@@ -299,11 +304,11 @@ extension WatchLoanHost {
                 return false
             }
             WatchLogger.shared.warning(.loop, "Command \(Self.name(kind)) failed", error: error)
-            clearIntent()
+            await clearIntent()
             return false
         }
         WatchLogger.shared.info(.loop, "Command \(Self.name(kind)) confirmed in \(Self.seconds(since: sentAt, now: env.now())) s")
-        clearIntent()
+        await clearIntent()
         return true
     }
 
@@ -316,9 +321,10 @@ extension WatchLoanHost {
         }
     }
 
-    private func clearIntent() {
+    private func clearIntent() async {
         intent = nil
-        do { try env.files.remove(.intent) } catch {
+        let files = env.files
+        do { try await WatchLoanFiles.io { try files.remove(.intent) } } catch {
             WatchLogger.shared.warning(.loop, "Removing the settled intent failed", error: error)
         }
     }
@@ -345,7 +351,8 @@ extension WatchLoanHost {
             WatchLogger.shared.info(.loop, "Earlier command \(Self.name(pending.kind)) settled: \(resolution!)")
         case .bookAsDelivered:
             do {
-                try records.book(pending)
+                let records = records
+                try await WatchLoanFiles.io { try records.book(pending) }
             } catch {
                 WatchLogger.shared.error(.loop, "Booking the unconfirmed command failed; kept", error: error)
                 alerts.postNotSaved()
@@ -354,7 +361,7 @@ extension WatchLoanHost {
             WatchLogger.shared.warning(.loop, "Earlier command \(Self.name(pending.kind)) booked as delivered")
             alerts.postBookedIntent()
         }
-        clearIntent()
+        await clearIntent()
     }
 
     static func name(_ kind: WatchDoseIntent.Kind) -> String {
@@ -417,9 +424,10 @@ extension WatchLoanHost {
     }
 
     /// Queues what the phone hasn't acknowledged yet.
-    func sendRecords(epoch: Int64) {
+    func sendRecords(epoch: Int64) async {
         do {
-            let batch = try records.nextBatch(epoch: epoch, now: env.now())
+            let (records, now) = (records, env.now())
+            let batch = try await WatchLoanFiles.io { try records.nextBatch(epoch: epoch, now: now) }
             let data = try batch.encoded()
             env.transport.send([WatchLoanWireKey.records: data])
             WatchLogger.shared.info(

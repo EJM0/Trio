@@ -106,7 +106,8 @@ extension WatchLoanHost {
 
         if carbs > 0 {
             do {
-                try records.storeCarbs(Self.carbsEntry(carbs, at: now))
+                let (records, entry) = (records, Self.carbsEntry(carbs, at: now))
+                try await WatchLoanFiles.io { try records.storeCarbs(entry) }
             } catch {
                 WatchLogger.shared.error(.treatments, "Storing carbs failed; no bolus sent", error: error)
                 alerts.postNotSaved()
@@ -161,7 +162,8 @@ extension WatchLoanHost {
         await serially {
             guard case .holding = self.state, grams > 0 else { return }
             do {
-                try self.records.storeCarbs(Self.carbsEntry(grams, at: self.env.now()))
+                let (records, entry) = (self.records, Self.carbsEntry(grams, at: self.env.now()))
+                try await WatchLoanFiles.io { try records.storeCarbs(entry) }
                 WatchLogger.shared.info(.treatments, "Carbs entered on the watch: \(grams) g")
             } catch {
                 WatchLogger.shared.error(.treatments, "Storing carbs failed", error: error)
@@ -193,7 +195,8 @@ extension WatchLoanHost {
     func cancelOverride() async {
         await serially {
             guard case .holding = self.state else { return }
-            do { try self.records.cancelOverride(at: self.env.now()) } catch {
+            let (records, now) = (self.records, self.env.now())
+            do { try await WatchLoanFiles.io { try records.cancelOverride(at: now) } } catch {
                 WatchLogger.shared.error(.treatments, "Cancelling the override failed", error: error)
                 self.alerts.postNotSaved()
                 return
@@ -206,7 +209,8 @@ extension WatchLoanHost {
     func cancelTempTarget() async {
         await serially {
             guard case .holding = self.state else { return }
-            do { try self.records.cancelTempTarget(at: self.env.now()) } catch {
+            let (records, now) = (self.records, self.env.now())
+            do { try await WatchLoanFiles.io { try records.cancelTempTarget(at: now) } } catch {
                 WatchLogger.shared.error(.treatments, "Cancelling the temp target failed", error: error)
                 self.alerts.postNotSaved()
                 return

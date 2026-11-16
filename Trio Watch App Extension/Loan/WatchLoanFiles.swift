@@ -27,7 +27,26 @@ struct WatchLoanFiles {
         directory.appendingPathComponent(name.rawValue)
     }
 
+    private static let queue = DispatchQueue(label: "org.nightscout.Trio.watch.loanFiles", qos: .userInitiated)
+
+    /// File work off the main thread, in order; returns once it is done.
+    static func io<T>(_ work: @escaping () throws -> T) async throws -> T {
+        try await withCheckedThrowingContinuation { done in
+            queue.async { done.resume(with: Result { try work() }) }
+        }
+    }
+
+    /// File work off the main thread, in order, without waiting for it. A failure is logged.
+    static func later(_ what: String, _ work: @escaping () throws -> Void) {
+        queue.async {
+            do { try work() } catch {
+                WatchLogger.shared.warning(.loop, "Saving \(what) failed", error: error)
+            }
+        }
+    }
+
     func write(_ data: Data, to name: Name) throws {
+        assert(!Thread.isMainThread, "loan file written on the main thread")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try data.write(to: url(name), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
     }
@@ -39,6 +58,7 @@ struct WatchLoanFiles {
     }
 
     func remove(_ name: Name) throws {
+        assert(!Thread.isMainThread, "loan file removed on the main thread")
         guard FileManager.default.fileExists(atPath: url(name).path) else { return }
         try FileManager.default.removeItem(at: url(name))
     }
