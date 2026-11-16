@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C4A00010000000000000005 /* OrefCharacterizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00010000000000000004 /* OrefCharacterizationTests.swift */; };
+		0C4A00010000000000000003 /* OrefCharacterizationScenarios.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00010000000000000002 /* OrefCharacterizationScenarios.swift */; };
 		477F2885616B2839D22FF0A4 /* PumpStatusStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C7EA1FA38A1728182C949F4 /* PumpStatusStorageTests.swift */; };
 		3A627606ABC518974CC60B55 /* PumpStatusStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0E3EA2038BADFBCBC8801A4 /* PumpStatusStorage.swift */; };
 		4AB6E54D1659F6137A70BF74 /* PumpStatusStored+helper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EE4D8D4BA1BD69A89CA1C13 /* PumpStatusStored+helper.swift */; };
@@ -1252,6 +1254,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0C4A00010000000000000004 /* OrefCharacterizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrefCharacterizationTests.swift; sourceTree = "<group>"; };
+		0C4A00010000000000000002 /* OrefCharacterizationScenarios.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrefCharacterizationScenarios.swift; sourceTree = "<group>"; };
 		5C7EA1FA38A1728182C949F4 /* PumpStatusStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PumpStatusStorageTests.swift; sourceTree = "<group>"; };
 		A0E3EA2038BADFBCBC8801A4 /* PumpStatusStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PumpStatusStorage.swift; sourceTree = "<group>"; };
 		1EE4D8D4BA1BD69A89CA1C13 /* PumpStatusStored+helper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PumpStatusStored+helper.swift"; sourceTree = "<group>"; };
@@ -2459,6 +2463,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0C4A00010000000000000001 /* OpenAPSCharacterization */ = {
+			isa = PBXGroup;
+			children = (
+				0C4A00010000000000000004 /* OrefCharacterizationTests.swift */,
+				0C4A00010000000000000002 /* OrefCharacterizationScenarios.swift */,
+			);
+			path = OpenAPSCharacterization;
+			sourceTree = "<group>";
+		};
 		0610F7D6D2EC00E3BA1569F0 /* ConfigEditor */ = {
 			isa = PBXGroup;
 			children = (
@@ -3536,6 +3549,7 @@
 		38FCF3EE25E9028E0078B0D1 /* TrioTests */ = {
 			isa = PBXGroup;
 			children = (
+				0C4A00010000000000000001 /* OpenAPSCharacterization */,
 				A1A0EDA730974FFF0028A032 /* GlucoseFormattingTests.swift */,
 				A1EF5D9A309CEF01007282CC /* DurationFormattingTests.swift */,
 				A1A0EDF43097CE470028A032 /* PercentFormattingTests.swift */,
@@ -6512,6 +6526,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C4A00010000000000000005 /* OrefCharacterizationTests.swift in Sources */,
+				0C4A00010000000000000003 /* OrefCharacterizationScenarios.swift in Sources */,
 				477F2885616B2839D22FF0A4 /* PumpStatusStorageTests.swift in Sources */,
 				3B5CD2C92D4AECD500CE213C /* ProfileCarbsTests.swift in Sources */,
 				3BEDC9932EEB27B600AC6492 /* IobConsecutiveEventsTests.swift in Sources */,
