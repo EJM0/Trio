@@ -27,10 +27,12 @@ let algorithmModels = [
     "CarbRatios",
     "CarbsEntry",
     "Determination",
+    "DosingMode",
     "IOBEntry",
     "InsulinSensitivities",
     "Override",
     "Preferences",
+    "Preferences+DosingMode",
     "PumpHistoryEvent",
     "PumpSettings",
     "TDD",
@@ -46,6 +48,7 @@ let algorithmHelpers = [
     "JSON",
     "Rounding",
     "String+Extensions",
+    "TempTargetCalculations",
     "TherapySettingsUtil",
     "TimeInterval+Convenience"
 ].map { "Helpers/\($0).swift" }
@@ -63,7 +66,8 @@ let package = Package(
             path: "Sources",
             sources: [
                 "APS/OpenAPSSwift",
-                "APS/Extensions/DecimalExtensions.swift"
+                "APS/Extensions/DecimalExtensions.swift",
+                "APS/Storage/ScheduledBasalInference.swift"
             ] + algorithmModels + algorithmHelpers,
             swiftSettings: [.define("TRIO_ALGORITHM_PACKAGE")]
         ),

@@ -154,3 +154,26 @@ The gate never sets `pumpManager` to nil. The gate, the persisted loan state and
 | V2-30 | Overlap with open PR #1749 (watch target, LoopKit and G7 on the watch, Info.plist): implement the minimum here and rebase onto #1749 if it merges first. #1648 and #1775 ideas are reused by design, not by code. The complication comes from #1723 once merged (ADR-008). | C-06, G-9 |
 | V2-31 | Logging for hardware runs: process and launch state, every background task (start, expiry, completion), BLE events and error codes per role, CGM latency and gaps, cycle phase timings, command state and wake-to-command time, dead-man reschedules, WC sends, and a daily summary. Per CONTRIBUTING, with no health data. | D (instrumentation), SR-26 |
 | V2-32 | Hardware milestone M8 (maintainer): E1, E2, E5 and in-vitro DASH hand-off. The flag stays off for users until E2 passes (SR-17). | SM-27, D-16 |
+
+### V2-7b (2026-11-16, maintainer review). Supersedes V2-7
+
+V2-7's per-cycle re-audit and the switch to reductions-only are dropped. They put a mode switch on top of oref, which Trio doesn't do. Unexplained insulin is a history problem: book it, and oref's IOB handles it. The kit (V2-6/R-4) is what stops a stale watch, not a phone mode.
+
+Take Back (phone, user tap):
+1. Cancel the outstanding WatchConnectivity transfers. Persist `takingBack(e+1)`.
+2. `takeControl()`.
+3. Cancel the running temp (R-1).
+4. `refreshDeliveredUnits()`.
+5. Run one audit, which counts the undelivered remainder of a bolus under way (R-2). Book the excess as a tagged audit bolus.
+6. Persist `home(e+1)` and resume normal looping.
+
+The audit bolus is recomputed whenever late watch records arrive (V2-8).
+
+Stale watch: with V2-6/R-4, a watch that contacts the pod after Take Back sees the foreign session and refuses every program command. If the phone's kit later sees a foreign session itself (the stale watch's handshake), the phone treats it as follows:
+- It alerts: "Apple Watch contacted your pod after you took it back".
+- It runs the audit again and books any excess.
+- It keeps looping. Its own commands are not blocked by a peer session it has already superseded with a higher epoch.
+
+**Open, for A2 (M2b):** the kit rule must tell "foreign session after I took control by a deliberate takeover" (phone: audit + alert, keep commanding) apart from "foreign session while I believed I was the only holder" (refuse). The host passes that context.
+
+R-5 / N-3, same principle: a write-ahead intent the kit has no record of is resolved through the odometer. If it can't be resolved, the intended dose is booked as delivered (IOB errs high) and the user is alerted. There is no reductions-only mode.

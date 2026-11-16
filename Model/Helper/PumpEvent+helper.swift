@@ -86,12 +86,12 @@ extension NSPredicate {
     private static let notMutable = "isMutable == NO"
 
     static var pumpHistoryLast1440Minutes: NSPredicate {
-        let date = Date.oneDayAgoInMinutes
+        let date = OrefInputs.pumpHistoryStart(now: Date())
         return NSPredicate(format: "timestamp >= %@ AND \(notScheduledBasal)", date as NSDate)
     }
 
     static var pumpHistoryLast48h: NSPredicate {
-        let date = Date() - TimeInterval(hours: 48)
+        let date = OrefInputs.orphanedResumeWindowStart(now: Date())
         return NSPredicate(format: "timestamp >= %@ AND \(notScheduledBasal)", date as NSDate)
     }
 
@@ -163,84 +163,12 @@ extension PumpEventStored {
     /// Converts a stored pump event into the `PumpHistoryEvent`s the oref algorithm can use.
     /// A temp basal yields a duration entry followed by a rate entry.
     func toPumpHistoryEvents() -> [PumpHistoryEvent] {
-        var events: [PumpHistoryEvent] = []
-        if let bolus = toBolusPumpHistoryEvent() { events.append(bolus) }
-        if let duration = toTempBasalDurationPumpHistoryEvent() { events.append(duration) }
-        if let tempBasal = toTempBasalPumpHistoryEvent() { events.append(tempBasal) }
-        if let suspend = toSuspendPumpHistoryEvent() { events.append(suspend) }
-        if let resume = toResumePumpHistoryEvent() { events.append(resume) }
-        if let rewind = toRewindPumpHistoryEvent() { events.append(rewind) }
-        if let prime = toPrimePumpHistoryEvent() { events.append(prime) }
-        return events
-    }
-
-    private func toBolusPumpHistoryEvent() -> PumpHistoryEvent? {
-        guard let timestamp = timestamp, let bolus = bolus, let amount = bolus.amount else {
-            return nil
-        }
-        return PumpHistoryEvent(
-            id: id ?? UUID().uuidString,
-            type: .bolus,
-            timestamp: timestamp,
-            amount: Decimal(algorithmValue: amount.doubleValue),
-            duration: 0,
-            isSMB: bolus.isSMB,
-            isExternal: bolus.isExternal
-        )
-    }
-
-    // The temp basal duration populates `durationMin`, not `duration`.
-    private func toTempBasalDurationPumpHistoryEvent() -> PumpHistoryEvent? {
-        guard let id = id, let timestamp = timestamp, let tempBasal = tempBasal else {
-            return nil
-        }
-        return PumpHistoryEvent(
+        OrefInputs.pumpHistoryEvents(
             id: id,
-            type: .tempBasalDuration,
             timestamp: timestamp,
-            durationMin: Int(tempBasal.duration)
+            type: type,
+            bolus: bolus.map { (amount: $0.amount?.doubleValue, isSMB: $0.isSMB, isExternal: $0.isExternal) },
+            tempBasal: tempBasal.map { (duration: Int($0.duration), rate: $0.rate?.doubleValue, tempType: $0.tempType) }
         )
-    }
-
-    // The temp basal rate entry id is prefixed with "_". An unrecognized `tempType` maps to nil.
-    private func toTempBasalPumpHistoryEvent() -> PumpHistoryEvent? {
-        guard let id = id, let timestamp = timestamp, let tempBasal = tempBasal, let rate = tempBasal.rate else {
-            return nil
-        }
-        return PumpHistoryEvent(
-            id: "_\(id)",
-            type: .tempBasal,
-            timestamp: timestamp,
-            rate: Decimal(algorithmValue: rate.doubleValue),
-            temp: tempBasal.tempType.flatMap { Trio.TempType(rawValue: $0) }
-        )
-    }
-
-    private func toSuspendPumpHistoryEvent() -> PumpHistoryEvent? {
-        guard let id = id, let timestamp = timestamp, type == EventType.pumpSuspend.rawValue else {
-            return nil
-        }
-        return PumpHistoryEvent(id: id, type: .pumpSuspend, timestamp: timestamp)
-    }
-
-    private func toResumePumpHistoryEvent() -> PumpHistoryEvent? {
-        guard let id = id, let timestamp = timestamp, type == EventType.pumpResume.rawValue else {
-            return nil
-        }
-        return PumpHistoryEvent(id: id, type: .pumpResume, timestamp: timestamp)
-    }
-
-    private func toRewindPumpHistoryEvent() -> PumpHistoryEvent? {
-        guard let id = id, let timestamp = timestamp, type == EventType.rewind.rawValue else {
-            return nil
-        }
-        return PumpHistoryEvent(id: id, type: .rewind, timestamp: timestamp)
-    }
-
-    private func toPrimePumpHistoryEvent() -> PumpHistoryEvent? {
-        guard let id = id, let timestamp = timestamp, type == EventType.prime.rawValue else {
-            return nil
-        }
-        return PumpHistoryEvent(id: id, type: .prime, timestamp: timestamp)
     }
 }

@@ -7,6 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C4A00080000000000000002 /* OrefInputsSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00080000000000000001 /* OrefInputsSelectionTests.swift */; };
+		0C4A00070000000000000002 /* OrefRunStageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00070000000000000001 /* OrefRunStageTests.swift */; };
+		0C4A00060000000000000002 /* OrefInputs+Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00060000000000000001 /* OrefInputs+Selection.swift */; };
+		0C4A00050000000000000002 /* OrefRunCharacterizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00050000000000000001 /* OrefRunCharacterizationTests.swift */; };
+		0C4A00040000000000000002 /* OrefInputs+TDD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00040000000000000001 /* OrefInputs+TDD.swift */; };
+		0C4A00030000000000000002 /* OrefInputs+Mapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00030000000000000001 /* OrefInputs+Mapping.swift */; };
+		0C4A00020000000000000005 /* OrefRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00020000000000000004 /* OrefRun.swift */; };
+		0C4A00020000000000000003 /* OrefInputs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00020000000000000002 /* OrefInputs.swift */; };
+		0C4A00010000000000000005 /* OrefCharacterizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00010000000000000004 /* OrefCharacterizationTests.swift */; };
+		0C4A00010000000000000003 /* OrefCharacterizationScenarios.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00010000000000000002 /* OrefCharacterizationScenarios.swift */; };
 		477F2885616B2839D22FF0A4 /* PumpStatusStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C7EA1FA38A1728182C949F4 /* PumpStatusStorageTests.swift */; };
 		3A627606ABC518974CC60B55 /* PumpStatusStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0E3EA2038BADFBCBC8801A4 /* PumpStatusStorage.swift */; };
 		4AB6E54D1659F6137A70BF74 /* PumpStatusStored+helper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EE4D8D4BA1BD69A89CA1C13 /* PumpStatusStored+helper.swift */; };
@@ -1176,6 +1186,11 @@
 		A6FBF4EFEE4D210705635A4D /* GlucoseStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD30BA012E074F0F00DA677C /* GlucoseStatus.swift */; };
 		B5AEA9BC546C2448DCB9CA91 /* IobResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B1C5C2E2D68E220004E9273 /* IobResult.swift */; };
 		6D67066586758BE79D67BD07 /* Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5CD2AF2D4AEA6600CE213C /* Profile.swift */; };
+		C3B8C760147A71BAD6B6DCDB /* OrefInputs+Mapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00030000000000000001 /* OrefInputs+Mapping.swift */; };
+		8C4C70785E58D08764C22A1E /* OrefInputs+Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00060000000000000001 /* OrefInputs+Selection.swift */; };
+		AF30DA44CEC1870BF4583A76 /* OrefInputs+TDD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00040000000000000001 /* OrefInputs+TDD.swift */; };
+		07C03FA322F86CE51331259D /* OrefInputs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00020000000000000002 /* OrefInputs.swift */; };
+		CA618E660F48481D129037C4 /* OrefRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00020000000000000004 /* OrefRun.swift */; };
 		2AC99E9D57188059BA62E559 /* Basal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5CD2912D4AEA3C00CE213C /* Basal.swift */; };
 		59F40B9C61D800B5F5CC897E /* Carbs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5CD2922D4AEA3C00CE213C /* Carbs.swift */; };
 		9FBD8F10D7D7DCD386F670FC /* Isf.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5CD2932D4AEA3C00CE213C /* Isf.swift */; };
@@ -1183,12 +1198,14 @@
 		D195B863BABA178500BC889E /* ProfileGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5CD2952D4AEA3C00CE213C /* ProfileGenerator.swift */; };
 		6173DF516F12B2CA3FE5E2EB /* Targets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5CD2962D4AEA3C00CE213C /* Targets.swift */; };
 		FE8DA2D71D415D5B121DA70E /* JavascriptOptional.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B5CD29E2D4AEA5100CE213C /* JavascriptOptional.swift */; };
+		BA6CEDFEF3FE58EE5E550A5D /* ScheduledBasalInference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A11AC0DE00000000000000B /* ScheduledBasalInference.swift */; };
 		33A0ECCDACE0CFB0A408102A /* ConvenienceExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38192E0C261BAF980094D973 /* ConvenienceExtensions.swift */; };
 		965FCDC9BD4416B2CFBC6106 /* Decimal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3871F39E25ED895A0013ECB5 /* Decimal+Extensions.swift */; };
 		6334C582E806A7F23DE1E180 /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3811DE5425C9D4D500A708ED /* Formatters.swift */; };
 		579B1B17DF3DDE03BF1BC8E6 /* JSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 388E5A5B25B6F0770019842D /* JSON.swift */; };
 		66FF1C08DA3FECF78B6BBDE0 /* Rounding.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD6B7CB12C7B6F0800B75029 /* Rounding.swift */; };
 		A81946D44ABF2DCC1333650F /* String+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E98A3625F5509500C0CED0 /* String+Extensions.swift */; };
+		A7B351B459C5FC63FC9283C5 /* TempTargetCalculations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49239B422EEA27AD00469145 /* TempTargetCalculations.swift */; };
 		93E72DCE1D772829A7149586 /* TherapySettingsUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDCAE8322D78D49C00B1BB51 /* TherapySettingsUtil.swift */; };
 		080E76830627E1E32181D60F /* TimeInterval+Convenience.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C5E1F4A7B91E2F3C5D6E71 /* TimeInterval+Convenience.swift */; };
 		DCF4DBEF19EA1A48A9378940 /* Autosens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 388E5A5F25B6F2310019842D /* Autosens.swift */; };
@@ -1198,9 +1215,11 @@
 		6425C28315D8538399F505D2 /* CarbRatios.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38A9260425F012D8009E3739 /* CarbRatios.swift */; };
 		74600A47D75722C519012E2C /* CarbsEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38D0B3D825EC07C400CB6E88 /* CarbsEntry.swift */; };
 		CA7C6D0D7D08C1BD8F853A8E /* Determination.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583684072BD195A700070A60 /* Determination.swift */; };
+		2ADA5F5880CB1BD9493F184C /* DosingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD6B7CB32C7B71F700B75030 /* DosingMode.swift */; };
 		2566FA51BD207395D10DED0E /* IOBEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38887CCD25F5725200944304 /* IOBEntry.swift */; };
 		6124FA2166CF0A12A6B46C2D /* InsulinSensitivities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 382C133625F13A1E00715CE1 /* InsulinSensitivities.swift */; };
 		C5D7241CE0EEA0F71DC6DC55 /* Override.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDC2EA462C3045AD00E5BBD0 /* Override.swift */; };
+		381066DA95BC89C8008A41D1 /* Preferences+DosingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD6B7CB32C7B71F700B75031 /* Preferences+DosingMode.swift */; };
 		2545E0119398E21D75144FCE /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3895E4C525B9E00D00214B37 /* Preferences.swift */; };
 		DCBE1F368710B5E9CDEC6539 /* PumpHistoryEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38A13D3125E28B4B00EAA382 /* PumpHistoryEvent.swift */; };
 		510740403D48064E22D2B63E /* PumpSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3883583325EEB38000E024B2 /* PumpSettings.swift */; };
@@ -1325,6 +1344,16 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0C4A00080000000000000001 /* OrefInputsSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrefInputsSelectionTests.swift; sourceTree = "<group>"; };
+		0C4A00070000000000000001 /* OrefRunStageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrefRunStageTests.swift; sourceTree = "<group>"; };
+		0C4A00060000000000000001 /* OrefInputs+Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrefInputs+Selection.swift"; sourceTree = "<group>"; };
+		0C4A00050000000000000001 /* OrefRunCharacterizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrefRunCharacterizationTests.swift; sourceTree = "<group>"; };
+		0C4A00040000000000000001 /* OrefInputs+TDD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrefInputs+TDD.swift"; sourceTree = "<group>"; };
+		0C4A00030000000000000001 /* OrefInputs+Mapping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrefInputs+Mapping.swift"; sourceTree = "<group>"; };
+		0C4A00020000000000000004 /* OrefRun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrefRun.swift; sourceTree = "<group>"; };
+		0C4A00020000000000000002 /* OrefInputs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrefInputs.swift; sourceTree = "<group>"; };
+		0C4A00010000000000000004 /* OrefCharacterizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrefCharacterizationTests.swift; sourceTree = "<group>"; };
+		0C4A00010000000000000002 /* OrefCharacterizationScenarios.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrefCharacterizationScenarios.swift; sourceTree = "<group>"; };
 		5C7EA1FA38A1728182C949F4 /* PumpStatusStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PumpStatusStorageTests.swift; sourceTree = "<group>"; };
 		A0E3EA2038BADFBCBC8801A4 /* PumpStatusStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PumpStatusStorage.swift; sourceTree = "<group>"; };
 		1EE4D8D4BA1BD69A89CA1C13 /* PumpStatusStored+helper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PumpStatusStored+helper.swift"; sourceTree = "<group>"; };
@@ -2535,6 +2564,29 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0C4A00020000000000000001 /* OrefRun */ = {
+			isa = PBXGroup;
+			children = (
+				0C4A00060000000000000001 /* OrefInputs+Selection.swift */,
+				0C4A00040000000000000001 /* OrefInputs+TDD.swift */,
+				0C4A00030000000000000001 /* OrefInputs+Mapping.swift */,
+				0C4A00020000000000000004 /* OrefRun.swift */,
+				0C4A00020000000000000002 /* OrefInputs.swift */,
+			);
+			path = OrefRun;
+			sourceTree = "<group>";
+		};
+		0C4A00010000000000000001 /* OpenAPSCharacterization */ = {
+			isa = PBXGroup;
+			children = (
+				0C4A00080000000000000001 /* OrefInputsSelectionTests.swift */,
+				0C4A00050000000000000001 /* OrefRunCharacterizationTests.swift */,
+				0C4A00010000000000000004 /* OrefCharacterizationTests.swift */,
+				0C4A00010000000000000002 /* OrefCharacterizationScenarios.swift */,
+			);
+			path = OpenAPSCharacterization;
+			sourceTree = "<group>";
+		};
 		0610F7D6D2EC00E3BA1569F0 /* ConfigEditor */ = {
 			isa = PBXGroup;
 			children = (
@@ -3612,6 +3664,7 @@
 		38FCF3EE25E9028E0078B0D1 /* TrioTests */ = {
 			isa = PBXGroup;
 			children = (
+				0C4A00010000000000000001 /* OpenAPSCharacterization */,
 				A1A0EDA730974FFF0028A032 /* GlucoseFormattingTests.swift */,
 				A1EF5D9A309CEF01007282CC /* DurationFormattingTests.swift */,
 				A1A0EDF43097CE470028A032 /* PercentFormattingTests.swift */,
@@ -3731,6 +3784,7 @@
 		3B5CD1EB2D4912A600CE213C /* OpenAPSSwift */ = {
 			isa = PBXGroup;
 			children = (
+				0C4A00020000000000000001 /* OrefRun */,
 				DD30B9C82E06295700DA677C /* Forecasts */,
 				DD30B9C52E0624C600DA677C /* DetermineBasal */,
 				3B139EF12DF06CD100D40797 /* Autosens */,
@@ -3802,6 +3856,7 @@
 		3B5CD2C72D4AECD500CE213C /* OpenAPSSwiftTests */ = {
 			isa = PBXGroup;
 			children = (
+				0C4A00070000000000000001 /* OrefRunStageTests.swift */,
 				3B1C5C3C2D68E269004E9273 /* json */,
 				FAB1E00000000000000000A0 /* Parity */,
 				3B1C5C3F2D68E269004E9273 /* utils */,
@@ -5820,6 +5875,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C4A00060000000000000002 /* OrefInputs+Selection.swift in Sources */,
+				0C4A00040000000000000002 /* OrefInputs+TDD.swift in Sources */,
+				0C4A00030000000000000002 /* OrefInputs+Mapping.swift in Sources */,
+				0C4A00020000000000000005 /* OrefRun.swift in Sources */,
+				0C4A00020000000000000003 /* OrefInputs.swift in Sources */,
 				3A627606ABC518974CC60B55 /* PumpStatusStorage.swift in Sources */,
 				4AB6E54D1659F6137A70BF74 /* PumpStatusStored+helper.swift in Sources */,
 				BDDB1F2A2BEE371D5C0765DE /* PumpStatusStored+CoreDataProperties.swift in Sources */,
@@ -6591,6 +6651,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C4A00080000000000000002 /* OrefInputsSelectionTests.swift in Sources */,
+				0C4A00070000000000000002 /* OrefRunStageTests.swift in Sources */,
+				0C4A00050000000000000002 /* OrefRunCharacterizationTests.swift in Sources */,
+				0C4A00010000000000000005 /* OrefCharacterizationTests.swift in Sources */,
+				0C4A00010000000000000003 /* OrefCharacterizationScenarios.swift in Sources */,
 				477F2885616B2839D22FF0A4 /* PumpStatusStorageTests.swift in Sources */,
 				3B5CD2C92D4AECD500CE213C /* ProfileCarbsTests.swift in Sources */,
 				3BEDC9932EEB27B600AC6492 /* IobConsecutiveEventsTests.swift in Sources */,
@@ -6813,6 +6878,11 @@
 				A6FBF4EFEE4D210705635A4D /* GlucoseStatus.swift in Sources */,
 				B5AEA9BC546C2448DCB9CA91 /* IobResult.swift in Sources */,
 				6D67066586758BE79D67BD07 /* Profile.swift in Sources */,
+				C3B8C760147A71BAD6B6DCDB /* OrefInputs+Mapping.swift in Sources */,
+				8C4C70785E58D08764C22A1E /* OrefInputs+Selection.swift in Sources */,
+				AF30DA44CEC1870BF4583A76 /* OrefInputs+TDD.swift in Sources */,
+				07C03FA322F86CE51331259D /* OrefInputs.swift in Sources */,
+				CA618E660F48481D129037C4 /* OrefRun.swift in Sources */,
 				2AC99E9D57188059BA62E559 /* Basal.swift in Sources */,
 				59F40B9C61D800B5F5CC897E /* Carbs.swift in Sources */,
 				9FBD8F10D7D7DCD386F670FC /* Isf.swift in Sources */,
@@ -6820,12 +6890,14 @@
 				D195B863BABA178500BC889E /* ProfileGenerator.swift in Sources */,
 				6173DF516F12B2CA3FE5E2EB /* Targets.swift in Sources */,
 				FE8DA2D71D415D5B121DA70E /* JavascriptOptional.swift in Sources */,
+				BA6CEDFEF3FE58EE5E550A5D /* ScheduledBasalInference.swift in Sources */,
 				33A0ECCDACE0CFB0A408102A /* ConvenienceExtensions.swift in Sources */,
 				965FCDC9BD4416B2CFBC6106 /* Decimal+Extensions.swift in Sources */,
 				6334C582E806A7F23DE1E180 /* Formatters.swift in Sources */,
 				579B1B17DF3DDE03BF1BC8E6 /* JSON.swift in Sources */,
 				66FF1C08DA3FECF78B6BBDE0 /* Rounding.swift in Sources */,
 				A81946D44ABF2DCC1333650F /* String+Extensions.swift in Sources */,
+				A7B351B459C5FC63FC9283C5 /* TempTargetCalculations.swift in Sources */,
 				93E72DCE1D772829A7149586 /* TherapySettingsUtil.swift in Sources */,
 				080E76830627E1E32181D60F /* TimeInterval+Convenience.swift in Sources */,
 				DCF4DBEF19EA1A48A9378940 /* Autosens.swift in Sources */,
@@ -6835,9 +6907,11 @@
 				6425C28315D8538399F505D2 /* CarbRatios.swift in Sources */,
 				74600A47D75722C519012E2C /* CarbsEntry.swift in Sources */,
 				CA7C6D0D7D08C1BD8F853A8E /* Determination.swift in Sources */,
+				2ADA5F5880CB1BD9493F184C /* DosingMode.swift in Sources */,
 				2566FA51BD207395D10DED0E /* IOBEntry.swift in Sources */,
 				6124FA2166CF0A12A6B46C2D /* InsulinSensitivities.swift in Sources */,
 				C5D7241CE0EEA0F71DC6DC55 /* Override.swift in Sources */,
+				381066DA95BC89C8008A41D1 /* Preferences+DosingMode.swift in Sources */,
 				2545E0119398E21D75144FCE /* Preferences.swift in Sources */,
 				DCBE1F368710B5E9CDEC6539 /* PumpHistoryEvent.swift in Sources */,
 				510740403D48064E22D2B63E /* PumpSettings.swift in Sources */,
