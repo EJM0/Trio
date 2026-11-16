@@ -3,7 +3,7 @@ import Foundation
 /// The oref pipeline as pure stages: profile, autosens, meal, IOB and determination.
 /// The phone's `OpenAPS` calls the stages one by one and persists between them; `run` chains them.
 enum OrefRun {
-    struct Outputs: Codable {
+    struct Outputs {
         var pumpProfile: Profile
         var profile: Profile
         var autosens: Autosens

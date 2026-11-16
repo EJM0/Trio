@@ -64,7 +64,7 @@ struct OrefInputs: Codable {
     var currentTemp: TempBasal
     var supportedBasalRates: [Decimal]
 
-    /// The last autosens result while the caller still considers it fresh; nil runs autosens.
+    /// The last autosens result while `OrefRun.isAutosensFresh` holds; nil runs autosens. `run` does not recheck it.
     var autosens: Autosens?
     var clock: Date
 }
