@@ -11,6 +11,9 @@ struct WatchLoanRecordBatch: Codable {
         var raw: Data
         var title: String
         var dose: DoseEntry
+        /// The sync identifier of a dose the watch had booked for an unconfirmed command, which this kit record replaces.
+        /// The phone deletes its copy of that booking.
+        var replacesSyncIdentifier: String? = nil
 
         var newPumpEvent: NewPumpEvent { NewPumpEvent(date: date, dose: dose, raw: raw, title: title) }
     }

@@ -1146,3 +1146,64 @@ Build notes:
 | Watch app build, flag off / flag on, fresh derived data | 0 / 0 |
 
 The watch `build` action compiles the kits for arm64 and x86_64, while `test` compiles arm64 only. Both in one derived-data folder leave an arm64-only `LoopKit.tbd` that `RileyLinkBLEKit-watchOS` then fails to link; this is the shared-folder problem noted above, not a code issue. Build and test watch builds in separate folders.
+
+### M5 review fixes (M5 architecture/code review C, M5 safety review E)
+
+| Commit | Subject |
+|---|---|
+| `5f17bf9b2` | Keep flag-off watch background handling as today |
+| `abb73c9de` | Define the watch's Swift flag condition once |
+| `661dd308c` | Declare Bluetooth use for the watch app |
+| `f4cbf67de` | Answer the status query from the loan extension |
+| `da8958ce9` | Read the watch loan files off the main thread |
+| `350096fa6` | Keep each watch intent and book recovered doses once |
+| `6c9f02cdc` | Keep glucose alarms on a stopped watch |
+| `08baf0452` | Use the phone's current-temp fallback on the watch |
+| `4b5e1749a` | Extend the watch's not-looping series to six hours |
+| `b3d684302` | Format watch insulin amounts with LoopKit |
+| `bcd036b8e` | Test the watch's mappings against the phone's stores |
+| `9c71179d4` | Refuse End while any watch intent is unresolved |
+
+Hunk staging swapped one hunk each between `08baf0452` and `b3d684302`: the treatments file's current-temp call is in the formatter commit, and the formatter strings are in the fallback commit. Every commit after the series builds and the tree is verified as a whole. Intermediate commits were not built on their own.
+
+| Finding | Change | Test |
+|---|---|---|
+| M5E-01 | Intents are a list in one file. Each command appends its own intent and never overwrites one. While any intent is unresolved, no command that adds insulin is sent (`command` returns `.notSent`); reductions, suspend and resume still go out with their own intent. End is refused while the list isn't empty. | `intentList`: a pending bolus, then reductions and a suspend that also stay unconfirmed; all kept, all survive a relaunch, then the bolus is booked and the rest settle |
+| M5E-02 | `resolveIntents` drains the pump's delegate queue (a block on the same serial queue) before and after the odometer read, so the kit's recovered dose is stored first. `kitRecorded` matches type, amount within one pulse and a −60 s to +10 min window (`WatchDoseIntent.matches`). A kit dose that arrives after the watch booked the intent replaces the booking (`WatchLoopInputs.store`, `sameDose`). | `recoveredBolus` with the kit record before and after the booking: one bolus each time, the kit's |
+| M5E-03 | Readings are stored and glucose alarms evaluated in `holding`, `returning` and `stopped` other than `superseded`; commands stay blocked by `command`'s state check. | `stoppedAlarms` |
+| M5E-04 | Between pump states the current temp is the newest temp basal of the last 20 min with what remains of it (`WatchLoopInputs.fallbackTemp`), the phone's `fetchCurrentTempBasal` rule. | `WatchLoopRulesTests.fallbackTemp` |
+| M5E-05 | Not-looping series 20–120 min as on the phone (which ends at 120 with a critical alarm), then hourly to 6 h, the resume horizon. | `notLooping`, `deadMan` |
+| M5E-06 / M5C-05 | The host reads every loan file on the file queue in a load task that every entry point waits for; the record store loads there too. Nothing loan-related is read or written on the main thread. | All host tests (the debug write assertion; the load runs before each test's first event) |
+| M5E-07 | Equivalence on the phone's real code: `FetchGlucoseManager.smoothStoredGlucose(context:now:)` (the smoothing pass, now with a clock seam; the instance method calls it with `Date()`) and `BaseGlucoseStorage.mapToBloodGlucose` against the watch builder; `BaseTDDStorage.hasSufficientTDD(context:now:)` against the watch's recount at 1511 and 1512 rows, with zero-total rows and 8-day-old rows present. | `WatchLoopPhoneEquivalenceTests.smoothing`, `.sufficiency` |
+| M5E-08 | Leaving the loan (`idle`) books every unsettled intent the cycle would book, sends a record batch, then deletes the list. | `retireBooks` |
+| Unreadable watch state | Row W38 in the decision table; the host alerts (stopped, unconfirmed). | `unreadableState` |
+| M5C-01 | `@WKApplicationDelegateAdaptor` and `WatchAppDelegate` exist only under `#if TRIO_ON_WATCH`. With the flag off the binary has no `WatchAppDelegate` symbol, so the system's default background-task handling applies as today. | Build check in the verification below |
+| M5C-02 | `INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription` on the watch app, both configurations, both flag values: "Trio uses Bluetooth to connect to your insulin pump and glucose sensor." Why always: the watch now embeds CoreBluetooth-using kits even with the flag off (M5C-03), and App Store Connect's purpose-string check (ITMS-90683) looks at the binary's API use, not at whether it runs. A purpose string asks for nothing on its own, so it is harmless while unused. Unverified until E1. Its translation needs the watch's InfoPlist strings in Crowdin (maintainer). | Build check below |
+| M5C-03 | Accepted as is (maintainer decision recommended by C): kits linked and embedded unconditionally, as in #1749; inert with the flag off. | — |
+| M5C-04 | Differential test: the same kit events (suspend, resume, external insulin, a temp cancelled early and finalized, a zero temp, a bolus cut short, an SMB, a pending temp purged by a complete report, scheduled basal) through `BasePumpHistoryStorage.storePumpEvents` + `OpenAPS.nativePumpHistory` on an in-memory store and through the watch's `WatchLoopInputs.store` + `pumpHistoryEvents`. Identical apart from row ids. The watch mirrors the phone's pump-history rules in shared `WatchLoopInputs.store` (the phone's `storePumpEvents` is unchanged), so the test runs the watch's own code against the phone's. The watch drops kit events without a sync identifier; OmnipodKit always sets one. | `WatchLoopPhoneEquivalenceTests.pumpEvents` |
+| M5C-06 | The target-level `TRIO_ON_WATCH` condition is gone; `Config.xcconfig` (project level, M4) defines it. Flag-on builds still show `-DTRIO_ON_WATCH`. | Build logs |
+| M5C-07 | Not changed: separate derived-data folders, documented above. | — |
+| M5C-08 | Insulin amounts in watch strings use LoopKit's `QuantityFormatter` with its localized unit; no hard-coded "U". The watch target has no string catalog of its own; extraction for Crowdin needs an IDE build (maintainer, M6/M7). Changed keys: "More than your max bolus of %@.", "This would go over your max IOB of %@." | — |
+| M5C-09 | The reply-handler delegate method lives in `AppleWatchManager+WatchLoan.swift`, so #1598's own reply handler conflicts there only, in one small method. | — |
+
+Verification at `9c71179d4` (same simulators, separate derived-data folders):
+
+| Step | Result |
+|---|---|
+| iOS app | 0 |
+| Full `Trio Tests` | 1239 total, 1191 passed, 1 failed, 46 skipped. The failure is `WatchLogIngestTests` "Overlapping batches arriving together are stored once" (a timing test, untouched here); alone it passed 8 / 8 twice |
+| `Trio Watch AppTests`, flag off / on | 47 / 47 each |
+| Watch app build, flag off | 0; no `WatchAppDelegate` symbol in the binary; Bluetooth purpose string present |
+| Watch app build, flag on | 0; `WatchAppDelegate` present; Bluetooth purpose string present |
+
+### M5 re-review fixes (M5R)
+
+| Finding | Change | Test |
+|---|---|---|
+| E M5R-01 | A booking is replaced only by a kit record with a new sync identifier, never by an update to one already stored, and only by the intent's own rule: same type, amount within a pulse, kit start from 60 s before to 10 min after the booked command. If several bookings match, the closest is replaced. | `WatchLoopRulesTests.bookingReplacement`: a late finalization of an earlier same-amount SMB leaves both later bookings; the kit's record of the second replaces only that one |
+| E residual (M5E-02) | The replacing kit record carries `replacesSyncIdentifier` (the booking's sync identifier) in the record batch. The phone deletes rows with that sync identifier before storing the batch (`PumpHistoryStorage.deletePumpEvents(syncIdentifiers:)`), and deletes any uploaded copy from Nightscout, as `replaceTaggedBolus` does. A batch that delivers the booking after the replacement would store it again (out-of-order batches); not handled. | `WatchLoanPhoneIntegrationTests.replacedBooking` |
+| E M5R-02 | Resume is no longer counted as adding insulin: it restores scheduled basal and goes out with its own intent while another is unresolved. Boluses, SMBs and temps above the scheduled rate stay blocked. | `WatchLoanHostTests.resumeWhilePending` |
+| C M5R-01 | The reply-handler delegate method is `@objc(session:didReceiveMessage:replyHandler:)`, so WatchConnectivity finds it outside the class body that declares the conformance. | `WatchLoanPhoneIntegrationTests.replyHandlerSelector` (`instancesRespond(to:)`) |
+| C M5R-02 | Documented above (mirrored, not moved; events without a sync identifier dropped). | — |
+
+Verification after the re-review fixes: full `Trio Tests` 1242 total, 1195 passed, 0 failed, 46 skipped; `Trio Watch AppTests` 48 / 48 with the flag off and on.
