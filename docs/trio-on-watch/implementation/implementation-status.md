@@ -237,7 +237,7 @@ The SwiftFormat build phase reformats `Trio Watch App Tests/Unit Tests.swift` on
 | ID | Fix |
 |---|---|
 | M1-01 | New scenario `autosens-8h-24h-differ`: 8 h ratio 1.12, 24 h ratio 1.2, the 8 h one is chosen. `ParityScenarios.runPipeline` now calls `OrefRun.profiles`, `determinationProfile`, `autosens` (new `includeDeviationsForTesting` pass-through), `meal`, `iob` and `determine`. All 14 parity goldens are unchanged. |
-| M1-02 | `OrefInputs+Selection.swift` holds the selection rules: the glucose windows (`autosensGlucoseHours`, `determinationGlucoseHours`, `glucoseStart`, `glucose(_:since:)`), `carbsStart` / `carbs(_:now:)`, `pumpHistoryStart`, `orphanedResumeWindowStart`, `algorithmPumpEvents` (no scheduled-basal rows, no orphaned resumes, last 24 h, newest first), `tddHistoryStart` / `tddHistory`, `sufficientTDDStart` / `sufficientTDDRowCount` / `hasSufficientTDD`. The phone uses them: `OpenAPS` now does one 48 h pump-event fetch through `algorithmPumpEvents` instead of the 24 h fetch plus the separate orphan fetch; `GlucoseStorage`, `CarbsStorage`, `TDDStorage.hasSufficientTDD` and the TDD fetch take their windows from it. `OrefRun.run` uses it for the meal-time glucose window. The drift test builds `OrefInputs` with these functions only; its hand-copied windows and the 75 % literal are gone. New scenario `carbs-glucose-window-gap`: 200 g at 5 h 45 min, a CGM gap from 5 h 46 min to 7 h 5 min, plus 20 g older than the window, so the pre-meal reading only exists outside the 6.5 h window. |
+| M1-02 | `OrefInputs+Selection.swift` holds the selection rules: the glucose windows (`autosensGlucoseHours`, `determinationGlucoseHours`, `glucoseStart`, `glucose(_:since:)`), `carbsStart` / `carbs(_:now:)`, `pumpHistoryStart`, `orphanedResumeWindowStart`, `algorithmPumpEvents` (no scheduled-basal rows, no orphaned resumes, last 24 h, newest first), `tddHistoryStart` / `tddHistory`, `sufficientTDDStart` / `sufficientTDDRowCount` / `hasSufficientTDD`. The phone uses the window starts: `OpenAPS`'s two pump-event fetches (24 h list, 48 h orphan check), `GlucoseStorage`, `CarbsStorage`, `TDDStorage.hasSufficientTDD` and the TDD fetch take their windows from it. `OrefRun.run` uses it for the meal-time glucose window. The drift test builds `OrefInputs` with these functions only; its hand-copied windows and the 75 % literal are gone. New scenario `carbs-glucose-window-gap`: 200 g at 5 h 45 min, a CGM gap from 5 h 46 min to 7 h 5 min, plus 20 g older than the window, so the pre-meal reading only exists outside the 6.5 h window. |
 | M1-03 | New scenario `override-advanced`: advanced settings, SMB minutes 45, UAM minutes 60, SMB scheduled off for hours [0, 24). Preferences use 30 / 90 minutes there and in `autosens-8h-24h-differ` (no override), so the fallbacks differ too. |
 | M1-04 | `OrefRunStageTests`: `tddInsulin` with a bolus, an SMB, a temp, a suspend/resume and a schedule row → 2.5 / 2 / 4.5 U. `TDDStorage` reads the result by label. |
 | M1-05 | Accepted, not changed: the goldens map `Date()`-derived fields within −1…120 s of the clock to `<now>`. A 60 s shift is caught (mutation b), but sub-second `Date()` vs `clock` is not; that quirk is verified by reading. |
@@ -269,6 +269,31 @@ Results after the fixes:
 | package source typecheck (`swiftc -typecheck`, 82 files) | passed; `swift test` still not runnable (M0) |
 
 New behaviour notes:
-- Pump-event ties: the phone used Core Data's descending sort for the 24 h list and now uses a Swift sort of the 48 h fetch. The order of events with an identical timestamp was unspecified before and still is.
+- Pump-event ties: superseded by R-01 below. `c4239815a` briefly replaced the two fetches with one; the re-review fixes restore the original fetches.
 - The parity pipeline now gets autosens through `OrefRun.autosens`, so it shares the precomputed treatments with production. Mutation (a) changed no parity golden, so the characterization scenario is what guards the 8 h/24 h choice.
+
+### Re-review fixes (R-01..R-04)
+
+| Commit | Subject |
+|---|---|
+| `c69334081` | Add same-instant suspend and resume goldens |
+| `4d9e0939b` | Pair the tied resume in the same-instant goldens |
+| `eb3d95b20` | Restore the original pump history fetches (R-01, R-03, R-04) |
+| `b90064ba8` | Order same-time pump events like the phone |
+| `79c90f7b6` | Keep storage order for same-time events newest first (fixes the newest-first half of `b90064ba8`) |
+| `d400ee998` | Pin phone fetches to the shared selection (R-02) |
+
+- **R-01, fixed (no sign-off needed).** `OpenAPS` is back to the original two fetches: the 24 h list descending (`pumpHistoryLast1440Minutes`) and the 48 h orphan check ascending (`pumpHistoryLast48h`). Both predicates take their start from `OrefInputs`, so the code matches `920e1fcb6` except for those two expressions. I restored the two fetches rather than the suggested "one descending fetch, orphans over `reversed()`". `reversed()` only equals an ascending fetch if SQLite's tie order mirrors exactly; restoring the fetches needs no such assumption.
+  - Observed tie order in the test store (`/dev/null` SQLite) and in an on-disk SQLite file, with a temporary probe test: a descending fetch returns same-timestamp rows in insertion order, an ascending one in reverse.
+  - `algorithmPumpEvents` (watch/test builder) now follows the same rule: ties reversed in the ascending orphan check, in storage order in the newest-first result.
+  - New scenarios `suspend-resume-same-instant` and `-on-disk`: a suspend 100 min ago, then a suspend and a resume at the same instant 90 min ago. The `-on-disk` variant seeds a temporary on-disk SQLite store. Each pump event is saved on its own, so row order follows the list. Both were recorded from the original sources (throwaway worktree at `ae8efa8d7`, recorded, compared twice, removed with `git worktree remove --force` on its literal path); the 15 other goldens came out identical again.
+  - Proof: with `c4239815a`'s fetch code and selection file put back, both tie scenarios fail. The original code produces a determination; `c4239815a` throws `pumpSuspendResumeMismatch` (it keeps the resume, not the suspend, as the first of the tie). So the reorder was a real behaviour change on the phone, and it is gone.
+- **R-02, test added.** `OrefInputsSelectionTests` checks the phone's own fetches against the shared Swift selection on the same rows:
+  - TDD history through `OpenAPS.fetchHistoricalTDDData` with rows at start − 1 s, at start (excluded by `>`), start + 1 s, and totals 0 / nil / 0.01;
+  - `BaseTDDStorage.hasSufficientTDD` at the threshold − 1 and at the threshold, with a zero-total row and an 8-day-old row;
+  - `getGlucoseForAlgorithm` (24 h and 6.5 h) and `getCarbsForAlgorithm`, each with rows one minute either side of the window start. These read `Date()` themselves, so the exact `>=` edge is pinned only for TDD.
+- **R-03, resolved** by the restore: no `isScheduledBasal` closure and no `tempBasal` faults on the phone.
+- **R-04, resolved** by the restore: `nativePumpHistory(orphanedResumes:)` is fed again; `pumpHistoryLast1440Minutes` and `pumpHistoryLast48h` are production predicates again.
+
+Results at `79c90f7b6`: full `X test` passed, 1004 total, 960 passed, 0 failed, 44 skipped (+4 = the four tests of the new selection suite). Both characterization suites: production 17/17, `OrefRun` 16/16. Package source typecheck passed.
 
