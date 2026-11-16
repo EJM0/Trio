@@ -520,15 +520,24 @@ actor WatchLoanCoordinator {
             return
         }
 
-        if let pump, let reading = pump.deliveredUnits, reading.at >= entry.end ?? .distantPast, reading.at >= entry.start {
-            guard !pump.isFaulted, reading.units >= entry.endUnits ?? entry.startUnits else {
-                warning(.watch, "Delivered-total audit skipped: the pod is faulted or its delivered total went down")
+        if let pump, let reading = pump.deliveredUnits {
+            // a faulted pod's total is final; only a fault reading from before the window can't be used
+            if pump.isFaulted, reading.at < entry.start {
+                warning(.watch, "Delivered-total audit skipped: the faulted pod's last total predates the window")
                 host.alert(.podTotalUnreliable)
                 return
             }
-            entry.end = reading.at
-            entry.endUnits = reading.units
-            entry.bolusRemainder = pump.bolusRemainder(at: reading.at)
+            if reading.at >= entry.end ?? .distantPast, reading.at >= entry.start {
+                guard reading.units >= entry.endUnits ?? entry.startUnits else {
+                    warning(.watch, "Delivered-total audit skipped: the pod's delivered total went down")
+                    host.alert(.podTotalUnreliable)
+                    return
+                }
+                entry.end = reading.at
+                entry.endUnits = reading.units
+                // a faulted pod delivers nothing more
+                entry.bolusRemainder = pump.isFaulted ? 0 : pump.bolusRemainder(at: reading.at)
+            }
         }
         await recompute(&entry)
         ledger.save(entry)

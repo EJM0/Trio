@@ -427,7 +427,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             return (
                 String(localized: "Pod Total Not Checked"),
                 String(
-                    localized: "Trio couldn't check your pod's delivered insulin against your history, so it added nothing. Check your insulin history."
+                    localized: "Trio couldn't check your pod's delivered insulin against your history, so it added nothing. Insulin on board may read too low. Check your insulin history."
                 )
             )
         case .endRefused,

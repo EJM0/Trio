@@ -473,22 +473,26 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(rig.host.alerts.filter { $0 == .watchContactedPodAfterTakeBack }.count == 1)
     }
 
-    @Test(
-        "A faulted pod, or a delivered total that went down, books nothing and alerts",
-        arguments: [true, false]
-    ) func untrustworthyTotal(faulted: Bool) async throws {
+    @Test("A delivered total that went down books nothing and alerts") func decreasingTotal() async throws {
         let rig = try Rig()
         try await rig.lend()
-        if faulted {
-            rig.double.deliveredUnitsAreFinal = true
-            rig.double.odometer = 12
-        } else {
-            rig.double.odometer = 9
-        }
+        rig.double.odometer = 9
         await rig.coordinator.takeBack()
         #expect(rig.host.auditBookings.isEmpty)
         #expect(rig.host.alerts.contains(.podTotalUnreliable))
         #expect(await rig.coordinator.state == .home(epoch: 2, lastLoan: .superseding(epoch: 1, at: rig.clock.now)))
+    }
+
+    @Test("A faulted pod is audited with its final total and no bolus remainder") func faultedPod() async throws {
+        let rig = try Rig()
+        try await rig.lend()
+        rig.double.deliveredUnitsAreFinal = true
+        rig.double.odometer = 11
+        rig.double.bolusUnderWayEndsAt = rig.clock.now.addingTimeInterval(60)
+        await rig.coordinator.takeBack()
+        #expect(rig.host.auditAmounts == [1.0])
+        #expect(!rig.host.alerts.contains(.podTotalUnreliable))
+        #expect(try rig.ledgerStore.load().get()?.audits.last?.bolusRemainder == 0)
     }
 
     @Test("Records from an older loan are still merged and acknowledged") func olderEpochRecords() async throws {
