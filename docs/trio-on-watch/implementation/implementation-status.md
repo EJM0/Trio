@@ -715,3 +715,28 @@ These can't be unit-tested because a `BlePodComms` needs a Bluetooth central. Ev
 - `OmniPumpManager.init` (line 139): a refused pod gets `releaseConnection()` at launch.
 - `takeControl`'s radio part (`rearmConnection`, search, escalation), skipped for a plain take of a refused pod. The early return itself is tested through an Eros manager.
 
+### Bounded adopt (`0f10883`, M3 exhaustive search rows W4/W36, M3R-04)
+
+Branch `feat/tow-kits-adopt` off `feat/trio-on-watch` @ `a6b81b853`. It pins OmnipodKit `0f10883` (LoopKit `7fd4d1a7` unchanged). The commit is local-only, like the earlier kit commits.
+
+- An export made after a release carries `PodState.releasedEapSqn`, the exporter's EAP SQN at the release. The adopter keeps it through a relaunch.
+- In `handshakeResynced`, a resync beyond the bound is a foreign session: the adopter refuses and reports it. The bound is spent by the first established session and cleared by any take.
+- An export without a release carries no bound, so #177's offline start is unchanged.
+- **M3R-04: a release ends the scope.** Covered by the manager-level `testOnlyASupersedingTakeLiftsTheManagersRefusalAndAReleaseEndsTheScope`. Mutation M6 (a release keeps the scope) fails it.
+- **How the host can tell a refused adopt from a failed take:**
+  - A refused adopt sets `refusesSessions == true` and `foreignSessionDetectedAt`, reported through `pumpManagerDidUpdateState`.
+  - Every session then fails with `PodCommsError.podUsedByAnotherController`, wrapped in `PumpManagerError.communication`.
+  - `deviceManagerControlDidBecomeReady` never fires, because no session is established.
+  - A take that merely fails (pod out of reach) leaves `refusesSessions` false and fails with `podNotConnected` or a timeout.
+  - M5 maps `refusesSessions` to `foreignPodSession`. No new signal is needed.
+
+| # | Step | Result |
+|---|---|---|
+| BA1 | `DeviceHandoffTests` | 50 run, 0 failed (4 new) |
+| BA2 | Mutations: the bound ignored in the handshake; no bound in the export; the bound not spent; a bound on every export | 5, 8, 1 and 35 failures |
+| BA3 | OmniTests, all, against the exact pins | 268 run, 0 failed, 3 skipped |
+| BA4 | `OmnipodKit-watchOS`, simulator and `arm64_32` | Build succeeded |
+| BA5 | Trio iOS app (`feat/tow-kits-adopt`), `X -scheme Trio` | Exit 0 |
+
+Wiring checked by reading only, in addition to the list above: none new. The export (`sharedConfiguration`) and the decision (`handshakeResynced`) are both exercised by the tests above.
+
