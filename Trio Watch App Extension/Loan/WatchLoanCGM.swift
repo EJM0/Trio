@@ -29,7 +29,8 @@ import LoopKit
             return
         }
         install(adopted)
-        save(adopted)
+        let (files, rawState) = (files, adopted.rawState)
+        WatchLoanFiles.later("the CGM state") { try files.savePlist(rawState, to: .cgmState) }
         WatchLogger.shared.info(.cgm, "CGM manager built from the grant")
     }
 
@@ -53,7 +54,8 @@ import LoopKit
         guard let previous = manager else { return }
         previous.cgmManagerDelegate = nil
         manager = nil
-        try? files.remove(.cgmState)
+        let files = files
+        try? await WatchLoanFiles.io { try files.remove(.cgmState) }
         await previous.delete()
         WatchLogger.shared.info(.cgm, "CGM manager let go")
     }

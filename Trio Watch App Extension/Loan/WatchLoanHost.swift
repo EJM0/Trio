@@ -227,7 +227,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     private func execute(_ effect: WatchSideLoanEffect) async -> Bool {
         switch effect {
         case let .persist(next):
-            return persist(next)
+            return await persist(next)
         case let .arm(alarm):
             guard alarm == .watchNotLooping else { return true }
             alerts.armNotLooping(after: notLoopingAnchor(), now: env.now())
@@ -247,10 +247,10 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             }
         case let .send(message):
             // the hand-back carries what the phone hasn't acknowledged yet
-            if message.kind == .handBack { sendRecords(epoch: message.epoch) }
+            if message.kind == .handBack { await sendRecords(epoch: message.epoch) }
             send(message)
         case let .sendStop(stop):
-            if stop.kind == .stop { sendRecords(epoch: stop.epoch) }
+            if stop.kind == .stop { await sendRecords(epoch: stop.epoch) }
             guard let data = try? WatchLoanWire.encode(stop) else { return true }
             env.transport.send([WatchLoanWireKey.message: data])
             WatchLogger.shared.info(.connectivity, "Sent \(stop.kind.rawValue), released \(stop.released)")
@@ -279,12 +279,13 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         }
     }
 
-    private func persist(_ next: WatchLoanState) -> Bool {
+    private func persist(_ next: WatchLoanState) async -> Bool {
         do {
             if case let .holding(epoch) = next, state.epoch != epoch || !state.mayCommandPump {
-                try startLoanRecords(epoch: epoch)
+                try await startLoanRecords(epoch: epoch)
             }
-            try env.files.save(next, to: .state)
+            let files = env.files
+            try await WatchLoanFiles.io { try files.save(next, to: .state) }
         } catch {
             WatchLogger.shared.error(.loop, "Saving the loan state failed", error: error)
             alerts.postNotSaved()
@@ -298,11 +299,13 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         return true
     }
 
-    private func startLoanRecords(epoch: Int64) throws {
+    private func startLoanRecords(epoch: Int64) async throws {
         guard records.snapshot.epoch != epoch else { return }
-        try records.reset(epoch: epoch)
+        let records = records
+        try await WatchLoanFiles.io { try records.reset(epoch: epoch) }
         cycleInfo = WatchLoanCycleInfo(holdingSince: env.now(), autosens: snapshot?.oref.autosens)
-        try env.files.save(cycleInfo, to: .cycle)
+        let (files, info) = (env.files, cycleInfo)
+        try await WatchLoanFiles.io { try files.save(info, to: .cycle) }
     }
 
     func send(_ message: WatchLoanMessage) {
@@ -332,14 +335,16 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             followUps.append(.takeControlResult(succeeded: false))
             return
         }
-        let localState = try? env.files.loadPlist(from: .pumpLocalState)
+        let files = env.files
+        let localState = try? await WatchLoanFiles.io { try files.loadPlist(from: .pumpLocalState) }
         guard let manager = env.pumpFactory.adopt(configuration, localState) else {
             WatchLogger.shared.error(.loop, "Adopt failed: the kit refused the export")
             followUps.append(.takeControlResult(succeeded: false))
             return
         }
         do {
-            try env.files.savePlist(manager.rawState, to: .pumpState)
+            let rawState = manager.rawState
+            try await WatchLoanFiles.io { try files.savePlist(rawState, to: .pumpState) }
         } catch {
             // without its saved state a relaunch can't know the kit adopted: don't let it reach the pod
             WatchLogger.shared.error(.loop, "Adopt stopped: saving the pump state failed", error: error)
@@ -407,16 +412,19 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
 
     /// After the loan: let the managers go, keeping only what the next adopt needs.
     private func retireDevices() async {
+        let files = env.files
         if let pump {
             if let local = pump.localState {
-                try? env.files.savePlist(local, to: .pumpLocalState)
+                try? await WatchLoanFiles.io { try files.savePlist(local, to: .pumpLocalState) }
             }
             pump.pumpManagerDelegate = nil
             self.pump = nil
             WatchLogger.shared.info(.loop, "Pump manager let go after the loan")
         }
-        try? env.files.remove(.pumpState)
-        try? env.files.remove(.intent)
+        try? await WatchLoanFiles.io {
+            try files.remove(.pumpState)
+            try files.remove(.intent)
+        }
         intent = nil
         await env.cgm?.retire()
     }
@@ -470,7 +478,8 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     private func receiveHeld(_ payload: [String: Any]) async -> Bool {
         if let data = payload[WatchLoanWireKey.recordsAck] as? Data {
             if let ack = try? JSONDecoder().decode(WatchLoanRecordAck.self, from: data) {
-                do { try records.acknowledge(ack, now: env.now()) } catch {
+                let (records, now) = (records, env.now())
+                do { try await WatchLoanFiles.io { try records.acknowledge(ack, now: now) } } catch {
                     WatchLogger.shared.warning(.loop, "Saving the records acknowledgement failed", error: error)
                 }
             }
@@ -486,11 +495,10 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
                 WatchLogger.shared.debug(.connectivity, "Duplicate loan message dropped")
                 return true
             }
-            do { try env.files.save(inbox, to: .inbox) } catch {
-                WatchLogger.shared.warning(.loop, "Saving the loan inbox failed", error: error)
-            }
+            let (files, inbox) = (env.files, inbox)
+            WatchLoanFiles.later("the loan inbox") { try files.save(inbox, to: .inbox) }
             if case .grant = envelope.message.kind, case .requesting = state {
-                acceptSnapshot(payload[WatchLoanWireKey.snapshot] as? Data, epoch: envelope.message.epoch)
+                await acceptSnapshot(payload[WatchLoanWireKey.snapshot] as? Data, epoch: envelope.message.epoch)
             }
             WatchLogger.shared.info(
                 .connectivity,
@@ -506,7 +514,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     }
 
     /// Saved before the grant is decided, so an adopt after a crash still has it.
-    private func acceptSnapshot(_ data: Data?, epoch: Int64) {
+    private func acceptSnapshot(_ data: Data?, epoch: Int64) async {
         guard let data else {
             snapshot = nil
             return
@@ -517,7 +525,8 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
                 snapshot = nil
                 return
             }
-            try env.files.write(data, to: .snapshot)
+            let files = env.files
+            try await WatchLoanFiles.io { try files.write(data, to: .snapshot) }
             snapshot = decoded
         } catch {
             WatchLogger.shared.warning(.loop, "Grant snapshot can't be read or saved", error: error)

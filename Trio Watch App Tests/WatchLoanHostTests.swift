@@ -556,6 +556,44 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.violations.isEmpty)
     }
 
+    @Test("Start is refused on an older watch or without time-sensitive notifications") func startRefusals() async throws {
+        let world = LoanFixture()
+        world.model = "Watch5,9"
+        await world.host.startTapped()
+        #expect(world.host.state == .idle(epoch: 0))
+        #expect(world.transport.messages.isEmpty)
+        world.model = "Watch6,10"
+        world.notificationsAllowed = false
+        await world.host.startTapped()
+        #expect(world.host.state == .idle(epoch: 0))
+        world.notificationsAllowed = true
+        world.battery = 0.25
+        await world.host.startTapped()
+        #expect(world.host.state == .idle(epoch: 0))
+        world.battery = 0.9
+        await world.host.startTapped()
+        guard case .requesting = world.host.state else {
+            Issue.record("a supported watch with alerts allowed starts")
+            return
+        }
+    }
+
+    @Test("A daily summary counts readings, cycles and wakes, and starts over each day") func dailySummary() async throws {
+        let world = LoanFixture()
+        try await world.startLoan()
+        world.host.noteWake("WKBluetoothAlertRefreshBackgroundTask")
+        await world.reading(160)
+        await world.reading(160)
+        var summary = world.host.cycleInfo.summary
+        #expect(summary.readings == 2 && summary.cycles == 2 && summary.confirmed == 2)
+        #expect(summary.wakes["WKBluetoothAlertRefreshBackgroundTask"] == 1)
+        #expect(WatchLoanHost.summaryLine(summary, until: world.clock, battery: 1).contains("readings 2"))
+        world.clock = world.clock.addingTimeInterval(24 * 3600)
+        world.host.noteWake("WKApplicationRefreshBackgroundTask")
+        summary = world.host.cycleInfo.summary
+        #expect(summary.readings == 0 && summary.wakes == ["WKApplicationRefreshBackgroundTask": 1])
+    }
+
     @Test("Duplicate messages are dropped by their persisted id, across a relaunch") func dedupe() async throws {
         let world = LoanFixture()
         let query = try world.payload(WatchLoanMessage(epoch: 0, kind: .statusQuery))
