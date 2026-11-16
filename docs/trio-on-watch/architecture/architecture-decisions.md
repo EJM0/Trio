@@ -37,3 +37,14 @@ Entries are never deleted. A changed decision gets a new entry, and the old one 
   - Kristin's forks drop `unacknowledgedCommand` on export and release unconditionally (A2 §2). They are rejected.
 - **Open:** #177 is open and moving (BR-3). Pin strategy until it merges is undecided.
 - **Review:** pending (C, E).
+
+## Entries after the review round (2026-11-16)
+
+| ID | Status | Decision |
+|---|---|---|
+| ADR-003 | **Accepted with amendments** (was Proposed) | Pins per V2-29. LoopKit "as pinned" was wrong: OmnipodKit #177 needs LoopKit#687. Moving to the LoopKit next-dev tip would break Dana, Medtrum, Minimed and Libre (A2-1). |
+| ADR-004 | Accepted (maintainer) | Time zone pinned to the grant's time zone for the whole loan (V2-23). Rejected: stop and alert on a time-zone change. |
+| ADR-005 | Accepted (maintainer) | Port the bolus calculator to the watch as a pure extraction (V2-24). Rejected: no recommendation in v1. |
+| ADR-006 | Accepted (maintainer) | The watch evaluates the user's configured glucose alarm list (V2-16). Rejected: urgent low and low only. |
+| ADR-007 | Accepted (maintainer) | Trio-local OmnipodKit safety patch (refuse insulin-adding commands after a foreign session, report it to the host) on #177 @ `3d21d9c`, with the proposal drafted for upstream and posted by the maintainer. Rejected: dropping the unreachable-watch Take Back; waiting for upstream. |
+| ADR-008 | Accepted (maintainer) | No complication work in v1. Use #1723's complication when it merges. |
