@@ -151,3 +151,49 @@ The V2-12 search found one bug during development, now fixed and covered by row 
 - The build-phase SwiftFormat changed `Trio Watch App Tests/Unit Tests.swift` again; reverted.
 - `Package.resolved` and the submodules are unchanged.
 - The gate tests write a spy pump's raw state while they run. They clear it afterwards.
+
+### M3 revision after the reviews (2026-11-16)
+
+This revision responds to `reviews/implementation-reviews.md`: the "M3 safety review (Agent E)" and the "M3 architecture/code review (Agent C)". It supersedes the earlier statements about the relaunch take, the unreadable Take Back and the search bound.
+
+| Finding | Change | Rows / tests |
+|---|---|---|
+| M3E-01 (blocker) | A relaunched watch never takes over a kit that holds. It re-adopts only if its kit never adopted and the phone answers with the same epoch; otherwise it stops (`unconfirmed`). The search now models the kit: a take lifts refusals and absorbs the other controller's session, and a device counts as commanding unless its kit provably refuses. | W26, W36, W37; `takeBackWatchOffPhoneUnreachable`, `adoptCrashThenTakeBack`, `kitModelCatchesPlainTake` |
+| Found by the re-search | A watch adopt still in flight could complete after the phone's superseding Take Back and absorb its session: two commanders. The watch now emits `.adoptControl`, which may resync only to the session the phone released. **This is a kit requirement for M2b/A2.** | W4, W36; `adoptRacesTakeBack` |
+| M3E-02 | Every stop releases the pod, and the release result sends `stop(released: true)`. The phone clears its window only on that confirmation. | W19–W24, W35, P31, P32 |
+| M3E-03 | Adds "Use the pod on this iPhone" (`usePodOnThisPhoneConfirmed`) in `home`: superseding take, pod-lifetime audit, alert. | P43 |
+| M3E-04 | Take Back from an unreadable file audits the pod's whole life (`AuditScope.podLifetime`) and gets a window. | P23, P24, P28, P41 |
+| M3E-05 | `.takeControl(supersedingUntil:)`; retries and the relaunch redo pass the persisted window; `.podSession(.keepCommanding(until:))`. | P22, P25, P37 |
+| M3E-06 | Epochs are `Int64` in state and on the wire. | `wideEpoch`, `phoneRoundTrip` |
+| M3E-07 | The window holds only while `takenAt ≤ now < supersededUntil`. | P44 |
+| M3E-08 | A duplicate grant at `returning` or `stopped` of the same loan is answered with `status`, not rejected. | W34 |
+| M3E-09 | `handBack` and `handBackAck` decode across protocol versions. Records follow in M4. | `handBackAcrossVersions` |
+| M3E-10 | A superseded watch disarms its not-looping alarm after the persist and the user alert. | W19, W25, W32 |
+| M3C-03 | The pump screens use the injected gate. | `pumpScreens` |
+| M3C-04 | The unreadable-file alert fires once per process (test-and-set under one lock). | — |
+| M3C-05 | `refusal(_:userInitiated:)` does one read and returns the message. | gate tests |
+| M3C-07 | Production comments no longer cite doc IDs. | — |
+| M3C-08 | User-initiated refusals log at `info`, periodic ones at `debug`. | — |
+| M3C-09 | **Not done.** `xcstringstool sync` with the gate's `.stringsdata` rewrote the whole catalog (about 75k lines changed), so I reverted it. The four strings need one Xcode IDE build, then committing only the added keys. | — |
+
+Search: with the kit modelled, an epoch-3 bound didn't finish in 15 min. The search now runs at epoch 2:
+- The default run allows one Start and takes about 60 s.
+- A second Start is gated by `TRIO_STRESS=1` and takes about 4 min. That variant passed on this revision, run before the split.
+
+M4 and M2b items handed on:
+- M3C-01: a pump screen opened before the lend.
+- M3C-02: `.awaitPumpIdle` maps to `loopGuard.waitForLoop()`.
+- M3C-10: re-sync the delivery limits on `home`.
+- The bounded adopt above (kit).
+- Mapping `.takeControl(supersedingUntil:)` and `.adoptControl` to the kit API.
+
+Not done: a dedicated test for M3C-04's concurrent alert.
+
+Tests on this revision (same simulator, `1991CB91-59A3-4174-8F99-6F6C2B7279D2`):
+
+| Run | Total | Passed | Failed | Skipped |
+|---|---|---|---|---|
+| Full `Trio Tests` | 1126 | 1081 | 0 | 45 |
+
+- The 1081 passed are the 952 baseline tests plus 129 watch loan tests.
+- The 45 skipped are the 44 baseline skips plus the `TRIO_STRESS`-gated two-Start search.
