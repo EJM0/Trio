@@ -4,7 +4,9 @@ import WatchKit
 
 @main struct TrioWatchApp: App {
     @Environment(\.scenePhase) private var scenePhase
-    @WKApplicationDelegateAdaptor(WatchAppDelegate.self) private var appDelegate
+    #if TRIO_ON_WATCH
+        @WKApplicationDelegateAdaptor(WatchAppDelegate.self) private var appDelegate
+    #endif
 
     init() {
         algorithmLogSink = WatchLogger.shared.algorithm
