@@ -274,6 +274,15 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(await rig.coordinator.state == .lent(epoch: 1))
     }
 
+    @Test("Status query: the phone answers the watch with its epoch") func statusAnswer() async throws {
+        let rig = try Rig()
+        #expect(WatchLoanWireKey.isStatusQuery(try Rig.message(F.message(0, .statusQuery))))
+        #expect(!WatchLoanWireKey.isStatusQuery(try Rig.message(F.message(0, .holding))))
+        #expect((await rig.coordinator.statusAnswer()[WatchLoanWireKey.phoneEpoch] as? NSNumber)?.int64Value == 0)
+        try await rig.lend()
+        #expect((await rig.coordinator.statusAnswer()[WatchLoanWireKey.phoneEpoch] as? NSNumber)?.int64Value == 1)
+    }
+
     @Test("Start: a pod that doesn't answer keeps the pump on the phone, nothing is released") func lendPodUnreachable() async throws {
         let rig = try Rig()
         rig.double.failTempBasal = true

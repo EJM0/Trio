@@ -145,6 +145,7 @@ The release result then sends `stop(e, released: true)` (W35).
 | W35 | `stopped(e)` | `releaseResult(true)` / `(false)` | — | sendStop `stop(e, released: true)` / [] | `w35` |
 | W36 | `holding(e)` | relaunch, kit never adopted, phone answers e | — | arm, adoptControl (bounded to the released session) | `w36` |
 | W37 | `holding(e)` | relaunch, kit never adopted, phone silent or behind | `stopped(e, unconfirmed)` | Stop(unconfirmed); never takes | `w37` |
+| W38 | state file can't be read (host, before `decide`) | launch | `stopped(0, unconfirmed)`, in memory only, never persisted | alert stopped(unconfirmed); the relaunch then runs W32: alarms re-asserted, releaseControl | `WatchLoanHostTests.unreadableState` |
 
 ## Wire format
 

@@ -11,6 +11,9 @@ struct WatchLoanRecordBatch: Codable {
         var raw: Data
         var title: String
         var dose: DoseEntry
+        /// The sync identifier of a dose the watch had booked for an unconfirmed command, which this kit record replaces.
+        /// The phone deletes its copy of that booking.
+        var replacesSyncIdentifier: String? = nil
 
         var newPumpEvent: NewPumpEvent { NewPumpEvent(date: date, dose: dose, raw: raw, title: title) }
     }
@@ -64,6 +67,14 @@ enum WatchLoanWireKey {
     /// Loan payloads go to the loan coordinator; every other watch message keeps its existing path.
     static func isLoanPayload(_ payload: [String: Any]) -> Bool {
         all.contains { payload[$0] != nil }
+    }
+
+    /// In the phone's reply to the watch's status query: the phone's loan epoch.
+    static let phoneEpoch = "watchLoanPhoneEpoch"
+
+    static func isStatusQuery(_ payload: [String: Any]) -> Bool {
+        guard let data = payload[message] as? Data, case let .message(envelope) = WatchLoanWire.decode(data) else { return false }
+        return envelope.message.kind == .statusQuery
     }
 }
 

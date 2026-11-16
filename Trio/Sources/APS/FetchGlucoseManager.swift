@@ -16,6 +16,8 @@ protocol FetchGlucoseManager: SourceInfoProvider {
     /// state; see `CGMSensorStateLog`. Call on every reading.
     func reportCGMSensorObservation(_ observation: CGMSensorObservation)
     func startCGMSensorSession(startedAt: Date)
+    /// The readings the next smoothing pass reads, raw: what a watch loan needs to smooth as the phone does.
+    func smoothingWindow() async throws -> [WatchLoanSnapshot.RawReading]
     var glucoseSource: GlucoseSource? { get }
     var cgmManager: CGMManagerUI? { get }
     var cgmGlucoseSourceType: CGMType { get set }
@@ -447,9 +449,29 @@ extension BaseFetchGlucoseManager: SettingsObserver {
 }
 
 extension BaseFetchGlucoseManager {
+    func smoothingWindow() async throws -> [WatchLoanSnapshot.RawReading] {
+        let context = CoreDataStack.shared.newTaskContext()
+        context.name = "smoothingWindow"
+        let objectIDs = try await fetchGlucose(context: context)
+        return await context.perform {
+            objectIDs.compactMap { context.object(with: $0) as? GlucoseStored }.compactMap { reading in
+                guard let id = reading.id, let date = reading.date else { return nil }
+                return WatchLoanSnapshot.RawReading(id: id, date: date, glucose: reading.glucose)
+            }
+        }
+    }
+
     func fetchGlucose(context: NSManagedObjectContext) async throws -> [NSManagedObjectID] {
+        try await Self.fetchSmoothingWindow(context: context, now: Date())
+    }
+
+    /// The readings the smoothing pass reads, oldest first. `now` is a seam for tests.
+    static func fetchSmoothingWindow(context: NSManagedObjectContext, now: Date) async throws -> [NSManagedObjectID] {
         // Compound predicate: time window + non-manual + valid date
-        let timePredicate = NSPredicate.predicateForOneDayAgoInMinutes
+        let timePredicate = NSPredicate(
+            format: "date >= %@",
+            Calendar.current.date(byAdding: .minute, value: -1440, to: now)! as NSDate
+        )
         let manualPredicate = NSPredicate.cgmGlucose
         let datePredicate = NSPredicate(format: "date != nil")
 
@@ -487,30 +509,35 @@ extension BaseFetchGlucoseManager {
         let startTime = Date()
 
         do {
-            // get objectIDs
-            let objectIDs = try await fetchGlucose(context: context)
-
-            try await context.perform {
-                // Load managed objects from object IDs
-                // Filtering (isManual, date) already done at DB level in fetchGlucose
-                let glucoseReadings = objectIDs.compactMap {
-                    context.object(with: $0) as? GlucoseStored
-                }
-
-                guard !glucoseReadings.isEmpty else { return }
-
-                let smoothed = OrefInputs.exponentiallySmoothedGlucose(glucoseReadings.map { ($0.date, $0.glucose) })
-                for (object, value) in zip(glucoseReadings, smoothed) {
-                    if let value { object.smoothedGlucose = value as NSDecimalNumber }
-                }
-
-                try context.save()
-            }
+            try await Self.smoothStoredGlucose(context: context, now: startTime)
 
             let duration = Date().timeIntervalSince(startTime)
             debug(.cgm, String(format: "Glucose smoothing took %.3f s", duration))
         } catch {
             warning(.cgm, "Glucose smoothing failed", error: error)
+        }
+    }
+
+    /// The smoothing pass on the stored readings. `now` is a seam for tests.
+    static func smoothStoredGlucose(context: NSManagedObjectContext, now: Date) async throws {
+        // get objectIDs
+        let objectIDs = try await fetchSmoothingWindow(context: context, now: now)
+
+        try await context.perform {
+            // Load managed objects from object IDs
+            // Filtering (isManual, date) already done at DB level in fetchGlucose
+            let glucoseReadings = objectIDs.compactMap {
+                context.object(with: $0) as? GlucoseStored
+            }
+
+            guard !glucoseReadings.isEmpty else { return }
+
+            let smoothed = OrefInputs.exponentiallySmoothedGlucose(glucoseReadings.map { ($0.date, $0.glucose) })
+            for (object, value) in zip(glucoseReadings, smoothed) {
+                if let value { object.smoothedGlucose = value as NSDecimalNumber }
+            }
+
+            try context.save()
         }
     }
 }

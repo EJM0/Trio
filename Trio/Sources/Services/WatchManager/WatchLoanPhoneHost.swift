@@ -157,7 +157,9 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             deliveryPulseUnits: pump.pulse,
             releaseReading: release,
             podEndsAt: pump.endsAt,
-            sensorEndsAt: (cgm as? G7CGMManager)?.sensorEndsAt
+            sensorEndsAt: (cgm as? G7CGMManager)?.sensorEndsAt,
+            smoothGlucose: settings.smoothGlucose,
+            smoothingWindow: settings.smoothGlucose ? try await fetchGlucoseManager.smoothingWindow() : []
         )
     }
 
@@ -194,6 +196,15 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
     // MARK: Records
 
     func merge(_ batch: WatchLoanRecordBatch) async throws {
+        // the watch booked these doses for unconfirmed commands; the kit's own records in this batch replace them
+        let replaced = batch.pumpEvents.compactMap(\.replacesSyncIdentifier)
+        if !replaced.isEmpty {
+            let uploadedIDs = try await pumpHistoryStorage.deletePumpEvents(syncIdentifiers: replaced)
+            info(.watch, "\(replaced.count) watch booking(s) replaced by the pump's own record")
+            if let nightscoutManager = resolver.resolve(NightscoutManager.self) {
+                for id in uploadedIDs { await nightscoutManager.deleteInsulin(withID: id) }
+            }
+        }
         let pumpEvents = batch.storablePumpEvents
         if pumpEvents.count < batch.pumpEvents.count {
             warning(.watch, "\(batch.pumpEvents.count - pumpEvents.count) unfinished or unidentified watch doses not stored")
