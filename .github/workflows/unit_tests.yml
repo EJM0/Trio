@@ -245,6 +245,18 @@ jobs:
           echo "Run tests|$(( $(date +%s) - _start ))" >> "$GITHUB_WORKSPACE/.timings"
           exit ${_rc:-0}
 
+      # Changes the process time zone, which would race the parallel suites above, so it runs alone.
+      - name: Run time zone escape test
+        id: run_tz_escape
+        run: |
+          set -o pipefail
+          TEST_RUNNER_TRIO_TZ_ESCAPE=1 xcodebuild test-without-building \
+            -workspace Trio.xcworkspace \
+            -scheme "Trio Tests" \
+            -destination "$DESTINATION" \
+            -only-testing:TrioTests/ProcessTimeZoneEscapeTests \
+            2>&1 | tee xcodebuild-tz-escape.log
+
       # Report the ACTUAL xcodebuild test outcome, not a grep guess. A crash or
       # a test-host launch failure exits 65 without a "Failing tests:" section,
       # so the old heuristic reported a false pass. On failure, surface the
