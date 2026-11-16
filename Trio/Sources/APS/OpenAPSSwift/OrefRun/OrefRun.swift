@@ -100,6 +100,7 @@ enum OrefRun {
             meal: meal,
             preferences: preferences,
             hasSufficientTDD: inputs.hasSufficientTDD,
+            microBolusAllowed: inputs.microBolusAllowed,
             trioCustomOrefVariables: trioCustomOrefVariables,
             currentTime: inputs.clock,
             timeZone: inputs.timeZone
@@ -377,6 +378,7 @@ enum OrefRun {
         meal: ComputedCarbs?,
         preferences: Preferences,
         hasSufficientTDD: Bool,
+        microBolusAllowed: Bool,
         trioCustomOrefVariables: TrioCustomOrefVariables,
         currentTime: Date,
         timeZone: TimeZone
@@ -401,7 +403,7 @@ enum OrefRun {
                 mealData: meal,
                 autosensData: autosens,
                 glucose: glucose,
-                microBolusAllowed: true,
+                microBolusAllowed: microBolusAllowed,
                 trioCustomOrefVariables: trioCustomOrefVariables,
                 currentTime: currentTime
             )

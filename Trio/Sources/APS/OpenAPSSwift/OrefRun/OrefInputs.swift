@@ -44,6 +44,8 @@ struct OrefInputs: Codable {
     /// preferences.json as stored, unclamped; nil when the file is missing.
     var preferences: Preferences?
     var dosingMode: DosingMode
+    /// False runs oref's temp-only logic: no SMB, and no low temp paired with one. The phone passes true.
+    var microBolusAllowed: Bool
 
     // Adjustments
     var activeTempTarget: TempTargetState?

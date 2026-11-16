@@ -134,6 +134,7 @@ import Testing
             tempTargets: settings(OpenAPS.Settings.tempTargets),
             preferences: scenario.preferences.map { try JSONBridge.from(string: $0.rawJSON) },
             dosingMode: scenario.dosingMode,
+            microBolusAllowed: true,
             activeTempTarget: scenario.tempTarget.map {
                 OrefInputs.TempTargetState(target: $0.target, halfBasalTarget: $0.halfBasalTarget)
             },
@@ -167,5 +168,32 @@ import Testing
             clock: clock,
             timeZone: TimeZone.current
         )
+    }
+}
+
+@Suite("OrefRun without micro boluses") struct OrefRunMicroBolusTests {
+    @Test(
+        "no SMB and no SMB-paired low temp; oref's normal temp instead",
+        arguments: ["closed-loop-baseline", "dynisf-sufficient-tdd"]
+    ) func temporaryBasalOnly(scenarioName: String) throws {
+        let scenario = OrefCharacterizationScenarios.build(scenarioName, clock: OrefCharacterizationScenarios.makeClock())
+        var inputs = try OrefRunCharacterizationTests.inputs(for: scenario)
+        let allowed = try #require(try OrefRun.run(inputs).determination)
+        // the premise: with SMBs this scenario microboluses and pairs it with a low temp
+        #expect((allowed.units ?? 0) > 0)
+        #expect(allowed.reason.contains("low temp"))
+
+        inputs.microBolusAllowed = false
+        let outputs = try OrefRun.run(inputs)
+        let notAllowed = try #require(outputs.determination)
+
+        #expect(notAllowed.units == nil)
+        #expect(!notAllowed.reason.contains("Microbolusing"))
+        #expect(!notAllowed.reason.contains("low temp"))
+        #expect(notAllowed.insulinReq == allowed.insulinReq)
+        #expect(notAllowed.predictions == allowed.predictions)
+        // insulin required with glucose above target: a high temp, as with SMBs off
+        #expect(notAllowed.duration == 30)
+        #expect((notAllowed.rate ?? 0) > (outputs.profile.currentBasal ?? .greatestFiniteMagnitude))
     }
 }

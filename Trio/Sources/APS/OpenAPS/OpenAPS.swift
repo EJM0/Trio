@@ -312,6 +312,7 @@ final class OpenAPS {
             meal: meal,
             preferences: preferences,
             hasSufficientTDD: hasSufficientTdd,
+            microBolusAllowed: true,
             trioCustomOrefVariables: trioCustomOrefVariables,
             currentTime: Date(),
             timeZone: TimeZone.current

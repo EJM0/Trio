@@ -248,6 +248,7 @@ enum ParityScenarios {
             meal: meal,
             preferences: scenario.preferences,
             hasSufficientTDD: true,
+            microBolusAllowed: true,
             trioCustomOrefVariables: scenario.orefVariables,
             currentTime: scenario.clock,
             timeZone: TimeZone.current
