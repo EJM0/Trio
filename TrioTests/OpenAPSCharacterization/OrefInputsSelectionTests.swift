@@ -146,4 +146,14 @@ import Testing
         #expect(phone.count == 2)
         #expect(phone.map(\.createdAt) == selected.map(\.createdAt))
     }
+
+    @Test("Carbs: one calendar day in the given zone, 23 h on its spring-forward day") func carbsWindowTimeZone() throws {
+        // 12:00 EDT on 2026-03-08, the America/New_York spring-forward day; Europe/Berlin changes on 2026-03-29
+        let now = try #require(ISO8601DateFormatter().date(from: "2026-03-08T16:00:00Z"))
+        let newYork = try #require(TimeZone(identifier: "America/New_York"))
+        let berlin = try #require(TimeZone(identifier: "Europe/Berlin"))
+
+        #expect(now.timeIntervalSince(OrefInputs.carbsStart(now: now, timeZone: newYork)) == 23 * 3600)
+        #expect(now.timeIntervalSince(OrefInputs.carbsStart(now: now, timeZone: berlin)) == 24 * 3600)
+    }
 }
