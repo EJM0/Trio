@@ -590,6 +590,7 @@
 		BD1179582F4E22C100F90001 /* GlucoseAlertType.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1179572F4E22C100F90001 /* GlucoseAlertType.swift */; };
 		BD11795A2F4E22C100F90001 /* GlucoseAlertsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1179592F4E22C100F90001 /* GlucoseAlertsStore.swift */; };
 		BD11795C2F4E22C100F90001 /* GlucoseAlertCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11795D2F4E22C100F90001 /* GlucoseAlertCoordinator.swift */; };
+		0C4B00050000000000000002 /* GlucoseAlarmEvaluation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4B00050000000000000001 /* GlucoseAlarmEvaluation.swift */; };
 		BD1179632F4E22C100F90001 /* GlucoseAlertsDataFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1179642F4E22C100F90001 /* GlucoseAlertsDataFlow.swift */; };
 		BD1179652F4E22C100F90001 /* GlucoseAlertsProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1179662F4E22C100F90001 /* GlucoseAlertsProvider.swift */; };
 		BD1179672F4E22C100F90001 /* GlucoseAlertsStateModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1179682F4E22C100F90001 /* GlucoseAlertsStateModel.swift */; };
@@ -1835,6 +1836,7 @@
 		BD1179572F4E22C100F90001 /* GlucoseAlertType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseAlertType.swift; sourceTree = "<group>"; };
 		BD1179592F4E22C100F90001 /* GlucoseAlertsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseAlertsStore.swift; sourceTree = "<group>"; };
 		BD11795D2F4E22C100F90001 /* GlucoseAlertCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseAlertCoordinator.swift; sourceTree = "<group>"; };
+		0C4B00050000000000000001 /* GlucoseAlarmEvaluation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseAlarmEvaluation.swift; sourceTree = "<group>"; };
 		BD1179642F4E22C100F90001 /* GlucoseAlertsDataFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseAlertsDataFlow.swift; sourceTree = "<group>"; };
 		BD1179662F4E22C100F90001 /* GlucoseAlertsProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseAlertsProvider.swift; sourceTree = "<group>"; };
 		BD1179682F4E22C100F90001 /* GlucoseAlertsStateModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseAlertsStateModel.swift; sourceTree = "<group>"; };
@@ -4139,6 +4141,7 @@
 				CAF300000000000000000001 /* CriticalAlertAlarmScheduler.swift */,
 				BD1179412F4E22C100F90001 /* ForecastedGlucoseEvaluator.swift */,
 				BD11795D2F4E22C100F90001 /* GlucoseAlertCoordinator.swift */,
+				0C4B00050000000000000001 /* GlucoseAlarmEvaluation.swift */,
 				BD1179592F4E22C100F90001 /* GlucoseAlertsStore.swift */,
 				BD1179882F4E22C100F90001 /* DeviceAlertsStore.swift */,
 				BD1179AB2F4E22C100F90001 /* NotLoopingMonitor.swift */,
@@ -6123,6 +6126,7 @@
 				BD1179582F4E22C100F90001 /* GlucoseAlertType.swift in Sources */,
 				BD11795A2F4E22C100F90001 /* GlucoseAlertsStore.swift in Sources */,
 				BD11795C2F4E22C100F90001 /* GlucoseAlertCoordinator.swift in Sources */,
+				0C4B00050000000000000002 /* GlucoseAlarmEvaluation.swift in Sources */,
 				BD1179632F4E22C100F90001 /* GlucoseAlertsDataFlow.swift in Sources */,
 				BD1179652F4E22C100F90001 /* GlucoseAlertsProvider.swift in Sources */,
 				BD1179672F4E22C100F90001 /* GlucoseAlertsStateModel.swift in Sources */,

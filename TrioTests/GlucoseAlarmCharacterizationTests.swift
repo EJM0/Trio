@@ -197,6 +197,72 @@ import UserNotifications
         )
     }
 
+    @Test("GlucoseAlarmEvaluation matches the golden") func pureEvaluationMatchesGolden() throws {
+        var actual: [String: [String]] = [:]
+        for (name, scenario) in Self.scenarios {
+            actual[name] = evaluate(scenario)
+        }
+        try GoldenFile.check(
+            actual,
+            at: URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+                .appendingPathComponent("GlucoseAlarmGoldens/glucose-alarms.json")
+        )
+    }
+
+    /// The same log as `run`, with the coordinator's alert identifier, interruption level and sound.
+    private func evaluate(_ scenario: Scenario) -> [String] {
+        func describe(_ actions: [GlucoseAlarmEvaluation.Action]) -> String {
+            actions.map { action in
+                switch action {
+                case let .fire(alarm, _):
+                    let level = alarm.overridesSilenceAndDND ? "critical" : "timeSensitive"
+                    let sound = alarm.playsSound ? alarm.soundFilename : "none"
+                    return "issue glucose.\(alarm.type.rawValue).\(alarm.id.uuidString) \(level) \(sound)"
+                case let .retract(alarm):
+                    return "retract glucose.\(alarm.type.rawValue).\(alarm.id.uuidString)"
+                }
+            }.joined(separator: ", ")
+        }
+
+        var firing: Set<UUID> = []
+        var log: [String] = []
+        for step in scenario.steps {
+            switch step {
+            case let .reading(value, at):
+                let actions = GlucoseAlarmEvaluation.evaluateReading(
+                    latestMgDL: value,
+                    alarms: scenario.alarms,
+                    configuration: scenario.configuration,
+                    firing: &firing,
+                    now: ISO8601DateFormatter().date(from: at)!
+                )
+                log.append("reading \(value) at \(at): " + describe(actions))
+            case let .determination(iob, zt, carbsReq):
+                let determination = Self.determination(iob: iob, zt: zt, carbsReq: carbsReq)
+                let actions = GlucoseAlarmEvaluation.evaluateForecast(
+                    determination,
+                    alarms: scenario.alarms,
+                    configuration: scenario.configuration,
+                    firing: &firing,
+                    now: Date()
+                ) + GlucoseAlarmEvaluation.evaluateCarbsRequired(
+                    determination.carbsReq,
+                    alarms: scenario.alarms,
+                    configuration: scenario.configuration,
+                    firing: &firing,
+                    now: Date()
+                )
+                let iobText = iob.map { "\($0)" } ?? "nil"
+                let ztText = zt.map { "\($0)" } ?? "nil"
+                log.append(
+                    "determination iob \(iobText) zt \(ztText) carbsReq \(carbsReq.map { "\($0)" } ?? "nil"): " +
+                        describe(actions)
+                )
+            }
+        }
+        return log
+    }
+
     /// One line per step: the step, then every issue and retract it caused, in order.
     private func run(_ scenario: Scenario) -> [String] {
         let resolver = Assembler([
