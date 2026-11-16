@@ -50,7 +50,7 @@ import Testing
         }
     }
 
-    @Test("Kit pump events reach oref the same way through the watch's records as through the phone's store")  func pumpEvents(
+    @Test("Kit pump events reach oref the same way through the watch's records as through the phone's store") func pumpEvents(
     ) async throws {
         let now = Date()
         func ago(_ minutes: Double) -> Date { now.addingTimeInterval(-minutes * 60) }
@@ -204,7 +204,7 @@ import Testing
     @Test(
         "The watch's TDD sufficiency count matches the phone's store at the 75 % boundary",
         arguments: [-1, 0]
-    )  func sufficiency(offset: Int) async throws {
+    ) func sufficiency(offset: Int) async throws {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let rows = OrefInputs.sufficientTDDRowCount + offset
         let context = testContext!

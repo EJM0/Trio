@@ -351,7 +351,7 @@ import Testing
 @Suite("Watch loop rules") struct WatchLoopRulesTests {
     let now = Date(timeIntervalSince1970: 1_800_000_000)
 
-    @Test("Between pump states the current temp is the newest temp of the last 20 minutes, as on the phone")  func fallbackTemp() {
+    @Test("Between pump states the current temp is the newest temp of the last 20 minutes, as on the phone") func fallbackTemp() {
         func temp(_ minutesAgo: Double, rate: Decimal, duration: Int) -> [PumpHistoryEvent] {
             OrefInputs.pumpHistoryEvents(
                 id: UUID().uuidString,
