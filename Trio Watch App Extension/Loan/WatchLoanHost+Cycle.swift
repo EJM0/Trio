@@ -96,10 +96,10 @@ extension WatchLoanHost {
             return
         }
 
-        if intent != nil {
-            await resolveIntent()
+        if !intents.isEmpty {
+            await resolveIntents()
         }
-        let uncertain = pump.status.deliveryIsUncertain || intent != nil
+        let uncertain = pump.status.deliveryIsUncertain || !intents.isEmpty
 
         let glucoseDates = (snapshot.oref.glucose + records.snapshot.glucose).map(\.dateString)
         if let failure = LoopGlucoseGuard.check(
@@ -168,10 +168,11 @@ extension WatchLoanHost {
         }
         if let temp = plan.tempBasal {
             WatchLogger.shared.info(.loop, "Command starts \(Self.seconds(since: start, now: env.now())) s after the wake")
-            confirmed = await command(.tempBasal(unitsPerHour: temp.unitsPerHour, minutes: temp.minutes)) && confirmed
+            confirmed = await command(.tempBasal(unitsPerHour: temp.unitsPerHour, minutes: temp.minutes)) == .confirmed &&
+                confirmed
         }
         if let units = plan.bolus {
-            confirmed = await command(.bolus(units: units, automatic: true)) && confirmed
+            confirmed = await command(.bolus(units: units, automatic: true)) == .confirmed && confirmed
         }
 
         updateLoopStatus(outputs, pump: pump)
@@ -256,38 +257,50 @@ extension WatchLoanHost {
 
     // MARK: - Commands
 
-    /// Writes the intent, then sends. A failed write sends nothing. Keeps the intent while the pump is uncertain.
-    func command(_ kind: WatchDoseIntent.Kind) async -> Bool {
+    enum CommandOutcome: Equatable {
+        case confirmed
+        /// Refused before anything was written or sent.
+        case notSent
+        /// The pump refused it; nothing was given.
+        case failed
+        /// The pump didn't confirm; its intent stays until it settles.
+        case uncertain
+    }
+
+    /// Writes an intent, then sends. A failed write sends nothing. Each command adds its own intent; while one is
+    /// unresolved, nothing that adds insulin is sent.
+    @discardableResult func command(_ kind: WatchDoseIntent.Kind) async -> CommandOutcome {
         // End cancels the temp after `returning` is saved and before the release; nothing else runs then
         let epoch: Int64
         switch state {
         case let .holding(holding): epoch = holding
         case let .returning(returning) where kind == .tempBasal(unitsPerHour: 0, minutes: 0): epoch = returning
-        default: return false
+        default: return .notSent
         }
-        guard let pump else { return false }
+        guard let pump else { return .notSent }
         if activity?.isExpired == true {
             WatchLogger.shared.warning(.loop, "Command \(Self.name(kind)) not started: the wake ran out of time")
-            return false
+            return .notSent
+        }
+        let addsInsulin = addsInsulin(kind)
+        if addsInsulin, !intents.isEmpty {
+            WatchLogger.shared.warning(.loop, "Command \(Self.name(kind)) not sent: an earlier command is unconfirmed")
+            return .notSent
         }
         let pending = WatchDoseIntent(
             id: UUID(),
             kind: kind,
             createdAt: env.now(),
             epoch: epoch,
-            addsInsulin: addsInsulin(kind),
+            addsInsulin: addsInsulin,
             deliveredBefore: pump.deliveredUnits?.units
         )
-        do {
-            // the cycle waits for the write: nothing is sent before the intent is on disk
-            let files = env.files
-            try await WatchLoanFiles.io { try files.save(pending, to: .intent) }
-        } catch {
-            WatchLogger.shared.error(.loop, "Command not sent: saving its intent failed", error: error)
+        // the command waits for the write: nothing is sent before its intent is on disk
+        guard await saveIntents(intents + [pending]) else {
+            WatchLogger.shared.error(.loop, "Command \(Self.name(kind)) not sent: saving its intent failed")
             alerts.postNotSaved()
-            return false
+            return .notSent
         }
-        intent = pending
         let sentAt = env.now()
         do {
             switch kind {
@@ -311,15 +324,15 @@ extension WatchLoanHost {
         } catch {
             if pump.status.deliveryIsUncertain {
                 WatchLogger.shared.error(.loop, "Command \(Self.name(kind)) unconfirmed; kept for the next cycle", error: error)
-                return false
+                return .uncertain
             }
             WatchLogger.shared.warning(.loop, "Command \(Self.name(kind)) failed", error: error)
-            await clearIntent()
-            return false
+            await settle([pending.id])
+            return .failed
         }
         WatchLogger.shared.info(.loop, "Command \(Self.name(kind)) confirmed in \(Self.seconds(since: sentAt, now: env.now())) s")
-        await clearIntent()
-        return true
+        await settle([pending.id])
+        return .confirmed
     }
 
     private func addsInsulin(_ kind: WatchDoseIntent.Kind) -> Bool {
@@ -331,47 +344,74 @@ extension WatchLoanHost {
         }
     }
 
-    private func clearIntent() async {
-        intent = nil
+    /// Saves the whole list; the in-memory list follows only once it is on disk.
+    private func saveIntents(_ list: [WatchDoseIntent]) async -> Bool {
         let files = env.files
-        do { try await WatchLoanFiles.io { try files.remove(.intent) } } catch {
-            WatchLogger.shared.warning(.loop, "Removing the settled intent failed", error: error)
+        do {
+            try await WatchLoanFiles.io {
+                if list.isEmpty { try files.remove(.intent) } else { try files.save(list, to: .intent) }
+            }
+            intents = list
+            return true
+        } catch {
+            WatchLogger.shared.error(.loop, "Saving the command intents failed", error: error)
+            return false
         }
     }
 
-    /// Settles a command left from an earlier wake: by the kit, by the odometer, or booked as delivered.
-    func resolveIntent() async {
-        guard let pending = intent, let pump else { return }
+    /// A failed save keeps them, so the next cycle settles them again.
+    private func settle(_ ids: Set<UUID>) async {
+        _ = await saveIntents(intents.filter { !ids.contains($0.id) })
+    }
+
+    /// Settles commands left from earlier wakes: by the kit, by the odometer, or booked as delivered. The kit's own
+    /// dose records arrive on its delegate queue, so that queue is drained first.
+    func resolveIntents() async {
+        guard !intents.isEmpty, let pump else { return }
+        await drainDelegateQueue(of: pump)
         let uncertain = pump.status.deliveryIsUncertain
-        if !uncertain, pending.deliveredBefore != nil {
+        if !uncertain, intents.contains(where: { $0.deliveredBefore != nil }) {
             _ = await pump.refreshDeliveredUnits()
+            await drainDelegateQueue(of: pump)
         }
-        let resolution = pending.resolve(
-            kitUncertain: uncertain,
-            kitBookedIt: records.kitRecorded(pending),
-            deliveredNow: pump.deliveredUnits?.units,
-            pulseUnits: pump.deliveryPulseUnits
-        )
-        switch resolution {
-        case nil:
-            WatchLogger.shared.warning(.loop, "Earlier command \(Self.name(pending.kind)) still unconfirmed")
-            return
-        case .notDelivered,
-             .settledByKit:
-            WatchLogger.shared.info(.loop, "Earlier command \(Self.name(pending.kind)) settled: \(resolution!)")
-        case .bookAsDelivered:
-            do {
-                let records = records
-                try await WatchLoanFiles.io { try records.book(pending) }
-            } catch {
-                WatchLogger.shared.error(.loop, "Booking the unconfirmed command failed; kept", error: error)
-                alerts.postNotSaved()
-                return
+        var settled = Set<UUID>()
+        for pending in intents {
+            let resolution = pending.resolve(
+                kitUncertain: uncertain,
+                kitBookedIt: records.kitRecorded(pending),
+                deliveredNow: pump.deliveredUnits?.units,
+                pulseUnits: pump.deliveryPulseUnits
+            )
+            switch resolution {
+            case nil:
+                WatchLogger.shared.warning(.loop, "Earlier command \(Self.name(pending.kind)) still unconfirmed")
+            case .notDelivered,
+                 .settledByKit:
+                WatchLogger.shared.info(.loop, "Earlier command \(Self.name(pending.kind)) settled: \(resolution!)")
+                settled.insert(pending.id)
+            case .bookAsDelivered:
+                do {
+                    let records = records
+                    try await WatchLoanFiles.io { try records.book(pending) }
+                } catch {
+                    WatchLogger.shared.error(.loop, "Booking the unconfirmed command failed; kept", error: error)
+                    alerts.postNotSaved()
+                    continue
+                }
+                WatchLogger.shared.warning(.loop, "Earlier command \(Self.name(pending.kind)) booked as delivered")
+                alerts.postBookedIntent()
+                settled.insert(pending.id)
             }
-            WatchLogger.shared.warning(.loop, "Earlier command \(Self.name(pending.kind)) booked as delivered")
-            alerts.postBookedIntent()
         }
-        await clearIntent()
+        if !settled.isEmpty { await settle(settled) }
+    }
+
+    /// Returns once every callback the kit queued before now has run.
+    private func drainDelegateQueue(of pump: LoanPump) async {
+        guard let queue = pump.delegateQueue else { return }
+        await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+            queue.async { done.resume() }
+        }
     }
 
     static func name(_ kind: WatchDoseIntent.Kind) -> String {

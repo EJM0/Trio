@@ -102,7 +102,8 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     @ObservationIgnored private(set) var pump: LoanPump?
     @ObservationIgnored private var pumpDelegate: WatchLoanPumpDelegate
     @ObservationIgnored private(set) var snapshot: WatchLoanSnapshot?
-    @ObservationIgnored var intent: WatchDoseIntent?
+    /// Commands written down before they were sent, until each outcome is known. Never overwritten: each command adds one.
+    @ObservationIgnored var intents: [WatchDoseIntent] = []
     @ObservationIgnored var cycleInfo = WatchLoanCycleInfo()
     @ObservationIgnored private var inbox = WatchLoanInbox()
     @ObservationIgnored private var tail: Task<Void, Never>?
@@ -339,8 +340,8 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
 
     private func startLoanRecords(epoch: Int64) async throws {
         guard records.snapshot.epoch != epoch else { return }
-        let records = records
-        try await WatchLoanFiles.io { try records.reset(epoch: epoch) }
+        let (records, pulse) = (records, snapshot?.deliveryPulseUnits ?? 0.05)
+        try await WatchLoanFiles.io { try records.reset(epoch: epoch, pulseUnits: pulse) }
         cycleInfo = WatchLoanCycleInfo(holdingSince: env.now(), autosens: snapshot?.oref.autosens)
         let (files, info) = (env.files, cycleInfo)
         try await WatchLoanFiles.io { try files.save(info, to: .cycle) }
@@ -459,11 +460,26 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             self.pump = nil
             WatchLogger.shared.info(.loop, "Pump manager let go after the loan")
         }
+        // what never settled is booked as the cycle would book it, and goes to the phone before it is forgotten
+        let (records, pending) = (records, intents)
+        for intent in pending where intent.resolve(
+            kitUncertain: false,
+            kitBookedIt: records.kitRecorded(intent),
+            deliveredNow: nil,
+            pulseUnits: records.snapshot.pulseUnits
+        ) == .bookAsDelivered {
+            try? await WatchLoanFiles.io { try records.book(intent) }
+            WatchLogger.shared.warning(.loop, "Unsettled command \(Self.name(intent.kind)) booked as delivered at the loan's end")
+        }
+        if !pending.isEmpty {
+            alerts.postBookedIntent()
+            await sendRecords(epoch: records.snapshot.epoch)
+        }
         try? await WatchLoanFiles.io {
             try files.remove(.pumpState)
             try files.remove(.intent)
         }
-        intent = nil
+        intents = []
         await env.cgm?.retire()
     }
 

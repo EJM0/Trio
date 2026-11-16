@@ -33,6 +33,8 @@ final class LoanPumpDouble: LoanPump {
     var makesDeliveryUncertainOnError = false
     var statusIsFresh = true
     var bolusDuration: TimeInterval = 0.2
+    /// At the next status read the kit settles an unconfirmed dose and reports it on its delegate queue, later.
+    var recoverOnStatus: DoseEntry?
 
     var isControlReleased = false
     var refusesSessions = false
@@ -173,6 +175,11 @@ final class LoanPumpDouble: LoanPump {
             return
         }
         if statusIsFresh { lastSync = now() }
+        if let dose = recoverOnStatus {
+            recoverOnStatus = nil
+            deliveryIsUncertain = false
+            reportLater(dose)
+        }
         completion?(lastSync)
     }
 
@@ -281,6 +288,19 @@ final class LoanPumpDouble: LoanPump {
     func acknowledgeAlert(alertIdentifier _: Alert.AlertIdentifier) async throws {}
     func getSoundBaseURL() -> URL? { nil }
     func getSounds() -> [Alert.Sound] { [] }
+
+    /// The kit's way: queued on the delegate queue, not waited for.
+    func reportLater(_ dose: DoseEntry) {
+        let event = NewPumpEvent(date: dose.startDate, dose: dose, raw: Data(UUID().uuidString.utf8), title: "\(dose.type)")
+        delegateQueue.async {
+            self.pumpManagerDelegate?.pumpManager(
+                self,
+                hasNewPumpEvents: [event],
+                lastReconciliation: nil,
+                replacePendingEvents: false
+            ) { _ in }
+        }
+    }
 
     private func report(_ dose: DoseEntry) {
         let event = NewPumpEvent(date: dose.startDate, dose: dose, raw: Data(UUID().uuidString.utf8), title: "\(dose.type)")
