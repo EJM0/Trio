@@ -114,30 +114,62 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     /// The background time of the cycle or message in progress.
     @ObservationIgnored var activity: LoanBackgroundActivity?
     @ObservationIgnored var adoptedAt: Date?
+    /// The saved files, read on the file queue; every entry point waits for it.
+    @ObservationIgnored private(set) var loaded: Task<Void, Never>!
 
     init(env: WatchLoanEnvironment) {
         self.env = env
         records = WatchLoanRecordStore(files: env.files)
         alerts = WatchLoanAlerts(notifier: env.notifier)
         pumpDelegate = WatchLoanPumpDelegate(files: env.files, records: records, now: env.now)
-        do {
-            state = try env.files.load(WatchLoanState.self, from: .state) ?? .initial
-        } catch {
-            // can't tell what it held: command nothing; the relaunch releases the pod and alerts
-            WatchLogger.shared.error(.loop, "Watch loan state can't be read", error: error)
-            state = .stopped(epoch: 0, reason: .unconfirmed)
-        }
-        do {
-            cycleInfo = try env.files.load(WatchLoanCycleInfo.self, from: .cycle) ?? WatchLoanCycleInfo()
-            intent = try env.files.load(WatchDoseIntent.self, from: .intent)
-            inbox = try env.files.load(WatchLoanInbox.self, from: .inbox) ?? WatchLoanInbox()
-            if let data = try env.files.read(.snapshot) {
-                snapshot = try WatchLoanSnapshot.decode(data)
-            }
-        } catch {
-            WatchLogger.shared.error(.loop, "Watch loan files can't be read", error: error)
-        }
+        state = .initial
         pumpDelegate.host = self
+        loaded = Task { await self.loadFiles() }
+        tail = loaded
+    }
+
+    private struct Saved {
+        var state: WatchLoanState?
+        var stateUnreadable = false
+        var cycleInfo: WatchLoanCycleInfo?
+        var intents: [WatchDoseIntent] = []
+        var inbox: WatchLoanInbox?
+        var snapshot: WatchLoanSnapshot?
+    }
+
+    /// Reads every loan file off the main thread before any event, cycle or treatment runs.
+    private func loadFiles() async {
+        let (files, records) = (env.files, records)
+        let saved = (try? await WatchLoanFiles.io { () -> Saved in
+            var saved = Saved()
+            do {
+                saved.state = try files.load(WatchLoanState.self, from: .state)
+            } catch {
+                WatchLogger.shared.error(.loop, "Watch loan state can't be read", error: error)
+                saved.stateUnreadable = true
+            }
+            do {
+                saved.cycleInfo = try files.load(WatchLoanCycleInfo.self, from: .cycle)
+                saved.intents = try files.load([WatchDoseIntent].self, from: .intent) ?? []
+                saved.inbox = try files.load(WatchLoanInbox.self, from: .inbox)
+                saved.snapshot = try files.read(.snapshot).map { try WatchLoanSnapshot.decode($0) }
+            } catch {
+                WatchLogger.shared.error(.loop, "Watch loan files can't be read", error: error)
+            }
+            records.load()
+            return saved
+        }) ?? Saved()
+        if saved.stateUnreadable {
+            // can't tell what it held: command nothing; the relaunch releases the pod
+            state = .stopped(epoch: 0, reason: .unconfirmed)
+            alerts.post(.stopped(.unconfirmed))
+        } else {
+            state = saved.state ?? .initial
+        }
+        cycleInfo = saved.cycleInfo ?? WatchLoanCycleInfo()
+        intents = saved.intents
+        inbox = saved.inbox ?? WatchLoanInbox()
+        snapshot = saved.snapshot
         loop.lastCycleAt = cycleInfo.lastCycleAt
         loop.lastConfirmedCycleAt = cycleInfo.lastConfirmedCycleAt
     }
@@ -466,7 +498,8 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     }
 
     /// A background task the app was handed, by type.
-    func noteWake(_ type: String) {
+    func noteWake(_ type: String) async {
+        await loaded.value
         noteSummary { $0.wakes[type, default: 0] += 1 }
     }
 
@@ -510,6 +543,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
 
     /// A WatchConnectivity payload. True when it was a loan payload.
     @discardableResult func receive(_ payload: [String: Any]) async -> Bool {
+        await loaded.value
         let held = env.beginActivity("Trio loan message")
         defer { held.end() }
         return await receiveHeld(payload)

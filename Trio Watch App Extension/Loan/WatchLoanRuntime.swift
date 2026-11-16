@@ -199,7 +199,10 @@ final class UserNotificationLoanNotifier: WatchLoanNotifier {
             "Background tasks: \(counts.map { "\($0.key) \($0.value)" }.sorted().joined(separator: ", "))"
         )
         for task in tasks {
-            WatchLoanRuntime.host?.noteWake(String(describing: type(of: task)))
+            if let host = WatchLoanRuntime.host {
+                let name = String(describing: type(of: task))
+                Task { await host.noteWake(name) }
+            }
             guard let host = WatchLoanRuntime.host else {
                 task.setTaskCompletedWithSnapshot(false)
                 continue
