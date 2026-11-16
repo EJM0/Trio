@@ -567,6 +567,24 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(boluses.first?.bookedIntent == false)
     }
 
+    @Test("Resume goes out while a bolus is unconfirmed; another bolus doesn't") func resumeWhilePending() async throws {
+        let world = LoanFixture()
+        try await world.startLoan(glucose: 120)
+        await world.reading(120)
+        world.pump?.commandError = .communication(nil)
+        world.pump?.makesDeliveryUncertainOnError = true
+        await world.host.requestBolus(units: 1)
+        #expect(world.host.intents.count == 1)
+        world.pump?.commandError = nil
+        await world.host.suspendInsulin()
+        await world.host.resumeInsulin()
+        let commands = world.pump?.commands ?? []
+        #expect((commands.lastIndex(of: "suspend") ?? .max) < (commands.lastIndex(of: "resume") ?? -1))
+        #expect(world.host.intents.count == 1, "the bolus intent stays; suspend and resume settled")
+        let outcome = await world.host.command(.bolus(units: 0.5, automatic: false))
+        #expect(outcome == .notSent)
+    }
+
     @Test("A stopped watch keeps reading the sensor and keeps its glucose alarms, unless superseded") func stoppedAlarms() async throws {
         var low = GlucoseAlert(type: .low)
         low.thresholdMgDL = 70
