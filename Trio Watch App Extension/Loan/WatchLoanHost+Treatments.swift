@@ -75,7 +75,7 @@ extension WatchLoanHost {
             snapshot: snapshot,
             records: records.loopRecords(bolusIncrement: bolusIncrement),
             now: now,
-            currentTemp: Self.currentTemp(pump.status.basalDeliveryState, now: now),
+            currentTemp: currentTemp(pump.status.basalDeliveryState, now: now),
             autosens: cycleInfo.autosens,
             microBolusAllowed: false
         )
