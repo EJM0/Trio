@@ -8,7 +8,8 @@ extension BaseWatchManager: WatchLoanTransport {
     }
 
     /// Only the watch's loan status query comes with a reply handler; anything else takes the usual path.
-    func session(
+    /// `@objc` so WatchConnectivity finds it outside the class body that declares the delegate conformance.
+    @objc(session:didReceiveMessage:replyHandler:) func session(
         _ session: WCSession,
         didReceiveMessage message: [String: Any],
         replyHandler: @escaping ([String: Any]) -> Void
