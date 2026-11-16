@@ -190,3 +190,72 @@ Add Swift Testing cases: (a) SMB blocked for exactly `smbInterval` after the pla
   - `OpenAPSSwift/Extensions/Date+MinutesFromMidnight.swift` 40-67;
   - `OpenAPSSwift/Models/ComputedPumpHistoryEvent.swift` 16-17, 61-62 (`isSMB` / `isExternal` unused in the algorithm).
 - OmnipodKit `6fdf0e0`: `OmniPumpManager.swift` 3061-3070.
+
+## v2 re-review (2026-11-16)
+
+Scope: `target-architecture.md` "v2 amendments" (V2-1 to V2-32), ADR-003 to ADR-008, and `implementation/roadmap.md` v2. I checked only the status of SB-1, SB-2 and the major SM findings, and looked for new paths to two commanders, silent stops and fail-open gates. Design-document review only; nothing was run.
+
+### Status of earlier findings
+
+| ID | Status | By | Note or remaining change |
+|---|---|---|---|
+| SB-1 | **Resolved** | V2-1 | The request-id echo, the 30 s expiry, `sendMessage` only, "accept only in `requesting`" and the transfer cancel at Take Back together close the late-grant path. Remaining minor point: see N-4. |
+| SB-2 | **Resolved, conditionally** | V2-6, V2-7, V2-8 | See the "V2-7 versus SB-2 intent" section below. Conditions: R-1 to R-4. |
+| SM-1 Take Back temp cancel | **Not resolved** | – | V2-7 has no temp cancel, while V2-2 (lend) and V2-3 (end) do. Required as R-1. |
+| SM-2 Bolus under way at Take Back | **Not resolved** | – | The per-cycle re-audit catches it one cycle late. Meanwhile the phone's first cycle runs on IOB that misses the undelivered remainder, possibly several units of a manual bolus. Required as R-2. |
+| SM-3 Expected delivery | Resolved | V2-8 | The schedule has to be read in the pod's (grant) time zone. That is consistent with ADR-004. |
+| SM-4 Placeholder recompute | Resolved | V2-8 | Also see R-3. |
+| SM-5 No alert in no-dosing states | Resolved | V2-12 | The invariant test must cover (watch `returning`, phone `lent`) and (watch `idle` after `grantRejected`, phone `lending`). |
+| SM-6 Dead watch next to the phone | Resolved | V2-14 | – |
+| SM-7 Dead-man ladder | Resolved (minor left) | V2-13, V2-18 | The ladder ends at 120 min, and the watch has no critical level. Repeat hourly up to the 6 h resume horizon, and check `timeSensitiveSetting`, not only general authorization (minor). |
+| SM-8 No stop on the watch | Resolved | V2-25, V2-26 | Suspend, Resume and Cancel override/TT are enough for v1. |
+| SM-9 Version-independent stop | Resolved | V2-10 | – |
+| SM-10 Relaunch query | Resolved | V2-11 + V2-6 | – |
+| SM-11 Purge of imported rows | Resolved | V2-9 | – |
+| SM-12 Lend drain | Resolved | V2-2 | – |
+| SM-13 Watch bolus IOB | Resolved | V2-24 | – |
+| SM-16 Unreadable state | Resolved | V2-15 | – |
+| SM-17 End not confirmed | Resolved | V2-3, V2-12, V2-14 | – |
+| SM-18 Write-ahead and kit persistence | **Partially resolved** | V2-20 | The host writes synchronously, but OmnipodKit notifies the host through an async delegate after it sets `unacknowledgedCommand` (F4; WeakSynchronizedDelegate.swift:55). The window between transmit and persist stays open in the kit. Required as R-5. |
+| SM-19 Shared guards, F8 | Resolved | V2-20 | – |
+| SM-20 End preconditions and order | Resolved | V2-3 | – |
+| SM-22 Time zone | Resolved | V2-23, ADR-004 | – |
+| SM-27 Hardware milestone | Resolved | V2-32, M8 | – |
+
+### V2-7 versus the SB-2 intent
+
+The aim of SB-2 was that no unbooked insulin from a still-running watch can reach a phone that is dosing on full automation. With V2-6, the watch's kit refuses insulin-adding commands once its handshake sees the phone's session. The remaining exposures are:
+
+- **Watch doses between the phone's `takeControl()` and the phone's first handshake.** These are delivered before the Take Back audit's status read, so the audit books them as an excess, which overstates IOB and is conservative. Covered.
+- **A watch bolus still delivering at take time.** The remainder lands after the audit. This is SM-2, and R-2 closes it.
+- **Reduction commands from the stale watch.** V2-6 refuses only insulin-adding commands, so a stale watch can still set a zero or low temp, up to 120 min (DosingEngine.swift:481-497), in the session that detected the foreign controller. The phone's driver does not know that temp, and an audit shortfall gives only a notice. This is bounded hyperglycemia, not hypo. R-4 closes it.
+
+**Conclusion.** Full looping after Take Back with the per-cycle re-audit is acceptable, and reductions-only until the watch acknowledges is **not** required, provided that:
+- R-1: Take Back cancels the running temp;
+- R-2: the audit accounts for a bolus still under way;
+- R-3: the per-cycle re-audit also recomputes and books the audit bolus, not only switches the mode;
+- R-4: after an unexpected foreign session, the V2-6 kit rule refuses **all** program commands, not only insulin-adding ones, and there is a pump-double test that the stale watch's next command of any kind fails.
+
+Without R-2 the phone's first post-take cycle can dose on under-counted IOB. In that case, reductions-only until the watch acknowledges, or until one re-audit cycle has passed, would be required instead.
+
+### New findings from the amendments
+
+| ID | Sev | Finding | Evidence | Required change |
+|---|---|---|---|---|
+| N-1 | **major** | **V2-21, "no SMB from a background wake; temp basals only", must not be done by dropping `units` from a determination.** When oref chooses an SMB, it pairs it with a compensating low or zero temp of up to 60 min (`smbLowTempRequired`). Enacting that temp without the SMB under-delivers while glucose is high. This is the same trap as the repo's open-loop rule. | DosingEngine.swift:786-857; OpenAPS.swift:338 (`microBolusAllowed: true` hard-coded) | Pass `microBolusAllowed = false` through `OrefInputs` on background wakes, so oref runs its temp-only logic. Add a parity or behavior test that a background determination never contains an SMB-paired low temp. |
+| N-2 (= R-4) | **major** | V2-6 refuses only insulin-adding commands after a foreign session. That leaves stale reduction temps, and a stale suspend, that the new owner does not know about. | V2-6 text; experimental-kit-forks-inventory.md §4.4 (kit does not synthesize untracked temps) | Refuse all program commands; status reads are allowed. As belt and braces, the phone re-cancels or re-asserts the temp every cycle during the V2-7 re-audit window. |
+| N-3 (= R-5) | **major** | **Orphaned intent.** A journaled Trio intent with no kit `unacknowledgedCommand` (lost in the F4 window) cannot be resolved by the kit's `getStatus`. It either blocks forever, or someone resolves it by assuming it was not delivered. | V2-20; PodCommsSession.swift:1086-1100 | Resolve an orphaned intent by reading the odometer: book any excess as in V2-8, never assume not delivered. If the intent cannot be resolved, the mode is reductions-only plus an alert, not a silent permanent block. |
+| N-4 | minor | **The watch request timeout (20 s) can be shorter than a worst-case lend.** V2-2 waits for the loop, pump events, a bolus, and a release of up to 20 s. Late grants are then refused correctly, but what the phone does on `grantRejected` is unspecified. | V2-1, V2-2; state-and-synchronization.md lend 1 | On `grantRejected` (or Take Back while in `lending` with the watch answering `idle`), the phone calls `takeControl()` and persists `home(e+2)` automatically. That is safe because the watch never adopted. Set the watch timeout above the phone's worst-case lend time. In V2-7, "points to End" applies only when the watch answers `holding`. |
+| N-5 | minor | Reductions-only after unexplained insulin (V2-7) clamps only the oref call sites. Manual boluses stay allowed (`BolusSafetyValidator` uses the stored Max IOB). | Repo rule on DosingMode clamps | Keep this behavior, but the alert copy must not say "insulin delivery paused". |
+| N-6 | minor | V2-7 ends the re-audit after 6 h even without an acknowledgment. That is acceptable because of V2-11 (no watch resume past 6 h) and V2-6. | – | Log and notify when the window closes without an acknowledgment. |
+
+I found no other new path to two commanders. V2-1, V2-4 (single manager instance), V2-11 and V2-27 (three-layer gate, `pumpManager` never set to nil) together tighten SR-1 to SR-3.
+
+### Verdict
+
+**Gate passed for M3, M4 and M5, with required changes. No re-architecture is needed.**
+- **M3 (loan core): yes.** Add decision-table rows for N-4 (`grantRejected` leads to automatic retake) and for the Take Back temp cancel (R-1). Add the V2-12 invariant cases listed under SM-5.
+- **M4 (phone): yes, if** its acceptance tests cover R-1 (temp cancel at Take Back), R-2 (`bolusNotDelivered` / bolus under way booked in the audit; StatusResponse.swift:20), and R-3 (re-audit recomputes the audit bolus), plus N-5 copy.
+- **M5 (watch loop): yes, if** N-1 (`microBolusAllowed = false`, never stripped SMB) and R-5 (orphaned-intent odometer resolution) are in its acceptance tests, and **M2b**, which M5 depends on, implements R-4 (V2-6 refuses all program commands) with the pump-double test.
+
+BR-1 is unchanged. The flag stays off for users until M8/E2 passes.
