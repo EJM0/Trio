@@ -577,15 +577,12 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         return await withCheckedContinuation { (done: CheckedContinuation<Int64?, Never>) in
             let once = ResumeOnce(done)
             let sent = env.transport.sendLive([WatchLoanWireKey.message: data]) { reply in
-                once.resume((reply[WatchLoanHost.phoneEpochReplyKey] as? NSNumber)?.int64Value)
+                once.resume((reply[WatchLoanWireKey.phoneEpoch] as? NSNumber)?.int64Value)
             }
             guard sent else { return once.resume(nil) }
             DispatchQueue.main.asyncAfter(deadline: .now() + timeout) { once.resume(nil) }
         }
     }
-
-    /// Reply key to a status query: the phone's loan epoch.
-    nonisolated static let phoneEpochReplyKey = "watchLoanPhoneEpoch"
 
     // MARK: - Logging
 

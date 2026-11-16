@@ -16,7 +16,7 @@ final class FakeTransport: WatchLoanTransport {
     func sendLive(_ payload: [String: Any], reply: (([String: Any]) -> Void)?) -> Bool {
         guard isReachable else { return false }
         sent.append(payload)
-        if let phoneEpoch { reply?([WatchLoanHost.phoneEpochReplyKey: NSNumber(value: phoneEpoch)]) }
+        if let phoneEpoch { reply?([WatchLoanWireKey.phoneEpoch: NSNumber(value: phoneEpoch)]) }
         return true
     }
 

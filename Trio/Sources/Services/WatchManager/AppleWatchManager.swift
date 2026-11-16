@@ -624,6 +624,19 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         }
     }
 
+    func session(
+        _ session: WCSession,
+        didReceiveMessage message: [String: Any],
+        replyHandler: @escaping ([String: Any]) -> Void
+    ) {
+        guard WatchLoanWireKey.isStatusQuery(message) else {
+            self.session(session, didReceiveMessage: message)
+            replyHandler([:])
+            return
+        }
+        answerLoanStatusQuery(replyHandler)
+    }
+
     func session(_: WCSession, didReceiveMessage message: [String: Any]) {
         // Handle logs first - doesn't need self, so it can run even during teardown
         if let logs = message["watchLogs"] as? String {
