@@ -78,6 +78,8 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
     var foreground = false
     var clock = Date(timeIntervalSince1970: 1_800_000_000)
     var battery: Float = 1
+    var model = "Watch7,1"
+    var notificationsAllowed = true
     var activity = FakeActivity()
     private(set) var adopted = 0
     private(set) var restored = 0
@@ -116,7 +118,8 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
             now: { [unowned self] in clock },
             isForeground: { [unowned self] in foreground },
             batteryLevel: { [unowned self] in battery },
-            notificationsAllowed: { true },
+            notificationsAllowed: { [unowned self] in notificationsAllowed },
+            modelIdentifier: { [unowned self] in model },
             appBuild: "1",
             beginActivity: { [unowned self] _ in activity },
             phoneAnswerTimeout: 0.2
@@ -367,7 +370,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
             let world = LoanFixture()
             try await world.startLoan()
             // a crash right after `holding` was saved: the kit's state never reached disk
-            try world.files.remove(.pumpState)
+            try FileManager.default.removeItem(at: world.files.url(.pumpState))
             world.pod.holder = .nobody
             world.transport.phoneEpoch = phoneEpoch
             await world.relaunch()
@@ -630,9 +633,18 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
 
     @Test("Stored integers in the watch's loan types are Int64 or small counts") func storedWidths() {
         // Mirror sees the stored properties; any plain Int must be a small count, never a time, epoch or id
-        let allowed: Set<String> = ["batteryNotice", "podContactFailures", "minutes"]
+        let allowed: Set<String> = [
+            "batteryNotice",
+            "podContactFailures",
+            "minutes",
+            "readings",
+            "cycles",
+            "confirmed",
+            "budgetErrors"
+        ]
         let samples: [Any] = [
             WatchLoanCycleInfo(),
+            WatchLoanCycleInfo.DailySummary(),
             WatchDoseIntent(id: UUID(), kind: .suspend, createdAt: Date(), epoch: 1, addsInsulin: false, deliveredBefore: nil),
             WatchLoanRecordStore.Contents(),
             WatchLoopRecords()

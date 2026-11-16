@@ -94,4 +94,17 @@ struct WatchLoanCycleInfo: Codable {
     /// Cycles in a row that got no pump status, and whether the user was told.
     var podContactFailures: Int = 0
     var podLinkNoticeShown = false
+    var summary = DailySummary()
+
+    /// Counts for one log line a day, so a hardware run shows its wakes, readings and cycles.
+    struct DailySummary: Codable {
+        var since: Date?
+        var readings: Int = 0
+        var cycles: Int = 0
+        var confirmed: Int = 0
+        var wakes: [String: Int] = [:]
+        var budgetErrors: Int = 0
+        var longestGapSeconds: Int64 = 0
+        var batteryAtStart: Float?
+    }
 }

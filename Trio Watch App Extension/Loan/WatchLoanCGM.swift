@@ -143,6 +143,10 @@ extension WatchLoanCGM: CGMManagerDelegate {
     ) {
         WatchLogger.shared.debug(.cgm, "CGM \(type): \(message)")
         if type == .connection { linkEvents.note("CGM", category: .cgm) }
+        if message.hasPrefix("RESTORED by the system") {
+            // the kit's willRestoreState: the system relaunched Trio for the sensor's Bluetooth link
+            WatchLogger.shared.info(.cgm, "CGM Bluetooth state restored by the system, app \(WatchAppState.current)")
+        }
         completion?(nil)
     }
 

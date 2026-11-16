@@ -22,6 +22,12 @@ extension WatchLoanHost {
         }
         guard let latest = kept.max(by: { $0.dateString < $1.dateString }) else { return }
         let now = env.now()
+        noteSummary { summary in
+            summary.readings += kept.count
+            if let previous {
+                summary.longestGapSeconds = max(summary.longestGapSeconds, Int64(latest.dateString.timeIntervalSince(previous)))
+            }
+        }
         if awaitingFirstReading {
             awaitingFirstReading = false
             WatchLogger.shared.info(
@@ -195,6 +201,10 @@ extension WatchLoanHost {
     }
 
     private func finish(start: Date, confirmed: Bool) {
+        noteSummary { summary in
+            summary.cycles += 1
+            if confirmed { summary.confirmed += 1 }
+        }
         let now = env.now()
         cycleInfo.lastCycleAt = now
         if confirmed {
