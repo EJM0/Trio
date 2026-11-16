@@ -824,3 +824,20 @@ Tests on this revision (same simulator, `1991CB91-59A3-4174-8F99-6F6C2B7279D2`):
   - "Trio couldn't read which device controls your pump. Your pump finishes any running temp basal and then follows its basal schedule."
 
 Tests: the watch loan suites ran 134 tests: 133 passed, 0 failed, 1 skipped (the `TRIO_STRESS` search). Full `Trio Tests`: 1130 total, 1085 passed, 0 failed, 45 skipped.
+
+## Integration check (M1-M3) (2026-11-16)
+
+Branch `feat/trio-on-watch` at `df5cda433` (M1, M1b, M2a, M2b, M3 merged, plus the cherry-picked test-host fix). Submodules clean (`git submodule status`: no `+` or `-`). Fresh paired simulators: iPhone 17 iOS 27.2 `422F5A9D-E24C-45C1-A343-823C9D5B6F87`, Apple Watch Series 12 46mm watchOS 27.2 `D6E39F53-A6BE-4EE0-94C9-13B08A4AC06B`. Xcode 27.2 (27B52). `X` = `xcodebuild -workspace Trio.xcworkspace -derivedDataPath $DD`. Exit codes are each command's own `$?`.
+
+| # | Step | Command | Result |
+|---|---|---|---|
+| 1 | iOS app | `X -scheme Trio PHONE build` | 0, BUILD SUCCEEDED |
+| 2 | Watch, flag off | `X -scheme "Trio Watch App" WATCH build` | 0, BUILD SUCCEEDED |
+| 3 | Watch, flag on | same + `TRIO_ON_WATCH=YES` | 0, BUILD SUCCEEDED; log uses `TrioOnWatch-Info.plist` and `TrioOnWatch.entitlements` (step 2 doesn't) |
+| 4 | Full `Trio Tests` | `X -scheme "Trio Tests" PHONE test` | 0; 1155 total, 1109 passed, 0 failed, 46 skipped |
+| 5 | Watch tests | `X -scheme "Trio Watch AppTests" WATCH test` | 0; 21 / 21 passed |
+| 6 | TZ escape | `TEST_RUNNER_TRIO_TZ_ESCAPE=1 X test-without-building -scheme "Trio Tests" PHONE -only-testing:TrioTests/ProcessTimeZoneEscapeTests` | 0; 1 / 1 passed |
+
+- No merge-induced compile errors; no fix commit needed.
+- Flakes: none this run. The known ones (`FileStorageTests` "Can parse mmol/L settings to mg/dL", `PumpStatusStorageTests` "A suspend and resume are stored in order") passed in the full run, so no isolated re-run was needed.
+- Each build reformatted `Trio Watch App Tests/Unit Tests.swift` (SwiftFormat joined a `@Test` attribute onto its `func` line); reverted after every step. `Package.resolved` stayed clean.
