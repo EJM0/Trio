@@ -23,10 +23,10 @@ Source: `Trio/Sources/APS/WatchLoan/WatchLoan.swift` (`WatchLoan.decide`). Tests
   - A take without a window never ends an existing one.
 - **Adopt.** The watch never takes. It emits `.adoptControl`, which may resync only to the session the phone released. If the phone has taken the pod since, that newer session is foreign and the adopt is refused. This bounded adopt is a kit requirement the M3 re-search found. M4/M5 map both effects to the kit API (A2 may require explicit intent to lift a refusal).
 - **Superseding window (C-1).** `LoanRecord(epoch, supersededUntil, takenAt)` names the loan the phone took back.
-  - Only a user take sets the window: now to now + 6 h.
+  - Only a Take Back from a known watch loan sets the window: now to now + 6 h (M3R-03).
   - It holds only while `takenAt ≤ now < supersededUntil`, so setting the clock back ends it (M3E-07).
   - It is cleared only by a watch `stop` with `released: true`, which the watch sends after its release succeeds (M3E-02).
-  - `epoch` is nil when the peer is unknown: after "Use the pod on this iPhone", or a Take Back from an unreadable file.
+  - `epoch` is nil when the peer is unknown: after "Use the pod on this iPhone" outside such a window, or a Take Back from an unreadable file. Those take without a window, so another session is refused again and the user can re-confirm.
 - **Audit.** `.audit(.loan(epoch))` recomputes the tagged audit bolus of that loan from its release reading. `.audit(.podLifetime)` compares the pod's delivered total since activation with every booked dose and the scheduled basal (M3E-04). Both are idempotent: booked doses, including R-5 booked intents (C-4), count as expected. M4 implements the booking.
 - `—` means no change; `[]` means no effects. Events not listed for a state are ignored: `(state, [])`.
 
@@ -66,7 +66,7 @@ Events:
 | P21 | `takingBack` | `takeControlResult(e, false)` | — | alert takeBackPodUnreachable | `p21` |
 | P22 | `takingBack(e, L)` | Take Back again | — | takeControl(L.supersededUntil), never a plain take | `p22` |
 | P23 | `takingBack(e, W(nil))` | `takeControlResult(e, true)` | `home(e, W(nil))` | cancelTemp, refreshDeliveredUnits, audit(podLifetime), persist | `p23` |
-| P24 | `unreadable` | Take Back | `takingBack(Unix seconds, W(nil))` | take back with W(nil); the result audits the pod lifetime | `p24` |
+| P24 | `unreadable` | Take Back | `takingBack(Unix seconds, loan(nil))` | take back with no window; the result audits the pod lifetime | `p24`, `WatchLoanFlowTests.unreadableStateFile` |
 | P25 | `home(_, L)`, window open | `foreignPodSession` | — | podSession(keepCommanding(until)), audit(L), alert watchContactedPodAfterTakeBack (on every report) | `p25` |
 | P26 | `home(_, L)`, window closed | `foreignPodSession` | — | podSession(refuse), audit(L), alert unexpectedPodSession | `p26` |
 | P27 | `home(_, loan(e))` without window (End, N-4) | `foreignPodSession` | — | podSession(refuse), audit(loan e), alert unexpectedPodSession | `p27` |
@@ -85,8 +85,9 @@ Events:
 | P40 | `home` | Take Back, results, timer, holding | — | [] | `p40` |
 | P41 | `unreadable` | `foreignPodSession` | — | podSession(refuse), audit(podLifetime), alert unexpectedPodSession | `p41` |
 | P42 | `lending(e)`/`takingBack(e)` | a result for another epoch | — | [] (late result from an earlier hand-off) | `p42` |
-| P43 | `home(e)` | `usePodOnThisPhoneConfirmed` (M3E-03) | `takingBack(e+1, W(nil))` | take back to e+1 with W(nil), alert podTakenOnThisPhone; the result audits the pod lifetime; other states: [] | `p43` |
+| P43 | `home(e, L)`, L nil, without window or window closed | `usePodOnThisPhoneConfirmed` (M3E-03, M3R-03) | `takingBack(e+1, loan(nil))` | take back to e+1 with no window, alert podTakenOnThisPhone; the result audits the pod lifetime; a further foreign session is refused again; other states: [] | `p43` |
 | P44 | `home(_, W(w))`, clock set back before `takenAt` | `foreignPodSession` | — | podSession(refuse), … (window ended) | `p44` |
+| P45 | `home(e, W(w))`, window open | `usePodOnThisPhoneConfirmed` | `takingBack(e+1, W(w))` | take back to e+1 keeping W(w), alert; the result audits loan w | `p45` |
 
 ## Watch
 
@@ -126,7 +127,7 @@ The release result then sends `stop(e, released: true)` (W35).
 | W18 | `returning(e)` | `handBackAck(e)` | `idle(e)` | persist, disarm watchNotLooping | `w18` |
 | W19 | `holding(e)` | `revoke(n > e)` | `stopped(e, superseded)` | Stop(superseded) | `w19` |
 | W20 | `returning(e)` | `revoke(n > e)` | `stopped(e, superseded)` | Stop(superseded) | `w20` |
-| W21 | `idle(e)`/`requesting(e)` | `revoke(n > e)` | `idle(n)` | persist | `w21` |
+| W21 | `idle(e)` / `requesting(e, id)` | `revoke(n > e)` | `idle(n)` / `requesting(n, id)` | persist; the request stands, a grant at epoch ≤ n is stale | `w21` |
 | W22 | `stopped(e)` | `revoke` | — | sendStop `stop(e)`, releaseControl | `w22` |
 | W23 | `holding(e)` | `revoke(n ≤ e)` | — | [] | `w23` |
 | W24 | `holding(e)` | `foreignPodSession` | `stopped(e, foreignSession)` | Stop(foreignSession) | `w24` |
@@ -147,7 +148,7 @@ The release result then sends `stop(e, released: true)` (W35).
 ## Wire format
 
 - Every message carries `protocolVersion`, `epoch` (`Int64`), `messageID` and `sentAt`.
-- `stop` and `revoke` use a frozen wrapper (`{"stop": {kind, epoch, released}}`) that any protocol version parses.
+- `stop` and `revoke` use a frozen wrapper (`{"stop": {kind, epoch, released}}`) that any protocol version parses. Only optional keys may be added; a missing `released` decodes as false (M3R-02, `stopWithoutReleased`).
 - `handBack` and `handBackAck` also decode across protocol versions, so End works through a version skew (M3E-09).
 - Record batches across versions are left to M4, which defines their payload.
 
@@ -187,6 +188,8 @@ Every run must end with one commander whose kit holds the pod, with alarms match
 | Take Back | watch off, relaunched with the phone unreachable | — | | | `takeBackWatchOffPhoneUnreachable` (M3E-01) |
 | Start + Take Back | watch crashed before its adopt, phone took back, relaunch with the phone unreachable | — | | | `adoptCrashThenTakeBack` (M3E-01) |
 | Start + Take Back | Take Back while the watch's adopt is still in flight; the late adopt is refused | — | | | `adoptRacesTakeBack` |
+| Loan 2 | every late loan-1 message and stop, both directions, while loan 2 is `lending` or `lent`: no state change except the watch learning a newer epoch, no pump action (M3R-01) | | | | `lateLoanOneMessages` |
+| Any | phone state file unreadable in `lending`, `lent` or `takingBack`: gate closed, Take Back recovers (M3R-05) | | | | `unreadableStateFile` |
 
 ## Invariant
 

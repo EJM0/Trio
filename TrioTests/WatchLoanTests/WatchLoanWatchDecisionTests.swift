@@ -185,12 +185,18 @@ import Testing
         #expect(effects == stopEffects(4, .superseded))
     }
 
-    @Test("W21 idle or requesting + revoke: learn the epoch, a late grant is then stale") func w21() {
-        for state in [WatchLoanState.idle(epoch: 3), .requesting(epoch: 3, requestID: F.requestA)] {
-            let (next, effects) = decide(state, .receivedStop(WatchLoanStop(kind: .revoke, epoch: 5)))
-            #expect(next == .idle(epoch: 5))
-            #expect(effects == [.persist(.idle(epoch: 5))])
-        }
+    @Test("W21 idle or requesting + revoke: learn the epoch, keep the request; a grant from before it is then stale") func w21() {
+        let (idle, idleEffects) = decide(.idle(epoch: 3), .receivedStop(WatchLoanStop(kind: .revoke, epoch: 5)))
+        #expect(idle == .idle(epoch: 5))
+        #expect(idleEffects == [.persist(.idle(epoch: 5))])
+        let (requesting, effects) = decide(
+            .requesting(epoch: 3, requestID: F.requestA),
+            .receivedStop(WatchLoanStop(kind: .revoke, epoch: 5))
+        )
+        #expect(requesting == .requesting(epoch: 5, requestID: F.requestA))
+        #expect(effects == [.persist(requesting)])
+        #expect(decide(requesting, grant(epoch: 5)).0 == .idle(epoch: 5))
+        #expect(decide(requesting, grant(epoch: 6)).0 == .holding(epoch: 6))
     }
 
     @Test("W22 stopped + revoke: repeat the stop report and release again") func w22() {

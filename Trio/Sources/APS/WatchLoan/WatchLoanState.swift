@@ -13,7 +13,7 @@ struct LoanRecord: Codable, Equatable, Hashable {
         self.takenAt = takenAt
     }
 
-    static func superseding(epoch: Int64?, at now: Date) -> LoanRecord {
+    static func superseding(epoch: Int64, at now: Date) -> LoanRecord {
         LoanRecord(epoch: epoch, supersededUntil: now.addingTimeInterval(WatchLoan.resumeWindow), takenAt: now)
     }
 

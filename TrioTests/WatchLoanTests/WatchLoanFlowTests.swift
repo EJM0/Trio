@@ -373,4 +373,119 @@ import Testing
         world.recover()
         expectSettled(world, "adopt races Take Back")
     }
+
+    // MARK: Late loan-1 messages during loan 2
+
+    /// Loan 1 lent, taken back and stopped; loan 2 requested. `lent` settles loan 2 to lent(3) / holding(3).
+    private func loanTwo(lent: Bool) -> LoanWorld {
+        var world = LoanWorld.lent()
+        world.onPhone(.takeBackTapped(watchAnswer: nil))
+        world.settle()
+        world.onWatch(.stopAcknowledged)
+        world.onWatch(.startTapped)
+        world.deliverToPhone()
+        if lent { world.settle() }
+        return world
+    }
+
+    private static let loanOneRequest = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+
+    private static let lateToPhone: [WatchLoanMessage.Kind] = [
+        .request(requestID: loanOneRequest),
+        .grantRejected(requestID: loanOneRequest, reason: .grantExpired),
+        .holding,
+        .records,
+        .handBack,
+        .status(.holding(epoch: 1))
+    ]
+
+    private static let lateToWatch: [WatchLoanMessage.Kind] = [
+        .grant(requestID: loanOneRequest, expiresAt: LoanFixture.now.addingTimeInterval(30)),
+        .refused(requestID: loanOneRequest, reason: .busy),
+        .handBackAck
+    ]
+
+    @Test(
+        "Late loan-1 messages and stops during loan 2 change neither device and trigger no pump action",
+        arguments: [false, true]
+    ) func lateLoanOneMessages(lent: Bool) {
+        let base = loanTwo(lent: lent)
+        #expect(
+            base
+                .phone ==
+                (
+                    lent ? .lent(epoch: 3) :
+                        .lending(epoch: 3, requestID: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!)
+                )
+        )
+        var settled = base
+        settled.settle()
+
+        func expectHarmless(_ world: LoanWorld, _ label: String, watchLearnsEpoch: Bool = false) {
+            #expect(world.violations.isEmpty, "\(label): \(world.violations)")
+            #expect(world.phone == base.phone, "\(label)")
+            if watchLearnsEpoch {
+                #expect(world.watchKind == base.watchKind, "\(label)")
+            } else {
+                #expect(world.watch == base.watch, "\(label)")
+            }
+            #expect(world.phonePending == base.phonePending, "\(label)")
+            #expect(world.watchPending == base.watchPending, "\(label)")
+            var after = world
+            after.settle()
+            #expect(after.phone == settled.phone && after.watch == settled.watch, "\(label) after settling")
+        }
+
+        for kind in Self.lateToPhone {
+            var world = base
+            world.toPhone.append(WatchLoanMessage(epoch: 1, kind: kind))
+            world.deliverToPhone(world.toPhone.count - 1)
+            expectHarmless(world, "to phone \(kind)")
+        }
+        for released in [false, true] {
+            var world = base
+            world.stopsToPhone.append(WatchLoanStop(kind: .stop, epoch: 1, released: released))
+            world.deliverStopToPhone(world.stopsToPhone.count - 1)
+            expectHarmless(world, "stop released \(released)")
+        }
+        for kind in Self.lateToWatch {
+            var world = base
+            world.toWatch.append(WatchLoanMessage(epoch: 1, kind: kind))
+            world.deliverToWatch(world.toWatch.count - 1)
+            expectHarmless(world, "to watch \(kind)")
+        }
+        var revoke = base
+        revoke.stopsToWatch.append(WatchLoanStop(kind: .revoke, epoch: 2))
+        revoke.deliverStopToWatch(revoke.stopsToWatch.count - 1)
+        expectHarmless(revoke, "loan-1 revoke", watchLearnsEpoch: true)
+    }
+
+    // MARK: Unreadable phone state file
+
+    @Test(
+        "State file unreadable in lending, lent or takingBack: gate closed, Take Back recovers with a pod-lifetime audit",
+        arguments: ["lending", "lent", "takingBack"]
+    ) func unreadableStateFile(at stage: String) {
+        var world = LoanWorld()
+        world.onWatch(.startTapped)
+        world.deliverToPhone()
+        if stage != "lending" { world.settle() }
+        if stage == "takingBack" { world.onPhone(.takeBackTapped(watchAnswer: nil)) }
+
+        world.corruptPhoneFile()
+        #expect(world.phone == .unreadable)
+        #expect(!world.commands(.phone))
+        #expect(world.phoneAlarms.contains(.phoneNotLooping))
+
+        world.onPhone(.takeBackTapped(watchAnswer: nil))
+        guard case let .takingBack(epoch, loan) = world.phone else {
+            Issue.record("\(stage): no Take Back from unreadable")
+            return
+        }
+        #expect(epoch == Int64(LoanFixture.now.timeIntervalSince1970))
+        #expect(loan == LoanRecord(epoch: nil))
+        world.recover()
+        expectSettled(world, "unreadable in \(stage)")
+        #expect(world.phone == .home(epoch: epoch, lastLoan: LoanRecord(epoch: nil)))
+    }
 }

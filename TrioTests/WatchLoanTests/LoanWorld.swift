@@ -118,6 +118,14 @@ struct LoanWorld: Hashable {
         }
     }
 
+    /// The phone's state file becomes unreadable, and the phone relaunches on it.
+    mutating func corruptPhoneFile() {
+        phoneDisk = .unreadable
+        phone = .unreadable
+        phonePending = []
+        onPhone(.relaunched)
+    }
+
     /// The kit talks to the pod (a command or a status read). A foreign session is reported to the host.
     mutating func session(_ device: Device) {
         var kit = device == .phone ? phoneKit : watchKit

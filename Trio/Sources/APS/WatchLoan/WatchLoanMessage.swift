@@ -46,7 +46,7 @@ struct WatchLoanMessage: Codable, Equatable, Hashable {
 }
 
 /// Stop (watch to phone) and revoke (phone to watch). Its wire format never changes, so any protocol version
-/// can parse it. `released` confirms the stopped watch let go of the pod.
+/// can parse it: only add optional keys. `released` confirms the stopped watch let go of the pod; absent means false.
 struct WatchLoanStop: Codable, Equatable, Hashable {
     enum Kind: String, Codable, Equatable, Hashable {
         case stop
@@ -61,6 +61,13 @@ struct WatchLoanStop: Codable, Equatable, Hashable {
         self.kind = kind
         self.epoch = epoch
         self.released = released
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        kind = try container.decode(Kind.self, forKey: .kind)
+        epoch = try container.decode(Int64.self, forKey: .epoch)
+        released = try container.decodeIfPresent(Bool.self, forKey: .released) ?? false
     }
 }
 

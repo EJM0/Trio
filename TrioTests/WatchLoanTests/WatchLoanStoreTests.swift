@@ -22,7 +22,7 @@ import Testing
         .lending(epoch: 4, requestID: LoanFixture.requestA),
         .lent(epoch: 4),
         .takingBack(epoch: 5, loan: LoanRecord(epoch: 4)),
-        .takingBack(epoch: Int64(Int32.max) + 10, loan: LoanFixture.superseding(nil))
+        .takingBack(epoch: Int64(Int32.max) + 10, loan: LoanRecord(epoch: nil))
     ]) func phoneRoundTrip(state: PhoneLoanState) throws {
         let store: WatchLoanStore<PhoneLoanState> = Self.temporaryStore()
         try store.save(state)
@@ -109,6 +109,17 @@ import Testing
         #expect(WatchLoanWire.decode(try WatchLoanWire.encode(released)) == .stop(released))
         let future = #"{"protocolVersion":99,"stop":{"kind":"stop","epoch":3,"released":false,"reason":"new"},"extra":[1,2]}"#
         #expect(WatchLoanWire.decode(Data(future.utf8)) == .stop(WatchLoanStop(kind: .stop, epoch: 3)))
+    }
+
+    @Test("A stop or revoke without the released key still decodes, as not released") func stopWithoutReleased() {
+        #expect(
+            WatchLoanWire
+                .decode(Data(#"{"stop":{"kind":"revoke","epoch":9}}"#.utf8)) == .stop(WatchLoanStop(kind: .revoke, epoch: 9))
+        )
+        #expect(
+            WatchLoanWire
+                .decode(Data(#"{"stop":{"kind":"stop","epoch":9}}"#.utf8)) == .stop(WatchLoanStop(kind: .stop, epoch: 9))
+        )
     }
 
     @Test("Epochs past 32 bits survive the wire") func wideEpoch() throws {

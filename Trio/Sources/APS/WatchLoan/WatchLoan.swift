@@ -234,21 +234,21 @@ enum WatchLoan {
             case let .takingBack(_, loan):
                 return (state, [.takeControl(supersedingUntil: loan.supersededUntil)])
             case .unreadable:
-                // The last epoch is lost; seconds since 1970 exceed any epoch reached by counting
+                // The last epoch is lost; seconds since 1970 exceed any epoch reached by counting.
+                // The peer is unknown, so no window: its next session is refused again.
                 return startTakeBack(
                     from: state,
-                    loan: .superseding(epoch: nil, at: context.now),
+                    loan: LoanRecord(epoch: nil),
                     newEpoch: max(1, Int64(context.now.timeIntervalSince1970))
                 )
             }
 
         case .usePodOnThisPhoneConfirmed:
-            guard case let .home(epoch, _) = state else { return (state, []) }
-            let (next, effects) = startTakeBack(
-                from: state,
-                loan: .superseding(epoch: nil, at: context.now),
-                newEpoch: epoch + 1
-            )
+            guard case let .home(epoch, lastLoan) = state else { return (state, []) }
+            // Keep commanding through another device's sessions only while a Take Back from a known watch loan allows it
+            let loan = lastLoan.flatMap { $0.epoch != nil && $0.isSuperseding(at: context.now) ? $0 : nil }
+                ?? LoanRecord(epoch: nil)
+            let (next, effects) = startTakeBack(from: state, loan: loan, newEpoch: epoch + 1)
             return (next, effects + [.alert(.podTakenOnThisPhone)])
 
         case .foreignPodSession:
@@ -404,9 +404,12 @@ enum WatchLoan {
             case let .holding(epoch) where stop.epoch > epoch,
                  let .returning(epoch) where stop.epoch > epoch:
                 return stopWatch(from: state, epoch: epoch, reason: .superseded)
-            case let .idle(epoch) where stop.epoch > epoch,
-                 let .requesting(epoch, _) where stop.epoch > epoch:
+            case let .idle(epoch) where stop.epoch > epoch:
                 let next = WatchLoanState.idle(epoch: stop.epoch)
+                return (next, [.persist(next)])
+            case let .requesting(epoch, requestID) where stop.epoch > epoch:
+                // Keep asking: a grant issued after this revoke is newer, an older one is now stale
+                let next = WatchLoanState.requesting(epoch: stop.epoch, requestID: requestID)
                 return (next, [.persist(next)])
             case let .stopped(epoch, _):
                 // The release result confirms with a second stop

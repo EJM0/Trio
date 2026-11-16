@@ -15,7 +15,7 @@ enum LoanFixture {
     }
 
     /// The record a user take at `now` writes.
-    static func superseding(_ epoch: Int64?) -> LoanRecord {
+    static func superseding(_ epoch: Int64) -> LoanRecord {
         LoanRecord.superseding(epoch: epoch, at: now)
     }
 }
@@ -243,7 +243,7 @@ enum LoanFixture {
     }
 
     @Test("P23 takingBack with an unknown peer + took control: audit over the pod's whole life") func p23() {
-        let loan = F.superseding(nil)
+        let loan = LoanRecord(epoch: nil)
         let (state, effects) = decide(.takingBack(epoch: 99, loan: loan), .takeControlResult(epoch: 99, succeeded: true))
         #expect(state == .home(epoch: 99, lastLoan: loan))
         #expect(
@@ -252,12 +252,15 @@ enum LoanFixture {
         )
     }
 
-    @Test("P24 unreadable + Take Back: 64-bit epoch above any counted one, window, pod-lifetime audit") func p24() {
+    @Test(
+        "P24 unreadable + Take Back: 64-bit epoch above any counted one, no window (peer unknown), pod-lifetime audit"
+    ) func p24() {
         let (state, effects) = decide(.unreadable, .takeBackTapped(watchAnswer: nil))
         let epoch = Int64(F.now.timeIntervalSince1970)
-        let takingBack = PhoneLoanState.takingBack(epoch: epoch, loan: F.superseding(nil))
+        let takingBack = PhoneLoanState.takingBack(epoch: epoch, loan: LoanRecord(epoch: nil))
         #expect(state == takingBack)
         #expect(effects == takeBackEffects(takingBack, from: .unreadable))
+        #expect(effects.last == .takeControl(supersedingUntil: nil))
         #expect(decide(state, .takeControlResult(epoch: epoch, succeeded: true)).1.contains(.audit(.podLifetime)))
     }
 
@@ -415,20 +418,36 @@ enum LoanFixture {
         #expect(decide(takingBack, .takeControlResult(epoch: 2, succeeded: true)) == (takingBack, []))
     }
 
-    @Test("P43 home + \"Use the pod on this iPhone\": superseding take, pod-lifetime audit, alert") func p43() {
-        let home = PhoneLoanState.home(epoch: 5, lastLoan: LoanRecord(epoch: 4))
-        let (state, effects) = decide(home, .usePodOnThisPhoneConfirmed)
-        let takingBack = PhoneLoanState.takingBack(epoch: 6, loan: F.superseding(nil))
-        #expect(state == takingBack)
-        #expect(effects == takeBackEffects(takingBack, from: home) + [.alert(.podTakenOnThisPhone)])
-        let (finished, finish) = decide(state, .takeControlResult(epoch: 6, succeeded: true))
-        #expect(finished == .home(epoch: 6, lastLoan: F.superseding(nil)))
-        #expect(finish.contains(.audit(.podLifetime)))
-        // A later foreign session inside the window keeps the phone commanding
-        #expect(decide(finished, .foreignPodSession).1.first == .podSession(.keepCommanding(until: F.window)))
+    @Test("P43 home + \"Use the pod on this iPhone\", other device unknown: plain take, pod-lifetime audit, alert") func p43() {
+        let later = PhoneLoanContext(now: F.window)
+        for (home, context) in [
+            (PhoneLoanState.home(epoch: 5, lastLoan: nil), F.phone),
+            (.home(epoch: 5, lastLoan: LoanRecord(epoch: 4)), F.phone),
+            (.home(epoch: 5, lastLoan: F.superseding(4)), later)
+        ] {
+            let (state, effects) = decide(home, .usePodOnThisPhoneConfirmed, context)
+            let takingBack = PhoneLoanState.takingBack(epoch: 6, loan: LoanRecord(epoch: nil))
+            #expect(state == takingBack)
+            #expect(effects == takeBackEffects(takingBack, from: home) + [.alert(.podTakenOnThisPhone)])
+            #expect(effects.contains(.takeControl(supersedingUntil: nil)))
+            let (finished, finish) = decide(state, .takeControlResult(epoch: 6, succeeded: true), context)
+            #expect(finished == .home(epoch: 6, lastLoan: LoanRecord(epoch: nil)))
+            #expect(finish.contains(.audit(.podLifetime)))
+            // No window: a further foreign session is refused again and the user can re-confirm
+            #expect(decide(finished, .foreignPodSession, context).1.first == .podSession(.refuse))
+        }
+
         for other in [PhoneLoanState.lent(epoch: 4), .lending(epoch: 4, requestID: F.requestA), .unreadable] {
             #expect(decide(other, .usePodOnThisPhoneConfirmed) == (other, []))
         }
+    }
+
+    @Test("P45 \"Use the pod on this iPhone\" inside a Take Back window from a known watch loan: keep that window") func p45() {
+        let home = PhoneLoanState.home(epoch: 5, lastLoan: F.superseding(4))
+        let (state, effects) = decide(home, .usePodOnThisPhoneConfirmed)
+        #expect(state == .takingBack(epoch: 6, loan: F.superseding(4)))
+        #expect(effects.contains(.takeControl(supersedingUntil: F.window)))
+        #expect(decide(state, .takeControlResult(epoch: 6, succeeded: true)).1.contains(.audit(.loan(epoch: 4))))
     }
 
     @Test("P44 clock set back before the take: the window ends rather than stretches") func p44() {
