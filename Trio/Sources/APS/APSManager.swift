@@ -445,8 +445,8 @@ final class BaseAPSManager: APSManager, Injectable {
         guard let pump = pumpManager else {
             return APSError.invalidPumpState(message: String(localized: "Pump not set"))
         }
-        guard watchLoanGate.permits("Bolus") else {
-            return APSError.invalidPumpState(message: watchLoanGate.refusalMessage)
+        if let refusal = watchLoanGate.refusal("Bolus", userInitiated: true) {
+            return APSError.invalidPumpState(message: refusal)
         }
         let status = pump.status.pumpStatus
 
@@ -718,8 +718,8 @@ final class BaseAPSManager: APSManager, Injectable {
 
     func cancelBolus(_ callback: ((Bool, String) -> Void)?) async {
         guard let pump = pumpManager, pump.status.pumpStatus.bolusing else { return }
-        guard watchLoanGate.permits("Bolus cancel") else {
-            callback?(false, watchLoanGate.refusalMessage)
+        if let refusal = watchLoanGate.refusal("Bolus cancel", userInitiated: true) {
+            callback?(false, refusal)
             return
         }
         debug(.bolus, "Cancelling bolus")
@@ -791,8 +791,8 @@ final class BaseAPSManager: APSManager, Injectable {
 
     /// Returns false when the determination is skipped because the pump is suspended.
     func enactDetermination() async throws -> Bool {
-        guard watchLoanGate.permits("Determination") else {
-            throw APSError.invalidPumpState(message: watchLoanGate.refusalMessage)
+        if let refusal = watchLoanGate.refusal("Determination") {
+            throw APSError.invalidPumpState(message: refusal)
         }
         guard let determinationID = try await determinationStorage
             .fetchLastDeterminationObjectID(predicate: NSPredicate.predicateFor30MinAgoForDetermination).first

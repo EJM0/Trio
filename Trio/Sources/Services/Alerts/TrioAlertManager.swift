@@ -387,7 +387,7 @@ final class BaseTrioAlertManager: TrioAlertManager, Injectable {
         guard let responder = queue.sync(execute: { responders[identifier.managerIdentifier]?.ref as? AlertResponder })
         else { return }
         // Omnipod acknowledges with a pod command
-        guard !(responder is PumpManager) || watchLoanGate.permits("Alert acknowledgement") else { return }
+        guard !(responder is PumpManager) || watchLoanGate.permits("Alert acknowledgement", userInitiated: true) else { return }
         Task {
             do {
                 try await responder.acknowledgeAlert(alertIdentifier: identifier.alertIdentifier)

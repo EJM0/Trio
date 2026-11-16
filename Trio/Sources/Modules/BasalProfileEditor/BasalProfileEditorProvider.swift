@@ -27,8 +27,8 @@ extension BasalProfileEditor {
                 warning(.settings, "Basal profile not saved, no pump connected")
                 return Fail(error: NSError()).eraseToAnyPublisher()
             }
-            guard watchLoanGate.permits("Basal schedule sync") else {
-                return Fail(error: APSError.invalidPumpState(message: watchLoanGate.refusalMessage)).eraseToAnyPublisher()
+            if let refusal = watchLoanGate.refusal("Basal schedule sync", userInitiated: true) {
+                return Fail(error: APSError.invalidPumpState(message: refusal)).eraseToAnyPublisher()
             }
 
             let syncValues = profile.map {

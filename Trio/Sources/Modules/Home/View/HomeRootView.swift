@@ -309,6 +309,7 @@ extension Home {
                     PumpConfig.PumpSettingsView(
                         pumpManager: pumpManager,
                         bluetoothManager: state.provider.apsManager.bluetoothManager!,
+                        watchLoanGate: resolver.resolve(WatchLoanGate.self)!,
                         completionDelegate: state,
                         setupDelegate: state
                     )
@@ -317,6 +318,7 @@ extension Home {
                         pumpEntry: pumpEntry,
                         pumpInitialSettings: state.pumpInitialSettings,
                         bluetoothManager: state.provider.apsManager.bluetoothManager!,
+                        watchLoanGate: resolver.resolve(WatchLoanGate.self)!,
                         completionDelegate: state,
                         setupDelegate: state
                     )

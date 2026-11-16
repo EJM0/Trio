@@ -98,16 +98,19 @@ import Testing
         for state in [
             PhoneLoanState.lending(epoch: 1, requestID: LoanFixture.requestA),
             .lent(epoch: 1),
-            .takingBack(epoch: 2, loan: nil)
+            .takingBack(epoch: 2, loan: LoanRecord(epoch: 1))
         ] {
             try store.save(state)
             #expect(!gate.permits("Test"), "\(state)")
         }
+        let handedOver = gate.refusal("Test")
         try store.save(.home(epoch: 2, lastLoan: LoanRecord(epoch: 1)))
         #expect(gate.permits("Test"))
+        #expect(gate.refusal("Test") == nil)
         try Data("{".utf8).write(to: store.url)
         #expect(!gate.permits("Test"))
-        #expect(gate.refusalMessage != WatchLoanGate(store: WatchLoanStoreTests.temporaryStore()).refusalMessage)
+        let unreadable = gate.refusal("Test")
+        #expect(handedOver != nil && unreadable != nil && handedOver != unreadable)
     }
 
     // MARK: APSManager
@@ -163,7 +166,7 @@ import Testing
         await aps.cancelBolus { answer = ($0, $1) }
         #expect(answer?.0 == owner)
         #expect(rig.spy.commands.contains("cancelBolus") == owner)
-        if !owner { #expect(answer?.1 == WatchLoanGate(store: WatchLoanStoreTests.temporaryStore()).refusalMessage) }
+        if !owner { #expect(answer?.1.contains("Apple Watch") == true) }
         await Self.clearStoredPump(rig)
     }
 

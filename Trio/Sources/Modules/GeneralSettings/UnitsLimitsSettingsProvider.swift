@@ -33,8 +33,8 @@ extension UnitsLimitsSettings {
                 save(settings)
                 return Just(()).setFailureType(to: Error.self).eraseToAnyPublisher()
             }
-            guard watchLoanGate.permits("Delivery limits sync") else {
-                return Fail(error: APSError.invalidPumpState(message: watchLoanGate.refusalMessage)).eraseToAnyPublisher()
+            if let refusal = watchLoanGate.refusal("Delivery limits sync", userInitiated: true) {
+                return Fail(error: APSError.invalidPumpState(message: refusal)).eraseToAnyPublisher()
             }
             let limits = DeliveryLimits(
                 maximumBasalRate: LoopQuantity(unit: .internationalUnitsPerHour, doubleValue: Double(settings.maxBasal)),
