@@ -531,3 +531,66 @@ Delta `269a8a84b..e87909b0d` (5 commits). Fresh iPhone 17 / iOS 27.2 simulator (
 - **R2-02:** accepted by the maintainer as documented; the JS parity suite notes the profile and the COB mask (`53eb9837e`).
 
 **Verdict: merge.**
+
+## M3 safety re-review (Agent E)
+
+Branch `feat/tow-loan-core` `d46918afb..f366e84ad` (`99f51bdf7`, `86c0cea34`, `f366e84ad`). Re-read: `WatchLoan.swift`, `WatchLoanState.swift`, `WatchLoanMessage.swift`, `LoanWorld.swift`, `WatchLoanInvariantTests.swift`, and the decision table (P1–P44, W1–W37, T1–T6).
+
+Basis: code reading only. I did not build or run the tests. I relied on the author's report that the search and the `TRIO_STRESS` two-Start variant passed.
+
+### M3E-01 to M3E-10
+
+| ID | Status | Evidence | Note |
+|---|---|---|---|
+| M3E-01 | **Resolved** | `WatchLoan.swift:458-479` (W26, W36, W37) | A kit that holds is never taken again. Re-adopt happens only when the kit never adopted and the phone confirms the same epoch; otherwise the watch stops with `unconfirmed`. If `kitHasControl` reads stale (async kit persistence, F4/M2b-03), the bounded adopt sees the watch's own later session as foreign and stops. That fails closed and is alarmed. |
+| M3E-02 | **Resolved** | `:552-561`, `:411-413`, `:438-439`, `:189-194` | Every stop path releases the pod. Only `stop(released: true)`, sent after the release result, clears the phone's window. |
+| M3E-03 | **Resolved** | `:245-252` (P43) | See M3R-03 for the window it opens. |
+| M3E-04 | **Resolved** | `WatchLoanState.swift:26`; `:216`, `:274` | `.podLifetime` when the peer is unknown. Whether the audit is correct is M4's test. |
+| M3E-05 | **Resolved** | `:77`, `:235`, `:283`, `:370` | `.takeControl(supersedingUntil:)` is used everywhere. The C-3 redo and repeated taps pass the persisted window. `keepCommanding(until:)` carries it too. |
+| M3E-06 | **Resolved** | Int64 in state and on the wire | – |
+| M3E-07 | **Resolved** | `WatchLoanState.swift:21-24` | `takenAt <= now < until`. |
+| M3E-08 | **Resolved** | `:505-508` | A duplicate grant in `returning` or `stopped` is answered with `status`. |
+| M3E-09 | **Resolved** | `WatchLoanMessage.swift` `HandBackProbe` | `handBack` and `handBackAck` decode across versions. Records still don't (acceptable: Take Back plus the audit recover). |
+| M3E-10 | **Resolved** | `WatchLoan.swift:17-29`, `:559` | `superseded` disarms after the persist and the alert. No silent pair results: a phone in `takingBack` keeps `phoneNotLooping` armed. |
+
+### The adopt race and its fix
+
+The race was real. W4 used to emit a take, and per M2b-05 a take absorbs whatever session the phone opened in between. `.adoptControl`, which resyncs only to the session the lender released and treats anything newer as foreign, is the right rule. The model catches the race (`adoptRacesTakeBack`), and the machine side is correct (W4, W36).
+
+It now rests on two things outside M3, and both block **M5**, not M3:
+- **Bounded adopt in the kit (M2b/A2).** It does not exist yet. The kit's existing EAP-SQN resync handling would otherwise absorb the newer session. Specify it as: the adopted export's `eapSeq` is the only counter value a resync may land on, and any higher counter means foreign.
+- **Host mapping.** A refused adopt must reach the machine as `.foreignPodSession`, which leads to `stopped` and a release. It must not arrive as `takeControlResult(false)`, which only alerts and leaves the watch `holding` with a refused kit. `LoanWorld` does it right (`completeWatch` emits `foreignPodSession` first); M5's host must match and test it.
+
+### Is the proof basis acceptable?
+
+**Yes, for the decision logic, with the limits stated.**
+- **Looser kit model.** The model lets any take lift a refusal, keeps the window through a release, and makes every foreign session visible at the next session. On each of these axes it is at least as permissive as the real kit as reviewed in M2b, so a pass carries over.
+- **What the model can't see.** It does not cover the kit leaks that are *more* permissive than the model:
+  - M2b-02: a restored link sends on saved keys without a handshake, so no resync is seen.
+  - M2b-06: a stale counter that ran ahead is accepted for one full session.
+
+  These belong to M2b and must be closed (M2b-02) or covered by the audit (M2b-06) before M5. The M3 proof assumes them away.
+- **Epoch-2 bound with multiset queues.**
+  - The machine compares epochs only relatively (`>`, `==`, `max+1`).
+  - Request IDs and epoch-tagged results stop cross-loan confusion.
+  - Multisets are sound because delivery is already arbitrary-order and lossy.
+
+  So epoch 3 is mostly a repetition. What the bound does leave out is interference from late messages of loan *n* during loan *n+1*. Cover that with deterministic tests (M3R-01). Run the `TRIO_STRESS` two-Start search in the M7 gate.
+
+### New findings
+
+| ID | Sev | Where | Scenario | Fix |
+|---|---|---|---|---|
+| M3R-01 | minor | `WatchLoanInvariantTests` bound | The epoch-2 bound never reaches loan 2 after Take Back 1 with loan-1 messages still in flight: a late `stop(released: true)`, `handBack`, `holding`/`records`, or a revoke. The code guards each one (epoch match or request ID), but no test proves it. | Add deterministic flow tests for each late loan-1 message during loan 2. Run the `TRIO_STRESS` search in the M7 gate. |
+| M3R-02 | minor | `WatchLoanMessage.swift:50-65` | `released` is a non-optional `Bool` in the "never changes" stop format. A stop without the key fails to decode as a stop and then fails the version probe, so it is dropped as `malformed`. No shipped build sends that today. But the first future change that omits the field silently drops stop and revoke, which is the V2-10 fail-open. | Decode with `decodeIfPresent ?? false`. Add a test that `{"stop":{"kind":"revoke","epoch":N}}` decodes. Add a comment freezing the format. |
+| M3R-03 | minor | `:245-252` | "Use the pod on this iPhone" opens a 6 h superseding window for an **unknown** peer (`epoch: nil`). The phone then keeps commanding through that peer's sessions, with an audit and an alert each time. That is safe only if the peer refuses (R-4), which the phone can't know for an unknown device. Every session books the excess, so it is bounded but repeated. | If `lastLoan` is nil or its window is closed, take with `supersedingUntil: nil`, so a further foreign session refuses again and the user can re-confirm. Keep the window only when the last loan was a watch loan. |
+| M3R-04 | minor | `LoanWorld.swift:189-193`; kit | The model keeps the kit window through a release and through a later nil take. In the real kit, a window left over from Take Back 1 would then survive lend 2 and End 2. The host verdict still refuses (the machine's `lastLoan` has no window), but the kit commands within that one session before the verdict. | M2b/M4: clear the kit's superseding window on `releaseControl()`. Then a nil take after End starts without a window. |
+| M3R-05 | minor | Invariant search | `.unreadable`, which leads to a Unix-seconds epoch and a pod-lifetime audit, is reachable only in decision tests, not in the search. | Add a "state file corrupted" event to the search (the phone loads `.unreadable` at any step), or add flow tests for corruption in `lending`, `lent` and `takingBack`. |
+
+No act-before-persist, epoch-reuse or silent-stop problem found in the changed rows.
+
+### Verdict
+
+**Merge M3.** M3E-01 to M3E-10 are resolved, and the adopt race is fixed on the machine side. M3R-01 to M3R-05 are minor and can land in M4 or M5.
+
+**Gate for M5** (it depends on these): the bounded adopt in the kit; the host mapping a refused adopt to `foreignPodSession`; and M2b-02 fixed. Until then the two-commander proof covers the decision logic only, not the kit.
