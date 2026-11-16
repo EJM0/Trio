@@ -5,6 +5,7 @@ import UserNotifications
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        algorithmLogSink = WatchLogger.shared.algorithm
         WatchNotificationHandler.shared.configure()
         WatchLogger.shared.info(.lifecycle, "App launched")
     }
