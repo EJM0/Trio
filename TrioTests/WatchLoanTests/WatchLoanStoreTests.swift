@@ -18,11 +18,11 @@ import Testing
 
     @Test("Every phone state round-trips", arguments: [
         PhoneLoanState.initial,
-        .home(epoch: 5, lastLoan: LoanRecord(epoch: 4, supersededUntil: LoanFixture.window)),
+        .home(epoch: 5, lastLoan: LoanFixture.superseding(4)),
         .lending(epoch: 4, requestID: LoanFixture.requestA),
         .lent(epoch: 4),
         .takingBack(epoch: 5, loan: LoanRecord(epoch: 4)),
-        .takingBack(epoch: 99, loan: nil)
+        .takingBack(epoch: Int64(Int32.max) + 10, loan: LoanFixture.superseding(nil))
     ]) func phoneRoundTrip(state: PhoneLoanState) throws {
         let store: WatchLoanStore<PhoneLoanState> = Self.temporaryStore()
         try store.save(state)
@@ -34,14 +34,15 @@ import Testing
         .requesting(epoch: 3, requestID: LoanFixture.requestA),
         .holding(epoch: 4),
         .returning(epoch: 4),
-        .stopped(epoch: 4, reason: .foreignSession)
+        .stopped(epoch: 4, reason: .foreignSession),
+        .stopped(epoch: 4, reason: .unconfirmed)
     ]) func watchRoundTrip(state: WatchLoanState) throws {
         let store = Self.temporaryStore(WatchLoanState.self)
         try store.save(state)
         #expect(try store.load().get() == state)
     }
 
-    @Test("A corrupt or truncated file is a failure, never home (V2-15)", arguments: [
+    @Test("A corrupt or truncated file is a failure, never home", arguments: [
         "", "{", "not json", #"{"lent":{"epoch":"four"}}"#, #"{"somethingElse":{}}"#
     ]) func corruptFile(contents: String) throws {
         let store: WatchLoanStore<PhoneLoanState> = Self.temporaryStore()
@@ -76,20 +77,44 @@ import Testing
     }
 
     @Test("Another protocol version is reported, not decoded") func otherVersion() throws {
-        let envelope = WatchLoanEnvelope(
-            protocolVersion: 2,
-            messageID: F.requestB,
-            sentAt: F.now,
-            message: F.message(4, .holding)
-        )
-        #expect(WatchLoanWire.decode(try WatchLoanWire.encode(envelope)) == .unsupportedVersion(2))
+        for kind in [WatchLoanMessage.Kind.holding, .records, .request(requestID: F.requestA)] {
+            let envelope = WatchLoanEnvelope(
+                protocolVersion: 2,
+                messageID: F.requestB,
+                sentAt: F.now,
+                message: F.message(4, kind)
+            )
+            #expect(WatchLoanWire.decode(try WatchLoanWire.encode(envelope)) == .unsupportedVersion(2))
+        }
     }
 
-    @Test("Stop and revoke parse regardless of protocol version and extra fields (V2-10)") func stopEnvelope() throws {
+    @Test(
+        "Hand-back and its ack decode across protocol versions, so End works through a version skew"
+    ) func handBackAcrossVersions() throws {
+        for kind in [WatchLoanMessage.Kind.handBack, .handBackAck] {
+            let envelope = WatchLoanEnvelope(
+                protocolVersion: 2,
+                messageID: F.requestB,
+                sentAt: F.now,
+                message: F.message(4, kind)
+            )
+            #expect(WatchLoanWire.decode(try WatchLoanWire.encode(envelope)) == .message(envelope))
+        }
+    }
+
+    @Test("Stop and revoke parse regardless of protocol version and extra fields") func stopEnvelope() throws {
         let revoke = WatchLoanStop(kind: .revoke, epoch: 7)
         #expect(WatchLoanWire.decode(try WatchLoanWire.encode(revoke)) == .stop(revoke))
-        let future = #"{"protocolVersion":99,"stop":{"kind":"stop","epoch":3,"reason":"new"},"extra":[1,2]}"#
+        let released = WatchLoanStop(kind: .stop, epoch: 7, released: true)
+        #expect(WatchLoanWire.decode(try WatchLoanWire.encode(released)) == .stop(released))
+        let future = #"{"protocolVersion":99,"stop":{"kind":"stop","epoch":3,"released":false,"reason":"new"},"extra":[1,2]}"#
         #expect(WatchLoanWire.decode(Data(future.utf8)) == .stop(WatchLoanStop(kind: .stop, epoch: 3)))
+    }
+
+    @Test("Epochs past 32 bits survive the wire") func wideEpoch() throws {
+        let epoch = Int64(Int32.max) * 4
+        let revoke = WatchLoanStop(kind: .revoke, epoch: epoch)
+        #expect(WatchLoanWire.decode(try WatchLoanWire.encode(revoke)) == .stop(revoke))
     }
 
     @Test("Garbage is malformed") func malformed() {

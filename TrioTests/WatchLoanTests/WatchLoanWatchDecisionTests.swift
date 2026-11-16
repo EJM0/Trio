@@ -15,10 +15,27 @@ import Testing
         WatchLoan.decide(state, event, context ?? self.context)
     }
 
-    private func grant(epoch: Int = 4, requestID: UUID = LoanFixture.requestA, expiresIn: TimeInterval = 30)
+    private func grant(epoch: Int64 = 4, requestID: UUID = LoanFixture.requestA, expiresIn: TimeInterval = 30)
         -> WatchSideLoanEvent
     {
         .received(F.message(epoch, .grant(requestID: requestID, expiresAt: F.now.addingTimeInterval(expiresIn))))
+    }
+
+    private func relaunch(
+        lastCycleAt: Date = LoanFixture.now,
+        phoneEpoch: Int64? = nil,
+        foreign: Bool = false,
+        kitHasControl: Bool = true
+    ) -> WatchSideLoanEvent {
+        .relaunched(lastCycleAt: lastCycleAt, phoneEpoch: phoneEpoch, podSessionForeign: foreign, kitHasControl: kitHasControl)
+    }
+
+    /// Persist, tell the user, disarm only when superseded, release the pod, report the stop.
+    private func stopEffects(_ epoch: Int64, _ reason: WatchStopReason) -> [WatchSideLoanEffect] {
+        let stopped = WatchLoanState.stopped(epoch: epoch, reason: reason)
+        var effects: [WatchSideLoanEffect] = [.persist(stopped), .alert(.stopped(reason))]
+        if reason == .superseded { effects.append(.disarm(.watchNotLooping)) }
+        return effects + [.releaseControl, .sendStop(WatchLoanStop(kind: .stop, epoch: epoch))]
     }
 
     @Test("W1 idle + Start: persist requesting, send the request") func w1() {
@@ -42,18 +59,18 @@ import Testing
         #expect(effects == [.persist(.idle(epoch: 3)), .alert(.phoneDidNotAnswer)])
     }
 
-    @Test("W4 requesting + valid grant: arm not-looping, persist holding, then take control, then send holding") func w4() {
+    @Test("W4 requesting + valid grant: arm, persist holding, then adopt, then send holding") func w4() {
         let (state, effects) = decide(.requesting(epoch: 3, requestID: F.requestA), grant())
         #expect(state == .holding(epoch: 4))
         #expect(effects == [
             .arm(.watchNotLooping),
             .persist(.holding(epoch: 4)),
-            .takeControl,
+            .adoptControl,
             .send(F.message(4, .holding))
         ])
     }
 
-    @Test("W5 requesting + expired grant (V2-1): reject, idle, never adopt") func w5() {
+    @Test("W5 requesting + expired grant: reject, idle, never adopt") func w5() {
         let (state, effects) = decide(.requesting(epoch: 3, requestID: F.requestA), grant(expiresIn: 0))
         #expect(state == .idle(epoch: 3))
         #expect(effects == [
@@ -70,7 +87,7 @@ import Testing
             let (state, effects) = decide(.requesting(epoch: 3, requestID: F.requestA), grant(), invalid)
             #expect(state == .idle(epoch: 3))
             #expect(effects.contains(.send(F.message(4, .grantRejected(requestID: F.requestA, reason: refusal)))))
-            #expect(!effects.contains(.takeControl))
+            #expect(!effects.contains(.adoptControl))
         }
     }
 
@@ -87,7 +104,7 @@ import Testing
         #expect(effects == [.send(F.message(4, .grantRejected(requestID: F.requestB, reason: .unknownRequest)))])
     }
 
-    @Test("W9 not requesting + late grant (SB-1): reject, never adopt") func w9() {
+    @Test("W9 idle, or another loan's returning or stopped + late grant: reject, never adopt") func w9() {
         for state in [WatchLoanState.idle(epoch: 3), .returning(epoch: 2), .stopped(epoch: 2, reason: .superseded)] {
             let (next, effects) = decide(state, grant())
             #expect(next == state)
@@ -117,7 +134,7 @@ import Testing
         #expect(decide(.holding(epoch: 4), .takeControlResult(succeeded: true)).1.isEmpty)
     }
 
-    @Test("W13 holding + End (V2-3): persist returning, cancel temp, refresh, release") func w13() {
+    @Test("W13 holding + End: persist returning, cancel temp, refresh, release") func w13() {
         let (state, effects) = decide(.holding(epoch: 4), .endTapped)
         #expect(state == .returning(epoch: 4))
         #expect(effects == [.persist(.returning(epoch: 4)), .cancelTemp, .refreshDeliveredUnits, .releaseControl])
@@ -155,21 +172,17 @@ import Testing
         #expect(decide(.returning(epoch: 4), .received(F.message(3, .handBackAck))).1.isEmpty)
     }
 
-    @Test("W19 holding + revoke with a higher epoch: stop, persist, alert, report stopped") func w19() {
+    @Test("W19 holding + revoke with a higher epoch: stop, tell the user, disarm, release, report") func w19() {
         let (state, effects) = decide(.holding(epoch: 4), .receivedStop(WatchLoanStop(kind: .revoke, epoch: 5)))
-        let stopped = WatchLoanState.stopped(epoch: 4, reason: .superseded)
-        #expect(state == stopped)
-        #expect(effects == [
-            .arm(.watchNotLooping),
-            .persist(stopped),
-            .alert(.stopped(.superseded)),
-            .sendStop(WatchLoanStop(kind: .stop, epoch: 4))
-        ])
+        #expect(state == .stopped(epoch: 4, reason: .superseded))
+        #expect(effects == stopEffects(4, .superseded))
+        #expect(LoanAlarm.armed(for: state).isEmpty)
     }
 
     @Test("W20 returning + revoke with a higher epoch: stop") func w20() {
-        let (state, _) = decide(.returning(epoch: 4), .receivedStop(WatchLoanStop(kind: .revoke, epoch: 5)))
+        let (state, effects) = decide(.returning(epoch: 4), .receivedStop(WatchLoanStop(kind: .revoke, epoch: 5)))
         #expect(state == .stopped(epoch: 4, reason: .superseded))
+        #expect(effects == stopEffects(4, .superseded))
     }
 
     @Test("W21 idle or requesting + revoke: learn the epoch, a late grant is then stale") func w21() {
@@ -180,11 +193,11 @@ import Testing
         }
     }
 
-    @Test("W22 stopped + revoke: repeat the stop report") func w22() {
+    @Test("W22 stopped + revoke: repeat the stop report and release again") func w22() {
         let stopped = WatchLoanState.stopped(epoch: 4, reason: .foreignSession)
         let (state, effects) = decide(stopped, .receivedStop(WatchLoanStop(kind: .revoke, epoch: 5)))
         #expect(state == stopped)
-        #expect(effects == [.sendStop(WatchLoanStop(kind: .stop, epoch: 4))])
+        #expect(effects == [.sendStop(WatchLoanStop(kind: .stop, epoch: 4)), .releaseControl])
     }
 
     @Test("W23 holding + revoke not above its epoch: ignored") func w23() {
@@ -193,84 +206,97 @@ import Testing
         #expect(effects.isEmpty)
     }
 
-    @Test("W24 holding + foreign pod session (V2-6): stop") func w24() {
+    @Test("W24 holding + foreign pod session: stop, keep the alarm, release, report") func w24() {
         let (state, effects) = decide(.holding(epoch: 4), .foreignPodSession)
         #expect(state == .stopped(epoch: 4, reason: .foreignSession))
-        #expect(effects.first == .arm(.watchNotLooping))
-        #expect(effects.contains(.sendStop(WatchLoanStop(kind: .stop, epoch: 4))))
+        #expect(effects == stopEffects(4, .foreignSession))
         #expect(decide(.returning(epoch: 4), .foreignPodSession).1.isEmpty)
     }
 
-    @Test("W25 stopped + user acknowledges: idle, disarm") func w25() {
-        let (state, effects) = decide(.stopped(epoch: 4, reason: .superseded), .stopAcknowledged)
+    @Test("W25 stopped + user acknowledges: idle, disarm what is still armed") func w25() {
+        let (state, effects) = decide(.stopped(epoch: 4, reason: .foreignSession), .stopAcknowledged)
         #expect(state == .idle(epoch: 4))
         #expect(effects == [.persist(.idle(epoch: 4)), .disarm(.watchNotLooping)])
+        #expect(decide(.stopped(epoch: 4, reason: .superseded), .stopAcknowledged).1 == [.persist(.idle(epoch: 4))])
     }
 
-    @Test("W26 relaunch holding within 6 h, phone agrees, no foreign session (V2-11): resume") func w26() {
-        let (state, effects) = decide(
-            .holding(epoch: 4),
-            .relaunched(lastCycleAt: F.now.addingTimeInterval(-3600), phoneEpoch: 4, podSessionForeign: false)
-        )
-        #expect(state == .holding(epoch: 4))
-        #expect(effects == [.arm(.watchNotLooping), .takeControl])
+    @Test("W26 relaunch holding, kit holds, within 6 h, no foreign session: resume without any take") func w26() {
+        for phoneEpoch in [nil, Int64(4)] {
+            let (state, effects) = decide(
+                .holding(epoch: 4),
+                relaunch(lastCycleAt: F.now.addingTimeInterval(-3600), phoneEpoch: phoneEpoch)
+            )
+            #expect(state == .holding(epoch: 4))
+            #expect(effects == [.arm(.watchNotLooping)])
+        }
     }
 
     @Test("W27 relaunch holding, phone has a higher epoch: stop") func w27() {
-        let (state, _) = decide(
-            .holding(epoch: 4),
-            .relaunched(lastCycleAt: F.now, phoneEpoch: 5, podSessionForeign: false)
-        )
+        let (state, _) = decide(.holding(epoch: 4), relaunch(phoneEpoch: 5))
         #expect(state == .stopped(epoch: 4, reason: .superseded))
     }
 
-    @Test("W28 relaunch holding, foreign pod session: stop") func w28() {
-        let (state, _) = decide(
-            .holding(epoch: 4),
-            .relaunched(lastCycleAt: F.now, phoneEpoch: nil, podSessionForeign: true)
-        )
+    @Test("W28 relaunch holding, kit refused a foreign session: stop") func w28() {
+        let (state, _) = decide(.holding(epoch: 4), relaunch(foreign: true))
         #expect(state == .stopped(epoch: 4, reason: .foreignSession))
     }
 
     @Test("W29 relaunch holding more than 6 h after the last cycle: stop") func w29() {
-        let (state, _) = decide(
-            .holding(epoch: 4),
-            .relaunched(
-                lastCycleAt: F.now.addingTimeInterval(-WatchLoan.resumeWindow - 1),
-                phoneEpoch: nil,
-                podSessionForeign: false
-            )
-        )
+        let (state, _) = decide(.holding(epoch: 4), relaunch(lastCycleAt: F.now.addingTimeInterval(-WatchLoan.resumeWindow - 1)))
         #expect(state == .stopped(epoch: 4, reason: .resumeWindowPassed))
     }
 
-    @Test("W30 relaunch returning (V2-3): release again before anything else") func w30() {
-        let (state, effects) = decide(
-            .returning(epoch: 4),
-            .relaunched(lastCycleAt: F.now, phoneEpoch: nil, podSessionForeign: false)
-        )
+    @Test("W30 relaunch returning: release again before anything else") func w30() {
+        let (state, effects) = decide(.returning(epoch: 4), relaunch())
         #expect(state == .returning(epoch: 4))
         #expect(effects == [.arm(.watchNotLooping), .releaseControl])
     }
 
     @Test("W31 relaunch requesting: the request is dead, idle") func w31() {
-        let (state, effects) = decide(
-            .requesting(epoch: 3, requestID: F.requestA),
-            .relaunched(lastCycleAt: F.now, phoneEpoch: nil, podSessionForeign: false)
-        )
+        let (state, effects) = decide(.requesting(epoch: 3, requestID: F.requestA), relaunch())
         #expect(state == .idle(epoch: 3))
         #expect(effects == [.disarm(.watchNotLooping), .persist(.idle(epoch: 3))])
     }
 
-    @Test("W32 relaunch stopped or idle: re-assert alarms only") func w32() {
-        let relaunch = WatchSideLoanEvent.relaunched(lastCycleAt: F.now, phoneEpoch: nil, podSessionForeign: false)
-        #expect(decide(.stopped(epoch: 4, reason: .superseded), relaunch).1 == [.arm(.watchNotLooping)])
-        #expect(decide(.idle(epoch: 4), relaunch).1 == [.disarm(.watchNotLooping)])
+    @Test("W32 relaunch stopped: re-assert alarms and release again; idle: alarms only") func w32() {
+        #expect(decide(.stopped(epoch: 4, reason: .foreignSession), relaunch()).1 == [.arm(.watchNotLooping), .releaseControl])
+        #expect(decide(.stopped(epoch: 4, reason: .superseded), relaunch()).1 == [.disarm(.watchNotLooping), .releaseControl])
+        #expect(decide(.idle(epoch: 4), relaunch()).1 == [.disarm(.watchNotLooping)])
     }
 
     @Test("W33 status query: answer with the current state") func w33() {
         let (_, effects) = decide(.holding(epoch: 4), .received(F.message(4, .statusQuery)))
         #expect(effects == [.send(F.message(4, .status(.holding(epoch: 4))))])
+    }
+
+    @Test("W34 returning or stopped + duplicate grant of the same loan: answer the state, don't reject") func w34() {
+        for state in [WatchLoanState.returning(epoch: 4), .stopped(epoch: 4, reason: .foreignSession)] {
+            let (next, effects) = decide(state, grant())
+            #expect(next == state)
+            #expect(effects == [.send(F.message(4, .status(state)))])
+        }
+    }
+
+    @Test("W35 stopped + released: report the stop again, confirming release; a failed release reports nothing") func w35() {
+        let stopped = WatchLoanState.stopped(epoch: 4, reason: .superseded)
+        #expect(decide(stopped, .releaseResult(released: true)) == (stopped, [
+            .sendStop(WatchLoanStop(kind: .stop, epoch: 4, released: true))
+        ]))
+        #expect(decide(stopped, .releaseResult(released: false)) == (stopped, []))
+    }
+
+    @Test("W36 relaunch holding before the kit adopted, phone confirms the same epoch: adopt again") func w36() {
+        let (state, effects) = decide(.holding(epoch: 4), relaunch(phoneEpoch: 4, kitHasControl: false))
+        #expect(state == .holding(epoch: 4))
+        #expect(effects == [.arm(.watchNotLooping), .adoptControl])
+    }
+
+    @Test("W37 relaunch holding before the kit adopted, phone silent or behind: stop, never take") func w37() {
+        for phoneEpoch in [nil, Int64(3)] {
+            let (state, effects) = decide(.holding(epoch: 4), relaunch(phoneEpoch: phoneEpoch, kitHasControl: false))
+            #expect(state == .stopped(epoch: 4, reason: .unconfirmed))
+            #expect(effects == stopEffects(4, .unconfirmed))
+        }
     }
 
     @Test("Only holding may command") func mayCommand() {

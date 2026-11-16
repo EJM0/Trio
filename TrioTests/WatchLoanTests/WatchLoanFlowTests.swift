@@ -4,10 +4,11 @@ import Testing
 @testable import Trio
 
 /// Start, End and Take Back step by step, with the message of each step lost and a crash after every effect
-/// of each step. After the doc's recovery (timers, Take Back, the stale watch's next pod contact) the loan
-/// must settle with one commander, and no state on the way may lack a not-looping alarm or have two
-/// commanders at the same epoch.
+/// of each step. After the doc's recovery (timers, Take Back, both kits' next pod contact) the loan must settle
+/// with one commander, and no state on the way may lack a not-looping alarm or have two commanders.
 @Suite("Watch loan: hand-off steps with loss and crash") struct WatchLoanFlowTests {
+    typealias F = LoanFixture
+
     enum Fault: CustomStringConvertible {
         case lose
         case crash(after: Int)
@@ -43,7 +44,9 @@ import Testing
         case t1PhoneTakesBack
         case t2PhoneHome
         case t3WatchStops
-        case t4PhoneClearsContext
+        case t4WatchReleases
+        case t5PhoneHearsStop
+        case t6PhoneClearsWindow
     }
 
     /// Runs the happy path to `step`, applies `fault` there, finishes the path, then recovers.
@@ -145,7 +148,7 @@ import Testing
 
     @Test("Start, doc rows: lost grant ends home; lost holding ends lent through the record batch") func startDocRows() {
         let grantLost = run(LoanWorld(), steps: StartStep.allCases, faultAt: .s4WatchAdopts, .lose, perform: start)
-        #expect(grantLost.phone == .home(epoch: 2, lastLoan: LoanRecord(epoch: 1, supersededUntil: LoanFixture.window)))
+        #expect(grantLost.phone == .home(epoch: 2, lastLoan: F.superseding(1)))
         #expect(grantLost.watch == .idle(epoch: 2))
 
         let holdingLost = run(LoanWorld(), steps: StartStep.allCases, faultAt: .s6PhoneLent, .lose, perform: start)
@@ -153,7 +156,7 @@ import Testing
         #expect(holdingLost.watch == .holding(epoch: 1))
     }
 
-    @Test("Start, N-4: a grant arriving after the watch timed out is rejected, the phone retakes by itself") func startLateGrant() {
+    @Test("Start: a grant arriving after the watch timed out is rejected, the phone retakes by itself") func startLateGrant() {
         var world = LoanWorld()
         world.onWatch(.startTapped)
         world.deliverToPhone()
@@ -245,31 +248,39 @@ import Testing
         case .t3WatchStops:
             guard !world.stopsToWatch.isEmpty else { return true }
             if lose { world.stopsToWatch.removeFirst() } else { world.deliverStopToWatch(crashAfter: crash) }
-        case .t4PhoneClearsContext:
+        case .t4WatchReleases:
+            guard !lose, !world.watchPending.isEmpty else { return !lose }
+            world.completeWatch(crashAfter: crash)
+        case .t5PhoneHearsStop,
+             .t6PhoneClearsWindow:
             guard !world.stopsToPhone.isEmpty else { return true }
             if lose { world.stopsToPhone.removeFirst() } else { world.deliverStopToPhone(crashAfter: crash) }
         }
         return true
     }
 
-    @Test("Take Back: clean run ends phone home(2) with the context cleared, watch stopped") func takeBackClean() {
+    @Test(
+        "Take Back: clean run ends phone home(2), window cleared by the released stop, watch stopped and released"
+    ) func takeBackClean() {
         var world = LoanWorld.lent()
         for step in TakeBackStep.allCases { _ = takeBack(&world, step, nil) }
         #expect(world.phone == .home(epoch: 2, lastLoan: LoanRecord(epoch: 1)))
         #expect(world.watch == .stopped(epoch: 1, reason: .superseded))
+        #expect(!world.watchKit.hasControl)
+        #expect(world.watchAlarms.isEmpty)
         world.recover()
         expectSettled(world, "clean Take Back")
     }
 
     @Test(
         "Take Back: message lost at each step",
-        arguments: [TakeBackStep.t3WatchStops, .t4PhoneClearsContext]
+        arguments: [TakeBackStep.t3WatchStops, .t5PhoneHearsStop, .t6PhoneClearsWindow]
     ) func takeBackLoss(step: TakeBackStep) {
         let world = run(LoanWorld.lent(), steps: TakeBackStep.allCases, faultAt: step, .lose, perform: takeBack)
         expectSettled(world, "\(step) lost")
-        if step == .t4PhoneClearsContext {
-            // The context stays until the 6 h window closes
-            #expect(world.phone == .home(epoch: 2, lastLoan: LoanRecord(epoch: 1, supersededUntil: LoanFixture.window)))
+        if step == .t6PhoneClearsWindow {
+            // Without the release confirmation the window stays until it closes
+            #expect(world.phone == .home(epoch: 2, lastLoan: F.superseding(1)))
         }
     }
 
@@ -300,5 +311,66 @@ import Testing
         #expect(world.watch == .stopped(epoch: 1, reason: .superseded))
         world.recover()
         expectSettled(world, "watch crash before revoke")
+    }
+
+    @Test(
+        "Take Back while the watch is off, watch relaunches with the phone unreachable: it never takes again"
+    ) func takeBackWatchOffPhoneUnreachable() {
+        var world = LoanWorld.lent()
+        _ = takeBack(&world, .t1PhoneTakesBack, nil)
+        _ = takeBack(&world, .t2PhoneHome, nil)
+        world.stopsToWatch.removeAll()
+        world.crash(.watch, phoneAnswers: false)
+        #expect(world.watch == .holding(epoch: 1))
+        #expect(world.watchPending.isEmpty)
+        #expect(!world.commands(.watch))
+        // Its next pod contact sees the phone's session and refuses
+        world.session(.watch)
+        #expect(world.watch == .stopped(epoch: 1, reason: .foreignSession))
+        world.recover()
+        expectSettled(world, "watch off during Take Back")
+    }
+
+    @Test(
+        "Watch crashed before taking control, phone took back meanwhile and is unreachable: stop, never take"
+    ) func adoptCrashThenTakeBack() {
+        var world = LoanWorld()
+        world.onWatch(.startTapped)
+        world.deliverToPhone()
+        world.completePhone()
+        world.deliverToWatch()
+        // Crashed after persisting holding, before the take ran and before holding reached the phone
+        world.watchPending.removeAll()
+        world.toPhone.removeAll()
+        #expect(world.watchOnDisk == .holding(epoch: 1))
+        world.onPhone(.takeBackTapped(watchAnswer: nil))
+        world.stopsToWatch.removeAll()
+        world.completePhone()
+        #expect(world.phone.mayCommandPump)
+        world.crash(.watch, phoneAnswers: false)
+        #expect(world.watch == .stopped(epoch: 1, reason: .unconfirmed))
+        #expect(!world.watchKit.hasControl)
+        world.recover()
+        expectSettled(world, "adopt crash then Take Back")
+    }
+
+    @Test(
+        "Take Back while the watch's adopt is still in flight: the late adopt is refused, it never absorbs the take"
+    ) func adoptRacesTakeBack() {
+        var world = LoanWorld()
+        world.onWatch(.startTapped)
+        world.deliverToPhone()
+        world.completePhone()
+        world.deliverToWatch()
+        world.toPhone.removeAll()
+        world.onPhone(.takeBackTapped(watchAnswer: nil))
+        world.stopsToWatch.removeAll()
+        world.completePhone()
+        #expect(world.phone.mayCommandPump)
+        world.completeWatch()
+        #expect(world.watch == .stopped(epoch: 1, reason: .foreignSession))
+        #expect(!world.commands(.watch))
+        world.recover()
+        expectSettled(world, "adopt races Take Back")
     }
 }

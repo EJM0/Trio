@@ -1,12 +1,12 @@
 import Foundation
 
-/// The not-looping alarms each device arms while nobody may be dosing (V2-12).
+/// The not-looping alarms each device arms while nobody may be dosing.
 enum LoanAlarm: String, Codable, CaseIterable, Equatable, Hashable {
     /// The phone's existing `NotLoopingMonitor`. Armed in every phone state except `lent`.
     case phoneNotLooping
-    /// "No updates from Apple Watch" (V2-14). Armed only in `lent`.
+    /// "No updates from Apple Watch". Armed only in `lent`.
     case phoneNoWatchUpdates
-    /// The watch's not-looping series (V2-13). Armed from `holding` until `idle`.
+    /// The watch's not-looping series. Armed from `holding` until `idle`, except once superseded.
     case watchNotLooping
 
     static func armed(for state: PhoneLoanState) -> Set<LoanAlarm> {
@@ -17,9 +17,11 @@ enum LoanAlarm: String, Codable, CaseIterable, Equatable, Hashable {
     static func armed(for state: WatchLoanState) -> Set<LoanAlarm> {
         switch state {
         case .holding,
-             .returning,
-             .stopped:
+             .returning:
             return [.watchNotLooping]
+        case let .stopped(_, reason):
+            // A superseded watch knows the phone has the pod again
+            return reason == .superseded ? [] : [.watchNotLooping]
         case .idle,
              .requesting:
             return []
@@ -36,7 +38,7 @@ enum LoanAlert: Equatable, Hashable {
     case watchStopped
     case watchContactedPodAfterTakeBack
     case unexpectedPodSession
-    case auditUnavailable
+    case podTakenOnThisPhone
     case loanStateUnreadable
     // Watch
     case phoneDidNotAnswer
@@ -46,27 +48,38 @@ enum LoanAlert: Equatable, Hashable {
     case podUnreachable
 }
 
-/// What the host tells the kit after a foreign pod session (C-1).
+/// What the host tells the kit after a foreign pod session.
 enum PodSessionVerdict: Equatable, Hashable {
-    /// The session is the watch this phone superseded by Take Back. Keep commanding.
-    case keepCommanding
+    /// The session is a controller this phone superseded by a user take. Keep commanding until then.
+    case keepCommanding(until: Date)
     /// Nobody this phone knows of. The kit refuses commands.
     case refuse
 }
 
-/// Run in list order. Persist-before-act: a list that changes state persists before any pump action,
-/// except finishing a take-back, which acts under the persisted `takingBack` and persists `home` last.
+enum AuditScope: Equatable, Hashable {
+    /// Booked doses since this loan's release reading.
+    case loan(epoch: Int64)
+    /// Booked doses and scheduled basal since pod activation, against the pod's total.
+    case podLifetime
+}
+
+/// Run in list order. A list that changes state persists before any pump action, except finishing a take-back,
+/// which acts under the persisted `takingBack` and persists `home` last.
 enum WatchLoanEffect<State: Equatable & Hashable>: Equatable, Hashable {
     case persist(State)
-    /// Wait for an in-flight loop, pump event storage and bolus to finish (V2-2).
+    /// Wait for an in-flight loop, pump event storage and bolus to finish.
     case awaitPumpIdle
     case cancelTemp
     case refreshDeliveredUnits
     case releaseControl
-    case takeControl
-    /// Recompute and replace the tagged audit bolus of this loan (V2-8). Idempotent: booked doses of the
-    /// loan, including booked intents (C-4), count as expected, so repeating it never books twice.
-    case audit(loanEpoch: Int)
+    /// `supersedingUntil` keeps commanding through the superseded controller's sessions until then.
+    /// A take without it never ends an existing window.
+    case takeControl(supersedingUntil: Date?)
+    /// Adopt the lent pod. Only the session the lender released may resync; a newer one is foreign and refused.
+    case adoptControl
+    /// Recompute and replace the tagged audit bolus. Booked doses, including booked intents, count as expected,
+    /// so repeating it never books twice.
+    case audit(AuditScope)
     case podSession(PodSessionVerdict)
     case cancelOutstandingTransfers
     case send(WatchLoanMessage)
@@ -83,19 +96,21 @@ enum PhoneLoanEvent: Equatable, Hashable {
     case received(WatchLoanMessage)
     case receivedStop(WatchLoanStop)
     /// Results carry the epoch of the state that asked for them, so a late one from an earlier hand-off is ignored.
-    case releaseResult(epoch: Int, released: Bool)
-    case takeControlResult(epoch: Int, succeeded: Bool)
+    case releaseResult(epoch: Int64, released: Bool)
+    case takeControlResult(epoch: Int64, succeeded: Bool)
     /// `WatchLoan.grantConfirmTimeout` after the grant was sent.
     case grantUnconfirmed
     /// `watchAnswer` is the watch's reply to a status query, nil when it didn't answer.
     case takeBackTapped(watchAnswer: WatchLoanState?)
+    /// The user confirmed "Use the pod on this iPhone" after the kit refused another controller's session.
+    case usePodOnThisPhoneConfirmed
     case foreignPodSession
     case relaunched
 }
 
 struct PhoneLoanContext: Equatable {
     var now: Date
-    /// Why Start is refused (preconditions or `TRIO_ON_WATCH` off), nil when it may proceed.
+    /// Why Start is refused (preconditions or the build flag off), nil when it may proceed.
     var startRefusal: LoanRefusal?
 
     init(now: Date, startRefusal: LoanRefusal? = nil) {
@@ -115,8 +130,9 @@ enum WatchSideLoanEvent: Equatable, Hashable {
     case handBackUnacknowledged
     case foreignPodSession
     case stopAcknowledged
-    /// `phoneEpoch` is the phone's answer to the relaunch query, nil when it didn't answer (V2-11).
-    case relaunched(lastCycleAt: Date, phoneEpoch: Int?, podSessionForeign: Bool)
+    /// `phoneEpoch` is the phone's answer, nil when it didn't answer. `podSessionForeign` and `kitHasControl` are read
+    /// from the kit's persisted state, never by taking control.
+    case relaunched(lastCycleAt: Date, phoneEpoch: Int64?, podSessionForeign: Bool, kitHasControl: Bool)
 }
 
 struct WatchSideLoanContext: Equatable {
@@ -144,14 +160,13 @@ struct WatchSideLoanContext: Equatable {
 }
 
 enum WatchLoan {
-    /// A grant is valid this long after the phone sent it (V2-1).
     static let grantLifetime: TimeInterval = 30
-    /// Upper bound of drain plus release on the phone (V2-2). The phone coordinator enforces it.
+    /// Upper bound of drain plus release on the phone. The phone coordinator enforces it.
     static let phoneWorstCaseLend: TimeInterval = 60
-    /// Longer than a worst-case lend plus the grant's lifetime, so a slow lend isn't refused (N-4).
+    /// Longer than a worst-case lend plus the grant's lifetime, so a slow lend isn't refused.
     static let watchRequestTimeout: TimeInterval = 120
     static let grantConfirmTimeout: TimeInterval = 60
-    /// How long a superseded watch may still come back (V2-11), and the phone's takeover window (C-1).
+    /// How long a superseded watch may still come back, and so the phone's superseding window.
     static let resumeWindow: TimeInterval = 6 * 60 * 60
 
     // MARK: - Phone
@@ -171,11 +186,11 @@ enum WatchLoan {
             case let .lending(epoch, _) where epoch == stop.epoch,
                  let .lent(epoch) where epoch == stop.epoch:
                 return (state, [.alert(.watchStopped)])
-            case let .home(epoch, loan?) where loan.epoch == stop.epoch && loan.supersededUntil != nil:
-                let next = PhoneLoanState.home(epoch: epoch, lastLoan: LoanRecord(epoch: loan.epoch))
+            case let .home(epoch, loan?) where stop.released && loan.epoch == stop.epoch && loan.supersededUntil != nil:
+                let next = PhoneLoanState.home(epoch: epoch, lastLoan: loan.withoutWindow)
                 return (next, [.persist(next)])
-            case let .takingBack(epoch, loan?) where loan.epoch == stop.epoch && loan.supersededUntil != nil:
-                let next = PhoneLoanState.takingBack(epoch: epoch, loan: LoanRecord(epoch: loan.epoch))
+            case let .takingBack(epoch, loan) where stop.released && loan.epoch == stop.epoch && loan.supersededUntil != nil:
+                let next = PhoneLoanState.takingBack(epoch: epoch, loan: loan.withoutWindow)
                 return (next, [.persist(next)])
             default:
                 return (state, [])
@@ -191,17 +206,14 @@ enum WatchLoan {
                 return (state, [.send(grant)])
             }
             let next = PhoneLoanState.home(epoch: epoch, lastLoan: nil)
-            return (next, [
-                .persist(next),
-                .send(WatchLoanMessage(epoch: epoch, kind: .refused(requestID: requestID, reason: .releaseRefused)))
-            ])
+            let refused = WatchLoanMessage(epoch: epoch, kind: .refused(requestID: requestID, reason: .releaseRefused))
+            return (next, [.persist(next), .send(refused)])
 
         case let .takeControlResult(resultEpoch, succeeded):
             guard case let .takingBack(epoch, loan) = state, epoch == resultEpoch else { return (state, []) }
             guard succeeded else { return (state, [.alert(.takeBackPodUnreachable)]) }
             let next = PhoneLoanState.home(epoch: epoch, lastLoan: loan)
-            let audit: PhoneLoanEffect = loan.map { .audit(loanEpoch: $0.epoch) } ?? .alert(.auditUnavailable)
-            return (next, [.cancelTemp, .refreshDeliveredUnits, audit, .persist(next)])
+            return (next, [.cancelTemp, .refreshDeliveredUnits, .audit(loan.audit), .persist(next)])
 
         case .grantUnconfirmed:
             guard case .lending = state else { return (state, []) }
@@ -216,25 +228,28 @@ enum WatchLoan {
                     let (next, effects) = enterLent(from: state, epoch: epoch)
                     return (next, effects + [.alert(.takeBackUseEnd)])
                 }
-                return startTakeBack(from: state, loan: LoanRecord(
-                    epoch: epoch,
-                    supersededUntil: context.now.addingTimeInterval(resumeWindow)
-                ), newEpoch: epoch + 1)
+                return startTakeBack(from: state, loan: .superseding(epoch: epoch, at: context.now), newEpoch: epoch + 1)
             case let .lent(epoch):
-                return startTakeBack(from: state, loan: LoanRecord(
-                    epoch: epoch,
-                    supersededUntil: context.now.addingTimeInterval(resumeWindow)
-                ), newEpoch: epoch + 1)
-            case .takingBack:
-                return (state, [.takeControl])
+                return startTakeBack(from: state, loan: .superseding(epoch: epoch, at: context.now), newEpoch: epoch + 1)
+            case let .takingBack(_, loan):
+                return (state, [.takeControl(supersedingUntil: loan.supersededUntil)])
             case .unreadable:
                 // The last epoch is lost; seconds since 1970 exceed any epoch reached by counting
                 return startTakeBack(
                     from: state,
-                    loan: nil,
-                    newEpoch: max(1, Int(context.now.timeIntervalSince1970))
+                    loan: .superseding(epoch: nil, at: context.now),
+                    newEpoch: max(1, Int64(context.now.timeIntervalSince1970))
                 )
             }
+
+        case .usePodOnThisPhoneConfirmed:
+            guard case let .home(epoch, _) = state else { return (state, []) }
+            let (next, effects) = startTakeBack(
+                from: state,
+                loan: .superseding(epoch: nil, at: context.now),
+                newEpoch: epoch + 1
+            )
+            return (next, effects + [.alert(.podTakenOnThisPhone)])
 
         case .foreignPodSession:
             let loan: LoanRecord?
@@ -249,26 +264,23 @@ enum WatchLoan {
                  .lent:
                 return (state, [])
             }
-            if let loan, let until = loan.supersededUntil, context.now < until {
+            if let loan, let until = loan.supersededUntil, loan.isSuperseding(at: context.now) {
                 return (state, [
-                    .podSession(.keepCommanding),
-                    .audit(loanEpoch: loan.epoch),
+                    .podSession(.keepCommanding(until: until)),
+                    .audit(loan.audit),
                     .alert(.watchContactedPodAfterTakeBack)
                 ])
             }
-            var effects: [PhoneLoanEffect] = [.podSession(.refuse)]
-            if let loan { effects.append(.audit(loanEpoch: loan.epoch)) }
-            effects.append(.alert(.unexpectedPodSession))
-            return (state, effects)
+            return (state, [.podSession(.refuse), .audit(loan?.audit ?? .podLifetime), .alert(.unexpectedPodSession)])
 
         case .relaunched:
             let alarms = PhoneLoanEffect.reassert(LoanAlarm.armed(for: state), of: phoneAlarms)
             switch state {
             case .lending:
                 return (state, alarms + [.alert(.startDidNotFinish)])
-            case .takingBack:
-                // C-3: redo take control; the result redoes cancel temp, refresh and the audit
-                return (state, alarms + [.takeControl])
+            case let .takingBack(_, loan):
+                // Redo the take with its window; the result redoes temp cancel, refresh and audit
+                return (state, alarms + [.takeControl(supersedingUntil: loan.supersededUntil)])
             case .unreadable:
                 return (state, alarms + [.alert(.loanStateUnreadable)])
             case .home,
@@ -305,7 +317,7 @@ enum WatchLoan {
 
         case let .grantRejected(requestID, _):
             guard case let .lending(epoch, current) = state, current == requestID else { return (state, []) }
-            // N-4: the watch never adopted this grant, so the phone takes the pod back without a tap
+            // The watch never adopted this grant, so the phone takes the pod back without a tap
             return startTakeBack(from: state, loan: LoanRecord(epoch: epoch), newEpoch: epoch + 1)
 
         case .holding,
@@ -320,7 +332,8 @@ enum WatchLoan {
                 let next = PhoneLoanState.takingBack(epoch: epoch + 1, loan: LoanRecord(epoch: epoch))
                 let alarms = PhoneLoanEffect.alarmTransition(from: LoanAlarm.armed(for: state), to: LoanAlarm.armed(for: next))
                 let ack = WatchLoanMessage(epoch: epoch, kind: .handBackAck)
-                let effects: [PhoneLoanEffect] = alarms.arm + [.persist(next)] + alarms.disarm + [.send(ack), .takeControl]
+                var effects: [PhoneLoanEffect] = alarms.arm + [.persist(next)] + alarms.disarm
+                effects += [.send(ack), .takeControl(supersedingUntil: nil)]
                 return (next, effects)
             default:
                 guard let epoch = state.epoch, message.epoch < epoch else { return (state, []) }
@@ -336,25 +349,25 @@ enum WatchLoan {
         }
     }
 
-    private static func enterLent(from state: PhoneLoanState, epoch: Int) -> (PhoneLoanState, [PhoneLoanEffect]) {
+    private static func enterLent(from state: PhoneLoanState, epoch: Int64) -> (PhoneLoanState, [PhoneLoanEffect]) {
         let next = PhoneLoanState.lent(epoch: epoch)
         let alarms = PhoneLoanEffect.alarmTransition(from: LoanAlarm.armed(for: state), to: LoanAlarm.armed(for: next))
         let effects: [PhoneLoanEffect] = alarms.arm + [.persist(next)] + alarms.disarm
         return (next, effects)
     }
 
-    /// V2-7b: cancel transfers, persist `takingBack`, revoke, take control.
+    /// Cancel transfers, persist `takingBack`, revoke, take control with the loan's window.
     private static func startTakeBack(
         from state: PhoneLoanState,
-        loan: LoanRecord?,
-        newEpoch: Int
+        loan: LoanRecord,
+        newEpoch: Int64
     ) -> (PhoneLoanState, [PhoneLoanEffect]) {
         let next = PhoneLoanState.takingBack(epoch: newEpoch, loan: loan)
         let alarms = PhoneLoanEffect.alarmTransition(from: LoanAlarm.armed(for: state), to: LoanAlarm.armed(for: next))
         let revoke = WatchLoanStop(kind: .revoke, epoch: newEpoch)
         var effects: [PhoneLoanEffect] = [.cancelOutstandingTransfers]
         effects += alarms.arm + [.persist(next)] + alarms.disarm
-        effects += [.sendStop(revoke), .takeControl]
+        effects += [.sendStop(revoke), .takeControl(supersedingUntil: loan.supersededUntil)]
         return (next, effects)
     }
 
@@ -390,13 +403,14 @@ enum WatchLoan {
             switch state {
             case let .holding(epoch) where stop.epoch > epoch,
                  let .returning(epoch) where stop.epoch > epoch:
-                return stopWatch(epoch: epoch, reason: .superseded)
+                return stopWatch(from: state, epoch: epoch, reason: .superseded)
             case let .idle(epoch) where stop.epoch > epoch,
                  let .requesting(epoch, _) where stop.epoch > epoch:
                 let next = WatchLoanState.idle(epoch: stop.epoch)
                 return (next, [.persist(next)])
             case let .stopped(epoch, _):
-                return (state, [.sendStop(WatchLoanStop(kind: .stop, epoch: epoch))])
+                // The release result confirms with a second stop
+                return (state, [.sendStop(WatchLoanStop(kind: .stop, epoch: epoch)), .releaseControl])
             default:
                 return (state, [])
             }
@@ -414,12 +428,18 @@ enum WatchLoan {
             return (next, [.persist(next), .cancelTemp, .refreshDeliveredUnits, .releaseControl])
 
         case let .releaseResult(released):
-            guard case let .returning(epoch) = state else { return (state, []) }
-            if released {
-                return (state, [.send(WatchLoanMessage(epoch: epoch, kind: .handBack))])
+            switch state {
+            case let .returning(epoch):
+                if released {
+                    return (state, [.send(WatchLoanMessage(epoch: epoch, kind: .handBack))])
+                }
+                let next = WatchLoanState.holding(epoch: epoch)
+                return (next, [.persist(next), .alert(.endRefused(.releaseRefused))])
+            case let .stopped(epoch, _) where released:
+                return (state, [.sendStop(WatchLoanStop(kind: .stop, epoch: epoch, released: true))])
+            default:
+                return (state, [])
             }
-            let next = WatchLoanState.holding(epoch: epoch)
-            return (next, [.persist(next), .alert(.endRefused(.releaseRefused))])
 
         case .handBackUnacknowledged:
             guard case let .returning(epoch) = state else { return (state, []) }
@@ -427,36 +447,43 @@ enum WatchLoan {
 
         case .foreignPodSession:
             guard case let .holding(epoch) = state else { return (state, []) }
-            return stopWatch(epoch: epoch, reason: .foreignSession)
+            return stopWatch(from: state, epoch: epoch, reason: .foreignSession)
 
         case .stopAcknowledged:
             guard case let .stopped(epoch, _) = state else { return (state, []) }
             let next = WatchLoanState.idle(epoch: epoch)
-            return (next, [.persist(next), .disarm(.watchNotLooping)])
+            let alarms = WatchSideLoanEffect.alarmTransition(from: LoanAlarm.armed(for: state), to: [])
+            return (next, [.persist(next)] + alarms.disarm)
 
-        case let .relaunched(lastCycleAt, phoneEpoch, podSessionForeign):
+        case let .relaunched(lastCycleAt, phoneEpoch, podSessionForeign, kitHasControl):
             let alarms = WatchSideLoanEffect.reassert(LoanAlarm.armed(for: state), of: [.watchNotLooping])
             switch state {
             case let .holding(epoch):
                 if let phoneEpoch, phoneEpoch > epoch {
-                    return stopWatch(epoch: epoch, reason: .superseded)
+                    return stopWatch(from: state, epoch: epoch, reason: .superseded)
                 }
                 if podSessionForeign {
-                    return stopWatch(epoch: epoch, reason: .foreignSession)
+                    return stopWatch(from: state, epoch: epoch, reason: .foreignSession)
                 }
                 if context.now.timeIntervalSince(lastCycleAt) > resumeWindow {
-                    return stopWatch(epoch: epoch, reason: .resumeWindowPassed)
+                    return stopWatch(from: state, epoch: epoch, reason: .resumeWindowPassed)
                 }
-                // A crash may have come between persisting `holding` and taking control
-                return (state, alarms + [.takeControl])
-            case .returning:
-                // V2-3: release again before anything else; the result resends the hand-back
+                // Never take again over a kit that holds: a take would absorb a phone's newer session
+                if kitHasControl {
+                    return (state, alarms)
+                }
+                // Crashed before taking control: only the phone can say the loan still stands
+                if phoneEpoch == epoch {
+                    return (state, alarms + [.adoptControl])
+                }
+                return stopWatch(from: state, epoch: epoch, reason: .unconfirmed)
+            case .returning,
+                 .stopped:
                 return (state, alarms + [.releaseControl])
             case let .requesting(epoch, _):
                 let next = WatchLoanState.idle(epoch: epoch)
                 return (next, alarms + [.persist(next)])
-            case .idle,
-                 .stopped:
+            case .idle:
                 return (state, alarms)
             }
         }
@@ -475,6 +502,10 @@ enum WatchLoan {
             switch state {
             case let .holding(epoch) where epoch == message.epoch:
                 return (state, [.send(WatchLoanMessage(epoch: epoch, kind: .holding))])
+            case let .returning(epoch) where epoch == message.epoch,
+                 let .stopped(epoch, _) where epoch == message.epoch:
+                // Answer with the state instead of a rejection, which would make the phone retake and skip End
+                return (state, [.send(WatchLoanMessage(epoch: epoch, kind: .status(state)))])
             case let .requesting(epoch, current) where current == requestID:
                 let refusal: LoanRefusal? = message.epoch <= epoch ? .staleEpoch
                     : context.now >= expiresAt ? .grantExpired
@@ -487,7 +518,7 @@ enum WatchLoan {
                 return (next, [
                     .arm(.watchNotLooping),
                     .persist(next),
-                    .takeControl,
+                    .adoptControl,
                     .send(WatchLoanMessage(epoch: message.epoch, kind: .holding))
                 ])
             default:
@@ -517,14 +548,17 @@ enum WatchLoan {
         }
     }
 
-    private static func stopWatch(epoch: Int, reason: WatchStopReason) -> (WatchLoanState, [WatchSideLoanEffect]) {
+    /// Persist, tell the user, then release the pod and report it. A superseded watch disarms its alarm after the alert.
+    private static func stopWatch(
+        from state: WatchLoanState,
+        epoch: Int64,
+        reason: WatchStopReason
+    ) -> (WatchLoanState, [WatchSideLoanEffect]) {
         let next = WatchLoanState.stopped(epoch: epoch, reason: reason)
-        return (next, [
-            .arm(.watchNotLooping),
-            .persist(next),
-            .alert(.stopped(reason)),
-            .sendStop(WatchLoanStop(kind: .stop, epoch: epoch))
-        ])
+        let alarms = WatchSideLoanEffect.alarmTransition(from: LoanAlarm.armed(for: state), to: LoanAlarm.armed(for: next))
+        var effects: [WatchSideLoanEffect] = alarms.arm + [.persist(next), .alert(.stopped(reason))] + alarms.disarm
+        effects += [.releaseControl, .sendStop(WatchLoanStop(kind: .stop, epoch: epoch))]
+        return (next, effects)
     }
 }
 
