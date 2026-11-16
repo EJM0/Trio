@@ -27,11 +27,11 @@ final class GlucoseAlertCoordinator: Injectable {
     @Injected() private var settingsManager: SettingsManager!
     @Injected() private var fetchGlucoseManager: FetchGlucoseManager!
 
-    private let evaluationQueue = DispatchQueue(label: "GlucoseAlertCoordinator.queue")
+    let evaluationQueue = DispatchQueue(label: "GlucoseAlertCoordinator.queue")
     private var firingAlertIDs: Set<UUID> = []
     private var subscriptions = Set<AnyCancellable>()
-    @SyncAccess private var alertsSnapshot: [GlucoseAlert] = []
-    @SyncAccess private var configurationSnapshot = GlucoseAlertConfiguration()
+    @SyncAccess var alertsSnapshot: [GlucoseAlert] = []
+    @SyncAccess var configurationSnapshot = GlucoseAlertConfiguration()
 
     /// 5 mg/dL recovery margin before we retract a fired alert. Prevents flap
     /// at the threshold boundary.
@@ -93,7 +93,7 @@ final class GlucoseAlertCoordinator: Injectable {
     /// notification (5-min window), but the in-app banner can re-pop. Skipping
     /// the first ~30s lets the picture settle.
     private static let launchQuietWindow: TimeInterval = 30
-    private let launchedAt = Date()
+    var launchedAt = Date()
     private var isInLaunchQuietWindow: Bool {
         Date().timeIntervalSince(launchedAt) < Self.launchQuietWindow
     }
@@ -151,7 +151,7 @@ final class GlucoseAlertCoordinator: Injectable {
         }
     }
 
-    private func applyReadingBasedEvaluation(
+    func applyReadingBasedEvaluation(
         latestValue: Decimal,
         snapshot: [GlucoseAlert],
         configuration: GlucoseAlertConfiguration,
