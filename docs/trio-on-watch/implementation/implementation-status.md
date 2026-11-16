@@ -103,3 +103,147 @@ The one failure is step 8, `swift test` on `AlgorithmPackage`, which fails to **
 - The build-phase SwiftFormat reformatted one line in `Trio Watch App Tests/Unit Tests.swift` (it joined a `@Test(...)` attribute onto the `func` line). Reverted with `git checkout`.
 - `Trio.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`: unchanged.
 - Submodules: `git submodule status` unchanged and no dirty files inside any submodule.
+
+## M2b: kit pins and the foreign-session rule (2026-11-16)
+
+Branch `feat/tow-kits`, off `feat/trio-on-watch` @ `349f49523`. Implements V2-6 and V2-29, plus the V2-7b context and the E safety conditions C-1 and C-2.
+
+> [!IMPORTANT]
+> The kit commits below exist only in this machine's submodule repositories, on local branches named `trio-on-watch`. Nobody else can check out or build `feat/tow-kits` until the maintainer mirrors them to loopandlearn (LoopKit `trio-on-watch`, OmnipodKit `trio-on-watch`) and updates the submodule URLs or branches. `.gitmodules` is unchanged.
+
+### Pins
+
+| Submodule | Before | After | Content |
+|---|---|---|---|
+| LoopKit | `babddf04` | `7fd4d1a7` | `babddf04` + cherry-pick of LoopKit#687 (`a78fe3bb`, author jeremybarnum). Nothing else from LoopKit `next-dev`; #695/#696 break the other kits. |
+| OmnipodKit | `6fdf0e0e` | `e576b45` | loopandlearn/OmnipodKit#177 @ `3d21d9c` (jeremybarnum `sportmode/next-dev`) + `d5606d67`, `2e5f9bdc`, `b647ea98`, `e576b45` (review fixes, below). `6fdf0e0e` is an ancestor. |
+| G7SensorKit | `08d48863` | unchanged | |
+
+### The rule (OmnipodKit), as of `e576b45`
+
+- An adopt, or taking back a pod this device had released, expects one EAP SQN resync. Any other resync on a shared pod is a foreign session, unless it is at or below the last SQN the pod accepted from this device (`AcceptedEapSqn`, saved at once, so this device's own late-saved counter isn't mistaken for another controller).
+  - Every foreign session is reported: `foreignSessionDetectedAt` is updated, which reaches the host as `pumpManagerDidUpdateState`.
+- If the foreign session falls outside a superseding take, the kit sets `refusesSessions` and lets go of the pod's BLE link. From then on, until the host makes a superseding take:
+  - no session runs and nothing is sent: no bolus, no temp of any rate including zero, no suspend, no resume, no basal schedule, no alert acknowledgement, no status read;
+  - there is no handshake at all, not even the retry after the resync that found the foreign session;
+  - every refusal returns `PodCommsError.podUsedByAnotherController`.
+- A superseding take is `takeControl(supersedingAnotherControllerUntil:)` with a date. It is for a Take Back from a peer that has not acknowledged `stopped`; the host passes takeover + 6 h.
+  - Until that date, `stopSupersedingAnotherController()` (the peer acknowledged) or a release, foreign sessions are reported but don't stop this device (V2-7b). Within one boot the scope runs on uptime, so a clock change can't stretch it (M2b-07).
+  - A plain `takeControl()` (End, lend, adopt, relaunch) never lifts a refusal and never ends a scope, and it marks the next resync expected only after a release (C-1, M2b-05, M3E-01).
+- Pods never shared are unchanged.
+- C-2: a fresh connect always handshakes. A new process on a shared pod never trusts saved session keys (`BlePodComms.init`), so its first session handshakes too. At `b647ea9` this was a restore hook that could lose a race with `autoConnectIDs` (M2b-02); it was replaced in `e576b45`. Both points come from reading the code.
+- Why reductions are refused too: see `omnipodkit-177-proposal.md`.
+
+### Verification
+
+| # | Step | Result |
+|---|---|---|
+| 1 | OmniTests at `b647ea9`, against the pinned submodules (LoopKit `7fd4d1a7`, RileyLinkKit `52a652c9`), on a fresh iPhone 17 / iOS 27.2 simulator | 255 run, 0 failed, 3 skipped. Superseded by the review-fix results below |
+| 2 | Mutation checks at `b647ea9` | They mutated shared `PodState` code only. The M2b review showed that removing every guard outside `PodState` left all tests green (M2b-01). Superseded below |
+| 3 | `OmnipodKit-watchOS` for the watchOS simulator and `arm64_32`; `OmnipodKitPlugin` for iOS | Build succeeded |
+| 4 | Trio iOS app, `X -scheme Trio` on a fresh "Trio-M2b iPhone 17" (iOS 27.2) | Exit 0. DanaKit, MedtrumKit, MinimedKit, LibreTransmitter, LibreLoop, G7SensorKit, OmnipodKit, LoopKit (and LoopKit-watchOS) compiled as part of it |
+| 5 | Full `Trio Tests`, three runs on the same simulator | Run 1: 933 passed, 19 failed, 44 skipped. Run 2: 940 / 12 / 44. Run 3: **952 / 0 / 44** (= M0) |
+| 6 | The 10 suites that failed in run 1, run alone | 55 passed, 0 failed, 1 skipped |
+| 7 | A/B: the same full run with the old pins (`babddf04`, `6fdf0e0e`) | 952 / 0 / 44 |
+
+#### Runs 1–2 failures
+
+All the failures in runs 1 and 2 are test-host crashes ("Restarting after unexpected exit"), a different set of tests each time. The four crash reports show heap corruption:
+- `___BUG_IN_CLIENT_OF_LIBMALLOC_POINTER_BEING_FREED_WAS_NOT_ALLOCATED` in `-[_UIAppearance _handleSetterInvocation:]`, called from `TrioApp.configureTabBarAppearance()` ← `TrioApp.init()` ← `BolusSafetyValidatorTests.init()` / `BolusCalculatorTests.init()`;
+- later malloc traps in unrelated code.
+
+No crash report has a LoopKit, OmnipodKit or RileyLink frame. Four suites build `TrioApp()` in a stored property (`let resolver = TrioApp().resolver`), so parallel Swift Testing suites run UIAppearance setters off the main thread at the same time.
+
+The machine's load average was 90–175 during the runs, from other agents' builds. Probable cause (inferred, not proven): a pre-existing race in those tests that load makes more likely. Run 3 and the baseline A/B both passed clean. It is not fixed here because it is out of M2b's scope; it's worth a follow-up.
+
+### Not executed or not verified
+
+- No hardware: no pod and no watch device.
+- The pod side of the rule is not verified. It is modelled by a pod double in `DeviceHandoffTests`, so these are our reading of the protocol, not traces:
+  - that a resync-answered handshake leaves the pod's counter unchanged;
+  - that a message under stale keys is dropped.
+- The restored-link handshake (C-2) has no unit test, because a `BlePodComms` needs a Bluetooth central. It was checked by reading the code only.
+- The watch app was not built here (M2a). Nothing in the Trio app calls the new API yet (M4/M5).
+- The kits' own test suites other than OmniTests were not run.
+
+### Worktree hygiene
+
+- The build-phase SwiftFormat reformatted `Trio Watch App Tests/Unit Tests.swift` again (as in M0). Reverted.
+- `Package.resolved`: unchanged.
+- No dirty files inside any submodule.
+
+### Review fixes (`e576b45`, M2b review M2b-01..10 and M3E-01)
+
+| Finding | Change |
+|---|---|
+| M2b-01 | The handshake decisions are `PodState` methods (`nextHandshakeSqn`, `handshakeResynced(to:lastAcceptedHere:)`, `sessionEstablished`), called by `BlePodComms` and by the test double. Manager-level tests use an Eros-typed `OmniPumpManager` (no Bluetooth central) and go through `runSession` |
+| M2b-02 | The restore hook is gone. `BlePodComms.init` requires a handshake on any shared pod |
+| M2b-03 | `AcceptedEapSqn`: the last SQN the pod accepted, in `UserDefaults` keyed by the pod's lot and sequence numbers, written right after the pod accepts. A resync at or below it is this device's own counter |
+| M2b-04 | A refusal in `establishNewSession` or `bleRunSession` calls `releaseConnection()`, and a refused manager doesn't dial at launch. A superseding take re-arms the connection, and the reconnect handshakes |
+| M2b-05 / M3E-01 | Only `takeControl(supersedingAnotherControllerUntil:)` lifts a refusal and starts a scope. A plain take keeps both, and it expects a resync only after a release. A release ends the scope. Host contract in the proposal |
+| M2b-06 | Documented as a limit in the proposal (a stale counter from attempts that never reached the pod) |
+| M2b-07 | `SupersedingTake` runs on uptime within one boot (`kern.bootsessionuuid`) and on the wall clock across a reboot, where a clock set back before the take ends it |
+| M2b-08 | The proposal and this section now separate what tests show from what was read in code |
+| M2b-09 | A recovery suggestion for `podUsedByAnotherController`. The four new fields appear in `PodState.debugDescription` |
+| M2b-10 | The doc comments say to call these off the main thread |
+
+| # | Step | Result |
+|---|---|---|
+| R1 | `DeviceHandoffTests` | 43 run, 0 failed (15 new, 4 of them manager-level) |
+| R2 | OmniTests, all, against the exact pins (LoopKit `7fd4d1a7`, OmnipodKit `e576b45`, RileyLinkKit `52a652c9`) | 261 run, 0 failed, 3 skipped |
+| R3 | `OmnipodKit-watchOS` for the watchOS simulator and `arm64_32` | Build succeeded |
+| R4 | Trio iOS app, `X -scheme Trio`, "Trio-M2b iPhone 17" | Exit 0; DanaKit, MedtrumKit, MinimedKit, LibreTransmitter and OmnipodKit recompiled as part of it |
+
+Mutation runs on the production code, one at a time and each reverted, `DeviceHandoffTests` only:
+
+| Mutation | Result |
+|---|---|
+| M1 `OmniPumpManager.runSession` refusal removed | 3 failures (both manager-level refusal tests) |
+| M2 `nextHandshakeSqn` ignores the refusal | 12 failures (6 tests) |
+| M3 `sessionEstablished` does nothing | 19 failures (7 tests) |
+| M4 accepted counter ignored | 3 failures (own-counter test) |
+| M5 a plain take lifts the refusal | 1 failure |
+| M6 a release keeps the scope | 1 failure (manager-level) |
+| M7 scope on the wall clock only | 2 failures (clock test) |
+| M8 never refuse | 19 failures (8 tests) |
+| M9 no report | 6 failures (6 tests) |
+| M10 a plain take expects a resync without a release | 1 failure (manager-level) |
+| M11 a shared pod trusts saved keys (`BlePodComms.init`) | **survives**: `BlePodComms` can't be built in tests |
+| M12 a refusal keeps the link | **survives**: same reason |
+
+So the `BlePodComms` call sites are checked by code reading only: the `init` condition, the `establishNewSession` and `bleRunSession` refusals, `releaseConnection()` on refusal, and the `AcceptedEapSqn` save and read. Everything else in the rule fails a test when removed.
+
+Trio-side code is unchanged by the review fixes, so the full `Trio Tests` were not re-run.
+
+### Re-review fixes (`1450b24`, M2b re-review R-01..R-05)
+
+| Finding | Change |
+|---|---|
+| R-01 | `SupersedingTake` runs on `CLOCK_MONOTONIC_RAW` (via `clock_gettime_nsec_np`), with the boot-session check and wall-clock fallback kept. The SDK `_time.h` defines it, and the `clock_gettime(3)` man page says it runs "like `CLOCK_MONOTONIC`", which "will continue to increment while the system is asleep", while `CLOCK_UPTIME_RAW` "does not increment while the system is asleep". |
+| R-02 | A plain `takeControl()` on a refused manager returns before the radio part (no `rearmConnection`, no take escalation) and logs a device event. |
+| R-03 | Host contract: only one side ever makes a dated take (the phone in Trio). It is in the proposal and the `takeControl(supersedingAnotherControllerUntil:)` doc comment. |
+| R-04 | New `takeControlLiftingRefusal()` lifts a refusal without a scope (internally a dated take at `distantPast`, and an `until` in the past starts no scope). Chosen over a documented `until <= now` idiom because the call site then says what it means. |
+| R-05 | `AcceptedEapSqn.remove` on `BlePodComms.forgetPod`. The key lives in the device's own `UserDefaults` and is never exported. |
+
+| # | Step | Result |
+|---|---|---|
+| RR1 | `DeviceHandoffTests` | 46 run, 0 failed (3 new) |
+| RR2 | Mutations: scope clock back to `systemUptime`; plain take of a refused pod re-arms; a past `until` starts a scope | 1 failure each, in the matching new test. The clock test relies on the host having slept since boot (then `CLOCK_MONOTONIC_RAW` > `systemUptime`); on a device that never slept, the two are equal and that mutation would survive |
+| RR3 | OmniTests, all, against the exact pins (OmnipodKit `1450b24`) | 264 run, 0 failed, 3 skipped |
+| RR4 | `OmnipodKit-watchOS`, simulator and `arm64_32` | Build succeeded |
+| RR5 | Trio iOS app, `X -scheme Trio`, "Trio-M2b iPhone 17" | Exit 0 |
+
+#### Wiring checked by reading only
+
+These can't be unit-tested because a `BlePodComms` needs a Bluetooth central. Every other part of the rule fails a test when removed.
+
+- `BlePodComms.init`: a handshake is required on any shared pod.
+- `BlePodComms.establishSession`, resync case: calls `handshakeResynced(to:lastAcceptedHere:)` with `AcceptedEapSqn.value`.
+- `BlePodComms.establishSession`, session-keys case: calls `sessionEstablished()`, then `AcceptedEapSqn.save`.
+- `BlePodComms.establishNewSession`: both handshakes take their SQN from `nextHandshakeSqn()`, and nil throws `refuseSessions()`.
+- `BlePodComms.bleRunSession`: the `refusesSessions` guard calls `refuseSessions()`.
+- `BlePodComms.refuseSessions()`: calls `releaseConnection()`.
+- `BlePodComms.forgetPod`: calls `AcceptedEapSqn.remove`.
+- `OmniPumpManager.init` (line 139): a refused pod gets `releaseConnection()` at launch.
+- `takeControl`'s radio part (`rearmConnection`, search, escalation), skipped for a plain take of a refused pod. The early return itself is tested through an Eros manager.
+
