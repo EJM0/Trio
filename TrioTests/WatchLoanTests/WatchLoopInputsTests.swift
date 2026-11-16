@@ -63,8 +63,11 @@ import Testing
         let scenario = OrefCharacterizationScenarios.build(scenarioName, clock: clock)
         let phone = try OrefRunCharacterizationTests.inputs(for: scenario)
 
+        var snapshot = Self.snapshot(phone)
+        snapshot.smoothGlucose = scenario.smoothGlucose
+        snapshot.smoothingWindow = scenario.smoothGlucose ? Self.rawWindow(scenario) : []
         let inputs = WatchLoopInputs.orefInputs(
-            snapshot: try Self.overTheWire(Self.snapshot(phone)),
+            snapshot: try Self.overTheWire(snapshot),
             records: WatchLoopRecords(),
             now: clock,
             currentTemp: scenario.currentTemp,
@@ -73,6 +76,95 @@ import Testing
         )
 
         try Self.checkGoldens(inputs, clock: clock, scenario: scenarioName)
+    }
+
+    static func rawWindow(_ scenario: OrefCharacterizationScenario) -> [WatchLoanSnapshot.RawReading] {
+        scenario.glucose.map { WatchLoanSnapshot.RawReading(id: $0.id, date: $0.date, glucose: $0.glucose) }
+    }
+
+    static let rounding = NSDecimalNumberHandler(
+        roundingMode: .plain, scale: 0, raiseOnExactness: false, raiseOnOverflow: false,
+        raiseOnUnderflow: false, raiseOnDivideByZero: false
+    )
+
+    @Test(
+        "With smoothing on, a watch reading is smoothed with the phone's raw history, as the phone stores it"
+    ) func smoothedWatchReading() throws {
+        let clock = OrefCharacterizationScenarios.makeClock()
+        let scenario = OrefCharacterizationScenarios.build("override-smb-off-smoothed", clock: clock)
+        try #require(scenario.smoothGlucose)
+        let phone = try OrefRunCharacterizationTests.inputs(for: scenario)
+        var snapshot = Self.snapshot(phone)
+        snapshot.smoothGlucose = true
+        snapshot.smoothingWindow = Self.rawWindow(scenario)
+
+        let later = clock.addingTimeInterval(300)
+        let id = UUID()
+        let reading = OrefInputs.bloodGlucose(
+            id: id, date: later.addingTimeInterval(-10), glucose: 190, smoothedGlucose: nil, isManual: false,
+            direction: "Flat", shouldSmoothGlucose: false, roundingBehavior: Self.rounding
+        )
+        var records = WatchLoopRecords()
+        records.glucose = [reading]
+        let watch = WatchLoopInputs.orefInputs(
+            snapshot: try Self.overTheWire(snapshot),
+            records: records,
+            now: later,
+            currentTemp: scenario.currentTemp,
+            autosens: nil,
+            microBolusAllowed: true
+        )
+
+        // the phone's steps: store the reading, smooth the last 24 h of CGM rows (newest 350, oldest first),
+        // keep each new non-nil smoothed value, then map the rows for oref
+        typealias Row = (id: UUID, date: Date, glucose: Int16, smoothed: Decimal?)
+        var rows: [Row] = scenario.glucose.map { ($0.id, $0.date, $0.glucose, $0.smoothed) }
+            + [(id, later.addingTimeInterval(-10), 190, nil)]
+        let window = rows.enumerated().filter { $0.element.date >= later.addingTimeInterval(-86400) }
+            .sorted { $0.element.date > $1.element.date }.prefix(350).reversed()
+        let values = OrefInputs
+            .exponentiallySmoothedGlucose(window.map { (date: Optional($0.element.date), glucose: $0.element.glucose) })
+        for (entry, value) in zip(window, values) where value != nil {
+            rows[entry.offset].smoothed = value
+        }
+        let expected = OrefInputs.glucose(
+            rows.map {
+                OrefInputs.bloodGlucose(
+                    id: $0.id, date: $0.date, glucose: $0.glucose, smoothedGlucose: $0.smoothed, isManual: false,
+                    direction: "Flat", shouldSmoothGlucose: true, roundingBehavior: Self.rounding
+                )
+            },
+            since: OrefInputs.glucoseStart(hours: OrefInputs.autosensGlucoseHours, now: later)
+        )
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        #expect(watch.glucose.count == expected.count)
+        #expect(try encoder.encode(watch.glucose) == encoder.encode(expected))
+        #expect(watch.glucose.first?.sgv != 190, "the watch's reading reaches oref smoothed")
+    }
+
+    @Test("Dynamic ISF's TDD sufficiency is recounted from the history each cycle, as the phone does") func sufficientTDD() throws {
+        let clock = OrefCharacterizationScenarios.makeClock()
+        var phone = try OrefRunCharacterizationTests.inputs(
+            for: OrefCharacterizationScenarios.build("dynisf-insufficient-tdd", clock: clock)
+        )
+        phone.hasSufficientTDD = false
+        let rows = (0 ..< OrefInputs.sufficientTDDRowCount).map {
+            OrefInputs.TDDRow(date: clock.addingTimeInterval(-Double($0 * 300) - 60), total: 30)
+        }
+        var records = WatchLoopRecords()
+        records.tddHistory = rows
+        let inputs = WatchLoopInputs.orefInputs(
+            snapshot: Self.snapshot(phone), records: records, now: clock,
+            currentTemp: phone.currentTemp, autosens: nil, microBolusAllowed: true
+        )
+        #expect(inputs.hasSufficientTDD)
+        let without = WatchLoopInputs.orefInputs(
+            snapshot: Self.snapshot(phone), records: WatchLoopRecords(), now: clock,
+            currentTemp: phone.currentTemp, autosens: nil, microBolusAllowed: true
+        )
+        #expect(without.hasSufficientTDD == OrefInputs.hasSufficientTDD(phone.tddHistory, now: clock))
     }
 
     @Test("Doses, readings and carbs the watch recorded count as if the phone had stored them") func watchRecords() throws {
