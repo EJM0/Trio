@@ -46,6 +46,8 @@ extension OrefInputs {
     }
 
     /// The stored pump events oref reads: no scheduled-basal rows, no orphaned resumes, the last 24 h, newest first.
+    /// `events` are in storage order. Same-timestamp events follow the phone's SQLite fetches: reversed
+    /// in the ascending orphan check, in storage order in the newest-first result.
     static func algorithmPumpEvents<Event>(
         _ events: [Event],
         type: (Event) -> String?,
@@ -59,7 +61,7 @@ extension OrefInputs {
                 guard let date = timestamp(event), date >= windowStart, !isScheduledBasal(event) else { return nil }
                 return (offset, event, date)
             }
-            .sorted { $0.timestamp < $1.timestamp }
+            .sorted { ($0.timestamp, $1.offset) < ($1.timestamp, $0.offset) }
 
         let orphaned = Set(
             orphanedResumes(in: candidates, type: { type($0.event) }, timestamp: { $0.timestamp }).map(\.offset)
@@ -67,7 +69,7 @@ extension OrefInputs {
         let historyStart = pumpHistoryStart(now: now)
         return candidates
             .filter { $0.timestamp >= historyStart && !orphaned.contains($0.offset) }
-            .sorted { $0.timestamp > $1.timestamp }
+            .sorted { ($0.timestamp, $0.offset) > ($1.timestamp, $1.offset) }
             .map(\.event)
     }
 
