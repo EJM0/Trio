@@ -27,6 +27,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     @Injected() private var bolusCalculationManager: BolusCalculationManager!
     @Injected() private var iobService: IOBService!
     @Injected() private var notificationsManager: UserNotificationsManager!
+    @Injected() private var watchLoanCoordinator: WatchLoanCoordinator!
 
     private var units: GlucoseUnits = .mgdL
     private var glucoseColorScheme: GlucoseColorScheme = .staticColor
@@ -630,6 +631,11 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             if message.count == 1 { return }
         }
 
+        if WatchLoanWireKey.all.contains(where: { message[$0] != nil }) {
+            forwardLoanPayload(message)
+            return
+        }
+
         Task { @MainActor [weak self] in
             guard let self else { return }
 
@@ -770,6 +776,11 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             WatchLogIngest.legacyRecords(from: logs).forEach(TrioLogger.sink.accept)
         }
 
+        if WatchLoanWireKey.all.contains(where: { userInfo[$0] != nil }) {
+            forwardLoanPayload(userInfo)
+            return
+        }
+
         if let snoozeMinutes = userInfo[WatchMessageKeys.snoozeDuration] as? Int {
             info(.watch, "Watch requested alert snooze for \(snoozeMinutes) min")
             Task { @MainActor [weak self] in
@@ -777,6 +788,11 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 await self.notificationsManager.applySnooze(for: TimeInterval(snoozeMinutes * 60))
             }
         }
+    }
+
+    private func forwardLoanPayload(_ payload: [String: Any]) {
+        guard let coordinator = watchLoanCoordinator else { return }
+        Task { await coordinator.receive(payload) }
     }
 
     func session(_: WCSession, didReceive file: WCSessionFile) {
@@ -1164,5 +1180,42 @@ extension BaseWatchManager {
         case tempTargetStopped = "temp_target_stopped"
         case genericSuccess = "success"
         case genericFailure = "failure"
+    }
+}
+
+extension BaseWatchManager: WatchLoanTransport {
+    var isReachable: Bool { session?.isReachable ?? false }
+
+    func sendLive(_ payload: [String: Any]) -> Bool {
+        guard let session, session.activationState == .activated, session.isReachable else { return false }
+        session.sendMessage(payload, replyHandler: nil) { error in
+            warning(.watch, "Sending a watch loan message failed", error: error)
+        }
+        return true
+    }
+
+    func send(_ payload: [String: Any]) {
+        guard let session, session.activationState == .activated else {
+            warning(.watch, "Watch loan message not sent: no active watch session")
+            return
+        }
+        guard session.isReachable else {
+            session.transferUserInfo(payload)
+            return
+        }
+        // the receiver drops duplicates, so a retry after a failed live send is safe
+        session.sendMessage(payload, replyHandler: nil) { error in
+            warning(.watch, "Sending a watch loan message failed; queued instead", error: error)
+            session.transferUserInfo(payload)
+        }
+    }
+
+    func cancelOutstandingLoanTransfers() {
+        guard let session else { return }
+        let loanTransfers = session.outstandingUserInfoTransfers.filter { transfer in
+            WatchLoanWireKey.all.contains { transfer.userInfo[$0] != nil }
+        }
+        loanTransfers.forEach { $0.cancel() }
+        if !loanTransfers.isEmpty { info(.watch, "Cancelled \(loanTransfers.count) queued watch loan messages") }
     }
 }

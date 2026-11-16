@@ -12,10 +12,14 @@ protocol PumpHistoryObserver {
 protocol PumpHistoryStorage {
     var updatePublisher: AnyPublisher<Void, Never> { get }
     func getPumpHistory() async throws -> [PumpHistoryEvent]
+    func getPumpHistory(since date: Date) async throws -> [PumpHistoryEvent]
     /// Returns the ids of purged events that were already uploaded to NS,
     /// so the caller can delete the now-withdrawn treatments remotely.
     @discardableResult func storePumpEvents(_ events: [NewPumpEvent], replacePendingEvents: Bool) async throws -> [String]
     func storeExternalInsulinEvent(amount: Decimal, timestamp: Date) async
+    /// Replaces the tagged bolus with `id` by `amount` at `timestamp`; 0 removes it. Returns the old row's id
+    /// when it was already uploaded to Nightscout.
+    func replaceTaggedBolus(id: String, amount: Decimal, timestamp: Date) async throws -> String?
     func getPumpHistoryNotYetUploadedToNightscout() async throws -> [NightscoutTreatment]
     func getPumpHistoryNotYetUploadedToHealth() async throws -> [PumpHistoryEvent]
     func getPumpHistoryNotYetUploadedToTidepool() async throws -> [PumpHistoryEvent]
@@ -339,13 +343,56 @@ final class BasePumpHistoryStorage: PumpHistoryStorage, Injectable {
         }
     }
 
+    func replaceTaggedBolus(id: String, amount: Decimal, timestamp: Date) async throws -> String? {
+        let context = makeContext()
+        context.name = "replaceTaggedBolus"
+        return try await context.perform {
+            let request = PumpEventStored.fetchRequest() as NSFetchRequest<PumpEventStored>
+            request.predicate = NSPredicate(format: "id == %@", id)
+            var uploadedID: String?
+            for existing in try context.fetch(request) {
+                if existing.isUploadedToNS { uploadedID = id }
+                context.delete(existing)
+            }
+            if amount > 0 {
+                let event = PumpEventStored(context: context)
+                event.id = id
+                event.syncIdentifier = id
+                event.isMutable = false
+                event.timestamp = min(timestamp, Date())
+                event.type = PumpEvent.bolus.rawValue
+                event.isUploadedToNS = false
+                event.isUploadedToHealth = false
+                event.isUploadedToTidepool = false
+                let bolus = BolusStored(context: context)
+                bolus.pumpEvent = event
+                bolus.amount = amount as NSDecimalNumber
+                bolus.programmedAmount = amount as NSDecimalNumber
+                bolus.isExternal = true
+                bolus.isSMB = false
+            }
+            guard context.hasChanges else { return nil }
+            try context.save()
+            self.updateSubject.send(())
+            return uploadedID
+        }
+    }
+
     func getPumpHistory() async throws -> [PumpHistoryEvent] {
+        try await getPumpHistory(predicate: NSPredicate.pumpHistoryLast24h)
+    }
+
+    func getPumpHistory(since date: Date) async throws -> [PumpHistoryEvent] {
+        try await getPumpHistory(predicate: NSPredicate.pumpHistory(since: date))
+    }
+
+    private func getPumpHistory(predicate: NSPredicate) async throws -> [PumpHistoryEvent] {
         let context = makeContext()
         context.name = "getPumpHistory"
         let results = try await CoreDataStack.shared.fetchEntitiesAsync(
             ofType: PumpEventStored.self,
             onContext: context,
-            predicate: NSPredicate.pumpHistoryLast24h,
+            predicate: predicate,
             key: "timestamp",
             ascending: false,
             relationshipKeyPathsForPrefetching: ["bolus", "tempBasal"]

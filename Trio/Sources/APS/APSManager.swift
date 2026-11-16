@@ -42,6 +42,8 @@ protocol APSManager {
     var lastError: CurrentValueSubject<Error?, Never> { get }
     func cancelBolus(_ callback: ((Bool, String) -> Void)?) async
     var iobFileDidUpdate: PassthroughSubject<Void, Never> { get }
+    /// Returns once no loop is running, no bolus is under way and the pump's events are stored.
+    func awaitPumpIdle() async
 }
 
 /// Notified after a bolus-related failure so observing UI (e.g. the
@@ -77,7 +79,7 @@ enum APSError: LocalizedError {
 // MARK: - Thread-safe loop serialization
 
 /// Ensures only one loop runs at a time via actor isolation
-private actor LoopGuard {
+actor LoopGuard {
     private var isRunning = false
     private var isDeterminingStandalone = false
     private var loopWaiters: [CheckedContinuation<Void, Never>] = []
@@ -147,7 +149,8 @@ final class BaseAPSManager: APSManager, Injectable {
 
     private var lifetime = Lifetime()
 
-    private let loopGuard = LoopGuard()
+    // internal for tests
+    let loopGuard = LoopGuard()
     /// All reads/writes are dispatched onto `processQueue` so the bolus
     /// trigger sink, `cancelBolus`, and the `DoseProgressReporter`
     /// callback (which the pump manager already invokes on
@@ -582,6 +585,14 @@ final class BaseAPSManager: APSManager, Injectable {
                 throw APSError.apsError(message: "Error determining basal: \(error.localizedDescription)")
             }
         }
+    }
+
+    func awaitPumpIdle() async {
+        await loopGuard.waitForLoop()
+        while pumpManager?.status.bolusState ?? .noBolus != .noBolus {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+        }
+        await deviceDataManager.awaitPumpEventStorage()
     }
 
     func determineBasalSync() async throws {
