@@ -259,3 +259,26 @@ I found no other new path to two commanders. V2-1, V2-4 (single manager instance
 - **M5 (watch loop): yes, if** N-1 (`microBolusAllowed = false`, never stripped SMB) and R-5 (orphaned-intent odometer resolution) are in its acceptance tests, and **M2b**, which M5 depends on, implements R-4 (V2-6 refuses all program commands) with the pump-double test.
 
 BR-1 is unchanged. The flag stays off for users until M8/E2 passes.
+
+## V2-7b check (2026-11-16)
+
+Reviewed: V2-7b in `target-architecture.md` @ `f059f1809`, which supersedes V2-7. Design review only; nothing was run.
+
+**SB-2 stays closed.** The per-cycle re-audit and the reductions-only mode were needed only as a fallback in case R-2 was missing (see "V2-7 versus the SB-2 intent" above). V2-7b includes R-1, R-2, R-3, R-4 and R-5. Going through the exposures again:
+- **Watch doses before the phone's first session.** They are delivered before step 4 (`refreshDeliveredUnits()`), so the step 5 audit books them. Covered.
+- **Watch bolus still delivering.** The undelivered remainder is booked in step 5 (R-2). Covered.
+- **Stale watch after the phone's session.** The watch's next session sees the foreign controller and refuses every program command (R-4). The phone sees the resulting foreign session, alerts and audits again. No unbooked insulin, and no silent stop.
+- **Unresolvable intent.** It is booked as delivered, so IOB errs high, and the user is alerted (R-5). This is conservative and acceptable without a mode switch.
+
+Booking unexplained insulin into history and letting oref's IOB and Max IOB act on it fits the repo rule of no layer on top of oref. The Q-1 trace above shows that a booked audit bolus is conservative for SMB timing and for IOB.
+
+### Conditions to add
+
+| ID | Sev | Condition |
+|---|---|---|
+| C-1 | major | **Scope the takeover context, or it becomes a fail-open gate.** The phone keeps commanding through a foreign session only while all of these hold: the session is attributable to the superseded holder (epoch e+1 Take Back); the watch has not yet acknowledged `stopped`; and the watch's 6 h resume horizon (V2-11) has not passed. Outside that window, the phone treats any foreign session as "I believed I was the only holder", so the kit refuses commands, the host alerts and audits. The context is never set after a normal End (the watch's release was acknowledged) or after a lend. The phone audits and alerts on **every** foreign session it sees, not only the first. Pump-double tests: (a) after Take Back, the stale watch's next command of any kind fails; (b) a foreign session after the window closes makes the phone refuse and alert. |
+| C-2 | major | **No session reuse by a stale watch.** R-4 only works if every watch pod contact after the phone's takeover hits the foreign-session check. In M2b, verify (test with #177 @ `3d21d9c` plus the patch) that a watch reconnecting with session keys from before the takeover either re-handshakes, which triggers the check, or has its commands rejected by the pod. It must never send a program on a resumed stale session. Repeat this as an in-vitro M8 case. |
+| C-3 | minor | **Interrupted Take Back.** On relaunch in `takingBack`, redo steps 2-5 before `home`: take control, cancel the temp, refresh, then recompute the audit (it must be idempotent). The not-looping alarm stays armed (V2-12). |
+| C-4 | minor | **No double count for a booked intent.** An R-5 booked intent counts as "booked" in the V2-8 expected-delivery sum, so a later audit does not book it again. It is tagged and replaced only through the recompute rule. A later shortfall gives the existing notice. |
+
+**Verdict:** V2-7b keeps SB-2 closed. The M4 gate stands if C-1 and C-3 are in M4's acceptance tests. The M5 gate stands if C-1 (kit side) and C-2 are in M2b's acceptance tests and C-4 is in M5's.
