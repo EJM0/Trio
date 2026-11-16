@@ -64,7 +64,7 @@ final class FakeActivity: LoanBackgroundActivity {
 }
 
 /// Reads main-actor state from the kit's queues, as the double needs to.
-func onMain<T>(_ read: @MainActor () -> T) -> T {
+func onMain<T>(_ read: @MainActor() -> T) -> T {
     if Thread.isMainThread { return MainActor.assumeIsolated(read) }
     return DispatchQueue.main.sync { MainActor.assumeIsolated(read) }
 }
@@ -162,7 +162,8 @@ func onMain<T>(_ read: @MainActor () -> T) -> T {
             insulinSensitivities: JSONBridge.from(
                 string: #"{"units": "mg/dL", "user_preferred_units": "mg/dL", "sensitivities": [{"sensitivity": 50, "offset": 0, "start": "00:00:00"}]}"#
             ),
-            carbRatios: JSONBridge.from(string: #"{"units": "grams", "schedule": [{"start": "00:00:00", "offset": 0, "ratio": 10}]}"#),
+            carbRatios: JSONBridge
+                .from(string: #"{"units": "grams", "schedule": [{"start": "00:00:00", "offset": 0, "ratio": 10}]}"#),
             tempTargets: [],
             preferences: preferences,
             dosingMode: .closed,
@@ -223,8 +224,14 @@ func onMain<T>(_ read: @MainActor () -> T) -> T {
             oref: try Self.orefInputs(now: now, glucose: glucose, count: count),
             overrideAtGrant: nil,
             tempTargetAtGrant: nil,
-            bolusCalculator: .init(units: .mgdL, fraction: 1, fattyMealFactor: 0.7, sweetMealFactor: 1, maxCarbs: 250,
-                                   supportedBolusVolumes: [0.05]),
+            bolusCalculator: .init(
+                units: .mgdL,
+                fraction: 1,
+                fattyMealFactor: 0.7,
+                sweetMealFactor: 1,
+                maxCarbs: 250,
+                supportedBolusVolumes: [0.05]
+            ),
             glucoseAlarms: alarms,
             glucoseAlarmConfiguration: GlucoseAlertConfiguration(),
             pumpExport: export,
@@ -269,8 +276,7 @@ func onMain<T>(_ read: @MainActor () -> T) -> T {
 }
 
 @Suite("Watch loan host", .serialized) @MainActor struct WatchLoanHostTests {
-    @Test("Start, adopt, loop on readings with a pump double that never sees a command while not owner")
-    func simulatorLoop() async throws {
+    @Test("Start, adopt, loop on readings with a pump double that never sees a command while not owner") func simulatorLoop() async throws {
         let world = LoanFixture()
         try await world.startLoan()
         #expect(world.host.state == .holding(epoch: 1))
@@ -312,8 +318,7 @@ func onMain<T>(_ read: @MainActor () -> T) -> T {
         #expect(world.violations.isEmpty)
     }
 
-    @Test("A refused adopt is a foreign pod session: stopped, released, never a failed take")
-    func refusedAdopt() async throws {
+    @Test("A refused adopt is a foreign pod session: stopped, released, never a failed take") func refusedAdopt() async throws {
         let world = LoanFixture()
         await world.host.startTapped()
         guard case let .request(requestID) = world.transport.messages.last?.kind else {
@@ -325,8 +330,13 @@ func onMain<T>(_ read: @MainActor () -> T) -> T {
         world.pod.phoneTookOver = true
         let now = world.clock
         let grant = WatchLoanMessage(epoch: 1, kind: .grant(requestID: requestID, expiresAt: now.addingTimeInterval(30)))
-        await world.host.receive(try world.payload(grant, snapshot: world.snapshot(requestID: requestID, epoch: 1, now: now,
-                                                                                    glucose: 120, alarms: [])))
+        await world.host.receive(try world.payload(grant, snapshot: world.snapshot(
+            requestID: requestID,
+            epoch: 1,
+            now: now,
+            glucose: 120,
+            alarms: []
+        )))
         try await Task.sleep(nanoseconds: 300_000_000)
         await world.host.serially {}
         #expect(world.host.state == .stopped(epoch: 1, reason: .foreignSession))
@@ -397,8 +407,7 @@ func onMain<T>(_ read: @MainActor () -> T) -> T {
         #expect(world.violations.isEmpty)
     }
 
-    @Test("Cycle guards: stale pump status or too few readings enact nothing and don't move the series")
-    func cycleGuards() async throws {
+    @Test("Cycle guards: stale pump status or too few readings enact nothing and don't move the series") func cycleGuards() async throws {
         let world = LoanFixture()
         try await world.startLoan()
         let series = world.notifier.notLooping
@@ -446,8 +455,9 @@ func onMain<T>(_ read: @MainActor () -> T) -> T {
         #expect(try world.files.read(.intent) == nil)
     }
 
-    @Test("An unconfirmed bolus is never retried, holds insulin back, and is booked as delivered once settled")
-    func unresolvedIntent() async throws {
+    @Test(
+        "An unconfirmed bolus is never retried, holds insulin back, and is booked as delivered once settled"
+    ) func unresolvedIntent() async throws {
         let world = LoanFixture()
         try await world.startLoan(glucose: 120)
         await world.reading(120)
@@ -477,8 +487,7 @@ func onMain<T>(_ read: @MainActor () -> T) -> T {
         #expect(world.violations.isEmpty)
     }
 
-    @Test("Not-looping series: armed at holding, moved only by a confirmed cycle, removed at hand-back")
-    func deadMan() async throws {
+    @Test("Not-looping series: armed at holding, moved only by a confirmed cycle, removed at hand-back") func deadMan() async throws {
         let world = LoanFixture()
         let start = world.clock
         try await world.startLoan()
@@ -565,8 +574,14 @@ func onMain<T>(_ read: @MainActor () -> T) -> T {
         let state = WatchLoanState.stopped(epoch: epoch, reason: .unconfirmed)
         #expect(try JSONDecoder().decode(WatchLoanState.self, from: JSONEncoder().encode(state)) == state)
 
-        let intent = WatchDoseIntent(id: UUID(), kind: .bolus(units: 1, automatic: false), createdAt: Date(),
-                                     epoch: epoch, addsInsulin: true, deliveredBefore: 3_000_000_000)
+        let intent = WatchDoseIntent(
+            id: UUID(),
+            kind: .bolus(units: 1, automatic: false),
+            createdAt: Date(),
+            epoch: epoch,
+            addsInsulin: true,
+            deliveredBefore: 3_000_000_000
+        )
         #expect(try JSONDecoder().decode(WatchDoseIntent.self, from: JSONEncoder().encode(intent)) == intent)
 
         let reading = LoanFixture.readings(now: Date(timeIntervalSince1970: 4_000_000_000), count: 1, value: 100)[0]

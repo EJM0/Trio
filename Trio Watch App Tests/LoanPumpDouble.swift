@@ -43,7 +43,7 @@ final class LoanPumpDouble: LoanPump {
         self.pod = pod
     }
 
-    convenience init?(rawState: RawStateValue) {
+    convenience init?(rawState _: RawStateValue) {
         nil
     }
 
@@ -186,18 +186,32 @@ final class LoanPumpDouble: LoanPump {
     func setBLEHeartbeatRequest(_ request: PumpHeartbeatRequest?) {
         heartbeatRequests.append(request)
     }
+
     func createBolusProgressReporter(reportingOn _: DispatchQueue) -> DoseProgressReporter? { nil }
     func estimatedDuration(toBolus units: Double) -> TimeInterval { units * 40 }
 
-    func enactBolus(decisionId _: UUID?, units: Double, activationType: BolusActivationType, completion: @escaping (PumpManagerError?) -> Void) {
+    func enactBolus(
+        decisionId _: UUID?,
+        units: Double,
+        activationType: BolusActivationType,
+        completion: @escaping (PumpManagerError?) -> Void
+    ) {
         if let error = check("bolus \(units) U\(activationType.isAutomatic ? " (SMB)" : "")") {
             if makesDeliveryUncertainOnError { deliveryIsUncertain = true }
             return completion(error)
         }
         pod.delivered += units
         let now = now()
-        let dose = DoseEntry(type: .bolus, startDate: now, endDate: now.addingTimeInterval(bolusDuration), value: units,
-                             unit: .units, decisionId: nil, deliveredUnits: units, automatic: activationType.isAutomatic)
+        let dose = DoseEntry(
+            type: .bolus,
+            startDate: now,
+            endDate: now.addingTimeInterval(bolusDuration),
+            value: units,
+            unit: .units,
+            decisionId: nil,
+            deliveredUnits: units,
+            automatic: activationType.isAutomatic
+        )
         bolusState = .inProgress(dose)
         report(dose)
         DispatchQueue.main.asyncAfter(deadline: .now() + bolusDuration) { self.bolusState = .noBolus }
@@ -210,7 +224,12 @@ final class LoanPumpDouble: LoanPump {
         completion(.success(nil))
     }
 
-    func enactTempBasal(decisionId _: UUID?, unitsPerHour: Double, for duration: TimeInterval, completion: @escaping (PumpManagerError?) -> Void) {
+    func enactTempBasal(
+        decisionId _: UUID?,
+        unitsPerHour: Double,
+        for duration: TimeInterval,
+        completion: @escaping (PumpManagerError?) -> Void
+    ) {
         if let error = check("temp \(unitsPerHour) U/h \(Int(duration / 60)) min") {
             if makesDeliveryUncertainOnError { deliveryIsUncertain = true }
             return completion(error)
@@ -219,8 +238,16 @@ final class LoanPumpDouble: LoanPump {
         if duration == 0 {
             basalDeliveryState = .active(now)
         } else {
-            let dose = DoseEntry(type: .tempBasal, startDate: now, endDate: now.addingTimeInterval(duration), value: unitsPerHour,
-                                 unit: .unitsPerHour, decisionId: nil, automatic: true, isMutable: true)
+            let dose = DoseEntry(
+                type: .tempBasal,
+                startDate: now,
+                endDate: now.addingTimeInterval(duration),
+                value: unitsPerHour,
+                unit: .unitsPerHour,
+                decisionId: nil,
+                automatic: true,
+                isMutable: true
+            )
             basalDeliveryState = .tempBasal(dose)
             report(dose)
         }
@@ -239,7 +266,10 @@ final class LoanPumpDouble: LoanPump {
         completion(nil)
     }
 
-    func syncBasalRateSchedule(items _: [RepeatingScheduleValue<Double>], completion: @escaping (Result<BasalRateSchedule, Error>) -> Void) {
+    func syncBasalRateSchedule(
+        items _: [RepeatingScheduleValue<Double>],
+        completion: @escaping (Result<BasalRateSchedule, Error>) -> Void
+    ) {
         violations.append("basal schedule sync from the watch")
         completion(.failure(WatchLoanHostError.notStored))
     }
