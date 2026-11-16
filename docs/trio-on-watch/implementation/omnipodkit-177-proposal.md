@@ -1,90 +1,101 @@
 # Proposal for loopandlearn/OmnipodKit#177: stop a controller that lost the pod
 
-This is a draft for the maintainer to post on #177. Until upstream decides, Trio carries it as a local patch on #177 @ `3d21d9c` (ADR-007). The patch is three commits on the local OmnipodKit branch `trio-on-watch`: `d5606d6`, `2e5f9bd` and `b647ea9`.
+This is a draft for the maintainer to post on #177. Until upstream decides, Trio carries it as a local patch on #177 @ `3d21d9c` (ADR-007), on the local OmnipodKit branch `trio-on-watch` (commits listed in `implementation-status.md`, M2b).
 
 ---
 
 Hi @jeremybarnum,
 
-Trio is building its watch mode on #177, and we found a gap we think belongs in the kit. Below are the problem, a proposed rule, and a small patch with tests. Happy to drop ours if you'd rather solve it differently.
+Trio is building its watch mode on #177, and we found a gap we think belongs in the kit. Below are the problem, a proposed rule, a patch and its tests. Happy to drop ours if you'd rather solve it differently.
 
 **Problem**
 
 After a take-back the other controller never heard about, that controller keeps dosing. For example, the user takes the pod back on the phone while the watch is out of range or asleep.
 
 - At `3d21d9c`, the stale controller's next handshake gets an EAP SQN resync. `resolveAfterSessionResync()` drops its unconfirmed command and logs the resync, and then the session goes on: the retry handshake succeeds and the command is sent (`BlePodComms.establishNewSession`, `bleRunSession`).
-- Nothing reaches the host: no property, no delegate call and no error, only the device log. The host can't stop the next command. Any check it makes runs before the handshake that would reveal the foreign session.
-- So two controllers dose the same pod in turn until one of them hears from the other. A test fork of #177 hit exactly this in testing: "the phone took the pod back, its stop didn't reach the sleeping watch, and both dosed it in turn until the watch app was opened".
+- Nothing reaches the host: no property, no delegate call, no error, only the device log. The host can't stop the next command, because any check it makes runs before the handshake that would reveal the foreign session.
+- So two controllers dose the same pod in turn. A test fork of #177 hit exactly this: "the phone took the pod back, its stop didn't reach the sleeping watch, and both dosed it in turn until the watch app was opened".
 
 **Rule**
 
-- A controller that adopted or took the pod expects one resync, from the other controller's sessions before that.
-- Any later resync on a shared pod means another controller is using it now, and it is reported every time. What happens next depends on how this controller got the pod, and only the host knows that:
-  - **It believed it held the pod alone.** It adopted it, or took it back after an acknowledged release. Then it runs no session and sends the pod nothing until its host takes control again.
-  - **The host took the pod on purpose** from a peer that may not know yet, for example a Take Back while the watch is out of reach. Within that take's scope, the peer's late sessions are expected: they are reported so the host can audit and alert, and this controller keeps commanding. Otherwise the stale watch could lock out the phone that just took the pod back.
-    - The scope ends when its expiry passes (Trio uses 6 h) or when the host says the peer has stopped. A foreign session after that stops this controller too. A take that isn't scoped (a normal hand-back or an adopt) is never superseding, so this can't fail open.
+- A controller that adopted the pod, or took back a pod it had released, expects one resync: the other controller's sessions from before.
+- Any other resync on a shared pod means another controller used it, and every one is reported. What happens next depends on how this controller holds the pod, which only the host knows:
+  - **It believes it holds the pod alone.** Then it runs no session, sends the pod nothing and lets go of the pod's one BLE link, until its host makes an explicit superseding take (below).
+  - **The host took the pod on purpose from a peer that may not know yet** (a Take Back while the watch is out of reach). Within that take's scope, the peer's late sessions are expected: they are reported so the host can audit the delivered total and alert, and this controller keeps commanding. Otherwise the stale watch could lock out the phone that just took the pod back.
+- The scope ends at its expiry (Trio uses 6 h), when the host says the peer has stopped, or when this controller releases the pod. Within one boot it runs on uptime, so a clock change can't stretch it.
 - "Nothing" includes reductions and suspends, not only insulin-adding commands. The controller that has the pod doesn't know about any of them:
-  - A zero temp or suspend from the stale controller cancels the owner's temp or SMB plan without leaving a record on the owner's side.
+  - A zero temp or a suspend from the stale controller cancels the owner's temp or SMB plan without a record on the owner's side.
   - A resume undoes a suspend the user just made on the owner.
   - Each is a second commander changing delivery behind the owner's back. While the stale controller is quiet, the pod's scheduled basal is the fail-safe.
-- Status reads stop too. Each read is a handshake, which moves the pod's counter on, so the owner would see a foreign session of its own.
-- No second handshake after the resync that found the foreign session, for the same reason.
+- Status reads stop too. Each read is a handshake, which moves the pod's counter on, so the owner would see a foreign session of its own and stop too. For the same reason there is no retry handshake after the resync that found the foreign session.
+- This controller's own counter, saved late, is not a foreign session. The last EAP SQN the pod accepted from this controller is saved at once, outside the pod state the host persists. A resync at or below it is this controller's own counter catching up.
 
-**Patch** (about 90 lines plus tests, on #177 @ `3d21d9c`)
+**Patch** (on #177 @ `3d21d9c`, about 230 lines of source plus tests)
 
-New persisted fields, none of them exported:
-- `PodState.expectsSessionResync`: set by an adopt and by a take, cleared once a session is established.
-- `PodState.foreignSessionDetectedAt`: set to the time of every unexpected resync on a shared pod.
-- `PodState.supersedesAnotherControllerUntil`: the scope of a superseding take, set by the take from the host.
-- `PodState.refusesSessions`: set by an unexpected resync outside that scope.
+`PodState` fields, all persisted and none exported:
+- `expectsSessionResync`, `foreignSessionDetectedAt` and `refusesSessions`.
+- `supersedingTake`: since, until, and the uptime and boot session at the take.
 
-New public API on `OmniPumpManager`:
-- `takeControl(supersedingAnotherControllerUntil: Date?)`. The protocol's `takeControl()` passes `nil`. Either form clears `foreignSessionDetectedAt` and `refusesSessions`, so taking control is the host's explicit claim.
-- `stopSupersedingAnotherController()`, for when the peer has acknowledged that it stopped.
-- Read-only `foreignSessionDetectedAt` and `refusesSessions`. Both live in `podState`, so every change reaches the host through `pumpManagerDidUpdateState`, with no log parsing.
+The handshake decisions are `PodState` methods, called by `BlePodComms.establishSession` / `establishNewSession`:
+- `nextHandshakeSqn()`, which is nil while refusing;
+- `handshakeResynced(to:lastAcceptedHere:)`;
+- `sessionEstablished()`.
 
-While `refusesSessions` is set:
+`AcceptedEapSqn` holds the last SQN the pod accepted from this controller, in `UserDefaults`, keyed by the pod's lot and sequence numbers. It is written right after the pod accepts a handshake.
+
+`OmniPumpManager`:
+- `takeControl(supersedingAnotherControllerUntil:)` is the only call that lifts a refusal, and it starts a scope.
+- The protocol's `takeControl()` lifts nothing and keeps any scope. It marks the next resync as expected only if this controller had released the pod.
+- `stopSupersedingAnotherController()` and `releaseControl()` end a scope.
+- `foreignSessionDetectedAt` and `refusesSessions` are read-only. Every change reaches the host through `pumpManagerDidUpdateState`.
+
+While refusing:
 - `OmniPumpManager.runSession` refuses before dialling.
-- `bleRunSession` refuses after the connect.
 - `establishNewSession` makes no handshake.
-- Each refusal returns the new `PodCommsError.podUsedByAnotherController`.
+- `bleRunSession` refuses.
+- The last two let go of the link (`releaseConnection()`), and a refused manager doesn't dial at launch.
+- The error is the new `PodCommsError.podUsedByAnotherController`, which has a recovery suggestion.
 
-Other changes:
-- A restored link (state restoration after a relaunch) on a shared pod handshakes again instead of reusing the saved session keys. Those keys may predate another controller's sessions. At `3d21d9c` a restored link reuses them without a handshake, so it would never see the resync.
-- Pods never shared behave exactly as before: no flag and no refusal.
+On a shared pod a new process never trusts saved session keys (`BlePodComms.init`), so its first session handshakes. A link restored after a relaunch can't skip the rule.
 
-A host whose controller is refused should call `releaseControl()` and stop. Taking control again is a user decision.
+Pods that were never shared behave exactly as before.
 
-**Tests** (`DeviceHandoffTests`, 9 new; OmniTests: 255 run, 3 skipped, 0 failures)
+**Host contract**
 
-The tests use a small pod double. It follows `establishNewSession`: a handshake has to be above the pod's counter or it gets a resync. The double also keeps the latest session's keys.
-- A lend and a hand-back find no foreign session on either side.
-- Take-back while the watch is away: the watch's next session is refused, so no command of any kind is sent and not even a status read. The refusal is reported, and the pod's counter doesn't move. The phone keeps going unflagged.
-- The race where the stale watch handshakes first after the phone's take: that one session runs, because nothing on the pod shows the take yet. That's a limit: the owner's delivered-total audit has to catch its insulin. The phone's resync is the expected one, the watch's next session is refused, and the phone is unaffected.
-- A phone that superseded the watch keeps commanding through foreign sessions, and each one is reported with a newer time.
-- After the scope's expiry, or after `stopSupersedingAnotherController()`, the same foreign session stops the phone.
-- A phone that took the pod after an ordinary hand-back stops at a foreign session.
-- Keys from before a takeover open nothing on the double, and the stale controller's new handshake is refused.
-- The refusal survives a relaunch, and a take lifts it.
-- An export carries none of the new fields. The adopter expects a resync and holds the pod alone.
+- Call the plain `takeControl()` only right after `init(adopting:)`, or to take back a pod after an acknowledged hand-back. Never call it to "check" the pod; read `refusesSessions` / `foreignSessionDetectedAt` instead.
+- Call `takeControl(supersedingAnotherControllerUntil:)` only for a user-confirmed takeover from a peer that hasn't acknowledged stopping. If you redo it after a relaunch, pass the original `until`.
+- Call `stopSupersedingAnotherController()` when the peer acknowledges that it stopped.
+- On `refusesSessions`: stop, alert and call `releaseControl()`. Taking control again is the user's decision.
+- `takeControl(…)` and `stopSupersedingAnotherController()` wait out a session in progress, so call them off the main thread.
 
-Checked by mutation:
-- Never refusing fails 14 assertions.
-- Ignoring the scope's expiry fails the scope test.
-- Not reporting fails 6 tests.
+**Tests** (`DeviceHandoffTests`, 15 new)
 
-**Compatibility with the offline start** (the watch starts without the phone's release)
+The pod double keeps the EAP counter and the latest session keys, and drives the same `PodState` handshake methods the kit does. The double tests cover:
+- a lend and a hand-back, which find no foreign session;
+- a take-back while the watch is away: the watch's next session is refused, nothing is sent and the counter doesn't move;
+- the race where the stale watch handshakes first after the take;
+- a superseding phone, which reports every foreign session and keeps commanding;
+- the end of the scope at expiry, at the peer's stop, and with a clock set back across a reboot;
+- a sole holder, which stops;
+- this controller's own late-saved counter, which is not counted as foreign;
+- stale keys, which open nothing;
+- that only a superseding take lifts a refusal;
+- that the refusal survives a relaunch;
+- the scope's uptime and wall-clock rules.
 
-- The phone's first handshake after the watch's start gets flagged, and the phone stops instead of reading the pod.
-- `foreignSessionDetectedAt` is the information that read was for. The host can then ask the watch and either release or take control again, as LoopKit/Loop#2545 does today.
+Manager-level tests use an Eros-typed `OmniPumpManager`. The refusal is in `runSession`, which is the same for every pod type, and an Eros manager needs no Bluetooth central. They cover:
+- a refusing manager, which fails a status read and a zero temp with `podUsedByAnotherController`, while the same manager without the refusal reaches the radio;
+- a plain take, which keeps the refusal, and a superseding take, which lifts it;
+- a plain take inside a scope, which keeps the scope, and a release, which ends it;
+- a plain take without a release, which expects no resync.
 
-**Not verified**
+**Limits**
 
+- One stale session can still run. A stale controller that reaches the pod before the owner's first handshake after the take can't be told apart from the owner's expected resync, so its session runs. The owner's delivered-total audit has to account for its insulin.
+- Handshake attempts that never reached the pod (a link drop mid-EAP) still advance the stale controller's counter. A stale controller with at least *n* such attempts is accepted after the owner's *n* handshakes. It runs one full session and is refused at the next one. A superseding owner reports it, and its audit covers it.
+- Some kit guards are checked by reading only, because a `BlePodComms` can't be built without a Bluetooth central: the `init` condition, the refusals in `establishNewSession` and `bleRunSession`, letting go of the link, and saving `AcceptedEapSqn`.
+- Our reading of the protocol, not a pod trace: that a resync-answered handshake leaves the pod's counter unchanged, and that a message under stale keys is dropped.
 - None of this has run on hardware.
-- The pod double is our reading of the EAP SQN behaviour, not a pod trace. Two pod-side points are unverified:
-  - whether a resync-answered handshake leaves the pod's counter unchanged;
-  - whether a message under stale session keys is dropped.
-- The restored-link handshake can't be unit-tested, because a `BlePodComms` needs a Bluetooth central. It was checked by reading the code only.
 
 Best,
 Dan
