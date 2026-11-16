@@ -265,11 +265,13 @@ final class UserNotificationLoanNotifier: WatchLoanNotifier {
     }
 }
 
-final class WatchAppDelegate: NSObject, WKApplicationDelegate {
-    func handle(_ backgroundTasks: Set<WKRefreshBackgroundTask>) {
-        // a Bluetooth task can arrive off main
-        DispatchQueue.main.async {
-            WatchBackgroundTasks.shared.handle(backgroundTasks)
+#if TRIO_ON_WATCH
+    final class WatchAppDelegate: NSObject, WKApplicationDelegate {
+        func handle(_ backgroundTasks: Set<WKRefreshBackgroundTask>) {
+            // a Bluetooth task can arrive off main
+            DispatchQueue.main.async {
+                WatchBackgroundTasks.shared.handle(backgroundTasks)
+            }
         }
     }
-}
+#endif
