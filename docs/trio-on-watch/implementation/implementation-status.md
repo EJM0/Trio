@@ -215,3 +215,35 @@ So the `BlePodComms` call sites are checked by code reading only: the `init` con
 
 Trio-side code is unchanged by the review fixes, so the full `Trio Tests` were not re-run.
 
+### Re-review fixes (`1450b24`, M2b re-review R-01..R-05)
+
+| Finding | Change |
+|---|---|
+| R-01 | `SupersedingTake` runs on `CLOCK_MONOTONIC_RAW` (via `clock_gettime_nsec_np`), with the boot-session check and wall-clock fallback kept. The SDK `_time.h` defines it, and the `clock_gettime(3)` man page says it runs "like `CLOCK_MONOTONIC`", which "will continue to increment while the system is asleep", while `CLOCK_UPTIME_RAW` "does not increment while the system is asleep". |
+| R-02 | A plain `takeControl()` on a refused manager returns before the radio part (no `rearmConnection`, no take escalation) and logs a device event. |
+| R-03 | Host contract: only one side ever makes a dated take (the phone in Trio). It is in the proposal and the `takeControl(supersedingAnotherControllerUntil:)` doc comment. |
+| R-04 | New `takeControlLiftingRefusal()` lifts a refusal without a scope (internally a dated take at `distantPast`, and an `until` in the past starts no scope). Chosen over a documented `until <= now` idiom because the call site then says what it means. |
+| R-05 | `AcceptedEapSqn.remove` on `BlePodComms.forgetPod`. The key lives in the device's own `UserDefaults` and is never exported. |
+
+| # | Step | Result |
+|---|---|---|
+| RR1 | `DeviceHandoffTests` | 46 run, 0 failed (3 new) |
+| RR2 | Mutations: scope clock back to `systemUptime`; plain take of a refused pod re-arms; a past `until` starts a scope | 1 failure each, in the matching new test. The clock test relies on the host having slept since boot (then `CLOCK_MONOTONIC_RAW` > `systemUptime`); on a device that never slept, the two are equal and that mutation would survive |
+| RR3 | OmniTests, all, against the exact pins (OmnipodKit `1450b24`) | 264 run, 0 failed, 3 skipped |
+| RR4 | `OmnipodKit-watchOS`, simulator and `arm64_32` | Build succeeded |
+| RR5 | Trio iOS app, `X -scheme Trio`, "Trio-M2b iPhone 17" | Exit 0 |
+
+#### Wiring checked by reading only
+
+These can't be unit-tested because a `BlePodComms` needs a Bluetooth central. Every other part of the rule fails a test when removed.
+
+- `BlePodComms.init`: a handshake is required on any shared pod.
+- `BlePodComms.establishSession`, resync case: calls `handshakeResynced(to:lastAcceptedHere:)` with `AcceptedEapSqn.value`.
+- `BlePodComms.establishSession`, session-keys case: calls `sessionEstablished()`, then `AcceptedEapSqn.save`.
+- `BlePodComms.establishNewSession`: both handshakes take their SQN from `nextHandshakeSqn()`, and nil throws `refuseSessions()`.
+- `BlePodComms.bleRunSession`: the `refusesSessions` guard calls `refuseSessions()`.
+- `BlePodComms.refuseSessions()`: calls `releaseConnection()`.
+- `BlePodComms.forgetPod`: calls `AcceptedEapSqn.remove`.
+- `OmniPumpManager.init` (line 139): a refused pod gets `releaseConnection()` at launch.
+- `takeControl`'s radio part (`rearmConnection`, search, escalation), skipped for a plain take of a refused pod. The early return itself is tested through an Eros manager.
+

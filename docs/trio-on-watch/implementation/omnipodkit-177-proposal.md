@@ -22,7 +22,7 @@ After a take-back the other controller never heard about, that controller keeps 
 - Any other resync on a shared pod means another controller used it, and every one is reported. What happens next depends on how this controller holds the pod, which only the host knows:
   - **It believes it holds the pod alone.** Then it runs no session, sends the pod nothing and lets go of the pod's one BLE link, until its host makes an explicit superseding take (below).
   - **The host took the pod on purpose from a peer that may not know yet** (a Take Back while the watch is out of reach). Within that take's scope, the peer's late sessions are expected: they are reported so the host can audit the delivered total and alert, and this controller keeps commanding. Otherwise the stale watch could lock out the phone that just took the pod back.
-- The scope ends at its expiry (Trio uses 6 h), when the host says the peer has stopped, or when this controller releases the pod. Within one boot it runs on uptime, so a clock change can't stretch it.
+- The scope ends at its expiry (Trio uses 6 h), when the host says the peer has stopped, or when this controller releases the pod. Within one boot it runs on `CLOCK_MONOTONIC_RAW`, which counts sleep (unlike `systemUptime`), so neither a clock change nor a mostly-asleep phone can stretch it.
 - "Nothing" includes reductions and suspends, not only insulin-adding commands. The controller that has the pod doesn't know about any of them:
   - A zero temp or a suspend from the stale controller cancels the owner's temp or SMB plan without a record on the owner's side.
   - A resume undoes a suspend the user just made on the owner.
@@ -34,18 +34,19 @@ After a take-back the other controller never heard about, that controller keeps 
 
 `PodState` fields, all persisted and none exported:
 - `expectsSessionResync`, `foreignSessionDetectedAt` and `refusesSessions`.
-- `supersedingTake`: since, until, and the uptime and boot session at the take.
+- `supersedingTake`: since, until, and the `CLOCK_MONOTONIC_RAW` reading and boot session at the take.
 
 The handshake decisions are `PodState` methods, called by `BlePodComms.establishSession` / `establishNewSession`:
 - `nextHandshakeSqn()`, which is nil while refusing;
 - `handshakeResynced(to:lastAcceptedHere:)`;
 - `sessionEstablished()`.
 
-`AcceptedEapSqn` holds the last SQN the pod accepted from this controller, in `UserDefaults`, keyed by the pod's lot and sequence numbers. It is written right after the pod accepts a handshake.
+`AcceptedEapSqn` holds the last SQN the pod accepted from this controller, in this device's own `UserDefaults` (never exported), keyed by the pod's lot and sequence numbers. It is written right after the pod accepts a handshake and removed when the pod is forgotten.
 
 `OmniPumpManager`:
-- `takeControl(supersedingAnotherControllerUntil:)` is the only call that lifts a refusal, and it starts a scope.
-- The protocol's `takeControl()` lifts nothing and keeps any scope. It marks the next resync as expected only if this controller had released the pod.
+- `takeControl(supersedingAnotherControllerUntil:)` lifts a refusal and starts a scope.
+- `takeControlLiftingRefusal()` lifts a refusal without a scope, for when the other controller is known to have stopped.
+- The protocol's `takeControl()` lifts nothing and keeps any scope. On a refused manager it stays off the radio: no re-arm and no search by address. It marks the next resync as expected only if this controller had released the pod.
 - `stopSupersedingAnotherController()` and `releaseControl()` end a scope.
 - `foreignSessionDetectedAt` and `refusesSessions` are read-only. Every change reaches the host through `pumpManagerDidUpdateState`.
 
@@ -64,6 +65,8 @@ Pods that were never shared behave exactly as before.
 
 - Call the plain `takeControl()` only right after `init(adopting:)`, or to take back a pod after an acknowledged hand-back. Never call it to "check" the pod; read `refusesSessions` / `foreignSessionDetectedAt` instead.
 - Call `takeControl(supersedingAnotherControllerUntil:)` only for a user-confirmed takeover from a peer that hasn't acknowledged stopping. If you redo it after a relaunch, pass the original `until`.
+- Only one side of a pairing ever makes a dated take (in Trio, the phone). Two scopes in opposite directions would leave both controllers commanding, and the kit can't detect that. A future takeover from the other side first needs this side's scope ended, by a release or an acknowledgement.
+- To lift a refusal without superseding anyone (the other controller is known to have stopped), call `takeControlLiftingRefusal()`. Don't pass a future date for that: it would open a scope after a refusal whose source is unknown.
 - Call `stopSupersedingAnotherController()` when the peer acknowledges that it stopped.
 - On `refusesSessions`: stop, alert and call `releaseControl()`. Taking control again is the user's decision.
 - `takeControl(…)` and `stopSupersedingAnotherController()` wait out a session in progress, so call them off the main thread.
