@@ -14,7 +14,7 @@ import Testing
     @Test(
         "OrefRun matches the production golden",
         arguments: scenarioNames
-    )  func orefRunMatchesGolden(scenarioName: String) throws {
+    ) func orefRunMatchesGolden(scenarioName: String) throws {
         let clock = OrefCharacterizationScenarios.makeClock()
         let scenario = OrefCharacterizationScenarios.build(scenarioName, clock: clock)
         let inputs: OrefInputs = try roundTrip(try Self.inputs(for: scenario))

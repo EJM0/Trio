@@ -90,7 +90,9 @@ enum OrefCharacterizationScenarios {
         "dynisf-sufficient-tdd",
         "override-smb-off-smoothed",
         "low-glucose-suspend",
+        "low-glucose-suspend-high",
         "basal-testing-suspend-only",
+        "basal-testing-dynisf-on",
         "defaults-no-settings",
         "simulation"
     ]
@@ -197,9 +199,20 @@ enum OrefCharacterizationScenarios {
         case "low-glucose-suspend":
             scenario.dosingMode = .lowGlucoseSuspend
             scenario.glucose = glucose(clock: clock, base: 110, tail: [104, 98, 93, 88, 84, 80])
+        case "low-glucose-suspend-high":
+            // Max IOB 0 from the dosing-mode clamp blocks SMBs and high temps
+            scenario.dosingMode = .lowGlucoseSuspend
+            scenario.glucose = glucose(clock: clock, base: 150, tail: [168, 176, 185, 193, 201, 210])
         case "basal-testing-suspend-only":
             scenario.dosingMode = .basalTesting
             scenario.glucose = glucose(clock: clock, base: 100, tail: [92, 86, 81, 77, 73, 70])
+        case "basal-testing-dynisf-on":
+            // Dynamic ISF on in preferences; the dosing-mode clamps keep it off
+            scenario.dosingMode = .basalTesting
+            preferences.useNewFormula = true
+            scenario.preferences = preferences
+            scenario.tdd = tdd(clock: clock, count: 7 * 288, base: 28)
+            scenario.glucose = glucose(clock: clock, base: 150, tail: [168, 176, 185, 193, 201, 210])
         case "defaults-no-settings":
             scenario.settingsFiles = [:]
             scenario.preferences = nil
