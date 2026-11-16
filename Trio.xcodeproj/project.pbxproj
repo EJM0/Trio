@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C4A00070000000000000002 /* OrefRunStageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00070000000000000001 /* OrefRunStageTests.swift */; };
 		0C4A00060000000000000002 /* OrefInputs+Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00060000000000000001 /* OrefInputs+Selection.swift */; };
 		0C4A00050000000000000002 /* OrefRunCharacterizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00050000000000000001 /* OrefRunCharacterizationTests.swift */; };
 		0C4A00040000000000000002 /* OrefInputs+TDD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00040000000000000001 /* OrefInputs+TDD.swift */; };
@@ -1260,6 +1261,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0C4A00070000000000000001 /* OrefRunStageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrefRunStageTests.swift; sourceTree = "<group>"; };
 		0C4A00060000000000000001 /* OrefInputs+Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrefInputs+Selection.swift"; sourceTree = "<group>"; };
 		0C4A00050000000000000001 /* OrefRunCharacterizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrefRunCharacterizationTests.swift; sourceTree = "<group>"; };
 		0C4A00040000000000000001 /* OrefInputs+TDD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrefInputs+TDD.swift"; sourceTree = "<group>"; };
@@ -3765,6 +3767,7 @@
 		3B5CD2C72D4AECD500CE213C /* OpenAPSSwiftTests */ = {
 			isa = PBXGroup;
 			children = (
+				0C4A00070000000000000001 /* OrefRunStageTests.swift */,
 				3B1C5C3C2D68E269004E9273 /* json */,
 				FAB1E00000000000000000A0 /* Parity */,
 				3B1C5C3F2D68E269004E9273 /* utils */,
@@ -6557,6 +6560,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C4A00070000000000000002 /* OrefRunStageTests.swift in Sources */,
 				0C4A00050000000000000002 /* OrefRunCharacterizationTests.swift in Sources */,
 				0C4A00010000000000000005 /* OrefCharacterizationTests.swift in Sources */,
 				0C4A00010000000000000003 /* OrefCharacterizationScenarios.swift in Sources */,

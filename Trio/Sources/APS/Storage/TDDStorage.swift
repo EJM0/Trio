@@ -64,12 +64,13 @@ final class BaseTDDStorage: TDDStorage, Injectable {
         // Calculate all components concurrently
         async let pumpDataHours = calculatePumpDataHours(pumpHistory)
         async let weightedAverage = calculateWeightedAverage()
-        let (bolus, temp, scheduled) = OrefInputs.tddInsulin(
+        let insulin = OrefInputs.tddInsulin(
             pumpHistory: pumpHistory,
             basalProfile: basalProfile,
             now: Date(),
             roundToSupportedBasalRate: pumpManager.roundToSupportedBasalRate
         )
+        let (bolus, temp, scheduled) = (insulin.bolus, insulin.tempBasal, insulin.scheduledBasal)
 
         // Await all concurrent calculations
         let (hours, weighted) = try await (pumpDataHours, weightedAverage)
