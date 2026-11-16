@@ -634,3 +634,38 @@ Fresh iPhone 17 / iOS 27.2 simulator (deleted afterwards), scratch copy of Omnip
 **Verdict: fix BA-01 before M5 relies on the bounded adopt.** As written, the bound stops the race only when the adopter's first handshake attempt reaches the pod. BA-03's host-contract line and lock read are cheap and should go in now. BA-02 and BA-04 are doc and test changes. Everything else in the delta holds.
 
 Not verified: hardware and pod-side behaviour, as before. In particular, whether a mid-EAP drop can leave the pod's counter unchanged while ours moved; BA-01 assumes it can, which is the same assumption as M2b-06. The full OmniTests and Trio builds (I trusted the author's BA3 to BA5).
+
+## Bounded adopt re-review
+
+Reviewer: the same independent agent. Delta only: OmnipodKit `0f10883..c23daca`, Trio `feat/tow-kits-adopt` `8b464d15c` (pin) and `4f1af1fbe` (docs). The commit is signed and the submodule is clean.
+
+### Runs
+
+Fresh iPhone 17 / iOS 27.2 simulator (deleted afterwards), scratch copy, `-only-testing:OmniTests/DeviceHandoffTests`. Logs `ar-*.log` are in `/private/tmp/claude-501/-Users-dnzxy-workspaces-Trio/3f8cbd66-3ec5-4539-8f2f-f9e5df9ae9dc/scratchpad/m2b-review`.
+
+- **Baseline:** 53/53 pass.
+- **Mutations:** the bound pin reverted (BA-01): 3 failures. The own-counter branch keeps the bound: 1. The bound check removed: 3. Not spent: 1. A take keeps it: 1 (BA-04 is now covered). The export never carries it: 12. Not persisted: 12. The export's `waitOutSession()` removed: **survives**, and the status doc already lists it as read-only.
+- **Three review-only scenario tests**, added in scratch only; all pass at `c23daca`:
+  - The adopter's E+1 is accepted with its reply lost, then the phone takes back: the adopter refuses, and the phone commands alone.
+  - The same lost reply with no take: the adopter refuses (BA-02, fails closed, as documented).
+  - A repeated adopt of the same configuration after three sessions runs: `AcceptedEapSqn` explains the resync and spends the bound.
+
+### Bypass search (by reading plus the runs above)
+
+- **Repeated E+1 attempts when the phone's Take Back also used E+1.** Every adopter attempt sends E+1 while the bound is set. Once the pod holds E+1 or more from anyone, the adopter's E+1 gets a resync at or beyond E+1, which is past the bound, so it refuses. Whether the phone's or the adopter's E+1 landed first makes no difference to the adopter. If the adopter's landed first and its reply arrived, that is the documented "first after the take" limit: one session, then the bound is spent and the next contact refuses as for any stale controller.
+- **A resync at or below the bound can't happen** while the adopter sends E+1, because a resync means the pod is at E+1 or more. The "expected" branch and a second-resync loop are therefore unreachable.
+- **Relaunch mid-adopt.** The bound and the pinned SQN persist. If the first session was accepted but the host didn't save the cleared bound, `AcceptedEapSqn` (saved separately) explains the resync, spends the bound and lets the next attempt increment (test `testABoundedAdoptRelaunchedAfterItsFirstSessionRunsAgain`). If both were lost, the adopter refuses: fail closed, as BA-02.
+- **`AcceptedEapSqn` can't hide the phone's session.** The adopter's mark is either from this adopt or from an earlier lend, and in both cases it is below every SQN the phone's Take Back can produce, so the own-counter branch never swallows a foreign resync. This is the same monotonic argument as in the M2b re-review.
+- **Superseding scope.** An adopter starts without a scope (`sharedFacts`), and a dated take clears the bound, so the two never combine. Outside a scope, a resync beyond the bound refuses.
+- **Export.** `waitOutSession()` is an empty lock round trip before the read, so a session already holding the lock has finished. A session that starts after it can't dial (the release sets `loanReleased`, and `runSession` refuses while released), so the bound can't go stale. A host that exports on the main thread while a session finishes stalls the UI for that session; the doc comment says the call waits.
+
+### Remaining
+
+| ID | Sev | Note |
+|---|---|---|
+| BB-01 | nit | The `waitOutSession()` call has no test (its mutation survives). That's acceptable as read-only. A test would need a contended `podStateLock`, which isn't worth building. |
+| BB-02 | nit | A plain take after the adopter's own release clears the bound and expects a resync, so it runs through any session since. These are #177's hand-back semantics, and a v1 watch never re-takes after a release without a new grant. Keep that line in the host contract. |
+
+**Verdict: BA-01 to BA-04 are resolved. I found no remaining bypass or new owner lockout beyond the documented, fail-closed BA-02. Ship the bounded adopt to M5.**
+
+Not verified: hardware and pod-side behaviour (whether a lost attempt can leave the pod's counter unchanged); the full OmniTests and Trio builds (I trusted the author's BB3 to BB5).

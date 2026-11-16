@@ -715,6 +715,50 @@ These can't be unit-tested because a `BlePodComms` needs a Bluetooth central. Ev
 - `OmniPumpManager.init` (line 139): a refused pod gets `releaseConnection()` at launch.
 - `takeControl`'s radio part (`rearmConnection`, search, escalation), skipped for a plain take of a refused pod. The early return itself is tested through an Eros manager.
 
+### Bounded adopt (`0f10883`, M3 exhaustive search rows W4/W36, M3R-04)
+
+Branch `feat/tow-kits-adopt` off `feat/trio-on-watch` @ `a6b81b853`. It pins OmnipodKit `0f10883` (LoopKit `7fd4d1a7` unchanged). The commit is local-only, like the earlier kit commits.
+
+- An export made after a release carries `PodState.releasedEapSqn`, the exporter's EAP SQN at the release. The adopter keeps it through a relaunch.
+- In `handshakeResynced`, a resync beyond the bound is a foreign session: the adopter refuses and reports it. The bound is spent by the first established session, by a resync this device's own accepted counter explains, and by the takes that call `expectSessionResync` (a dated take, `takeControlLiftingRefusal()`, a plain take after this device's own release). A plain take without a release leaves it.
+- An export without a release carries no bound, so #177's offline start is unchanged.
+- **M3R-04: a release ends the scope.** Covered by the manager-level `testOnlyASupersedingTakeLiftsTheManagersRefusalAndAReleaseEndsTheScope`. Mutation M6 (a release keeps the scope) fails it.
+- **How the host can tell a refused adopt from a failed take:**
+  - A refused adopt sets `refusesSessions == true` and `foreignSessionDetectedAt`, reported through `pumpManagerDidUpdateState`.
+  - Every session then fails with `PodCommsError.podUsedByAnotherController`, wrapped in `PumpManagerError.communication`.
+  - `deviceManagerControlDidBecomeReady` never fires, because no session is established.
+  - A take that merely fails (pod out of reach) leaves `refusesSessions` false and fails with `podNotConnected` or a timeout.
+  - M5 maps `refusesSessions` to `foreignPodSession`. No new signal is needed.
+
+| # | Step | Result |
+|---|---|---|
+| BA1 | `DeviceHandoffTests` | 50 run, 0 failed (4 new) |
+| BA2 | Mutations: the bound ignored in the handshake; no bound in the export; the bound not spent; a bound on every export | 5, 8, 1 and 35 failures |
+| BA3 | OmniTests, all, against the exact pins | 268 run, 0 failed, 3 skipped |
+| BA4 | `OmnipodKit-watchOS`, simulator and `arm64_32` | Build succeeded |
+| BA5 | Trio iOS app (`feat/tow-kits-adopt`), `X -scheme Trio` | Exit 0 |
+
+Wiring checked by reading only, in addition to the list above: none new. The export (`sharedConfiguration`) and the decision (`handshakeResynced`) are both exercised by the tests above.
+
+#### Bounded adopt review fixes (`c23daca`, BA-01..BA-04)
+
+| Finding | Change |
+|---|---|
+| BA-01 | While `releasedEapSqn` is set, `nextHandshakeSqn` sends `releasedEapSqn + 1` on every attempt. A lost attempt no longer carries the adopter past the phone's Take Back session. The `AcceptedEapSqn` branch of `handshakeResynced` also spends the bound, so a relaunched adopt whose first session was accepted doesn't loop. The reviewer's bypass test is in the suite as `testAnAdoptWithALostAttemptStillRefusesASessionAfterTheRelease`. |
+| BA-02 | Documented in the proposal's limits: the adopter's accepted handshake with a lost reply refuses, failing closed. |
+| BA-03 | `exportConfiguration()` waits out a session in progress (`podStateLock`) before it reads the bound. Host contract: export only after `releaseControl()` has succeeded. |
+| BA-04 | `testATakeClearsAnAdoptsBound`. The docs now name the takes that clear the bound. |
+
+| # | Step | Result |
+|---|---|---|
+| BB1 | `DeviceHandoffTests` | 53 run, 0 failed (3 new) |
+| BB2 | Mutations | Fix reverted (the `0f10883` behaviour): the bypass test fails (3 assertions). A take keeps the bound: 1 failure. The own-counter resync keeps the bound: 1 failure (the relaunch test) |
+| BB3 | OmniTests, all, against the exact pins (OmnipodKit `c23daca`) | 271 run, 0 failed, 3 skipped |
+| BB4 | `OmnipodKit-watchOS`, simulator and `arm64_32` | Build succeeded |
+| BB5 | Trio iOS app (`feat/tow-kits-adopt`), `X -scheme Trio` | Exit 0 (OmnipodKit recompiled) |
+
+Read only: the export's wait (`waitOutSession`) is a lock round trip that the tests don't exercise under contention.
+
 ## M3: loan core (2026-11-16)
 
 Branch `feat/tow-loan-core` off `f059f1809`. Decision table, per-row tests and the gate coverage: `architecture/watch-loan-decision-table.md`.
