@@ -1032,6 +1032,14 @@ Branch `feat/tow-watch-loop` off `feat/trio-on-watch` @ `8b5227851`. Local signe
 | `211c00c58` | Sync M4's snapshot and record batch types |
 | `793e9b84a` | Add the watch loan host and loop cycle |
 | `346ead130` | Test the watch loan host with a pump double |
+| `98b77a11d` | Record M5 watch loop status |
+| `2b1351699` | Format the watch loan tests |
+| `fd030358a` | Merge branch 'feat/trio-on-watch' into feat/tow-watch-loop (M4) |
+| `6be5a1ccf` | Compile the loan audit on the watch |
+| `c443076c2` | Answer the watch's status query with the phone epoch |
+| `67e5c2306` | Smooth and recount TDD on the watch as the phone does |
+| `c288faaa9` | Move the watch's loan file writes off the main thread |
+| `b27f748eb` | Refuse Start on older watches and log a daily summary |
 
 ### What landed
 
@@ -1054,13 +1062,13 @@ Branch `feat/tow-watch-loop` off `feat/trio-on-watch` @ `8b5227851`. Local signe
   - Observable for M6: `state`, `loop` (last cycle, last confirmed cycle, IOB, COB, eventual BG, temp rate, suspended), `bolus`, `isCycleRunning`, `awaitingFirstReading` and `isInControl` (false until the first watch-side G7 reading after the adopt, V3-8).
   - Logging (V2-31, V3-5) to the existing watch log: transitions, every message sent and received, adopt/release/restore, each background task (types and counts, held, expiry, completion with seconds), each expiring activity's expiry, cycle start (trigger, front or background), CGM latency and gap, determination and its time, command start seconds after the wake and confirmation time, held-back commands, not-looping reschedules, record batch sizes, battery, every pod and CGM link event with the app state and the seconds since the previous one. New watch log categories `loop`, `pump`, `cgm`. No glucose values in alarm logs, no identifiers.
 
-### Assumptions about M4 (reconcile at integration)
+### Reconciliation with M4 (after merging `feat/trio-on-watch` @ `1249e9b74`)
 
-- `WatchLoanSnapshot.swift` and `WatchLoanRecords.swift` are byte copies of M4's files at `651e747f4`/`dd301b2ba` (first copy at 14:14 MST from its working tree, synced to its commits in `211c00c58`). Take M4's version on merge.
-- The phone answers the watch's `statusQuery` (sent with `sendMessage` and a reply handler) with `["watchLoanPhoneEpoch": <Int64>]` (`WatchLoanHost.phoneEpochReplyKey`). M4's coordinator doesn't do this yet; until it does, every relaunch in `holding` sees "phone silent": W26 still resumes a kit that holds, W36 can't re-adopt (it stops as W37).
-- The grant comes as `[watchLoan: envelope, watchLoanSnapshot: compressed snapshot]`, record acks as `[watchLoanRecordsAck: WatchLoanRecordAck]`, as M4 sends them.
-- M4's `WatchLoanAudit.swift` lives in `APS/WatchLoan`; the new membership test requires every file there in the watch target with Foundation/LoopKit imports only. At integration either add it to the watch target or move it next to the coordinator.
-- The snapshot has no `smoothGlucose`, so the watch's own readings reach oref raw. With smoothing on, the watch's input differs from the phone's for readings taken during the loan. Proposed for M4: carry the setting and the raw values.
+- `WatchLoanSnapshot.swift` and `WatchLoanRecords.swift` are M4's merged files (identical to what M5 had synced), plus two additions made here: `WatchLoanWireKey.phoneEpoch` / `isStatusQuery`, and the snapshot's `smoothGlucose` and `smoothingWindow` (the phone's raw CGM readings of the next smoothing pass, from `FetchGlucoseManager.smoothingWindow()`).
+- M4's `WatchLoanAudit.swift` is Foundation-only and now in the watch target, so the strict membership test holds for every file in `APS/WatchLoan`. The watch ignores M4's new `podTotalUnreliable` alert (phone only).
+- The phone answers the watch's status query: `AppleWatchManager` implements `session(_:didReceiveMessage:replyHandler:)`, and for a `statusQuery` replies `["watchLoanPhoneEpoch": Int64]` from `WatchLoanCoordinator.statusAnswer()` (nothing while its state can't be read, which the watch treats as silent). Any other message with a reply handler goes the old way and gets an empty reply. W36 re-adopt can now happen.
+- Smoothing: with the phone's setting on, once the watch has readings of its own it smooths as `FetchGlucoseManager` does after each stored reading (last 24 h of CGM readings, newest 350, raw, oldest first; new non-nil values replace the stored ones) and maps through `OrefInputs.bloodGlucose`. Before its first reading the snapshot's values are the phone's (parity).
+- `hasSufficientTDD` is recounted each cycle with the shared 75 % rule (`OrefInputs.hasSufficientTDD`) over the snapshot's 10-day TDD history plus the watch's rows. The phone's `TDDStorage.hasSufficientTDD` counts the same rows (7 days, total above 0) each loop, so the grant value is reproduced at the grant (all 16 golden cases) and follows the history afterwards.
 
 ### Deviations from the decision table and the architecture
 
@@ -1068,11 +1076,12 @@ Branch `feat/tow-watch-loop` off `feat/trio-on-watch` @ `8b5227851`. Local signe
   - A watch state file that can't be read is held in memory as `stopped(0, unconfirmed)`: the relaunch releases and nothing is commanded (W32). Not persisted.
   - The not-looping series is anchored at the loan's last confirmed cycle (else its start) on relaunch, and at "now" when armed before the first `holding`.
   - End's temp cancel is sent in `returning` (V2-3 order); no other command runs in `returning`.
-- `hasSufficientTDD` stays the snapshot's value for the loan; watch TDD rows feed `tddHistory` only.
 - In a transitional pump state (initiating or cancelling a temp) the current temp is "none", where the phone falls back to its stored last temp.
 - Watch carbs are carbs only (no fat/protein, no FPU entries).
-- Small atomic JSON writes (state, intent, records, cycle info) still run on the main actor; the algorithm, kit calls and waits do not (V3-2 is partly met).
-- Not built: the Series 6 / SE 2 model check and the time-sensitive setting check at Start (only notification authorization, reachability and battery ≥ 30 % are checked), `willRestoreState` logging (inside the kits), D's daily summary and peak memory, the Start screen and its "keep Trio open" progress (M6).
+- V3-2: every loan file write (state, intent, records, snapshot, pump and CGM state, cycle info, inbox) runs on one serial file queue, never on the main thread; `WatchLoanFiles.write` and `remove` assert it in debug builds, so every host test checks it. Must-complete writes (state before effects, intent before its command, snapshot before the grant is decided) are awaited; cycle info and the inbox are queued in order without waiting. The kits' own state saves run on their delegate queues. Reading the files when the host is created at launch still happens on the main thread.
+- Start is refused below Series 6 / SE (2nd generation) (`hw.machine` major below `Watch6`, or unknown), and unless notifications and time-sensitive delivery are both allowed, besides reachability and battery ≥ 30 %.
+- Bluetooth restores: the G7 kit's `willRestoreState` line reaches the host as a device log event and is logged with the app state; OmnipodKit's restore only writes the kit's own log (no host hook without a kit change). The host logs whether it started in front or in the background (a system relaunch).
+- Daily summary (V2-31): one log line per day in the grant's zone: readings vs expected, cycles and confirmed cycles, background tasks by type, Bluetooth budget errors, longest reading gap, battery use per hour. Not built: peak memory per cycle; the Start screen and its "keep Trio open" progress (M6).
 
 ### Tests
 
@@ -1080,11 +1089,12 @@ Fresh paired simulators: iPhone 17 iOS 27.2 `D71CB07E-98B8-404B-AA3A-4D1E35B7F39
 
 | Suite | Target | Tests | Covers |
 |---|---|---|---|
-| `WatchLoopInputsParityTests` | Trio Tests | 5 (16 scenario cases) | every OrefRun golden from a snapshot that crossed M4's wire format; the same golden with the last 50 min (a bolus and a temp as kit events, 10 readings, the meal) recorded on the watch; kit event mapping; override and temp target end and cancel; the grant's zone |
+| `WatchLoopInputsParityTests` | Trio Tests | 7 (16 scenario cases) | every OrefRun golden from a snapshot that crossed M4's wire format; the same golden with the last 50 min (a bolus and a temp as kit events, 10 readings, the meal) recorded on the watch; kit event mapping; override and temp target end and cancel; the grant's zone; a smoothing-on watch reading against the phone's store-then-smooth steps; TDD sufficiency recounted |
 | `LoopGlucoseGuardTests` | Trio Tests | 2 | the rule at its edges; the watch's last-hour selection |
-| `WatchLoopRulesTests` | Trio Tests | 4 | SMB constant; series offsets; gate; intent resolution |
+| `WatchLoopRulesTests` | Trio Tests | 5 | SMB constant; series offsets; gate; intent resolution; supported watch models |
+| `WatchLoanCoordinatorTests` | Trio Tests | +1 | the phone's status answer and `isStatusQuery` |
 | `WatchAlgorithmMembershipTests` | Trio Tests | +1 | loop sources in the watch target, imports |
-| `WatchLoanHostTests` | Watch AppTests | 17 | simulator loop (Start, grant, adopt, loop on readings, revoke, nothing after) with a pump double that records a violation for any command while not owner; SMB only in the foreground; refused adopt → `foreignPodSession`; relaunch W26 (phone silent), W36/W37, W27; foreign session found in a cycle; cycle guards (stale status, suspended, too few readings); failed intent write; expired wake; unconfirmed bolus (no retry, insulin held back, booked as delivered, in the next batch); not-looping series; glucose alarms; bolus states; suspend/resume and cancels; message dedupe across a relaunch; the pump heartbeat never enabled |
+| `WatchLoanHostTests` | Watch AppTests | 19 | simulator loop (Start, grant, adopt, loop on readings, revoke, nothing after) with a pump double that records a violation for any command while not owner; SMB only in the foreground; refused adopt → `foreignPodSession`; relaunch W26 (phone silent), W36/W37, W27; foreign session found in a cycle; cycle guards (stale status, suspended, too few readings); failed intent write; expired wake; unconfirmed bolus (no retry, insulin held back, booked as delivered, in the next batch); not-looping series; glucose alarms; bolus states; suspend/resume and cancels; message dedupe across a relaunch; the pump heartbeat never enabled; Start refusals (model, time-sensitive alerts, battery); daily summary and its rollover; no loan file written on the main thread (debug assertion in every test) |
 | `WatchLoanIntegerWidthTests` | Watch AppTests | 2 | epochs, ms timestamps and odometer values above 2^31 round-trip; no plain `Int` stored in the loan types except small counts |
 
 Mutations (each reverted): watch inputs ignore the watch's glucose → the records parity test fails; SMB allowed in the background → 3 host tests fail; intent not written → 2 fail; foreign session not mapped → refused-adopt test fails; expiry ignored → expired-wake test fails; relaunch ignoring the kit → survived the first version of the W26 test (the host's own "one manager" guard masked it); with the phone silent in that test it now fails it.
@@ -1094,7 +1104,7 @@ Runs: see "M5 verification" below.
 ### New strings (English source, for Crowdin after an IDE build)
 
 All in `Trio Watch App Extension/Loan/`:
-"Trio on Watch isn't looping", "No loop for %lld minutes. Open Trio on your watch. The pump finishes any running temp basal, then follows its basal schedule.", "iPhone didn't answer", "Trio on Watch didn't start. Your iPhone still controls your pump.", "Trio on Watch didn't start", "Can't hand back yet", "Trio on Watch stopped", "Pod not found", "Keep your watch close to the pod. Trio keeps trying.", "Your iPhone took the pump back. It controls your pump again.", "Another device used your pod. This watch sends no more pump commands. Check Trio on your iPhone.", "Trio on Watch was off for too long. Take the pump back on your iPhone.", "Your iPhone didn't confirm the hand-over. Take the pump back on your iPhone.", "Your iPhone isn't reachable. Keep it close and try again.", "Charge your watch to at least 30 % first.", "Allow notifications for Trio on your watch first.", "Wait until the bolus is finished.", "The pump hasn't confirmed the last command. Wait for it, then try again.", "The pump hasn't confirmed the last command, so this watch keeps it for now.", "Check Trio on your iPhone (%@).", "%@ g of carbs needed", "Glucose %@ %@", "Open Trio on your watch to keep it looping", "watchOS is limiting background Bluetooth for Trio. Until you open it, loops may be missed.", "Trio on Watch will stop soon", "Watch battery low", "End Trio on Watch, or take the pump back on your iPhone, before the watch runs out of charge.", "Trio on Watch can't save", "No pump commands are sent until it can. Check your watch's storage, or take the pump back on your iPhone.", "Pump command unconfirmed", "The pump never confirmed the last dose, so Trio counts it as given. Insulin on board may be shown too high.", "Can't reach your pod", "Open Trio on your watch, or End to let your iPhone loop.", "Open Trio on your watch.", "Trio on Watch doesn't control the pump.", "The pump hasn't confirmed the last command. Check recent doses before trying again.", "Trio on Watch couldn't save. Nothing was sent.", "The pump didn't take the bolus. Nothing was given.", "More than your max bolus of %@ U.", "Insulin on board can't be worked out right now.", "This would go over your max IOB of %@ U.", "A bolus was given in the last few minutes."
+"Trio on Watch isn't looping", "No loop for %lld minutes. Open Trio on your watch. The pump finishes any running temp basal, then follows its basal schedule.", "iPhone didn't answer", "Trio on Watch didn't start. Your iPhone still controls your pump.", "Trio on Watch didn't start", "Can't hand back yet", "Trio on Watch stopped", "Pod not found", "Keep your watch close to the pod. Trio keeps trying.", "Your iPhone took the pump back. It controls your pump again.", "Another device used your pod. This watch sends no more pump commands. Check Trio on your iPhone.", "Trio on Watch was off for too long. Take the pump back on your iPhone.", "Your iPhone didn't confirm the hand-over. Take the pump back on your iPhone.", "Your iPhone isn't reachable. Keep it close and try again.", "Charge your watch to at least 30 % first.", "Allow notifications for Trio on your watch first.", "Wait until the bolus is finished.", "The pump hasn't confirmed the last command. Wait for it, then try again.", "The pump hasn't confirmed the last command, so this watch keeps it for now.", "Check Trio on your iPhone (%@).", "%@ g of carbs needed", "Glucose %@ %@", "Open Trio on your watch to keep it looping", "watchOS is limiting background Bluetooth for Trio. Until you open it, loops may be missed.", "Trio on Watch will stop soon", "Watch battery low", "End Trio on Watch, or take the pump back on your iPhone, before the watch runs out of charge.", "Trio on Watch can't save", "No pump commands are sent until it can. Check your watch's storage, or take the pump back on your iPhone.", "Pump command unconfirmed", "The pump never confirmed the last dose, so Trio counts it as given. Insulin on board may be shown too high.", "Can't reach your pod", "Open Trio on your watch, or End to let your iPhone loop.", "Open Trio on your watch.", "Trio on Watch doesn't control the pump.", "The pump hasn't confirmed the last command. Check recent doses before trying again.", "Trio on Watch couldn't save. Nothing was sent.", "The pump didn't take the bolus. Nothing was given.", "More than your max bolus of %@ U.", "Insulin on board can't be worked out right now.", "This would go over your max IOB of %@ U.", "A bolus was given in the last few minutes.", "Allow notifications and time-sensitive notifications for Trio on your watch first." (replaces "Allow notifications for Trio on your watch first."), "Trio on Watch needs Apple Watch Series 6 or later, or SE (2nd generation) or later."
 
 ### Not verified
 
@@ -1125,3 +1135,14 @@ Build notes:
 ### Worktree hygiene
 
 - The build-phase SwiftFormat reformatted the new files (kept) and `Trio Watch App Tests/Unit Tests.swift` (reverted every time). `Package.resolved` reverted. Submodules unchanged.
+
+### M5 reconciliation verification (after the M4 merge, at `b27f748eb`)
+
+| Step | Result |
+|---|---|
+| iOS app (`-scheme Trio`) | 0 |
+| Full `Trio Tests` | 0; 1235 total, 1188 passed, 0 failed, 46 skipped (M4's merged suites included) |
+| `Trio Watch AppTests`, flag off / flag on | 0 / 0; 42 / 42 each |
+| Watch app build, flag off / flag on, fresh derived data | 0 / 0 |
+
+The watch `build` action compiles the kits for arm64 and x86_64, while `test` compiles arm64 only. Both in one derived-data folder leave an arm64-only `LoopKit.tbd` that `RileyLinkBLEKit-watchOS` then fails to link; this is the shared-folder problem noted above, not a code issue. Build and test watch builds in separate folders.
