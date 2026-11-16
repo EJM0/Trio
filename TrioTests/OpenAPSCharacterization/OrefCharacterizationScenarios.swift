@@ -5,9 +5,9 @@ import Foundation
 /// One characterization scenario: everything OpenAPS reads from Core Data and the settings files,
 /// as plain values relative to `clock`.
 ///
-/// Times avoid every rounding and window edge by at least 10 s, because the production path
-/// still reads `Date()` internally (profile, autosens, determination time, TDD windows).
-/// Schedules are flat, so the time of day never matters.
+/// Times avoid every rounding and window edge by at least 10 s. The clock is a fixed morning instant,
+/// injected into `OpenAPS` and the stores, so the IOB projection never crosses local midnight.
+/// Schedules are flat.
 struct OrefCharacterizationScenario {
     enum PumpEvent {
         case bolus(id: String, minutesAgo: Double, amount: Double, isSMB: Bool)
@@ -110,9 +110,9 @@ enum OrefCharacterizationScenarios {
         "suspend-resume-same-instant-on-disk"
     ]
 
-    /// Whole-second clock, so every fixture date survives the millisecond ISO8601 round trip.
+    /// 07:40:10 CEST, whole seconds, so every fixture date survives the millisecond ISO8601 round trip.
     static func makeClock() -> Date {
-        Date(timeIntervalSince1970: floor(Date().timeIntervalSince1970))
+        ISO8601DateFormatter().date(from: "2026-06-15T05:40:10Z")!
     }
 
     // swiftlint:disable:next function_body_length cyclomatic_complexity
