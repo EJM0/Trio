@@ -198,7 +198,8 @@ enum ParityScenarios {
                 carbRatios: scenario.carbRatios,
                 tempTargets: scenario.tempTargets,
                 preferences: scenario.preferences,
-                clock: scenario.clock
+                clock: scenario.clock,
+                timeZone: TimeZone.current
             ).profile,
             supportedBasalRates: ParityInputs.supportedBasalRates(),
             dosingMode: .closed
@@ -212,6 +213,7 @@ enum ParityScenarios {
             carbs: scenario.carbs,
             tempTargets: scenario.tempTargets,
             clock: scenario.clock,
+            timeZone: TimeZone.current,
             includeDeviationsForTesting: true
         )
 
@@ -221,14 +223,16 @@ enum ParityScenarios {
             basalProfile: scenario.basalProfile,
             clock: scenario.clock,
             carbs: scenario.carbs,
-            glucose: scenario.glucose
+            glucose: scenario.glucose,
+            timeZone: TimeZone.current
         )
 
         let iob = try OrefRun.iob(
             pumphistory: scenario.pumpHistory,
             profile: profile,
             clock: scenario.clock,
-            autosens: autosens
+            autosens: autosens,
+            timeZone: TimeZone.current
         )
 
         guard meal != nil else {
@@ -245,7 +249,8 @@ enum ParityScenarios {
             preferences: scenario.preferences,
             hasSufficientTDD: true,
             trioCustomOrefVariables: scenario.orefVariables,
-            currentTime: scenario.clock
+            currentTime: scenario.clock,
+            timeZone: TimeZone.current
         )
 
         return ParityPipelineOutputs(

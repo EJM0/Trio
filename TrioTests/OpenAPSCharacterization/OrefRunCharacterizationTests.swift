@@ -119,7 +119,8 @@ import Testing
         let carbs = OrefInputs.carbs(
             scenario.carbs
                 .map { OrefInputs.carbsEntry(id: $0.id, date: $0.date, carbs: $0.carbs, fat: 0, protein: 0, isFPU: false) },
-            now: clock
+            now: clock,
+            timeZone: TimeZone.current
         )
 
         let tddRows = scenario.tdd.map { OrefInputs.TDDRow(date: $0.date, total: $0.total) }
@@ -163,7 +164,8 @@ import Testing
             currentTemp: scenario.currentTemp,
             supportedBasalRates: scenario.supportedBasalRates,
             autosens: nil,
-            clock: clock
+            clock: clock,
+            timeZone: TimeZone.current
         )
     }
 }

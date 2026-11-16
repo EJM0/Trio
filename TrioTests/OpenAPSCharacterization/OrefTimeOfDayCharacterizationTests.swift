@@ -69,4 +69,49 @@ import Testing
             Issue.record("goldens recorded for \(scenarioName); re-run without TRIO_RECORD_CHARACTERIZATION to compare")
         }
     }
+
+    @Test("another time zone looks schedules up at its own local time") func otherTimeZone() throws {
+        var inputs = try OrefRunCharacterizationTests.inputs(for: Self.scenario("time-of-day-non-flat"))
+        // 01:40:10 EDT instead of 07:40:10 CEST
+        inputs.timeZone = try #require(TimeZone(identifier: "America/New_York"))
+
+        let profile = try OrefRun.run(inputs).profile
+
+        #expect(profile.currentBasal == Decimal(string: "0.8"))
+        #expect(profile.sens == 60)
+        #expect(profile.carbRatio == 12)
+        #expect(profile.minBg == 110)
+    }
+
+    @Test("the same local time in another time zone matches the golden") func sameLocalTimeElsewhere() throws {
+        let berlinClock = try #require(ISO8601DateFormatter().date(from: Self.clocks["time-of-day-non-flat"]!))
+        // 07:40:10 JST is 7 h before 07:40:10 CEST; neither zone changes offset in the 24 h before
+        let tokyoClock = berlinClock.addingTimeInterval(-7 * 3600)
+        var inputs = try OrefRunCharacterizationTests.inputs(for: Self.scenario("time-of-day-non-flat", clock: tokyoClock))
+        inputs.timeZone = try #require(TimeZone(identifier: "Asia/Tokyo"))
+
+        let outputs = try OrefRun.run(inputs)
+
+        for (stage, json) in try OrefRunCharacterizationTests.stages(outputs, clock: tokyoClock) {
+            try OrefGoldens.check(json, clock: tokyoClock, scenario: "time-of-day-non-flat", stage: stage)
+        }
+    }
+
+    @Test("profile getters use the bound time zone") func profileGetters() throws {
+        let outputs = try OrefRun.run(try OrefRunCharacterizationTests.inputs(for: Self.scenario("time-of-day-non-flat")))
+        let profile = outputs.profile
+        let clock = Self.scenario("time-of-day-non-flat").clock
+
+        #expect(profile.basalFor(time: clock) == Decimal(string: "1.2"))
+        #expect(profile.sensitivityFor(time: clock) == 50)
+        #expect(profile.carbRatioFor(time: clock) == 9)
+
+        let newYork = try #require(TimeZone(identifier: "America/New_York"))
+        WallClock.$boundTimeZone.withValue(newYork) {
+            #expect(profile.basalFor(time: clock) == Decimal(string: "0.8"))
+            #expect(profile.sensitivityFor(time: clock) == 60)
+            #expect(profile.carbRatioFor(time: clock) == 12)
+            #expect(clock.minutesSinceMidnight == 100)
+        }
+    }
 }

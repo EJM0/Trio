@@ -122,7 +122,7 @@ import Testing
 
     @Test("Carbs: same one-day window and order") func carbs() async throws {
         let now = Date()
-        let start = OrefInputs.carbsStart(now: now)
+        let start = OrefInputs.carbsStart(now: now, timeZone: TimeZone.current)
         let dates = [start.addingTimeInterval(-60), start.addingTimeInterval(60), now.addingTimeInterval(-600)]
         let context = stack.newTaskContext()
         try await context.perform {
@@ -139,7 +139,8 @@ import Testing
             .getCarbsForAlgorithm()
         let selected = OrefInputs.carbs(
             dates.map { OrefInputs.carbsEntry(id: nil, date: $0, carbs: 20, fat: 0, protein: 0, isFPU: false) },
-            now: now
+            now: now,
+            timeZone: TimeZone.current
         )
 
         #expect(phone.count == 2)

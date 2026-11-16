@@ -27,6 +27,21 @@ enum WallClock {
     private static let lock = NSLock()
     nonisolated(unsafe) private static var cached: Interval?
 
+    /// The time zone of the oref run in progress, bound by `OrefRun` from `OrefInputs.timeZone`.
+    @TaskLocal static var boundTimeZone: TimeZone?
+
+    /// The bound time zone, else `TimeZone.current`.
+    static var timeZone: TimeZone { boundTimeZone ?? .current }
+
+    /// `Calendar.current` in `timeZone`.
+    static var calendar: Calendar { calendar(in: timeZone) }
+
+    static func calendar(in timeZone: TimeZone) -> Calendar {
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        return calendar
+    }
+
     /// Seconds into the local day (wall clock), in [0, 86400).
     static func secondsIntoDay(of date: Date) -> Double {
         let t = date.timeIntervalSince1970
@@ -37,7 +52,7 @@ enum WallClock {
     }
 
     static func offsetSeconds(at date: Date) -> Int {
-        let timeZone = TimeZone.current
+        let timeZone = self.timeZone
         let t = date.timeIntervalSince1970
 
         lock.lock()

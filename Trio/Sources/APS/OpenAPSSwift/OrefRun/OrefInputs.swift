@@ -67,4 +67,6 @@ struct OrefInputs: Codable {
     /// The last autosens result while `OrefRun.isAutosensFresh` holds; nil runs autosens. `run` does not recheck it.
     var autosens: Autosens?
     var clock: Date
+    /// Schedule lookups (basal, ISF, carb ratio, targets) use this zone's local time; the phone passes `TimeZone.current`.
+    var timeZone: TimeZone
 }

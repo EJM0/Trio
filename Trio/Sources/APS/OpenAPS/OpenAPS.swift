@@ -284,7 +284,8 @@ final class OpenAPS {
             basalProfile: basalProfile,
             clock: clock,
             carbs: carbs,
-            glucose: glucose
+            glucose: glucose,
+            timeZone: TimeZone.current
         )
 
         // IOB calculation
@@ -292,7 +293,8 @@ final class OpenAPS {
             pumphistory: pumpHistory,
             profile: profile,
             clock: clock,
-            autosens: autosens
+            autosens: autosens,
+            timeZone: TimeZone.current
         )
 
         // TODO: refactor this to core data
@@ -311,7 +313,8 @@ final class OpenAPS {
             preferences: preferences,
             hasSufficientTDD: hasSufficientTdd,
             trioCustomOrefVariables: trioCustomOrefVariables,
-            currentTime: Date()
+            currentTime: Date(),
+            timeZone: TimeZone.current
         )
 
         debug(
@@ -404,7 +407,8 @@ final class OpenAPS {
             profile: profile,
             carbs: carbs,
             tempTargets: tempTargets,
-            clock: Date()
+            clock: Date(),
+            timeZone: TimeZone.current
         )
 
         debug(.algorithm, "Autosens ratio \(autosens.ratio)")
@@ -471,7 +475,8 @@ final class OpenAPS {
                 carbRatios: carbRatios,
                 tempTargets: tempTargets,
                 preferences: adjustedPreferences,
-                clock: clock
+                clock: clock,
+                timeZone: TimeZone.current
             )
 
             // Save the profiles

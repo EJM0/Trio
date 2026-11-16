@@ -327,20 +327,21 @@ extension Date {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEE MMM dd yyyy HH:mm:ss"
         formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = WallClock.timeZone
 
         let dateString = formatter.string(from: self)
 
         // Get GMT offset string like "GMT-0700"
-        let seconds = TimeZone.current.secondsFromGMT(for: self)
+        let timeZone = WallClock.timeZone
+        let seconds = timeZone.secondsFromGMT(for: self)
         let hours = abs(seconds) / 3600
         let minutes = (abs(seconds) % 3600) / 60
         let sign = seconds >= 0 ? "+" : "-"
         let gmtOffset = String(format: "GMT%@%02d%02d", sign, hours, minutes)
 
         // Get timezone name like "Mountain Standard Time" or "Mountain Daylight Time"
-        let style: TimeZone.NameStyle = TimeZone.current.isDaylightSavingTime(for: self) ? .daylightSaving : .standard
-        let timezoneName = TimeZone.current.localizedName(for: style, locale: Locale(identifier: "en_US")) ?? TimeZone.current
-            .identifier
+        let style: TimeZone.NameStyle = timeZone.isDaylightSavingTime(for: self) ? .daylightSaving : .standard
+        let timezoneName = timeZone.localizedName(for: style, locale: Locale(identifier: "en_US")) ?? timeZone.identifier
 
         return "\(dateString) \(gmtOffset) (\(timezoneName))"
     }
