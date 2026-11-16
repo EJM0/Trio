@@ -15,6 +15,12 @@ final class WatchLoanAlerts {
         self.notifier = notifier
     }
 
+    /// An insulin amount with its localized unit, as LoopKit formats it.
+    static func insulin(_ units: Decimal) -> String {
+        let quantity = LoopQuantity(unit: .internationalUnit, doubleValue: units.nearestDouble)
+        return QuantityFormatter(for: .internationalUnit).string(from: quantity) ?? units.description
+    }
+
     // MARK: - Not looping
 
     static var notLoopingIDs: [String] { WatchLoopPolicy.notLoopingMinutes.map { notLoopingPrefix + String($0) } }
