@@ -15,7 +15,7 @@ enum CalendarError: LocalizedError, Equatable {
 }
 
 /// Calendar-free local time; UTC offset cached between DST transitions.
-/// Deliberate exception: the algorithm is meant to stay stateless — this offset cache is the one piece of state we allow.
+/// Deliberate exceptions to a stateless algorithm: this offset cache, and the task-local zone the `OrefRun` stages bind.
 enum WallClock {
     private struct Interval {
         let start: TimeInterval
@@ -27,7 +27,7 @@ enum WallClock {
     private static let lock = NSLock()
     nonisolated(unsafe) private static var cached: Interval?
 
-    /// The time zone of the oref run in progress, bound by `OrefRun` from `OrefInputs.timeZone`.
+    /// The time zone of the oref run in progress, bound by the `OrefRun` stages. Unbound only when a test calls a generator directly.
     @TaskLocal static var boundTimeZone: TimeZone?
 
     /// The bound time zone, else `TimeZone.current`.

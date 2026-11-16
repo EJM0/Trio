@@ -38,7 +38,7 @@ extension OrefInputs {
     // MARK: - Pump history
 
     static func pumpHistoryStart(now: Date) -> Date {
-        Calendar.current.date(byAdding: .minute, value: -1440, to: now)!
+        now - TimeInterval(minutes: 1440)
     }
 
     /// Orphaned resumes are looked for in 48 h: the 24 h history plus 24 h for the suspend before it.
