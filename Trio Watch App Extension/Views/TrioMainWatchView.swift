@@ -21,6 +21,12 @@ struct TrioMainWatchView: View {
     // treatments
     @State private var selectedTreatment: TreatmentOption?
 
+    /// Trio on Watch; nil in builds without it, so the tethered remote stays as it is.
+    private var loanStatus: TrioOnWatchStatus? { TrioOnWatchSource.status }
+    private var loanActions: TrioOnWatchActions { TrioOnWatchSource.actions }
+
+    private var lastPage: Int { loanStatus == nil ? 2 : 3 }
+
     var isWatchStateDated: Bool {
         // If `lastWatchStateUpdate` is nil, treat as "dated"
         guard let lastUpdateTimestamp = state.lastWatchStateUpdate else {
@@ -61,15 +67,35 @@ struct TrioMainWatchView: View {
     )
 
     var body: some View {
-        NavigationStack(path: $navigationPath) {
+        #if DEBUG
+            if let fixture = TrioOnWatchFixture.current, let screen = fixtureScreen(fixture) {
+                screen
+            } else {
+                mainBody
+            }
+        #else
+            mainBody
+        #endif
+    }
+
+    private var mainBody: some View {
+        let loan = loanStatus
+        let loanActive = loan?.isLoanActive == true
+        let loanBlocksTreatments = loanActive && loan?.isInControl != true
+        return NavigationStack(path: $navigationPath) {
             TabView(selection: $currentPage) {
                 // Page 1: Current glucose trend in "BG bobble"
                 ZStack {
-                    GlucoseTrendView(
-                        state: state,
-                        rotationDegrees: rotationDegrees,
-                        isWatchStateDated: isWatchStateDated || isSessionUnreachable
-                    )
+                    TimelineView(.periodic(from: .now, by: 15)) { context in
+                        GlucoseTrendView(
+                            state: state,
+                            rotationDegrees: rotationDegrees,
+                            isWatchStateDated: isWatchStateDated || isSessionUnreachable,
+                            loan: loan,
+                            now: context.date,
+                            onControlLineTap: { currentPage = 3 }
+                        )
+                    }
 
                     if state.showSyncingAnimation {
                         Image(systemName: "iphone.radiowaves.left.and.right")
@@ -98,8 +124,19 @@ struct TrioMainWatchView: View {
                 // Page 3: Alarm snooze
                 AlarmSnoozeView(state: state)
                     .tag(2)
+
+                // Page 4: Trio on Watch
+                if let loan {
+                    TimelineView(.periodic(from: .now, by: 15)) { context in
+                        TrioOnWatchStatusView(status: loan, now: context.date, actions: loanActions)
+                    }
+                    .tag(3)
+                }
             }
             .onAppear {
+                #if DEBUG
+                    if case .status = TrioOnWatchFixture.current?.screen { currentPage = 3 }
+                #endif
                 /// Hard reset variables when main view appears
                 /// Reset `bolusAmount` and `recommendedBolus` to ensure no stale / old value is set when user opens bolus input or meal combo the next time.
                 state.bolusAmount = 0
@@ -107,7 +144,7 @@ struct TrioMainWatchView: View {
             }
             .background(trioBackgroundColor)
             .tabViewStyle(.verticalPage)
-            .digitalCrownRotation($currentPage.doubleBinding(), from: 0, through: 2, by: 1)
+            .digitalCrownRotation($currentPage.doubleBinding(), from: 0, through: Double(lastPage), by: 1)
             .onChange(of: state.trend) { _, newTrend in
                 withAnimation {
                     updateRotation(for: newTrend)
@@ -119,10 +156,18 @@ struct TrioMainWatchView: View {
                         Image(systemName: "syringe.fill")
                             .foregroundStyle(Color.insulin)
 
-                        Text(isWatchStateDated || isSessionUnreachable ? "--" : state.iob ?? "--")
-                            .foregroundStyle(isWatchStateDated ? Color.secondary : Color.white)
-                            .frame(alignment: .leading)
-                            .minimumScaleFactor(0.5)
+                        if let loan, loanActive {
+                            Text(loan.mainValues(now: Date()).iob)
+                                .accessibilityLabel(Text(String(
+                                    localized: "Insulin on board, \(loan.mainValues(now: Date()).iob)",
+                                    comment: "Watch accessibility: insulin on board with unit"
+                                )))
+                        } else {
+                            Text(isWatchStateDated || isSessionUnreachable ? "--" : state.iob ?? "--")
+                                .foregroundStyle(isWatchStateDated ? Color.secondary : Color.white)
+                                .frame(alignment: .leading)
+                                .minimumScaleFactor(0.5)
+                        }
                     }.font(.caption2)
                 }
 
@@ -131,10 +176,18 @@ struct TrioMainWatchView: View {
                         Image(systemName: "fork.knife")
                             .foregroundStyle(Color.orange)
 
-                        Text(isWatchStateDated || isSessionUnreachable ? "--" : state.cob ?? "--")
-                            .foregroundStyle(isWatchStateDated || isSessionUnreachable ? Color.secondary : Color.white)
-                            .frame(alignment: .trailing)
-                            .minimumScaleFactor(0.5)
+                        if let loan, loanActive {
+                            Text(loan.mainValues(now: Date()).cob)
+                                .accessibilityLabel(Text(String(
+                                    localized: "Carbs on board, \(loan.mainValues(now: Date()).cob)",
+                                    comment: "Watch accessibility: carbs on board with unit"
+                                )))
+                        } else {
+                            Text(isWatchStateDated || isSessionUnreachable ? "--" : state.cob ?? "--")
+                                .foregroundStyle(isWatchStateDated || isSessionUnreachable ? Color.secondary : Color.white)
+                                .frame(alignment: .trailing)
+                                .minimumScaleFactor(0.5)
+                        }
                     }.font(.caption2)
                 }
 
@@ -146,7 +199,8 @@ struct TrioMainWatchView: View {
                             .foregroundStyle(Color.primary, isOverrideActive ? Color.primary : Color.purple)
                     }
                     .tint(isOverrideActive ? Color.purple : nil)
-                    .disabled(isWatchStateDated || isSessionUnreachable)
+                    .disabled(loanActive ? loanBlocksTreatments : isWatchStateDated || isSessionUnreachable)
+                    .accessibilityLabel(Text(String(localized: "Overrides", comment: "Watch accessibility: overrides button")))
 
                     Button {
                         showingTreatmentMenuSheet = true
@@ -156,7 +210,11 @@ struct TrioMainWatchView: View {
                     }
                     .controlSize(.large)
                     .buttonStyle(WatchOSButtonStyle(deviceType: state.deviceType))
-                    .disabled(isWatchStateDated || isSessionUnreachable)
+                    .disabled(loanActive ? loanBlocksTreatments : isWatchStateDated || isSessionUnreachable)
+                    .accessibilityLabel(Text(String(
+                        localized: "Add treatment",
+                        comment: "Watch accessibility: add treatment button"
+                    )))
 
                     Button {
                         showingTempTargetSheet = true
@@ -165,7 +223,11 @@ struct TrioMainWatchView: View {
                             .foregroundStyle(isTempTargetActive ? Color.primary : Color.loopGreen.opacity(0.75))
                     }
                     .tint(isTempTargetActive ? Color.loopGreen.opacity(0.75) : nil)
-                    .disabled(isWatchStateDated || isSessionUnreachable)
+                    .disabled(loanActive ? loanBlocksTreatments : isWatchStateDated || isSessionUnreachable)
+                    .accessibilityLabel(Text(String(
+                        localized: "Temp targets",
+                        comment: "Watch accessibility: temp targets button"
+                    )))
                 }
             }
             .fullScreenCover(isPresented: $showingTreatmentMenuSheet) {
@@ -178,21 +240,29 @@ struct TrioMainWatchView: View {
                 }
             }
             .sheet(isPresented: $showingOverrideSheet) {
-                OverridePresetsView(
-                    state: state,
-                    overridePresets: state.overridePresets
-                ) {
-                    showingOverrideSheet = false
-                    navigationPath.append(NavigationDestinations.acknowledgmentPending)
+                if let loan, loanActive {
+                    LoanAdjustmentSheet(kind: .override, adjustment: loan.override, cancel: loanActions.cancelOverride)
+                } else {
+                    OverridePresetsView(
+                        state: state,
+                        overridePresets: state.overridePresets
+                    ) {
+                        showingOverrideSheet = false
+                        navigationPath.append(NavigationDestinations.acknowledgmentPending)
+                    }
                 }
             }
             .sheet(isPresented: $showingTempTargetSheet) {
-                TempTargetPresetsView(
-                    state: state,
-                    tempTargetPresets: state.tempTargetPresets
-                ) {
-                    showingTempTargetSheet = false
-                    navigationPath.append(NavigationDestinations.acknowledgmentPending)
+                if let loan, loanActive {
+                    LoanAdjustmentSheet(kind: .tempTarget, adjustment: loan.tempTarget, cancel: loanActions.cancelTempTarget)
+                } else {
+                    TempTargetPresetsView(
+                        state: state,
+                        tempTargetPresets: state.tempTargetPresets
+                    ) {
+                        showingTempTargetSheet = false
+                        navigationPath.append(NavigationDestinations.acknowledgmentPending)
+                    }
                 }
             }
             .navigationDestination(for: NavigationDestinations.self) { destination in
@@ -223,6 +293,12 @@ struct TrioMainWatchView: View {
                     )
                 }
             }
+            .navigationDestination(for: LoanBolusRequest.self) { request in
+                LoanBolusProgressView(navigationPath: $navigationPath, request: request, actions: loanActions)
+            }
+            .navigationDestination(for: LoanCarbsSaved.self) { saved in
+                LoanCarbsSavedView(navigationPath: $navigationPath, saved: saved)
+            }
             .onChange(of: navigationPath) { _, newPath in
                 if newPath.isEmpty {
                     // Reset conditional view navigation when returning to root view
@@ -241,6 +317,43 @@ struct TrioMainWatchView: View {
         }
         .ignoresSafeArea()
     }
+
+    #if DEBUG
+        /// Screens the harness shows on their own; nil for the main and status pages.
+        private func fixtureScreen(_ fixture: TrioOnWatchFixture) -> AnyView? {
+            let status = fixture.status
+            switch fixture.screen {
+            case .main,
+                 .status:
+                return nil
+            case let .start(facts):
+                return AnyView(StartTrioOnWatchView(now: Date(), loadFacts: { facts }, onStart: {}))
+            case let .handOff(kind):
+                return AnyView(HandOffView(kind: kind, onClose: {}))
+            case .endConfirmation:
+                return AnyView(NavigationStack {
+                    TrioOnWatchStatusView(
+                        status: status,
+                        now: Date(),
+                        actions: TrioOnWatchActions(),
+                        presentsEndConfirmation: true
+                    )
+                })
+            case let .bolus(units, carbsSaved):
+                return AnyView(LoanBolusProgressView(
+                    navigationPath: .constant(NavigationPath()),
+                    request: LoanBolusRequest(units: units, withCarbs: carbsSaved, requestedAt: Date()),
+                    actions: TrioOnWatchActions()
+                ))
+            case .doses:
+                return AnyView(NavigationStack { RecentDosesView(doses: status.recentDoses) })
+            case .carbsSaved:
+                return AnyView(LoanCarbsSavedView(navigationPath: .constant(NavigationPath()), saved: LoanCarbsSaved(grams: 30)))
+            case .adjustment:
+                return AnyView(LoanAdjustmentSheet(kind: .override, adjustment: status.override, cancel: {}))
+            }
+        }
+    #endif
 
     private func updateRotation(for trend: String?) {
         switch trend {

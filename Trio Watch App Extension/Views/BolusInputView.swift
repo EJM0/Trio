@@ -121,7 +121,12 @@ struct BolusInputView: View {
                     }
 
                     Button(actionButtonLabel) {
-                        if isCarbsOnly {
+                        if isCarbsOnly, let host = LoanTreatments.host, state.isEntryFresh() {
+                            let grams = state.carbsAmount
+                            state.clearEntry()
+                            Task { await host.addCarbs(Decimal(grams)) }
+                            navigationPath.append(LoanCarbsSaved(grams: grams))
+                        } else if isCarbsOnly {
                             state.sendCarbsEntry(state.carbsAmount)
                             navigationPath.append(NavigationDestinations.acknowledgmentPending)
                         } else {
@@ -161,7 +166,15 @@ struct BolusInputView: View {
             state.markEntryEdited()
             // Set initial bolus amount to recommended value
             // Only do this if user has not updated amount previously, e.g., when navigating to next and then back to this view
-            if bolusAmount == 0 {
+            // while the watch holds the pump, limits and the recommendation come from the watch, not the phone
+            if let host = LoanTreatments.host, let limits = host.bolusLimits {
+                state.maxBolus = limits.maxBolus
+                state.bolusIncrement = limits.increment
+                if bolusAmount == 0 {
+                    state.recommendedBolus = host.recommendBolus(carbs: Decimal(state.carbsAmount))?.insulinCalculated ?? 0
+                    bolusAmount = Double(truncating: NSDecimalNumber(decimal: state.recommendedBolus))
+                }
+            } else if bolusAmount == 0 {
                 state.requestBolusRecommendation()
                 bolusAmount = Double(truncating: NSDecimalNumber(decimal: state.recommendedBolus))
             }
