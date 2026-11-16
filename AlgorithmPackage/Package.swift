@@ -27,10 +27,12 @@ let algorithmModels = [
     "CarbRatios",
     "CarbsEntry",
     "Determination",
+    "DosingMode",
     "IOBEntry",
     "InsulinSensitivities",
     "Override",
     "Preferences",
+    "Preferences+DosingMode",
     "PumpHistoryEvent",
     "PumpSettings",
     "TDD",
@@ -46,6 +48,7 @@ let algorithmHelpers = [
     "JSON",
     "Rounding",
     "String+Extensions",
+    "TempTargetCalculations",
     "TherapySettingsUtil",
     "TimeInterval+Convenience"
 ].map { "Helpers/\($0).swift" }
