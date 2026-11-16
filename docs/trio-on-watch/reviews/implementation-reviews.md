@@ -331,3 +331,34 @@ No other new path to two commanders or to an owner lockout: release ends the sco
 **Verdict: fix R-01 before M5 relies on the scope. R-02 is a small change worth making now. R-03 and R-04 are contract text, needed before the proposal goes to #177.** With R-01 fixed, M2b meets R-4, C-1 and C-2 at kit level, with the `BlePodComms` wiring verified by reading.
 
 Not verified: hardware, in-vitro and pod-side behaviour (unchanged from the M2b review); whether `kern.bootsessionuuid` is readable in the iOS and watchOS sandboxes (if it isn't, the code falls back to the wall clock, which is the M2b-07 behaviour); `cfprefsd` durability under power loss; the full OmniTests suite.
+
+## M1 final check
+
+Delta `f5be3bdb2..3d55e4102` (7 commits). Fresh iPhone 17 / iOS 27.2 simulator (deleted afterwards). Logs in the session scratchpad: `m1-final-runA.log`, `m1-final-runB.log`, `m1-final-runC.log`.
+
+**Phone fetch code against the original (`ae8efa8d7`):**
+- `fetchPumpHistoryObjectIDs` (24 h, descending, batch 50), `fetchOrphanedResumes` (48 h, ascending, batch 250) and `parsePumpHistory` are byte-identical to the original.
+- `fetchOrphanedResumes` differs only by the verbatim move of the orphan rule into `OrefInputs.orphanedResumes`.
+- The predicates `pumpHistoryLast1440Minutes` / `pumpHistoryLast48h` and the glucose, carbs, TDD-sufficiency and 10-day TDD windows change only their start expression, to shared helpers that compute the same value. So the change is window starts only, plus the earlier verbatim moves.
+
+**Goldens against the original sources:** HEAD's characterization tests with all 17 HEAD goldens, run against the production sources from `ae8efa8d7`. **17/17 passed**, including `suspend-resume-same-instant` (in-memory store) and `suspend-resume-same-instant-on-disk` (SQLite file).
+
+**Tie-order guards on HEAD:**
+
+| Mutation | Result |
+|---|---|
+| Phone: c4239815a's ordering (ascending fetch, then a stable Swift sort, newest first) | both tie goldens fail: `pumpSuspendResumeMismatch` thrown, no determination. R-01 was real: that order turns a working loop into a failed one when a suspend and a resume share a timestamp |
+| Phone: ascending fetch, then `reversed()` | passes. It is an equivalent mutation on these stores: SQLite gives ascending ties as the exact mirror of descending ties (a backward index scan), so `reversed()` restores the original order |
+| `algorithmPumpEvents`: newest-first tie-break flipped | both tie goldens fail in the `OrefRun` suite (same error) |
+
+`OrefInputsSelectionTests` (TDD history, sufficiency, glucose, carbs: predicate fetch against the shared Swift selection), `OrefRunStageTests` and the 14 parity goldens pass.
+
+**R-findings:**
+- **R-01:** resolved. The original phone fetches are back; the same-instant behaviour is pinned by goldens recorded from the original code on two store types; the watch-side selection reproduces the phone's tie order with an explicit offset tie-break, not by relying on sort stability.
+- **R-02:** resolved. Predicate and Swift selection are pinned by tests.
+- **R-03:** resolved. The phone no longer uses the closure, because the original fetch is back.
+- **R-04:** resolved. `orphanedResumes` and `pumpHistoryLast1440Minutes` are live again. `includeDeviationsForTesting` stays (accepted).
+
+Nit, not blocking: `onDiskContainer()` (`OrefCharacterizationTests.swift`) creates a fresh `oref-characterization-<UUID>.sqlite` in the simulator's tmp directory on every run and never removes it.
+
+**Verdict: merge.** Phone dosing behaviour is unchanged from `1a9dba899` on every path I could exercise. The `OrefRun` / phone drift guard now catches all six mutations tried across the three rounds (the equivalent `reversed()` variant excluded). Not verified: device/in-vitro runs, the full Trio Tests suite at `3d55e4102`, Xcode 26.2.
