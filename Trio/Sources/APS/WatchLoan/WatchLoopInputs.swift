@@ -31,7 +31,7 @@ enum WatchLoopInputs {
         inputs.microBolusAllowed = microBolusAllowed
 
         inputs.glucose = OrefInputs.glucose(
-            snapshot.oref.glucose + records.glucose,
+            smoothed(snapshot.oref.glucose + records.glucose, snapshot: snapshot, ownReadings: records.glucose, now: now),
             since: OrefInputs.glucoseStart(hours: OrefInputs.autosensGlucoseHours, now: now)
         )
         // the snapshot's events come in the phone's order; the selection keeps it for equal timestamps
@@ -44,6 +44,8 @@ enum WatchLoopInputs {
         )
         inputs.carbs = OrefInputs.carbs(snapshot.oref.carbs + records.carbs, now: now, timeZone: timeZone)
         inputs.tddHistory = OrefInputs.tddHistory(snapshot.oref.tddHistory + records.tddHistory, now: now)
+        // the phone counts its stored rows each cycle; the 10-day history holds every row the 7-day rule counts
+        inputs.hasSufficientTDD = OrefInputs.hasSufficientTDD(inputs.tddHistory, now: now)
 
         if !isActive(snapshot.overrideAtGrant, cancelledAt: records.overrideCancelledAt, now: now) {
             inputs.activeOverride = nil
@@ -56,6 +58,59 @@ enum WatchLoopInputs {
         }
         return inputs
     }
+
+    /// The phone smooths after storing each CGM reading (`FetchGlucoseManager`): its last 24 h of CGM readings, at
+    /// most 350, raw, oldest first. The watch does the same once it has readings of its own; until then the
+    /// snapshot's values are the phone's.
+    static func smoothed(
+        _ glucose: [BloodGlucose],
+        snapshot: WatchLoanSnapshot,
+        ownReadings: [BloodGlucose],
+        now: Date
+    ) -> [BloodGlucose] {
+        guard snapshot.smoothGlucose, !ownReadings.isEmpty else { return glucose }
+        var raw = Dictionary(
+            snapshot.smoothingWindow.map { ($0.id.uuidString, $0.glucose) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        for reading in ownReadings {
+            raw[reading.id] = Int16(reading.sgv ?? reading.glucose ?? 0)
+        }
+        let window = glucose
+            .filter { raw[$0.id] != nil && $0.dateString >= now.addingTimeInterval(-24 * 60 * 60) }
+            .sorted { $0.dateString > $1.dateString }
+            .prefix(smoothingWindowLimit)
+            .reversed()
+        let values = OrefInputs.exponentiallySmoothedGlucose(window.map { (date: Optional($0.dateString), glucose: raw[$0.id]!) })
+        let smoothedByID = Dictionary(
+            zip(window, values).compactMap { reading, value in value.map { (reading.id, $0) } },
+            uniquingKeysWith: { first, _ in first }
+        )
+        let rounding = NSDecimalNumberHandler(
+            roundingMode: .plain,
+            scale: 0,
+            raiseOnExactness: false,
+            raiseOnOverflow: false,
+            raiseOnUnderflow: false,
+            raiseOnDivideByZero: false
+        )
+        return glucose.map { reading in
+            guard let smoothedValue = smoothedByID[reading.id], let rawValue = raw[reading.id] else { return reading }
+            return OrefInputs.bloodGlucose(
+                id: UUID(uuidString: reading.id),
+                date: reading.dateString,
+                glucose: rawValue,
+                smoothedGlucose: smoothedValue,
+                isManual: false,
+                direction: reading.direction?.rawValue,
+                shouldSmoothGlucose: true,
+                roundingBehavior: rounding
+            )
+        }
+    }
+
+    /// The phone's smoothing fetch limit.
+    static let smoothingWindowLimit = 350
 
     static func isActive(_ adjustment: WatchLoanSnapshot.Adjustment?, cancelledAt: Date?, now: Date) -> Bool {
         if cancelledAt != nil { return false }

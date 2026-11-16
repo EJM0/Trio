@@ -16,6 +16,8 @@ protocol FetchGlucoseManager: SourceInfoProvider {
     /// state; see `CGMSensorStateLog`. Call on every reading.
     func reportCGMSensorObservation(_ observation: CGMSensorObservation)
     func startCGMSensorSession(startedAt: Date)
+    /// The readings the next smoothing pass reads, raw: what a watch loan needs to smooth as the phone does.
+    func smoothingWindow() async throws -> [WatchLoanSnapshot.RawReading]
     var glucoseSource: GlucoseSource? { get }
     var cgmManager: CGMManagerUI? { get }
     var cgmGlucoseSourceType: CGMType { get set }
@@ -447,6 +449,18 @@ extension BaseFetchGlucoseManager: SettingsObserver {
 }
 
 extension BaseFetchGlucoseManager {
+    func smoothingWindow() async throws -> [WatchLoanSnapshot.RawReading] {
+        let context = CoreDataStack.shared.newTaskContext()
+        context.name = "smoothingWindow"
+        let objectIDs = try await fetchGlucose(context: context)
+        return await context.perform {
+            objectIDs.compactMap { context.object(with: $0) as? GlucoseStored }.compactMap { reading in
+                guard let id = reading.id, let date = reading.date else { return nil }
+                return WatchLoanSnapshot.RawReading(id: id, date: date, glucose: reading.glucose)
+            }
+        }
+    }
+
     func fetchGlucose(context: NSManagedObjectContext) async throws -> [NSManagedObjectID] {
         // Compound predicate: time window + non-manual + valid date
         let timePredicate = NSPredicate.predicateForOneDayAgoInMinutes

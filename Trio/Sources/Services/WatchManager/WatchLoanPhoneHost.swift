@@ -157,7 +157,9 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             deliveryPulseUnits: pump.pulse,
             releaseReading: release,
             podEndsAt: pump.endsAt,
-            sensorEndsAt: (cgm as? G7CGMManager)?.sensorEndsAt
+            sensorEndsAt: (cgm as? G7CGMManager)?.sensorEndsAt,
+            smoothGlucose: settings.smoothGlucose,
+            smoothingWindow: settings.smoothGlucose ? try await fetchGlucoseManager.smoothingWindow() : []
         )
     }
 
