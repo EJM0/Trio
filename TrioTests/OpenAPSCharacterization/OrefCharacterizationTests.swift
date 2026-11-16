@@ -39,11 +39,19 @@ import Testing
 
     private func runProductionPath(_ scenario: OrefCharacterizationScenario) async throws -> [(String, String)] {
         let stack = try await CoreDataStack.createForTests()
-        try await scenario.seed(into: stack.newTaskContext())
+        var contextProvider = { stack.newTaskContext() }
+        if scenario.onDiskStore {
+            let container = try Self.onDiskContainer()
+            contextProvider = {
+                let context = container.newBackgroundContext()
+                context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+                return context
+            }
+        }
+        try await scenario.seed(into: contextProvider())
         let storage = InMemoryFileStorage()
         scenario.seed(into: storage)
 
-        let contextProvider = { stack.newTaskContext() }
         let openAPS = OpenAPS(
             storage: storage,
             tddStorage: BaseTDDStorage(resolver: resolver, contextProvider: contextProvider),
@@ -67,7 +75,7 @@ import Testing
                 simulation: true
             )
             #expect(storage.retrieveRaw(OpenAPS.Monitor.iob) == nil, "a simulation must not write iob.json")
-            #expect(try await storedDeterminationCount(stack) == 0, "a simulation must not store a determination")
+            #expect(try await storedDeterminationCount(contextProvider()) == 0, "a simulation must not store a determination")
             return [("determination", try OrefGoldens.canonical(determination))]
         }
 
@@ -99,7 +107,7 @@ import Testing
                 try OrefGoldens.canonical(cobRelativeToDelivery(storage, determination: determination, clock: scenario.clock))
             ),
             ("determination", try OrefGoldens.canonical(determination)),
-            ("stored_determination", try await storedDetermination(stack))
+            ("stored_determination", try await storedDetermination(contextProvider()))
         ]
     }
 
@@ -113,16 +121,28 @@ import Testing
         }
     }
 
-    private func storedDeterminationCount(_ stack: CoreDataStack) async throws -> Int {
-        let context = stack.newTaskContext()
+    /// A SQLite store in a temporary file, for fetch order as on a device.
+    static func onDiskContainer() throws -> NSPersistentContainer {
+        let container = NSPersistentContainer(
+            name: "TrioCoreDataPersistentContainer",
+            managedObjectModel: CoreDataStack.managedObjectModel
+        )
+        container.persistentStoreDescriptions.first?.url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("oref-characterization-\(UUID().uuidString).sqlite")
+        var loadError: Error?
+        container.loadPersistentStores { _, error in loadError = error }
+        if let loadError { throw loadError }
+        return container
+    }
+
+    private func storedDeterminationCount(_ context: NSManagedObjectContext) async throws -> Int {
         return try await context.perform {
             try context.count(for: OrefDetermination.fetchRequest())
         }
     }
 
     /// The Core Data row `processDetermination` writes, reduced to its algorithm fields.
-    private func storedDetermination(_ stack: CoreDataStack) async throws -> String {
-        let context = stack.newTaskContext()
+    private func storedDetermination(_ context: NSManagedObjectContext) async throws -> String {
         let summary: [String: String] = try await context.perform {
             let rows = try context.fetch(OrefDetermination.fetchRequest())
             guard rows.count == 1, let row = rows.first else {

@@ -81,6 +81,8 @@ struct OrefCharacterizationScenario {
     var currentTemp: TempBasal
     var supportedBasalRates: [Decimal]
     var simulation: Simulation?
+    /// Seeds an on-disk SQLite store instead of the in-memory one.
+    var onDiskStore = false
 
     func date(minutesAgo: Double) -> Date {
         clock.addingTimeInterval(-minutesAgo * 60)
@@ -103,7 +105,9 @@ enum OrefCharacterizationScenarios {
         "simulation",
         "autosens-8h-24h-differ",
         "carbs-glucose-window-gap",
-        "override-advanced"
+        "override-advanced",
+        "suspend-resume-same-instant",
+        "suspend-resume-same-instant-on-disk"
     ]
 
     /// Whole-second clock, so every fixture date survives the millisecond ISO8601 round trip.
@@ -273,6 +277,14 @@ enum OrefCharacterizationScenarios {
             override.smbMinutes = 45
             override.uamMinutes = 60
             scenario.override = override
+        case "suspend-resume-same-instant",
+             "suspend-resume-same-instant-on-disk":
+            // ties: which of the two the fetch returns first decides orphan pairing and duplicate removal
+            scenario.pumpEvents += [
+                .suspend(id: "suspend-tie", minutesAgo: 90 + 10.0 / 60),
+                .resume(id: "resume-tie", minutesAgo: 90 + 10.0 / 60)
+            ]
+            scenario.onDiskStore = name.hasSuffix("on-disk")
         default:
             preconditionFailure("unknown scenario \(name)")
         }
@@ -392,6 +404,8 @@ extension OrefCharacterizationScenario {
                     stored.timestamp = date(minutesAgo: minutesAgo)
                     stored.type = PumpEventStored.EventType.pumpResume.rawValue
                 }
+                // one save per event, so the store's row order follows the list
+                try context.save()
             }
 
             for carb in carbs {
