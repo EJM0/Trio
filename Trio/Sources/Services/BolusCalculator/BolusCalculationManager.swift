@@ -27,7 +27,7 @@ final class BaseBolusCalculationManager: BolusCalculationManager, Injectable {
 
     // MARK: - Types
 
-    private struct GlucoseVariables {
+    struct GlucoseVariables {
         var currentBG: Decimal
         var deltaBG: Decimal
     }
@@ -208,7 +208,7 @@ final class BaseBolusCalculationManager: BolusCalculationManager, Injectable {
     /// Updates glucose-related variables based on recent readings
     /// - Parameter objects: Array of GlucoseStored objects
     /// - Returns: GlucoseVariables containing current blood glucose and delta
-    private func updateGlucoseVariables(with objects: [GlucoseStored]) -> GlucoseVariables {
+    func updateGlucoseVariables(with objects: [GlucoseStored]) -> GlucoseVariables {
         // Always use the most recent reading for current glucose regardless of time
         let lastGlucose = objects.first?.glucose ?? 0
 
