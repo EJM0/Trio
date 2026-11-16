@@ -189,6 +189,7 @@ extension DeterminationGenerator {
     static func checkCurrentTempBasalRateSafety(
         currentTemp: TempBasal,
         lastTempTarget: IobResult.LastTemp?,
+        microBolusAllowed: Bool,
         currentTime: Date
     ) -> String? {
         guard let lastTemp = lastTempTarget, let lastTempDate = lastTemp.timestamp,
@@ -198,7 +199,9 @@ extension DeterminationGenerator {
         let lastTempAge = Int((currentTime.timeIntervalSince(lastTempDate) / 60).rounded()) // in minutes
 //        let tempModulus = Int(lastTempAge + currentTemp.duration) % 30 // only used in JS as output; will leave it here for now
 
-        if let lastTempRate = lastTemp.rate, currentTemp.rate != lastTempRate, lastTempAge > 10, currentTemp.duration > 0 {
+        if microBolusAllowed, let lastTempRate = lastTemp.rate, currentTemp.rate != lastTempRate, lastTempAge > 10,
+           currentTemp.duration > 0
+        {
             // Rates don't match and temp is old: cancel temp
             return "Warning: currenttemp rate \(currentTemp.rate) != lastTemp rate \(lastTempRate) from pumphistory; canceling temp"
         }

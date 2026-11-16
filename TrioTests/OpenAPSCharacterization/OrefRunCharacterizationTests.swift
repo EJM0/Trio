@@ -197,3 +197,140 @@ import Testing
         #expect((notAllowed.rate ?? 0) > (outputs.profile.currentBasal ?? .greatestFiniteMagnitude))
     }
 }
+
+/// `microBolusAllowed` against trio-oref's determine-basal.js, run by `js/determine-basal-jsc.js` under
+/// JavaScriptCore's `jsc` from the inputs this suite records. Each scenario runs with SMBs allowed and not.
+@Suite(
+    "OrefRun micro bolus flag: oref JS parity",
+    .serialized,
+    .enabled(if: TimeZone.current.identifier == "Europe/Berlin", "recorded in Europe/Berlin")
+) struct OrefRunMicroBolusJSParityTests {
+    struct JSInputs: Encodable {
+        let glucose: [BloodGlucose]
+        let currenttemp: TempBasal
+        let iob_data: [IobResult]
+        let profile: Profile
+        let autosens_data: Autosens
+        let meal_data: ComputedCarbs?
+        let microBolusAllowed: Bool
+        let currentTime: Date
+        let pumphistory: [PumpHistoryEvent]
+        let preferences: Preferences
+        let basalprofile: [BasalProfileEntry]
+        let trio_custom_variables: TrioCustomOrefVariables
+    }
+
+    struct JSDetermination: Codable, Equatable {
+        var rate: Decimal?
+        var duration: Decimal?
+        var units: Decimal?
+        var reason: String
+    }
+
+    static let scenarioNames = [
+        "smb-and-low-temp",
+        "delta-below-expected-zero-temp",
+        "in-range-zero-temp",
+        "top-of-hour",
+        "temp-mismatch"
+    ]
+
+    static func inputs(_ name: String) throws -> OrefInputs {
+        let iso = ISO8601DateFormatter()
+        // 12:20:10 CEST; the top-of-hour scenario runs at 12:56:10
+        let clock = iso.date(from: name == "top-of-hour" ? "2026-06-15T10:56:10Z" : "2026-06-15T10:20:10Z")!
+        var scenario = OrefCharacterizationScenarios.build("closed-loop-baseline", clock: clock)
+        switch name {
+        case "smb-and-low-temp":
+            break
+        case "delta-below-expected-zero-temp":
+            // falling faster than expected while eventual BG stays above target, a zero temp running
+            scenario.glucose = OrefCharacterizationScenarios.glucose(
+                clock: clock,
+                base: 195,
+                tail: [205, 201, 196, 190, 183, 176]
+            )
+            scenario.pumpEvents.append(.tempBasal(id: "temp-zero", minutesAgo: 5 + 10.0 / 60, rate: 0, duration: 30))
+            scenario.currentTemp = TempBasal(duration: 25, rate: 0, temp: .absolute, timestamp: clock)
+        case "in-range-zero-temp":
+            scenario.settingsFiles[OpenAPS.Settings.bgTargets] =
+                #"{"units": "mg/dL", "user_preferred_units": "mg/dL", "targets": [{"low": 100, "high": 160, "start": "00:00:00", "offset": 0}]}"#
+            scenario.glucose = OrefCharacterizationScenarios.glucose(
+                clock: clock,
+                base: 135,
+                tail: [136, 136, 135, 135, 134, 134]
+            )
+            scenario.pumpEvents.append(.tempBasal(id: "temp-zero", minutesAgo: 5 + 10.0 / 60, rate: 0, duration: 30))
+            scenario.currentTemp = TempBasal(duration: 25, rate: 0, temp: .absolute, timestamp: clock)
+        case "top-of-hour":
+            var preferences = try #require(scenario.preferences)
+            preferences.skipNeutralTemps = true
+            scenario.preferences = preferences
+        case "temp-mismatch":
+            // the pump runs 0.5 U/h while the history says 1.25 U/h, started 15 min ago
+            scenario.pumpEvents.append(.tempBasal(id: "temp-history", minutesAgo: 15 + 10.0 / 60, rate: 1.25, duration: 30))
+            scenario.currentTemp = TempBasal(duration: 15, rate: 0.5, temp: .absolute, timestamp: clock)
+        default:
+            preconditionFailure("unknown scenario \(name)")
+        }
+        return try OrefRunCharacterizationTests.inputs(for: scenario)
+    }
+
+    static func directory(_ name: String) -> URL {
+        OrefGoldens.goldensDirectory.appendingPathComponent("micro-bolus-js/\(name)")
+    }
+
+    @Test("matches oref JS", arguments: scenarioNames, [true, false]) func matchesJS(
+        name: String,
+        microBolusAllowed: Bool
+    ) throws {
+        var inputs = try Self.inputs(name)
+        inputs.microBolusAllowed = microBolusAllowed
+        let outputs = try OrefRun.run(inputs)
+        let determination = try #require(outputs.determination)
+        let suffix = microBolusAllowed ? "smb-allowed" : "smb-not-allowed"
+
+        if OrefGoldens.isRecording {
+            let preferences = (inputs.preferences ?? Preferences()).clamped(for: inputs.dosingMode)
+            let glucose = OrefInputs.glucose(
+                inputs.glucose,
+                since: OrefInputs.glucoseStart(hours: OrefInputs.determinationGlucoseHours(preferences), now: inputs.clock)
+            )
+            let jsInputs = JSInputs(
+                glucose: glucose,
+                currenttemp: inputs.currentTemp,
+                iob_data: outputs.iob,
+                profile: outputs.profile,
+                autosens_data: outputs.autosens,
+                meal_data: outputs.meal,
+                microBolusAllowed: microBolusAllowed,
+                currentTime: inputs.clock,
+                pumphistory: inputs.pumpHistory,
+                preferences: preferences,
+                basalprofile: inputs.basalProfile,
+                trio_custom_variables: outputs.trioCustomOrefVariables
+            )
+            try FileManager.default.createDirectory(at: Self.directory(name), withIntermediateDirectories: true)
+            try JSONCoding.encoder.encode(jsInputs)
+                .write(to: Self.directory(name).appendingPathComponent("js-inputs-\(suffix).json"))
+            Issue
+                .record(
+                    "JS inputs recorded for \(name); run js/determine-basal-jsc.js, then re-run without TRIO_RECORD_CHARACTERIZATION"
+                )
+            return
+        }
+
+        let data = try Data(contentsOf: Self.directory(name).appendingPathComponent("js-determination-\(suffix).json"))
+        var js = try JSONDecoder().decode(JSDetermination.self, from: data)
+        var swift = JSDetermination(
+            rate: determination.rate,
+            duration: determination.duration,
+            units: determination.units,
+            reason: determination.reason
+        )
+        // JS gets the port's unrounded meal COB and prints it raw; the port prints it rounded
+        js.reason = js.reason.replacingOccurrences(of: #"COB: [0-9.]+,"#, with: "COB: _,", options: .regularExpression)
+        swift.reason = swift.reason.replacingOccurrences(of: #"COB: [0-9.]+,"#, with: "COB: _,", options: .regularExpression)
+        #expect(swift == js)
+    }
+}

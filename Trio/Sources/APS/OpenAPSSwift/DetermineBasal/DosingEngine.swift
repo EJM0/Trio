@@ -20,6 +20,7 @@ enum DosingEngine {
         adjustedTargetGlucose: Decimal,
         profile: Profile,
         meal: ComputedCarbs,
+        microBolusAllowed: Bool,
         trioCustomOrefVariables: TrioCustomOrefVariables,
         clock: Date
     ) throws -> Bool {
@@ -28,6 +29,10 @@ enum DosingEngine {
         }
 
         if try isSmbScheduledOff(trioCustomOrefVariables: trioCustomOrefVariables, clock: clock) {
+            return false
+        }
+
+        if !microBolusAllowed {
             return false
         }
 
@@ -100,6 +105,7 @@ enum DosingEngine {
         minGuardGlucose: Decimal,
         threshold: Decimal,
         glucoseStatus: GlucoseStatus,
+        microBolusAllowed: Bool,
         trioCustomOrefVariables: TrioCustomOrefVariables,
         clock: Date
     ) throws -> SMBDecision {
@@ -108,6 +114,7 @@ enum DosingEngine {
             adjustedTargetGlucose: adjustedTargetGlucose,
             profile: profile,
             meal: meal,
+            microBolusAllowed: microBolusAllowed,
             trioCustomOrefVariables: trioCustomOrefVariables,
             clock: clock
         )
