@@ -362,3 +362,47 @@ Delta `f5be3bdb2..3d55e4102` (7 commits). Fresh iPhone 17 / iOS 27.2 simulator (
 Nit, not blocking: `onDiskContainer()` (`OrefCharacterizationTests.swift`) creates a fresh `oref-characterization-<UUID>.sqlite` in the simulator's tmp directory on every run and never removes it.
 
 **Verdict: merge.** Phone dosing behaviour is unchanged from `1a9dba899` on every path I could exercise. The `OrefRun` / phone drift guard now catches all six mutations tried across the three rounds (the equivalent `reversed()` variant excluded). Not verified: device/in-vitro runs, the full Trio Tests suite at `3d55e4102`, Xcode 26.2.
+
+---
+
+## M2a review (Agent C: Trio fit, C-09, D-1/D-2/V2-28)
+
+Branch `feat/tow-platform`, worktree `~/workspaces/Trio-tow-platform`, commits `657d4c082`, `2f6504a96`, `a8c59d2d8`, `58986d817`, `90e9ec76b` on `349f49523`. Read-only: nothing was built or run; this is a code and config read.
+
+### What checks out
+
+**Flag mechanics:**
+- `TRIO_ON_WATCH = NO` is set in `Config.xcconfig` before the `ConfigOverride` includes, so an override wins.
+- Config.xcconfig is the project-level base configuration (`project.pbxproj:6892, 6960`), so the watch targets inherit it.
+- With the flag off, `$(TRIO_ON_WATCH_INFOPLIST_NO)` and `$(TRIO_ON_WATCH_ENTITLEMENTS_NO)` resolve to empty. With `GENERATE_INFOPLIST_FILE = YES` that leaves the generated plist and no entitlements, the same as baseline.
+- The iOS target is untouched. The shim is `#if TRIO_ALGORITHM_PACKAGE || os(watchOS)`, so it's empty on iOS. The only iOS-visible change is the new `WatchLogEntry.Category.algorithm`.
+- This satisfies V2-28 and D-1 for flag-off builds. D-2 is not affected, since the flag gates only the plist and entitlements.
+
+**Module rename to `Trio`:**
+- No `NSKeyedArchiver`, `NSClassFromString`, `@objc(...)` names, `String(reflecting:)` or `Bundle(for:)` anywhere in the watch sources, shared watch files or tests.
+- The complication is its own module, imports only SwiftUI and WidgetKit, and keeps its `kind` string (`TrioWatchComplication.swift:84`).
+- WatchConnectivity payloads are dictionaries. `WatchLogEntry` and the snapshot are plain JSON without type names.
+- So there is no persisted-data or migration side effect. Only the test import changed, and it's the same rename #1749 makes, so it won't conflict.
+
+**Logging route:**
+- `algorithmLogSink` is set first thing in `TrioWatchApp.init` and maps all five levels 1:1 onto `WatchLogger` category `.algorithm`.
+- On the phone it ingests as `Watch/Algorithm` (`WatchLogIngest.swift:144`). The watch's `os.Logger` per category comes from `allCases`, so the new category gets its logger.
+- The levels and plain-sentence content follow CONTRIBUTING's logging rules (the algorithm's own lines already conform on the phone).
+
+**CI with the flag off:**
+- The algorithm-package job is unaffected (`os(watchOS)` is false on macOS).
+- The `Trio Tests` build compiles the embedded watch app (the iOS target depends on it), so the 73 shared files get compiled in CI with the flag off. That's an inference, not an observed CI run.
+
+### Findings
+
+| ID | Severity | Where | Finding | Fix |
+|---|---|---|---|---|
+| M2aC-01 | major (flag-on only) | `fastlane/Fastfile:278-281`, `fastlane/testflight.md:197-203`, `Trio Watch App Extension/TrioOnWatch.entitlements` | Flag-on browser builds (fastlane `match` + `update_code_signing_settings` for "Trio Watch App") need **Time Sensitive Notifications** enabled on the `…watchkitapp` App ID, and the match appstore profile regenerated. `configure_bundle_id` for the watch only adds App Groups and HealthKit. The docs say time-sensitive is needed "only for the `Trio` identifier". Without the step, gym signing/export fails for a flag-on build. Flag-off is unaffected. `bluetooth-central` acceptance at upload is still D's experiment E1. | Document the extra portal step and certificate regeneration for flag-on in the status doc now; add it to `testflight.md` only when the flag is offered to builders. Keep the Fastfile unchanged for flag-off. |
+| M2aC-02 | major (merge with M1) | watch target Sources phase | After merging `feat/trio-on-watch` @ `6014f8d10`, the watch target is missing every file M1 added to the package. I diffed the watch target's Sources phase against `Package.swift` and `Trio/Sources/APS/OpenAPSSwift` at `6014f8d10`, comparing basenames in C collation. Missing: `APS/OpenAPSSwift/OrefRun/OrefInputs.swift`, `OrefInputs+Mapping.swift`, `OrefInputs+Selection.swift`, `OrefInputs+TDD.swift`, `OrefRun.swift`; `Models/DosingMode.swift`, `Models/Preferences+DosingMode.swift`; `Helpers/TempTargetCalculations.swift`; `APS/Storage/ScheduledBasalInference.swift`. All are Foundation-only (verified imports). Nothing on the watch calls them yet, so the gap wouldn't show as a build error until M5. | Add these 9 files to the watch target in the merge commit (M2a's 73 + 9 = 82, matching the package). `DosingMode.swift` has 8 `String(localized:)` strings; English fallback is fine until a watch catalog exists. Add the C-09.1 membership-diff check (watch Sources vs the package list) as a test or script so the next package addition doesn't drift. |
+| M2aC-03 | minor | `Config.xcconfig:20`, watch targets | "Flag-off = today's app" holds for the iOS app but not exactly for the watch app. It now requires watchOS 10.6, so watches on 10.0–10.5 must update first. It also carries 73 dead algorithm files in its binary, and the shim and sink are active regardless of the flag. All acceptable. | Say this in the status doc and the eventual PR ("watch now requires watchOS 10.6"). No code change. |
+| M2aC-04 | minor | `AlgorithmLoggingShim.swift` `composed(_:_:_:)` vs `WatchLogger.message(_:error:)` (`WatchLogger.swift:134-138`) | Errors are formatted two ways on the watch. The shim uses `String(describing: error)` joined with ": ", while the watch logger uses "(domain code: localizedDescription)". The same error reads differently depending on the source. | Let the sink take `(level, category, message, description, error)` and format with `WatchLogger.message(_:error:)`, or reuse that format in `composed`. |
+| M2aC-05 | minor | `WatchLogEntry.swift:45-49` | A phone build older than the watch build skips `algorithm` lines silently (an unknown category doesn't decode). It is safe, and the apps ship together, so it only matters during an update lag. | Accept. Optionally map unknown categories to `Legacy` instead of dropping them. |
+| M2aC-06 | minor | CI | A flag-on build is never compiled in CI, so an entitlement or plist path typo in the `_YES` settings would only surface for a builder. | Add a build-only CI step (or an M7 checklist item) with `TRIO_ON_WATCH=YES` for the watch simulator. Ad-hoc signing ignores the entitlement. |
+| M2aC-07 | minor | `Trio Watch App Extension/TrioOnWatch-Info.plist` | It uses `UIBackgroundModes` with `bluetooth-central`, as Loop does (B: `WatchApp/Info.plist:39-42`). That's correct, and the plist merges with the generated one. Whether TestFlight accepts it without `com.apple.developer.bluetooth-central-background` is still E1. | None now. Keep the flag off for users until E1 passes (V2-28). |
+
+**Verdict: approve with changes.** The flag-off build is equivalent to today's except for the 10.6 minimum (M2aC-03). The module rename is free of side effects, and the log route is correct. M2aC-02 must be done in the M1+M2a merge, and M2aC-01 must be documented before anyone builds flag-on through the browser path. The rest are minor.
