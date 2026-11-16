@@ -86,12 +86,7 @@ extension NSPredicate {
     private static let notMutable = "isMutable == NO"
 
     static var pumpHistoryLast1440Minutes: NSPredicate {
-        let date = Date.oneDayAgoInMinutes
-        return NSPredicate(format: "timestamp >= %@ AND \(notScheduledBasal)", date as NSDate)
-    }
-
-    static var pumpHistoryLast48h: NSPredicate {
-        let date = Date() - TimeInterval(hours: 48)
+        let date = OrefInputs.pumpHistoryStart(now: Date())
         return NSPredicate(format: "timestamp >= %@ AND \(notScheduledBasal)", date as NSDate)
     }
 

@@ -434,7 +434,7 @@ final class BaseGlucoseStorage: GlucoseStorage, Injectable {
     /// uses the default 24h because its sensitivity algorithm needs that full window.
     func getGlucoseForAlgorithm(shouldSmoothGlucose: Bool, fetchHours: Decimal) async throws -> [BloodGlucose] {
         let context = makeContext()
-        let cutoff = Date().addingTimeInterval(-(Double(truncating: fetchHours as NSNumber) * 3600))
+        let cutoff = OrefInputs.glucoseStart(hours: fetchHours, now: Date())
 
         let results = try await CoreDataStack.shared.fetchEntitiesAsync(
             ofType: GlucoseStored.self,

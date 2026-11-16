@@ -109,14 +109,19 @@ final class OpenAPS {
         }
     }
 
+    /// Object IDs of the pump events oref reads, newest first. The 48 h fetch also covers the orphaned-resume check.
     private func fetchPumpHistoryObjectIDs(on context: NSManagedObjectContext) async throws -> [NSManagedObjectID]? {
+        let now = Date()
         let results = try await CoreDataStack.shared.fetchEntitiesAsync(
             ofType: PumpEventStored.self,
             onContext: context,
-            predicate: NSPredicate.pumpHistoryLast1440Minutes,
+            predicate: NSPredicate(
+                format: "timestamp >= %@ AND \(NSPredicate.notScheduledBasal)",
+                OrefInputs.orphanedResumeWindowStart(now: now) as NSDate
+            ),
             key: "timestamp",
-            ascending: false,
-            batchSize: 50
+            ascending: true,
+            batchSize: 250
         )
 
         return try await context.perform {
@@ -124,7 +129,13 @@ final class OpenAPS {
                 throw CoreDataError.fetchError(function: #function, file: #file)
             }
 
-            return pumpEventResults.map(\.objectID)
+            return OrefInputs.algorithmPumpEvents(
+                pumpEventResults,
+                type: { $0.type },
+                timestamp: { $0.timestamp },
+                isScheduledBasal: { $0.tempBasal?.isScheduledBasal == true },
+                now: now
+            ).map(\.objectID)
         }
     }
 
@@ -136,20 +147,12 @@ final class OpenAPS {
         // Empty history returns an empty array, which also drops any simulated bolus.
         guard !pumpHistoryObjectIDs.isEmpty else { return [] }
 
-        // Addresses https://github.com/nightscout/Trio/issues/898
-        //
-        // On a cold start (new user, fresh onboarding, or pump disconnected > 24h),
-        // the oldest event in pump history can be a resume with no preceding pump
-        // activity. oref interprets this as the end of a suspend that never started,
-        // which drives negative IOB and can cause excessive insulin delivery.
-        let orphanedResumes = try await fetchOrphanedResumes(on: context)
-
         // Execute all operations on the background context
         return await context.perform {
             // Load and map pump events to native algorithm models
             var events = OpenAPS.nativePumpHistory(
                 pumpHistoryObjectIDs,
-                orphanedResumes: orphanedResumes,
+                orphanedResumes: [],
                 from: context
             )
 
@@ -190,27 +193,6 @@ final class OpenAPS {
         )
     }
 
-    /// Detects a cold-start orphaned resume: returns the resume's object ID if it's an orphaned resume
-    private func fetchOrphanedResumes(on context: NSManagedObjectContext) async throws -> [NSManagedObjectID] {
-        let results = try await CoreDataStack.shared.fetchEntitiesAsync(
-            ofType: PumpEventStored.self,
-            onContext: context,
-            predicate: NSPredicate.pumpHistoryLast48h,
-            key: "timestamp",
-            ascending: true,
-            batchSize: 250
-        )
-
-        return try await context.perform {
-            guard let pumpEventResultsFull = results as? [PumpEventStored] else {
-                throw CoreDataError.fetchError(function: #function, file: #file)
-            }
-
-            return OrefInputs.orphanedResumes(in: pumpEventResultsFull, type: { $0.type }, timestamp: { $0.timestamp })
-                .map(\.objectID)
-        }
-    }
-
     func determineBasal(
         for dosingMode: DosingMode,
         currentTemp: TempBasal,
@@ -234,7 +216,7 @@ final class OpenAPS {
         // second, independent read into the algorithm; needs the same clamp as the profile
         let preferences = (await storage.retrieveAsync(OpenAPS.Settings.preferences, as: Preferences.self) ?? Preferences())
             .clamped(for: dosingMode)
-        let glucoseFetchHours = preferences.maxMealAbsorptionTime + 0.5 // MMAT + half hour buffer
+        let glucoseFetchHours = OrefInputs.determinationGlucoseHours(preferences)
         async let glucoseFetch = glucoseStorage.getGlucoseForAlgorithm(
             shouldSmoothGlucose: shouldSmoothGlucose,
             fetchHours: glucoseFetchHours
@@ -340,12 +322,13 @@ final class OpenAPS {
 
     func prepareTrioCustomOrefVariables(on context: NSManagedObjectContext) async throws -> RawJSON {
         try await context.perform {
+            let now = Date()
+
             // Retrieve user preferences
             let userPreferences = self.storage.retrieve(OpenAPS.Settings.preferences, as: Preferences.self)
 
             // Fetch historical events for Total Daily Dose (TDD) calculation
-            let tenDaysAgo = Date().addingTimeInterval(-10.days.timeInterval)
-            let historicalTDDData = try self.fetchHistoricalTDDData(from: tenDaysAgo, on: context)
+            let historicalTDDData = try self.fetchHistoricalTDDData(from: OrefInputs.tddHistoryStart(now: now), on: context)
 
             // Fetch the last active Override
             let activeOverride = try self.fetchActiveOverrides(on: context).first
@@ -356,7 +339,7 @@ final class OpenAPS {
                     OrefInputs.TDDRow(date: $0["date"] as? Date, total: ($0["total"] as? NSDecimalNumber)?.decimalValue)
                 },
                 activeOverride: activeOverride.map(OrefInputs.OverrideState.init),
-                now: Date()
+                now: now
             )
 
             // Save and return contents of Trio's custom oref variables
@@ -374,7 +357,7 @@ final class OpenAPS {
         // Autosens needs the full 24h window for its sensitivity algorithm.
         async let glucoseFetch = glucoseStorage.getGlucoseForAlgorithm(
             shouldSmoothGlucose: shouldSmoothGlucose,
-            fetchHours: 24
+            fetchHours: OrefInputs.autosensGlucoseHours
         )
         async let getProfile = loadFileFromStorageAsync(name: Settings.profile)
         async let getBasalProfile = loadFileFromStorageAsync(name: Settings.basalProfile)

@@ -256,13 +256,12 @@ final class BaseTDDStorage: TDDStorage, Injectable {
             let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "TDDStored")
             fetchRequest.predicate = NSPredicate(
                 format: "date > %@ AND total > 0",
-                Date().addingTimeInterval(-86400 * 7) as NSDate
+                OrefInputs.sufficientTDDStart(now: Date()) as NSDate
             )
             fetchRequest.resultType = .countResultType
 
             let count = try context.count(for: fetchRequest)
-            let threshold = Int(Double(7 * 288) * 0.75)
-            return count >= threshold
+            return count >= OrefInputs.sufficientTDDRowCount
         }
     }
 }

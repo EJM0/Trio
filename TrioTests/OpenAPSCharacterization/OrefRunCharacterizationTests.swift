@@ -3,7 +3,7 @@ import Testing
 @testable import Trio
 
 /// The production-path goldens, reproduced by `OrefRun.run` from the same scenario values. Inputs are
-/// built with the shared `OrefInputs` mappers, as another store would, and cross a JSON round trip first.
+/// selected and mapped with the shared `OrefInputs` rules, as another store would, and cross a JSON round trip first.
 @Suite(
     "OrefRun characterization goldens",
     .serialized,
@@ -61,9 +61,8 @@ import Testing
             raiseOnDivideByZero: false
         )
 
-        let glucose = scenario.glucose
-            .sorted { $0.date > $1.date }
-            .map {
+        let glucose = OrefInputs.glucose(
+            scenario.glucose.map {
                 OrefInputs.bloodGlucose(
                     id: $0.id,
                     date: $0.date,
@@ -74,7 +73,9 @@ import Testing
                     shouldSmoothGlucose: scenario.smoothGlucose,
                     roundingBehavior: rounding
                 )
-            }
+            },
+            since: OrefInputs.glucoseStart(hours: OrefInputs.autosensGlucoseHours, now: clock)
+        )
 
         typealias StoredEvent = (
             id: String,
@@ -101,35 +102,23 @@ import Testing
                 return (id, scenario.date(minutesAgo: minutesAgo), EventType.pumpResume.rawValue, nil, nil)
             }
         }
-        let orphanedIDs = Set(
-            OrefInputs.orphanedResumes(
-                in: stored.filter { $0.date >= clock.addingTimeInterval(-TimeInterval(hours: 48)) }.sorted { $0.date < $1.date },
-                type: { $0.type },
-                timestamp: { $0.date }
-            ).map(\.id)
+        let pumpHistory = OrefInputs.algorithmPumpEvents(
+            stored,
+            type: { $0.type },
+            timestamp: { $0.date },
+            isScheduledBasal: { _ in false },
+            now: clock
+        ).flatMap {
+            OrefInputs.pumpHistoryEvents(id: $0.id, timestamp: $0.date, type: $0.type, bolus: $0.bolus, tempBasal: $0.tempBasal)
+        }
+
+        let carbs = OrefInputs.carbs(
+            scenario.carbs
+                .map { OrefInputs.carbsEntry(id: $0.id, date: $0.date, carbs: $0.carbs, fat: 0, protein: 0, isFPU: false) },
+            now: clock
         )
-        let pumpHistory = stored
-            .filter { $0.date >= clock.addingTimeInterval(-TimeInterval(hours: 24)) && !orphanedIDs.contains($0.id) }
-            .sorted { $0.date > $1.date }
-            .flatMap {
-                OrefInputs.pumpHistoryEvents(
-                    id: $0.id,
-                    timestamp: $0.date,
-                    type: $0.type,
-                    bolus: $0.bolus,
-                    tempBasal: $0.tempBasal
-                )
-            }
 
-        let carbs = scenario.carbs
-            .sorted { $0.date > $1.date }
-            .map { OrefInputs.carbsEntry(id: $0.id, date: $0.date, carbs: $0.carbs, fat: 0, protein: 0, isFPU: false) }
-
-        let tddHistory = scenario.tdd
-            .filter { $0.date > clock.addingTimeInterval(-10 * 86400) && $0.total > 0 }
-            .sorted { $0.date < $1.date }
-            .map { OrefInputs.TDDRow(date: $0.date, total: $0.total) }
-        let recentTDDCount = scenario.tdd.filter { $0.date > clock.addingTimeInterval(-7 * 86400) && $0.total > 0 }.count
+        let tddRows = scenario.tdd.map { OrefInputs.TDDRow(date: $0.date, total: $0.total) }
 
         return try OrefInputs(
             pumpSettings: settings(OpenAPS.Settings.settings),
@@ -162,8 +151,8 @@ import Testing
                     uamMinutes: $0.uamMinutes
                 )
             },
-            tddHistory: tddHistory,
-            hasSufficientTDD: recentTDDCount >= Int(Double(7 * 288) * 0.75),
+            tddHistory: OrefInputs.tddHistory(tddRows, now: clock),
+            hasSufficientTDD: OrefInputs.hasSufficientTDD(tddRows, now: clock),
             glucose: glucose,
             pumpHistory: pumpHistory,
             carbs: carbs,

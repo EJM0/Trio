@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C4A00060000000000000002 /* OrefInputs+Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00060000000000000001 /* OrefInputs+Selection.swift */; };
 		0C4A00050000000000000002 /* OrefRunCharacterizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00050000000000000001 /* OrefRunCharacterizationTests.swift */; };
 		0C4A00040000000000000002 /* OrefInputs+TDD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00040000000000000001 /* OrefInputs+TDD.swift */; };
 		0C4A00030000000000000002 /* OrefInputs+Mapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4A00030000000000000001 /* OrefInputs+Mapping.swift */; };
@@ -1259,6 +1260,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0C4A00060000000000000001 /* OrefInputs+Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrefInputs+Selection.swift"; sourceTree = "<group>"; };
 		0C4A00050000000000000001 /* OrefRunCharacterizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrefRunCharacterizationTests.swift; sourceTree = "<group>"; };
 		0C4A00040000000000000001 /* OrefInputs+TDD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrefInputs+TDD.swift"; sourceTree = "<group>"; };
 		0C4A00030000000000000001 /* OrefInputs+Mapping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrefInputs+Mapping.swift"; sourceTree = "<group>"; };
@@ -2476,6 +2478,7 @@
 		0C4A00020000000000000001 /* OrefRun */ = {
 			isa = PBXGroup;
 			children = (
+				0C4A00060000000000000001 /* OrefInputs+Selection.swift */,
 				0C4A00040000000000000001 /* OrefInputs+TDD.swift */,
 				0C4A00030000000000000001 /* OrefInputs+Mapping.swift */,
 				0C4A00020000000000000004 /* OrefRun.swift */,
@@ -5778,6 +5781,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C4A00060000000000000002 /* OrefInputs+Selection.swift in Sources */,
 				0C4A00040000000000000002 /* OrefInputs+TDD.swift in Sources */,
 				0C4A00030000000000000002 /* OrefInputs+Mapping.swift in Sources */,
 				0C4A00020000000000000005 /* OrefRun.swift in Sources */,

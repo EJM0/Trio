@@ -439,7 +439,7 @@ final class BaseCarbsStorage: CarbsStorage, Injectable {
         let results = try await CoreDataStack.shared.fetchEntitiesAsync(
             ofType: CarbEntryStored.self,
             onContext: context,
-            predicate: NSPredicate.predicateForOneDayAgo,
+            predicate: NSPredicate(format: "date >= %@", OrefInputs.carbsStart(now: Date()) as NSDate),
             key: "date",
             ascending: false
         )

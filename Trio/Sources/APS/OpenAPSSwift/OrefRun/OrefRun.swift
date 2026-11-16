@@ -53,9 +53,10 @@ enum OrefRun {
         }
 
         let preferences = storedPreferences.clamped(for: inputs.dosingMode)
-        let glucoseCutoff = inputs.clock
-            .addingTimeInterval(-(Double(truncating: (preferences.maxMealAbsorptionTime + 0.5) as NSNumber) * 3600))
-        let glucose = inputs.glucose.filter { $0.dateString >= glucoseCutoff }
+        let glucose = OrefInputs.glucose(
+            inputs.glucose,
+            since: OrefInputs.glucoseStart(hours: OrefInputs.determinationGlucoseHours(preferences), now: inputs.clock)
+        )
         let determinationProfile = determinationProfile(
             profile,
             supportedBasalRates: inputs.supportedBasalRates,
