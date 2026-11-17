@@ -553,7 +553,17 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     }
 
     func issueKitAlert(_ alert: Alert) async {
-        alerts.postKitAlert(alert)
+        alerts.postKitAlert(alert, line: WatchLoanAlerts.podNeedsPhone, now: env.now())
+    }
+
+    /// The sensor's own alerts, while the watch reads it: with the phone away nothing else tells the user (G-R2).
+    func issueSensorAlert(_ alert: Alert) async {
+        await loaded.value
+        guard readsGlucose else {
+            WatchLogger.shared.info(.cgm, "CGM alert left to the iPhone: \(alert.identifier.alertIdentifier)")
+            return
+        }
+        alerts.postKitAlert(alert, line: WatchLoanAlerts.sensorNeedsPhone, now: env.now())
     }
 
     func retractKitAlert(_ identifier: Alert.Identifier) async {

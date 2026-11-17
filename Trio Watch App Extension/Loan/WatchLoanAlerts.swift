@@ -268,24 +268,43 @@ final class WatchLoanAlerts {
         )
     }
 
-    func postKitAlert(_ alert: Alert) {
-        // the kit's own fix (replace or deactivate the pod) runs on the phone (G-10)
-        let phoneNeeded = String(
+    // the kit's own fix (replace or deactivate the pod, pair a new sensor) runs on the phone (G-10)
+    static var podNeedsPhone: String {
+        String(
             localized: "Replacing your pod needs your iPhone. Bring it close and end Trio on Watch, or take back your pump on your iPhone.",
             comment: "Watch line under a pump alert while Trio on Watch runs"
         )
+    }
+
+    static var sensorNeedsPhone: String {
+        String(
+            localized: "Replacing your sensor needs your iPhone. Bring it close and end Trio on Watch, or take back your pump on your iPhone.",
+            comment: "Watch line under a sensor alert while Trio on Watch runs"
+        )
+    }
+
+    /// A kit alert as a notification, at the time the kit asked for. A repeating one is shown once.
+    func postKitAlert(_ alert: Alert, line: String, now: Date) {
+        let date: Date?
+        switch alert.trigger {
+        case .immediate: date = nil
+        case let .delayed(interval),
+             let .repeating(interval): date = now.addingTimeInterval(interval)
+        }
         notifier.post(
-            id: "trio.loan.kit." + alert.identifier.value,
+            id: Self.kitPrefix + alert.identifier.value,
             title: alert.backgroundContent.title,
-            body: alert.backgroundContent.body + "\n" + phoneNeeded,
-            at: nil,
+            body: alert.backgroundContent.body + "\n" + line,
+            at: date,
             timeSensitive: true,
             category: nil
         )
-        WatchLogger.shared.info(.loop, "Device alert shown: \(alert.identifier.alertIdentifier)")
+        WatchLogger.shared.info(.loop, "Device alert \(date == nil ? "shown" : "scheduled"): \(alert.identifier.alertIdentifier)")
     }
 
+    static let kitPrefix = "trio.loan.kit."
+
     func retractKitAlert(_ identifier: Alert.Identifier) {
-        notifier.cancel(ids: ["trio.loan.kit." + identifier.value])
+        notifier.cancel(ids: [Self.kitPrefix + identifier.value])
     }
 }
