@@ -63,6 +63,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         #if TRIO_ON_WATCH
             let override = (try? await activeAdjustments())?.override
             return Self.preconditionRefusal(
+                dosingMode: settingsManager.settings.dosingMode,
                 pump: pump,
                 cgmShared: sharedCGM != nil,
                 kitScreenOpen: PumpConfig.isKitScreenOpen,
@@ -76,12 +77,14 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
 
     /// The phone's Start preconditions, in the order they are reported.
     static func preconditionRefusal(
+        dosingMode: DosingMode,
         pump: WatchLoanPumpAdapter?,
         cgmShared: Bool,
         kitScreenOpen: Bool,
         indefiniteOverride: Bool,
         now: Date
     ) -> LoanRefusal? {
+        guard dosingMode == .closed else { return .notClosedLoop }
         guard let pump, cgmShared else { return .unsupportedDevice }
         if kitScreenOpen { return .pumpScreenOpen }
         if pump.status.bolusState != .noBolus { return .bolusRunning }
