@@ -5747,6 +5747,7 @@
 				BDFF797A2D25AA870016C40C /* Resources */,
 				BD8207CF2D2B42E80023339D /* Embed Foundation Extensions */,
 				3DA7964F1F4B62BCBA7E7ECA /* Embed Frameworks */,
+				A7A50E000000000000000003 /* Check Embedded Frameworks */,
 			);
 			buildRules = (
 			);
@@ -6100,6 +6101,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${SRCROOT}/scripts/capture-build-details.sh\"\n";
+		};
+		A7A50E000000000000000003 /* Check Embedded Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/scripts/check-watch-frameworks.sh",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)",
+			);
+			name = "Check Embedded Frameworks";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/watch-frameworks-checked",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SRCROOT/scripts/check-watch-frameworks.sh\" && touch \"$DERIVED_FILE_DIR/watch-frameworks-checked\"\n";
+			alwaysOutOfDate = 1;
 		};
 /* End PBXShellScriptBuildPhase section */
 
