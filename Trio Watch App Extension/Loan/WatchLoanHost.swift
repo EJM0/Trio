@@ -48,6 +48,7 @@ struct WatchLoanEnvironment {
     var beginActivity: (String) -> LoanBackgroundActivity = { _ in NoBackgroundActivity() }
     var adoptTimeout: TimeInterval = 60
     var requestTimeout: TimeInterval = WatchLoan.watchRequestTimeout
+    var handBackResendInterval: TimeInterval = 60
     var phoneAnswerTimeout: TimeInterval = 5
 }
 
@@ -119,6 +120,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     @ObservationIgnored var activity: LoanBackgroundActivity?
     @ObservationIgnored var adoptedAt: Date?
     @ObservationIgnored private var requestTimer: Task<Void, Never>?
+    @ObservationIgnored private var handBackTimer: Task<Void, Never>?
     /// The saved files, read on the file queue; every entry point waits for it.
     @ObservationIgnored private(set) var loaded: Task<Void, Never>!
 
@@ -292,6 +294,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             // the hand-back carries what the phone hasn't acknowledged yet
             if message.kind == .handBack { await sendRecords(epoch: message.epoch) }
             send(message)
+            if message.kind == .handBack { resendHandBack(epoch: message.epoch) }
         case let .sendStop(stop):
             if stop.kind == .stop { await sendRecords(epoch: stop.epoch) }
             guard let data = try? WatchLoanWire.encode(stop) else { return true }
@@ -344,6 +347,23 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         }
         updateRequestTimeout(from: previous, to: next)
         return true
+    }
+
+    /// Until the phone acknowledges, the hand-back goes again while the phone is reachable (W17); an unreachable phone
+    /// gets the queued copy once it connects.
+    private func resendHandBack(epoch: Int64) {
+        handBackTimer?.cancel()
+        let interval = env.handBackResendInterval
+        handBackTimer = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+                guard !Task.isCancelled, let self, case let .returning(current) = state, current == epoch else { return }
+                if env.transport.isReachable {
+                    await handle(.handBackUnacknowledged)
+                    return
+                }
+            }
+        }
     }
 
     /// The phone may have released the pump without its grant arriving: nothing doses then, so the request ends

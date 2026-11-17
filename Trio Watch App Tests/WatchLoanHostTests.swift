@@ -84,6 +84,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
     var notificationsAllowed = true
     var activity = FakeActivity()
     var requestTimeout = WatchLoan.watchRequestTimeout
+    var handBackResend: TimeInterval = 60
     private(set) var adopted = 0
     private(set) var restored = 0
     private(set) var doubles: [LoanPumpDouble] = []
@@ -128,6 +129,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
             appBuild: "1",
             beginActivity: { [weak self] _ in self?.activity ?? FakeActivity() },
             requestTimeout: requestTimeout,
+            handBackResendInterval: handBackResend,
             phoneAnswerTimeout: 0.2
         ))
         return created
@@ -851,6 +853,31 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.host.records.snapshot.overrideCancelledAt != nil)
         #expect(world.host.records.snapshot.tempTargetCancelledAt != nil)
         #expect(world.violations.isEmpty)
+    }
+
+    @Test("An unacknowledged hand-back goes again while the phone is reachable, and stops at the ack (W17)") func handBackResend(
+    ) async throws {
+        let world = LoanFixture()
+        world.handBackResend = 0.1
+        world.host = world.makeHost()
+        try await world.startLoan()
+        await world.reading(160)
+        func handBacks() -> Int { world.transport.messages.filter { $0.kind == .handBack }.count }
+        world.transport.isReachable = false
+        await world.host.endTapped()
+        #expect(world.host.state == .returning(epoch: 1))
+        #expect(handBacks() == 1)
+        try await Task.sleep(nanoseconds: 350_000_000)
+        #expect(handBacks() == 1, "unreachable: the queued copy is enough")
+        world.transport.isReachable = true
+        try await Task.sleep(nanoseconds: 350_000_000)
+        await world.host.serially {}
+        #expect(handBacks() >= 2)
+        await world.host.receive(try world.payload(WatchLoanMessage(epoch: 1, kind: .handBackAck)))
+        #expect(world.host.state == .idle(epoch: 1))
+        let acked = handBacks()
+        try await Task.sleep(nanoseconds: 350_000_000)
+        #expect(handBacks() == acked)
     }
 
     @Test("Start is refused on an older watch or without time-sensitive notifications") func startRefusals() async throws {
