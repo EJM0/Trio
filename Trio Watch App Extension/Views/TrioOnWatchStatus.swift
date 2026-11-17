@@ -44,6 +44,8 @@ struct TrioOnWatchStatus: Equatable {
     var podFaulted = false
     var podUnreachable = false
     var insulinSuspended = false
+    /// A command the pump hasn't confirmed: boluses, SMBs and high temps wait, and End is refused.
+    var insulinPaused = false
     var sensorEndsAt: Date?
     var battery: Float?
     var override: Adjustment?
@@ -404,9 +406,16 @@ extension TrioOnWatchStatus {
             ))
             pumpTint = .loopRed
         }
+        if insulinPaused {
+            pumpLines.append(String(
+                localized: "Trio can't confirm your last insulin. New boluses are paused, and you can't end yet, until your pump answers.",
+                comment: "Watch status: unconfirmed pump command"
+            ))
+            if pumpTint == .secondary { pumpTint = .orange }
+        }
         if insulinSuspended {
             pumpLines.append(String(localized: "Insulin suspended", comment: "Watch status: pump suspended"))
-            pumpTint = .orange
+            if pumpTint == .secondary { pumpTint = .orange }
         }
         pumpLines.append(pumpLastContact.map {
             String(localized: "Last contact \($0.formattedTimeAgo()) ago", comment: "Watch status: pump contact age")

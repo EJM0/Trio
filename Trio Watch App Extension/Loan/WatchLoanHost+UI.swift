@@ -31,6 +31,7 @@ extension WatchLoanHost {
         status.lastAlert = lastAlert
         status.battery = env.batteryLevel()
         status.podUnreachable = cycleInfo.podLinkNoticeShown
+        status.insulinPaused = !intents.isEmpty || pump?.status.deliveryIsUncertain == true
         if let snapshot {
             status.units = snapshot.bolusCalculator.units
             status.readings = (snapshot.oref.glucose + records.snapshot.glucose)

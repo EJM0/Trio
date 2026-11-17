@@ -151,83 +151,89 @@ struct TrioMainWatchView: View {
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    VStack {
-                        Image(systemName: "syringe.fill")
-                            .foregroundStyle(Color.insulin)
+                // the status page has its own actions; the main page's bar would cover them
+                if currentPage != 3 {
+                    ToolbarItem(placement: .topBarLeading) {
+                        VStack {
+                            Image(systemName: "syringe.fill")
+                                .foregroundStyle(Color.insulin)
 
-                        if let loan, loanActive {
-                            Text(loan.mainValues(now: Date()).iob)
-                                .accessibilityLabel(Text(String(
-                                    localized: "Insulin on board, \(loan.mainValues(now: Date()).iob)",
-                                    comment: "Watch accessibility: insulin on board with unit"
-                                )))
-                        } else {
-                            Text(isWatchStateDated || isSessionUnreachable ? "--" : state.iob ?? "--")
-                                .foregroundStyle(isWatchStateDated ? Color.secondary : Color.white)
-                                .frame(alignment: .leading)
-                                .minimumScaleFactor(0.5)
+                            if let loan, loanActive {
+                                Text(loan.mainValues(now: Date()).iob)
+                                    .accessibilityLabel(Text(String(
+                                        localized: "Insulin on board, \(loan.mainValues(now: Date()).iob)",
+                                        comment: "Watch accessibility: insulin on board with unit"
+                                    )))
+                            } else {
+                                Text(isWatchStateDated || isSessionUnreachable ? "--" : state.iob ?? "--")
+                                    .foregroundStyle(isWatchStateDated ? Color.secondary : Color.white)
+                                    .frame(alignment: .leading)
+                                    .minimumScaleFactor(0.5)
+                            }
+                        }.font(.caption2)
+                    }
+
+                    ToolbarItem(placement: .topBarTrailing) {
+                        VStack {
+                            Image(systemName: "fork.knife")
+                                .foregroundStyle(Color.orange)
+
+                            if let loan, loanActive {
+                                Text(loan.mainValues(now: Date()).cob)
+                                    .accessibilityLabel(Text(String(
+                                        localized: "Carbs on board, \(loan.mainValues(now: Date()).cob)",
+                                        comment: "Watch accessibility: carbs on board with unit"
+                                    )))
+                            } else {
+                                Text(isWatchStateDated || isSessionUnreachable ? "--" : state.cob ?? "--")
+                                    .foregroundStyle(isWatchStateDated || isSessionUnreachable ? Color.secondary : Color.white)
+                                    .frame(alignment: .trailing)
+                                    .minimumScaleFactor(0.5)
+                            }
+                        }.font(.caption2)
+                    }
+
+                    ToolbarItemGroup(placement: .bottomBar) {
+                        Button {
+                            showingOverrideSheet = true
+                        } label: {
+                            Image(systemName: "clock.arrow.2.circlepath")
+                                .foregroundStyle(Color.primary, isOverrideActive ? Color.primary : Color.purple)
                         }
-                    }.font(.caption2)
-                }
+                        .tint(isOverrideActive ? Color.purple : nil)
+                        .disabled(loanActive ? loanBlocksTreatments : isWatchStateDated || isSessionUnreachable)
+                        .accessibilityLabel(Text(String(
+                            localized: "Overrides",
+                            comment: "Watch accessibility: overrides button"
+                        )))
 
-                ToolbarItem(placement: .topBarTrailing) {
-                    VStack {
-                        Image(systemName: "fork.knife")
-                            .foregroundStyle(Color.orange)
-
-                        if let loan, loanActive {
-                            Text(loan.mainValues(now: Date()).cob)
-                                .accessibilityLabel(Text(String(
-                                    localized: "Carbs on board, \(loan.mainValues(now: Date()).cob)",
-                                    comment: "Watch accessibility: carbs on board with unit"
-                                )))
-                        } else {
-                            Text(isWatchStateDated || isSessionUnreachable ? "--" : state.cob ?? "--")
-                                .foregroundStyle(isWatchStateDated || isSessionUnreachable ? Color.secondary : Color.white)
-                                .frame(alignment: .trailing)
-                                .minimumScaleFactor(0.5)
+                        Button {
+                            showingTreatmentMenuSheet = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .foregroundStyle(Color.bgDarkerDarkBlue)
                         }
-                    }.font(.caption2)
-                }
+                        .controlSize(.large)
+                        .buttonStyle(WatchOSButtonStyle(deviceType: state.deviceType))
+                        .disabled(loanActive ? loanBlocksTreatments : isWatchStateDated || isSessionUnreachable)
+                        .accessibilityLabel(Text(String(
+                            localized: "Add treatment",
+                            comment: "Watch accessibility: add treatment button"
+                        )))
 
-                ToolbarItemGroup(placement: .bottomBar) {
-                    Button {
-                        showingOverrideSheet = true
-                    } label: {
-                        Image(systemName: "clock.arrow.2.circlepath")
-                            .foregroundStyle(Color.primary, isOverrideActive ? Color.primary : Color.purple)
+                        Button {
+                            showingTempTargetSheet = true
+                        } label: {
+                            Image(systemName: "target")
+                                .foregroundStyle(isTempTargetActive ? Color.primary : Color.loopGreen.opacity(0.75))
+                        }
+                        .tint(isTempTargetActive ? Color.loopGreen.opacity(0.75) : nil)
+                        .disabled(loanActive ? loanBlocksTreatments : isWatchStateDated || isSessionUnreachable)
+                        .accessibilityLabel(Text(String(
+                            localized: "Temp targets",
+                            comment: "Watch accessibility: temp targets button"
+                        )))
                     }
-                    .tint(isOverrideActive ? Color.purple : nil)
-                    .disabled(loanActive ? loanBlocksTreatments : isWatchStateDated || isSessionUnreachable)
-                    .accessibilityLabel(Text(String(localized: "Overrides", comment: "Watch accessibility: overrides button")))
-
-                    Button {
-                        showingTreatmentMenuSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .foregroundStyle(Color.bgDarkerDarkBlue)
-                    }
-                    .controlSize(.large)
-                    .buttonStyle(WatchOSButtonStyle(deviceType: state.deviceType))
-                    .disabled(loanActive ? loanBlocksTreatments : isWatchStateDated || isSessionUnreachable)
-                    .accessibilityLabel(Text(String(
-                        localized: "Add treatment",
-                        comment: "Watch accessibility: add treatment button"
-                    )))
-
-                    Button {
-                        showingTempTargetSheet = true
-                    } label: {
-                        Image(systemName: "target")
-                            .foregroundStyle(isTempTargetActive ? Color.primary : Color.loopGreen.opacity(0.75))
-                    }
-                    .tint(isTempTargetActive ? Color.loopGreen.opacity(0.75) : nil)
-                    .disabled(loanActive ? loanBlocksTreatments : isWatchStateDated || isSessionUnreachable)
-                    .accessibilityLabel(Text(String(
-                        localized: "Temp targets",
-                        comment: "Watch accessibility: temp targets button"
-                    )))
                 }
             }
             .fullScreenCover(isPresented: $showingTreatmentMenuSheet) {
