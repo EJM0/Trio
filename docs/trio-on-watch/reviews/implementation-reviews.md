@@ -1035,3 +1035,23 @@ Fix round `5f17bf9b2..96bcaf3fb` (14 commits) on `feat/tow-watch-loop`. Basis: c
 ### Verdict
 
 **Merge M5 after M5R-01.** It is a one-function change plus a test. M5E-01 and M5E-03 are resolved. M5E-02 is resolved except for M5R-01, with its residual accepted for M5 and the replacement record due before M7. M5R-02 goes to M6, where the UI needs it.
+
+## Dosing-mode fix check (Agent E)
+
+`fix/tow-watch-embed`: `a93e7769d`, `d2a3b74e6`, `a42f4aa15`; embed fix `b72669b40`, `3ab2db3b3` (not reviewed for safety). Basis: code reading only. I did not build or run the tests.
+
+**Can a held loan dose while the snapshot isn't Closed Loop?** No.
+- **Start is refused** unless the phone is in Closed Loop (`preconditionRefusal`, `notClosedLoop` checked first).
+- **The watch rejects such a grant.** Its snapshot validation refuses `oref.dosingMode != .closed`, the phone gets `grantRejected`, and it retakes the pump (P11).
+- **The snapshot is frozen.** The watch cycle reads the dosing mode only from it, and there is no mode setting on the watch.
+- **Defence in depth.** `WatchDosingGate.plan` holds back every command when `automation == .off`, which covers a snapshot persisted by a pre-fix build in a loan still running. A pre-fix loan in Low Glucose Suspend or Basal Testing gets the phone's clamps (Max IOB 0, autosens 1.0, DynISF off), because `OrefRun` derives them from `snapshot.oref.dosingMode` at the call site, the same as the phone. A manual bolus is allowed then too, as in Open Loop on the phone, through `BolusSafetyEvaluator`.
+
+**Can the phone's mode change during a loan?** Only through the Settings picker, and that is now locked unless the phone holds the pump (re-checked in the binding's setter, `a42f4aa15`). I found no other writer of `settings.dosingMode`:
+- remote commands, Shortcuts and the Nightscout settings import don't touch it (the import brings a profile, not the dosing mode);
+- `TrioSettings` decoding at load is not an in-app change.
+
+Even if the phone's mode did change, the watch would keep the grant's Closed Loop until End or Take Back. That is consistent with the frozen-settings design (F-5). The user's way out on the watch is Suspend or End (SM-8).
+
+**Manual bolus on the watch with automation off.** It isn't blocked (`bolusNow` doesn't check automation), which matches the phone's Open Loop. It is moot in v1, because Start requires Closed Loop.
+
+**No findings.** Optional: a unit test that a persisted Open Loop snapshot, relaunched, enacts nothing (`.automationOff`) and still allows a manual bolus.
