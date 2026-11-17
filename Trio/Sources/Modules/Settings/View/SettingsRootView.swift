@@ -277,6 +277,15 @@ extension Settings {
                     .settingsSearchTarget(label: String(localized: "Dosing Mode"))
                     .onAppear {
                         dosingModeLockReason = state.dosingModeLockReason()
+                        #if DEBUG
+                            // screenshot harness: the lock text only; the picker's own check still asks the gate
+                            if TrioOnWatchPhoneFixture.showsBlockedNotes {
+                                dosingModeLockReason = Settings.StateModel.dosingModeLockReason(
+                                    hasCgmAndPump: true,
+                                    phoneMayCommandPump: false
+                                )
+                            }
+                        #endif
                     }
 
                     Section(
