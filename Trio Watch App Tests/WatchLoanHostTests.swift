@@ -883,6 +883,57 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(handBacks() == acked)
     }
 
+    @Test(
+        "Suspend reminders: every 30 min for 4 h; gone when a cycle reads insulin running, at End, Take Back or a stop"
+    ) func suspendReminders() async throws {
+        func reminders(_ world: LoanFixture) -> [Date] {
+            world.notifier.pending.filter { $0.key.hasPrefix(WatchLoanHost.suspendReminderPrefix) }.compactMap(\.value.date)
+                .sorted()
+        }
+        func suspended() async throws -> LoanFixture {
+            let world = LoanFixture()
+            try await world.startLoan()
+            await world.reading(160)
+            let confirmed = await world.host.suspendInsulinConfirmed()
+            #expect(confirmed)
+            let pending = reminders(world)
+            #expect(pending.count == 8)
+            #expect(pending.first == world.clock.addingTimeInterval(30 * 60))
+            #expect(pending.last == world.clock.addingTimeInterval(4 * 3600), "no reminder after 4 h")
+            return world
+        }
+
+        let resumedElsewhere = try await suspended()
+        await resumedElsewhere.reading(160)
+        #expect(reminders(resumedElsewhere).count == 8, "still suspended: kept")
+        resumedElsewhere.pump?.resumeDelivery { _ in }
+        await resumedElsewhere.reading(160)
+        #expect(reminders(resumedElsewhere).isEmpty, "the pump read shows insulin running")
+
+        let resumedHere = try await suspended()
+        let resumed = await resumedHere.host.resumeInsulinConfirmed()
+        #expect(resumed)
+        #expect(reminders(resumedHere).isEmpty)
+
+        let ended = try await suspended()
+        await ended.host.endTapped()
+        #expect(ended.host.state == .returning(epoch: 1))
+        #expect(reminders(ended).isEmpty)
+
+        let takenBack = try await suspended()
+        await takenBack.host.receive([WatchLoanWireKey.message: try WatchLoanWire.encode(WatchLoanStop(kind: .revoke, epoch: 2))])
+        #expect(takenBack.host.state == .stopped(epoch: 1, reason: .superseded))
+        #expect(reminders(takenBack).isEmpty)
+
+        let stopped = try await suspended()
+        stopped.pod.holder = .phone
+        await stopped.reading(160)
+        try await Task.sleep(nanoseconds: 200_000_000)
+        await stopped.host.serially {}
+        #expect(stopped.host.state == .stopped(epoch: 1, reason: .foreignSession))
+        #expect(reminders(stopped).isEmpty)
+    }
+
     @Test("Start is refused on an older watch or without time-sensitive notifications") func startRefusals() async throws {
         let world = LoanFixture()
         world.model = "Watch5,9"
