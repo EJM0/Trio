@@ -5,11 +5,16 @@ struct TrioOnWatchPill: View {
     let pill: TrioOnWatchPhoneStatus.Pill
 
     var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: pill.symbol)
-            Text(pill.text)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
+        // at large text the glyph carries "Watch"; the age must not be cut (G-M11)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 4) {
+                Image(systemName: pill.symbol)
+                Text(pill.text).lineLimit(1)
+            }
+            HStack(spacing: 4) {
+                Image(systemName: pill.symbol)
+                Text(pill.compactText).lineLimit(1).minimumScaleFactor(0.6)
+            }
         }
         .font(.callout.weight(.semibold))
         .foregroundStyle(pill.tint)
@@ -20,6 +25,23 @@ struct TrioOnWatchPill: View {
         .accessibilityLabel(Text(pill.accessibilityLabel))
         .accessibilityAddTraits(.isButton)
         .accessibilityHint(Text(String(localized: "Opens Trio on Watch details", comment: "Accessibility hint")))
+    }
+}
+
+/// The pump panel while Apple Watch has the pump: this phone's own pod readings stopped at the hand-off.
+struct TrioOnWatchPumpPlaceholder: View {
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: "applewatch")
+                .font(.title3)
+                .foregroundStyle(Color.insulin)
+                .accessibilityHidden(true)
+            Text(String(localized: "On Apple Watch", comment: "Home pump panel while Apple Watch has the pump"))
+                .font(.callout.weight(.semibold))
+                .multilineTextAlignment(.center)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(String(localized: "Pump is on Apple Watch", comment: "Accessibility: Home pump panel")))
     }
 }
 
@@ -98,7 +120,7 @@ struct TrioOnWatchSheet: View {
                     }
                 }
 
-                if status.replacesLoopRing {
+                if status.replacesLoopRing, status.phase != .takingBack, status.phase != .takingBackStuck {
                     Section {
                         ForEach(Self.blockedActions, id: \.self) { line in
                             Label(line, systemImage: "nosign").accessibilityElement(children: .combine)

@@ -89,9 +89,18 @@ struct TrioOnWatchPhoneStatus: Equatable {
         var text: String
         var tint: Color
         var accessibilityLabel: String
+        /// For large text: the age alone where there is one.
+        var compactText: String = ""
     }
 
     func pill(now: Date) -> Pill {
+        var pill = fullPill(now: now)
+        let age = lastUpdate?.formattedTimeAgo() ?? "--"
+        pill.compactText = phase == .inControl || phase == .noUpdates ? age : pill.text
+        return pill
+    }
+
+    private func fullPill(now: Date) -> Pill {
         let age = lastUpdate?.formattedTimeAgo() ?? "--"
         let spokenAge = lastUpdate.map {
             String(

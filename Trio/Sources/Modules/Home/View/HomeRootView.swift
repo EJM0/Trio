@@ -105,7 +105,7 @@ extension Home {
             .overlay(alignment: .topTrailing) {
                 // borderless capsule (not a control); centered in the basal
                 // pane band so it clears the y-axis labels on every device size
-                if let basal = currentBasalReadout {
+                if !trioOnWatch.status.replacesLoopRing, let basal = currentBasalReadout {
                     HStack(spacing: 3) {
                         if basal.isManual {
                             Image(systemName: "hand.raised.fill")
