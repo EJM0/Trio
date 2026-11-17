@@ -166,3 +166,53 @@ Reviewer: Agent G, 2026-11-16. Branch `feat/tow-ui` (worktree `/Users/dnzxy/work
 - **Before any on-body use:** G-M3 to G-M10.
 - **With M7:** G-M11 to G-M20.
 - **Still open from the architecture review:** G-1 alarm coverage (M3–M5), G-2 `CycleSummary`, and G-10 (the Trio line under kit pump alerts).
+
+## M6 re-review (G)
+
+Reviewer: Agent G, 2026-11-17. Branch `feat/tow-ui` at `24bb7187b`. This round covers fix commits `2a76e8d5e`, `1564b6854`, `366ec78fc` and `f3bb41259`, the integration merge `5ba7fa713` (`a93e7769d` Start only in Closed Loop, `d2a3b74e6` no enact when automation is off, `a42f4aa15` Dosing Mode lock), and `c0f84b18d` / `24bb7187b`. I read the source diff `ce4161440..24bb7187b` and the re-captured shots as contact sheets: the 41 mm set in full, the changed 46 mm states, phone-light, phone-largest-text, and phone-dark Treatments.
+
+### Claim check
+
+| ID | Status | Evidence |
+|---|---|---|
+| G-M1 | Fixed (V) | `WatchLoanAlerts.swift`: the `phoneDidNotAnswer` body is now "Open Trio on your iPhone to check which device controls your pump." It no longer says who controls the pump. |
+| G-M2 | Fixed (V) | Start is refused outside Closed Loop on both sides (`WatchLoanPhoneHost.swift:87`, `WatchLoanSnapshot.swift:133`). `watch-41mm/handoff-not-closed-loop.png` shows the refusal copy and an OK button. The watch enacts nothing when automation is off (`d2a3b74e6`, read only as far as the commit title and tests; enact path for Agent C). |
+| G-M3 | Fixed (V) | `TrioOnWatchStatus.pumpCondition` takes priority over loop age on W1. `main-pod-stopped.png` (red), `main-suspended.png` and `main-bolus-paused.png` (orange), `main-pod-unreachable.png` (red); each has a triangle plus words. |
+| G-M4 | Fixed, one copy nit (V) | Suspend and Resume now report the pump's confirmation through `ActionResultView`. W1 shows "Insulin suspended". Reminders are scheduled. See G-R1. |
+| G-M5 | Fixed (V) | The sheet uses "Stop Override" / "Stop Temp Target" with a `confirmationDialog` that reuses the iOS strings ("Override to Stop", "Stop the Override "x"?"; both keys exist in `Localizable.xcstrings`), shows the outcome, and has the new footer (`override-sheet.png`). |
+| G-M6 | Fixed (V, code; no screenshot) | `LowGlucoseBolusWarning` in `BolusSafetyEvaluator.swift` is shared by iOS and the watch. The watch button reads "Ignore Warning and Enact Bolus" when confirmation is needed (`BolusInputView.swift:38`). The iOS Treatments refactor around it is large (`TreatmentsRootView.swift`, +/-169), so confirm the iOS warning behaves the same with the existing tests (I). |
+| G-M7 | Code fixed; device check open | The accessibility action "Confirm bolus" is on `BolusConfirmationView.swift:75-77`. VoiceOver behavior is still for DD-14 on a device. |
+| G-M8 | Fixed (V) | While the watch owns the alarms, the snooze page snoozes the watch's alarms, shows "Alarms on this watch", and reads the watch's `snoozedUntil` (`AlarmSnoozeView.swift`). |
+| G-M9 | Fixed (V) | The phone pump panel shows "On Apple Watch". IOB and COB show "--" and the basal pill is gone (`phone-light/in-control.png`). Treatments shows only the note, at the top (`in-control+treatments.png`, light and dark). |
+| G-M10 | Fixed in code; no shot (V) | The Settings Dosing Mode picker is disabled with the lock reason, and the setter re-checks the gate (`SettingsRootView.swift`, `SettingsStateModel.dosingModeLockReason`). Settings is the only place in `Trio/Sources` that changes the mode (grep). The `in-control+settings.png` capture shows the launch screen again. |
+| G-M11 | Fixed (V) | The pill drops the word and keeps the age: "3m" green, "34m" red with a triangle (`phone-largest-text/in-control.png`, `no-updates.png`). |
+| G-M12 | Fixed (V) | `WatchLoanAlerts.text(for:)` now calls `TrioOnWatchStatus.refusalText`. No raw codes remain. |
+| G-M13 | Fixed (V) | "Your watch isn't giving insulin yet." appears on W4 (`handoff-waiting-reading.png`). |
+| G-M14 | Fixed (V) | The carbs result waits up to 10 s for the save, shows "Saving carbs…", and on failure "Carbs not saved. Enter them again." with OK. |
+| G-M15 | Fixed (V) | "Trio Not Active" (the iOS key), "Can't reach your pod" used everywhere, "Can't end Trio on Watch yet", and no "hand-over" / "hand-off" left in the changed strings. |
+| G-M16 | Fixed (V) | The button is labelled "Cancel Bolus" with icon and text (`bolus-delivering.png`). No delivered-so-far amount is shown, which is acceptable (the kit doesn't report it). |
+| G-M17 / G-M18 | Fixed (V) | End is attempted, and a refusal after no reply keeps the copy. The "End" button now uses the plain role (`end-confirmation.png`). |
+| G-M19 | Fixed (V) | The "won't" list is gone while taking back (`taking-back-stuck+sheet.png`). |
+| G-M20 | Mostly fixed (V) | No duplicate PNGs remain (MD5 check on both watch sizes). The W2 pump and actions states are captured scrolled. `main-phone-fresh.png` added. Still missing: the phone Settings lock, and watch largest-text (device). |
+| G-10 | Fixed for the pump (V) | Every kit pump alert during a loan gets "Replacing your pod needs your iPhone. Bring it close and end Trio on Watch, or take back your pump on your iPhone." |
+
+### Remaining findings
+
+| ID | Severity | Ref | Finding | Recommendation |
+|---|---|---|---|---|
+| G-R1 | Minor | `WatchLoanHost+UI.swift:118-134`; Suspend success text | The success copy says "Trio reminds you every 30 minutes until you resume", but the reminders stop at 240 min (8 notifications). | Either "for the next 4 hours", or re-arm the series on each cycle while suspended. The second is better, because a forgotten suspend overnight outlasts 4 h. |
+| G-R2 | Major, carried to M7 (not M6) | `Loan/WatchLoanCGM.swift:153-156` | The watch logs CGM kit alerts but never shows them ("The phone keeps the sensor's own alerts"). With the phone away, a failed or expired sensor has no alert on the watch. Glucose alarms then go quiet, and the user only hears about it from "Trio Not Active" about 20 min later. R-6 lists CGM signal loss as a required watch alert. | M5/M7: show sensor kit alerts on the watch while the watch holds the CGM (G-10 pattern, line "Replacing your sensor needs your iPhone."), or add a watch "No sensor reading for 15 min" alert. |
+| G-R3 | Minor | `main-phone-fresh.png` | The tethered line reads "iPhone · 4 min" while the watch's own line reads "Watch · 2m". The "N min" text is the phone's pre-existing unlocalized snapshot string (G-13 asked for one shared formatter). | Have the phone send the loop date and format it on the watch with `formattedTimeAgo`. That also removes an unlocalized string. |
+| G-R4 | Nit | `main-pod-stopped.png`, `main-bolus-paused.png` | "+" stays fully enabled when the pod has stopped or new insulin is paused. Carbs-only entry is still valid, so this is acceptable. "Bolus paused" undersells that SMBs and high temps are paused too. | Optional: "Insulin paused" as the label. Keep "+" enabled. |
+| G-R5 | Nit (evidence) | `phone-light/in-control+settings.png` | Shows the launch screen. | Re-capture before M7 so the lock wording is on record. |
+
+### Verdict
+
+**Pass** for merging M6 into `feat/trio-on-watch`. Both blockers and every M6 major are fixed and verified in source or screenshots. G-R1 and G-R3 to G-R5 can land with M7.
+
+M7 gates still open, unchanged:
+- G-1 alarm coverage in zero-dosing states (phone ladder in `lending`, watch ladder from grant time).
+- G-2 `CycleSummary`. The phone pill still means "last update", not "last loop".
+- G-R2: CGM alerts on the watch.
+- Device checks: DD-14 (VoiceOver crown confirmation) and watch largest text.
+- A regression check that the iOS low-glucose bolus warning is unchanged after the Treatments refactor.
