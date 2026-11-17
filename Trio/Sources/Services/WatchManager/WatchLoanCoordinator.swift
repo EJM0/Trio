@@ -66,12 +66,15 @@ struct WatchLoanLedger: Codable, Equatable {
     }
 
     static let keptAudits = 20
+    static let keptReplacedBookings = 512
 
     var audits: [Audit] = []
     var inbox = WatchLoanInbox()
     var lastBatchAt: Date?
     /// The watch's last confirmed loop, from its newest record batch.
     var watchLoop: WatchLoop?
+    /// Watch bookings a kit record replaced, so a late batch carrying one doesn't store it again.
+    var replacedBookings: [String]?
     /// The kit's latest foreign-session time this phone has handled, saved after the audit it caused.
     var lastForeignSessionHandled: Date?
 
@@ -223,7 +226,7 @@ actor WatchLoanCoordinator {
     }
 
     private func receiveRecords(_ data: Data) async {
-        guard let batch = try? WatchLoanRecordBatch.decode(data), batch.version == WatchLoanRecordBatch.currentVersion else {
+        guard var batch = try? WatchLoanRecordBatch.decode(data), batch.version == WatchLoanRecordBatch.currentVersion else {
             warning(.watch, "Watch record batch can't be read; not acknowledged")
             return
         }
@@ -231,6 +234,8 @@ actor WatchLoanCoordinator {
             acknowledge(batch)
             return
         }
+        let replaced = Set(ledger.replacedBookings ?? [])
+        batch.pumpEvents.removeAll { $0.newPumpEvent.dose?.syncIdentifier.map(replaced.contains) ?? false }
         do {
             try await host.merge(batch)
         } catch {
@@ -238,6 +243,14 @@ actor WatchLoanCoordinator {
             return
         }
         _ = ledger.inbox.accept(batch.batchID)
+        let replacing = batch.pumpEvents.compactMap(\.replacesSyncIdentifier)
+        if !replacing.isEmpty {
+            ledger
+                .replacedBookings = Array(
+                    ((ledger.replacedBookings ?? []) + replacing)
+                        .suffix(WatchLoanLedger.keptReplacedBookings)
+                )
+        }
         if case let .lent(epoch) = state, epoch == batch.epoch {
             ledger.lastBatchAt = now()
             host.setAlarm(.phoneNoWatchUpdates, armed: true, anchor: ledger.lastBatchAt ?? now())
