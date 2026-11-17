@@ -59,7 +59,11 @@ final class WatchLoanAlerts {
 
     // MARK: - Loan
 
-    func post(_ alert: LoanAlert) {
+    /// The "iPhone didn't answer" notice, pending from the request on, so it shows even if Trio is suspended by then.
+    static let requestTimeoutID = "trio.loan.requestTimeout"
+
+    /// Now, or at `date` under `id` when given.
+    func post(_ alert: LoanAlert, id: String? = nil, at date: Date? = nil) {
         let title: String
         var body = ""
         switch alert {
@@ -101,10 +105,10 @@ final class WatchLoanAlerts {
             return
         }
         notifier.post(
-            id: "trio.loan.alert." + UUID().uuidString,
+            id: id ?? "trio.loan.alert." + UUID().uuidString,
             title: title,
             body: body,
-            at: nil,
+            at: date,
             timeSensitive: true,
             category: nil
         )

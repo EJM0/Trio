@@ -83,6 +83,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
     var model = "Watch7,1"
     var notificationsAllowed = true
     var activity = FakeActivity()
+    var requestTimeout = WatchLoan.watchRequestTimeout
     private(set) var adopted = 0
     private(set) var restored = 0
     private(set) var doubles: [LoanPumpDouble] = []
@@ -126,6 +127,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
             modelIdentifier: { [weak self] in self?.model },
             appBuild: "1",
             beginActivity: { [weak self] _ in self?.activity ?? FakeActivity() },
+            requestTimeout: requestTimeout,
             phoneAnswerTimeout: 0.2
         ))
         return created
@@ -708,6 +710,46 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.host.state == .stopped(epoch: 1, reason: .superseded))
         await cgm.issueAlert(failed)
         #expect(world.notifier.pending[failedID] == nil, "superseded: the phone has the sensor and its alerts")
+    }
+
+    @Test("G-1: every watch state that may not dose has a notice pending or shown on the watch") func alarmCoverage() async throws {
+        let unanswered = LoanFixture()
+        unanswered.requestTimeout = 0.3
+        unanswered.host = unanswered.makeHost()
+        await unanswered.host.startTapped()
+        guard case .requesting = unanswered.host.state else {
+            Issue.record("Start didn't request")
+            return
+        }
+        #expect(unanswered.notifier.pending[WatchLoanAlerts.requestTimeoutID]?.date == unanswered.clock.addingTimeInterval(0.3))
+        try await Task.sleep(nanoseconds: 700_000_000)
+        await unanswered.host.serially {}
+        #expect(unanswered.host.state == .idle(epoch: 0))
+        #expect(unanswered.notifier.pending[WatchLoanAlerts.requestTimeoutID] == nil, "replaced by the notice shown now")
+        #expect(unanswered.notifier.posted.contains { $0.hasPrefix("trio.loan.alert.") })
+
+        let world = LoanFixture()
+        try await world.startLoan()
+        #expect(world.notifier.pending[WatchLoanAlerts.requestTimeoutID] == nil, "the grant came: no notice")
+        await world.reading(160)
+        await world.host.endTapped()
+        #expect(world.host.state == .returning(epoch: 1))
+        #expect(!world.notifier.notLooping.isEmpty)
+
+        let stopped = LoanFixture()
+        try await stopped.startLoan()
+        await stopped.reading(160)
+        stopped.pod.holder = .phone
+        await stopped.reading(160)
+        try await Task.sleep(nanoseconds: 200_000_000)
+        await stopped.host.serially {}
+        #expect(stopped.host.state == .stopped(epoch: 1, reason: .foreignSession))
+        #expect(!stopped.notifier.notLooping.isEmpty)
+
+        try Data("not json".utf8).write(to: stopped.files.url(.state))
+        await stopped.relaunch()
+        #expect(stopped.host.state == .stopped(epoch: 0, reason: .unconfirmed))
+        #expect(!stopped.notifier.notLooping.isEmpty)
     }
 
     @Test(

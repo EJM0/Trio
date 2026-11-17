@@ -15,17 +15,27 @@ import Testing
         let context: NSManagedObjectContext
         let gate: WatchLoanGate
         let alertManager: TrioAlertManager?
+        let notLoopingMonitor: NotLoopingMonitor?
 
-        init(context: NSManagedObjectContext, gate: WatchLoanGate, alertManager: TrioAlertManager?) {
+        init(
+            context: NSManagedObjectContext,
+            gate: WatchLoanGate,
+            alertManager: TrioAlertManager?,
+            notLoopingMonitor: NotLoopingMonitor?
+        ) {
             self.context = context
             self.gate = gate
             self.alertManager = alertManager
+            self.notLoopingMonitor = notLoopingMonitor
         }
 
         func assemble(container: Container) {
             container.register(WatchLoanGate.self) { _ in self.gate }
             if let alertManager {
                 container.register(TrioAlertManager.self) { _ in alertManager }
+            }
+            if let notLoopingMonitor {
+                container.register(NotLoopingMonitor.self) { _ in notLoopingMonitor }
             }
             container.register(DeviceDataManager.self) { r in BaseDeviceDataManager(resolver: r) }.inObjectScope(.container)
             container.register(CarbEntryMutationService.self) { r in
@@ -58,7 +68,10 @@ import Testing
         }
     }
 
-    private static func makeRig(alertManager: TrioAlertManager? = nil) async throws -> Rig {
+    private static func makeRig(
+        alertManager: TrioAlertManager? = nil,
+        notLoopingMonitor: NotLoopingMonitor? = nil
+    ) async throws -> Rig {
         let stack = try await CoreDataStack.createForTests()
         let context = stack.newTaskContext()
         let gateStore: WatchLoanStore<PhoneLoanState> = WatchLoanStoreTests.temporaryStore()
@@ -66,7 +79,7 @@ import Testing
         let resolver = Assembler([
             StorageAssembly(), ServiceAssembly(), APSAssembly(), NetworkAssembly(), UIAssembly(), SecurityAssembly(),
             TestAssembly(testContext: context),
-            LoanTestAssembly(context: context, gate: gate, alertManager: alertManager)
+            LoanTestAssembly(context: context, gate: gate, alertManager: alertManager, notLoopingMonitor: notLoopingMonitor)
         ]).resolver
         return Rig(
             resolver: resolver,
@@ -379,6 +392,48 @@ import Testing
 
         monitor.setArmed(true)
         #expect(abs((firstDelay() ?? 0) - 1200) < 5)
+    }
+
+    @Test(
+        "G-1: relaunched where no device may dose, the phone's series is pending again; in lent the silence steps are",
+        arguments: ["lending", "takingBack", "unreadable", "lent"]
+    ) func alarmsAfterRelaunch(_ name: String) async throws {
+        let spy = SpyAlertManager()
+        let loopDates = PassthroughSubject<Date, Never>()
+        let monitor = NotLoopingMonitor(loopDates: loopDates.eraseToAnyPublisher(), trioAlertManager: spy)
+        let rig = try await Self.makeRig(alertManager: spy, notLoopingMonitor: monitor)
+        // the last loop was long ago: the series from it is over, nothing is pending
+        loopDates.send(Date().addingTimeInterval(-3 * 3600))
+        let store: WatchLoanStore<PhoneLoanState> = WatchLoanStoreTests.temporaryStore()
+        switch name {
+        case "lending": try store.save(.lending(epoch: 1, requestID: UUID()))
+        case "takingBack": try store.save(.takingBack(epoch: 2, loan: .superseding(epoch: 1, at: Date())))
+        case "lent": try store.save(.lent(epoch: 1))
+        default: try Data("not json".utf8).write(to: store.url)
+        }
+        let before = spy.issuedAlerts.count
+        let coordinator = WatchLoanCoordinator(
+            host: rig.host,
+            store: store,
+            ledgerStore: WatchLoanStoreTests.temporaryStore(WatchLoanLedger.self)
+        )
+        await coordinator.start()
+
+        let issued = spy.issuedAlerts.dropFirst(before)
+        func delay(_ alert: Alert) -> TimeInterval? {
+            if case let .delayed(interval) = alert.trigger { return interval }
+            return nil
+        }
+        let notLooping = issued.filter { $0.identifier.managerIdentifier == "trio.aps" }.compactMap(delay)
+        let silence = issued.filter { $0.identifier.managerIdentifier == "trio.watchloan" }.compactMap(delay)
+        if name == "lent" {
+            #expect(notLooping.isEmpty)
+            #expect(silence.count == 4)
+        } else {
+            #expect(notLooping.count == 6, "20 to 120 min, from the relaunch")
+            #expect(abs((notLooping.min() ?? 0) - 1200) < 5)
+            #expect(silence.isEmpty)
+        }
     }
 
     @Test(

@@ -47,6 +47,7 @@ struct WatchLoanEnvironment {
     /// Holds background time for a piece of work; the host ends it on every path.
     var beginActivity: (String) -> LoanBackgroundActivity = { _ in NoBackgroundActivity() }
     var adoptTimeout: TimeInterval = 60
+    var requestTimeout: TimeInterval = WatchLoan.watchRequestTimeout
     var phoneAnswerTimeout: TimeInterval = 5
 }
 
@@ -117,6 +118,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     /// The background time of the cycle or message in progress.
     @ObservationIgnored var activity: LoanBackgroundActivity?
     @ObservationIgnored var adoptedAt: Date?
+    @ObservationIgnored private var requestTimer: Task<Void, Never>?
     /// The saved files, read on the file queue; every entry point waits for it.
     @ObservationIgnored private(set) var loaded: Task<Void, Never>!
 
@@ -340,7 +342,28 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         if case .idle = next, previous != next {
             Task { await self.retireDevices() }
         }
+        updateRequestTimeout(from: previous, to: next)
         return true
+    }
+
+    /// The phone may have released the pump without its grant arriving: nothing doses then, so the request ends
+    /// with a notice that is already pending in the system.
+    private func updateRequestTimeout(from previous: WatchLoanState, to next: WatchLoanState) {
+        guard case let .requesting(_, requestID) = next else {
+            guard case .requesting = previous else { return }
+            requestTimer?.cancel()
+            env.notifier.cancel(ids: [WatchLoanAlerts.requestTimeoutID])
+            return
+        }
+        if case let .requesting(_, previousID) = previous, previousID == requestID { return }
+        let timeout = env.requestTimeout
+        alerts.post(.phoneDidNotAnswer, id: WatchLoanAlerts.requestTimeoutID, at: env.now().addingTimeInterval(timeout))
+        requestTimer?.cancel()
+        requestTimer = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+            guard !Task.isCancelled, let self, case let .requesting(_, current) = state, current == requestID else { return }
+            await handle(.requestTimedOut)
+        }
     }
 
     private func startLoanRecords(epoch: Int64) async throws {
