@@ -5,20 +5,20 @@ Owner: Agent F. Reviewer: Agent G. Scope: v1 (R-1..R-10). Related: `ux-guideline
 
 | ID | Date | Area | Decision | Status |
 |---|---|---|---|---|
-| DD-1 | 2026-11-16 | Copy | Fixed vocabulary: "Trio on Watch", "in control", Start / End / "Take Back Pump" | Proposed |
-| DD-2 | 2026-11-16 | Watch main | Control symbol plus loop age replaces the "N min" line under the bobble | Proposed |
-| DD-3 | 2026-11-16 | Watch nav | Status page is the last vertical page, also opened by tapping the control line | Proposed |
-| DD-4 | 2026-11-16 | Phone Home | Control pill replaces the loop ring while not `home`; banner ranked below "Notifications Disabled" | Proposed |
-| DD-5 | 2026-11-16 | Freshness | Separate clocks; "STALE DATA" only for the tethered remote | Proposed |
-| DD-6 | 2026-11-16 | Bolus | Outcome stages, delivery view with cancel, uncertain copy without retry | Proposed |
-| DD-7 | 2026-11-16 | Bolus | No recommendation on the watch unless the phone's calculator is shared | Proposed, needs orchestrator |
-| DD-8 | 2026-11-16 | Bolus | iOS low-glucose bolus warning on the watch | Proposed |
-| DD-9 | 2026-11-16 | Take Back | Always available on the phone; context-specific copy; steer to End when the watch is reachable | Proposed |
-| DD-10 | 2026-11-16 | Start | Start sheet with facts and alert limits; extra refusals (indefinite override, notifications off) | Proposed, needs architecture change |
-| DD-11 | 2026-11-16 | Alerts | Snooze for glucose only, per device; not-looping series as on the phone | Proposed, needs architecture change |
-| DD-12 | 2026-11-16 | Phone | Blocked actions disabled with a note; pump panel opens a Trio sheet, not the kit UI | Proposed |
-| DD-13 | 2026-11-16 | Watch | One "Stopped" state with reason and pump fail-safe sentence; replaces "ended" | Proposed, needs architecture change |
-| DD-14 | 2026-11-16 | Accessibility | VoiceOver alternative to the crown confirmation | Proposed, unverified on device |
+| DD-1 | 2026-11-16 | Copy | Fixed vocabulary: "Trio on Watch", "in control", Start / End / "Take Back Pump" | Implemented (M6); G re-review pending |
+| DD-2 | 2026-11-16 | Watch main | Control symbol plus loop age replaces the "N min" line under the bobble | Implemented (M6); G re-review pending |
+| DD-3 | 2026-11-16 | Watch nav | Status page is the last vertical page, also opened by tapping the control line | Implemented (M6); G re-review pending |
+| DD-4 | 2026-11-16 | Phone Home | Control pill replaces the loop ring while not `home`; banner ranked below "Notifications Disabled" | Implemented with changes (M6, see notes); G re-review pending |
+| DD-5 | 2026-11-16 | Freshness | Separate clocks; "STALE DATA" only for the tethered remote | Implemented (M6); G re-review pending |
+| DD-6 | 2026-11-16 | Bolus | Outcome stages, delivery view with cancel, uncertain copy without retry | Implemented, partly (M6, see notes); G re-review pending |
+| DD-7 | 2026-11-16 | Bolus | No recommendation on the watch unless the phone's calculator is shared | Superseded by ADR-005 (recommendation from the shared calculator, M5); shown in M6 |
+| DD-8 | 2026-11-16 | Bolus | iOS low-glucose bolus warning on the watch | Not implemented (open) |
+| DD-9 | 2026-11-16 | Take Back | Always available on the phone; context-specific copy; steer to End when the watch is reachable | Implemented (M6, G-18 applied); G re-review pending |
+| DD-10 | 2026-11-16 | Start | Start sheet with facts and alert limits; extra refusals (indefinite override, notifications off) | Implemented (M6, G-6b/G-8/G-12 applied); G re-review pending |
+| DD-11 | 2026-11-16 | Alerts | Snooze for glucose only, per device; not-looping series as on the phone | Architecture done in M5 (V2-13/V2-16); no M6 UI |
+| DD-12 | 2026-11-16 | Phone | Blocked actions disabled with a note; pump panel opens a Trio sheet, not the kit UI | Implemented, partly (M6, see notes); G re-review pending |
+| DD-13 | 2026-11-16 | Watch | One "Stopped" state with reason and pump fail-safe sentence; replaces "ended" | Implemented (M6); G re-review pending |
+| DD-14 | 2026-11-16 | Accessibility | VoiceOver alternative to the crown confirmation | Not implemented (open) |
 
 ---
 
@@ -189,3 +189,24 @@ Owner: Agent F. Reviewer: Agent G. Scope: v1 (R-1..R-10). Related: `ux-guideline
 - **Safety:** still a deliberate, separate action after the amount screen.
 - **Assessment:** verify on device with VoiceOver before relying on it.
 - **Agent G review:** pending. **Final:** pending. **Status:** Proposed, unverified on device.
+
+## M6 implementation notes (2026-11-16)
+
+Branch `feat/tow-ui`. Details and how the screenshots were made: `../implementation/implementation-status.md` § M6. Screenshots: `screenshots/`.
+
+| DD | What shipped | Differs from the entry |
+|---|---|---|
+| DD-1 | Vocabulary used in every new string. | — |
+| DD-2 | `ControlLineView`: symbol + word + loop age ("Watch · 2m"), iOS ring thresholds with the 30 s grace from the watch's last confirmed cycle; button to the status page. | Age uses the iOS `formattedTimeAgo` (already compiled into the watch, G-13). |
+| DD-3 | Status page is page 4; the control line opens it. The main page's toolbar is hidden on it. | — |
+| DD-4 | Pill "Watch · 3m" replaces the loop ring in every phone state but `home`; banner second after "Notifications Disabled"; eventual glucose hidden; pull-to-loop off. | Age is the last record batch (V2-14), labelled "last update", not "last heard"; green to 10 min, orange after, red at 30 min with "No Updates from Apple Watch" (G-6a). G-2's `CycleSummary`, IOB/COB "--" and Live Activity rule are not built. |
+| DD-5 | Reading age on the delta line ("+3 · 3m", G-14), loop age on the control line, pump and sensor ages on the status page; "STALE DATA" only tethered. | The phone's trend arrow is hidden while a loan runs (it describes the phone's readings). |
+| DD-6 | Sending, started (accepted, "isn't delivered yet"), bolusing, finished, cancelled, not given, not confirmed (G-3 copy, no retry, Recent Doses list). Failures stay until OK (G-4). | No "x of y U" progress and no slim bar on the main page: the host doesn't expose a delivered amount. Cancelled says part may have been given. |
+| DD-7 | `BolusCalculator` recommendation from the last watch determination; limits from the grant. | Superseded by ADR-005. |
+| DD-8 | — | Low-glucose bolus warning not on the watch. |
+| DD-9 | Three dialog texts; destructive role only for "Take Back Anyway". "Use the Pod on This iPhone" with its own confirmation when the kit refuses. | — |
+| DD-10 | Facts from a live phone query (pod and sensor time left, override and temp target with end, indefinite override flagged), then two fixed lines (G-6b alarm wording, G-8 Nightscout and remote). "Unknown" when the phone doesn't answer. Start stays on screen until the first watch reading (V3-8). | The settings line moved to the phone's blocked notes (G-12). |
+| DD-12 | Notes plus disabled actions on Treatments and Adjustments; note on Settings; quick-pick long press opens Treatments; pump panel opens the Trio on Watch sheet; remote commands refused with the G-8 text. | Settings other than pump settings stay editable (the note says they reach the watch only after End). |
+| DD-13 | Stopped header, reason, fail-safe sentence, "Done" (W25) that ends glucose alarms on the watch. | — |
+| DD-14 | — | No VoiceOver action on the crown confirmation. |
+

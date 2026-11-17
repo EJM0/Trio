@@ -1207,3 +1207,305 @@ Verification at `9c71179d4` (same simulators, separate derived-data folders):
 | C M5R-02 | Documented above (mirrored, not moved; events without a sync identifier dropped). | — |
 
 Verification after the re-review fixes: full `Trio Tests` 1242 total, 1195 passed, 0 failed, 46 skipped; `Trio Watch AppTests` 48 / 48 with the flag off and on.
+
+## M6: Trio on Watch UI (2026-11-16)
+
+Branch `feat/tow-ui` off `feat/tow-watch-loop` @ `9c71179d4`, merged with `feat/trio-on-watch` @ `13ad2930f` (final M5). Kit pins unchanged (LoopKit `7fd4d1a7`, OmnipodKit `c23daca`). Local signed commits, not pushed. Design status per entry: `design/design-decision-log.md` § M6 implementation notes.
+
+### Screens
+
+| ID | Where | What |
+|---|---|---|
+| W1 | `Views/GlucoseTrendView.swift`, `TrioMainWatchView.swift`, `TrioOnWatchTreatmentViews.swift` (`ControlLineView`) | Control line (symbol + word + loop age, iOS ring rules from the watch's last confirmed cycle, button to W2); while a loan runs, glucose, delta + reading age (G-14), IOB/COB with units from the watch; trend arrow hidden; "+" enabled only in control; override/temp target buttons open W9. Flag off: no host, so the tethered page is as before. |
+| W2 | `Views/TrioOnWatchStatusView.swift` | Last vertical page: header, Loop / Sensor / Pump rows (separate clocks, reservoir and pod/sensor time-left tiers, pod fault, V3-4 pod notice, unconfirmed-command notice, suspended), battery row below 30 % (G-16), Start / End / Done, Suspend and Resume Insulin while in control, footers with G-7 wording. Main toolbar hidden on this page. |
+| W3 | `StartTrioOnWatchView` | Facts from a live phone query (`WatchLoanStartFacts`), then two fixed lines (G-6b, G-8). |
+| W4 | `HandOffView` | Starting, waiting for the first watch reading (V3-8), ending; success closes after 2 s; refusals and "no answer" stay until OK (G-4). "No answer" never says "Nothing changed" (G-1). |
+| W5 | `confirmationDialog` on W2 | End confirmation; tried at tap time, refused on screen when the phone isn't reachable (G-15). |
+| W6/W8 | `BolusInputView`, `BolusConfirmationView`, `CarbsInputView` | In control: limits, increment and recommendation from the watch (ADR-005); the confirmed amount rounds down to the increment and goes to `requestBolus`; carbs go to `addCarbs` ("Carbs saved on your watch."). Expired entries keep the existing refusal. |
+| W7 | `LoanBolusProgressView`, `RecentDosesView` | Sending, started (accepted, not delivered), bolusing (cancel), finished, cancelled, not given, not confirmed (G-3 copy, no retry, Recent Doses). |
+| W9 | `LoanAdjustmentSheet` | Running override or temp target with end time, cancel only (V2-25). |
+| P1 | `Home/View/Header/TrioOnWatchPhoneViews.swift` (`TrioOnWatchPill`), `HomeRootView+Header.swift`, `MultiUsePanelState.swift` | Pill instead of the loop ring in every state but `home`; banner ranked second; eventual glucose hidden; pull-to-loop off; pump panel opens P2. |
+| P2/P3 | `TrioOnWatchSheet` | State, last update, what the iPhone won't do, Take Back with three dialog texts (destructive only "Take Back Anyway", G-18), "Use the Pod on This iPhone" when the kit refuses (P43/P46). |
+| P4 | `TrioOnWatchBlockedNote` | Treatments (button disabled), Adjustments (list disabled), Settings root (note); quick-pick long press opens Treatments; remote commands refused with the G-8 text (`TrioRemoteControl`). |
+| History | `HistoryRootView+Treatments.swift` | Audit bolus labelled "Unrecorded pod insulin, found at take back" (G-19). |
+
+### Host and coordinator API added
+
+- `WatchLoanHost.lastAlert` (observable, set in `execute(.alert)`): two lines in `WatchLoanHost.swift`, the only change to an M5 file.
+- `Loan/WatchLoanHost+UI.swift`: `uiStatus()`, `startFacts()`, `bolusLimits`, `carbsSaved(since:)`, `phoneIsReachable`. Read-only besides the facts query.
+- `WatchLoanStartFacts` (`APS/WatchLoan`, both targets): query and reply keys. The phone answers in `AppleWatchManager+WatchLoan.swift` through `WatchLoanPhoneHost.startFacts()` (protocol requirement with an empty default; `BaseWatchLoanPhoneHost` fills it from `activeAdjustments()`, the pump's `endsAt` and the G7's `sensorEndsAt`).
+- `WatchLoanCoordinator.host` is now internal (was private) so the reply can reach it; `WatchLoanCoordinator+UI.swift` adds `lastBatchAt`.
+
+### Screenshots
+
+Paths: `design/screenshots/watch-41mm/`, `watch-46mm/` (36 each), `phone-light/`, `phone-dark/`, `phone-largest-text/` (14 each). No personal data: fixed fixture values and a simulator with the CGM simulator and no pod.
+
+How they were made:
+- A DEBUG-only harness. `-TrioOnWatchScreen <name>` (watch, `Views/TrioOnWatchFixtures.swift`) and `-TrioOnWatchPhoneScreen <name>` (phone, `TrioOnWatchPhoneFixture`) replace the screens' status value with a fixture and open the named page, sheet or dialog. The loan host, the coordinator, the gate and the pump are never touched; actions are no-ops. File names are the fixture names.
+- Launched with `xcrun simctl launch <udid> <bundle> -TrioOnWatchScreen <name>`, captured with `xcrun simctl io <udid> screenshot`. No synthetic input.
+- Phone: a fresh iPhone 17 with Documents, Application Support, preferences and the app group cloned from a configured simulator (CGM simulator), `max_iob` 10, release notes acknowledged. Light and dark via `simctl ui appearance`; largest text via `simctl ui content_size accessibility-extra-extra-extra-large` (Home is capped at xxLarge by design).
+- Watch text size: `simctl ui content_size` is not supported by the watchOS 27.2 runtime ("Runtime does not support dynamic text"), so no largest-text watch shots. All new watch text uses text styles; checking W1 and W2 at the largest watch size (G-14) stays a device check.
+- Watch: the flag-on watch app built alone, with `RileyLinkBLEKit`, `RileyLinkKit` and CryptoSwift copied into its `Frameworks` and re-signed ad hoc, because the app as built doesn't embed them (finding below). The binary itself is unchanged.
+
+Simulators: iPhone 17 iOS 27.2 `0BADBDCF-3D0E-49B9-A424-D26F53FB522B`, paired with Apple Watch Series 9 41 mm watchOS 27.2 `002605B9-96FD-42AF-B843-9FD9B57891FD` and Series 12 46 mm `2622559D-D397-4562-898A-2DBD3489380D`; tests on iPhone 17 `FEFE1583-D6DD-4847-925C-F092CE00A727`.
+
+### Finding: the watch app dies at launch on this branch
+
+`Trio Watch App.app/Frameworks` holds LoopKit, OmnipodKit and G7SensorKit but not OmnipodKit's own dependencies (`RileyLinkBLEKit`, `RileyLinkKit`, CryptoSwift). dyld stops the app at launch ("Library not loaded: @rpath/RileyLinkBLEKit.framework"), flag on and off, alone and inside the iOS app. Unit tests don't catch it because `xcodebuild test` puts the products folder on the framework path. Not fixed here (the watch target's embed phase is M5's); it blocks any in-app check of the watch.
+
+### Notifications
+
+No new notification code in M6. Checked against F/G: the phone's silence alert is "No updates from Apple Watch" (M4, G-6a); the watch's glucose alarms use the category `trio.loan.glucose`, which is never registered, so they carry no actions and snooze can't be a double-tap default (G-5; double-tap on a device unverified); not-looping, pump, stopped and pod alerts have no category. Not done: G-10's Trio line under kit pump alerts (lives in `Loan/WatchLoanAlerts.swift`, M5's file); the refusal texts in `WatchLoanAlerts.text(for:)` still fall back to "Check Trio on your iPhone (<code>)" for `indefiniteOverride` and other phone reasons, while the screens use `TrioOnWatchStatus.refusalText` (suggest M5's alert reuse it).
+
+### G findings
+
+| Finding | M6 |
+|---|---|
+| G-1 | Watch "no answer" never says "Nothing changed"; points to the phone. The ack distinction isn't in the protocol; alarm coverage is M3–M5's. |
+| G-2 | Partly: pill keyed on the last record batch (not `isReachable`), worded "last update"; eventual glucose hidden. Not done: `CycleSummary`, IOB/COB "--" on the phone, Live Activity. |
+| G-3 | Copy and Recent Doses link; End refusal shows why. |
+| G-4 | Failures, refusals, cancelled and unconfirmed results stay until OK. |
+| G-5, G-6 | See Notifications; Start alarm line uses G-6b wording. |
+| G-7 | Footers without "keeps looping"; IDLE footer says loops may be missed. |
+| G-8 | Start line, remote refusal text, P2 list. Nightscout note at Start/End not built (maintainer decision). |
+| G-9 | No complication (ADR-008). |
+| G-10 | Not done (M5 alert file). Pod fault shown on W2. |
+| G-11 | M5 (ADR-006). |
+| G-12 | Two fixed lines. |
+| G-13 | iOS `formattedTimeAgo` on both devices. |
+| G-14 | Reading age on the delta line; largest watch text not checked (above). |
+| G-15 | End tried at tap time; Start not pre-disabled. |
+| G-16 | Battery row only below 30 %. |
+| G-17 | Not done (no Open Loop refusal). |
+| G-18 | Destructive only "Take Back Anyway". |
+| G-19 | History label. |
+| G-20 | Superseded by V2-25: Suspend and Resume on W2. |
+| G-21 | No change. |
+
+### Tests
+
+| Suite | Target | Tests |
+|---|---|---|
+| `TrioOnWatchStatusTests` | Watch AppTests | 12: loop tier edges, control line per state (symbol, word, VoiceOver label), main values and the 12 min mask, status rows per state with labels, battery and notices, primary action and footers (no "keeps looping"), Start facts, hand-off stages, every refusal in plain words, bolus states (accepted isn't finished, uncertain has no retry), bolus rounding, every fixture resolves |
+| `TrioOnWatchPhoneStatusTests` | Trio Tests | 8: loan state to phase (timers), pill and banner text and labels per state (no "silent"), pill tint thresholds, Take Back context and roles, offers, banner rank, notes, every fixture resolves |
+
+Runs (`X` = `xcodebuild -workspace Trio.xcworkspace`, derived data in the scratchpad: `dd-m6-watch`, `dd-m6-watch-off`, `dd-m6-watchtest`, `dd-m6-watchtest-off`, `dd-m6-ios`):
+
+| Step | Result |
+|---|---|
+| Watch app build, flag on / off | 0 / 0 |
+| iOS app build, flag on | 0 |
+| `Trio Watch AppTests`, flag on / off, `-parallel-testing-enabled NO` | 0 / 0; 60 / 60 each |
+| Full `Trio Tests` (flag off) | 1250 total, 46 skipped, 1 failed, 1 known issue (the double's control). The failure is the known `FileStorageTests` "Can parse mmol/L settings to mg/dL" flake; `FileStorageTests` + `TrioOnWatchPhoneStatusTests` alone: 17 / 17 |
+
+### Not verified
+
+- Nothing on a device. VoiceOver read-out, crown and Digital Crown focus, double-tap on alerts, haptics, Always On, real phone ↔ watch messages (the Start-facts query has no test against a live `WCSession`).
+- The live screens were only seen through the harness; the host-to-screen glue (`uiStatus()`, treatment routing) is compiled and type-checked, not run against a loan, because the watch app can't launch (finding above).
+- DD-8 (low-glucose bolus warning) and DD-14 (VoiceOver confirm action) are not built.
+
+### New strings (English source; catalog sync is the maintainer's IDE build)
+
+```
+"\(Int(truncating: $0 as NSNumber)) g"
+"A bolus is running. Try again when it's finished."
+"Add treatment"
+"Allow notifications and time-sensitive notifications for Trio on your watch to start."
+"Another device used your pod, so this iPhone stopped sending it commands."
+"Another device used your pod."
+"Another Device Used Your Pod"
+"Apple Watch didn't confirm the start of Trio on Watch"
+"Apple Watch Didn't Confirm"
+"Apple Watch is in control, \(spokenAge)"
+"Apple Watch is in control. \(message)"
+"Apple Watch Is in Control"
+"Asking your iPhone…"
+"Battery"
+"Bolus and carbs are entered on your watch."
+"Bolus cancelled"
+"Bolus finished"
+"Bolus not confirmed"
+"Bolus not given"
+"Bolus started"
+"Bolus"
+"Bolusing"
+"Bring your iPhone close and try again."
+"Bring your iPhone close to end. Your watch stays in control until then."
+"Can't reach your pod. Keep your watch close to it."
+"Can't reach your pump"
+"Can't Reach Your Pump"
+"Cancel bolus"
+"Cancel Override"
+"Cancel Temp Target"
+"Cancel"
+"Carbs on board, \(loan.mainValues(now: Date()).cob)"
+"Carbs saved on your watch."
+"Change pump settings, overrides or temp targets"
+"Charge your watch to at least 30 % to start."
+"Close the pump screen in Trio on your iPhone and try again."
+"Done"
+"End Trio on Watch on your watch to bring everything back."
+"End Trio on Watch?"
+"End Trio on Watch"
+"End"
+"Ending moves your pump and history back to your iPhone. To change your pod or sensor, end Trio on Watch first."
+"Ending Trio on Watch…"
+"Ending…"
+"Ends Trio on Watch on this watch and stops its glucose alarms"
+"Give insulin or change basal"
+"Glucose \(glucose) \(units.rawValue), \(delta.map { String(localized: "
+"Glucose unavailable"
+"If this doesn't clear, take back your pump on your iPhone."
+"Insulin on board, \(loan.mainValues(now: Date()).iob)"
+"Insulin suspended"
+"iPhone · \(age)"
+"iPhone is in control, last loop \(age)"
+"Keep Trio open until your watch gets its first sensor reading."
+"Keep Trio open. Your watch takes over once it gets a reading."
+"Keep your iPhone close to your pod. Nothing is giving insulin automatically."
+"Keep your iPhone close to your pod."
+"Keep your iPhone close to your watch."
+"Keep your iPhone close."
+"Last contact \($0.formattedTimeAgo()) ago"
+"last loop \($0.formattedSpokenTimeAgo())"
+"Last loop \($0.formattedTimeAgo()) ago"
+"Last reading \($0.date.formattedTimeAgo()) ago"
+"last update \($0.formattedSpokenTimeAgo())"
+"Last update \($0) ago. Tap for details."
+"Last update from Apple Watch: \($0.formatted(date: .omitted, time: .shortened)) (\($0.formattedTimeAgo()) ago)"
+"Log carbs"
+"Loop at \(lastCycleAt.formatted(date: .omitted, time: .shortened)) couldn't reach the pump."
+"Loop"
+"Nightscout updates and remote commands pause until you end Trio on Watch."
+"No boluses in the last 6 hours."
+"No end time"
+"No loop on this watch yet"
+"no loop yet"
+"No override is running."
+"No pump contact yet"
+"No pump"
+"No reading on this watch yet"
+"No temp target is running."
+"No update from Apple Watch yet. Tap for details."
+"No update from Apple Watch yet."
+"no update yet"
+"No updates from Apple Watch, \(spokenAge)"
+"No Updates from Apple Watch"
+"not confirmed"
+"Not confirmed"
+"OK"
+"On your watch, Trio's alarms may only tap your wrist when Silent Mode or a Focus is on. Keep your watch on and notifications allowed."
+"Only do this if no other device should control this pod. If another device still runs it, it stops when it next reaches your pod."
+"Open Trio on your iPhone to take back your pump."
+"Opens loop status"
+"Opens Trio on Watch details"
+"Opens Trio on Watch status"
+"Override “\(name)” has no end time. Stop it on your iPhone, or give it an end time, first."
+"Override “\(name)” runs until \($0.formatted(date: .omitted, time: .shortened))."
+"Override"
+"Overrides and temp targets can't be changed until you end Trio on Watch. You can cancel them on your watch."
+"Overrides"
+"Part of it may have been given. Check recent doses."
+"Pod ends in \(TrioOnWatchRules.timeLeft(until: podEndsAt, now: now))."
+"Pod ends in \(TrioOnWatchRules.timeLeft(until: podEndsAt, now: now))"
+"Pod, sensor and override details: unknown. Your iPhone didn't send them."
+"Pump Commands Paused"
+"Pump settings can't be changed until you end Trio on Watch, and other changes reach your watch only after you end it."
+"Pump"
+"Recent Doses"
+"Reservoir \(TrioOnWatchRules.insulin(Decimal(reservoir)))"
+"Resume Insulin"
+"Run remote commands or upload loop status to Nightscout"
+"Runs until \($0.formatted(date: .omitted, time: .shortened))"
+"Sending to pump…"
+"Sensor ends in \(TrioOnWatchRules.timeLeft(until: sensorEndsAt, now: now))."
+"Sensor ends in \(TrioOnWatchRules.timeLeft(until: sensorEndsAt, now: now))"
+"Sensor"
+"SMB"
+"STALE DATA"
+"Start Trio on Watch?"
+"Start Trio on Watch"
+"Start"
+"Starting Trio on Watch"
+"Starting Trio on Watch…"
+"Starting…"
+"Stop your override on your iPhone first, or give it an end time."
+"Stopped"
+"Suspend insulin?"
+"Suspend Insulin"
+"Suspend"
+"Take Back Anyway"
+"Take Back Pump"
+"Take back your pump from Apple Watch? Do this if your watch is off, lost or out of battery. If your watch is still running, it stops when it next reaches your pod."
+"Taking back your pump"
+"Taking Back Your Pump"
+"Taking back…"
+"Tap Done once your iPhone has your pump. Your watch then stops its glucose alarms."
+"Tap to check, or take back your pump."
+"Tap to use the pod on this iPhone."
+"Temp target “\(name)” runs until \(endsAt.formatted(date: .omitted, time: .shortened))."
+"Temp target"
+"Temp targets"
+"The hand-over took too long and didn't happen. Check Trio on your iPhone."
+"This iPhone won't, until Trio on Watch ends"
+"This would go over your max IOB of \(TrioOnWatchRules.insulin(5))."
+"Trio can't confirm your last insulin. New boluses are paused, and you can't end yet, until your pump answers."
+"Trio can't tell if your last bolus was given. New boluses are paused until your pump answers."
+"Trio can't tell which device controls your pump, so this iPhone sends no pump commands."
+"Trio can't tell which device controls your pump. Tap to take it back."
+"Trio can't tell which device controls your pump"
+"Trio on Watch hasn't reported for \(age ?? "
+"Trio on Watch is ending. Your watch is not giving insulin."
+"Trio on Watch is starting. Your watch is not giving insulin yet."
+"Trio on Watch is starting"
+"Trio on Watch needs Apple Watch Series 6 or later, or SE (2nd generation) or later."
+"Trio on Watch stopped. Your watch is not giving insulin."
+"Trio on Watch stopped"
+"Trio on Watch works with an Omnipod DASH pod and a Dexcom G7 shared with your watch."
+"Trio on Watch"
+"Trio on your iPhone doesn't include Trio on Watch."
+"Unknown"
+"Unrecorded pod insulin, found at take back"
+"Update Trio on your iPhone and watch to the same version."
+"Use the Pod on This iPhone?"
+"Use the Pod on This iPhone"
+"Waiting for your watch's first sensor reading…"
+"Watch · \(age)"
+"Watch battery \(Int(battery * 100)) %"
+"Watch is in control, \(spoken)"
+"You can't start or change overrides or temp targets while your watch is in control."
+"Your carbs were saved."
+"Your iPhone didn't answer. Open Trio on your iPhone to check which device controls your pump."
+"Your iPhone didn't confirm the hand-over."
+"Your iPhone didn't send everything your watch needs. Check Trio on your iPhone."
+"Your iPhone hasn't heard from your pump recently. Keep your iPhone close to your pump and try again."
+"Your iPhone is busy with a hand-off. Check Trio on your iPhone."
+"Your iPhone is in control."
+"Your iPhone is in control"
+"Your iPhone keeps showing glucose and sounding glucose alarms. Insulin and carbs on this iPhone include only what Apple Watch has sent so far. To suspend insulin, use Trio on your watch."
+"Your iPhone may already have released your pump, and Apple Watch didn't confirm it has it. Nothing may be giving insulin automatically."
+"Your iPhone takes back your pump and sensor."
+"Your iPhone took back your pump."
+"Your pod has stopped. It is not giving insulin."
+"Your pump accepted \(amount). It isn't delivered yet."
+"Your pump hasn't confirmed its last command. Try again once it has."
+"Your pump is delivering \(amount)."
+"Your pump keeps running its basal."
+"Your pump keeps running the last temp basal until it ends (at most 2 hours), then your scheduled basal."
+"Your pump reports \(amount) finished."
+"Your pump stops all insulin, including basal, until you resume. Trio doesn't loop while insulin is suspended."
+"Your watch and iPhone show different times. Check the time settings on both."
+"Your watch couldn't loop for over 6 hours."
+"Your watch couldn't reach your pod. Keep it close to your pod."
+"Your watch didn't confirm the start. Take back your pump on this iPhone?"
+"Your watch is in control."
+"Your watch is in control"
+"Your watch is not giving insulin. Your pump keeps the last temp basal until it ends, at most 2 hours, then runs your scheduled basal."
+"Your watch is still running Trio on Watch. Ending it on your watch is safer because your history comes back first. Take back anyway?"
+"Your watch takes over your pump and sensor. It may miss some loops; when it does, Trio alerts you and your pump falls back to your scheduled basal."
+```
+
+### Worktree hygiene
+
+SwiftFormat reformatted `Trio Watch App Tests/Unit Tests.swift` and `TrioTests/WatchLoanTests/WatchLoopInputsTests.swift` on every build; reverted each time. `Package.resolved` and submodules unchanged.
+
