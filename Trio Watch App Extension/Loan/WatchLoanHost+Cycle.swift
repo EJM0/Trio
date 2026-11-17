@@ -166,6 +166,7 @@ extension WatchLoanHost {
         evaluateDeterminationAlarms(determination, now: now)
 
         let plan = WatchDosingGate.plan(
+            automation: inputs.dosingMode.automation,
             rate: determination.rate,
             durationMinutes: determination.duration,
             units: determination.units,

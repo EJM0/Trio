@@ -1317,6 +1317,11 @@
 		AFB9C23BFF43559FEB563BEC /* TrioOnWatchStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06EF969ED3240727701E4891 /* TrioOnWatchStatusTests.swift */; };
 		D30010F72BED95FED9517E95 /* WatchLoanAudit.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A000000000000000005 /* WatchLoanAudit.swift */; };
 		2249B2CFA752FCF240EEA112 /* WatchLoopPhoneEquivalenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CA5406C1EAE1FC6C5BD7B24 /* WatchLoopPhoneEquivalenceTests.swift */; };
+		A7A50E000000000000000002 /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = A7A50E000000000000000001 /* CryptoSwift */; };
+		2C5E43301C03A878EBC89CAC /* RileyLinkBLEKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA7672D8DBD690069D5B8 /* RileyLinkBLEKit.framework */; };
+		2155984DEDAC32B32AA56735 /* RileyLinkBLEKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA7672D8DBD690069D5B8 /* RileyLinkBLEKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		3F03E3774458DE09574EE426 /* RileyLinkKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA7682D8DBD690069D5B8 /* RileyLinkKit.framework */; };
+		BFA859242C92697B98857594 /* RileyLinkKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA7682D8DBD690069D5B8 /* RileyLinkKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1437,6 +1442,8 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
+				BFA859242C92697B98857594 /* RileyLinkKit.framework in Embed Frameworks */,
+				2155984DEDAC32B32AA56735 /* RileyLinkBLEKit.framework in Embed Frameworks */,
 				C16B93ECB64B99EFDABFF513 /* G7SensorKit.framework in Embed Frameworks */,
 				515F844F2C1CF3DD756F6FE8 /* OmnipodKit.framework in Embed Frameworks */,
 				D93BDC53F4D23A9D8D518667 /* LoopKit.framework in Embed Frameworks */,
@@ -2716,6 +2723,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3F03E3774458DE09574EE426 /* RileyLinkKit.framework in Frameworks */,
+				2C5E43301C03A878EBC89CAC /* RileyLinkBLEKit.framework in Frameworks */,
+				A7A50E000000000000000002 /* CryptoSwift in Frameworks */,
 				26937DF68F0C56FA30D84DC5 /* G7SensorKit.framework in Frameworks */,
 				52AC9AB5C97BD54C3DE93E19 /* OmnipodKit.framework in Frameworks */,
 				1B4891C64D540B23CCE6FF09 /* LoopKit.framework in Frameworks */,
@@ -5771,6 +5781,7 @@
 				BDFF797A2D25AA870016C40C /* Resources */,
 				BD8207CF2D2B42E80023339D /* Embed Foundation Extensions */,
 				3DA7964F1F4B62BCBA7E7ECA /* Embed Frameworks */,
+				A7A50E000000000000000003 /* Check Embedded Frameworks */,
 			);
 			buildRules = (
 			);
@@ -5782,6 +5793,7 @@
 			);
 			name = "Trio Watch App";
 			packageProductDependencies = (
+				A7A50E000000000000000001 /* CryptoSwift */,
 			);
 			productName = "TrioWatch Watch App";
 			productReference = BDFF797C2D25AA870016C40C /* Trio Watch App.app */;
@@ -6123,6 +6135,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${SRCROOT}/scripts/capture-build-details.sh\"\n";
+		};
+		A7A50E000000000000000003 /* Check Embedded Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/scripts/check-watch-frameworks.sh",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)",
+			);
+			name = "Check Embedded Frameworks";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/watch-frameworks-checked",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SRCROOT/scripts/check-watch-frameworks.sh\" && touch \"$DERIVED_FILE_DIR/watch-frameworks-checked\"\n";
+			alwaysOutOfDate = 1;
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -8052,6 +8086,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DD868FD92E381E1C005D3308 /* XCRemoteSwiftPackageReference "Swift-JWT" */;
 			productName = SwiftJWT;
+		};
+		A7A50E000000000000000001 /* CryptoSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3BD9687D2D8DDD8800899469 /* XCRemoteSwiftPackageReference "CryptoSwift" */;
+			productName = CryptoSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
 
