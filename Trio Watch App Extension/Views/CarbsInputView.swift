@@ -93,6 +93,11 @@ struct CarbsInputView: View {
                 if continueToBolus {
                     state.carbsAmount = Int(min(carbsAmount, effectiveCarbsLimit))
                     navigationPath.append(NavigationDestinations.bolusInput)
+                } else if let host = LoanTreatments.host, state.isEntryFresh() {
+                    let grams = Int(min(carbsAmount, effectiveCarbsLimit))
+                    state.clearEntry()
+                    Task { await host.addCarbs(Decimal(grams)) }
+                    navigationPath.append(LoanCarbsSaved(grams: grams))
                 } else {
                     state.sendCarbsEntry(Int(min(carbsAmount, effectiveCarbsLimit)))
                     navigationPath.append(NavigationDestinations.acknowledgmentPending)

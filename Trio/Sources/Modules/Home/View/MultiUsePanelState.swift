@@ -9,6 +9,7 @@ enum MultiUsePanelState: Equatable {
     case tidepoolLoginRequired
     case whatsNew
     case dosingModeLimited(DosingMode)
+    case trioOnWatch
     case stats
 
     /// readings older than this offer manual glucose entry
@@ -22,9 +23,12 @@ enum MultiUsePanelState: Equatable {
         tidepoolLoginRequired: Bool,
         hasUnacknowledgedReleaseNotes: Bool,
         dosingMode: DosingMode,
+        trioOnWatch: Bool = false,
         now: Date
     ) -> MultiUsePanelState {
         if notificationsDisabled { return .notificationsDisabled }
+        // second only to notifications: the header pill carries control even when this is displaced (DD-4)
+        if trioOnWatch { return .trioOnWatch }
         if pumpTimeMismatch { return .pumpTimeMismatch }
         if now.timeIntervalSince(lastGlucoseDate ?? .distantPast) > cgmStaleAfter { return .cgmStale }
         // constrained modes clamp Max IOB to 0 without touching the stored value

@@ -35,6 +35,8 @@ extension Home {
         @State var showSnoozeSheet: Bool = false
         @State var showManualGlucose: Bool = false
         @State var showReleaseNotes: Bool = false
+        @State var trioOnWatch = TrioOnWatchPhoneModel()
+        @State var showTrioOnWatch = false
         @ObservedObject var releaseNotesService = ReleaseNotesService.shared
         // Pull-down-to-force-loop (see HomeRootView+Refresh.swift)
         @State var pullOffset: CGFloat = 0
@@ -103,7 +105,7 @@ extension Home {
             .overlay(alignment: .topTrailing) {
                 // borderless capsule (not a control); centered in the basal
                 // pane band so it clears the y-axis labels on every device size
-                if let basal = currentBasalReadout {
+                if !trioOnWatch.status.replacesLoopRing, let basal = currentBasalReadout {
                     HStack(spacing: 3) {
                         if basal.isManual {
                             Image(systemName: "hand.raised.fill")
@@ -271,6 +273,29 @@ extension Home {
             }
             .task {
                 await releaseNotesService.load()
+            }
+            .task {
+                trioOnWatch.attach(resolver)
+                #if DEBUG
+                    if TrioOnWatchPhoneFixture.current?.opensSheet == true { showTrioOnWatch = true }
+                    switch TrioOnWatchPhoneFixture.current?.opens {
+                    case "treatments": state.showModal(for: .treatmentView)
+                    case "adjustments": selectedTab = 2
+                    case "settings": selectedTab = 3
+                    default: break
+                    }
+                #endif
+                while !Task.isCancelled {
+                    await trioOnWatch.refresh()
+                    try? await Task.sleep(nanoseconds: 5_000_000_000)
+                }
+            }
+            .sheet(isPresented: $showTrioOnWatch) {
+                #if DEBUG
+                    TrioOnWatchSheet(model: trioOnWatch, presents: TrioOnWatchPhoneFixture.current?.dialog)
+                #else
+                    TrioOnWatchSheet(model: trioOnWatch)
+                #endif
             }
             .navigationTitle("Home")
             .navigationBarHidden(true)
@@ -481,6 +506,8 @@ extension Home {
                     state.showModal(for: .treatmentView)
                 }
                 .onLongPressGesture(minimumDuration: 0.5) {
+                    // carbs stored here wouldn't reach the watch; Treatments says why
+                    guard !trioOnWatch.status.replacesLoopRing else { return state.showModal(for: .treatmentView) }
                     guard state.enableQuickPickTreatments else { return }
                     let impactHeavy = UIImpactFeedbackGenerator(style: .heavy)
                     impactHeavy.impactOccurred()
@@ -500,6 +527,7 @@ extension Home {
                     state.showModal(for: .treatmentView)
                 }
                 .accessibilityAction(named: Text("Quick Pick Treatments")) {
+                    guard !trioOnWatch.status.replacesLoopRing else { return state.showModal(for: .treatmentView) }
                     guard state.enableQuickPickTreatments else { return }
                     Task {
                         await state.loadQuickPickTreatmentSuggestions()

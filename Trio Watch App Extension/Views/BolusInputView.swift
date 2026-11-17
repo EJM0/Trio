@@ -30,9 +30,12 @@ struct BolusInputView: View {
         // recommendation itself is zero). In that case there is nothing to bolus, so
         // offer a plain "Log Carbs" action instead of a dead-end disabled button.
         let isCarbsOnly = state.carbsAmount > 0 && adjustedBolusAmount <= 0
+        // while the watch holds the pump, the phone's low-glucose warning (DD-8)
+        let lowWarning = isCarbsOnly ? nil : LoanTreatments.host?.lowGlucoseBolusWarning()
         let actionButtonLabel = isCarbsOnly
             ? String(localized: "No Bolus, Log Carbs", comment: "Button Label to Log Carbs on Watch")
-            : String(localized: "Enact Bolus")
+            : lowWarning?
+            .shouldConfirm == true ? String(localized: "Ignore Warning and Enact Bolus") : String(localized: "Enact Bolus")
 
         VStack {
             if state.showBolusCalculationProgress {
@@ -120,8 +123,19 @@ struct BolusInputView: View {
                             .foregroundColor(.loopRed)
                     }
 
+                    if let lowWarning {
+                        Text(lowWarning.message)
+                            .font(.footnote)
+                            .foregroundColor(.loopRed)
+                    }
+
                     Button(actionButtonLabel) {
-                        if isCarbsOnly {
+                        if isCarbsOnly, let host = LoanTreatments.host, state.isEntryFresh() {
+                            let grams = state.carbsAmount
+                            state.clearEntry()
+                            Task { await host.addCarbs(Decimal(grams)) }
+                            navigationPath.append(LoanCarbsSaved(grams: grams))
+                        } else if isCarbsOnly {
                             state.sendCarbsEntry(state.carbsAmount)
                             navigationPath.append(NavigationDestinations.acknowledgmentPending)
                         } else {
@@ -161,7 +175,15 @@ struct BolusInputView: View {
             state.markEntryEdited()
             // Set initial bolus amount to recommended value
             // Only do this if user has not updated amount previously, e.g., when navigating to next and then back to this view
-            if bolusAmount == 0 {
+            // while the watch holds the pump, limits and the recommendation come from the watch, not the phone
+            if let host = LoanTreatments.host, let limits = host.bolusLimits {
+                state.maxBolus = limits.maxBolus
+                state.bolusIncrement = limits.increment
+                if bolusAmount == 0 {
+                    state.recommendedBolus = host.recommendBolus(carbs: Decimal(state.carbsAmount))?.insulinCalculated ?? 0
+                    bolusAmount = Double(truncating: NSDecimalNumber(decimal: state.recommendedBolus))
+                }
+            } else if bolusAmount == 0 {
                 state.requestBolusRecommendation()
                 bolusAmount = Double(truncating: NSDecimalNumber(decimal: state.recommendedBolus))
             }

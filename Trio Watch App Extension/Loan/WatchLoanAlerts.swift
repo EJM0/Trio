@@ -46,7 +46,7 @@ final class WatchLoanAlerts {
     private func post(notLooping minutes: Int, at date: Date?) {
         notifier.post(
             id: Self.notLoopingPrefix + String(minutes),
-            title: String(localized: "Trio on Watch isn't looping", comment: "Watch alert title when no loop ran for a while"),
+            title: String(localized: "Trio Not Active"),
             body: String(
                 localized: "No loop for \(minutes) minutes. Open Trio on your watch. The pump finishes any running temp basal, then follows its basal schedule.",
                 comment: "Watch alert body; the number is minutes since the last loop"
@@ -65,15 +65,16 @@ final class WatchLoanAlerts {
         switch alert {
         case .phoneDidNotAnswer:
             title = String(localized: "iPhone didn't answer", comment: "Watch alert when the phone didn't answer a start request")
+            // the phone may already have released the pump (G-1): don't say who controls it
             body = String(
-                localized: "Trio on Watch didn't start. Your iPhone still controls your pump.",
-                comment: "Watch alert body"
+                localized: "Open Trio on your iPhone to check which device controls your pump.",
+                comment: "Watch alert body when the phone didn't answer a start request"
             )
         case let .startRefused(reason):
             title = String(localized: "Trio on Watch didn't start", comment: "Watch alert title when a start was refused")
             body = Self.text(for: reason)
         case let .endRefused(reason):
-            title = String(localized: "Can't hand back yet", comment: "Watch alert title when End was refused")
+            title = String(localized: "Can't end Trio on Watch yet", comment: "Watch alert title when End was refused")
             body = Self.text(for: reason)
         case let .stopped(reason):
             title = String(
@@ -82,7 +83,7 @@ final class WatchLoanAlerts {
             )
             body = Self.text(for: reason)
         case .podUnreachable:
-            title = String(localized: "Pod not found", comment: "Watch alert title when the watch can't reach the pod")
+            title = String(localized: "Can't reach your pod", comment: "Watch alert title when the watch can't reach the pod")
             body = String(
                 localized: "Keep your watch close to the pod. Trio keeps trying.",
                 comment: "Watch alert body when the pod can't be reached"
@@ -128,52 +129,14 @@ final class WatchLoanAlerts {
             )
         case .unconfirmed:
             return String(
-                localized: "Your iPhone didn't confirm the hand-over. Take the pump back on your iPhone.",
+                localized: "Your iPhone didn't confirm the start. Take back your pump on your iPhone.",
                 comment: "Watch stop reason: the phone didn't confirm after a relaunch"
             )
         }
     }
 
     static func text(for refusal: LoanRefusal) -> String {
-        switch refusal {
-        case .phoneUnreachable:
-            return String(localized: "Your iPhone isn't reachable. Keep it close and try again.", comment: "Watch refusal reason")
-        case .watchBatteryLow:
-            return String(localized: "Charge your watch to at least 30 % first.", comment: "Watch refusal reason")
-        case .notificationsOff:
-            return String(
-                localized: "Allow notifications and time-sensitive notifications for Trio on your watch first.",
-                comment: "Watch refusal reason"
-            )
-        case .unsupportedWatch:
-            return String(
-                localized: "Trio on Watch needs Apple Watch Series 6 or later, or SE (2nd generation) or later.",
-                comment: "Watch refusal reason"
-            )
-        case .notClosedLoop:
-            return String(
-                localized: "Trio on Watch only runs in Closed Loop. Switch Dosing Mode to Closed Loop on your iPhone first.",
-                comment: "Watch refusal reason"
-            )
-        case .bolusRunning:
-            return String(localized: "Wait until the bolus is finished.", comment: "Watch refusal reason")
-        case .deliveryUncertain,
-             .unconfirmedCommand:
-            return String(
-                localized: "The pump hasn't confirmed the last command. Wait for it, then try again.",
-                comment: "Watch refusal reason"
-            )
-        case .releaseRefused:
-            return String(
-                localized: "The pump hasn't confirmed the last command, so this watch keeps it for now.",
-                comment: "Watch refusal reason"
-            )
-        default:
-            return String(
-                localized: "Check Trio on your iPhone (\(refusal.rawValue)).",
-                comment: "Watch refusal reason; the value is a technical reason code"
-            )
-        }
+        TrioOnWatchStatus.refusalText(refusal)
     }
 
     // MARK: - Glucose
@@ -306,10 +269,15 @@ final class WatchLoanAlerts {
     }
 
     func postKitAlert(_ alert: Alert) {
+        // the kit's own fix (replace or deactivate the pod) runs on the phone (G-10)
+        let phoneNeeded = String(
+            localized: "Replacing your pod needs your iPhone. Bring it close and end Trio on Watch, or take back your pump on your iPhone.",
+            comment: "Watch line under a pump alert while Trio on Watch runs"
+        )
         notifier.post(
             id: "trio.loan.kit." + alert.identifier.value,
             title: alert.backgroundContent.title,
-            body: alert.backgroundContent.body,
+            body: alert.backgroundContent.body + "\n" + phoneNeeded,
             at: nil,
             timeSensitive: true,
             category: nil
