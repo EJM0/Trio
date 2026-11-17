@@ -71,6 +71,14 @@ struct BolusConfirmationView: View {
         .onAppear {
             isCrownFocused = true
         }
+        // VoiceOver may not turn the crown (DD-14, check on a device); only while the watch holds the pump
+        .accessibilityActions {
+            if LoanTreatments.host != nil {
+                Button(String(localized: "Confirm bolus", comment: "Watch accessibility action: confirms the bolus")) {
+                    confirmationProgress = 1.0
+                }
+            }
+        }
         .onChange(of: confirmationProgress) { _, newValue in
             if newValue >= 1.0 {
                 WKInterfaceDevice.current().play(.success)

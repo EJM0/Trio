@@ -18,11 +18,18 @@
 
         var screen: Screen
         var status: TrioOnWatchStatus
+        /// Row or section id the status page scrolls to: "+pump" or "+actions" after the name.
+        var scrollTo: String?
+        /// The tethered main page with a fresh phone snapshot.
+        var tetheredFresh = false
 
         @MainActor static let current: TrioOnWatchFixture? = {
             let arguments = ProcessInfo.processInfo.arguments
             guard let index = arguments.firstIndex(of: "-TrioOnWatchScreen"), index + 1 < arguments.count else { return nil }
-            return named(arguments[index + 1], now: Date())
+            let parts = arguments[index + 1].split(separator: "+").map(String.init)
+            var fixture = named(parts[0], now: Date())
+            fixture?.scrollTo = parts.dropFirst().first
+            return fixture
         }()
 
         // swiftlint:disable:next function_body_length cyclomatic_complexity
@@ -62,6 +69,19 @@
 
             switch name {
             case "main-phone": return .init(screen: .main, status: idle)
+            case "main-phone-fresh": return .init(screen: .main, status: idle, tetheredFresh: true)
+            case "main-pod-stopped":
+                holding.podFaulted = true
+                return .init(screen: .main, status: holding)
+            case "main-suspended":
+                holding.insulinSuspended = true
+                return .init(screen: .main, status: holding)
+            case "main-pod-unreachable":
+                holding.podUnreachable = true
+                return .init(screen: .main, status: holding)
+            case "main-bolus-paused":
+                holding.insulinPaused = true
+                return .init(screen: .main, status: holding)
             case "main-starting":
                 idle.phase = .starting
                 return .init(screen: .main, status: idle)

@@ -7,11 +7,15 @@ struct TrioOnWatchActions {
     var end: () async -> Void = {}
     var acknowledgeStop: () async -> Void = {}
     var startFacts: () async -> WatchLoanStartFacts? = { nil }
-    var suspend: () async -> Void = {}
-    var resume: () async -> Void = {}
-    var cancelOverride: () async -> Void = {}
-    var cancelTempTarget: () async -> Void = {}
+    /// True once the pump confirmed it.
+    var suspend: () async -> Bool = { true }
+    var resume: () async -> Bool = { true }
+    /// True once the stop was saved.
+    var stopOverride: () async -> Bool = { true }
+    var stopTempTarget: () async -> Bool = { true }
     var cancelBolus: () async -> Void = {}
+    /// The phone answered a live query; End is tried, not blocked on a flag.
+    var phoneAnswers: () async -> Bool = { true }
     /// Forgets the last notice, so an old refusal doesn't show as the next hand-off's outcome.
     var clearNotice: () -> Void = {}
 
@@ -22,11 +26,12 @@ struct TrioOnWatchActions {
             end: { await host.endTapped() },
             acknowledgeStop: { await host.stopAcknowledged() },
             startFacts: { await host.startFacts() },
-            suspend: { await host.suspendInsulin() },
-            resume: { await host.resumeInsulin() },
-            cancelOverride: { await host.cancelOverride() },
-            cancelTempTarget: { await host.cancelTempTarget() },
+            suspend: { await host.suspendInsulinConfirmed() },
+            resume: { await host.resumeInsulinConfirmed() },
+            stopOverride: { await host.stopAdjustmentConfirmed(override: true) },
+            stopTempTarget: { await host.stopAdjustmentConfirmed(override: false) },
             cancelBolus: { await host.cancelBolus() },
+            phoneAnswers: { await host.phoneAnswers() },
             clearNotice: { host.lastAlert = nil }
         )
     }
@@ -48,10 +53,19 @@ struct TrioOnWatchActions {
         return .live
     }
 
+    static var snoozedUntil: Date? {
+        #if DEBUG
+            if TrioOnWatchFixture.current != nil { return nil }
+        #endif
+        guard let host = WatchLoanRuntime.host, host.ownsGlucoseAlarms else { return nil }
+        return host.snoozedUntil
+    }
+
     static func carbsSaved(since date: Date) -> Bool {
         #if DEBUG
             if TrioOnWatchFixture.current != nil {
                 if case let .bolus(_, carbsSaved) = TrioOnWatchFixture.current?.screen { return carbsSaved }
+                if case .carbsSaved = TrioOnWatchFixture.current?.screen { return true }
             }
         #endif
         return WatchLoanRuntime.host?.carbsSaved(since: date) == true
@@ -68,7 +82,13 @@ enum HandOffStage: Equatable {
     case succeeded(String)
     case failed(String)
 
-    static func stage(_ kind: HandOffKind, status: TrioOnWatchStatus) -> HandOffStage {
+    static func stage(_ kind: HandOffKind, status: TrioOnWatchStatus, phoneSilent: Bool = false) -> HandOffStage {
+        if phoneSilent {
+            return .failed(String(
+                localized: "Your iPhone didn't answer. Bring it close to end. Your watch stays in control until then.",
+                comment: "Watch End refused: the phone didn't answer"
+            ))
+        }
         if let alert = status.lastAlert, let text = TrioOnWatchStatus.outcomeText(alert) {
             return .failed(text)
         }
@@ -84,7 +104,7 @@ enum HandOffStage: Equatable {
                     localized: "Waiting for your watch's first sensor reading…",
                     comment: "Watch Start, before the first reading"
                 ),
-                detail: String(
+                detail: TrioOnWatchStatus.notGivingInsulinYet + " " + String(
                     localized: "Keep Trio open. Your watch takes over once it gets a reading.",
                     comment: "Watch Start, before the first reading (V3-8)"
                 )
@@ -112,62 +132,69 @@ struct TrioOnWatchStatusView: View {
     let actions: TrioOnWatchActions
     /// Screenshot harness only.
     var presentsEndConfirmation = false
+    var scrollTo: String?
 
     @State private var showingStart = false
     @State private var showingEndConfirmation = false
     @State private var showingSuspendConfirmation = false
     @State private var handOff: HandOffKind?
-    @State private var notice: String?
+    @State private var endPhoneSilent = false
+    @State private var result: ActionResult?
 
     var body: some View {
-        List {
-            Section {
-                let header = status.header
-                Label {
-                    Text(header.title).font(.headline)
-                } icon: {
-                    Image(systemName: header.symbol).foregroundStyle(header.tint)
-                }
-                .foregroundStyle(header.tint)
-                .accessibilityElement(children: .combine)
-                .accessibilityAddTraits(.isHeader)
+        ScrollViewReader { proxy in
+            List {
+                Section {
+                    let header = status.header
+                    Label {
+                        Text(header.title).font(.headline)
+                    } icon: {
+                        Image(systemName: header.symbol).foregroundStyle(header.tint)
+                    }
+                    .foregroundStyle(header.tint)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityAddTraits(.isHeader)
 
-                if status.phase == .starting || status.phase == .ending {
-                    ProgressView()
-                }
-            }
-
-            ForEach(status.rows(now: now)) { row in
-                VStack(alignment: .leading, spacing: 2) {
-                    Label(row.title, systemImage: row.symbol)
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(row.tint)
-                    ForEach(row.lines, id: \.self) { line in
-                        Text(line).font(.footnote)
+                    if status.phase == .starting || status.phase == .ending {
+                        ProgressView()
                     }
                 }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(row.accessibilityLabel)
-            }
 
-            if status.isInControl {
-                insulinControls
-            }
+                ForEach(status.rows(now: now)) { row in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Label(row.title, systemImage: row.symbol)
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(row.tint)
+                        ForEach(row.lines, id: \.self) { line in
+                            Text(line).font(.footnote)
+                        }
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(row.accessibilityLabel)
+                }
 
-            Section {
-                primaryButton
-            } footer: {
-                Text(notice ?? status.footer())
-                    .font(.footnote)
-                    .foregroundStyle(notice == nil ? Color.secondary : Color.loopRed)
+                if status.isInControl {
+                    insulinControls
+                }
+
+                Section {
+                    primaryButton.id("actions")
+                } footer: {
+                    Text(status.footer())
+                        .font(.footnote)
+                        .foregroundStyle(Color.secondary)
+                }
+            }
+            .onAppear {
+                if presentsEndConfirmation { showingEndConfirmation = true }
+                if let scrollTo { proxy.scrollTo(scrollTo, anchor: .top) }
             }
         }
         .navigationTitle(String(localized: "Trio on Watch", comment: "Watch status page title"))
-        .onAppear { if presentsEndConfirmation { showingEndConfirmation = true } }
         .sheet(isPresented: $showingStart) {
             StartTrioOnWatchView(now: now, loadFacts: actions.startFacts) {
                 showingStart = false
-                notice = nil
+                endPhoneSilent = false
                 actions.clearNotice()
                 handOff = .start
                 Task { await actions.start() }
@@ -177,30 +204,31 @@ struct TrioOnWatchStatusView: View {
             get: { handOff.map(HandOffItem.init) },
             set: { handOff = $0?.kind }
         )) { item in
-            HandOffView(kind: item.kind) {
+            HandOffView(kind: item.kind, phoneSilent: endPhoneSilent) {
                 handOff = nil
                 actions.clearNotice()
             }
+        }
+        .fullScreenCover(item: $result) { result in
+            ActionResultView(result: result) { self.result = nil }
         }
         .confirmationDialog(
             String(localized: "End Trio on Watch?", comment: "Watch End confirmation title"),
             isPresented: $showingEndConfirmation,
             titleVisibility: .visible
         ) {
-            Button(String(localized: "End", comment: "Watch End confirmation button"), role: .destructive) {
-                // tried at tap time, never pre-disabled on a reachability flag (G-15)
-                guard status.phoneReachable else {
-                    notice = String(
-                        localized: "Bring your iPhone close to end. Your watch stays in control until then.",
-                        comment: "Watch End refused: the phone isn't reachable"
-                    )
-                    WKInterfaceDevice.current().play(.failure)
-                    return
-                }
-                notice = nil
+            Button(String(localized: "End", comment: "Watch End confirmation button")) {
+                // tried: the phone must answer before the watch lets go (G-15)
+                endPhoneSilent = false
                 actions.clearNotice()
                 handOff = .end
-                Task { await actions.end() }
+                Task {
+                    if await actions.phoneAnswers() {
+                        await actions.end()
+                    } else {
+                        endPhoneSilent = true
+                    }
+                }
             }
             Button(String(localized: "Cancel", comment: "Cancel button"), role: .cancel) {}
         } message: {
@@ -236,7 +264,14 @@ struct TrioOnWatchStatusView: View {
         Section {
             if status.insulinSuspended {
                 Button(String(localized: "Resume Insulin", comment: "Watch resume insulin button")) {
-                    Task { await actions.resume() }
+                    Task {
+                        result = await actions.resume()
+                            ? .success(String(localized: "Insulin resumed.", comment: "Watch: resume confirmed by the pump"))
+                            : .failure(String(
+                                localized: "Your pump didn't confirm. Insulin may still be suspended.",
+                                comment: "Watch: resume not confirmed"
+                            ))
+                    }
                 }
                 .tint(.insulin)
             } else {
@@ -249,7 +284,17 @@ struct TrioOnWatchStatusView: View {
                     titleVisibility: .visible
                 ) {
                     Button(String(localized: "Suspend", comment: "Watch suspend confirmation button"), role: .destructive) {
-                        Task { await actions.suspend() }
+                        Task {
+                            result = await actions.suspend()
+                                ? .success(String(
+                                    localized: "Insulin suspended. Trio reminds you every 30 minutes until you resume.",
+                                    comment: "Watch: suspend confirmed by the pump"
+                                ))
+                                : .failure(String(
+                                    localized: "Your pump didn't confirm. Insulin may not be suspended.",
+                                    comment: "Watch: suspend not confirmed"
+                                ))
+                        }
                     }
                     Button(String(localized: "Cancel", comment: "Cancel button"), role: .cancel) {}
                 } message: {
@@ -312,10 +357,11 @@ struct StartTrioOnWatchView: View {
 /// W4: a hand-off in progress, then its result. Success closes after 2 s; a failure stays until OK (G-4).
 struct HandOffView: View {
     let kind: HandOffKind
+    var phoneSilent = false
     let onClose: () -> Void
 
     var body: some View {
-        let stage = HandOffStage.stage(kind, status: TrioOnWatchSource.status ?? TrioOnWatchStatus())
+        let stage = HandOffStage.stage(kind, status: TrioOnWatchSource.status ?? TrioOnWatchStatus(), phoneSilent: phoneSilent)
         ScrollView {
             VStack(spacing: 8) {
                 switch stage {
@@ -348,6 +394,54 @@ struct HandOffView: View {
                 WKInterfaceDevice.current().play(.failure)
             case .working:
                 break
+            }
+        }
+    }
+}
+
+/// The outcome of a pump or adjustment action. Success closes after 2 s; a failure stays until OK (G-4).
+enum ActionResult: Identifiable, Equatable {
+    case success(String)
+    case failure(String)
+
+    var id: String {
+        switch self {
+        case let .failure(text),
+             let .success(text): return text
+        }
+    }
+}
+
+struct ActionResultView: View {
+    let result: ActionResult
+    let onClose: () -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 8) {
+                switch result {
+                case let .success(text):
+                    Image(systemName: "checkmark.circle").font(.title2).foregroundStyle(Color.loopGreen)
+                        .accessibilityHidden(true)
+                    Text(text).multilineTextAlignment(.center)
+                case let .failure(text):
+                    Image(systemName: "xmark").font(.title2).foregroundStyle(Color.loopRed)
+                        .accessibilityHidden(true)
+                    Text(text).font(.footnote).multilineTextAlignment(.center)
+                    Button(String(localized: "OK", comment: "Dismiss button"), action: onClose)
+                }
+            }
+            .padding()
+            .accessibilityElement(children: .combine)
+        }
+        .toolbar(.hidden)
+        .task {
+            if case .success = result {
+                WKInterfaceDevice.current().play(.success)
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                if !Task.isCancelled { onClose() }
+            } else {
+                WKInterfaceDevice.current().play(.failure)
             }
         }
     }
