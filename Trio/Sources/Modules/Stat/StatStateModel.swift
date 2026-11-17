@@ -7,6 +7,9 @@ import Swinject
 extension Stat {
     @Observable final class StateModel: BaseStateModel<Provider> {
         @ObservationIgnored @Injected() var settings: SettingsManager!
+        @ObservationIgnored @Injected() var apsManager: APSManager!
+        @ObservationIgnored @Injected() var fetchGlucoseManager: FetchGlucoseManager!
+        @ObservationIgnored @Injected() var storage: FileStorage!
         var highLimit: Decimal = 180
         var lowLimit: Decimal = 70
         var eA1cDisplayUnit: EstimatedA1cDisplayUnit = .percent
@@ -223,7 +226,7 @@ extension Stat {
             }
         }
 
-        private func fetchGlucose(for interval: StatsTimeIntervalWithCustom) async -> [NSManagedObjectID] {
+        func fetchGlucose(for interval: StatsTimeIntervalWithCustom) async -> [NSManagedObjectID] {
             do {
                 let context = CoreDataStack.shared.newTaskContext()
                 context.name = "StatStateModel.fetchGlucose"
@@ -350,6 +353,7 @@ extension Stat.StateModel {
                  .percentileByDay:
                 return true
             case .distributionByTime,
+                 .glycemiaRiskIndex,
                  .percentileByTime:
                 return false
             }
@@ -363,8 +367,8 @@ extension Stat.StateModel {
                  .percentileByDay:
                 return true
             case .distributionByTime,
-                 .percentileByTime,
-                 .glycemiaRiskIndex:
+                 .glycemiaRiskIndex,
+                 .percentileByTime:
                 return false
             }
         }
@@ -442,9 +446,10 @@ extension Stat.StateModel {
 
         var id: Self { self }
 
+        /// Today is the custom range's default.
         init(_ range: HomeStatsPanelRange) {
             switch range {
-            case .today: self = .today
+            case .today: self = .custom
             case .day: self = .day
             case .week: self = .week
             case .month: self = .month
@@ -474,7 +479,7 @@ extension Stat.StateModel {
     }
 
     /// Defines the available time periods for duration-based statistics
-    enum StatsTimeInterval: String, CaseIterable, Identifiable {
+    enum StatsTimeInterval: String, CaseIterable, Identifiable, Codable {
         /// Single day interval
         case day = "D"
         /// Week interval

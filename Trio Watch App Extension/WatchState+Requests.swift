@@ -189,9 +189,8 @@ extension WatchState {
         }
     }
 
-    /// - Parameter completion: Called on the main queue with `true` if the phone answered.
     /// - Returns: `true` if the request was sent.
-    @discardableResult func requestWatchStateUpdate(completion: ((_ answered: Bool) -> Void)? = nil) -> Bool {
+    @discardableResult func requestWatchStateUpdate() -> Bool {
         guard let session = session else {
             WatchLogger.shared.warning(.connectivity, "No session for a state update")
             return false
@@ -206,21 +205,18 @@ extension WatchState {
         if session.isReachable {
             WatchLogger.shared.debug(.data, "Requesting a state update from the phone")
 
-            let message: [String: Any] = [WatchMessageKeys.requestWatchUpdate: WatchMessageKeys.watchState]
+            let message = [WatchMessageKeys.requestWatchUpdate: WatchMessageKeys.watchState]
 
             session.sendMessage(message, replyHandler: { reply in
                 DispatchQueue.main.async {
-                    // Empty reply: the phone could not build a state.
-                    if reply.isEmpty || !self.acceptWatchStatePayload(reply) {
-                        self.showSyncingAnimation = false
-                    }
-                    completion?(true)
+                    // Empty reply: the phone had no state.
+                    let accepted = !reply.isEmpty && self.acceptWatchStatePayload(reply)
+                    self.endSync(hidingAnimation: !accepted)
                 }
             }, errorHandler: { error in
                 WatchLogger.shared.warning(.connectivity, "Requesting a state update failed", error: error)
                 DispatchQueue.main.async {
-                    self.showSyncingAnimation = false
-                    completion?(false)
+                    self.endSync(hidingAnimation: true)
                 }
             })
             return true

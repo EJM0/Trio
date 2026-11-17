@@ -7,13 +7,7 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var currentGlucoseColorString: String?
     var trend: String?
     var delta: String?
-    /// mg/dL, oldest first; the watch converts and colors them.
     var glucoseValues: [WatchGlucoseObject] = []
-    /// mg/dL of the glucose range and the current target, and the color scheme the watch colors the readings by.
-    var glucoseRangeLow: Decimal = 70
-    var glucoseRangeHigh: Decimal = 180
-    var glucoseRangeTarget: Decimal = 100
-    var glucoseColorScheme: String = GlucoseColorScheme.staticColor.rawValue
     var minYAxisValue: Decimal = 39.0
     var maxYAxisValue: Decimal = 200.0
     var units: GlucoseUnits = .mgdL
@@ -70,17 +64,12 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         // Split into groups: a single `&&` chain over this many comparisons
         // blows past the type checker's expression budget.
         let glucoseValuesAreEqual: Bool = lhs.glucoseValues == rhs.glucoseValues
-        let glucoseColoringIsEqual: Bool = lhs.glucoseRangeLow == rhs.glucoseRangeLow &&
-            lhs.glucoseRangeHigh == rhs.glucoseRangeHigh &&
-            lhs.glucoseRangeTarget == rhs.glucoseRangeTarget &&
-            lhs.glucoseColorScheme == rhs.glucoseColorScheme
 
         let glucoseIsEqual = lhs.date == rhs.date &&
             lhs.currentGlucose == rhs.currentGlucose &&
             lhs.trend == rhs.trend &&
             lhs.delta == rhs.delta &&
             glucoseValuesAreEqual &&
-            glucoseColoringIsEqual &&
             lhs.minYAxisValue == rhs.minYAxisValue &&
             lhs.maxYAxisValue == rhs.maxYAxisValue &&
             lhs.units == rhs.units
@@ -129,10 +118,6 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(trend)
         hasher.combine(delta)
         hasher.combine(glucoseValues)
-        hasher.combine(glucoseRangeLow)
-        hasher.combine(glucoseRangeHigh)
-        hasher.combine(glucoseRangeTarget)
-        hasher.combine(glucoseColorScheme)
         hasher.combine(minYAxisValue)
         hasher.combine(maxYAxisValue)
         hasher.combine(units)

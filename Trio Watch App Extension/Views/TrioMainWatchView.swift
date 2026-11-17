@@ -3,6 +3,7 @@ import SwiftUI
 import WatchKit
 
 struct TrioMainWatchView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var state = WatchState.shared
 
     // misc
@@ -20,17 +21,20 @@ struct TrioMainWatchView: View {
     // treatments
     @State private var selectedTreatment: TreatmentOption?
 
-    /// Advanced by a timer, so the view goes stale even when nothing new arrives.
+    /// Ticks so staleness shows without new data.
     @State private var now = Date()
-    @Environment(\.scenePhase) private var scenePhase
+    private static let ticker = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
 
-    /// Dated by the newest reading, or by the last update when there is none. The extra minute covers the
-    /// next reading's delivery; unchanged messages are not resent, so the last update alone would go stale.
+    /// The bubble goes stale by reading age.
+    private var isReadingDated: Bool {
+        guard let newestReading = state.glucoseValues.last?.date else { return isWatchStateDated }
+        return now.timeIntervalSince(newestReading) > 6 * 60
+    }
+
     var isWatchStateDated: Bool {
-        if let newestReading = state.glucoseValues.last?.date {
-            return now.timeIntervalSince(newestReading) > 6 * 60
-        }
+        // If `lastWatchStateUpdate` is nil, treat as "dated"
         guard let lastUpdateTimestamp = state.lastWatchStateUpdate else { return true }
+        // Return true if last update older than 5 min, so 1 loop cycle
         return now.timeIntervalSince1970 - lastUpdateTimestamp > 5 * 60
     }
 
@@ -77,7 +81,7 @@ struct TrioMainWatchView: View {
                     GlucoseTrendView(
                         state: state,
                         rotationDegrees: rotationDegrees,
-                        isWatchStateDated: isWatchStateDated || isSessionUnreachable
+                        isWatchStateDated: isReadingDated || isSessionUnreachable
                     )
 
                     if state.showSyncingAnimation {
@@ -251,6 +255,7 @@ struct TrioMainWatchView: View {
                 }
             }
             .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active { now = Date() }
                 // An entry left for more than 2 min (wrist down, app in the background) is
                 // cleared and the input screens are closed, so a stale amount can't be confirmed
                 if newPhase == .active, state.expireStaleEntry() {
@@ -266,10 +271,7 @@ struct TrioMainWatchView: View {
             }
         }
         .ignoresSafeArea()
-        .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { now = $0 }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .active { now = Date() }
-        }
+        .onReceive(Self.ticker) { now = $0 }
     }
 
     private func updateRotation(for trend: String?) {

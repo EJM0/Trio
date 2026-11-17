@@ -30,6 +30,7 @@ extension Stat {
             state.selectedGlucoseChartType.requiresMultipleDays
                 ? [.custom, .week, .month, .total] : Stat.StateModel.StatsTimeIntervalWithCustom.allCases
         }
+        @State private var showExportMenu = false
 
         /// The goals tab drops the rolling 24 h window.
         ///
@@ -95,6 +96,14 @@ extension Stat {
                             .foregroundColor(.tabBar)
                     }
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: { showExportMenu = true }) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+            }
+            .sheet(isPresented: $showExportMenu) {
+                StatExportMenuView(state: state)
             }
         }
 
