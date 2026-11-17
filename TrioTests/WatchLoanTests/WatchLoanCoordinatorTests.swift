@@ -660,6 +660,31 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(rig.transport.recordAcks == [WatchLoanRecordAck(epoch: 1, batchID: batch.batchID)])
     }
 
+    @Test("A batch carries the watch's last loop for the pill; one without it still decodes (G-2)") func watchLoop() async throws {
+        let rig = try Rig(state: .lent(epoch: 2))
+        var batch = WatchLoanRecordBatch(
+            version: WatchLoanRecordBatch.currentVersion, batchID: UUID(), epoch: 2, sentAt: F.now, pumpEvents: [],
+            runningTemp: nil, carbs: [], deletedCarbIDs: [], glucose: []
+        )
+        let older = try JSONSerialization.jsonObject(with: try batch.encoded()) as? [String: Any]
+        #expect(older?["lastLoopAt"] == nil)
+        await rig.coordinator.receive([WatchLoanWireKey.records: try batch.encoded()])
+        #expect(await rig.coordinator.watchLoopAt == nil)
+        #expect(await rig.coordinator.lastBatchAt != nil)
+
+        batch.batchID = UUID()
+        batch.lastLoopAt = F.now.addingTimeInterval(-240)
+        await rig.coordinator.receive([WatchLoanWireKey.records: try batch.encoded()])
+        #expect(await rig.coordinator.watchLoopAt == F.now.addingTimeInterval(-240))
+
+        // a late batch from an earlier loan never shows as this loan's loop
+        batch.batchID = UUID()
+        batch.epoch = 1
+        batch.lastLoopAt = F.now
+        await rig.coordinator.receive([WatchLoanWireKey.records: try batch.encoded()])
+        #expect(await rig.coordinator.watchLoopAt == F.now.addingTimeInterval(-240))
+    }
+
     // MARK: The pump double
 
     @Test("A whole loan never commands the pump while the phone doesn't hold it") func noCommandWhileReleased() async throws {

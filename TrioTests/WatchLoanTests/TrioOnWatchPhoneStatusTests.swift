@@ -66,14 +66,19 @@ import Testing
         #expect(!TrioOnWatchPhoneStatus().showsBanner)
     }
 
-    @Test("Pill turns orange after 10 min and red with no updates") func pillTint() {
-        var status = TrioOnWatchPhoneStatus(lastUpdate: now.addingTimeInterval(-5 * 60))
+    @Test("Pill shows the watch's loop age: orange after 10 min, red with no updates") func pillTint() {
+        var status = TrioOnWatchPhoneStatus(lastUpdate: now.addingTimeInterval(-60), lastLoop: now.addingTimeInterval(-5 * 60))
         status.phase = .inControl
         #expect(status.pill(now: now).tint == .loopGreen)
-        status.lastUpdate = now.addingTimeInterval(-11 * 60)
+        // a fresh batch doesn't make an old loop look fresh (G-2)
+        status.lastLoop = now.addingTimeInterval(-11 * 60)
         #expect(status.pill(now: now).tint == .orange)
+        #expect(status.pill(now: now).text.hasSuffix(status.lastLoop!.formattedTimeAgo()))
+        #expect(status.pill(now: now).accessibilityLabel.contains(status.lastLoop!.formattedSpokenTimeAgo()))
         // at large text only the age remains, never cut (G-M11)
-        #expect(status.pill(now: now).compactText == status.lastUpdate?.formattedTimeAgo())
+        #expect(status.pill(now: now).compactText == status.lastLoop?.formattedTimeAgo())
+        status.lastLoop = nil
+        #expect(status.pill(now: now).compactText == "--")
         status.phase = .noUpdates
         #expect(status.pill(now: now).tint == .loopRed)
         #expect(status.banner(now: now).isCritical)

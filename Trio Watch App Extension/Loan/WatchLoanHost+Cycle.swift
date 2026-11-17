@@ -499,7 +499,8 @@ extension WatchLoanHost {
     func sendRecords(epoch: Int64) async {
         do {
             let (records, now) = (records, env.now())
-            let batch = try await WatchLoanFiles.io { try records.nextBatch(epoch: epoch, now: now) }
+            var batch = try await WatchLoanFiles.io { try records.nextBatch(epoch: epoch, now: now) }
+            batch.lastLoopAt = cycleInfo.lastConfirmedCycleAt
             let data = try batch.encoded()
             env.transport.send([WatchLoanWireKey.records: data])
             WatchLogger.shared.info(

@@ -264,7 +264,11 @@ enum TrioOnWatchPhoneFixtureDialog {
         }()
 
         static func named(_ name: String, now: Date) -> TrioOnWatchPhoneFixture? {
-            var status = TrioOnWatchPhoneStatus(lastUpdate: now.addingTimeInterval(-3 * 60), watchReachable: false)
+            var status = TrioOnWatchPhoneStatus(
+                lastUpdate: now.addingTimeInterval(-3 * 60),
+                lastLoop: now.addingTimeInterval(-3 * 60),
+                watchReachable: false
+            )
             let parts = name.split(separator: "+").map(String.init)
             switch parts.first {
             case "starting": status.phase = .starting
@@ -276,6 +280,7 @@ enum TrioOnWatchPhoneFixtureDialog {
             case "no-updates":
                 status.phase = .noUpdates
                 status.lastUpdate = now.addingTimeInterval(-34 * 60)
+                status.lastLoop = now.addingTimeInterval(-36 * 60)
             case "taking-back": status.phase = .takingBack
             case "taking-back-stuck": status.phase = .takingBackStuck
             case "pod-refused":
