@@ -119,7 +119,7 @@ import Testing
         }
     }
 
-    @Test("Versions, request, epoch, clock and time zone are checked") func validator() throws {
+    @Test("Versions, dosing mode, request, epoch, clock and time zone are checked") func validator() throws {
         let snapshot = try Self.snapshot()
         var other = snapshot
         other.versions.appBuild = "1.0.3 (1)"
@@ -130,6 +130,11 @@ import Testing
         other = snapshot
         other.versions.schema += 1
         #expect(other.refusal(for: Self.expectation()) == .versionMismatch)
+        for mode in [DosingMode.open, .lowGlucoseSuspend, .basalTesting] {
+            other = snapshot
+            other.oref.dosingMode = mode
+            #expect(other.refusal(for: Self.expectation()) == .notClosedLoop, "\(mode)")
+        }
         #expect(snapshot.refusal(for: Self.expectation(epoch: 4)) == .snapshotIncomplete)
         var otherRequest = Self.expectation()
         otherRequest.requestID = UUID()

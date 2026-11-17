@@ -105,12 +105,14 @@ enum WatchDosingGate {
     }
 
     enum HeldBack: Equatable {
+        case automationOff
         case pumpSuspended
         case tempAddsInsulin
         case bolus
     }
 
     static func plan(
+        automation: AutomationLevel,
         rate: Decimal?,
         durationMinutes: Decimal?,
         units: Decimal?,
@@ -119,6 +121,10 @@ enum WatchDosingGate {
         deliveryUncertain: Bool
     ) -> Plan {
         var plan = Plan()
+        guard automation != .off else {
+            plan.heldBack = [.automationOff]
+            return plan
+        }
         guard !suspended else {
             plan.heldBack = [.pumpSuspended]
             return plan

@@ -150,6 +150,11 @@ final class WatchLoanAlerts {
                 localized: "Trio on Watch needs Apple Watch Series 6 or later, or SE (2nd generation) or later.",
                 comment: "Watch refusal reason"
             )
+        case .notClosedLoop:
+            return String(
+                localized: "Trio on Watch only runs in Closed Loop. Switch Dosing Mode to Closed Loop on your iPhone first.",
+                comment: "Watch refusal reason"
+            )
         case .bolusRunning:
             return String(localized: "Wait until the bolus is finished.", comment: "Watch refusal reason")
         case .deliveryUncertain,

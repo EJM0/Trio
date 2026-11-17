@@ -15,6 +15,7 @@ extension Settings {
         @Injected() private var storage: FileStorage!
         @Injected() var overrideStorage: OverrideStorage!
         @Injected() private var keychain: Keychain!
+        @Injected() private var watchLoanGate: WatchLoanGate!
 
         @Published var units: GlucoseUnits = .mgdL
         @Published var dosingMode: DosingMode = .open
@@ -91,6 +92,21 @@ extension Settings {
             let hasCgm = fetchCgmManager.cgmGlucoseSourceType != .none
             let hasPump = provider.deviceManager.pumpManager != nil
             return hasCgm && hasPump
+        }
+
+        /// Nil when Dosing Mode may change, otherwise the reason to show.
+        func dosingModeLockReason() -> String? {
+            Self.dosingModeLockReason(hasCgmAndPump: hasCgmAndPump(), phoneMayCommandPump: watchLoanGate.phoneMayCommandPump)
+        }
+
+        static func dosingModeLockReason(hasCgmAndPump: Bool, phoneMayCommandPump: Bool) -> String? {
+            guard hasCgmAndPump else { return String(localized: "Add a CGM and pump to enable automated insulin delivery") }
+            guard phoneMayCommandPump else {
+                return String(
+                    localized: "Your pump is handed over to Apple Watch. Take it back on iPhone to change Dosing Mode."
+                )
+            }
+            return nil
         }
     }
 }
