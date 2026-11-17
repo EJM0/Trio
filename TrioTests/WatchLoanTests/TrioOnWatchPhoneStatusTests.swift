@@ -72,6 +72,8 @@ import Testing
         #expect(status.pill(now: now).tint == .loopGreen)
         status.lastUpdate = now.addingTimeInterval(-11 * 60)
         #expect(status.pill(now: now).tint == .orange)
+        // at large text only the age remains, never cut (G-M11)
+        #expect(status.pill(now: now).compactText == status.lastUpdate?.formattedTimeAgo())
         status.phase = .noUpdates
         #expect(status.pill(now: now).tint == .loopRed)
         #expect(status.banner(now: now).isCritical)
@@ -134,6 +136,15 @@ import Testing
             #expect(!message.isEmpty)
         }
         #expect(TrioOnWatchSheet.blockedActions.count == 4)
+    }
+
+    @Test("Low-glucose bolus warning: the Treatments rule, shared with the watch (DD-8)") func lowGlucoseWarning() {
+        #expect(LowGlucoseBolusWarning.message(currentBG: 54, minPredBG: 54) == nil)
+        #expect(LowGlucoseBolusWarning.message(currentBG: 53, minPredBG: 40) == "Glucose is very low.")
+        #expect(LowGlucoseBolusWarning.message(currentBG: 120, minPredBG: 53) == "Glucose forecast is very low.")
+        #expect(!LowGlucoseBolusWarning.shouldConfirm(confirmBolus: false, currentBG: 40, minPredBG: 40))
+        #expect(LowGlucoseBolusWarning.shouldConfirm(confirmBolus: true, currentBG: 120, minPredBG: 50))
+        #expect(!LowGlucoseBolusWarning.shouldConfirm(confirmBolus: true, currentBG: 120, minPredBG: 80))
     }
 
     @Test("Every phone screenshot fixture resolves") func fixtures() {

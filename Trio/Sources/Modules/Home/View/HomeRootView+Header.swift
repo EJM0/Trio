@@ -109,15 +109,22 @@ extension Home.RootView {
     }
 
     var pumpView: some View {
-        PumpView(
-            reservoir: state.reservoir,
-            name: state.pumpName,
-            expiresAtDate: state.pumpExpiresAtDate,
-            activatedAtDate: state.pumpActivatedAtDate,
-            timerDate: state.timerDate,
-            pumpStatusHighlightMessage: state.pumpStatusHighlightMessage,
-            battery: state.batteryFromPersistence
-        )
+        Group {
+            if trioOnWatch.status.replacesLoopRing {
+                // this phone's pod readings stop at the hand-off (G-M9)
+                TrioOnWatchPumpPlaceholder()
+            } else {
+                PumpView(
+                    reservoir: state.reservoir,
+                    name: state.pumpName,
+                    expiresAtDate: state.pumpExpiresAtDate,
+                    activatedAtDate: state.pumpActivatedAtDate,
+                    timerDate: state.timerDate,
+                    pumpStatusHighlightMessage: state.pumpStatusHighlightMessage,
+                    battery: state.batteryFromPersistence
+                )
+            }
+        }
         .onTapGesture {
             if trioOnWatch.status.replacesLoopRing {
                 // the kit's screens offer commands the gate refuses while the watch has the pump
