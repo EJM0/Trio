@@ -9,6 +9,9 @@ import LoopKit
     private var manager: G7CGMManager?
     private let delegateQueue = DispatchQueue(label: "org.nightscout.Trio.watch.cgm")
     private nonisolated let linkEvents = LinkEventClock()
+    /// shortcut: in memory only, so a relaunch forgets timed sensor alerts it may need to retract at End; persist if
+    /// a stale sensor notice after a loan is reported.
+    private var issued: Set<Alert.Identifier> = []
     weak var host: WatchLoanHost?
 
     init(files: WatchLoanFiles) {
@@ -51,6 +54,9 @@ import LoopKit
     }
 
     func retire() async {
+        // the kit's own retractions in delete() come after its delegate is gone; the phone keeps the sensor's alerts
+        for identifier in issued { await host?.retractKitAlert(identifier) }
+        issued = []
         guard let previous = manager else { return }
         previous.cgmManagerDelegate = nil
         manager = nil
@@ -150,12 +156,15 @@ extension WatchLoanCGM: CGMManagerDelegate {
         completion?(nil)
     }
 
-    // The phone keeps the sensor's own alerts; the watch logs them.
     func issueAlert(_ alert: Alert) async {
-        WatchLogger.shared.info(.cgm, "CGM alert not shown on the watch: \(alert.identifier.alertIdentifier)")
+        issued.insert(alert.identifier)
+        await host?.issueSensorAlert(alert)
     }
 
-    func retractAlert(identifier _: Alert.Identifier) async {}
+    func retractAlert(identifier: Alert.Identifier) async {
+        issued.remove(identifier)
+        await host?.retractKitAlert(identifier)
+    }
     nonisolated func doesIssuedAlertExist(identifier _: Alert.Identifier) async throws -> Bool { false }
     nonisolated func lookupAllUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }
     nonisolated func lookupAllUnacknowledgedUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }

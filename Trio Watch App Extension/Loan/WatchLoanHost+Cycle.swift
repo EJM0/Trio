@@ -47,7 +47,7 @@ extension WatchLoanHost {
 
     /// The watch keeps the sensor, and its glucose alarms, until the loan is over: a stopped watch's user may be far
     /// from the phone. A superseded one isn't: the phone has the pod and its own alarms.
-    private var readsGlucose: Bool {
+    var readsGlucose: Bool {
         switch state {
         case .holding,
              .returning:

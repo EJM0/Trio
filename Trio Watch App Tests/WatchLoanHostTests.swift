@@ -42,10 +42,12 @@ final class FakeTransport: WatchLoanTransport {
 final class FakeNotifier: WatchLoanNotifier {
     var pending: [String: (title: String, date: Date?)] = [:]
     var posted: [String] = []
+    var bodies: [String: String] = [:]
 
-    func post(id: String, title: String, body _: String, at date: Date?, timeSensitive _: Bool, category _: String?) {
+    func post(id: String, title: String, body: String, at date: Date?, timeSensitive _: Bool, category _: String?) {
         pending[id] = (title, date)
         posted.append(id)
+        bodies[id] = body
     }
 
     func cancel(ids: [String]) {
@@ -664,6 +666,48 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         await world.reading(62)
         #expect(world.notifier.pending[WatchLoanAlerts.glucosePrefix + low.id.uuidString] != nil)
         #expect(world.pump?.commands.count == commands, "alarms only, no commands")
+    }
+
+    @Test("Sensor and pod alerts show on the watch with the iPhone line, at the kit's time; none once superseded") func kitAlerts(
+    ) async throws {
+        func alert(_ name: String, manager: String, trigger: Alert.Trigger) -> Alert {
+            let content = Alert.Content(title: name, body: "Kit text.", acknowledgeActionButtonLabel: "OK")
+            return Alert(
+                identifier: Alert.Identifier(managerIdentifier: manager, alertIdentifier: name),
+                foregroundContent: content,
+                backgroundContent: content,
+                trigger: trigger
+            )
+        }
+        let world = LoanFixture()
+        try await world.startLoan()
+        let cgm = WatchLoanCGM(files: world.files)
+        cgm.host = world.host
+        let failed = alert("sensorFailed", manager: "G7", trigger: .immediate)
+        let expiring = alert("sensorExpiringImminently", manager: "G7", trigger: .delayed(interval: 3600))
+        let podExpiring = alert("podExpiring", manager: "Omnipod", trigger: .delayed(interval: 600))
+        await cgm.issueAlert(failed)
+        await cgm.issueAlert(expiring)
+        await world.host.issueKitAlert(podExpiring)
+
+        let failedID = WatchLoanAlerts.kitPrefix + failed.identifier.value
+        let expiringID = WatchLoanAlerts.kitPrefix + expiring.identifier.value
+        let podID = WatchLoanAlerts.kitPrefix + podExpiring.identifier.value
+        #expect(world.notifier.pending[failedID]?.date == nil, "shown at once")
+        #expect(world.notifier.bodies[failedID] == "Kit text.\n" + WatchLoanAlerts.sensorNeedsPhone)
+        #expect(world.notifier.pending[expiringID]?.date == world.clock.addingTimeInterval(3600))
+        #expect(world.notifier.pending[podID]?.date == world.clock.addingTimeInterval(600))
+        #expect(world.notifier.bodies[podID] == "Kit text.\n" + WatchLoanAlerts.podNeedsPhone)
+
+        await cgm.retractAlert(identifier: failed.identifier)
+        #expect(world.notifier.pending[failedID] == nil)
+        await cgm.retire()
+        #expect(world.notifier.pending[expiringID] == nil, "the phone keeps the sensor's alerts after the loan")
+
+        await world.host.receive([WatchLoanWireKey.message: try WatchLoanWire.encode(WatchLoanStop(kind: .revoke, epoch: 2))])
+        #expect(world.host.state == .stopped(epoch: 1, reason: .superseded))
+        await cgm.issueAlert(failed)
+        #expect(world.notifier.pending[failedID] == nil, "superseded: the phone has the sensor and its alerts")
     }
 
     @Test(
