@@ -23,13 +23,15 @@ struct TrioOnWatchPhoneStatus: Equatable {
     static let startConfirmTimeout: TimeInterval = 60
     /// The phone's silence alarm (V2-14).
     static let noUpdatesAfter: TimeInterval = 30 * 60
-    /// "Last update" turns from fresh to old.
-    static let updateAging: TimeInterval = 10 * 60
+    /// The watch's loop age turns from fresh to old.
+    static let loopAging: TimeInterval = 10 * 60
     /// A take-back still running after this has most likely not reached the pod (P21).
     static let takeBackStuckAfter: TimeInterval = 60
 
     var phase: Phase = .home
     var lastUpdate: Date?
+    /// The watch's last confirmed loop: what the pill shows, as the watch's own control line does.
+    var lastLoop: Date?
     var watchReachable = false
     var podRefusesSessions = false
 
@@ -37,6 +39,7 @@ struct TrioOnWatchPhoneStatus: Equatable {
     static func make(
         state: PhoneLoanState,
         lastBatchAt: Date?,
+        lastLoopAt: Date? = nil,
         since: Date,
         now: Date,
         watchReachable: Bool,
@@ -44,6 +47,7 @@ struct TrioOnWatchPhoneStatus: Equatable {
     ) -> TrioOnWatchPhoneStatus {
         var status = TrioOnWatchPhoneStatus(
             lastUpdate: lastBatchAt,
+            lastLoop: lastLoopAt,
             watchReachable: watchReachable,
             podRefusesSessions: podRefusesSessions
         )
@@ -95,19 +99,19 @@ struct TrioOnWatchPhoneStatus: Equatable {
 
     func pill(now: Date) -> Pill {
         var pill = fullPill(now: now)
-        let age = lastUpdate?.formattedTimeAgo() ?? "--"
+        let age = lastLoop?.formattedTimeAgo() ?? "--"
         pill.compactText = phase == .inControl || phase == .noUpdates ? age : pill.text
         return pill
     }
 
     private func fullPill(now: Date) -> Pill {
-        let age = lastUpdate?.formattedTimeAgo() ?? "--"
-        let spokenAge = lastUpdate.map {
+        let age = lastLoop?.formattedTimeAgo() ?? "--"
+        let spokenAge = lastLoop.map {
             String(
-                localized: "last update \($0.formattedSpokenTimeAgo())",
-                comment: "Accessibility: age of the last update from Apple Watch"
+                localized: "last loop \($0.formattedSpokenTimeAgo())",
+                comment: "Accessibility: age of the last loop on Apple Watch"
             )
-        } ?? String(localized: "no update yet", comment: "Accessibility: no update from Apple Watch yet")
+        } ?? String(localized: "no loop yet", comment: "Accessibility: no loop on Apple Watch yet")
         switch phase {
         case .home,
              .podRefused:
@@ -130,12 +134,12 @@ struct TrioOnWatchPhoneStatus: Equatable {
                 )
             )
         case .inControl:
-            let old = now.timeIntervalSince(lastUpdate ?? .distantPast) > Self.updateAging
+            let old = now.timeIntervalSince(lastLoop ?? .distantPast) > Self.loopAging
             return Pill(
                 symbol: "applewatch",
                 text: String(
                     localized: "Watch · \(age)",
-                    comment: "Home pill: Apple Watch in control, then the age of its last update"
+                    comment: "Home pill: Apple Watch in control, then the age of its last loop"
                 ),
                 tint: old ? .orange : .loopGreen,
                 accessibilityLabel: String(
@@ -148,7 +152,7 @@ struct TrioOnWatchPhoneStatus: Equatable {
                 symbol: "exclamationmark.triangle.fill",
                 text: String(
                     localized: "Watch · \(age)",
-                    comment: "Home pill: Apple Watch in control, then the age of its last update"
+                    comment: "Home pill: Apple Watch in control, then the age of its last loop"
                 ),
                 tint: .loopRed,
                 accessibilityLabel: String(
@@ -368,6 +372,7 @@ struct TrioOnWatchPhoneStatus: Equatable {
         guard let coordinator = resolver?.resolve(WatchLoanCoordinator.self) else { return }
         let next = await coordinator.state
         let lastBatchAt = await coordinator.lastBatchAt
+        let lastLoopAt = await coordinator.watchLoopAt
         if !Self.sameCase(next, state) { since = now }
         state = next
         let refuses = resolver?.resolve(DeviceDataManager.self).flatMap { WatchLoanPumpAdapter($0.pumpManager) }?
@@ -376,6 +381,7 @@ struct TrioOnWatchPhoneStatus: Equatable {
         let updated = TrioOnWatchPhoneStatus.make(
             state: next,
             lastBatchAt: lastBatchAt,
+            lastLoopAt: lastLoopAt,
             since: since,
             now: now,
             watchReachable: session?.activationState == .activated && session?.isReachable == true,

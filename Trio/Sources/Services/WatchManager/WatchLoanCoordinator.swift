@@ -60,11 +60,18 @@ struct WatchLoanLedger: Codable, Equatable {
         }
     }
 
+    struct WatchLoop: Codable, Equatable {
+        var epoch: Int64
+        var at: Date
+    }
+
     static let keptAudits = 20
 
     var audits: [Audit] = []
     var inbox = WatchLoanInbox()
     var lastBatchAt: Date?
+    /// The watch's last confirmed loop, from its newest record batch.
+    var watchLoop: WatchLoop?
     /// The kit's latest foreign-session time this phone has handled, saved after the audit it caused.
     var lastForeignSessionHandled: Date?
 
@@ -234,6 +241,9 @@ actor WatchLoanCoordinator {
         if case let .lent(epoch) = state, epoch == batch.epoch {
             ledger.lastBatchAt = now()
             host.setAlarm(.phoneNoWatchUpdates, armed: true, anchor: ledger.lastBatchAt ?? now())
+        }
+        if let at = batch.lastLoopAt, ledger.watchLoop.map({ ($0.epoch, $0.at) < (batch.epoch, at) }) ?? true {
+            ledger.watchLoop = WatchLoanLedger.WatchLoop(epoch: batch.epoch, at: at)
         }
         saveLedger()
         acknowledge(batch)

@@ -29,6 +29,8 @@ struct WatchLoanRecordBatch: Codable {
     var carbs: [CarbsEntry]
     var deletedCarbIDs: [String]
     var glucose: [BloodGlucose]
+    /// The watch's last confirmed loop. Nil from a watch build that doesn't send it.
+    var lastLoopAt: Date?
 
     /// Mutable doses would be purged by the phone driver's next pending report, and a dose without
     /// a sync identifier can't be merged twice safely.

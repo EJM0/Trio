@@ -798,6 +798,9 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         await world.reading(160)
         let moved = world.notifier.notLooping
         #expect(moved[0] > armed[0])
+        // the phone's pill shows this loop's age, not the batch's (G-2)
+        #expect(world.host.loop.lastConfirmedCycleAt != nil)
+        #expect(world.transport.batches.last?.lastLoopAt == world.host.loop.lastConfirmedCycleAt)
 
         await world.host.endTapped()
         #expect(world.host.state == .returning(epoch: 1))
