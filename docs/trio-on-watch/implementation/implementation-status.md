@@ -1551,3 +1551,13 @@ Verification after the fixes (same simulators and derived-data folders):
 | `FileStorageTests` + `TrioOnWatchPhoneStatusTests` + `WatchLoanSnapshotTests` | 24 / 24 |
 
 Still open: G-1 alarm coverage (M3–M5), G-2 `CycleSummary`, G-17/G-M2 and G-M10 (on `fix/tow-watch-embed`), DD-14 and the watch's largest text on a device, a VoiceOver pass on a device.
+
+### Merge of `fix/tow-watch-embed` (feat/trio-on-watch @ `3e18858a7`)
+
+- Conflict in `Loan/WatchLoanAlerts.swift` resolved by keeping `text(for:)` as a call to `TrioOnWatchStatus.refusalText`; the new `notClosedLoop` case maps to `closedLoopRequiredText`, which now carries the branch's wording ("Trio on Watch only runs in Closed Loop. Switch Dosing Mode to Closed Loop on your iPhone first."). `WatchLoanHost+Cycle.swift` merged cleanly: the dosing-mode gate and the snooze filter are both in.
+- The phone's Dosing Mode lock reason is now in F/G style: "Apple Watch is in control. End Trio on Watch to change Dosing Mode. To stop automatic insulin now, use Suspend Insulin on your watch." (was "Your pump is handed over to Apple Watch. Take it back on iPhone…").
+- "Insulin Still Suspended" reminders are also removed when a cycle reads the pump as not suspended (a resume by any means, a pod event) and when the watch stops holding the pump (End, Take Back, stop), since it can no longer see the pump. One line each in `WatchLoanHost+Cycle.swift` (`updateLoopStatus`) and `WatchLoanHost.swift` (`persist`).
+- New screenshot: `handoff-not-closed-loop.png` (both watch sizes). With the embed fix the watch app now launches as built, so the harness no longer copies frameworks in.
+- Not captured: the Settings screenshot still shows the simulator's own lock reason ("Add a CGM and pump…"), because the harness doesn't touch the gate.
+
+Verification after the merge: watch app flag on / off 0 / 0 and iOS app flag on 0, all with the `check-watch-frameworks` phase passing (the watch app now embeds RileyLinkBLEKit, RileyLinkKit and CryptoSwift); `Trio Watch AppTests` 63 / 63 flag on and off; full `Trio Tests` 1252 total, 46 skipped, 1 known issue, no failures (fresh derived data `dd-m6-iostest`).
