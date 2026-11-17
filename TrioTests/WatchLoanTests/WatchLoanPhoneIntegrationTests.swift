@@ -186,6 +186,45 @@ import Testing
         ) == 1)
     }
 
+    @Test(
+        "A booking a kit record replaced stays deleted whichever batch arrives first",
+        arguments: [true, false]
+    ) func replacedBookingEitherOrder(bookingFirst: Bool) async throws {
+        let rig = try await Self.makeRig()
+        let store: WatchLoanStore<PhoneLoanState> = WatchLoanStoreTests.temporaryStore()
+        try store.save(.lent(epoch: 1))
+        let coordinator = WatchLoanCoordinator(
+            host: rig.host,
+            store: store,
+            ledgerStore: WatchLoanStoreTests.temporaryStore(WatchLoanLedger.self)
+        )
+        let start = Date().addingTimeInterval(-900)
+        let dose = DoseEntry(
+            type: .bolus, startDate: start, endDate: start, value: 1, unit: .units, decisionId: nil, deliveredUnits: 1,
+            automatic: false
+        )
+        let booked = Self.record(start, dose, raw: "trio-watch-intent-\(UUID().uuidString)")
+        var kit = Self.record(start.addingTimeInterval(2), dose)
+        kit.replacesSyncIdentifier = booked.newPumpEvent.dose?.syncIdentifier
+        func payload(_ record: WatchLoanRecordBatch.PumpEventRecord) throws -> [String: Any] {
+            let batch = WatchLoanRecordBatch(
+                version: WatchLoanRecordBatch.currentVersion, batchID: UUID(), epoch: 1, sentAt: Date(), pumpEvents: [record],
+                runningTemp: nil, carbs: [], deletedCarbIDs: [], glucose: []
+            )
+            return [WatchLoanWireKey.records: try batch.encoded()]
+        }
+        for record in bookingFirst ? [booked, kit] : [kit, booked] {
+            await coordinator.receive(try payload(record))
+        }
+        // a late re-delivery of the booking is dropped too
+        await coordinator.receive(try payload(booked))
+        #expect(try await rig.count(PumpEventStored.self) == 1)
+        #expect(try await rig.count(
+            PumpEventStored.self,
+            NSPredicate(format: "syncIdentifier == %@", kit.newPumpEvent.dose!.syncIdentifier!)
+        ) == 1)
+    }
+
     @Test("The status query's reply-handler delegate method is visible to WatchConnectivity") func replyHandlerSelector() {
         #expect(BaseWatchManager.instancesRespond(to: NSSelectorFromString("session:didReceiveMessage:replyHandler:")))
     }
