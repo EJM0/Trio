@@ -15,6 +15,7 @@ enum LoanRefusal: String, Codable, Equatable, Hashable {
     case unsupportedDevice
     case pumpScreenOpen
     case indefiniteOverride
+    case notClosedLoop
     // Hand-off
     case busy
     case releaseRefused

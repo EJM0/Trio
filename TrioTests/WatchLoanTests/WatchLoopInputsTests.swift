@@ -458,8 +458,9 @@ import Testing
         )
     }
 
-    @Test("The gate holds back insulin while delivery is uncertain, never reductions") func gate() {
+    @Test("The gate holds back insulin while delivery is uncertain, never reductions, and everything in Open Loop") func gate() {
         let certain = WatchDosingGate.plan(
+            automation: .full,
             rate: 2,
             durationMinutes: 30,
             units: 0.3,
@@ -470,6 +471,7 @@ import Testing
         #expect(certain == .init(tempBasal: .init(unitsPerHour: 2, minutes: 30), bolus: 0.3))
 
         let uncertainHigh = WatchDosingGate.plan(
+            automation: .full,
             rate: 2,
             durationMinutes: 30,
             units: 0.3,
@@ -480,6 +482,7 @@ import Testing
         #expect(uncertainHigh == .init(tempBasal: nil, bolus: nil, heldBack: [.tempAddsInsulin, .bolus]))
 
         let uncertainLow = WatchDosingGate.plan(
+            automation: .full,
             rate: 0,
             durationMinutes: 120,
             units: nil,
@@ -490,6 +493,7 @@ import Testing
         #expect(uncertainLow == .init(tempBasal: .init(unitsPerHour: 0, minutes: 120)))
 
         let suspended = WatchDosingGate.plan(
+            automation: .full,
             rate: 0,
             durationMinutes: 30,
             units: nil,
@@ -498,6 +502,17 @@ import Testing
             deliveryUncertain: false
         )
         #expect(suspended == .init(heldBack: [.pumpSuspended]))
+
+        let openLoop = WatchDosingGate.plan(
+            automation: .off,
+            rate: 0,
+            durationMinutes: 30,
+            units: 0.3,
+            scheduledBasal: 1,
+            suspended: false,
+            deliveryUncertain: false
+        )
+        #expect(openLoop == .init(heldBack: [.automationOff]))
     }
 
     func intent(_ kind: WatchDoseIntent.Kind, addsInsulin: Bool = true, before: Double? = 10) -> WatchDoseIntent {
