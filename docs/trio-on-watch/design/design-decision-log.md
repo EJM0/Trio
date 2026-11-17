@@ -12,13 +12,13 @@ Owner: Agent F. Reviewer: Agent G. Scope: v1 (R-1..R-10). Related: `ux-guideline
 | DD-5 | 2026-11-16 | Freshness | Separate clocks; "STALE DATA" only for the tethered remote | Implemented (M6); G re-review pending |
 | DD-6 | 2026-11-16 | Bolus | Outcome stages, delivery view with cancel, uncertain copy without retry | Implemented, partly (M6, see notes); G re-review pending |
 | DD-7 | 2026-11-16 | Bolus | No recommendation on the watch unless the phone's calculator is shared | Superseded by ADR-005 (recommendation from the shared calculator, M5); shown in M6 |
-| DD-8 | 2026-11-16 | Bolus | iOS low-glucose bolus warning on the watch | Not implemented (open) |
+| DD-8 | 2026-11-16 | Bolus | iOS low-glucose bolus warning on the watch | Implemented (G-M6 fix); G re-review pending |
 | DD-9 | 2026-11-16 | Take Back | Always available on the phone; context-specific copy; steer to End when the watch is reachable | Implemented (M6, G-18 applied); G re-review pending |
 | DD-10 | 2026-11-16 | Start | Start sheet with facts and alert limits; extra refusals (indefinite override, notifications off) | Implemented (M6, G-6b/G-8/G-12 applied); G re-review pending |
 | DD-11 | 2026-11-16 | Alerts | Snooze for glucose only, per device; not-looping series as on the phone | Architecture done in M5 (V2-13/V2-16); no M6 UI |
-| DD-12 | 2026-11-16 | Phone | Blocked actions disabled with a note; pump panel opens a Trio sheet, not the kit UI | Implemented, partly (M6, see notes); G re-review pending |
+| DD-12 | 2026-11-16 | Phone | Blocked actions disabled with a note; pump panel opens a Trio sheet, not the kit UI | Implemented, partly (M6 + G-M9 fixes, see notes); G re-review pending |
 | DD-13 | 2026-11-16 | Watch | One "Stopped" state with reason and pump fail-safe sentence; replaces "ended" | Implemented (M6); G re-review pending |
-| DD-14 | 2026-11-16 | Accessibility | VoiceOver alternative to the crown confirmation | Not implemented (open) |
+| DD-14 | 2026-11-16 | Accessibility | VoiceOver alternative to the crown confirmation | Implemented, unverified on device (G-M7 fix) |
 
 ---
 
@@ -209,4 +209,15 @@ Branch `feat/tow-ui`. Details and how the screenshots were made: `../implementat
 | DD-12 | Notes plus disabled actions on Treatments and Adjustments; note on Settings; quick-pick long press opens Treatments; pump panel opens the Trio on Watch sheet; remote commands refused with the G-8 text. | Settings other than pump settings stay editable (the note says they reach the watch only after End). |
 | DD-13 | Stopped header, reason, fail-safe sentence, "Done" (W25) that ends glucose alarms on the watch. | — |
 | DD-14 | — | No VoiceOver action on the crown confirmation. |
+
+### After G's M6 implementation review (2026-11-17)
+
+| DD | Change |
+|---|---|
+| DD-2 | A pump condition replaces the loop age on the control line: "Pod stopped", "Insulin suspended", "Can't reach pod" (LoopRed or orange, warning symbol), then "Bolus paused" for an unconfirmed command (G-M3). |
+| DD-6 | Cancel is a labelled "Cancel Bolus" button (G-M16). Carbs show "Saving carbs…" until the save is on disk (G-M14). |
+| DD-8 | Built: `LowGlucoseBolusWarning` (shared, pure) holds the Treatments rule; Treatments and the watch both call it. On the watch the message shows above the button, and with "confirm bolus" on (or a grant from before the setting was sent) the button reads "Ignore Warning and Enact Bolus" before the crown confirmation (G-M6). |
+| DD-12 | Treatments while lent shows only the note at the top (no forecast, recommendation or fields); IOB and COB show "--", the basal pill is hidden and the pump panel reads "On Apple Watch" (G-M9). The Dosing Mode lock (G-M10) is on `fix/tow-watch-embed`. |
+| DD-13 | Unchanged. |
+| DD-14 | Built: the accessibility action "Confirm bolus" on the crown confirmation, only while the watch holds the pump. Needs a VoiceOver check on a device (G-M7). |
 
