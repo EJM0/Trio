@@ -1509,3 +1509,45 @@ Runs (`X` = `xcodebuild -workspace Trio.xcworkspace`, derived data in the scratc
 
 SwiftFormat reformatted `Trio Watch App Tests/Unit Tests.swift` and `TrioTests/WatchLoanTests/WatchLoopInputsTests.swift` on every build; reverted each time. `Package.resolved` and submodules unchanged.
 
+### Fixes after G's implementation review (2026-11-17)
+
+| Finding | Change |
+|---|---|
+| G-M1 | The watch "iPhone didn't answer" notification says "Open Trio on your iPhone to check which device controls your pump." |
+| G-M2 | UI copy only (`TrioOnWatchStatus.closedLoopRequiredText`); the refusal itself is on `fix/tow-watch-embed`. Map its new `LoanRefusal` case to that text in `refusalText` at the merge (the switch is exhaustive, so the build will ask). |
+| G-M3 | Pump condition on the W1 control line (see DD-2 note). |
+| G-M4 | Suspend and Resume report the pump's answer (success closes after 2 s, failure stays). A confirmed suspend schedules time-sensitive reminders every 30 min for 4 h ("Insulin Still Suspended"), removed by a confirmed Resume on the watch. A resume made elsewhere doesn't remove them. |
+| G-M5 | "Stop Override" / "Stop Temp Target" with the iOS confirmation ("Stop the Override "x"?"), outcome shown; footer "You can stop it here. Starting or changing overrides and temp targets needs your iPhone." |
+| G-M6 | DD-8 built (see the decision log). The grant now carries `confirmBolus` (optional, so saved grants still decode). |
+| G-M7 | DD-14 action built; device check open. |
+| G-M8 | While the watch reads the sensor, the snooze page snoozes the watch's own alarms (urgent low excepted, as on iOS), saved per loan; it shows a snooze carried over from the iPhone at the grant and says "Alarms on this watch". The cycle evaluates alarms through `alarmsHonoringSnooze` (one call site change per evaluation in `WatchLoanHost+Cycle.swift`). |
+| G-M9 | See the decision log, DD-12. |
+| G-M10 | On `fix/tow-watch-embed`. |
+| G-M11 | The pill falls back to glyph + age when the text doesn't fit. |
+| G-M12 | `WatchLoanAlerts.text(for:)` returns `TrioOnWatchStatus.refusalText`. |
+| G-M13 | "Your watch isn't giving insulin yet." on W4 and the W2 footer while waiting for the first reading. |
+| G-M14 | Carbs result waits for the save (up to 10 s), else "Carbs not saved. Enter them again." |
+| G-M15 | No "hand-over" / "hand back": Start / End / take back. "Can't reach your pod" for both pod notices. Not-looping title "Trio Not Active" (the iOS string). |
+| G-M16 | "Cancel Bolus" text button. No delivered-so-far amount (the host has none). |
+| G-M17 | End sends a live status query first; no answer in 5 s refuses on screen ("Your iPhone didn't answer. Bring it close to end. Your watch stays in control until then."), and the watch keeps the pump. |
+| G-M18 | End uses the plain role. |
+| G-M19 | The "This iPhone won't…" list is hidden while taking back. |
+| G-M20 | Re-captured. New: `main-phone-fresh` (tethered, "iPhone · 2 min"), `main-pod-stopped`, `main-suspended`, `main-pod-unreachable`, `main-bolus-paused`, and status shots scrolled to the pump row (`+pump`) or the buttons (`+actions`). The phone set was re-captured in full. |
+| G-10 | Every pump alert the kit raises on the watch gets the line "Replacing your pod needs your iPhone. Bring it close and end Trio on Watch, or take back your pump on your iPhone." |
+
+New API (UI-facing, all in `Loan/WatchLoanHost+UI.swift` except the call-site change above): `suspendInsulinConfirmed()`, `resumeInsulinConfirmed()`, `stopAdjustmentConfirmed(override:)`, `phoneAnswers()`, `ownsGlucoseAlarms`, `snoozedUntil`, `alarmsHonoringSnooze(_:)`, `snoozeAlarms(minutes:)`, `lowGlucoseBolusWarning()`. Shared: `LowGlucoseBolusWarning` (in `BolusSafetyEvaluator.swift`), `WatchLoanSnapshot.BolusCalculatorSettings.confirmBolus`.
+
+
+Screenshots after the fixes: 46 per watch size, 14 per phone set, no two identical (MD5). The superseded `status-phone-away.png`, `status-pod-unreachable.png` and `status-suspended.png` (pump row and buttons below the fold) are replaced by their `+pump` / `+actions` versions. At normal text size the phone pill already shows glyph + age only (the header column is narrow).
+
+Verification after the fixes (same simulators and derived-data folders):
+
+| Step | Result |
+|---|---|
+| iOS app build, flag on | 0 |
+| Watch app build, flag on / off | 0 / 0 |
+| `Trio Watch AppTests`, flag on / off | 61 / 61 each |
+| Full `Trio Tests` | 0; 1251 total, 46 skipped, 1 known issue, no failures |
+| `FileStorageTests` + `TrioOnWatchPhoneStatusTests` + `WatchLoanSnapshotTests` | 24 / 24 |
+
+Still open: G-1 alarm coverage (M3–M5), G-2 `CycleSummary`, G-17/G-M2 and G-M10 (on `fix/tow-watch-embed`), DD-14 and the watch's largest text on a device, a VoiceOver pass on a device.
