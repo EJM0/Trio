@@ -165,6 +165,7 @@ extension WatchLoanCGM: CGMManagerDelegate {
         issued.remove(identifier)
         await host?.retractKitAlert(identifier)
     }
+
     nonisolated func doesIssuedAlertExist(identifier _: Alert.Identifier) async throws -> Bool { false }
     nonisolated func lookupAllUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }
     nonisolated func lookupAllUnacknowledgedUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }

@@ -396,6 +396,10 @@ actor WatchLoanCoordinator {
 
         case let .arm(alarm):
             var anchor = now()
+            if alarm == .phoneNotLooping, case .home = state {
+                // at home the phone's own loop dates anchor the series, as without a loan
+                anchor = .distantPast
+            }
             if alarm == .phoneNoWatchUpdates {
                 if case .relaunched = event, let lastBatchAt = ledger.lastBatchAt {
                     anchor = lastBatchAt

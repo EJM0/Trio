@@ -322,7 +322,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
     func setAlarm(_ alarm: LoanAlarm, armed: Bool, anchor: Date) {
         switch alarm {
         case .phoneNotLooping:
-            notLoopingMonitor.setArmed(armed)
+            notLoopingMonitor.setArmed(armed, since: anchor)
         case .phoneNoWatchUpdates:
             let steps = Self.watchSilenceMinutes + [Self.watchSilenceCriticalMinutes]
             steps.forEach { trioAlertManager.retractAlert(identifier: Self.silenceID($0)) }

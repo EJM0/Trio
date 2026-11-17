@@ -82,11 +82,12 @@ final class NotLoopingMonitor: Injectable {
             .store(in: &subscriptions)
     }
 
-    /// Arming counts from now when the last loop is older, so a stale loop date still leaves the whole series pending.
-    func setArmed(_ armed: Bool) {
-        guard armed != isArmed else { return }
+    /// Arming counts from `anchor` when the last loop is older, so a stale loop date still leaves the whole series
+    /// pending. A later anchor restarts an armed series: a relaunch while no device may dose schedules nothing otherwise.
+    func setArmed(_ armed: Bool, since anchor: Date = Date()) {
+        guard armed != isArmed || (armed && anchor > armedAt) else { return }
         isArmed = armed
-        if armed { armedAt = Date() }
+        if armed { armedAt = anchor }
         info(.loop, armed ? "Not-looping alarm armed" : "Not-looping alarm disarmed while Apple Watch holds the pump")
         rescheduleAlarm()
     }
