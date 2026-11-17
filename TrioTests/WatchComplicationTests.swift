@@ -18,31 +18,19 @@ import Testing
         let settings = try decodeSettings("{}")
         #expect(settings.watchComplicationCornerValue == WatchComplicationDefaults.cornerValue)
         #expect(settings.watchComplicationSecondaryValue == WatchComplicationDefaults.secondaryValue)
-        #expect(settings.watchComplicationStaleMinutes == WatchComplicationDefaults.staleMinutes)
     }
 
     @Test("Stored complication settings decode") func settingsDecode() throws {
-        let json = #"""
-        {"watchComplicationCornerValue": "cob", "watchComplicationSecondaryValue": "loopAge",
-         "watchComplicationStaleMinutes": 30}
-        """#
+        let json = #"{"watchComplicationCornerValue": "cob", "watchComplicationSecondaryValue": "loopAge"}"#
         let settings = try decodeSettings(json)
         #expect(settings.watchComplicationCornerValue == .cob)
         #expect(settings.watchComplicationSecondaryValue == .loopAge)
-        #expect(settings.watchComplicationStaleMinutes == 30)
-    }
-
-    @Test("Out-of-range stale minutes are clamped on decode") func staleMinutesClamped() throws {
-        #expect(try decodeSettings(#"{"watchComplicationStaleMinutes": 0}"#).watchComplicationStaleMinutes == 5)
-        #expect(try decodeSettings(#"{"watchComplicationStaleMinutes": 999}"#).watchComplicationStaleMinutes == 30)
-        #expect(WatchComplicationDefaults.clampedStaleMinutes(-3) == 5)
-        #expect(WatchComplicationDefaults.clampedStaleMinutes(30) == 30)
     }
 
     @Test("Snapshot round-trips through the store encoding") func snapshotRoundTrips() throws {
         let sample = ComplicationState.sample(
             units: "mg/dL",
-            settings: ComplicationSlotSettings(cornerValue: .cob, secondaryValue: .loopAge, staleMinutes: 25),
+            settings: ComplicationSlotSettings(cornerValue: .cob, secondaryValue: .loopAge),
             date: now
         )
         let data = try JSONEncoder().encode(sample)
@@ -51,7 +39,6 @@ import Testing
         #expect(!decoded.isMmol)
         #expect(decoded.history.count == 36)
         #expect(decoded.cornerValue == .cob)
-        #expect(decoded.staleAfter == 25 * 60)
     }
 
     @Test("Units decide the gauge range and clamp the value") func gaugeRange() {
@@ -67,26 +54,34 @@ import Testing
         #expect(state.gaugeValue == 115)
     }
 
-    @Test("Staleness follows the configured minutes") func staleness() {
-        var state = ComplicationState.sample(units: "mg/dL", settings: ComplicationSlotSettings(staleMinutes: 10), date: now)
-        #expect(!state.isStale(at: now.addingTimeInterval(9 * 60)))
-        #expect(state.isStale(at: now.addingTimeInterval(11 * 60)))
-        #expect(state.minutesAgo(at: now.addingTimeInterval(11 * 60)) == 11)
-        state.staleMinutes = WatchComplicationDefaults.staleMinutes
-        #expect(!state.isStale(at: now.addingTimeInterval(14 * 60)))
-        #expect(state.isStale(at: now.addingTimeInterval(16 * 60)))
-    }
-
-    @Test("Staleness flips just after the configured minutes") func stalenessThreshold() {
-        let settings = ComplicationSlotSettings(staleMinutes: 10)
-        let state = ComplicationState.sample(units: "mg/dL", settings: settings, date: now)
+    @Test("Aging flips after 5 minutes, staleness after 10") func stalenessThresholds() {
+        let state = ComplicationState.sample(units: "mg/dL", date: now)
+        #expect(!state.isAging(at: now.addingTimeInterval(5 * 60)))
+        #expect(state.isAging(at: now.addingTimeInterval(5 * 60 + 1)))
         #expect(!state.isStale(at: now.addingTimeInterval(10 * 60)))
         #expect(state.isStale(at: now.addingTimeInterval(10 * 60 + 1)))
+        #expect(state.minutesAgo(at: now.addingTimeInterval(11 * 60)) == 11)
+    }
+
+    @Test("An aging reading shows its time in place of the delta") func agingShowsReadingTime() {
+        var state = ComplicationState.sample(
+            units: "mg/dL",
+            settings: ComplicationSlotSettings(secondaryValue: .delta),
+            date: now
+        )
+        state.trend = "Flat"
+        state.delta = "+3"
+        let time = now.formatted(date: .omitted, time: .shortened)
+        #expect(makeModel(.glucose, state, at: now.addingTimeInterval(5 * 60)).secondaryText == "→ +3")
+        for minutes in [6.0, 11, 120] {
+            let model = makeModel(.glucose, state, at: now.addingTimeInterval(minutes * 60))
+            #expect(model.secondaryText == "→ \(time)")
+            #expect(model.glucoseWithArrow == "115→")
+        }
     }
 
     @Test("A stale reading is greyed") func staleReadingGreyed() {
-        let settings = ComplicationSlotSettings(staleMinutes: 10)
-        let state = ComplicationState.sample(units: "mg/dL", settings: settings, date: now)
+        let state = ComplicationState.sample(units: "mg/dL", date: now)
         let fresh = makeModel(.glucose, state, at: now.addingTimeInterval(7 * 60))
         #expect(fresh.valueColor == .primary)
         #expect(fresh.dimColor == .secondary)
@@ -96,27 +91,13 @@ import Testing
         #expect(stale.dimColor == .gray)
     }
 
-    @Test("A stale gauge replaces the glucose with dashes") func staleGauge() {
-        let settings = ComplicationSlotSettings(staleMinutes: 10)
-        let state = ComplicationState.sample(units: "mg/dL", settings: settings, date: now)
-        let fresh = makeModel(.gauge, state, at: now.addingTimeInterval(10 * 60))
-        #expect(fresh.glucoseText == "115")
-        #expect(fresh.cornerMainText == "115")
-        let stale = makeModel(.gauge, state, at: now.addingTimeInterval(10 * 60 + 1))
-        #expect(stale.glucoseText == "--")
-        #expect(stale.cornerMainText == "--")
-    }
-
-    @Test("Every kind hides a stale glucose") func staleGlucoseByKind() {
+    @Test("Every kind keeps showing a stale glucose") func staleGlucoseByKind() {
         var state = ComplicationState.sample(units: "mg/dL", date: now)
         state.trend = "Flat"
-        let freshDate = now.addingTimeInterval(TimeInterval(state.staleMinutes * 60))
-        let staleDate = now.addingTimeInterval(TimeInterval(state.staleMinutes * 60 + 1))
-        #expect(makeModel(.glucose, state, at: freshDate).glucoseWithArrow == "115→")
-        #expect(makeModel(.glucose, state, at: staleDate).glucoseWithArrow == "--")
-        #expect(makeModel(.glucose, state, at: staleDate).cornerMainText == "--")
-        #expect(makeModel(.chart, state, at: staleDate).glucoseText == "--")
-        #expect(makeModel(.iob, state, at: staleDate).cornerMainText == "--")
+        let staleDate = now.addingTimeInterval(60 * 60)
+        #expect(makeModel(.glucose, state, at: staleDate).glucoseWithArrow == "115→")
+        #expect(makeModel(.gauge, state, at: staleDate).cornerMainText == "115")
+        #expect(makeModel(.chart, state, at: staleDate).glucoseText == "115")
     }
 
     @Test("Slot text follows the chosen value") func slotText() {
@@ -136,7 +117,7 @@ import Testing
     }
 
     @Test("Loop staleness is separate from reading staleness") func loopStaleness() {
-        var state = ComplicationState.sample(units: "mmol/L", settings: ComplicationSlotSettings(staleMinutes: 15), date: now)
+        var state = ComplicationState.sample(units: "mmol/L", date: now)
         state.loopDate = now.addingTimeInterval(-20 * 60)
         let model = makeModel(.iob, state, at: now)
         #expect(!model.isStale)
@@ -163,15 +144,15 @@ import Testing
     }
 
     @Test("A stale loop replaces IOB and COB with dashes") func loopStaleValues() {
-        var state = ComplicationState.sample(units: "mg/dL", settings: ComplicationSlotSettings(staleMinutes: 15), date: now)
-        state.loopDate = now.addingTimeInterval(-15 * 60)
+        var state = ComplicationState.sample(units: "mg/dL", date: now)
+        state.loopDate = now.addingTimeInterval(-10 * 60)
         var model = makeModel(.iob, state, at: now)
         #expect(model.displayedState.iob == "1.25")
         #expect(model.iobText == "1.25 U")
         #expect(model.cobText == "12 g")
         #expect(model.valueColor == .primary)
 
-        state.loopDate = now.addingTimeInterval(-16 * 60)
+        state.loopDate = now.addingTimeInterval(-10 * 60 - 1)
         model = makeModel(.iob, state, at: now)
         #expect(model.displayedState.iob == "--")
         #expect(model.displayedState.cob == "--")

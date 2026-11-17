@@ -360,7 +360,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
                 watchState.complicationCornerValue = self.settingsManager.settings.watchComplicationCornerValue
                 watchState.complicationSecondaryValue = self.settingsManager.settings.watchComplicationSecondaryValue
-                watchState.complicationStaleMinutes = self.settingsManager.settings.watchComplicationStaleMinutes
 
                 watchState.showForecast = self.settingsManager.settings.showForecastWatch
                 watchState.isForecastCone = self.settingsManager.settings.forecastDisplayType == .cone
@@ -571,7 +570,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             WatchMessageKeys.confirmBolusFaster: state.confirmBolusFaster,
             WatchMessageKeys.complicationCornerValue: state.complicationCornerValue.rawValue,
             WatchMessageKeys.complicationSecondaryValue: state.complicationSecondaryValue.rawValue,
-            WatchMessageKeys.complicationStaleMinutes: state.complicationStaleMinutes,
             WatchMessageKeys.units: state.units.rawValue,
             WatchMessageKeys.showForecastWatch: state.showForecast,
             WatchMessageKeys.isForecastCone: state.isForecastCone,

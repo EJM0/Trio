@@ -25,8 +25,7 @@ struct WatchConfigAppleWatchView: BaseView {
             units: state.units.rawValue,
             settings: ComplicationSlotSettings(
                 cornerValue: state.complicationCornerValue,
-                secondaryValue: state.complicationSecondaryValue,
-                staleMinutes: state.complicationStaleMinutes
+                secondaryValue: state.complicationSecondaryValue
             )
         )
     }
@@ -128,7 +127,7 @@ struct WatchConfigAppleWatchView: BaseView {
             Section(
                 header: Text("Complication Settings"),
                 footer: Text(
-                    "Grey Out After applies to every complication: older readings are greyed and show their age, and IOB and COB grey when the loop has not run within that time. Corner Label is the curved text on Trio Glucose corner slots. Small Line is the text under the glucose on Trio Glucose circular slots, beside the ring on Trio Gauge rectangular slots, and the second line of Trio Chart. Trio IOB has a fixed layout."
+                    "A reading older than 5 minutes shows its time in place of the delta, and greys after 10 minutes; IOB and COB show -- when the loop has not run for 10 minutes. Corner Label is the curved text on Trio Glucose corner slots. Small Line is the text under the glucose on Trio Glucose circular slots, beside the ring on Trio Gauge rectangular slots, and the second line of Trio Chart. Trio IOB has a fixed layout."
                 ),
                 content: {
                     Picker("Corner Label", selection: $state.complicationCornerValue) {
@@ -139,17 +138,6 @@ struct WatchConfigAppleWatchView: BaseView {
                     Picker("Small Line", selection: $state.complicationSecondaryValue) {
                         ForEach(WatchComplicationValue.allCases) { value in
                             Text(value.displayName).tag(value)
-                        }
-                    }
-                    Stepper(
-                        value: $state.complicationStaleMinutes,
-                        in: WatchComplicationDefaults.staleMinutesRange,
-                        step: 5
-                    ) {
-                        HStack {
-                            Text("Grey Out After")
-                            Spacer()
-                            Text("\(state.complicationStaleMinutes) min").foregroundStyle(.secondary)
                         }
                     }
                 }

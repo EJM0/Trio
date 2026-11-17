@@ -15,7 +15,6 @@ struct ComplicationPoint: Codable, Equatable {
 struct ComplicationSlotSettings {
     var cornerValue = WatchComplicationDefaults.cornerValue
     var secondaryValue = WatchComplicationDefaults.secondaryValue
-    var staleMinutes = WatchComplicationDefaults.staleMinutes
 }
 
 struct ComplicationState: Codable, Equatable {
@@ -30,7 +29,6 @@ struct ComplicationState: Codable, Equatable {
 
     var cornerValue: WatchComplicationValue
     var secondaryValue: WatchComplicationValue
-    var staleMinutes: Int
 
     var units: String
     var glucoseValue: Double?
@@ -61,7 +59,6 @@ struct ComplicationState: Codable, Equatable {
         lastLoopTime: missingValue,
         cornerValue: WatchComplicationDefaults.cornerValue,
         secondaryValue: WatchComplicationDefaults.secondaryValue,
-        staleMinutes: WatchComplicationDefaults.staleMinutes,
         units: defaultUnits,
         glucoseValue: nil,
         history: [],
@@ -87,7 +84,6 @@ struct ComplicationState: Codable, Equatable {
             lastLoopTime: "2 min",
             cornerValue: settings.cornerValue,
             secondaryValue: settings.secondaryValue,
-            staleMinutes: settings.staleMinutes,
             units: units,
             glucoseValue: history.last?.glucose,
             history: history,
@@ -116,7 +112,10 @@ struct ComplicationState: Codable, Equatable {
 
     var isMmol: Bool { Self.isMmol(units) }
 
-    var staleAfter: TimeInterval { TimeInterval(staleMinutes) * 60 }
+    /// Past this the delta's place shows the reading's time.
+    static let agingAfter: TimeInterval = 5 * 60
+    /// Past this the reading greys, and IOB and COB show `--` once the loop is this old.
+    static let staleAfter: TimeInterval = 10 * 60
 
     var gaugeRange: ClosedRange<Double> {
         isMmol ? 2.5 ... 16.0 : 45 ... 290
@@ -150,13 +149,17 @@ struct ComplicationState: Codable, Equatable {
         }
     }
 
+    func isAging(at reference: Date) -> Bool {
+        reference.timeIntervalSince(date) > Self.agingAfter
+    }
+
     func isStale(at reference: Date) -> Bool {
-        reference.timeIntervalSince(date) > staleAfter
+        reference.timeIntervalSince(date) > Self.staleAfter
     }
 
     func isLoopStale(at reference: Date) -> Bool {
         guard let loopDate = loopDate else { return false }
-        return reference.timeIntervalSince(loopDate) > staleAfter
+        return reference.timeIntervalSince(loopDate) > Self.staleAfter
     }
 
     func loopAgeText(at reference: Date) -> String {

@@ -65,7 +65,6 @@ enum WatchMessageKeys {
 
     static let complicationCornerValue = "complicationCornerValue"
     static let complicationSecondaryValue = "complicationSecondaryValue"
-    static let complicationStaleMinutes = "complicationStaleMinutes"
 
     // Notification Actions
     static let snoozeDuration = "snoozeDuration"

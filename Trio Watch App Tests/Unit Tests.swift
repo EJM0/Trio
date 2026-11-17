@@ -209,8 +209,7 @@ import Testing
         #expect(watchState.isEntryFresh(at: entryStart.addingTimeInterval(200)))
     }
 
-    @Test("Confirming an entry older than 2 minutes sends nothing and clears it")
-    func testExpiredEntryNotSent() throws {
+    @Test("Confirming an entry older than 2 minutes sends nothing and clears it") func testExpiredEntryNotSent() throws {
         enterMealBolus()
 
         watchState.sendConfirmedEntry(bolusAmount: 3.0, at: entryStart.addingTimeInterval(121))

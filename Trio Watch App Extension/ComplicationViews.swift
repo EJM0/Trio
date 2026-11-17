@@ -40,7 +40,7 @@ enum ComplicationKind: String, CaseIterable, Identifiable {
             )
         case .iob:
             return String(
-                localized: "Insulin on board first, with COB and glucose alongside. Fixed layout; only Grey Out After applies.",
+                localized: "Insulin on board first, with COB and glucose alongside. Fixed layout.",
                 comment: "Description of the insulin on board watch complication"
             )
         case .chart:
@@ -96,6 +96,9 @@ struct ComplicationModel {
         isLoopUnknown = !isPlaceholder && state.loopDate == nil
         var shown = state
         shown.lastLoopTime = state.loopAgeText(at: referenceDate)
+        if !isPlaceholder, state.isAging(at: referenceDate) {
+            shown.delta = state.date.formatted(date: .omitted, time: .shortened)
+        }
         if isLoopStale {
             shown.iob = ComplicationState.missingValue
             shown.cob = ComplicationState.missingValue
@@ -111,18 +114,15 @@ struct ComplicationModel {
     var valueColor: Color { isStale || isLoopStale || isLoopUnknown ? .gray : .primary }
 
     var statusLine: String {
-        if isStale { return ageText }
         if isLoopStale { return "loop \(displayedState.lastLoopTime)" }
         return "COB \(displayedState.cob)"
     }
 
     var dimColor: Color { isStale ? .gray : .secondary }
 
-    var trendArrow: String { isStale ? "" : displayedState.trendArrow }
+    var trendArrow: String { displayedState.trendArrow }
 
-    var glucoseText: String {
-        isStale ? ComplicationState.missingValue : displayedState.glucose
-    }
+    var glucoseText: String { displayedState.glucose }
 
     var glucoseWithArrow: String {
         trendArrow.isEmpty ? glucoseText : "\(glucoseText)\(trendArrow)"
@@ -145,13 +145,9 @@ struct ComplicationModel {
     var iobText: String { displayedState.iob == ComplicationState.missingValue ? displayedState.iob : "\(displayedState.iob) U" }
     var cobText: String { displayedState.cob == ComplicationState.missingValue ? displayedState.cob : "\(displayedState.cob) g" }
 
-    var secondaryText: String {
-        isStale ? ageText : displayedState.plainText(for: displayedState.secondaryValue)
-    }
+    var secondaryText: String { displayedState.plainText(for: displayedState.secondaryValue) }
 
-    var cornerText: String {
-        isStale ? ageText : displayedState.labelledText(for: displayedState.cornerValue)
-    }
+    var cornerText: String { displayedState.labelledText(for: displayedState.cornerValue) }
 
     var gaugeValue: Double {
         displayedState.gaugeValue ?? (displayedState.gaugeRange.lowerBound + displayedState.gaugeRange.upperBound) / 2
@@ -296,7 +292,7 @@ struct ComplicationCornerLabel: View {
             .tint(model.gaugeGradient)
         case .iob:
             Text(
-                model.isStale || model.isLoopStale
+                model.isLoopStale
                     ? model.statusLine
                     : "COB \(model.cobText) · \(model.glucoseText)"
             )
@@ -334,14 +330,12 @@ struct ComplicationRectangularContent: View {
             Text(model.glucoseText)
                 .font(.system(size: 24, weight: .bold))
                 .foregroundStyle(model.glucoseColor)
-            if !model.isStale {
-                Text(model.displayedState.trendArrow)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(model.glucoseColor)
-                Text(model.displayedState.delta)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.secondary)
-            }
+            Text(model.displayedState.trendArrow)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(model.glucoseColor)
+            Text(model.displayedState.delta)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -390,13 +384,9 @@ struct ComplicationRectangularContent: View {
                 Text(model.glucoseWithArrow)
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(model.glucoseColor)
-                Text(
-                    model.isStale
-                        ? "\(model.ageText) ago"
-                        : "\(model.displayedState.delta) · loop \(model.displayedState.lastLoopTime)"
-                )
-                .font(.system(size: 11))
-                .foregroundStyle(model.isLoopStale || model.isLoopUnknown ? Color.gray : Color.secondary)
+                Text("\(model.displayedState.delta) · loop \(model.displayedState.lastLoopTime)")
+                    .font(.system(size: 11))
+                    .foregroundStyle(model.isLoopStale || model.isLoopUnknown ? Color.gray : Color.secondary)
             }
         }
     }
@@ -436,15 +426,11 @@ struct ComplicationInlineContent: View {
     private var text: String {
         switch model.kind {
         case .iob:
-            return model.isStale
-                ? "IOB \(model.iobText) · \(model.ageText) ago"
-                : "IOB \(model.iobText) · COB \(model.cobText) · \(model.glucoseWithArrow)"
+            return "IOB \(model.iobText) · COB \(model.cobText) · \(model.glucoseWithArrow)"
         case .chart,
              .gauge,
              .glucose:
-            return model.isStale
-                ? "\(model.glucoseText) · \(model.ageText) ago"
-                : "\(model.glucoseWithArrow) \(model.displayedState.delta) · IOB \(model.displayedState.iob)"
+            return "\(model.glucoseWithArrow) \(model.displayedState.delta) · IOB \(model.displayedState.iob)"
         }
     }
 }

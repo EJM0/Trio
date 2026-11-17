@@ -23,10 +23,4 @@ enum WatchComplicationValue: String, CaseIterable, Identifiable, Codable, Hashab
 enum WatchComplicationDefaults {
     static let cornerValue: WatchComplicationValue = .iob
     static let secondaryValue: WatchComplicationValue = .delta
-    static let staleMinutes = 15
-    static let staleMinutesRange = 5 ... 30
-
-    static func clampedStaleMinutes(_ minutes: Int) -> Int {
-        min(max(minutes, staleMinutesRange.lowerBound), staleMinutesRange.upperBound)
-    }
 }

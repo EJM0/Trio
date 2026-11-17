@@ -36,7 +36,6 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
 
     var complicationCornerValue: WatchComplicationValue = WatchComplicationDefaults.cornerValue
     var complicationSecondaryValue: WatchComplicationValue = WatchComplicationDefaults.secondaryValue
-    var complicationStaleMinutes: Int = WatchComplicationDefaults.staleMinutes
 
     // Forecast options
     var showForecast: Bool = false
@@ -94,7 +93,6 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
             lhs.confirmBolusFaster == rhs.confirmBolusFaster &&
             lhs.complicationCornerValue == rhs.complicationCornerValue &&
             lhs.complicationSecondaryValue == rhs.complicationSecondaryValue &&
-            lhs.complicationStaleMinutes == rhs.complicationStaleMinutes &&
             lhs.showForecast == rhs.showForecast &&
             lhs.isForecastCone == rhs.isForecastCone &&
             lhs.forecastStartDate == rhs.forecastStartDate &&
@@ -133,7 +131,6 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(confirmBolusFaster)
         hasher.combine(complicationCornerValue)
         hasher.combine(complicationSecondaryValue)
-        hasher.combine(complicationStaleMinutes)
         hasher.combine(showForecast)
         hasher.combine(isForecastCone)
         hasher.combine(watchSensorConfiguration)

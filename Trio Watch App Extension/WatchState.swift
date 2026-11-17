@@ -69,7 +69,6 @@ import WidgetKit
     var useSuperBolus: Bool = false
     var complicationCornerValue: WatchComplicationValue = WatchComplicationDefaults.cornerValue
     var complicationSecondaryValue: WatchComplicationValue = WatchComplicationDefaults.secondaryValue
-    var complicationStaleMinutes: Int = WatchComplicationDefaults.staleMinutes
     var glucoseUnits: String = ComplicationState.defaultUnits
     var lastLoopDate: Date?
     var lowGlucoseLimit: Double?
@@ -811,10 +810,6 @@ import WidgetKit
             complicationSecondaryValue = WatchComplicationValue(rawValue: raw) ?? WatchComplicationDefaults.secondaryValue
         }
 
-        if let minutes = (message[WatchMessageKeys.complicationStaleMinutes] as? NSNumber)?.intValue {
-            complicationStaleMinutes = WatchComplicationDefaults.clampedStaleMinutes(minutes)
-        }
-
         if let units = message[WatchMessageKeys.units] as? String {
             glucoseUnits = units
         }
@@ -918,7 +913,6 @@ import WidgetKit
             lastLoopTime: lastLoopTime ?? ComplicationState.missingValue,
             cornerValue: complicationCornerValue,
             secondaryValue: complicationSecondaryValue,
-            staleMinutes: complicationStaleMinutes,
             units: glucoseUnits,
             glucoseValue: glucoseValue,
             history: complicationHistory(until: readingDate),

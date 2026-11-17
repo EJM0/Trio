@@ -1089,590 +1089,6 @@
         }
       }
     },
-    "%lld of %lld characters" : {
-
-    },
-    "Add Screenshots" : {
-
-    },
-    "Also Sent" : {
-
-    },
-    "Ask on Discord" : {
-
-    },
-    "Ask on Facebook" : {
-
-    },
-    "Attach My Logs" : {
-
-    },
-    "Build" : {
-
-    },
-    "Change Screenshots" : {
-
-    },
-    "Contact" : {
-
-    },
-    "Copy ID" : {
-
-    },
-    "Couldn't Delete Report" : {
-
-    },
-    "Couldn't Send Report" : {
-
-    },
-    "Delete Report" : {
-
-    },
-    "Delete Report?" : {
-
-    },
-    "Deleting" : {
-
-    },
-    "Deleting a report removes it and its files from the Trio team's server." : {
-
-    },
-    "Describe what happened and what you expected" : {
-
-    },
-    "Discord Name" : {
-
-    },
-    "Email" : {
-
-    },
-    "Fill in any of these so the team can follow up with you." : {
-
-    },
-    "GitHub Username" : {
-
-    },
-    "Includes glucose, insulin, carbs and your settings. Passwords and serial numbers are removed." : {
-
-    },
-    "iOS Version" : {
-
-    },
-    "iPhone Model" : {
-
-    },
-    "One of the screenshots couldn't be read. Try choosing it again or leave it out." : {
-
-    },
-    "Open a GitHub Issue" : {
-
-    },
-    "Private. Describe the problem, add screenshots and your logs. Only the Trio team can see it." : {
-
-    },
-    "Public. Only for bugs you can describe without personal or health data." : {
-
-    },
-    "Report %@ and its files will be deleted from the Trio team's server." : {
-
-    },
-    "Report a Problem" : {
-
-    },
-    "Report Actions" : {
-
-    },
-    "Report Sent" : {
-
-    },
-    "Reports go only to the Trio team and are deleted after 90 days. You can delete a report yourself at any time." : {
-
-    },
-    "Save the file or send it to someone helping you on Discord or Facebook. Contains glucose, insulin and carbs; passwords and serial numbers are removed." : {
-
-    },
-    "Screenshot %lld" : {
-
-    },
-    "Screenshots" : {
-
-    },
-    "Send to the Trio Team" : {
-
-    },
-    "Sending" : {
-
-    },
-    "Some files didn't reach the Trio team's server. Please try again." : {
-
-    },
-    "Sending Report" : {
-
-    },
-    "Sent Reports" : {
-
-    },
-    "Stay Anonymous" : {
-
-    },
-    "Submit" : {
-
-    },
-    "Submit Ticket on GitHub" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "bg" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Подайте тикет в GitHub"
-          }
-        },
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nahlásit problém na GitHubu"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Indsend billet på GitHub"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ticket an GitHub senden"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enviar Ticket en GitHub"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Créer un ticket sur GitHub"
-          }
-        },
-        "he" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Submit Ticket on GitHub"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Invia Ticket su GitHub"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "GitHub에 이슈(Ticket) 등록하기"
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trio GitHub"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ticket verzenden op GitHub"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prześlij zgłoszenie na GitHub"
-          }
-        },
-        "pt-PT" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enviar Ticket no GitHub"
-          }
-        },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Submit Ticket on GitHub"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Отправить заявку на GitHub"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Skapa en ticket på GitHub"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Submit Ticket on GitHub"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Надіслати заявку на GitHub"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tạo yêu cầu trên GitHub"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在 GitHub 上提交工单"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在 GitHub 提交問題單"
-          }
-        }
-      }
-    },
-    "Thank you. Your report ID is %@. Mention it if you ask about this on Discord or Facebook." : {
-
-    },
-    "The report is too large. Try fewer or smaller screenshots." : {
-
-    },
-    "The report won't include your name or contact details." : {
-
-    },
-    "The Trio team's server couldn't take the report right now (error %lld)." : {
-
-    },
-    "The Trio team's server sent an answer the app doesn't understand." : {
-
-    },
-    "This build of Trio can't send reports. Please share your logs on Discord or Facebook instead." : {
-
-    },
-    "Tidepool Login Required" : {
-
-    },
-    "Title (optional)" : {
-
-    },
-    "Trio couldn't confirm with Apple that this copy of the app is genuine. Please try again later." : {
-
-    },
-    "Trio Discord" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "bg" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trio Discord"
-          }
-        },
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trio Discord"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trio Discord"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trio Discord"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trio Discord"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Discord – Trio"
-          }
-        },
-        "he" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Trio Discord"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trio Discord"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trio 디스코드"
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trio Discord"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trio Discord"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trio Discord"
-          }
-        },
-        "pt-PT" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trio Discord"
-          }
-        },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Trio Discord"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Трио Discord"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trio Discord"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Trio Discord"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Тріо Discord"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trio Discord"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trio Discord"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trio  Discord"
-          }
-        }
-      }
-    },
-    "Try Again" : {
-
-    },
-    "Up to %lld screenshots or photos." : {
-
-    },
-    "Uploads to Tidepool are paused. Tap to log in." : {
-
-    },
-    "You've sent several reports today. Please try again tomorrow." : {
-
-    },
-    "Your Logs" : {
-
-    },
-    "Your logs are too large to send. Turn off Attach My Logs and share them on Discord or Facebook instead." : {
-
-    },
-    "Your logs couldn't be prepared. Try again, or turn off Attach My Logs." : {
-
-    },
-    "Choose the preferred lower threshold for Time in Range statistics." : {
-      "comment" : "Short description of the lower range threshold setting.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose the preferred lower threshold for Time in Range statistics."
-          }
-        }
-      }
-    },
-    "Choose the preferred lower threshold for Time in Range statistics across all charts and displays. This applies to both Time in Range (TIR, upper threshold of %@) and Time in Tight Range (TITR, upper threshold of %@)." : {
-      "comment" : "Explains that the lower threshold applies to both TIR and TITR",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose the preferred lower threshold for Time in Range statistics across all charts and displays. This applies to both Time in Range (TIR, upper threshold of %@) and Time in Tight Range (TITR, upper threshold of %@)."
-          }
-        }
-      }
-    },
-    "Extended (%@)" : {
-      "comment" : "Extended lower threshold for TIR and TITR statistics",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Extended (%@)"
-          }
-        }
-      }
-    },
-    "Extended Lower Threshold" : {
-      "comment" : "Search term for the extended lower range threshold setting.",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Extended Lower Threshold"
-          }
-        }
-      }
-    },
-    "Extended:" : {
-      "comment" : "Heading for the extended lower range threshold description.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Extended:"
-          }
-        }
-      }
-    },
-    "TIR Lower Threshold" : {
-      "comment" : "Setting for the lower glucose boundary shared by TIR and TITR statistics.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "TIR Lower Threshold"
-          }
-        }
-      }
-    },
-    "Standard (%@)" : {
-      "comment" : "Standard lower threshold for TIR and TITR statistics",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Standard (%@)"
-          }
-        }
-      }
-    },
-    "Standard Lower Threshold" : {
-      "comment" : "Search term for the standard lower range threshold setting.",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Standard Lower Threshold"
-          }
-        }
-      }
-    },
-    "Standard:" : {
-      "comment" : "Heading for the standard lower range threshold description.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Standard:"
-          }
-        }
-      }
-    },
-    "TIR (%@-%@)" : {
-      "comment" : "Time in Range with the selected lower threshold and the upper threshold.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "TIR (%@-%@)"
-          }
-        }
-      }
-    },
-    "TITR (%@-%@)" : {
-      "comment" : "Time in Tight Range with either the Standard or Extended lower threshold.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "TITR (%@-%@)"
-          }
-        }
-      }
-    },
-    "Uses the established lower threshold of %@." : {
-      "comment" : "Standard lower range threshold description",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uses the established lower threshold of %@."
-          }
-        }
-      }
-    },
-    "Uses the newer Time in Normoglycemia (TING) lower threshold of %@." : {
-      "comment" : "Extended lower range threshold description",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uses the newer Time in Normoglycemia (TING) lower threshold of %@."
-          }
-        }
-      }
-    },
     " " : {
       "localizations" : {
         "bg" : {
@@ -11161,6 +10577,136 @@
         }
       }
     },
+    "%@ Insulin" : {
+      "localizations" : {
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Инсулин"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Inzulín"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Insulin"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Insulin"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Insulina"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insuline %@"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ אינסולין"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Insulina"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 인슐린"
+          }
+        },
+        "nb-NO" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Insulin"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Insuline"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Insulina"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Insulina"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%@ Insulin"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Инсулин"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Insulin"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%@ Insulin"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Insulin"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Insulin"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 胰岛素"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 胰島素"
+          }
+        }
+      }
+    },
     "%@ is on. %@" : {
       "localizations" : {
         "bg" : {
@@ -12377,136 +11923,6 @@
         }
       }
     },
-    "%@ Insulin" : {
-      "localizations" : {
-        "bg" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Инсулин"
-          }
-        },
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Inzulín"
-          }
-        },
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Insulin"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Insulin"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Insulina"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Insuline %@"
-          }
-        },
-        "he" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ אינסולין"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Insulina"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ 인슐린"
-          }
-        },
-        "nb-NO" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Insulin"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Insuline"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Insulina"
-          }
-        },
-        "pt-PT" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Insulina"
-          }
-        },
-        "ro" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%@ Insulin"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Инсулин"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Insulin"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%@ Insulin"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Insulin"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Insulin"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ 胰岛素"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ 胰島素"
-          }
-        }
-      }
-    },
     "%1$@ for %2$@" : {
       "comment" : "Summary string for temporary basal rate configuration page",
       "extractionState" : "manual",
@@ -12646,8 +12062,8 @@
       }
     },
     "%1$d days %2$d hours" : {
-      "extractionState" : "stale",
       "comment" : "Accessibility: pod time",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -12778,8 +12194,8 @@
       }
     },
     "%1$d hours %2$d minutes" : {
-      "extractionState" : "stale",
       "comment" : "Accessibility: pod time",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -13044,8 +12460,8 @@
       "comment" : "Stats range picker footer: how many whole days the range covers"
     },
     "%d hours" : {
-      "extractionState" : "stale",
       "comment" : "Accessibility: pod time",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -13176,8 +12592,8 @@
       }
     },
     "%d minutes" : {
-      "extractionState" : "stale",
       "comment" : "Accessibility: pod time",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -13308,8 +12724,8 @@
       }
     },
     "%d minutes ago" : {
-      "extractionState" : "stale",
       "comment" : "Accessibility: elapsed time",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -14614,6 +14030,7 @@
       }
     },
     "%lld min" : {
+      "comment" : "Watch: age of the shown glucose reading",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -14742,6 +14159,9 @@
           }
         }
       }
+    },
+    "%lld of %lld characters" : {
+
     },
     "%lld x" : {
       "extractionState" : "stale",
@@ -14875,7 +14295,6 @@
       }
     },
     "%lld%%" : {
-      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -32658,6 +32077,9 @@
         }
       }
     },
+    "A reading older than 5 minutes shows its time in place of the delta, and greys after 10 minutes; IOB and COB show -- when the loop has not run for 10 minutes. Corner Label is the curved text on Trio Glucose corner slots. Small Line is the text under the glucose on Trio Glucose circular slots, beside the ring on Trio Gauge rectangular slots, and the second line of Trio Chart. Trio IOB has a fixed layout." : {
+
+    },
     "A Temporary Target replaces the current Target Glucose specified in Therapy settings." : {
       "localizations" : {
         "bg" : {
@@ -33980,12 +33402,12 @@
         }
       }
     },
-    "Actions" : {
-
-    },
     "Acoustic" : {
       "comment" : "The category of the alarm sound.",
       "isCommentAutoGenerated" : true
+    },
+    "Actions" : {
+
     },
     "Activate" : {
       "comment" : "A button that activates a preset.",
@@ -39926,6 +39348,9 @@
           }
         }
       }
+    },
+    "Add Screenshots" : {
+
     },
     "Add Simulator" : {
       "comment" : "Add Simulator pump",
@@ -46552,6 +45977,9 @@
         }
       }
     },
+    "All Logs" : {
+
+    },
     "All Omnipod Types" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -46676,9 +46104,6 @@
           }
         }
       }
-    },
-    "All Logs" : {
-
     },
     "All Past Days of Data " : {
       "comment" : "Duration displayed in statPanel",
@@ -51035,6 +50460,9 @@
         }
       }
     },
+    "Also Sent" : {
+
+    },
     "Also triggered when the lowest forecasted glucose (minPredBG) is < %@ %@." : {
       "localizations" : {
         "bg" : {
@@ -54014,6 +53442,10 @@
         }
       }
     },
+    "Amy" : {
+      "comment" : "Name of a spoken alert voice.",
+      "isCommentAutoGenerated" : true
+    },
     "An example of a Carb Warning is 'Carbs required: 30 g'" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -54513,10 +53945,6 @@
           }
         }
       }
-    },
-    "Amy" : {
-      "comment" : "Name of a spoken alert voice.",
-      "isCommentAutoGenerated" : true
     },
     "An external bolus of %@ U of insulin was recorded." : {
       "localizations" : {
@@ -58700,6 +58128,12 @@
     "Ascend" : {
 
     },
+    "Ask on Discord" : {
+
+    },
+    "Ask on Facebook" : {
+
+    },
     "at least" : {
       "localizations" : {
         "bg" : {
@@ -58959,6 +58393,9 @@
           }
         }
       }
+    },
+    "Attach My Logs" : {
+
     },
     "Attach Pod" : {
       "comment" : "-------------------------------------------------------------------------------------------\n  DASH strings",
@@ -63821,13 +63258,13 @@
         }
       }
     },
-    "Average of the Last 24 Hours" : {
-      "comment" : "Stats banner subtitle"
-    },
     "Average of the Last 3 Months" : {
       "comment" : "Stats banner subtitle"
     },
     "Average of the Last 7 Days" : {
+      "comment" : "Stats banner subtitle"
+    },
+    "Average of the Last 24 Hours" : {
       "comment" : "Stats banner subtitle"
     },
     "Average of the Last Month" : {
@@ -75842,6 +75279,9 @@
       "comment" : "Name of a spoken alert voice.",
       "isCommentAutoGenerated" : true
     },
+    "Build" : {
+
+    },
     "Build Number" : {
       "localizations" : {
         "bg" : {
@@ -84019,6 +83459,9 @@
         }
       }
     },
+    "CGM Logs" : {
+
+    },
     "CGM Model" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -84143,9 +83586,6 @@
           }
         }
       }
-    },
-    "CGM Logs" : {
-
     },
     "CGM noise level too high: %lld." : {
       "localizations" : {
@@ -85757,6 +85197,9 @@
           }
         }
       }
+    },
+    "Change Screenshots" : {
+
     },
     "Changes the size of the current glucose reading and its trend arrow on the Simple Lock Screen widget. The delta and the time of the last reading are not affected." : {
 
@@ -88242,6 +87685,28 @@
     },
     "Choose Photo" : {
 
+    },
+    "Choose the preferred lower threshold for Time in Range statistics across all charts and displays. This applies to both Time in Range (TIR, upper threshold of %@) and Time in Tight Range (TITR, upper threshold of %@)." : {
+      "comment" : "Explains that the lower threshold applies to both TIR and TITR",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the preferred lower threshold for Time in Range statistics across all charts and displays. This applies to both Time in Range (TIR, upper threshold of %@) and Time in Tight Range (TITR, upper threshold of %@)."
+          }
+        }
+      }
+    },
+    "Choose the preferred lower threshold for Time in Range statistics." : {
+      "comment" : "Short description of the lower range threshold setting.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the preferred lower threshold for Time in Range statistics."
+          }
+        }
+      }
     },
     "Choose the time span the home statistics panel covers." : {
 
@@ -96676,6 +96141,9 @@
         }
       }
     },
+    "Contact" : {
+
+    },
     "Contact Image" : {
       "localizations" : {
         "bg" : {
@@ -97992,6 +97460,9 @@
         }
       }
     },
+    "Copy ID" : {
+
+    },
     "Copy JSON" : {
       "localizations" : {
         "bg" : {
@@ -98915,6 +98386,12 @@
           }
         }
       }
+    },
+    "Couldn't Delete Report" : {
+
+    },
+    "Couldn't Send Report" : {
+
     },
     "Count" : {
       "localizations" : {
@@ -102619,8 +102096,7 @@
       }
     },
     "d" : {
-      "extractionState" : "stale",
-      "comment" : "Abbreviation for Days\nabbreviation for days",
+      "comment" : "Abbreviation for Days",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -115764,6 +115240,12 @@
         }
       }
     },
+    "Delete Report" : {
+
+    },
+    "Delete Report?" : {
+
+    },
     "Delete Selected Preset" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -116294,6 +115776,12 @@
           }
         }
       }
+    },
+    "Deleting" : {
+
+    },
+    "Deleting a report removes it and its files from the Trio team's server." : {
+
     },
     "Delivery limits" : {
       "extractionState" : "manual",
@@ -117082,6 +116570,9 @@
           }
         }
       }
+    },
+    "Describe what happened and what you expected" : {
+
     },
     "Deselect All" : {
       "localizations" : {
@@ -121526,6 +121017,9 @@
           }
         }
       }
+    },
+    "Discord Name" : {
+
     },
     "Dismiss" : {
       "extractionState" : "manual",
@@ -131310,6 +130804,9 @@
     "Electronic" : {
       "comment" : "Themed alarm sound catalog for electronic sounds.",
       "isCommentAutoGenerated" : true
+    },
+    "Email" : {
+
     },
     "Emoji or short text" : {
       "localizations" : {
@@ -146128,6 +145625,40 @@
         }
       }
     },
+    "Extended (%@)" : {
+      "comment" : "Extended lower threshold for TIR and TITR statistics",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extended (%@)"
+          }
+        }
+      }
+    },
+    "Extended Lower Threshold" : {
+      "comment" : "Search term for the extended lower range threshold setting.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extended Lower Threshold"
+          }
+        }
+      }
+    },
+    "Extended:" : {
+      "comment" : "Heading for the extended lower range threshold description.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extended:"
+          }
+        }
+      }
+    },
     "External" : {
       "comment" : "External Insulin",
       "localizations" : {
@@ -151562,6 +151093,9 @@
           }
         }
       }
+    },
+    "Fill in any of these so the team can follow up with you." : {
+
     },
     "Filter" : {
       "localizations" : {
@@ -159570,6 +159104,9 @@
         }
       }
     },
+    "GitHub Username" : {
+
+    },
     "Give Apple Health Write Permissions" : {
       "localizations" : {
         "bg" : {
@@ -166725,6 +166262,9 @@
         }
       }
     },
+    "Grace period" : {
+
+    },
     "Gradient Purple = As readings approach and exceed above target, they become more purple." : {
       "localizations" : {
         "bg" : {
@@ -167782,12 +167322,6 @@
         }
       }
     },
-    "Grey Out After" : {
-
-    },
-    "Grey Out After applies to every complication: older readings are greyed and show their age, and IOB and COB grey when the loop has not run within that time. Corner Label is the curved text on Trio Glucose corner slots. Small Line is the text under the glucose on Trio Glucose circular slots, beside the ring on Trio Gauge rectangular slots, and the second line of Trio Chart. Trio IOB has a fixed layout." : {
-
-    },
     "GRI" : {
       "comment" : "The title of the \"Glycemia Risk Index\" button.",
       "isCommentAutoGenerated" : true
@@ -167801,8 +167335,7 @@
       "isCommentAutoGenerated" : true
     },
     "h" : {
-      "extractionState" : "stale",
-      "comment" : "Abbreviation for Hours\nabbreviation for hours\nh",
+      "comment" : "Abbreviation for Hours",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -173080,6 +172613,9 @@
         }
       }
     },
+    "Home Statistics Range" : {
+
+    },
     "Home View Button Panel " : {
       "comment" : "UI/UX option",
       "extractionState" : "manual",
@@ -175329,6 +174865,32 @@
         }
       }
     },
+    "Hyperglycemia component" : {
+      "comment" : "A label describing the hyperglycemia component of the GRI calculation.",
+      "isCommentAutoGenerated" : true
+    },
+    "Hyperglycemia Component (%)" : {
+      "comment" : "The vertical axis label in the GRI risk grid.",
+      "isCommentAutoGenerated" : true
+    },
+    "Hypoglycemia %@, hyperglycemia %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Hypoglycemia %1$@, hyperglycemia %2$@"
+          }
+        }
+      }
+    },
+    "Hypoglycemia component" : {
+      "comment" : "A label describing one of the components of the Glycemia Risk Index.",
+      "isCommentAutoGenerated" : true
+    },
+    "Hypoglycemia Component (%)" : {
+      "comment" : "The horizontal axis label in the GRI risk grid.",
+      "isCommentAutoGenerated" : true
+    },
     "I have read and accept the" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -175453,32 +175015,6 @@
           }
         }
       }
-    },
-    "Hyperglycemia component" : {
-      "comment" : "A label describing the hyperglycemia component of the GRI calculation.",
-      "isCommentAutoGenerated" : true
-    },
-    "Hyperglycemia Component (%)" : {
-      "comment" : "The vertical axis label in the GRI risk grid.",
-      "isCommentAutoGenerated" : true
-    },
-    "Hypoglycemia %@, hyperglycemia %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Hypoglycemia %1$@, hyperglycemia %2$@"
-          }
-        }
-      }
-    },
-    "Hypoglycemia component" : {
-      "comment" : "A label describing one of the components of the Glycemia Risk Index.",
-      "isCommentAutoGenerated" : true
-    },
-    "Hypoglycemia Component (%)" : {
-      "comment" : "The horizontal axis label in the GRI risk grid.",
-      "isCommentAutoGenerated" : true
     },
     "I understand! Proceed" : {
       "localizations" : {
@@ -181779,6 +181315,9 @@
         }
       }
     },
+    "Includes glucose, insulin, carbs and your settings. Passwords and serial numbers are removed." : {
+
+    },
     "Increase sensitivity when glucose is above target if a manual Temp Target > %@ %@ is set." : {
       "localizations" : {
         "bg" : {
@@ -184419,7 +183958,7 @@
         }
       }
     },
-    "Insulin on board first, with COB and glucose alongside. Fixed layout; only Grey Out After applies." : {
+    "Insulin on board first, with COB and glucose alongside. Fixed layout." : {
       "comment" : "Description of the insulin on board watch complication"
     },
     "Insulin Peak Time" : {
@@ -187889,6 +187428,12 @@
         }
       }
     },
+    "iOS Version" : {
+
+    },
+    "iPhone Model" : {
+
+    },
     "iPhone not reachable. Nothing was sent." : {
       "comment" : "Watch message when a request could not be sent to the phone"
     },
@@ -189455,10 +189000,10 @@
         }
       }
     },
-    "Jump to now" : {
+    "Its Widget Configuration lets you set the size of the glucose reading." : {
 
     },
-    "Its Widget Configuration lets you set the size of the glucose reading." : {
+    "Jump to now" : {
 
     },
     "Just be aware: if you force quit the app before finishing onboarding, your progress will not be saved." : {
@@ -190114,12 +189659,6 @@
         }
       }
     },
-    "last 24 hours" : {
-      "comment" : "Stats banner scope"
-    },
-    "Last 24 Hours" : {
-      "comment" : "Home stats panel range option"
-    },
     "Last 3 Days" : {
 
     },
@@ -190133,6 +189672,12 @@
       "comment" : "Stats banner scope"
     },
     "Last 7 Days" : {
+      "comment" : "Home stats panel range option"
+    },
+    "last 24 hours" : {
+      "comment" : "Stats banner scope"
+    },
+    "Last 24 Hours" : {
       "comment" : "Home stats panel range option"
     },
     "Last Blood Sugar prediction" : {
@@ -199240,6 +198785,12 @@
         }
       }
     },
+    "Loop –" : {
+      "comment" : "Watch: the phone's last loop is not known"
+    },
+    "Loop %lld min" : {
+      "comment" : "Watch: minutes since the phone's last loop"
+    },
     "Loop Age" : {
       "comment" : "Minutes since the last loop"
     },
@@ -204112,8 +203663,7 @@
       }
     },
     "m" : {
-      "comment" : "Abbreviation for Minutes\nabbreviation for minutes",
-      "extractionState" : "stale",
+      "comment" : "Abbreviation for Minutes",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -214111,6 +213661,9 @@
         }
       }
     },
+    "Medium" : {
+      "comment" : "Live Activity glucose reading font size"
+    },
     "Medtronic" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -214235,9 +213788,6 @@
           }
         }
       }
-    },
-    "Medium" : {
-      "comment" : "Live Activity glucose reading font size"
     },
     "Medtronic and Dana Users Only" : {
       "localizations" : {
@@ -216483,7 +216033,7 @@
       }
     },
     "min" : {
-      "comment" : "Minutes abbreviation\nShort form for minutes\nminutes abbreviation",
+      "comment" : "Minutes abbreviation",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -224010,6 +223560,9 @@
         }
       }
     },
+    "No answer from iPhone. Check Trio on your iPhone before trying again." : {
+      "comment" : "Watch message when the phone did not confirm a request"
+    },
     "No biometric identities are enrolled. Please set up Face ID or Touch ID." : {
       "localizations" : {
         "bg" : {
@@ -224139,9 +223692,6 @@
           }
         }
       }
-    },
-    "No answer from iPhone. Check Trio on your iPhone before trying again." : {
-      "comment" : "Watch message when the phone did not confirm a request"
     },
     "No Bolus Data" : {
       "localizations" : {
@@ -230740,10 +230290,10 @@
         }
       }
     },
-    "Not enough SMB data" : {
+    "Not enough room" : {
 
     },
-    "Not enough room" : {
+    "Not enough SMB data" : {
 
     },
     "not looping" : {
@@ -238481,6 +238031,9 @@
         }
       }
     },
+    "One of the screenshots couldn't be read. Try choosing it again or leave it out." : {
+
+    },
     "One portion fewer" : {
 
     },
@@ -239532,6 +239085,9 @@
         }
       }
     },
+    "Open a GitHub Issue" : {
+
+    },
     "Open Barcode Scanner" : {
 
     },
@@ -240452,9 +240008,6 @@
           }
         }
       }
-    },
-    "Open Trio to Pair the Sensor" : {
-
     },
     "Open Wrapper" : {
       "comment" : "Name of a sound file.",
@@ -246974,7 +246527,10 @@
         }
       }
     },
-    "Pairing the sensor: keep Trio open" : {
+    "Pairing: keep Trio open at the next reading" : {
+
+    },
+    "Pairing: keep Trio open, accept the request" : {
 
     },
     "Pairinginfo" : {
@@ -254937,6 +254493,9 @@
         }
       }
     },
+    "Private. Describe the problem, add screenshots and your logs. Only the Trio team can see it." : {
+
+    },
     "Proceed" : {
       "comment" : "Button Label to Proceed to Bolus on Watch",
       "localizations" : {
@@ -256004,6 +255563,9 @@
         }
       }
     },
+    "Programmed on pump" : {
+      "comment" : "Accessibility label for bolus programmed on the pump itself"
+    },
     "Protein" : {
       "comment" : "Add Protein",
       "localizations" : {
@@ -256134,9 +255696,6 @@
           }
         }
       }
-    },
-    "Programmed on pump" : {
-      "comment" : "Accessibility label for bolus programmed on the pump itself"
     },
     "Protein / Fat" : {
       "comment" : "Treatment type",
@@ -256659,6 +256218,9 @@
           }
         }
       }
+    },
+    "Public. Only for bugs you can describe without personal or health data." : {
+
     },
     "Pull down to force loop" : {
       "localizations" : {
@@ -262823,12 +262385,6 @@
         }
       }
     },
-    "Reading from the iPhone" : {
-
-    },
-    "Reading from the watch" : {
-
-    },
     "Readings" : {
       "comment" : "CGM readings in statView",
       "localizations" : {
@@ -267301,6 +266857,21 @@
           }
         }
       }
+    },
+    "Report %@ and its files will be deleted from the Trio team's server." : {
+
+    },
+    "Report a Problem" : {
+
+    },
+    "Report Actions" : {
+
+    },
+    "Report Sent" : {
+
+    },
+    "Reports go only to the Trio team and are deleted after 90 days. You can delete a report yourself at any time." : {
+
     },
     "Represents carb equivalent for fat and protein, calculated using the Warsaw Method." : {
       "localizations" : {
@@ -273256,6 +272827,9 @@
         }
       }
     },
+    "Save the file or send it to someone helping you on Discord or Facebook. Contains glucose, insulin and carbs; passwords and serial numbers are removed." : {
+
+    },
     "Saved Food" : {
       "comment" : "Saved Food Presets",
       "extractionState" : "stale",
@@ -273787,6 +273361,10 @@
         }
       }
     },
+    "Saw Wave" : {
+      "comment" : "Name of a sound file.",
+      "isCommentAutoGenerated" : true
+    },
     "Scale battery" : {
 
     },
@@ -273795,10 +273373,6 @@
     },
     "Scale Settings" : {
 
-    },
-    "Saw Wave" : {
-      "comment" : "Name of a sound file.",
-      "isCommentAutoGenerated" : true
     },
     "Scales down your basal rate to 50% at this value." : {
       "localizations" : {
@@ -274876,6 +274450,12 @@
     },
     "Score calculation" : {
       "comment" : "Expandable breakdown of the GRI score for the selected period."
+    },
+    "Screenshot %lld" : {
+
+    },
+    "Screenshots" : {
+
     },
     "SD" : {
       "comment" : "SD",
@@ -277883,6 +277463,15 @@
         }
       }
     },
+    "Send to the Trio Team" : {
+
+    },
+    "Sending" : {
+
+    },
+    "Sending Report" : {
+
+    },
     "Sens Ratio" : {
       "comment" : "Name of the secondary attribute choice for the SwissAlpine watchface.",
       "localizations" : {
@@ -279772,9 +279361,6 @@
         }
       }
     },
-    "Sensor grace period" : {
-
-    },
     "Sensor Info" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -280317,9 +279903,6 @@
         }
       }
     },
-    "Sensor problem" : {
-
-    },
     "Sensor Serial" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -280732,6 +280315,9 @@
       }
     },
     "Sensor warmup" : {
+
+    },
+    "Sent Reports" : {
 
     },
     "Series" : {
@@ -287449,12 +287035,12 @@
         }
       }
     },
-    "Shows how much your blood glucose is expected to drop per unit of insulin. This value is calculated by the algorithm and may vary based on Dynamic ISF settings." : {
-
-    },
     "Shows Glycemia Risk Index details" : {
       "comment" : "An accessibility hint for the \"GRI\" button that triggers the sheet.",
       "isCommentAutoGenerated" : true
+    },
+    "Shows how much your blood glucose is expected to drop per unit of insulin. This value is calculated by the algorithm and may vary based on Dynamic ISF settings." : {
+
     },
     "Shows the COB value calculated by the algorithm at a specific time in the past. These values are snapshots and won’t change if carbs are added or removed after the fact." : {
       "localizations" : {
@@ -294295,6 +293881,9 @@
         }
       }
     },
+    "Some files didn't reach the Trio team's server. Please try again." : {
+
+    },
     "Some helpful reminders:" : {
       "localizations" : {
         "bg" : {
@@ -295855,6 +295444,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "過期資料"
+          }
+        }
+      }
+    },
+    "Standard (%@)" : {
+      "comment" : "Standard lower threshold for TIR and TITR statistics",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard (%@)"
+          }
+        }
+      }
+    },
+    "Standard Lower Threshold" : {
+      "comment" : "Search term for the standard lower range threshold setting.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard Lower Threshold"
+          }
+        }
+      }
+    },
+    "Standard:" : {
+      "comment" : "Heading for the standard lower range threshold description.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard:"
           }
         }
       }
@@ -298637,7 +298260,7 @@
         }
       }
     },
-    "Home Statistics Range" : {
+    "Stay Anonymous" : {
 
     },
     "Stay in open loop (no automated dosing) for a bit to help Trio catch up to keep you safe" : {
@@ -301514,6 +301137,140 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "風格"
+          }
+        }
+      }
+    },
+    "Submit" : {
+
+    },
+    "Submit Ticket on GitHub" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подайте тикет в GitHub"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nahlásit problém na GitHubu"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indsend billet på GitHub"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ticket an GitHub senden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar Ticket en GitHub"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créer un ticket sur GitHub"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Submit Ticket on GitHub"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invia Ticket su GitHub"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub에 이슈(Ticket) 등록하기"
+          }
+        },
+        "nb-NO" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trio GitHub"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ticket verzenden op GitHub"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prześlij zgłoszenie na GitHub"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar Ticket no GitHub"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Submit Ticket on GitHub"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отправить заявку на GitHub"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skapa en ticket på GitHub"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Submit Ticket on GitHub"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Надіслати заявку на GitHub"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tạo yêu cầu trên GitHub"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 GitHub 上提交工单"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 GitHub 提交問題單"
           }
         }
       }
@@ -309975,6 +309732,9 @@
         }
       }
     },
+    "Thank you. Your report ID is %@. Mention it if you ask about this on Discord or Facebook." : {
+
+    },
     "The Adjustment Factor (AF) allows you to control how quickly and effectively Dynamic ISF responds to changes in glucose levels." : {
       "localizations" : {
         "bg" : {
@@ -315611,6 +315371,12 @@
         }
       }
     },
+    "The report is too large. Try fewer or smaller screenshots." : {
+
+    },
+    "The report won't include your name or contact details." : {
+
+    },
     "The Sensitivity Ratio is used to calculate the amount of adjustment needed to basal rates and ISF." : {
       "localizations" : {
         "bg" : {
@@ -316386,6 +316152,12 @@
         }
       }
     },
+    "The Trio team's server couldn't take the report right now (error %lld)." : {
+
+    },
+    "The Trio team's server sent an answer the app doesn't understand." : {
+
+    },
     "The Upload Treatments toggle enables uploading of the following data sets to your connected Nightscout URL:" : {
       "localizations" : {
         "bg" : {
@@ -316645,9 +316417,6 @@
           }
         }
       }
-    },
-    "The watch can only pair with the sensor while Trio is open. Accept a Bluetooth pairing request if one appears." : {
-
     },
     "The watch reads the %@ itself while “Read on Apple Watch” is on in its settings. It shows the iPhone’s readings while they come, and its own, with a watch symbol in the glucose bubble, once they stop." : {
 
@@ -318745,6 +318514,9 @@
           }
         }
       }
+    },
+    "This build of Trio can't send reports. Please share your logs on Discord or Facebook instead." : {
+
     },
     "This cap prevents the system from overestimating how much insulin is needed when carb absorption isn't visible, offering a safeguard for accurate dosing." : {
       "localizations" : {
@@ -327321,6 +327093,9 @@
         }
       }
     },
+    "Tidepool Login Required" : {
+
+    },
     "Time" : {
       "comment" : "Time basal profile",
       "localizations" : {
@@ -328773,8 +328548,8 @@
       }
     },
     "time unknown" : {
-      "extractionState" : "stale",
       "comment" : "Accessibility: elapsed time unavailable",
+      "extractionState" : "stale",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -330070,6 +329845,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "提示：當您開始添加脂肪和蛋白質的輸入時，您會發現您的正常碳水比需要增加到更大的數字。因此，最好從約 50% 的因子開始。"
+          }
+        }
+      }
+    },
+    "TIR (%@-%@)" : {
+      "comment" : "Time in Range with the selected lower threshold and the upper threshold.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TIR (%@-%@)"
+          }
+        }
+      }
+    },
+    "TIR Lower Threshold" : {
+      "comment" : "Setting for the lower glucose boundary shared by TIR and TITR statistics.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TIR Lower Threshold"
+          }
+        }
+      }
+    },
+    "Title (optional)" : {
+
+    },
+    "TITR (%@-%@)" : {
+      "comment" : "Time in Tight Range with either the Standard or Extended lower threshold.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TITR (%@-%@)"
           }
         }
       }
@@ -337564,6 +337375,140 @@
         }
       }
     },
+    "Trio couldn't confirm with Apple that this copy of the app is genuine. Please try again later." : {
+
+    },
+    "Trio Discord" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trio Discord"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trio Discord"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trio Discord"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trio Discord"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trio Discord"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discord – Trio"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Trio Discord"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trio Discord"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trio 디스코드"
+          }
+        },
+        "nb-NO" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trio Discord"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trio Discord"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trio Discord"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trio Discord"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Trio Discord"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Трио Discord"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trio Discord"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Trio Discord"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тріо Discord"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trio Discord"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trio Discord"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trio  Discord"
+          }
+        }
+      }
+    },
     "Trio Docs" : {
       "localizations" : {
         "bg" : {
@@ -343939,6 +343884,9 @@
         }
       }
     },
+    "Try Again" : {
+
+    },
     "Try again in a moment, or configure your Therapy Settings manually instead." : {
       "localizations" : {
         "bg" : {
@@ -348423,6 +348371,9 @@
         }
       }
     },
+    "Up to %lld screenshots or photos." : {
+
+    },
     "up to date" : {
       "comment" : "Accessibility: version status",
       "localizations" : {
@@ -350678,6 +350629,9 @@
 
     },
     "Uploaded to OpenFoodFacts" : {
+
+    },
+    "Uploads to Tidepool are paused. Tap to log in." : {
 
     },
     "Upper limit of the Autosens Ratio." : {
@@ -353711,6 +353665,17 @@
         }
       }
     },
+    "Uses the established lower threshold of %@." : {
+      "comment" : "Standard lower range threshold description",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uses the established lower threshold of %@."
+          }
+        }
+      }
+    },
     "Uses the fairly established Time in Tight Range definition, which is defined as time between %@ and %@  %@." : {
       "comment" : "Time in Tight Range (TITR) verbose hint description",
       "extractionState" : "stale",
@@ -353975,6 +353940,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用OpenAPS的IOB、COB、UAM和ZT預測線。這個選項提供了對算法預測的更詳細視圖，但對一些使用者來說可能更具困惑性。"
+          }
+        }
+      }
+    },
+    "Uses the newer Time in Normoglycemia (TING) lower threshold of %@." : {
+      "comment" : "Extended lower range threshold description",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uses the newer Time in Normoglycemia (TING) lower threshold of %@."
           }
         }
       }
@@ -356483,6 +356459,9 @@
           }
         }
       }
+    },
+    "Warmup %lld min" : {
+      "comment" : "Watch: minutes left of the sensor's warmup"
     },
     "Warning" : {
       "comment" : "Warning title",
@@ -368003,6 +367982,9 @@
         }
       }
     },
+    "You've sent several reports today. Please try again tomorrow." : {
+
+    },
     "You've successfully completed the initial setup of Trio. Tap 'Get Started' to save your settings and start using Trio." : {
       "localizations" : {
         "bg" : {
@@ -369695,6 +369677,15 @@
           }
         }
       }
+    },
+    "Your Logs" : {
+
+    },
+    "Your logs are too large to send. Turn off Attach My Logs and share them on Discord or Facebook instead." : {
+
+    },
+    "Your logs couldn't be prepared. Try again, or turn off Attach My Logs." : {
+
     },
     "Your most-used amounts at similar times on similar days. Tap a bolus, a carb amount, or both." : {
       "comment" : "Subtitle of the quick-pick treatments pill rows",

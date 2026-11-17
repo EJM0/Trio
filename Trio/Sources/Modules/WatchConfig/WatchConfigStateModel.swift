@@ -19,7 +19,6 @@ extension WatchConfig {
         @Published var watchReadsSensor = false
         @Published var complicationCornerValue: WatchComplicationValue = WatchComplicationDefaults.cornerValue
         @Published var complicationSecondaryValue: WatchComplicationValue = WatchComplicationDefaults.secondaryValue
-        @Published var complicationStaleMinutes: Int = WatchComplicationDefaults.staleMinutes
 
         /// Garmin watch settings containing all watch-related configuration
         @Published var garminSettings = GarminWatchSettings()
@@ -39,7 +38,6 @@ extension WatchConfig {
             subscribeSetting(\.watchComplicationSecondaryValue, on: $complicationSecondaryValue) {
                 complicationSecondaryValue = $0
             }
-            subscribeSetting(\.watchComplicationStaleMinutes, on: $complicationStaleMinutes) { complicationStaleMinutes = $0 }
 
             devices = garmin.devices
             refreshWatchSensor()

@@ -27,3 +27,6 @@ COPYRIGHT_NOTICE =
 #include? "../../ConfigOverride.xcconfig"
 #include? "../ConfigOverride.xcconfig"
 #include? "ConfigOverride.xcconfig"
+
+// dev-watch-cgm only: no "built from a branch" warning on launch
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) DEV_BRANCH_WARNING_DISABLED
