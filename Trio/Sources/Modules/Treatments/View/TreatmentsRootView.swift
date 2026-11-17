@@ -20,6 +20,7 @@ extension Treatments {
         @State var state = StateModel()
 
         @State private var showPresetSheet = false
+        @State private var watchHasPump = false
         @State private var autofocus: Bool = true
         @State private var calculatorDetent = PresentationDetent.large
         @State private var pushed: Bool = false
@@ -417,6 +418,9 @@ extension Treatments {
                                 bolusSection
                             }.listRowBackground(Color.chart)
 
+                            if watchHasPump {
+                                Section { TrioOnWatchBlockedNote(message: TrioOnWatchBlockedNote.treatments) }
+                            }
                             treatmentButton
                         }
                         .listSectionSpacing(sectionSpacing)
@@ -476,6 +480,10 @@ extension Treatments {
                 }
             })
             .onAppear {
+                watchHasPump = resolver.resolve(WatchLoanGate.self)?.phoneMayCommandPump == false
+                #if DEBUG
+                    if TrioOnWatchPhoneFixture.showsBlockedNotes { watchHasPump = true }
+                #endif
                 configureView {
                     state.isActive = true
                     Task { @MainActor in
@@ -754,7 +762,7 @@ extension Treatments {
         }
 
         private var disableTaskButton: Bool {
-            bolusInProgressForEntry || state.addButtonPressed || limitExceeded
+            watchHasPump || bolusInProgressForEntry || state.addButtonPressed || limitExceeded
         }
     }
 

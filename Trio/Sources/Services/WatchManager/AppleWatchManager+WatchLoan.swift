@@ -14,6 +14,9 @@ extension BaseWatchManager: WatchLoanTransport {
         didReceiveMessage message: [String: Any],
         replyHandler: @escaping ([String: Any]) -> Void
     ) {
+        if WatchLoanStartFacts.isQuery(message) {
+            return answerStartFactsQuery(replyHandler)
+        }
         guard WatchLoanWireKey.isStatusQuery(message) else {
             self.session(session, didReceiveMessage: message)
             replyHandler([:])
@@ -26,6 +29,16 @@ extension BaseWatchManager: WatchLoanTransport {
     func answerLoanStatusQuery(_ replyHandler: @escaping ([String: Any]) -> Void) {
         guard let coordinator = watchLoanCoordinator else { return replyHandler([:]) }
         Task { replyHandler(await coordinator.statusAnswer()) }
+    }
+
+    /// The watch's Start screen asks for the pod, sensor and override facts before the user confirms.
+    func answerStartFactsQuery(_ replyHandler: @escaping ([String: Any]) -> Void) {
+        guard let coordinator = watchLoanCoordinator else { return replyHandler([:]) }
+        Task {
+            let facts = await coordinator.host.startFacts()
+            guard let data = try? JSONEncoder().encode(facts) else { return replyHandler([:]) }
+            replyHandler([WatchLoanStartFacts.replyKey: data])
+        }
     }
 
     var isReachable: Bool { session?.isReachable ?? false }

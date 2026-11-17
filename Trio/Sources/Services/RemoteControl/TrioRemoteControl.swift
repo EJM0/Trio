@@ -14,6 +14,7 @@ class TrioRemoteControl: Injectable {
     @Injected() internal var bolusSafetyValidator: BolusSafetyValidator!
     @Injected() internal var carbEntryMutationService: CarbEntryMutationService!
     @Injected() internal var apsManager: APSManager!
+    @Injected() internal var watchLoanGate: WatchLoanGate!
 
     private let timeWindow: TimeInterval = 600
 
@@ -69,6 +70,16 @@ class TrioRemoteControl: Injectable {
         }
 
         debug(.remote, "Command authenticated, sent \(Int(timeDifference)) s ago")
+
+        // the watch doesn't receive what this phone stores, so nothing is accepted until the loan ends (G-8)
+        guard watchLoanGate.phoneMayCommandPump else {
+            await logError(
+                "Trio on Watch is running. Remote commands are paused until it ends.",
+                payload: commandPayload,
+                ack: RemoteCommandAck(commandId: commandPayload.commandId, mealId: commandPayload.mealId, result: .rejected)
+            )
+            return
+        }
 
         switch commandPayload.commandType {
         case .bolus:
