@@ -141,12 +141,17 @@ extension WatchLoanHost {
         return true
     }
 
+    /// A resume from anywhere, or the pump leaving this watch, ends the reminders.
+    func cancelSuspendReminders() {
+        env.notifier.cancel(ids: Self.suspendReminderMinutes.map { Self.suspendReminderPrefix + String($0) })
+    }
+
     func resumeInsulinConfirmed() async -> Bool {
         var outcome = CommandOutcome.notSent
         await serially { outcome = await self.command(.resume) }
         WatchLogger.shared.info(.treatments, "Insulin resume from the watch: \(outcome)")
         guard outcome == .confirmed else { return false }
-        env.notifier.cancel(ids: Self.suspendReminderMinutes.map { Self.suspendReminderPrefix + String($0) })
+        cancelSuspendReminders()
         await runCycle(trigger: .user)
         return true
     }

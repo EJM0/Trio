@@ -196,7 +196,8 @@ import Testing
         let all: [LoanRefusal] = [
             .featureOff, .bolusRunning, .unconfirmedCommand, .deliveryUncertain, .pumpStatusStale, .versionMismatch,
             .watchBatteryLow, .notificationsOff, .unsupportedWatch, .phoneUnreachable, .unsupportedDevice, .pumpScreenOpen,
-            .indefiniteOverride, .busy, .releaseRefused, .unknownRequest, .staleEpoch, .grantExpired, .snapshotIncomplete,
+            .indefiniteOverride, .notClosedLoop, .busy, .releaseRefused, .unknownRequest, .staleEpoch, .grantExpired,
+            .snapshotIncomplete,
             .clockOffset, .timeZoneMismatch
         ]
         for refusal in all {
@@ -264,7 +265,7 @@ import Testing
             "handoff-no-answer", "handoff-ending", "handoff-end-refused", "end-confirmation", "bolus-sending",
             "bolus-accepted", "bolus-delivering", "bolus-done", "bolus-cancelled", "bolus-failed", "bolus-uncertain",
             "recent-doses", "carbs-saved", "override-sheet", "main-phone-fresh", "main-pod-stopped", "main-suspended",
-            "main-pod-unreachable", "main-bolus-paused"
+            "main-pod-unreachable", "main-bolus-paused", "handoff-not-closed-loop"
         ]
         for name in names {
             #expect(TrioOnWatchFixture.named(name, now: now) != nil, "\(name)")

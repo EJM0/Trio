@@ -269,6 +269,7 @@ extension WatchLoanHost {
             loop.tempBasalRate = nil
         }
         loop.pumpSuspended = pump.status.basalDeliveryState?.isSuspended ?? false
+        if !loop.pumpSuspended { cancelSuspendReminders() }
     }
 
     static func seconds(since start: Date, now: Date) -> String {
