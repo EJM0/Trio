@@ -152,6 +152,35 @@ import Testing
         #expect(!LowGlucoseBolusWarning.shouldConfirm(confirmBolus: true, currentBG: 120, minPredBG: 80))
     }
 
+    @Test("Low-glucose bolus warning matches nightscout/dev's Treatments rule at every boundary") func lowGlucoseWarningAsDev() {
+        // TreatmentsRootView.bolusWarning on nightscout/dev 7e2fa52cb, verbatim; its pump-only guard and colour are unchanged
+        func dev(confirmBolus: Bool, currentBG: Decimal, minPredBG: Decimal) -> (shouldConfirm: Bool, message: String) {
+            let isGlucoseVeryLow = currentBG < 54
+            let isForecastVeryLow = minPredBG < 54
+            let warningMessage = isGlucoseVeryLow ? String(localized: "Glucose is very low.") :
+                isForecastVeryLow ? String(localized: "Glucose forecast is very low.") :
+                ""
+            return (confirmBolus && (isGlucoseVeryLow || isForecastVeryLow), warningMessage)
+        }
+        let values: [Decimal] = [-1, 0, 39, 53, 53.9, 54, 54.1, 70, 400]
+        for confirmBolus in [true, false] {
+            for currentBG in values {
+                for minPredBG in values {
+                    let expected = dev(confirmBolus: confirmBolus, currentBG: currentBG, minPredBG: minPredBG)
+                    #expect(LowGlucoseBolusWarning.message(currentBG: currentBG, minPredBG: minPredBG) ?? "" == expected.message)
+                    #expect(
+                        LowGlucoseBolusWarning.shouldConfirm(
+                            confirmBolus: confirmBolus,
+                            currentBG: currentBG,
+                            minPredBG: minPredBG
+                        )
+                            == expected.shouldConfirm
+                    )
+                }
+            }
+        }
+    }
+
     @Test("Every phone screenshot fixture resolves") func fixtures() {
         for name in [
             "starting", "start-unconfirmed+sheet+takeback", "in-control", "in-control-reachable+sheet+takeback",
