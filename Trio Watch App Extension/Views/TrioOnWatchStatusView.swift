@@ -287,7 +287,7 @@ struct TrioOnWatchStatusView: View {
                         Task {
                             result = await actions.suspend()
                                 ? .success(String(
-                                    localized: "Insulin suspended. Trio reminds you every 30 minutes until you resume.",
+                                    localized: "Insulin suspended. Trio reminds you every 30 minutes, for up to 4 hours.",
                                     comment: "Watch: suspend confirmed by the pump"
                                 ))
                                 : .failure(String(
