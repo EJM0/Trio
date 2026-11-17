@@ -270,6 +270,31 @@ struct TrioOnWatchPhoneStatus: Equatable {
         }
     }
 
+    /// The sheet's line under its title; the banner's "Tap…" hints don't belong there.
+    var sheetDetail: String? {
+        switch phase {
+        case .starting,
+             .takingBack,
+             .takingBackStuck:
+            return banner(now: Date()).subtitle
+        case .startUnconfirmed:
+            return String(
+                localized: "Your iPhone may already have released your pump, and Apple Watch didn't confirm it has it. Nothing may be giving insulin automatically.",
+                comment: "Trio on Watch sheet after an unconfirmed start"
+            )
+        case .unreadable:
+            return String(
+                localized: "Trio can't tell which device controls your pump, so this iPhone sends no pump commands.",
+                comment: "Trio on Watch sheet when the loan state can't be read"
+            )
+        case .home,
+             .inControl,
+             .noUpdates,
+             .podRefused:
+            return nil
+        }
+    }
+
     // MARK: Take Back dialog (P3)
 
     enum TakeBackContext: Equatable {

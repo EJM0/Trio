@@ -84,7 +84,9 @@ struct TrioOnWatchSheet: View {
                     }
                     .accessibilityElement(children: .combine)
                     .accessibilityAddTraits(.isHeader)
-                    Text(banner.subtitle)
+                    if let detail = status.sheetDetail {
+                        Text(detail)
+                    }
                     if status.phase != .podRefused {
                         Text(status.lastUpdate.map {
                             String(

@@ -93,26 +93,29 @@ extension Adjustments {
                 .navigationBarTitleDisplayMode(.large)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        switch state.selectedTab {
-                        case .overrides:
-                            Button(action: {
-                                showOverrideCreationSheet = true
-                            }, label: {
-                                HStack {
-                                    Text("Add Override")
-                                    Image(systemName: "plus")
-                                }
-                            })
-                        case .tempTargets:
-                            Button(action: {
-                                showTempTargetCreationSheet = true
-                            }, label: {
-                                HStack {
-                                    Text("Add Temp Target")
-                                    Image(systemName: "plus")
-                                }
-                            })
+                        Group {
+                            switch state.selectedTab {
+                            case .overrides:
+                                Button(action: {
+                                    showOverrideCreationSheet = true
+                                }, label: {
+                                    HStack {
+                                        Text("Add Override")
+                                        Image(systemName: "plus")
+                                    }
+                                })
+                            case .tempTargets:
+                                Button(action: {
+                                    showTempTargetCreationSheet = true
+                                }, label: {
+                                    HStack {
+                                        Text("Add Temp Target")
+                                        Image(systemName: "plus")
+                                    }
+                                })
+                            }
                         }
+                        .disabled(watchHasPump)
                     }
                 }
                 .sheet(isPresented: $state.showOverrideEditSheet, onDismiss: {
