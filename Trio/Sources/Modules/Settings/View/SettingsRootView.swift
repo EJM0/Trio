@@ -19,6 +19,7 @@ extension Settings {
         @StateObject var state = StateModel()
 
         @State private var searchText: String = ""
+        @State private var watchHasPump = false
         @State var hintDetent = PresentationDetent.large
         @State private var hintPayload: HintPayload?
 
@@ -139,6 +140,9 @@ extension Settings {
 
         var body: some View {
             List {
+                if watchHasPump {
+                    TrioOnWatchBlockedNote(message: TrioOnWatchBlockedNote.settings)
+                }
                 if searchText.isEmpty {
                     let buildDetails = BuildDetails.shared
 
@@ -395,6 +399,12 @@ extension Settings {
                 )
             }
             .onAppear(perform: configureView)
+            .onAppear {
+                watchHasPump = resolver.resolve(WatchLoanGate.self)?.phoneMayCommandPump == false
+                #if DEBUG
+                    if TrioOnWatchPhoneFixture.showsBlockedNotes { watchHasPump = true }
+                #endif
+            }
             .task {
                 await releaseNotesService.load()
             }

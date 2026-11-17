@@ -163,6 +163,16 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         )
     }
 
+    func startFacts() async -> WatchLoanStartFacts {
+        let adjustments = try? await activeAdjustments()
+        return WatchLoanStartFacts(
+            override: adjustments?.override,
+            tempTarget: adjustments?.tempTarget,
+            podEndsAt: pump?.endsAt,
+            sensorEndsAt: (sharedCGM as? G7CGMManager)?.sensorEndsAt
+        )
+    }
+
     private func activeAdjustments() async throws
         -> (override: WatchLoanSnapshot.Adjustment?, tempTarget: WatchLoanSnapshot.Adjustment?)
     {

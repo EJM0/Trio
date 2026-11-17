@@ -31,6 +31,12 @@ protocol WatchLoanPhoneHost: AnyObject {
     func auditNotice(units: Double, isShortfall: Bool)
     func didReturnHome()
     func onForeignPodSession(_ action: @escaping () -> Void)
+    /// What the watch's Start screen shows before the user confirms.
+    func startFacts() async -> WatchLoanStartFacts
+}
+
+extension WatchLoanPhoneHost {
+    func startFacts() async -> WatchLoanStartFacts { WatchLoanStartFacts() }
 }
 
 /// What the phone keeps besides its loan state: release readings and audits, seen message ids, the last record batch.
@@ -85,7 +91,7 @@ actor WatchLoanCoordinator {
     /// Booked events this long before an audit window, to see a temp or suspend already running at its start.
     static let auditLookBehind: TimeInterval = 12 * 60 * 60
 
-    private let host: WatchLoanPhoneHost
+    let host: WatchLoanPhoneHost
     private let store: WatchLoanStore<PhoneLoanState>
     private let ledgerStore: WatchLoanStore<WatchLoanLedger>
     private let now: () -> Date

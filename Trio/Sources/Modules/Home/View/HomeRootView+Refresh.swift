@@ -30,7 +30,7 @@ struct HomePullOffsetReader: ViewModifier {
 
 extension Home.RootView {
     /// Forcing a cycle only means something where Trio enacts one.
-    var canForceLoop: Bool { state.dosingMode.automation != .off }
+    var canForceLoop: Bool { state.dosingMode.automation != .off && !trioOnWatch.status.replacesLoopRing }
 
     /// Pull hint while dragging; spinner while the loop runs.
     @ViewBuilder var pullToRefreshIndicator: some View {

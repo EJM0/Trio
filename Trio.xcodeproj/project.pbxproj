@@ -12,9 +12,11 @@
 		A7A40A000000000000000010 /* WatchLoanSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A00000000000000000F /* WatchLoanSnapshotTests.swift */; };
 		A7A40A000000000000000012 /* WatchLoanAuditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A000000000000000011 /* WatchLoanAuditTests.swift */; };
 		A7A40A000000000000000014 /* WatchLoanCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A000000000000000013 /* WatchLoanCoordinatorTests.swift */; };
+		106DE7B45264C352EF6AD9FE /* TrioOnWatchPhoneStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E73D93DBACAAD6E9F16431CB /* TrioOnWatchPhoneStatusTests.swift */; };
 		A7A40A000000000000000016 /* WatchLoanPhoneIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A000000000000000015 /* WatchLoanPhoneIntegrationTests.swift */; };
 		A7A40A00000000000000000C /* WatchLoanPumpAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A00000000000000000B /* WatchLoanPumpAdapter.swift */; };
 		A7A40A000000000000000008 /* WatchLoanCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A000000000000000007 /* WatchLoanCoordinator.swift */; };
+		1513E6908E04E0FDE0DF318D /* WatchLoanCoordinator+UI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 146F2C1869D0D6108765B3E7 /* WatchLoanCoordinator+UI.swift */; };
 		A7A40A00000000000000000A /* WatchLoanPhoneHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A000000000000000009 /* WatchLoanPhoneHost.swift */; };
 		A7A40A000000000000000002 /* WatchLoanSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A000000000000000001 /* WatchLoanSnapshot.swift */; };
 		A7A40A000000000000000004 /* WatchLoanRecords.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A000000000000000003 /* WatchLoanRecords.swift */; };
@@ -1059,6 +1061,8 @@
 		DD9ECB742CA9A0C300AA7C45 /* RemoteControlConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9ECB732CA9A0C300AA7C45 /* RemoteControlConfig.swift */; };
 		DDA6E2502D22187500C2988C /* ChartLegendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDA6E24F2D22187500C2988C /* ChartLegendView.swift */; };
 		DDA6E2852D2361F800C2988C /* LoopStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDA6E2842D2361F800C2988C /* LoopStatusView.swift */; };
+		F1644B0A85CF07FE79D6F6F3 /* TrioOnWatchPhoneViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B4F6A4710616698A40B2047 /* TrioOnWatchPhoneViews.swift */; };
+		4C0EE0ED5DC0D03B4186205F /* TrioOnWatchPhoneStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DDC30F33A0567BBCEDB4A4 /* TrioOnWatchPhoneStatus.swift */; };
 		DDA6E3202D258E0500C2988C /* OverrideHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDA6E31F2D258E0500C2988C /* OverrideHelpView.swift */; };
 		DDA6E3222D25901100C2988C /* TempTargetHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDA6E3212D25901100C2988C /* TempTargetHelpView.swift */; };
 		DDA6E3572D25988500C2988C /* ContactImageHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDA6E3562D25988500C2988C /* ContactImageHelpView.swift */; };
@@ -1310,6 +1314,7 @@
 		545407A9BC06E4D3E2E48CA7 /* WatchLoanHost+UI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2DAF8FBA56EE96F277D926B /* WatchLoanHost+UI.swift */; };
 		963794A7E5E810BA69EE512E /* LoanPumpDouble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76D5CE4C2253239145F1C070 /* LoanPumpDouble.swift */; };
 		9A949314EB275A2083325BA5 /* WatchLoanHostTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 785D46BC40C065649E4E0469 /* WatchLoanHostTests.swift */; };
+		AFB9C23BFF43559FEB563BEC /* TrioOnWatchStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06EF969ED3240727701E4891 /* TrioOnWatchStatusTests.swift */; };
 		D30010F72BED95FED9517E95 /* WatchLoanAudit.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A40A000000000000000005 /* WatchLoanAudit.swift */; };
 		2249B2CFA752FCF240EEA112 /* WatchLoopPhoneEquivalenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CA5406C1EAE1FC6C5BD7B24 /* WatchLoopPhoneEquivalenceTests.swift */; };
 /* End PBXBuildFile section */
@@ -1447,9 +1452,11 @@
 		A7A40A00000000000000000F /* WatchLoanSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanSnapshotTests.swift; sourceTree = "<group>"; };
 		A7A40A000000000000000011 /* WatchLoanAuditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanAuditTests.swift; sourceTree = "<group>"; };
 		A7A40A000000000000000013 /* WatchLoanCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanCoordinatorTests.swift; sourceTree = "<group>"; };
+		E73D93DBACAAD6E9F16431CB /* TrioOnWatchPhoneStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrioOnWatchPhoneStatusTests.swift; sourceTree = "<group>"; };
 		A7A40A000000000000000015 /* WatchLoanPhoneIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanPhoneIntegrationTests.swift; sourceTree = "<group>"; };
 		A7A40A00000000000000000B /* WatchLoanPumpAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanPumpAdapter.swift; sourceTree = "<group>"; };
 		A7A40A000000000000000007 /* WatchLoanCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanCoordinator.swift; sourceTree = "<group>"; };
+		146F2C1869D0D6108765B3E7 /* WatchLoanCoordinator+UI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchLoanCoordinator+UI.swift"; sourceTree = "<group>"; };
 		A7A40A000000000000000009 /* WatchLoanPhoneHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanPhoneHost.swift; sourceTree = "<group>"; };
 		A7A40A000000000000000001 /* WatchLoanSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanSnapshot.swift; sourceTree = "<group>"; };
 		A7A40A000000000000000003 /* WatchLoanRecords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanRecords.swift; sourceTree = "<group>"; };
@@ -2474,6 +2481,8 @@
 		DD9ECB732CA9A0C300AA7C45 /* RemoteControlConfig.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RemoteControlConfig.swift; sourceTree = "<group>"; };
 		DDA6E24F2D22187500C2988C /* ChartLegendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartLegendView.swift; sourceTree = "<group>"; };
 		DDA6E2842D2361F800C2988C /* LoopStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopStatusView.swift; sourceTree = "<group>"; };
+		3B4F6A4710616698A40B2047 /* TrioOnWatchPhoneViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrioOnWatchPhoneViews.swift; sourceTree = "<group>"; };
+		63DDC30F33A0567BBCEDB4A4 /* TrioOnWatchPhoneStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrioOnWatchPhoneStatus.swift; sourceTree = "<group>"; };
 		DDA6E31F2D258E0500C2988C /* OverrideHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverrideHelpView.swift; sourceTree = "<group>"; };
 		DDA6E3212D25901100C2988C /* TempTargetHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempTargetHelpView.swift; sourceTree = "<group>"; };
 		DDA6E3562D25988500C2988C /* ContactImageHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactImageHelpView.swift; sourceTree = "<group>"; };
@@ -2618,6 +2627,7 @@
 		B2DAF8FBA56EE96F277D926B /* WatchLoanHost+UI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchLoanHost+UI.swift"; sourceTree = "<group>"; };
 		76D5CE4C2253239145F1C070 /* LoanPumpDouble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoanPumpDouble.swift; sourceTree = "<group>"; };
 		785D46BC40C065649E4E0469 /* WatchLoanHostTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoanHostTests.swift; sourceTree = "<group>"; };
+		06EF969ED3240727701E4891 /* TrioOnWatchStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrioOnWatchStatusTests.swift; sourceTree = "<group>"; };
 		8CA5406C1EAE1FC6C5BD7B24 /* WatchLoopPhoneEquivalenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLoopPhoneEquivalenceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -2782,6 +2792,7 @@
 				A7A40A00000000000000000F /* WatchLoanSnapshotTests.swift */,
 				A7A40A000000000000000011 /* WatchLoanAuditTests.swift */,
 				A7A40A000000000000000013 /* WatchLoanCoordinatorTests.swift */,
+				E73D93DBACAAD6E9F16431CB /* TrioOnWatchPhoneStatusTests.swift */,
 				A7A40A000000000000000015 /* WatchLoanPhoneIntegrationTests.swift */,
 				A7A10A000000000000000019 /* WatchLoanWatchDecisionTests.swift */,
 			);
@@ -3510,6 +3521,8 @@
 			children = (
 				DD1E53582D273F20008F32A4 /* LoopStatusHelpView.swift */,
 				DDA6E2842D2361F800C2988C /* LoopStatusView.swift */,
+				3B4F6A4710616698A40B2047 /* TrioOnWatchPhoneViews.swift */,
+				63DDC30F33A0567BBCEDB4A4 /* TrioOnWatchPhoneStatus.swift */,
 				383420D525FFE38C002D46C1 /* LoopView.swift */,
 				38AAF85425FFF846004AF583 /* CurrentGlucoseView.swift */,
 				BD11C002000000000000C000 /* SensorLifecycle */,
@@ -3840,6 +3853,7 @@
 				A7A40A000000000000000017 /* AppleWatchManager+WatchLoan.swift */,
 				A7A40A00000000000000000B /* WatchLoanPumpAdapter.swift */,
 				A7A40A000000000000000007 /* WatchLoanCoordinator.swift */,
+				146F2C1869D0D6108765B3E7 /* WatchLoanCoordinator+UI.swift */,
 				A7A40A000000000000000009 /* WatchLoanPhoneHost.swift */,
 				CE94597D29E9E1EE0047C9C6 /* GarminManager.swift */,
 			);
@@ -4784,6 +4798,7 @@
 			isa = PBXGroup;
 			children = (
 				785D46BC40C065649E4E0469 /* WatchLoanHostTests.swift */,
+				06EF969ED3240727701E4891 /* TrioOnWatchStatusTests.swift */,
 				76D5CE4C2253239145F1C070 /* LoanPumpDouble.swift */,
 				BDFF7A8A2D25F97D0016C40C /* Unit Tests.swift */,
 			);
@@ -6326,6 +6341,8 @@
 				DD1745462C55C61500211FAC /* AutosensSettingsProvider.swift in Sources */,
 				DD6A4E802DBEC3EE008C4B26 /* StartupForceCloseWarningStepView.swift in Sources */,
 				DDA6E2852D2361F800C2988C /* LoopStatusView.swift in Sources */,
+				F1644B0A85CF07FE79D6F6F3 /* TrioOnWatchPhoneViews.swift in Sources */,
+				4C0EE0ED5DC0D03B4186205F /* TrioOnWatchPhoneStatus.swift in Sources */,
 				DD30BA122E07764300DA677C /* Profile+TherapySettingGetter.swift in Sources */,
 				DDF691012DA2CA11008BF16C /* AppDiagnosticsDataFlow.swift in Sources */,
 				DDA6E3202D258E0500C2988C /* OverrideHelpView.swift in Sources */,
@@ -6866,6 +6883,7 @@
 				A7A40A000000000000000018 /* AppleWatchManager+WatchLoan.swift in Sources */,
 				A7A40A00000000000000000C /* WatchLoanPumpAdapter.swift in Sources */,
 				A7A40A000000000000000008 /* WatchLoanCoordinator.swift in Sources */,
+				1513E6908E04E0FDE0DF318D /* WatchLoanCoordinator+UI.swift in Sources */,
 				A7A40A00000000000000000A /* WatchLoanPhoneHost.swift in Sources */,
 				BD175EBE0000100000000001 /* HistoryDataFlow+Models.swift in Sources */,
 				BD175EBE0000100000000002 /* HistoryDeletionTarget.swift in Sources */,
@@ -7017,6 +7035,7 @@
 				A7A40A000000000000000010 /* WatchLoanSnapshotTests.swift in Sources */,
 				A7A40A000000000000000012 /* WatchLoanAuditTests.swift in Sources */,
 				A7A40A000000000000000014 /* WatchLoanCoordinatorTests.swift in Sources */,
+				106DE7B45264C352EF6AD9FE /* TrioOnWatchPhoneStatusTests.swift in Sources */,
 				A7A40A000000000000000016 /* WatchLoanPhoneIntegrationTests.swift in Sources */,
 				A7A10A00000000000000001A /* WatchLoanWatchDecisionTests.swift in Sources */,
 				BD11A001000000000000A00B /* TrioModalAlertSchedulerTests.swift in Sources */,
@@ -7244,6 +7263,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9A949314EB275A2083325BA5 /* WatchLoanHostTests.swift in Sources */,
+				AFB9C23BFF43559FEB563BEC /* TrioOnWatchStatusTests.swift in Sources */,
 				963794A7E5E810BA69EE512E /* LoanPumpDouble.swift in Sources */,
 				BDFF7A8B2D25F97D0016C40C /* Unit Tests.swift in Sources */,
 			);
