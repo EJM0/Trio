@@ -27,6 +27,14 @@ struct TrioMainWatchView: View {
 
     private var lastPage: Int { loanStatus == nil ? 2 : 3 }
 
+    private var debugScrollTo: String? {
+        #if DEBUG
+            return TrioOnWatchFixture.current?.scrollTo
+        #else
+            return nil
+        #endif
+    }
+
     var isWatchStateDated: Bool {
         // If `lastWatchStateUpdate` is nil, treat as "dated"
         guard let lastUpdateTimestamp = state.lastWatchStateUpdate else {
@@ -128,7 +136,7 @@ struct TrioMainWatchView: View {
                 // Page 4: Trio on Watch
                 if let loan {
                     TimelineView(.periodic(from: .now, by: 15)) { context in
-                        TrioOnWatchStatusView(status: loan, now: context.date, actions: loanActions)
+                        TrioOnWatchStatusView(status: loan, now: context.date, actions: loanActions, scrollTo: debugScrollTo)
                     }
                     .tag(3)
                 }
@@ -136,6 +144,15 @@ struct TrioMainWatchView: View {
             .onAppear {
                 #if DEBUG
                     if case .status = TrioOnWatchFixture.current?.screen { currentPage = 3 }
+                    if TrioOnWatchFixture.current?.tetheredFresh == true {
+                        state.lastWatchStateUpdate = Date().timeIntervalSince1970
+                        state.currentGlucose = "112"
+                        state.delta = "+3"
+                        state.trend = "Flat"
+                        state.lastLoopTime = "2 min"
+                        state.iob = "1,25"
+                        state.cob = "12"
+                    }
                 #endif
                 /// Hard reset variables when main view appears
                 /// Reset `bolusAmount` and `recommendedBolus` to ensure no stale / old value is set when user opens bolus input or meal combo the next time.
@@ -247,7 +264,7 @@ struct TrioMainWatchView: View {
             }
             .sheet(isPresented: $showingOverrideSheet) {
                 if let loan, loanActive {
-                    LoanAdjustmentSheet(kind: .override, adjustment: loan.override, cancel: loanActions.cancelOverride)
+                    LoanAdjustmentSheet(kind: .override, adjustment: loan.override, stop: loanActions.stopOverride)
                 } else {
                     OverridePresetsView(
                         state: state,
@@ -260,7 +277,7 @@ struct TrioMainWatchView: View {
             }
             .sheet(isPresented: $showingTempTargetSheet) {
                 if let loan, loanActive {
-                    LoanAdjustmentSheet(kind: .tempTarget, adjustment: loan.tempTarget, cancel: loanActions.cancelTempTarget)
+                    LoanAdjustmentSheet(kind: .tempTarget, adjustment: loan.tempTarget, stop: loanActions.stopTempTarget)
                 } else {
                     TempTargetPresetsView(
                         state: state,
@@ -356,7 +373,7 @@ struct TrioMainWatchView: View {
             case .carbsSaved:
                 return AnyView(LoanCarbsSavedView(navigationPath: .constant(NavigationPath()), saved: LoanCarbsSaved(grams: 30)))
             case .adjustment:
-                return AnyView(LoanAdjustmentSheet(kind: .override, adjustment: status.override, cancel: {}))
+                return AnyView(LoanAdjustmentSheet(kind: .override, adjustment: status.override, stop: { true }))
             }
         }
     #endif

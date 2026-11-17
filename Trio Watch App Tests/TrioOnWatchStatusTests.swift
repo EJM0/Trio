@@ -50,6 +50,22 @@ import Testing
         #expect(noLoop.controlLine(now: now, phoneLoopText: nil).tier == .unknown)
     }
 
+    @Test("Control line: a pump condition wins over the loop age (G-M3)") func pumpCondition() {
+        var watch = status(.inControl)
+        #expect(watch.pumpCondition == nil)
+        watch.insulinPaused = true
+        #expect(watch.controlLine(now: now, phoneLoopText: nil).tier == .warning)
+        watch.podUnreachable = true
+        #expect(watch.controlLine(now: now, phoneLoopText: nil).tier == .stale)
+        watch.insulinSuspended = true
+        #expect(watch.controlLine(now: now, phoneLoopText: nil).text == "Insulin suspended")
+        watch.podFaulted = true
+        let line = watch.controlLine(now: now, phoneLoopText: nil)
+        #expect(line.text == "Pod stopped")
+        #expect(line.symbol == "exclamationmark.triangle.fill")
+        #expect(line.accessibilityLabel.contains("not giving insulin"))
+    }
+
     @Test("Main values: the watch's own reading, masked at 12 min") func mainValues() {
         let fresh = status(.inControl).mainValues(now: now)
         #expect(!fresh.isStale)
@@ -163,6 +179,10 @@ import Testing
             Issue.record("no answer must be a failure")
         }
 
+        // End is tried: a silent phone is a refusal that stays (G-15)
+        #expect(HandOffStage.stage(.end, status: status(.inControl), phoneSilent: true).isFailed)
+        #expect(status(.waitingForReading).footer().contains(TrioOnWatchStatus.notGivingInsulinYet))
+
         var ending = status(.ending)
         #expect(HandOffStage.stage(.end, status: ending).isWorking)
         ending.phase = .phone
@@ -183,6 +203,8 @@ import Testing
             let text = TrioOnWatchStatus.refusalText(refusal)
             #expect(!text.isEmpty)
             #expect(!text.contains("(\(refusal.rawValue))"))
+            #expect(!text.contains("hand"))
+            #expect(WatchLoanAlerts.text(for: refusal) == text)
         }
     }
 
@@ -241,7 +263,8 @@ import Testing
             "start-no-answer", "handoff-starting", "handoff-waiting-reading", "handoff-started", "handoff-refused",
             "handoff-no-answer", "handoff-ending", "handoff-end-refused", "end-confirmation", "bolus-sending",
             "bolus-accepted", "bolus-delivering", "bolus-done", "bolus-cancelled", "bolus-failed", "bolus-uncertain",
-            "recent-doses", "carbs-saved", "override-sheet"
+            "recent-doses", "carbs-saved", "override-sheet", "main-phone-fresh", "main-pod-stopped", "main-suspended",
+            "main-pod-unreachable", "main-bolus-paused"
         ]
         for name in names {
             #expect(TrioOnWatchFixture.named(name, now: now) != nil, "\(name)")
@@ -252,6 +275,11 @@ import Testing
 private extension HandOffStage {
     var isWorking: Bool {
         if case .working = self { return true }
+        return false
+    }
+
+    var isFailed: Bool {
+        if case .failed = self { return true }
         return false
     }
 }

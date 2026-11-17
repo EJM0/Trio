@@ -144,7 +144,8 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
                 fattyMealFactor: settings.fattyMealFactor,
                 sweetMealFactor: settings.sweetMealFactor,
                 maxCarbs: settings.maxCarbs,
-                supportedBolusVolumes: pump.supportedBolusVolumes
+                supportedBolusVolumes: pump.supportedBolusVolumes,
+                confirmBolus: settings.confirmBolus
             ),
             glucoseAlarms: GlucoseAlertsStore.shared.alerts,
             glucoseAlarmConfiguration: GlucoseAlertsStore.shared.configuration,

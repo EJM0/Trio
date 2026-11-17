@@ -28,6 +28,7 @@ struct LoanBolusRequest: Hashable {
 /// Carbs saved on the watch, for the navigation stack.
 struct LoanCarbsSaved: Hashable {
     var grams: Int
+    var requestedAt = Date()
 }
 
 /// W7: what the pump is doing with this bolus. Failed, cancelled and unconfirmed results stay until OK (G-4).
@@ -57,13 +58,12 @@ struct LoanBolusProgressView: View {
                     Button {
                         Task { await actions.cancelBolus() }
                     } label: {
-                        Image(systemName: "xmark.app")
+                        Label(
+                            String(localized: "Cancel Bolus", comment: "Watch button to cancel a running bolus"),
+                            systemImage: "xmark.app"
+                        )
                     }
                     .tint(.loopRed)
-                    .accessibilityLabel(Text(String(
-                        localized: "Cancel bolus",
-                        comment: "Watch accessibility: cancel bolus button"
-                    )))
                 }
                 if view.showsRecentDoses {
                     Button(String(localized: "Recent Doses", comment: "Watch button to the recent doses list")) {
@@ -127,30 +127,49 @@ struct RecentDosesView: View {
     }
 }
 
-/// W8 result: carbs stay on the watch until they reach the phone, so "saved", not "logged".
+/// W8 result: carbs stay on the watch until they reach the phone, so "saved", not "logged". Shown once the save is
+/// on disk (G-M14).
 struct LoanCarbsSavedView: View {
     @Binding var navigationPath: NavigationPath
     let saved: LoanCarbsSaved
 
+    @State private var outcome: Bool?
+
     var body: some View {
         VStack(spacing: 8) {
-            Image(systemName: "checkmark.circle").font(.title2).foregroundStyle(Color.loopGreen)
-                .accessibilityHidden(true)
-            Text(String(localized: "Carbs saved on your watch.", comment: "Watch carbs saved while in control"))
-                .multilineTextAlignment(.center)
+            switch outcome {
+            case nil:
+                ProgressView()
+                Text(String(localized: "Saving carbs…", comment: "Watch: carbs being saved while in control"))
+            case true?:
+                Image(systemName: "checkmark.circle").font(.title2).foregroundStyle(Color.loopGreen)
+                    .accessibilityHidden(true)
+                Text(String(localized: "Carbs saved on your watch.", comment: "Watch carbs saved while in control"))
+            case false?:
+                Image(systemName: "xmark").font(.title2).foregroundStyle(Color.loopRed)
+                    .accessibilityHidden(true)
+                Text(String(localized: "Carbs not saved. Enter them again.", comment: "Watch: carbs couldn't be saved"))
+                Button(String(localized: "OK", comment: "Dismiss button")) { navigationPath.removeLast(navigationPath.count) }
+            }
         }
+        .multilineTextAlignment(.center)
         .accessibilityElement(children: .combine)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden)
         .task {
-            WKInterfaceDevice.current().play(.success)
+            for _ in 0 ..< 20 where !TrioOnWatchSource.carbsSaved(since: saved.requestedAt) {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+            }
+            outcome = TrioOnWatchSource.carbsSaved(since: saved.requestedAt)
+            WKInterfaceDevice.current().play(outcome == true ? .success : .failure)
+            guard outcome == true else { return }
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             if !Task.isCancelled { navigationPath.removeLast(navigationPath.count) }
         }
     }
 }
 
-/// W9 while in control: the running override or temp target, with cancel only (V2-25).
+/// W9 while in control: the running override or temp target, with stop only (V2-25), confirmed as on iOS (G-M5).
 struct LoanAdjustmentSheet: View {
     enum Kind {
         case override
@@ -159,8 +178,9 @@ struct LoanAdjustmentSheet: View {
 
     let kind: Kind
     let adjustment: TrioOnWatchStatus.Adjustment?
-    let cancel: () async -> Void
-    @Environment(\.dismiss) private var dismiss
+    let stop: () async -> Bool
+    @State private var showingConfirmation = false
+    @State private var result: ActionResult?
 
     var body: some View {
         List {
@@ -182,16 +202,39 @@ struct LoanAdjustmentSheet: View {
                 }
                 .accessibilityElement(children: .combine)
 
-                Button(
+                Button(kind == .override ? String(localized: "Stop Override") : String(localized: "Stop Temp Target")) {
+                    showingConfirmation = true
+                }
+                .tint(.loopRed)
+                .confirmationDialog(
                     kind == .override
-                        ? String(localized: "Cancel Override", comment: "Watch button")
-                        : String(localized: "Cancel Temp Target", comment: "Watch button")
-                )
-                    {
-                        Task { await cancel() }
-                        dismiss()
+                        ? String(localized: "Override to Stop")
+                        : String(localized: "Temp Target to Stop"),
+                    isPresented: $showingConfirmation,
+                    titleVisibility: .visible
+                ) {
+                    Button(String(localized: "Stop"), role: .destructive) {
+                        Task {
+                            result = await stop()
+                                ? .success(
+                                    kind == .override
+                                        ? String(localized: "Override stopped.", comment: "Watch: override stopped")
+                                        : String(localized: "Temp target stopped.", comment: "Watch: temp target stopped")
+                                )
+                                : .failure(String(
+                                    localized: "Trio on Watch couldn't save. Nothing was changed.",
+                                    comment: "Watch: stopping an override or temp target failed"
+                                ))
+                        }
                     }
-                    .tint(.loopRed)
+                    Button(String(localized: "Cancel", comment: "Cancel button"), role: .cancel) {}
+                } message: {
+                    Text(
+                        kind == .override
+                            ? "Stop the Override \"\(name)\"?"
+                            : "Stop the Temp Target \"\(name)\"?"
+                    )
+                }
             } else {
                 Text(
                     kind == .override
@@ -201,11 +244,14 @@ struct LoanAdjustmentSheet: View {
                 .font(.footnote)
             }
             Text(String(
-                localized: "You can't start or change overrides or temp targets while your watch is in control.",
-                comment: "Watch: overrides and temp targets are phone-only during Trio on Watch"
+                localized: "You can stop it here. Starting or changing overrides and temp targets needs your iPhone.",
+                comment: "Watch: overrides and temp targets during Trio on Watch"
             ))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
+        }
+        .fullScreenCover(item: $result) { shown in
+            ActionResultView(result: shown) { result = nil }
         }
     }
 }

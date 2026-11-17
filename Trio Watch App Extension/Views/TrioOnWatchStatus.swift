@@ -77,6 +77,8 @@ enum TrioOnWatchRules {
         case fresh
         case aging
         case stale
+        /// A pump condition, not a loop age.
+        case warning
 
         var color: Color {
             switch self {
@@ -84,6 +86,7 @@ enum TrioOnWatchRules {
             case .fresh: return .loopGreen
             case .aging: return .loopYellow
             case .stale: return .loopRed
+            case .warning: return .orange
             }
         }
     }
@@ -149,6 +152,18 @@ extension TrioOnWatchStatus {
                 )
             )
         case .inControl:
+            // as on iOS, a pump condition wins over the loop age (G-M3)
+            if let pump = pumpCondition {
+                return ControlLine(
+                    symbol: "exclamationmark.triangle.fill",
+                    text: pump.text,
+                    tier: pump.tier,
+                    accessibilityLabel: String(
+                        localized: "Watch is in control. \(pump.spoken)",
+                        comment: "Watch accessibility: control line with a pump condition"
+                    )
+                )
+            }
             let tier = TrioOnWatchRules.loopTier(lastLoopAt: lastLoopAt, now: now)
             let age = lastLoopAt?.formattedTimeAgo() ?? "--"
             let spoken = lastLoopAt.map {
@@ -187,6 +202,58 @@ extension TrioOnWatchStatus {
                 )
             )
         }
+    }
+}
+
+// MARK: - Pump condition on the main page
+
+extension TrioOnWatchStatus {
+    struct PumpCondition: Equatable {
+        var text: String
+        var spoken: String
+        var tier: TrioOnWatchRules.Tier
+    }
+
+    /// The most serious pump condition, or nil when the pump delivers as the loop asks.
+    var pumpCondition: PumpCondition? {
+        if podFaulted {
+            return PumpCondition(
+                text: String(localized: "Pod stopped", comment: "Watch control line: pod fault"),
+                spoken: String(localized: "Your pod has stopped. It is not giving insulin.", comment: "Watch status: pod fault"),
+                tier: .stale
+            )
+        }
+        if insulinSuspended {
+            return PumpCondition(
+                text: String(localized: "Insulin suspended", comment: "Watch status: pump suspended"),
+                spoken: String(
+                    localized: "Insulin is suspended. Trio isn't looping.",
+                    comment: "Watch accessibility: insulin suspended"
+                ),
+                tier: .warning
+            )
+        }
+        if podUnreachable {
+            return PumpCondition(
+                text: String(localized: "Can't reach pod", comment: "Watch control line: pod not answering"),
+                spoken: String(
+                    localized: "Can't reach your pod. Keep your watch close to it.",
+                    comment: "Watch status: pod not answering (V3-4)"
+                ),
+                tier: .stale
+            )
+        }
+        if insulinPaused {
+            return PumpCondition(
+                text: String(localized: "Bolus paused", comment: "Watch control line: unconfirmed command"),
+                spoken: String(
+                    localized: "Trio can't confirm your last insulin. New boluses are paused, and you can't end yet, until your pump answers.",
+                    comment: "Watch status: unconfirmed pump command"
+                ),
+                tier: .warning
+            )
+        }
+        return nil
     }
 }
 
@@ -306,7 +373,7 @@ extension TrioOnWatchStatus {
              .starting:
             return String(localized: "Keep your iPhone close.", comment: "Watch status footer during a hand-off")
         case .waitingForReading:
-            return String(
+            return Self.notGivingInsulinYet + " " + String(
                 localized: "Keep Trio open until your watch gets its first sensor reading.",
                 comment: "Watch status footer after Start, before the first reading"
             )
@@ -333,6 +400,18 @@ extension TrioOnWatchStatus {
         }
     }
 
+    static var notGivingInsulinYet: String {
+        String(localized: "Your watch isn't giving insulin yet.", comment: "Watch: after Start, before the first reading (G-M13)")
+    }
+
+    /// For the Start refusal outside Closed Loop (G-M2); mapped once that refusal reason exists.
+    static var closedLoopRequiredText: String {
+        String(
+            localized: "Trio on Watch needs Closed Loop. Switch your iPhone to Closed Loop first.",
+            comment: "Watch refusal when the phone isn't in Closed Loop"
+        )
+    }
+
     static func stopReason(_ reason: WatchStopReason) -> String {
         switch reason {
         case .superseded:
@@ -342,7 +421,7 @@ extension TrioOnWatchStatus {
         case .resumeWindowPassed:
             return String(localized: "Your watch couldn't loop for over 6 hours.", comment: "Watch stop reason")
         case .unconfirmed:
-            return String(localized: "Your iPhone didn't confirm the hand-over.", comment: "Watch stop reason")
+            return String(localized: "Your iPhone didn't confirm the start.", comment: "Watch stop reason")
         }
     }
 
@@ -625,12 +704,15 @@ extension TrioOnWatchStatus {
                 comment: "Watch refusal"
             )
         case .busy:
-            return String(localized: "Your iPhone is busy with a hand-off. Check Trio on your iPhone.", comment: "Watch refusal")
+            return String(
+                localized: "Your iPhone is busy starting or ending Trio on Watch. Check Trio on your iPhone.",
+                comment: "Watch refusal"
+            )
         case .grantExpired,
              .staleEpoch,
              .unknownRequest:
             return String(
-                localized: "The hand-over took too long and didn't happen. Check Trio on your iPhone.",
+                localized: "Starting took too long, so Trio on Watch didn't start. Check Trio on your iPhone.",
                 comment: "Watch refusal"
             )
         case .snapshotIncomplete:

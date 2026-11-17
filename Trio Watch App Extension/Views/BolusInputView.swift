@@ -30,9 +30,12 @@ struct BolusInputView: View {
         // recommendation itself is zero). In that case there is nothing to bolus, so
         // offer a plain "Log Carbs" action instead of a dead-end disabled button.
         let isCarbsOnly = state.carbsAmount > 0 && adjustedBolusAmount <= 0
+        // while the watch holds the pump, the phone's low-glucose warning (DD-8)
+        let lowWarning = isCarbsOnly ? nil : LoanTreatments.host?.lowGlucoseBolusWarning()
         let actionButtonLabel = isCarbsOnly
             ? String(localized: "No Bolus, Log Carbs", comment: "Button Label to Log Carbs on Watch")
-            : String(localized: "Enact Bolus")
+            : lowWarning?
+            .shouldConfirm == true ? String(localized: "Ignore Warning and Enact Bolus") : String(localized: "Enact Bolus")
 
         VStack {
             if state.showBolusCalculationProgress {
@@ -116,6 +119,12 @@ struct BolusInputView: View {
 
                     if bolusAmount > 0.0 && bolusAmount >= effectiveBolusLimit {
                         Text("Bolus Limit Reached!")
+                            .font(.footnote)
+                            .foregroundColor(.loopRed)
+                    }
+
+                    if let lowWarning {
+                        Text(lowWarning.message)
                             .font(.footnote)
                             .foregroundColor(.loopRed)
                     }
