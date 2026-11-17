@@ -1561,3 +1561,86 @@ Still open: G-1 alarm coverage (M3–M5), G-2 `CycleSummary`, G-17/G-M2 and G-M1
 - Not captured: the Settings screenshot still shows the simulator's own lock reason ("Add a CGM and pump…"), because the harness doesn't touch the gate.
 
 Verification after the merge: watch app flag on / off 0 / 0 and iOS app flag on 0, all with the `check-watch-frameworks` phase passing (the watch app now embeds RileyLinkBLEKit, RileyLinkKit and CryptoSwift); `Trio Watch AppTests` 63 / 63 flag on and off; full `Trio Tests` 1252 total, 46 skipped, 1 known issue, no failures (fresh derived data `dd-m6-iostest`).
+
+## M7: integration fixes (2026-11-17)
+
+Branch `feat/tow-m7` off `feat/trio-on-watch` @ `25ff490d6`. Local signed commits, not pushed. Kit pins unchanged. Only the tip was built and tested, not each commit on its own.
+
+| Commit | Item | Subject |
+|---|---|---|
+| `3a7cf476e` | 1, G-R2 | Show sensor alerts on the watch during a loan |
+| `fbe3a81eb` | 2, G-1 | Alarm in every state where nothing may dose |
+| `73a577af2` | W17 | Resend the hand-back until the phone answers |
+| `b924c504b` | 3, G-2 | Show the watch's loop age on the phone pill |
+| `6f4d1f4dd` | 4 | Keep replaced watch bookings deleted |
+| `57a9590a2` | 5, G-R1 | Test the suspend reminders and say they end at 4 h |
+| `c0fc69d59` | 6 | Pin the low-glucose bolus warning to dev's rule |
+| `1f4591c97` | 7, G-R3/G-R4 | Match the phone loop age format, name extra insulin |
+| `bf702c401` | 7, G-R5/G-M10 | Show the Dosing Mode lock in the screenshot harness |
+| `b77b5fe0f` | 8, M2aC-06 | Build the watch app with Trio on Watch in CI |
+| `ec0d8810f` | 7 | Re-capture the M7 screens and the Settings lock |
+
+### What changed
+
+- **G-R2.** `WatchLoanCGM` passes G7 kit alerts to the host. They are shown while the watch reads the sensor (`holding`, `returning`, `stopped` unless superseded), time-sensitive, with the line "Replacing your sensor needs your iPhone…". Kit alerts, pump ones included, are now scheduled at the kit's trigger time. Before this, the pump path showed delayed alerts (for example pod expiry reminders) at once. A repeating alert is shown once. Retractions go through. Sensor alerts still pending when the watch lets go of the CGM are removed, because the phone keeps the sensor's own alerts. Shortcut: that list lives in memory, so a relaunch forgets it.
+- **G-1, end to end.** I checked it through the hosts' real alarm code (the watch's `WatchLoanAlerts` to the notifier, and the phone's `NotLoopingMonitor` / `BaseWatchLoanPhoneHost` to `TrioAlertManager`). This is more than the decision-table effects. Two gaps were found and fixed:
+  - **Watch `requesting`.** The host never sent `requestTimedOut`, so a lost grant left the watch requesting with no notice at all. Now the "iPhone didn't answer" notice is pending in the system from the moment of the request, at +120 s. The host also times the request out in-app. A grant, refusal or relaunch cancels the pending notice.
+  - **Phone relaunched in `lending`, `takingBack` or `unreadable`.** `setArmed(true)` was a no-op because the monitor starts armed, so the relaunched process scheduled nothing. It relied on whatever requests the OS still held. Now the arm restarts the "Trio Not Active" series from the relaunch. `home` keeps its loop-date anchor, so behaviour there is unchanged.
+  - Pre-existing iOS exemptions are unchanged: Open Loop, a manual temp basal and a suspended pump don't arm the series.
+  - Covered states: phone `lending`/`takingBack`/`unreadable` (the series), phone `lent` (silence steps), watch `requesting` (the pending notice), watch `returning`, `stopped(foreignSession)` and `stopped(unconfirmed)` after an unreadable file (the watch series).
+- **W17.** While the watch is `returning`, it resends the hand-back every 60 s while the phone is reachable, until the ack. An unreachable phone gets the queued copy.
+- **G-2.** Record batches carry `lastLoopAt`, the watch's last confirmed cycle. The field is optional on decode and the batch stays version 1, so older builds decode it. The phone ledger keeps it per epoch, so a late batch from an earlier loan never shows as this loan's loop. The pill text, its colour (orange after 10 min), compact text and VoiceOver now give the loop age. "No Updates from Apple Watch" stays keyed on the last batch.
+- **Item 4.** The ledger keeps `replacedBookings` (the last 512 sync identifiers). Any batch is filtered against it before the merge, so a booking that arrives after its replacement isn't stored again.
+- **Items 5 and 6.** Tests only, plus the copy change: "Insulin suspended. Trio reminds you every 30 minutes, for up to 4 hours." `git diff -w nightscout/dev` on Treatments shows that the only logic change is the move to `LowGlucoseBolusWarning`. The characterization test runs dev's formula, copied verbatim, against the shared rule over a boundary grid (−1 to 400, including 53.9/54/54.1, with confirm on and off). I read the dev file with `git show`, so no throwaway worktree was needed.
+- **Item 7.**
+  - The tethered "N min" from the phone is shown in the watch's "1m" style, spoken in full for VoiceOver. There is no wire change.
+  - "Bolus paused" becomes "Extra insulin paused". I didn't use "Insulin paused" because it reads like a suspend. Scheduled basal keeps running, while boluses, SMBs and temps above it wait. The VoiceOver text says the same.
+  - The DEBUG harness sets only the Settings lock text. The picker's own check still asks the gate.
+- **Item 8.** New `watch-flag-build` job in `unit_tests.yml`: Xcode 26.2, `actions/checkout@v5` as the other jobs pin it, `generic/platform=watchOS Simulator`, `TRIO_ON_WATCH=YES`, no signing. The existing jobs are unchanged.
+
+### New strings (English source; catalog sync is the maintainer's IDE build)
+
+"Replacing your sensor needs your iPhone. Bring it close and end Trio on Watch, or take back your pump on your iPhone."; "iPhone is in control"; "iPhone is in control, last loop %@" (now the spoken age); "Extra insulin paused" (replaces "Bolus paused"); "Trio can't confirm your last insulin. Boluses and extra automatic insulin are paused, and you can't end yet, until your pump answers." (replaces the "New boluses are paused" version); "Insulin suspended. Trio reminds you every 30 minutes, for up to 4 hours." (replaces "… until you resume."); "last loop %@" and "no loop yet" (replace "last update %@" / "no update yet" on the pill). The Home pill key "Watch · %@" is unchanged; only its comment changed.
+
+### Verification
+
+Fresh simulators: iPhone 17 iOS 27.2 `BF912B7D-9E67-4369-B6B0-3A14A0BE5F8C`, paired with Apple Watch Series 12 46 mm watchOS 27.2 `11E0EB67-2D9D-4807-B1B9-A12753F540A8`. Tests ran on iPhone 17 `352ABF6D-9CA2-4F7C-955E-D86FD80EAC94` and Watch S12 `97498B62-475A-48FE-8BA1-837F91B88E04`. Xcode 27.2. Three derived-data folders in the scratchpad: `dd-m7-iostest` (iOS builds and tests), `dd-m7-watch` (watch-only builds), `dd-m7-watchtest`.
+
+`X` = `xcodebuild -workspace Trio.xcworkspace -derivedDataPath <folder>`. Exit codes are each command's own `$?`. Counts come from `xcresulttool` or the Swift Testing summary.
+
+| # | Step | Command | Result |
+|---|---|---|---|
+| 1 | Watch app, flag off | `X -scheme "Trio Watch App" WATCH build` | 0; `check-watch-frameworks` ran and passed; no `UIBackgroundModes` |
+| 2 | Watch app, flag on | step 1 + `TRIO_ON_WATCH=YES` | 0; check passed; `TrioOnWatch-Info.plist` processed, `bluetooth-central` present |
+| 3 | iOS app, flag off | `X -scheme Trio PHONE build` | 0 (90 s); check passed; no `-DTRIO_ON_WATCH` |
+| 4 | iOS app, flag on | step 3 + `TRIO_ON_WATCH=YES` | 0 (47 s); check passed; `-DTRIO_ON_WATCH` reaches swiftc |
+| 5 | Watch launch, flag on | iOS app (step 3) installed on the paired phone, then the step 2 watch app; `simctl launch`, check after 30 s | installed binary UUID = built; running after 30 s; 0 dyld lines |
+| 6 | Watch launch, flag off | step 1 rebuilt, same procedure | same: UUIDs match, running after 30 s, 0 dyld lines |
+| 7 | `Trio Watch AppTests`, flag off | `X -scheme "Trio Watch AppTests" WATCH -parallel-testing-enabled NO test` | 0; 68 / 68 passed (63 before M7 + 5 new) |
+| 8 | `Trio Watch AppTests`, flag on | step 7 + `TRIO_ON_WATCH=YES` | 0; 68 / 68 passed |
+| 9 | Touched iOS suites | `X -scheme "Trio Tests" PHONE test` with `-only-testing:` `WatchLoanPhoneIntegrationTests`, `NotLoopingMonitorTests`, `WatchLoanCoordinatorTests`, `TrioOnWatchPhoneStatusTests` | 0; 64 passed, 1 known issue (the double's control) |
+| 10 | M3 two-Start search (item 9) | `TEST_RUNNER_TRIO_STRESS=1 X -scheme "Trio Tests" PHONE -only-testing:TrioTests/WatchLoanInvariantTests test` | 0 (318 s with build); 3 / 3 passed: default search 41.8 s, **two-Start search passed in 154.4 s**, kit-model control passed |
+| 11 | Full `Trio Tests` | `X -scheme "Trio Tests" PHONE test` | 0 (96 s); 1256 total, 1209 passed, 0 failed, 46 skipped, 1 expected failure. Includes "OpenAPSSwift golden parity", "Wall clock parity" and the OrefRun golden suites (scheme pinned to Europe/Berlin), all passed |
+| 12 | TZ escape | `TEST_RUNNER_TRIO_TZ_ESCAPE=1 X test-without-building -scheme "Trio Tests" PHONE -only-testing:TrioTests/ProcessTimeZoneEscapeTests` | 0; 1 / 1 passed |
+
+- `swift test --package-path AlgorithmPackage` was not run: it is known-broken on Xcode 27.2 (M0 step 8). Parity runs in step 11.
+- A first launch attempt with only the watch app installed was uninstalled by the pairing sync ("counterpart is not installed on phone"). That is not a crash. Steps 5–6 install the iOS app first.
+- New tests: `kitAlerts`, `alarmCoverage`, `handBackResend`, `suspendReminders` (watch host); `phoneLoopAge` (watch screens); `alarmsAfterRelaunch` (4 cases), `replacedBookingEitherOrder` (2 cases), `watchLoop`, `lowGlucoseWarningAsDev`, and the `pillTint` rewrite (phone). `alarmCoverage`'s requesting check and `alarmsAfterRelaunch` encode the two G-1 gaps. Before the fixes, no notice was posted in the first case and no series step in the second, both read from the code; there was no separate mutation run.
+- Screenshots (harness on the M6 screenshot simulators): `phone-{light,dark,largest-text}/in-control+settings.png` now show the Dosing Mode lock reason (the M6 captures showed the launch screen). Also re-captured: `in-control`, `no-updates`, and on both watch sizes `main-phone`, `main-phone-fresh` ("iPhone · 1m") and `main-bolus-paused` ("Extra insulin paused").
+
+### Worktree hygiene
+
+The build-phase SwiftFormat rewrote `Trio Watch App Tests/Unit Tests.swift` and `TrioTests/WatchLoanTests/WatchLoopInputsTests.swift` on every build. I reverted both each time. Its blank line in `WatchLoanCGM.swift` is in `fbe3a81eb`. `Package.resolved` and the submodules are unchanged.
+
+### Not verified (needs hardware or the CI toolchain)
+
+- Nothing ran on a watch, phone, pod or G7. In particular:
+  - real G7 kit alerts reaching the watch delegate, and their scheduled times;
+  - pending time-sensitive notifications under Silent, Focus or a locked wrist, and the "iPhone didn't answer" notice firing while Trio is suspended;
+  - the hand-back resend over a real `WCSession`;
+  - `lastLoopAt` arriving over a real transfer;
+  - DD-14 (VoiceOver crown confirmation) and the watch's largest text size;
+  - E1, E2 and E5 (M8).
+- The G-1 checks stop at the notifier and `TrioAlertManager`. `UNUserNotificationCenter` delivery itself is the existing, unchanged path and is not exercised in the unit tests.
+- The CI job hasn't run on GitHub. Whether the `macos-26` image with Xcode 26.2 has the watchOS platform for a generic simulator build is unknown. Xcode 26.2 isn't installed here.
+- The phone's G7 still raises its own sensor alerts, so during a loan the user may get the same sensor alert on both devices (accepted, as for glucose alarms, SR-15).
