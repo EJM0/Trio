@@ -127,7 +127,10 @@ extension TrioOnWatchStatus {
     func controlLine(now: Date, phoneLoopText: String?) -> ControlLine {
         switch phase {
         case .phone:
-            let age = phoneLoopText ?? "--"
+            // the tethered snapshot carries "N min"; shown in the "3m" style of every other age (G-R3)
+            let loopAt = phoneLoopText?.split(separator: " ").first.flatMap { Int($0) }
+                .map { now.addingTimeInterval(-Double($0) * 60) }
+            let age = loopAt?.formattedTimeAgo() ?? "--"
             return ControlLine(
                 symbol: "iphone",
                 text: String(
@@ -135,9 +138,14 @@ extension TrioOnWatchStatus {
                     comment: "Watch control line: the phone is in control, then its loop age"
                 ),
                 tier: .unknown,
-                accessibilityLabel: String(
-                    localized: "iPhone is in control, last loop \(age)",
-                    comment: "Watch accessibility: control line while the phone is in control"
+                accessibilityLabel: loopAt.map {
+                    String(
+                        localized: "iPhone is in control, last loop \($0.formattedSpokenTimeAgo())",
+                        comment: "Watch accessibility: control line while the phone is in control"
+                    )
+                } ?? String(
+                    localized: "iPhone is in control",
+                    comment: "Watch accessibility: control line, phone loop age unknown"
                 )
             )
         case .starting,
@@ -245,9 +253,12 @@ extension TrioOnWatchStatus {
         }
         if insulinPaused {
             return PumpCondition(
-                text: String(localized: "Bolus paused", comment: "Watch control line: unconfirmed command"),
+                text: String(
+                    localized: "Extra insulin paused",
+                    comment: "Watch control line: unconfirmed command; boluses, SMBs and temps above the scheduled basal wait"
+                ),
                 spoken: String(
-                    localized: "Trio can't confirm your last insulin. New boluses are paused, and you can't end yet, until your pump answers.",
+                    localized: "Trio can't confirm your last insulin. Boluses and extra automatic insulin are paused, and you can't end yet, until your pump answers.",
                     comment: "Watch status: unconfirmed pump command"
                 ),
                 tier: .warning
@@ -487,7 +498,7 @@ extension TrioOnWatchStatus {
         }
         if insulinPaused {
             pumpLines.append(String(
-                localized: "Trio can't confirm your last insulin. New boluses are paused, and you can't end yet, until your pump answers.",
+                localized: "Trio can't confirm your last insulin. Boluses and extra automatic insulin are paused, and you can't end yet, until your pump answers.",
                 comment: "Watch status: unconfirmed pump command"
             ))
             if pumpTint == .secondary { pumpTint = .orange }
