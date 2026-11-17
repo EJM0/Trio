@@ -401,6 +401,37 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.violations.isEmpty)
     }
 
+    @Test(
+        "A held loan whose snapshot isn't Closed Loop: Open Loop sends nothing, the others never add insulin"
+    ) func cycleDosingMode() async throws {
+        for mode in [DosingMode.open, .lowGlucoseSuspend, .basalTesting] {
+            let world = LoanFixture()
+            world.foreground = true
+            try await world.startLoan(glucose: 180)
+            // the grant refuses these modes, so the saved snapshot is the only way in
+            var saved = try #require(world.host.snapshot)
+            saved.oref.dosingMode = mode
+            let data = try saved.encoded()
+            let files = world.files
+            try await WatchLoanFiles.io { try files.write(data, to: .snapshot) }
+            world.transport.phoneEpoch = nil
+            await world.relaunch()
+            #expect(world.host.state == .holding(epoch: 1))
+            await world.reading(185)
+            await world.reading(190)
+            let commands = world.pump?.commands ?? []
+            if mode == .open {
+                #expect(commands.isEmpty, "\(commands)")
+            } else {
+                #expect(!commands.contains { $0.hasPrefix("bolus") }, "\(mode): \(commands)")
+                let rates = commands.filter { $0.hasPrefix("temp") }
+                    .compactMap { Decimal(string: String($0.dropFirst(5).prefix { $0 != " " })) }
+                #expect(rates.allSatisfy { $0 <= 1 }, "\(mode): \(commands)")
+            }
+            #expect(world.violations.isEmpty)
+        }
+    }
+
     @Test("Relaunch before the adopt: adopt only when the phone confirms the epoch (W36, W37)") func relaunchBeforeAdopt() async throws {
         for phoneEpoch in [Int64(1), nil] {
             let world = LoanFixture()
