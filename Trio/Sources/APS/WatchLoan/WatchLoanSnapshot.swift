@@ -34,6 +34,8 @@ struct WatchLoanSnapshot: Codable {
         var sweetMealFactor: Decimal
         var maxCarbs: Decimal
         var supportedBolusVolumes: [Double]
+        /// The phone's "confirm bolus" setting; nil in grants from builds before it was sent.
+        var confirmBolus: Bool?
     }
 
     /// A stored CGM reading before smoothing, for the watch to smooth its own readings with the phone's history.

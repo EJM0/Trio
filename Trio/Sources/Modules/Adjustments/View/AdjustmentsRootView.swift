@@ -7,6 +7,7 @@ extension Adjustments {
         let resolver: Resolver
         @State var state = StateModel()
         @State var isEditing = false
+        @State private var watchHasPump = false
         @State var showOverrideCreationSheet = false
         @State var showTempTargetCreationSheet = false
         @State var showingDetail = false
@@ -53,9 +54,15 @@ extension Adjustments {
                     .padding(.horizontal)
 
                     List {
-                        switch state.selectedTab {
-                        case .overrides: overrides()
-                        case .tempTargets: tempTargets() }
+                        if watchHasPump {
+                            TrioOnWatchBlockedNote(message: TrioOnWatchBlockedNote.adjustments)
+                        }
+                        Group {
+                            switch state.selectedTab {
+                            case .overrides: overrides()
+                            case .tempTargets: tempTargets() }
+                        }
+                        .disabled(watchHasPump)
                     }
                     .scrollContentBackground(.hidden)
                     .background(appState.trioBackgroundColor(for: colorScheme))
@@ -76,30 +83,39 @@ extension Adjustments {
                 .scrollContentBackground(.hidden)
                 .background(appState.trioBackgroundColor(for: colorScheme))
                 .onAppear(perform: configureView)
+                .onAppear {
+                    watchHasPump = resolver.resolve(WatchLoanGate.self)?.phoneMayCommandPump == false
+                    #if DEBUG
+                        if TrioOnWatchPhoneFixture.showsBlockedNotes { watchHasPump = true }
+                    #endif
+                }
                 .navigationBarTitle("Adjustments")
                 .navigationBarTitleDisplayMode(.large)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        switch state.selectedTab {
-                        case .overrides:
-                            Button(action: {
-                                showOverrideCreationSheet = true
-                            }, label: {
-                                HStack {
-                                    Text("Add Override")
-                                    Image(systemName: "plus")
-                                }
-                            })
-                        case .tempTargets:
-                            Button(action: {
-                                showTempTargetCreationSheet = true
-                            }, label: {
-                                HStack {
-                                    Text("Add Temp Target")
-                                    Image(systemName: "plus")
-                                }
-                            })
+                        Group {
+                            switch state.selectedTab {
+                            case .overrides:
+                                Button(action: {
+                                    showOverrideCreationSheet = true
+                                }, label: {
+                                    HStack {
+                                        Text("Add Override")
+                                        Image(systemName: "plus")
+                                    }
+                                })
+                            case .tempTargets:
+                                Button(action: {
+                                    showTempTargetCreationSheet = true
+                                }, label: {
+                                    HStack {
+                                        Text("Add Temp Target")
+                                        Image(systemName: "plus")
+                                    }
+                                })
+                            }
                         }
+                        .disabled(watchHasPump)
                     }
                 }
                 .sheet(isPresented: $state.showOverrideEditSheet, onDismiss: {

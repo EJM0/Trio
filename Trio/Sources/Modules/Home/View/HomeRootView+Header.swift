@@ -109,17 +109,27 @@ extension Home.RootView {
     }
 
     var pumpView: some View {
-        PumpView(
-            reservoir: state.reservoir,
-            name: state.pumpName,
-            expiresAtDate: state.pumpExpiresAtDate,
-            activatedAtDate: state.pumpActivatedAtDate,
-            timerDate: state.timerDate,
-            pumpStatusHighlightMessage: state.pumpStatusHighlightMessage,
-            battery: state.batteryFromPersistence
-        )
+        Group {
+            if trioOnWatch.status.replacesLoopRing {
+                // this phone's pod readings stop at the hand-off (G-M9)
+                TrioOnWatchPumpPlaceholder()
+            } else {
+                PumpView(
+                    reservoir: state.reservoir,
+                    name: state.pumpName,
+                    expiresAtDate: state.pumpExpiresAtDate,
+                    activatedAtDate: state.pumpActivatedAtDate,
+                    timerDate: state.timerDate,
+                    pumpStatusHighlightMessage: state.pumpStatusHighlightMessage,
+                    battery: state.batteryFromPersistence
+                )
+            }
+        }
         .onTapGesture {
-            if state.pumpDisplayState == nil {
+            if trioOnWatch.status.replacesLoopRing {
+                // the kit's screens offer commands the gate refuses while the watch has the pump
+                showTrioOnWatch = true
+            } else if state.pumpDisplayState == nil {
                 // shows user confirmation dialog with pump model choices, then proceeds to setup
                 showPumpSelection.toggle()
             } else {
@@ -136,7 +146,9 @@ extension Home.RootView {
                 : String(localized: "Opens pump settings", comment: "Accessibility hint")
         ))
         .accessibilityAction {
-            if state.pumpDisplayState == nil {
+            if trioOnWatch.status.replacesLoopRing {
+                showTrioOnWatch = true
+            } else if state.pumpDisplayState == nil {
                 showPumpSelection.toggle()
             } else {
                 state.shouldDisplayPumpSetupSheet.toggle()
@@ -146,27 +158,36 @@ extension Home.RootView {
 
     @ViewBuilder func rightHeaderPanel() -> some View {
         VStack(alignment: .center, spacing: 20) {
-            /// Loop view at bottomLeading
-            LoopView(
-                dosingMode: state.dosingMode,
-                timerDate: state.timerDate,
-                isLooping: state.isLooping,
-                lastLoopDate: state.lastLoopDate,
-                manualTempBasal: state.manualTempBasal,
-                lastGlucoseDate: state.lastGlucoseDate,
-                lastPumpCommsDate: state.lastPumpCommsDate,
-                hasDeviceIssue: state.hasDeviceIssue,
-                determination: state.determinationsFromPersistence
-            )
-            .onTapGesture {
-                state.isLoopStatusPresented = true
+            if trioOnWatch.status.replacesLoopRing {
+                TrioOnWatchPill(pill: trioOnWatch.status.pill(now: state.timerDate))
+                    .onTapGesture { showTrioOnWatch = true }
+                    .accessibilityAction { showTrioOnWatch = true }
+            } else {
+                /// Loop view at bottomLeading
+                LoopView(
+                    dosingMode: state.dosingMode,
+                    timerDate: state.timerDate,
+                    isLooping: state.isLooping,
+                    lastLoopDate: state.lastLoopDate,
+                    manualTempBasal: state.manualTempBasal,
+                    lastGlucoseDate: state.lastGlucoseDate,
+                    lastPumpCommsDate: state.lastPumpCommsDate,
+                    hasDeviceIssue: state.hasDeviceIssue,
+                    determination: state.determinationsFromPersistence
+                )
+                .onTapGesture {
+                    state.isLoopStatusPresented = true
+                }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityHint(Text(String(localized: "Opens loop status", comment: "Accessibility hint")))
+                .accessibilityAction { state.isLoopStatusPresented = true }
             }
-            .accessibilityAddTraits(.isButton)
-            .accessibilityHint(Text(String(localized: "Opens loop status", comment: "Accessibility hint")))
-            .accessibilityAction { state.isLoopStatusPresented = true }
             /// eventualBG string at bottomTrailing
 
-            if let eventualBG = state.enactedAndNonEnactedDeterminations.first?.eventualBG {
+            // the phone's last own forecast says nothing while the watch doses
+            if !trioOnWatch.status.replacesLoopRing,
+               let eventualBG = state.enactedAndNonEnactedDeterminations.first?.eventualBG
+            {
                 let eventualGlucose = eventualBG as Decimal
                 HStack {
                     Image(systemName: "arrow.right.circle")

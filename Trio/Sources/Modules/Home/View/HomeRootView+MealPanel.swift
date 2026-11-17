@@ -90,16 +90,27 @@ extension Home.RootView {
         isChartReadoutVisible = false
     }
 
+    /// While Apple Watch doses, this phone's own IOB and COB are from before the loan, so they aren't shown (G-M9).
+    private var cobText: String {
+        guard !trioOnWatch.status.replacesLoopRing else { return "--" }
+        return (
+            Formatter.decimalFormatterWithTwoFractionDigits.string(
+                from: NSNumber(value: state.enactedAndNonEnactedDeterminations.first?.cob ?? 0)
+            ) ?? "0"
+        ) + String(localized: " g", comment: "gram of carbs")
+    }
+
+    private var iobText: String {
+        guard !trioOnWatch.status.replacesLoopRing else { return "--" }
+        return (Formatter.decimalFormatterWithTwoFractionDigits.string(from: state.currentIOB as NSNumber) ?? "0")
+            + String(localized: " U", comment: "Insulin unit")
+    }
+
     @ViewBuilder private var liveMealPanel: some View {
         ZStack {
             // the carb value itself sits on the panel's midline; the icon hangs off it
             Text(
-                (
-                    Formatter.decimalFormatterWithTwoFractionDigits.string(
-                        from: NSNumber(value: state.enactedAndNonEnactedDeterminations.first?.cob ?? 0)
-                    ) ?? "0"
-                ) +
-                    String(localized: " g", comment: "gram of carbs")
+                cobText
             )
             .font(.callout).fontWeight(.bold).fontDesign(.rounded)
             .overlay(alignment: .leading) {
@@ -112,9 +123,7 @@ extension Home.RootView {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text("Carbs on board"))
             .accessibilityValue(Text(
-                (Formatter.decimalFormatterWithTwoFractionDigits.string(
-                    from: NSNumber(value: state.enactedAndNonEnactedDeterminations.first?.cob ?? 0)
-                ) ?? "0") + String(localized: " g", comment: "gram of carbs")
+                cobText
             ))
 
             HStack {
@@ -123,22 +132,14 @@ extension Home.RootView {
                         .font(.callout)
                         .foregroundColor(Color.insulin)
                     Text(
-                        (
-                            Formatter.decimalFormatterWithTwoFractionDigits
-                                .string(from: state.currentIOB as NSNumber) ?? "0"
-                        ) +
-                            String(localized: " U", comment: "Insulin unit")
+                        iobText
                     )
                     .font(.callout).fontWeight(.bold).fontDesign(.rounded)
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text("Insulin on board"))
                 .accessibilityValue(Text(
-                    (
-                        Formatter.decimalFormatterWithTwoFractionDigits
-                            .string(from: state.currentIOB as NSNumber) ?? "0"
-                    )
-                        + String(localized: " U", comment: "Insulin unit")
+                    iobText
                 ))
 
                 Spacer()

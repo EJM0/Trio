@@ -269,6 +269,7 @@ extension WatchLoanHost {
             loop.tempBasalRate = nil
         }
         loop.pumpSuspended = pump.status.basalDeliveryState?.isSuspended ?? false
+        if !loop.pumpSuspended { cancelSuspendReminders() }
     }
 
     static func seconds(since start: Date, now: Date) -> String {
@@ -451,7 +452,7 @@ extension WatchLoanHost {
         var firing = cycleInfo.firingGlucoseAlarms
         let actions = GlucoseAlarmEvaluation.evaluateReading(
             latestMgDL: Decimal(value),
-            alarms: snapshot.glucoseAlarms,
+            alarms: alarmsHonoringSnooze(snapshot.glucoseAlarms),
             configuration: snapshot.glucoseAlarmConfiguration,
             firing: &firing,
             now: now,
@@ -468,7 +469,7 @@ extension WatchLoanHost {
         let zone = snapshot.timeZone ?? env.timeZone()
         var actions = GlucoseAlarmEvaluation.evaluateForecast(
             determination,
-            alarms: snapshot.glucoseAlarms,
+            alarms: alarmsHonoringSnooze(snapshot.glucoseAlarms),
             configuration: snapshot.glucoseAlarmConfiguration,
             firing: &firing,
             now: now,
@@ -476,7 +477,7 @@ extension WatchLoanHost {
         )
         actions += GlucoseAlarmEvaluation.evaluateCarbsRequired(
             determination.carbsReq,
-            alarms: snapshot.glucoseAlarms,
+            alarms: alarmsHonoringSnooze(snapshot.glucoseAlarms),
             configuration: snapshot.glucoseAlarmConfiguration,
             firing: &firing,
             now: now,

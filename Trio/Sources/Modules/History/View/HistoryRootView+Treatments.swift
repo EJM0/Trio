@@ -62,6 +62,14 @@ extension History.RootView {
                 if bolus.isExternal {
                     Text(String(localized: "External", comment: "External Insulin")).foregroundColor(.secondary)
                 }
+                if item.id?.hasPrefix(WatchLoanAudit.auditBolusIDPrefix) == true {
+                    Text(String(
+                        localized: "Unrecorded pod insulin, found at take back",
+                        comment: "History label for insulin the pod delivered that Trio on Watch didn't record (G-19)"
+                    ))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
                 if bolus.isProgrammedByPumpUI {
                     Image(systemName: "keyboard.onehanded.left")
                         .foregroundColor(.secondary)

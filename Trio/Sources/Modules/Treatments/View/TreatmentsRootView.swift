@@ -20,6 +20,7 @@ extension Treatments {
         @State var state = StateModel()
 
         @State private var showPresetSheet = false
+        @State private var watchHasPump = false
         @State private var autofocus: Bool = true
         @State private var calculatorDetent = PresentationDetent.large
         @State private var pushed: Bool = false
@@ -329,95 +330,100 @@ extension Treatments {
                 VStack {
                     ScrollViewReader { proxy in
                         List {
-                            Section {
-                                ForecastChart(state: state)
-                                    .padding(.vertical)
-                            }.listRowBackground(Color.chart)
+                            // the phone's forecast and recommendation are stale while the watch doses (G-M9)
+                            if watchHasPump {
+                                Section { TrioOnWatchBlockedNote(message: TrioOnWatchBlockedNote.treatments) }
+                            } else {
+                                Section {
+                                    ForecastChart(state: state)
+                                        .padding(.vertical)
+                                }.listRowBackground(Color.chart)
 
-                            Section {
-                                carbsTextField()
-                                    .id(FocusedField.carbs)
+                                Section {
+                                    carbsTextField()
+                                        .id(FocusedField.carbs)
 
-                                if state.useFPUconversion {
-                                    proteinAndFat()
-                                        .id(FocusedField.fat)
+                                    if state.useFPUconversion {
+                                        proteinAndFat()
+                                            .id(FocusedField.fat)
 
-                                    if showFatProteinOrderBanner {
-                                        HStack {
-                                            Image(systemName: "arrow.left.arrow.right")
-                                            Text("The order of Fat and Protein inputs has changed.").font(.callout)
-                                            Spacer()
-                                            Button {
-                                                PropertyPersistentFlags.shared.hasSeenFatProteinOrderChange = true
-                                                withAnimation { showFatProteinOrderBanner = false }
-                                            } label: {
-                                                Image(systemName: "xmark.circle.fill")
-                                            }
-                                            .buttonStyle(.plain)
-                                            .accessibilityLabel(Text("Dismiss"))
-                                        }
-                                        .listRowBackground(Color.orange.opacity(0.75))
-                                        .transition(.opacity)
-                                    }
-                                }
-
-                                // Time
-                                HStack {
-                                    // Semi-hacky workaround to make sure the List renders the horizontal divider properly between the `Time` and `Note` rows within the Section
-                                    HStack {
-                                        Text("")
-                                        Image(systemName: "clock").padding(.leading, -7)
-                                    }
-
-                                    Spacer()
-                                    if !pushed {
-                                        Button {
-                                            pushed = true
-                                        } label: { Text("Now") }.buttonStyle(.borderless).foregroundColor(.secondary)
-                                            .padding(.trailing, 5)
-                                    } else {
-                                        Button { state.date = state.date.addingTimeInterval(-15.minutes.timeInterval) }
-                                        label: { Image(systemName: "minus.circle") }.tint(.blue).buttonStyle(.borderless)
-                                            .accessibilityLabel(Text("15 minutes earlier"))
-
-                                        DatePicker(
-                                            "Time",
-                                            selection: $state.date,
-                                            displayedComponents: [.hourAndMinute]
-                                        ).controlSize(.mini)
-                                            .labelsHidden()
-                                            .onChange(of: state.date) { _, _ in
-                                                // Trigger simulation when date changes to update forecasts for backdated carbs
-                                                Task {
-                                                    // `updateForecasts()` does update the `simulatedDetermination` of type `Determination?` var on the main thread, so I can use this to pass its cob value into the bolus calc manager
-                                                    await state.updateForecasts()
-                                                    state.insulinCalculated = await state.calculateInsulin()
+                                        if showFatProteinOrderBanner {
+                                            HStack {
+                                                Image(systemName: "arrow.left.arrow.right")
+                                                Text("The order of Fat and Protein inputs has changed.").font(.callout)
+                                                Spacer()
+                                                Button {
+                                                    PropertyPersistentFlags.shared.hasSeenFatProteinOrderChange = true
+                                                    withAnimation { showFatProteinOrderBanner = false }
+                                                } label: {
+                                                    Image(systemName: "xmark.circle.fill")
                                                 }
+                                                .buttonStyle(.plain)
+                                                .accessibilityLabel(Text("Dismiss"))
                                             }
-                                        Button {
-                                            state.date = state.date.addingTimeInterval(15.minutes.timeInterval)
+                                            .listRowBackground(Color.orange.opacity(0.75))
+                                            .transition(.opacity)
                                         }
-                                        label: { Image(systemName: "plus.circle") }.tint(.blue).buttonStyle(.borderless)
-                                            .accessibilityLabel(Text("15 minutes later"))
                                     }
-                                }
 
-                                // Notes
-                                HStack {
-                                    Image(systemName: "square.and.pencil")
-                                    TextFieldWithToolBarString(
-                                        text: $state.note,
-                                        placeholder: String(localized: "Note..."),
-                                        maxLength: 25
-                                    )
-                                }
-                            }.listRowBackground(Color.chart)
+                                    // Time
+                                    HStack {
+                                        // Semi-hacky workaround to make sure the List renders the horizontal divider properly between the `Time` and `Note` rows within the Section
+                                        HStack {
+                                            Text("")
+                                            Image(systemName: "clock").padding(.leading, -7)
+                                        }
 
-                            Section {
-                                bolusSection
-                            }.listRowBackground(Color.chart)
+                                        Spacer()
+                                        if !pushed {
+                                            Button {
+                                                pushed = true
+                                            } label: { Text("Now") }.buttonStyle(.borderless).foregroundColor(.secondary)
+                                                .padding(.trailing, 5)
+                                        } else {
+                                            Button { state.date = state.date.addingTimeInterval(-15.minutes.timeInterval) }
+                                            label: { Image(systemName: "minus.circle") }.tint(.blue).buttonStyle(.borderless)
+                                                .accessibilityLabel(Text("15 minutes earlier"))
 
-                            treatmentButton
+                                            DatePicker(
+                                                "Time",
+                                                selection: $state.date,
+                                                displayedComponents: [.hourAndMinute]
+                                            ).controlSize(.mini)
+                                                .labelsHidden()
+                                                .onChange(of: state.date) { _, _ in
+                                                    // Trigger simulation when date changes to update forecasts for backdated carbs
+                                                    Task {
+                                                        // `updateForecasts()` does update the `simulatedDetermination` of type `Determination?` var on the main thread, so I can use this to pass its cob value into the bolus calc manager
+                                                        await state.updateForecasts()
+                                                        state.insulinCalculated = await state.calculateInsulin()
+                                                    }
+                                                }
+                                            Button {
+                                                state.date = state.date.addingTimeInterval(15.minutes.timeInterval)
+                                            }
+                                            label: { Image(systemName: "plus.circle") }.tint(.blue).buttonStyle(.borderless)
+                                                .accessibilityLabel(Text("15 minutes later"))
+                                        }
+                                    }
+
+                                    // Notes
+                                    HStack {
+                                        Image(systemName: "square.and.pencil")
+                                        TextFieldWithToolBarString(
+                                            text: $state.note,
+                                            placeholder: String(localized: "Note..."),
+                                            maxLength: 25
+                                        )
+                                    }
+                                }.listRowBackground(Color.chart)
+
+                                Section {
+                                    bolusSection
+                                }.listRowBackground(Color.chart)
+
+                                treatmentButton
+                            }
                         }
                         .listSectionSpacing(sectionSpacing)
                         // iOS's default on iPhone; iPhone Duo defaults to 0, which put the first row under the sheet's bar
@@ -476,6 +482,10 @@ extension Treatments {
                 }
             })
             .onAppear {
+                watchHasPump = resolver.resolve(WatchLoanGate.self)?.phoneMayCommandPump == false
+                #if DEBUG
+                    if TrioOnWatchPhoneFixture.showsBlockedNotes { watchHasPump = true }
+                #endif
                 configureView {
                     state.isActive = true
                     Task { @MainActor in
@@ -528,20 +538,21 @@ extension Treatments {
 
         private var bolusWarning: (shouldConfirm: Bool, warningMessage: String, color: Color) {
             let isGlucoseVeryLow = state.currentBG < 54
-            let isForecastVeryLow = state.minPredBG < 54
 
             // Only warn when enacting a bolus via pump
             guard !state.externalInsulin, state.amount > 0 else {
                 return (false, "", .primary)
             }
 
-            let warningMessage = isGlucoseVeryLow ? String(localized: "Glucose is very low.") :
-                isForecastVeryLow ? String(localized: "Glucose forecast is very low.") :
-                ""
+            let warningMessage = LowGlucoseBolusWarning.message(currentBG: state.currentBG, minPredBG: state.minPredBG) ?? ""
 
             let warningColor: Color = isGlucoseVeryLow ? .red : colorScheme == .dark ? .orange : .accentColor
 
-            let shouldConfirm = state.confirmBolus && (isGlucoseVeryLow || isForecastVeryLow)
+            let shouldConfirm = LowGlucoseBolusWarning.shouldConfirm(
+                confirmBolus: state.confirmBolus,
+                currentBG: state.currentBG,
+                minPredBG: state.minPredBG
+            )
 
             return (shouldConfirm, warningMessage, warningColor)
         }
@@ -754,7 +765,7 @@ extension Treatments {
         }
 
         private var disableTaskButton: Bool {
-            bolusInProgressForEntry || state.addButtonPressed || limitExceeded
+            watchHasPump || bolusInProgressForEntry || state.addButtonPressed || limitExceeded
         }
     }
 

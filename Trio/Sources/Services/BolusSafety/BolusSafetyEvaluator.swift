@@ -40,3 +40,19 @@ enum BolusSafetyEvaluator {
         return .allowed
     }
 }
+
+/// The Treatments warning before a pump bolus: glucose or the forecast minimum below 54 mg/dL. The message always shows;
+/// a confirmation is asked only with "confirm bolus" on. Shared with the watch.
+enum LowGlucoseBolusWarning {
+    static let threshold: Decimal = 54
+
+    static func message(currentBG: Decimal, minPredBG: Decimal) -> String? {
+        if currentBG < threshold { return String(localized: "Glucose is very low.") }
+        if minPredBG < threshold { return String(localized: "Glucose forecast is very low.") }
+        return nil
+    }
+
+    static func shouldConfirm(confirmBolus: Bool, currentBG: Decimal, minPredBG: Decimal) -> Bool {
+        confirmBolus && message(currentBG: currentBG, minPredBG: minPredBG) != nil
+    }
+}

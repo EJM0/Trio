@@ -147,7 +147,8 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
                 fattyMealFactor: settings.fattyMealFactor,
                 sweetMealFactor: settings.sweetMealFactor,
                 maxCarbs: settings.maxCarbs,
-                supportedBolusVolumes: pump.supportedBolusVolumes
+                supportedBolusVolumes: pump.supportedBolusVolumes,
+                confirmBolus: settings.confirmBolus
             ),
             glucoseAlarms: GlucoseAlertsStore.shared.alerts,
             glucoseAlarmConfiguration: GlucoseAlertsStore.shared.configuration,
@@ -163,6 +164,16 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             sensorEndsAt: (cgm as? G7CGMManager)?.sensorEndsAt,
             smoothGlucose: settings.smoothGlucose,
             smoothingWindow: settings.smoothGlucose ? try await fetchGlucoseManager.smoothingWindow() : []
+        )
+    }
+
+    func startFacts() async -> WatchLoanStartFacts {
+        let adjustments = try? await activeAdjustments()
+        return WatchLoanStartFacts(
+            override: adjustments?.override,
+            tempTarget: adjustments?.tempTarget,
+            podEndsAt: pump?.endsAt,
+            sensorEndsAt: (sharedCGM as? G7CGMManager)?.sensorEndsAt
         )
     }
 
