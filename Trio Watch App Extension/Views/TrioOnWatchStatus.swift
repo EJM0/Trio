@@ -404,11 +404,11 @@ extension TrioOnWatchStatus {
         String(localized: "Your watch isn't giving insulin yet.", comment: "Watch: after Start, before the first reading (G-M13)")
     }
 
-    /// For the Start refusal outside Closed Loop (G-M2); mapped once that refusal reason exists.
+    /// The Start refusal outside Closed Loop (G-M2).
     static var closedLoopRequiredText: String {
         String(
-            localized: "Trio on Watch needs Closed Loop. Switch your iPhone to Closed Loop first.",
-            comment: "Watch refusal when the phone isn't in Closed Loop"
+            localized: "Trio on Watch only runs in Closed Loop. Switch Dosing Mode to Closed Loop on your iPhone first.",
+            comment: "Watch refusal reason"
         )
     }
 
@@ -698,6 +698,8 @@ extension TrioOnWatchStatus {
             )
         case .pumpScreenOpen:
             return String(localized: "Close the pump screen in Trio on your iPhone and try again.", comment: "Watch refusal")
+        case .notClosedLoop:
+            return closedLoopRequiredText
         case .indefiniteOverride:
             return String(
                 localized: "Stop your override on your iPhone first, or give it an end time.",

@@ -134,6 +134,9 @@
             case "handoff-refused":
                 idle.lastAlert = .startRefused(.indefiniteOverride)
                 return .init(screen: .handOff(.start), status: idle)
+            case "handoff-not-closed-loop":
+                idle.lastAlert = .startRefused(.notClosedLoop)
+                return .init(screen: .handOff(.start), status: idle)
             case "handoff-no-answer":
                 idle.lastAlert = .phoneDidNotAnswer
                 return .init(screen: .handOff(.start), status: idle)

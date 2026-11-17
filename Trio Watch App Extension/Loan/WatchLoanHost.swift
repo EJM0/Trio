@@ -335,6 +335,8 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         }
         let previous = state
         state = next
+        // the watch no longer sees the pump, so it can't tell when insulin resumes
+        if previous.mayCommandPump, !next.mayCommandPump { cancelSuspendReminders() }
         if case .idle = next, previous != next {
             Task { await self.retireDevices() }
         }

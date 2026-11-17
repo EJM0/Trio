@@ -103,7 +103,7 @@ extension Settings {
             guard hasCgmAndPump else { return String(localized: "Add a CGM and pump to enable automated insulin delivery") }
             guard phoneMayCommandPump else {
                 return String(
-                    localized: "Your pump is handed over to Apple Watch. Take it back on iPhone to change Dosing Mode."
+                    localized: "Apple Watch is in control. End Trio on Watch to change Dosing Mode. To stop automatic insulin now, use Suspend Insulin on your watch."
                 )
             }
             return nil
