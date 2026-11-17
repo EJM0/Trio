@@ -341,4 +341,21 @@ import Testing
         try store.save(.lent(epoch: 1))
         #expect(PumpConfig.handedOverViewController(gate: WatchLoanGate(store: store)) != nil)
     }
+
+    @Test("Dosing Mode: locked while the phone doesn't hold the pump") func dosingModeLock() throws {
+        let store = WatchLoanStoreTests.temporaryStore()
+        func reason(devices: Bool = true) -> String? {
+            Settings.StateModel.dosingModeLockReason(
+                hasCgmAndPump: devices,
+                phoneMayCommandPump: WatchLoanGate(store: store).phoneMayCommandPump
+            )
+        }
+        #expect(reason() == nil)
+        let noDevices = try #require(reason(devices: false))
+        try store.save(.lent(epoch: 1))
+        let lent = try #require(reason())
+        #expect(lent != noDevices)
+        try store.save(.home(epoch: 1, lastLoan: nil))
+        #expect(reason() == nil)
+    }
 }
