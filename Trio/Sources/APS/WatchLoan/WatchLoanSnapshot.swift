@@ -128,6 +128,7 @@ extension WatchLoanSnapshot {
         guard requestID == expected.requestID, epoch == expected.epoch, missingParts.isEmpty else {
             return .snapshotIncomplete
         }
+        guard oref.dosingMode == .closed else { return .notClosedLoop }
         guard abs(phoneTime.timeIntervalSince(expected.now)) <= Self.maxClockOffset else { return .clockOffset }
         guard timeZone?.identifier == expected.timeZone.identifier else { return .timeZoneMismatch }
         return nil

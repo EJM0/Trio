@@ -213,13 +213,16 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         now: Date,
         glucose: Int,
         alarms: [GlucoseAlert],
-        count: Int = 36
+        count: Int = 36,
+        dosingMode: DosingMode = .closed
     ) throws -> WatchLoanSnapshot {
         let export = try PropertyListSerialization.data(
             fromPropertyList: SharedDeviceConfiguration(managerIdentifier: "Double", asOf: now, state: ["pod": 1]).rawValue,
             format: .binary,
             options: 0
         )
+        var oref = try Self.orefInputs(now: now, glucose: glucose, count: count)
+        oref.dosingMode = dosingMode
         return WatchLoanSnapshot(
             versions: .init(schema: 1, protocolVersion: 1, appBuild: "1", pumpManager: "Double", cgmManager: "G7"),
             requestID: requestID,
@@ -227,7 +230,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
             expiresAt: now.addingTimeInterval(30),
             phoneTime: now,
             timeZoneIdentifier: TimeZone.current.identifier,
-            oref: try Self.orefInputs(now: now, glucose: glucose, count: count),
+            oref: oref,
             overrideAtGrant: nil,
             tempTargetAtGrant: nil,
             bolusCalculator: .init(
@@ -255,7 +258,12 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
     }
 
     /// Start, then the phone's grant for epoch 1: the watch holds the pump.
-    func startLoan(glucose: Int = 160, alarms: [GlucoseAlert] = [], count: Int = 36) async throws {
+    func startLoan(
+        glucose: Int = 160,
+        alarms: [GlucoseAlert] = [],
+        count: Int = 36,
+        dosingMode: DosingMode = .closed
+    ) async throws {
         await host.startTapped()
         guard case let .request(requestID) = transport.messages.last?.kind else {
             Issue.record("no request sent")
@@ -266,7 +274,15 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         let grant = WatchLoanMessage(epoch: 1, kind: .grant(requestID: requestID, expiresAt: now.addingTimeInterval(30)))
         await host.receive(try payload(
             grant,
-            snapshot: snapshot(requestID: requestID, epoch: 1, now: now, glucose: glucose, alarms: alarms, count: count)
+            snapshot: snapshot(
+                requestID: requestID,
+                epoch: 1,
+                now: now,
+                glucose: glucose,
+                alarms: alarms,
+                count: count,
+                dosingMode: dosingMode
+            )
         ))
     }
 
@@ -322,6 +338,23 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         let commands = try #require(world.pump?.commands)
         #expect(commands.contains { $0.contains("SMB") }, "\(commands)")
         #expect(world.violations.isEmpty)
+    }
+
+    @Test("A grant that isn't Closed Loop is rejected: no adopt, nothing reaches the pump") func grantNotClosedLoop() async throws {
+        for mode in [DosingMode.open, .lowGlucoseSuspend, .basalTesting] {
+            let world = LoanFixture()
+            try await world.startLoan(dosingMode: mode)
+            #expect(world.host.state == .idle(epoch: 0), "\(mode)")
+            #expect(world.adopted == 0)
+            guard case let .grantRejected(_, reason) = world.transport.messages.last?.kind else {
+                Issue.record("no rejection sent for \(mode)")
+                continue
+            }
+            #expect(reason == .notClosedLoop)
+            await world.reading(180)
+            #expect(world.doubles.allSatisfy { $0.commands.isEmpty }, "\(mode)")
+            #expect(world.violations.isEmpty)
+        }
     }
 
     @Test("A refused adopt is a foreign pod session: stopped, released, never a failed take") func refusedAdopt() async throws {

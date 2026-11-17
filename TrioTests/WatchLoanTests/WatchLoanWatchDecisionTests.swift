@@ -80,8 +80,8 @@ import Testing
         ])
     }
 
-    @Test("W6 requesting + grant failing host validation (snapshot, version, clock, time zone): reject") func w6() {
-        for refusal in [LoanRefusal.snapshotIncomplete, .versionMismatch, .clockOffset, .timeZoneMismatch] {
+    @Test("W6 requesting + grant failing host validation (snapshot, version, dosing mode, clock, time zone): reject") func w6() {
+        for refusal in [LoanRefusal.snapshotIncomplete, .versionMismatch, .notClosedLoop, .clockOffset, .timeZoneMismatch] {
             var invalid = context
             invalid.grantRefusal = refusal
             let (state, effects) = decide(.requesting(epoch: 3, requestID: F.requestA), grant(), invalid)
