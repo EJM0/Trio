@@ -134,6 +134,7 @@ import WidgetKit
     /// Temporary storage for new data arriving via WatchConnectivity.
     private var pendingData: [String: Any] = [:]
     private var lastSavedComplicationState: ComplicationState?
+    @ObservationIgnored private var sensorStateText: String?
     private static let maxComplicationHistoryPoints = 40.0
 
     /// Work item to schedule finalizing the pending data.
@@ -917,8 +918,16 @@ import WidgetKit
             glucoseValue: glucoseValue,
             history: complicationHistory(until: readingDate),
             loopDate: lastLoopDate,
-            limits: complicationLimits
+            limits: complicationLimits,
+            sensorState: sensorStateText
         )
+    }
+
+    /// The watch's own sensor's state text, for the complications.
+    func noteSensorState(_ text: String?) {
+        guard text != sensorStateText else { return }
+        sensorStateText = text
+        saveComplicationSnapshot()
     }
 
     private var complicationLimits: ClosedRange<Double>? {

@@ -35,6 +35,8 @@ struct ComplicationState: Codable, Equatable {
     var history: [ComplicationPoint]
     var loopDate: Date?
     var limits: ClosedRange<Double>?
+    /// Why the watch's own sensor gives no reading (a sensor issue, warmup): shown in the delta's place.
+    var sensorState: String? = nil
 
     static let missingValue = "--"
     static let defaultUnits = "mg/dL"

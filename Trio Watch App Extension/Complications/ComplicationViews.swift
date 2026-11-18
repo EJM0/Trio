@@ -99,6 +99,9 @@ struct ComplicationModel {
         if !isPlaceholder, state.isAging(at: referenceDate) {
             shown.delta = state.date.formatted(date: .omitted, time: .shortened)
         }
+        if !isPlaceholder, let sensorState = state.sensorState {
+            shown.delta = sensorState
+        }
         if isLoopStale {
             shown.iob = ComplicationState.missingValue
             shown.cob = ComplicationState.missingValue

@@ -134,6 +134,7 @@ import WatchKit
         sensorStateText = pairingUnfinished
             ? String(localized: "Pairing: keep Trio open at the next reading")
             : cgmManager?.watchSensorStateText
+        WatchState.shared.noteSensorState(sensorStateText)
         sensorNote = cgmManager?.watchSensorNote
         sensorHasEnded = cgmManager?.watchSensorHasEnded ?? false
         warmupEndsAt = pairingUnfinished ? nil : cgmManager?.watchWarmupEndsAt
