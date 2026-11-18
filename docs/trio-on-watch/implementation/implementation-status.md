@@ -1644,3 +1644,44 @@ The build-phase SwiftFormat rewrote `Trio Watch App Tests/Unit Tests.swift` and 
 - The G-1 checks stop at the notifier and `TrioAlertManager`. `UNUserNotificationCenter` delivery itself is the existing, unchanged path and is not exercised in the unit tests.
 - The CI job hasn't run on GitHub. Whether the `macos-26` image with Xcode 26.2 has the watchOS platform for a generic simulator build is unknown. Xcode 26.2 isn't installed here.
 - The phone's G7 still raises its own sensor alerts, so during a loan the user may get the same sensor alert on both devices (accepted, as for glucose alarms, SR-15).
+
+## Dev sync and F1 merge (2026-11-18)
+
+Branch `feat/trio-on-watch` @ `203d1c34d`. Two signed merge commits, not pushed:
+
+| Commit | Merge | Conflicts |
+|---|---|---|
+| `1cc46c299` | `nightscout/dev` @ `7e2fa52cb` (155 commits since `ad6c66876`, incl. #1598) | `TrioWatchApp.swift`, `TrioMainWatchView.swift`, `Unit Tests.swift`, `project.pbxproj`; `AppleWatchManager.swift` merged textually but needed the fold below |
+| `54c65f815` | `fix/repeat-smb-on-save-failure` @ `73438f7a1` (F1) | `APSManager.swift` (`enactDetermination`) |
+
+### How the conflicts were resolved
+
+- **#1598 reply handler.** One `session(_:didReceiveMessage:replyHandler:)`, #1598's, in the `BaseWatchManager` class body that declares `WCSessionDelegate`, so it is `@objc` by inference. The loan queries are answered first (Start facts, then loan status); everything else runs #1598's path unchanged. The `@objc(...)` witness in `AppleWatchManager+WatchLoan.swift` is removed; its two answer helpers stay there. The `instancesRespond(to:)` test in `WatchLoanPhoneIntegrationTests` still passes.
+- **Watch app.** `TrioWatchApp`: dev's `WatchState.shared` and `setAppActive` sit next to our log sink, `WatchAppState` and `WatchLoanRuntime.start()`. `TrioMainWatchView`: dev's 30 s ticker and `isReadingDated` sit next to our loan properties; the glucose bubble keeps our `TimelineView` and loan arguments and takes dev's `isReadingDated || isSessionUnreachable`. `WatchState`: our two `WatchLoanRuntime.receive` early returns merged cleanly into #1598's version. Watch tests import `Trio` (our module rename) plus dev's `UIKit`/`WatchKit`.
+- **pbxproj.** Union of both sides; the `WatchStateSnapshot.swift` group entry dev deleted stays deleted, and our `Loan` group stays. `plutil -lint`: OK.
+- **String catalogs.** Dev's version, untouched. The branch never committed a catalog change (`git diff --name-only ad6c66876 203d1c34d -- '*.xcstrings'` is empty), so no keys were lost. `git diff nightscout/dev -- '*.xcstrings'` is empty after the merge.
+- **Kit pins.** Dev moved none (`git ls-tree` gitlinks equal at `ad6c66876` and `7e2fa52cb`). Ours stay: LoopKit `7fd4d1a7`, OmnipodKit `c23daca`; every other kit is at dev's pin.
+- **F1.** `enactDetermination(id:)` keeps the watch loan gate refusal first, then F1's lookup by the id `determineBasal()` returned; `dosingValues(ofDeterminationWithID:on:)` returns nil for a missing or already enacted row. `processDetermination` and `attemptToSaveContext` now throw, and `OpenAPS.determineBasal` propagates the save error, so a failed save fails the loop. `OrefDetermination.id` is the determination's own id. Every `Determination` the Swift generator returns has `id: UUID()` (5 sites in `DetermineBasalGenerator.swift`), so a saved determination is always found by id. Two test call sites follow the new signatures: `WatchLoanGateTests` calls `enactDetermination(id: UUID())`, and `RoundingAPSManagerStub.determineBasal()` returns nil. No golden or JSON fixture changed in either merge.
+
+### Verification
+
+Fresh simulators: iPhone 17 iOS 27.2 `9CA761B3-211D-49B7-9D50-54E9DB1988CF`, paired with Apple Watch Series 12 46 mm watchOS 27.2 `5F966025-9513-4E98-8D9D-6A5E4EB91B08`. Tests ran on iPhone 17 `8B2A4D46-DBCB-43FE-8BF0-3D11AB5BF0B9` and Watch S12 `C6408704-DC8D-4A52-80A4-A59B7362FF0D`. Xcode 27.2. Derived data: `dd-sync-ios` (iOS builds and tests), `dd-sync-watch` (watch-only builds), `dd-sync-watchtest`. Same `X`, `PHONE` and `WATCH` shorthands as M7; tip `54c65f815`.
+
+| # | Step | Command | Result |
+|---|---|---|---|
+| 0 | Before committing each merge | iOS and watch builds (flag off), then `-only-testing:` `DeterminationEnactmentTests`, `WatchLoanGateTests`, `WatchLoanPhoneIntegrationTests`, `OrefCharacterizationTests`, `OrefRunCharacterizationTests`, `BolusCalculatorCharacterizationTests` | 0, 0; 0, 41 / 41 passed |
+| 1 | iOS app, flag off | `X -scheme Trio PHONE build` | 0 (95 s) |
+| 2 | Watch app, flag off | `X -scheme "Trio Watch App" WATCH build` | 0; `check-watch-frameworks` ran and passed; no `UIBackgroundModes` |
+| 3 | Watch launch, flag off | install iOS (1) then watch (2) on the pair, `simctl launch`, check after 30 s | installed UUID = built; running after 30 s; 0 dyld lines; 0 uninstalls |
+| 4 | iOS app, flag on | step 1 + `TRIO_ON_WATCH=YES` | 0; `-DTRIO_ON_WATCH` reaches swiftc |
+| 5 | Watch app, flag on | step 2 + `TRIO_ON_WATCH=YES` | 0; check passed; `bluetooth-central` present |
+| 6 | Watch launch, flag on | steps 4 and 5, same procedure | UUIDs match; running after 30 s; 0 dyld lines; 0 uninstalls |
+| 7 | `Trio Watch AppTests`, flag off | `X -scheme "Trio Watch AppTests" WATCH -parallel-testing-enabled NO test` | 0; 70 / 70 passed (M7 68 + dev's 2 crown-hint tests) |
+| 8 | `Trio Watch AppTests`, flag on | step 7 + `TRIO_ON_WATCH=YES` | 0; 70 / 70 passed |
+| 9 | Full `Trio Tests` | `X -scheme "Trio Tests" PHONE test` | 0 (111 s); 1259 total, 1212 passed, 0 failed, 46 skipped, 1 expected failure (M7: 1256 / 1209 / 0 / 46 / 1; +3 = F1's `DeterminationEnactmentTests`). Parity, wall-clock parity, OpenAPS and OrefRun characterization goldens passed byte-identical |
+| 10 | TZ escape | `TEST_RUNNER_TRIO_TZ_ESCAPE=1 X test-without-building -scheme "Trio Tests" PHONE -only-testing:TrioTests/ProcessTimeZoneEscapeTests` | 0; 1 / 1 passed |
+| 11 | Exhaustive loan search | `TEST_RUNNER_TRIO_STRESS=1 X test-without-building -scheme "Trio Tests" PHONE -only-testing:TrioTests/WatchLoanInvariantTests` | 0; 3 / 3 passed: default search 34.4 s, two-Start search 131.4 s, kit-model control |
+
+Hygiene: SwiftFormat rewrote `Unit Tests.swift` and `WatchLoopInputsTests.swift` on each build, as in M7; reverted every time. Its import order for the merged `Unit Tests.swift` header is kept. `Package.resolved` and the submodules are unchanged.
+
+Not verified: anything on hardware; #1598's reply path over a real `WCSession`; F1's save-failure path in a real loop (unit-tested against a read-only store only).
