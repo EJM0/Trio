@@ -107,5 +107,15 @@ Bounded adopt: the Take Back between export and adopt (the adopt refuses, the ph
 - A bounded adopt can lock itself out when nobody else is involved. The adopter's first handshake (at the released SQN + 1) reaches the pod and is accepted, but the reply is lost. The retry sends the same SQN, gets a resync beyond the bound, and refuses. The pod can't tell this apart from the exporter's own session at that SQN, so failing closed is the default. The host shows it as "pod used by another device", and the user takes the pod back or lends it again.
 - None of this has run on hardware.
 
+**Edit to add (2026-11-18):** since I sent this, #177 gained 79e8d18 (stop at an unexpected resync on a shared pod), a78235e (a stopped controller hangs up) and c87d020 (retire the handle let go of for a loan). Same field names as ours, which makes this easier. :) We cherry-picked c87d020 as is. Against 79e8d18 the delta is:
+
+1. A plain `takeControl()` doesn't lift a refusal in ours. Only a superseding take or `takeControlLiftingRefusal()` does, so a relaunched stale controller can't talk itself back onto the pod.
+2. Bounded adopt (`releasedEapSqn`): an adopt still in flight can't absorb the exporter's Take Back.
+3. Own-counter high-water mark (`AcceptedEapSqn`): a controller's own counter saved late isn't taken for a foreign session.
+4. Superseding scope: the taker keeps commanding through the one resync it caused, and stops at any later one.
+5. A plain take keeps `foreignSessionDetectedAt`; only a take that lifts the refusal clears it. A host that crashed before reading the report still finds it after relaunch.
+
+On top of c87d020 we drop a retired handle before a session picks it, and skip hello while refusing (your a78235e covers the same ground). Happy to rebase all of it onto 79e8d18 once the LoopKit next-dev bump (#695/#696) is in Trio.
+
 Best,
 Dan
