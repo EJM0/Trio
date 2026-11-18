@@ -282,3 +282,132 @@ Booking unexplained insulin into history and letting oref's IOB and Max IOB act 
 | C-4 | minor | **No double count for a booked intent.** An R-5 booked intent counts as "booked" in the V2-8 expected-delivery sum, so a later audit does not book it again. It is tagged and replaced only through the recompute rule. A later shortfall gives the existing notice. |
 
 **Verdict:** V2-7b keeps SB-2 closed. The M4 gate stands if C-1 and C-3 are in M4's acceptance tests. The M5 gate stands if C-1 (kit side) and C-2 are in M2b's acceptance tests and C-4 is in M5's.
+
+## Final safety review (pre-M8)
+
+Agent E, 2026-11-18. Integration branch `feat/trio-on-watch` @ `14b5d6c08` (M0–M7 merged). M7 delta reviewed: `3a7cf476e..14b5d6c08`.
+
+Basis: code reading of the delta, plus my earlier reviews of every milestone (`reviews/implementation-reviews.md`). I did not build or run anything. Where a test is cited, its result comes from `implementation/implementation-status.md`.
+Contributor-facing engineering review. Not clinical guidance.
+
+### M7 delta
+
+| Change | Safety reading |
+|---|---|
+| Sensor alerts shown on the watch while it reads the G7 (`issueSensorAlert`, gated by `readsGlucose`) | Closes the last SR-16 gap (sensor failure or expiry with the phone away). Minor: the `issued` set is in memory only, so a notice scheduled before a relaunch may outlive End. Benign, and marked as a `shortcut:`. |
+| G-1: the watch's "iPhone didn't answer" notice is scheduled when `requesting` is persisted; the phone re-arms not-looping on relaunch in `lending`, `takingBack` and `unreadable` (`setArmed(since:)`) | Closes the two remaining gaps of "no device may dose and no alarm is pending". `home` anchors on the phone's own loop dates, as without a loan. |
+| W17: the hand-back is resent every 60 s while the phone is reachable | Closes SM-17. While the phone is away the watch stays `returning`, released, with its not-looping series armed. |
+| Tombstones for replaced bookings: the phone deletes its copy by `replacesSyncIdentifier` (and the Nightscout copy), and keeps 512 replaced ids so a late batch can't store the booking again | Closes the M5E-02 residual: no double-counted bolus on the phone. |
+| `lastLoopAt` on the phone pill | Display only. |
+| Suspend reminders (end at 4 h); Resume no longer counted as adding insulin | Closes M5R-02: a suspend can't run unnoticed, and Resume isn't blocked by a pending intent. |
+| Treatments low-glucose warning pinned to dev's rule; CI builds the watch app with the flag | No safety change; adds a regression guard. |
+
+**No new safety finding in M7.**
+
+### Status of every finding I raised
+
+| Finding | Status | Evidence or note |
+|---|---|---|
+| **SB-1** late grant | Resolved | V2-1: request id, expiry, `sendMessage` only, transfer cancel; W5–W9; `startLateGrant`, `lateLoanOneMessages` |
+| **SB-2** Take Back while the watch is alive | Resolved | V2-7b plus R-1 to R-4 and C-1; per-session audit; `foreignSessionDurable`; search with a kit model |
+| SM-1 to SM-4 (Take Back temp, bolus remainder, expected delivery, recompute) | Resolved | M4 audit; R-2 from `bolusNotDelivered` |
+| SM-5, 6, 7, 16, 17 (silent stops) | Resolved | V2-12 invariant search; 30-min phone silence ladder; watch series to 6 h; G-1; W17 |
+| SM-8 (no stop on the watch) | Resolved | Suspend/Resume, cancel override/TT, suspend reminders |
+| SM-9, 10, 11, 12, 13, 14, 15, 19, 20, 22, 23, 24, 26, 27, 28, 29 | Resolved | See the M3–M5 rows |
+| SM-18 write-ahead and kit persistence | Partial (mitigated) | The intent is written before every command, and a failed write means no command plus an alert. Kit `rawState` is still saved after an asynchronous delegate call (F4); `AcceptedEapSqn` (M2b-03) and odometer resolution cover it. |
+| SM-21 Trio-level uncertainty gate on the phone at `home` | Open (upstream) | Same as F3. Not made worse by this branch. |
+| SM-25 snapshot round-trip parity | Resolved | M4C-01 equivalence tests plus DST (`0246ed5d5`) |
+| SM-30 reviewed kit pins | Partial | Local pins on #177 plus Trio-local patches, none merged upstream. Q-3 (one BLE link per pod) is not verified on hardware. |
+| N-1 (no SMB in the background, through the input) | Resolved | `WatchLoopPolicy` → `OrefInputs.microBolusAllowed` |
+| N-2 / R-4 (the kit refuses every session after a foreign one) | Resolved (kit, tested on a double) | M2b; pod-side behaviour unverified |
+| N-3 / R-5 | Resolved | Intent list, odometer, book-as-delivered plus alert |
+| N-4 | Resolved | 120 s timeout; `grantRejected` leads to a retake |
+| N-5, N-6 | Moot | Reductions-only mode dropped (V2-7b, maintainer) |
+| R-1, R-2, R-3 | Resolved | M4 |
+| C-1, C-3, C-4 | Resolved | M3/M4; C-1 enforced by both host and kit |
+| C-2 (no stale session reuse) | Resolved by code reading only | `BlePodComms.init` handshakes on shared pods; no unit test possible (needs a Bluetooth central); M8 |
+| M3E-01 to M3E-10 | Resolved | M3 re-review |
+| M3R-01 to M3R-05 | Resolved | `lateLoanOneMessages`, `decodeIfPresent`, no window for an unknown peer, the kit release ends the scope, `unreadableStateFile` |
+| M4E-01 to M4E-06, M4E-08, M4E-09 (P46), M4E-11, M4E-12, M4R-01 | Resolved | M4 re-review; faulted pod audited with its final total (`80d29e05f`) |
+| M4E-07 (auto-retry of a stuck take-back) | Accepted, not done | Alarmed; waits for a tap |
+| M4E-10 (pod-lifetime audit uses today's basal profile) | Open, minor | Rare path (P43/P24) |
+| M4E-13 (worst-case snapshot size) | Open, minor | Fails closed: Start is refused and the phone retakes |
+| M5E-01 to M5E-08, M5R-01, M5R-02 | Resolved | M5 re-reviews; M7 tombstones |
+| F1 (re-enacting a ≤30-min-old determination after a swallowed save failure) | **Open on this branch** | `APSManager.swift:808` still fetches the newest determination ≤ 30 min old, and `OpenAPS.swift:110` still swallows the save error. The named fix branch `fix/repeat-smb-on-save-failure` (in `~/workspaces/Trio`) points at `ad6c66876` with no commits of its own, so I could not verify any fix. |
+| F2 (`lastReconciliation` ignored), F3 (= SM-21), F6 (no trusted time), F7 (glucose copy "six hours") | Open (upstream) | Not changed by this branch. F6 is narrowed by the 60 s offset check at grant and the time zone pinned for the loan. |
+| F4 (asynchronous kit-state persistence) | Mitigated on the watch; unchanged on the phone | As SM-18 |
+| F5 (legacy watch-remote bolus path without the validator) | Open (upstream, #1648) | During a loan the phone refuses every bolus; outside a loan the path is unchanged |
+| F8 (stale-glucose fallback) | Decided | Not enacted, on both devices (`LoopGlucoseGuard`) |
+
+### SR coverage (final)
+
+| SR | Status | Note |
+|---|---|---|
+| SR-1 single commander | Met in design and simulation | Exhaustive search with a kit model; pump double flags any command while not owner. Pod-side exclusivity is unverified (M8). |
+| SR-2 release before acquire | Met | Step tables and decision rows; crash after every effect searched |
+| SR-3 no autonomous takeover | Met | Only user taps; epochs; the stale side refuses through the kit |
+| SR-4 hand-off preconditions | Met | Lend and End, including unconfirmed command, uncertainty, staleness, battery, model, notifications, Closed Loop |
+| SR-5 complete transfer | Met | Size margin open (M4E-13) |
+| SR-6 identity merge | Met | Sync ids, tombstones, finalized-only import |
+| SR-7 dose locally | Met | – |
+| SR-8 bind enactment to the run | Met on the watch | **Phone: open (F1)** |
+| SR-9 one bolus gate | Met during a loan | Outside loans F5 is upstream |
+| SR-10 at-most-once insulin | Met | Uncertain outcome is never retried |
+| SR-11 uncertainty gate | Met on the watch | Phone at `home`: open (F3) |
+| SR-12 write-ahead | Partial | Intent yes; kit state asynchronous (mitigated) |
+| SR-13 persistence faults block | Met on the watch | Phone determination save: F1 |
+| SR-14 glucose guards | Met | Shared `LoopGlucoseGuard` |
+| SR-15 dead-man | Met in simulation | Delivery under Focus or Sleep: M8 |
+| SR-16 alert parity | Met in code | Watch tops out at time-sensitive (no critical alerts) |
+| SR-17 proven runtime | **Not yet proven** | BR-1; the flag stays off until E2 |
+| SR-18 battery | Met | – |
+| SR-19 version gate | Met | Version-independent stop/revoke and hand-back |
+| SR-20 clock discipline | Met at grant | No continuous trusted time (F6) |
+| SR-21 peer detection | Met in code | EAP-SQN resync plus an audit on every foreign session; pod-side semantics unverified |
+| SR-22 degrade ladder | Partially, by maintainer decision | No reductions-only mode on top of oref. Suspend, End and the automation-off gate exist. |
+| SR-23 per-kit qualification | Met | DASH and G7 only; O5 untested |
+| SR-24 restore checklist | Met | Relaunch never takes; the phone answers with its epoch; bounded adopt |
+| SR-25 settings authority | Met | Frozen snapshot; Dosing Mode locked on the phone |
+| SR-26 observability | Met | Loan and cycle logs, daily summary |
+
+### What is proven where
+
+**Proven only in simulation, or by code reading.** Everything above is in this class; no part of it has run against a real pod, sensor or watch in the background. That covers:
+- the two-commander and silent-stop invariants (an exhaustive model search over a modelled kit and pod);
+- the kit's foreign-session, bounded-adopt and scope rules (a pod double plus Eros-typed manager tests);
+- the restored-link handshake (C-2), checked by reading only;
+- the audit and intent arithmetic;
+- the alarm schedules;
+- WatchConnectivity handling (paired simulators).
+
+**Needs M8 hardware.** The flag stays off for anyone else until these are recorded:
+
+| Test | What it settles |
+|---|---|
+| E1 TestFlight upload with `bluetooth-central` | BR-2: can it be distributed at all |
+| E2 24 h unattended wake count (with and without a complication) | BR-1 / SR-17: does the watch loop at all overnight |
+| E5 DASH command inside the wake window | Mid-command interruption rate; when SMB in the background may be enabled |
+| In-vitro DASH hand-off: Lend, End, Take Back with the watch alive and off, a relaunch on each side, the watch rebooted mid-loan | SR-1 to SR-3 and SR-24 on real radios |
+| Two-controller pod characterization (test pod, not worn) | Resync semantics; whether messages under stale keys are dropped; one BLE link; the bounded adopt against a real counter; M2b-06 |
+| Process kill mid-bolus, watch and phone | The R-5 intent and odometer paths; F4 |
+| Out of range mid-command | Uncertain-delivery recovery and the hold-back |
+| Pod fault and sensor expiry during a loan | Alert paths; the faulted-pod audit |
+| Overnight endurance on the target watch models (32-bit included) | Battery (E8), alarm delivery under Sleep/Focus and Low Power Mode, G7 watch-slot reliability (wrist side) |
+
+**What must hold before any in-vivo use** (by informed volunteers working with the maintainer; never in a `dev` build for other users):
+1. Every M8 item above has passed, with written results. Any hardware result that contradicts a simulation claim reopens the matching SR.
+2. F1 is fixed and merged into the base this branch ships on. The phone loop runs before, after and around every loan, and a take-back adds restarts.
+3. The OmnipodKit patches (#177 plus the foreign-session rule, the bounded adopt and their review fixes) are pinned at reviewed SHAs, with their documented limits (one stale session, attempts lost mid-EAP).
+4. A tester brief in plain language covering:
+   - what "Another device used your pod", "Pod total not checked" and "Insulin added to history" mean;
+   - Take Back only when the watch is off or lost;
+   - the watch has no critical alerts, so check that Focus and Sleep allow Trio;
+   - the phone stays the backup;
+   - this is experimental software, not medical advice, and testers should involve their care team.
+5. Attended daytime sessions first. Overnight only after E2 shows the watch wakes on its own.
+
+### Verdict
+
+**The safety design is complete for M8.** Every SB and major finding is resolved or mitigated. What stays open is upstream (F1–F3, F5–F7) or minor (M4E-10, M4E-13, M4E-07).
+
+**Not ready for in-vivo use.** The core safety claims are proven only in simulation, SR-17 rests on hardware not yet run, and F1 is still present on the phone side of this branch.
