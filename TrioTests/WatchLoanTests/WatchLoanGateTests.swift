@@ -178,7 +178,7 @@ import Testing
         let aps = rig.apsManager
         aps.pumpManager = rig.spy
         do {
-            _ = try await aps.enactDetermination()
+            _ = try await aps.enactDetermination(id: UUID())
             Issue.record("Expected a throw: no determination is stored")
         } catch let APSError.invalidPumpState(message) {
             #expect(!owner, "owner was gated: \(message)")
