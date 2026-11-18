@@ -1,7 +1,7 @@
 # Trio on Watch
 
 Working documentation for an untethered Apple Watch mode for Trio.
-Status: **Phase 1 – baseline and reconnaissance (read-only research). No implementation.**
+Status: **M0–M7 implemented and reviewed (2026-11-18). Ready for M8 hardware testing; not for in-vivo use.** See `implementation/readiness-assessment.md`.
 
 ## Baseline
 

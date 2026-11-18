@@ -216,3 +216,55 @@ M7 gates still open, unchanged:
 - G-R2: CGM alerts on the watch.
 - Device checks: DD-14 (VoiceOver crown confirmation) and watch largest text.
 - A regression check that the iOS low-glucose bolus warning is unchanged after the Treatments refactor.
+
+## Final design review (pre-M8)
+
+Reviewer: Agent G, 2026-11-18. Integration branch `feat/trio-on-watch` @ `14b5d6c08` (`/Users/dnzxy/workspaces/Trio-on-watch`). I read the source diff `24bb7187b..14b5d6c08` and the re-captured screenshots (contact sheets of phone-light, phone-largest-text and watch 41 mm). Claims are marked V (verified) or I (inferred).
+
+### M7 items
+
+| Item | Status | Evidence |
+|---|---|---|
+| G-1 alarm coverage | Fixed (V) | The watch schedules the "iPhone didn't answer" notice when the request starts, so it fires even if Trio is suspended (`WatchLoanHost.swift`, `updateRequestTimeout`, `WatchLoanAlerts.requestTimeoutID`). The phone's `NotLoopingMonitor.setArmed(_:since:)` re-arms from an anchor in every state where no device may dose (`fbe3a81eb`). The hand-back is resent until the phone acks (`73a577af2`). |
+| G-2 | Fixed, lighter than proposed (V) | The record batch carries `lastLoopAt`. The phone ledger keeps the newest per epoch (`WatchLoanCoordinator.swift`). The pill and VoiceOver show "last loop" (`TrioOnWatchPhoneStatus.swift:137-147`). "No Updates" stays keyed on the last batch. A full `CycleSummary` (failure reason, mode) is not needed for v1 UI: P2 and the watch show the reason. Accepted. |
+| G-R1 | Fixed (V) | "Insulin suspended. Trio reminds you every 30 minutes, for up to 4 hours." matches the 30…240 min series. |
+| G-R2 | Fixed (V) | While the watch reads the sensor, the kit's sensor alerts are posted on the watch with the line "Replacing your sensor needs your iPhone…". Delayed and repeating triggers are scheduled at the kit's time (a repeating alert is shown once). They are retracted at End (`WatchLoanCGM.swift`, `WatchLoanAlerts.postKitAlert`). |
+| G-R3 | Fixed (V) | The tethered line reads "iPhone · 1m" (`watch-41mm/main-phone-fresh.png`). It does this by parsing the phone's "N min" string (`TrioOnWatchStatus.swift`, `controlLine`). That works but is brittle; sending the date would be better (follow-up, not blocking). |
+| G-R4 | Accepted as changed (V) | "Extra insulin paused" (`main-bolus-paused.png`). The status line says "Boluses and extra automatic insulin are paused". The author's reason (it shouldn't read like a suspend) is sound. |
+| G-R5 / G-M10 | Fixed (V) | `phone-light/in-control+settings.png` shows the disabled Dosing Mode picker with "Apple Watch is in control. End Trio on Watch to change Dosing Mode. To stop automatic insulin now, use Suspend Insulin on your watch." |
+
+### Remaining findings (none blocking)
+
+| ID | Severity | Ref | Finding | Recommendation |
+|---|---|---|---|---|
+| G-F1 | Minor | `TrioOnWatchPhoneStatus.swift:137-144` vs the watch's `TrioOnWatchRules.loopTier` | The same loop age gets different colors on the two devices. The phone pill is green to 10 min, then orange (red only with "No Updates"). The watch uses the iOS rules: green to 5 min, yellow to 10, red after. At 12 min the watch is red and the phone orange. | Share the one tier function (iOS `LoopView` rules) on both devices. Follow-up PR. |
+| G-F2 | Nit | `phone-light/in-control+settings.png` | The fixture shows Dosing Mode "Open Loop" during a loan, which can't happen now that Start requires Closed Loop. | Set the screenshot fixture to Closed Loop. |
+| G-F3 | Nit | `WatchLoanAlerts.sensorNeedsPhone` | The line "Replacing your sensor needs your iPhone…" is added under every sensor alert, including ones that don't need a replacement (for example a temporary signal loss). | Optional: add the line only to alerts the kit marks as needing a new sensor. Otherwise accept; it is still true. |
+| G-F4 | Nit (pre-existing) | `main-phone-fresh.png` | Tethered IOB and COB show "0" without units (phone-made strings, F G6 SHOULD). | Out of scope. Track with the tethered watch remote work. |
+
+### Overall design verdict
+
+**Pass.** The branch meets F's v1 guidelines and every blocker and major from the architecture-phase, M6 and re-review rounds:
+- Control is visible on both devices.
+- Every state where nothing doses is stated in words and alarmed.
+- Delivery copy separates accepted, delivering, finished and unconfirmed.
+- Reliability copy doesn't overpromise.
+- Phone surfaces don't show stale insulin data.
+- The user's own glucose alarms and the sensor and pump kit alerts reach the watch.
+- Terminology follows the fixed vocabulary and existing Trio strings.
+
+What follows can't be judged from the simulator. It is the design part of the M8 gate.
+
+### M8 design checks (device only)
+
+| # | Check | Pass criterion |
+|---|---|---|
+| D-1 | VoiceOver bolus confirmation (DD-14) | With VoiceOver on, a bolus can be confirmed through the "Confirm bolus" action without turning the crown. The crown path still works with VoiceOver off. Cancel is reachable and labelled. |
+| D-2 | Watch largest text (accessibility sizes) | On 41 mm and 46 mm (or 40/44 mm) at the largest text size, W1 still shows the glucose value, the delta and age line, and the control line with its age (the age not truncated). W2 rows wrap. The Start sheet, W4 and W7 buttons stay reachable by scrolling. |
+| D-3 | Notification delivery under Silent Mode and Focus | Over one night with the watch on wrist, in Silent Mode and Sleep Focus: "Trio Not Active", urgent low, "iPhone didn't answer", sensor and pump kit alerts and the suspend reminder each arrive at least as a haptic. Record which play sound. The Start sheet's line ("may only tap your wrist") must match what is observed. Repeat with the watch locked and once after a reboot (D-7 / exp. E12). |
+| D-4 | Wrist-down glanceability | With default Return to Clock, and again with 1 h for Trio: how long W1 stays up after wrist-down, and whether Always On dims it legibly (control line and age readable). Record whether the user has to open Trio to see that the watch is in control. That decides whether the one data complication (G-9, O-2) goes into v1.1. |
+| D-5 | Double-tap on alarms | Double-tap on a watch-raised urgent low, "Trio Not Active" and a kit alert dismisses or opens. It must never snooze (G-5; these categories have no actions). |
+| D-6 | Haptics | `.failure` on refusals and uncertain outcomes, `.start` / `.stop` on hand-off, and `.success` on bolus finished are felt and distinguishable on the wrist. |
+| D-7 | Phone pill and banner in real hand-offs | During an in-vitro run: "Watch · Nm" follows the watch's loop. "No Updates from Apple Watch" appears about 20 min after the last batch. Take Back steers to End when the watch is reachable. |
+
+Follow-ups (not gating): G-F1 to G-F4, G-R3's date-based format, and the complication decision after D-4.

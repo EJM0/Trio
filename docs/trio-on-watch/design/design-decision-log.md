@@ -5,20 +5,20 @@ Owner: Agent F. Reviewer: Agent G. Scope: v1 (R-1..R-10). Related: `ux-guideline
 
 | ID | Date | Area | Decision | Status |
 |---|---|---|---|---|
-| DD-1 | 2026-11-16 | Copy | Fixed vocabulary: "Trio on Watch", "in control", Start / End / "Take Back Pump" | Implemented (M6); G re-review pending |
-| DD-2 | 2026-11-16 | Watch main | Control symbol plus loop age replaces the "N min" line under the bobble | Implemented (M6); G re-review pending |
-| DD-3 | 2026-11-16 | Watch nav | Status page is the last vertical page, also opened by tapping the control line | Implemented (M6); G re-review pending |
-| DD-4 | 2026-11-16 | Phone Home | Control pill replaces the loop ring while not `home`; banner ranked below "Notifications Disabled" | Implemented with changes (M6, see notes); G re-review pending |
-| DD-5 | 2026-11-16 | Freshness | Separate clocks; "STALE DATA" only for the tethered remote | Implemented (M6); G re-review pending |
-| DD-6 | 2026-11-16 | Bolus | Outcome stages, delivery view with cancel, uncertain copy without retry | Implemented, partly (M6, see notes); G re-review pending |
-| DD-7 | 2026-11-16 | Bolus | No recommendation on the watch unless the phone's calculator is shared | Superseded by ADR-005 (recommendation from the shared calculator, M5); shown in M6 |
-| DD-8 | 2026-11-16 | Bolus | iOS low-glucose bolus warning on the watch | Implemented (G-M6 fix); G re-review pending |
-| DD-9 | 2026-11-16 | Take Back | Always available on the phone; context-specific copy; steer to End when the watch is reachable | Implemented (M6, G-18 applied); G re-review pending |
-| DD-10 | 2026-11-16 | Start | Start sheet with facts and alert limits; extra refusals (indefinite override, notifications off) | Implemented (M6, G-6b/G-8/G-12 applied); G re-review pending |
-| DD-11 | 2026-11-16 | Alerts | Snooze for glucose only, per device; not-looping series as on the phone | Architecture done in M5 (V2-13/V2-16); no M6 UI |
-| DD-12 | 2026-11-16 | Phone | Blocked actions disabled with a note; pump panel opens a Trio sheet, not the kit UI | Implemented, partly (M6 + G-M9 fixes, see notes); G re-review pending |
-| DD-13 | 2026-11-16 | Watch | One "Stopped" state with reason and pump fail-safe sentence; replaces "ended" | Implemented (M6); G re-review pending |
-| DD-14 | 2026-11-16 | Accessibility | VoiceOver alternative to the crown confirmation | Implemented, unverified on device (G-M7 fix) |
+| DD-1 | 2026-11-16 | Copy | Fixed vocabulary: "Trio on Watch", "in control", Start / End / "Take Back Pump" | Final: accepted, implemented (G final review 2026-11-18) |
+| DD-2 | 2026-11-16 | Watch main | Control symbol plus loop age replaces the "N min" line under the bobble | Final: accepted, implemented; a pump condition takes precedence over loop age (G final review 2026-11-18) |
+| DD-3 | 2026-11-16 | Watch nav | Status page is the last vertical page, also opened by tapping the control line | Final: accepted, implemented (G final review 2026-11-18) |
+| DD-4 | 2026-11-16 | Phone Home | Control pill replaces the loop ring while not `home`; banner ranked below "Notifications Disabled" | Final: accepted with changes; the pill shows the watch's last loop (`lastLoopAt` in the record batch, in place of G-2's `CycleSummary`), and the phone's color tiers differ from the watch's (G-F1, minor) (G final review 2026-11-18) |
+| DD-5 | 2026-11-16 | Freshness | Separate clocks; "STALE DATA" only for the tethered remote | Final: accepted, implemented (G final review 2026-11-18) |
+| DD-6 | 2026-11-16 | Bolus | Outcome stages, delivery view with cancel, uncertain copy without retry | Final: accepted with changes; no delivered-so-far amount, because the kit doesn't expose one (G final review 2026-11-18) |
+| DD-7 | 2026-11-16 | Bolus | No recommendation on the watch unless the phone's calculator is shared | Superseded by ADR-005 (recommendation from the shared calculator); final |
+| DD-8 | 2026-11-16 | Bolus | iOS low-glucose bolus warning on the watch | Final: accepted, implemented; shared `LowGlucoseBolusWarning`, pinned to dev's rule (G final review 2026-11-18) |
+| DD-9 | 2026-11-16 | Take Back | Always available on the phone; context-specific copy; steer to End when the watch is reachable | Final: accepted, implemented (G final review 2026-11-18) |
+| DD-10 | 2026-11-16 | Start | Start sheet with facts and alert limits; extra refusals (indefinite override, notifications off) | Final: accepted, implemented (G final review 2026-11-18) |
+| DD-11 | 2026-11-16 | Alerts | Snooze for glucose only, per device; not-looping series as on the phone | Final: accepted, implemented (watch-local snooze; not-looping alarms in every state where no device may dose); delivery under Silent Mode and Focus is checked in M8 (G final review 2026-11-18) |
+| DD-12 | 2026-11-16 | Phone | Blocked actions disabled with a note; pump panel opens a Trio sheet, not the kit UI | Final: accepted with changes; Dosing Mode and pump settings are locked, other settings stay editable under the note (G final review 2026-11-18) |
+| DD-13 | 2026-11-16 | Watch | One "Stopped" state with reason and pump fail-safe sentence; replaces "ended" | Final: accepted, implemented (G final review 2026-11-18) |
+| DD-14 | 2026-11-16 | Accessibility | VoiceOver alternative to the crown confirmation | Implemented; final pending the M8 device check with VoiceOver (G final review 2026-11-18) |
 
 ---
 
@@ -32,7 +32,7 @@ Owner: Agent F. Reviewer: Agent G. Scope: v1 (R-1..R-10). Related: `ux-guideline
 - **Accessibility:** short phrases read well with VoiceOver; no abbreviations.
 - **Safety:** the word "control" answers "which device gives insulin". "Take Back" is reserved for the phone recovery path.
 - **Assessment:** low risk; Crowdin can translate it.
-- **Agent G review:** pending. **Final:** pending. **Status:** Proposed.
+- **Agent G review:** pass (final design review, 2026-11-18). **Final:** yes. **Status:** Final.
 
 ## DD-2. Watch control line
 
@@ -44,7 +44,7 @@ Owner: Agent F. Reviewer: Agent G. Scope: v1 (R-1..R-10). Related: `ux-guideline
 - **Accessibility:** one element, full sentence, button trait, hint.
 - **Safety:** removes the phone-made "N min" string; freshness comes from the watch's own timestamps.
 - **Assessment:** smallest change that meets R-7 on the watch.
-- **Agent G review:** pending. **Final:** pending. **Status:** Proposed.
+- **Agent G review:** pass (final design review, 2026-11-18). **Final:** yes. **Status:** Final.
 
 ## DD-3. Status page placement
 
@@ -56,7 +56,7 @@ Owner: Agent F. Reviewer: Agent G. Scope: v1 (R-1..R-10). Related: `ux-guideline
 - **Accessibility:** reachable by crown, swipe and the control line button.
 - **Safety:** End and device status are two interactions away at most.
 - **Assessment:** keeps existing muscle memory.
-- **Agent G review:** pending. **Final:** pending. **Status:** Proposed.
+- **Agent G review:** pass (final design review, 2026-11-18). **Final:** yes. **Status:** Final.
 
 ## DD-4. Phone Home while lent
 
@@ -68,7 +68,7 @@ Owner: Agent F. Reviewer: Agent G. Scope: v1 (R-1..R-10). Related: `ux-guideline
 - **Accessibility:** pill has one label; banner as today.
 - **Safety:** no false "not looping" signal that would push users toward Take Back.
 - **Assessment:** needs `HomeStateModel` to read the loan state; small.
-- **Agent G review:** pending. **Final:** pending. **Status:** Proposed.
+- **Agent G review:** pass with notes (G-F1) (final design review, 2026-11-18). **Final:** yes. **Status:** Final.
 
 ## DD-5. Separate clocks
 
@@ -80,7 +80,7 @@ Owner: Agent F. Reviewer: Agent G. Scope: v1 (R-1..R-10). Related: `ux-guideline
 - **Accessibility:** ages spoken in the element labels.
 - **Safety:** the user can tell "sensor gap" from "loop stuck" from "pump unreachable", each of which needs a different response.
 - **Assessment:** depends on the watch having timestamps for each, which the architecture provides.
-- **Agent G review:** pending. **Final:** pending. **Status:** Proposed.
+- **Agent G review:** pass (final design review, 2026-11-18). **Final:** yes. **Status:** Final.
 
 ## DD-6. Bolus outcome stages
 
@@ -92,7 +92,7 @@ Owner: Agent F. Reviewer: Agent G. Scope: v1 (R-1..R-10). Related: `ux-guideline
 - **Accessibility:** progress spoken as "0.40 of 1.00 units"; cancel labelled.
 - **Safety:** distinguishes requested, accepted, delivering and confirmed, as the brief requires.
 - **Assessment:** the most safety-relevant UI change in v1.
-- **Agent G review:** pending. **Final:** pending. **Status:** Proposed.
+- **Agent G review:** pass (final design review, 2026-11-18). **Final:** yes. **Status:** Final.
 
 ## DD-7. Bolus recommendation on the watch
 
@@ -104,7 +104,7 @@ Owner: Agent F. Reviewer: Agent G. Scope: v1 (R-1..R-10). Related: `ux-guideline
 - **Accessibility:** none specific.
 - **Safety:** a recommendation that differs between devices is worse than none.
 - **Assessment:** decision belongs to the orchestrator; UX supports either.
-- **Agent G review:** pending. **Final:** pending. **Status:** Proposed, needs orchestrator.
+- **Agent G review:** n/a (superseded) (final design review, 2026-11-18). **Final:** yes. **Status:** Superseded by ADR-005.
 
 ## DD-8. Low-glucose bolus warning on the watch
 
@@ -116,7 +116,7 @@ Owner: Agent F. Reviewer: Agent G. Scope: v1 (R-1..R-10). Related: `ux-guideline
 - **Accessibility:** warning read before the confirmation.
 - **Safety:** parity with the phone for the one device that doses.
 - **Assessment:** coordinate with #1648 to avoid two implementations.
-- **Agent G review:** pending. **Final:** pending. **Status:** Proposed.
+- **Agent G review:** pass (final design review, 2026-11-18). **Final:** yes. **Status:** Final.
 
 ## DD-9. Take Back
 
@@ -128,7 +128,7 @@ Owner: Agent F. Reviewer: Agent G. Scope: v1 (R-1..R-10). Related: `ux-guideline
 - **Accessibility:** system dialog, destructive role announced.
 - **Safety:** SR-3 user action preserved; fewer audit boluses because End is encouraged.
 - **Assessment:** copy change in architecture needed.
-- **Agent G review:** pending. **Final:** pending. **Status:** Proposed.
+- **Agent G review:** pass (final design review, 2026-11-18). **Final:** yes. **Status:** Final.
 
 ## DD-10. Start sheet and extra refusals
 
@@ -140,7 +140,7 @@ Owner: Agent F. Reviewer: Agent G. Scope: v1 (R-1..R-10). Related: `ux-guideline
 - **Accessibility:** each fact one element.
 - **Safety:** prevents being stuck with an override or a dead pod while the phone is away.
 - **Assessment:** needs two precondition additions in the architecture.
-- **Agent G review:** pending. **Final:** pending. **Status:** Proposed, needs architecture change.
+- **Agent G review:** pass (final design review, 2026-11-18). **Final:** yes. **Status:** Final.
 
 ## DD-11. Alerts and snooze
 
@@ -152,7 +152,7 @@ Owner: Agent F. Reviewer: Agent G. Scope: v1 (R-1..R-10). Related: `ux-guideline
 - **Accessibility:** system notifications.
 - **Safety:** no gap in reminders while a zero temp could still run.
 - **Assessment:** cheap (local notifications), needs E's agreement.
-- **Agent G review:** pending. **Final:** pending. **Status:** Proposed, needs architecture change.
+- **Agent G review:** pass; M8 device check (final design review, 2026-11-18). **Final:** yes. **Status:** Final.
 
 ## DD-12. Phone blocked actions
 
@@ -164,7 +164,7 @@ Owner: Agent F. Reviewer: Agent G. Scope: v1 (R-1..R-10). Related: `ux-guideline
 - **Accessibility:** note is plain text next to the disabled control.
 - **Safety:** no path that looks like it dosed but didn't.
 - **Assessment:** the pod change limitation remains (A-5).
-- **Agent G review:** pending. **Final:** pending. **Status:** Proposed.
+- **Agent G review:** pass (final design review, 2026-11-18). **Final:** yes. **Status:** Final.
 
 ## DD-13. Stopped state
 
@@ -176,7 +176,7 @@ Owner: Agent F. Reviewer: Agent G. Scope: v1 (R-1..R-10). Related: `ux-guideline
 - **Accessibility:** reason and consequence in one VoiceOver element.
 - **Safety:** tells the user insulin automation is off and what the pump does meanwhile.
 - **Assessment:** "at most 2 hours" rests on the oref temp bounds in ADR-002; E to confirm for DASH.
-- **Agent G review:** pending. **Final:** pending. **Status:** Proposed, needs architecture change.
+- **Agent G review:** pass (final design review, 2026-11-18). **Final:** yes. **Status:** Final.
 
 ## DD-14. VoiceOver and the crown confirmation
 
@@ -188,7 +188,7 @@ Owner: Agent F. Reviewer: Agent G. Scope: v1 (R-1..R-10). Related: `ux-guideline
 - **Accessibility:** this is the point.
 - **Safety:** still a deliberate, separate action after the amount screen.
 - **Assessment:** verify on device with VoiceOver before relying on it.
-- **Agent G review:** pending. **Final:** pending. **Status:** Proposed, unverified on device.
+- **Agent G review:** pass in code; M8 device check (final design review, 2026-11-18). **Final:** no. **Status:** Implemented, pending M8 device check.
 
 ## M6 implementation notes (2026-11-16)
 
@@ -221,3 +221,14 @@ Branch `feat/tow-ui`. Details and how the screenshots were made: `../implementat
 | DD-13 | Unchanged. |
 | DD-14 | Built: the accessibility action "Confirm bolus" on the crown confirmation, only while the watch holds the pump. Needs a VoiceOver check on a device (G-M7). |
 
+
+### Final design review (G, 2026-11-18)
+
+Integration branch `feat/trio-on-watch` @ `14b5d6c08`. Every entry above is final, except DD-14, which waits for the M8 device check. Details and the M8 design checks are in `../reviews/design-reviews.md` § "Final design review (pre-M8)".
+
+| DD | Final note |
+|---|---|
+| DD-2 | The control line wording for an unconfirmed command is "Extra insulin paused" (author's choice over G's "Insulin paused", so it doesn't read like a suspend). Accepted. |
+| DD-4 | The pill shows the watch's last confirmed loop. The banner and P2 keep "Last update" (last batch). "No Updates from Apple Watch" is keyed on the last batch. G-F1: the pill uses green up to 10 min, then orange; the watch uses the iOS 5 / 10 min rules. Align in a follow-up. |
+| DD-11 | Sensor kit alerts now reach the watch while it reads the sensor, with the line "Replacing your sensor needs your iPhone…" (G-R2). |
+| DD-14 | M8: confirm on a device that VoiceOver reaches "Confirm bolus" and that a crown turn is not required. |
