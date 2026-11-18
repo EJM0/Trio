@@ -49,10 +49,10 @@ final class OpenAPS {
     }
 
     // Use the helper function for cleaner code
-    func processDetermination(_ determination: Determination, on context: NSManagedObjectContext) async {
+    func processDetermination(_ determination: Determination, on context: NSManagedObjectContext) async throws {
         await context.perform {
             let newOrefDetermination = OrefDetermination(context: context)
-            newOrefDetermination.id = UUID()
+            newOrefDetermination.id = determination.id ?? UUID()
             newOrefDetermination.insulinSensitivity = self.decimalToNSDecimalNumber(determination.isf)
             newOrefDetermination.currentTarget = self.decimalToNSDecimalNumber(determination.current_target)
             newOrefDetermination.eventualBG = determination.eventualBG.map(NSDecimalNumber.init)
@@ -98,17 +98,13 @@ final class OpenAPS {
         }
 
         // First save the current Determination to Core Data
-        await attemptToSaveContext(on: context)
+        try await attemptToSaveContext(on: context)
     }
 
-    func attemptToSaveContext(on context: NSManagedObjectContext) async {
-        await context.perform {
-            do {
-                guard context.hasChanges else { return }
-                try context.save()
-            } catch {
-                warning(.storage, "Saving the determination failed", error: error)
-            }
+    func attemptToSaveContext(on context: NSManagedObjectContext) async throws {
+        try await context.perform {
+            guard context.hasChanges else { return }
+            try context.save()
         }
     }
 
@@ -335,7 +331,7 @@ final class OpenAPS {
                 storage.save(cobEntries, as: Monitor.cob)
 
                 // save to core data asynchronously
-                await processDetermination(determination, on: context)
+                try await processDetermination(determination, on: context)
             }
 
             return determination

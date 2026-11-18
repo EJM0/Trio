@@ -246,7 +246,7 @@ final class RoundingAPSManagerStub: APSManager {
     var isManualTempBasal: Bool { false }
     var isScheduledBasal: Bool? { nil }
     var isSuspended: Bool { false }
-    func determineBasal() async throws {}
+    func determineBasal() async throws -> Determination? { nil }
     func determineBasalSync() async throws {}
     func simulateDetermineBasal(
         simulatedCarbsAmount _: Decimal,
