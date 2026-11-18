@@ -64,9 +64,9 @@ Size against the baseline: production Swift +11.8k / −1.5k lines; tests +7.5k;
 
 | # | Item | Owner | Blocks |
 |---|---|---|---|
-| R1 | F1 (repeat SMB after a failed determination save) is fixed only in the uncommitted worktree `~/workspaces/Trio-fix-repeat-smb`. The integration branch still has the old enactment. | Maintainer: commit the fix and merge it into the base | in-vivo |
-| R2 | Kit commits are local only (LoopKit `7fd4d1a7`, OmnipodKit `c23daca`), on top of #177, which is still open | Maintainer: mirror to loopandlearn; coordinate with #177 (proposal sent) | second-machine builds, upstream |
-| R3 | #1598 is now merged on dev. A rebase is mandatory: fold the loan status query into #1598's reply handler | Next fleet task | M8 builds on current dev |
+| R1 | ~~F1 (repeat SMB after a failed determination save) not merged~~ Resolved 2026-11-18: merged as `54c65f815` | — | — |
+| R2 | Kit commits are on top of #177, which is still open. Mirrored 2026-11-18 to `dnzxy/LoopKit` and `dnzxy/OmnipodKit`, branch `feat/trio-on-watch` (OmnipodKit since moved to `dd0700f`, see the status doc). `.gitmodules` still points at loopandlearn | Maintainer: coordinate with #177 (proposal plus addendum) | fresh-clone builds, upstream |
+| R3 | ~~Sync with dev for #1598~~ Resolved 2026-11-18: merged dev `7e2fa52cb` as `1cc46c299`; the loan queries are folded into #1598's reply handler | — | — |
 | R4 | Platform risk BR-1: the documented 5 Bluetooth wakes per 24 h. Field logs show hundreds of wakes, but with a complication present. | M8 E2, with and without a complication | flag on for anyone |
 | R5 | String catalogs: about 200 new keys, plus a watch catalog and InfoPlist extraction | Maintainer IDE build | upstream |
 | R6 | CI flag job builds the kits uncached on every PR | Path-gate it | upstream |

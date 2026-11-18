@@ -1685,3 +1685,33 @@ Fresh simulators: iPhone 17 iOS 27.2 `9CA761B3-211D-49B7-9D50-54E9DB1988CF`, pai
 Hygiene: SwiftFormat rewrote `Unit Tests.swift` and `WatchLoopInputsTests.swift` on each build, as in M7; reverted every time. Its import order for the merged `Unit Tests.swift` header is kept. `Package.resolved` and the submodules are unchanged.
 
 Not verified: anything on hardware; #1598's reply path over a real `WCSession`; F1's save-failure path in a real loop (unit-tested against a read-only store only).
+
+## Jeremy's #177 updates and Thread Sanitizer (2026-11-18)
+
+Checked Jeremy Barnum's public work since 2026-11-15 (OmnipodKit #177 branch, LoopKit, G7SensorKit, Loop, the pod simulator). There was no public reply to our proposal. On 11-16 and 11-17 he landed his own foreign-session stop (79e8d18), a hang-up (a78235e) and a handle retirement (c87d020). A rebase of our kit commits onto his head conflicts in four files and would need the LoopKit next-dev bump (#695/#696), so we stay on `3d21d9c` plus our commits.
+
+**Kit commits on `trio-on-watch-adopt`, pinned by `078466e36`:**
+
+- `7c801e9`: cherry-pick of c87d020. Lending the pod retires the old Bluetooth handle, so a read queued before the release can no longer cancel the take-back's connection or send through it. Jeremy's Claude trailer is dropped and the other co-authors are added.
+- `06ba883`: a session drops a retired handle and looks the pod up again. Without this, a take that found no device entry (Bluetooth not yet on) kept the session on the retired handle, and every command failed until a reconnect.
+- `dd0700f`: while sessions are refused, setup hangs up before hello. Same ground as his a78235e. No handshake was sent before either, since the login already refused.
+
+**Trio:**
+
+- `3c7aa6860` turns off Thread Sanitizer in `Trio.xcscheme`. Dev has it on in the Run action, which ships its runtime in the watch app.
+
+| # | Step | Result |
+|---|---|---|
+| J1 | OmniTests, all, against the pins | 271 run, 0 failed, 3 skipped |
+| J2 | `OmnipodKit-watchOS`, simulator | Build succeeded |
+| J3 | iOS app, flag off and on | 0, 0 |
+| J4 | Watch app, flag on and off | 0, 0 |
+| J5 | Full `Trio Tests` | 0; 1259 run, no failures, 1 known issue (same as the dev sync) |
+
+**Read only:** both kit guards live in `BlePodComms`, which needs a real Bluetooth central, so no unit test reaches them. They need an in-vitro check: Take Back while a read is queued, and a relaunch of a refused controller.
+
+**Not adopted, noted:**
+
+- `otherControllerDetectedAt` (LoopKit#702). It's additive, and Trio reads `foreignSessionDetectedAt`.
+- His watch address-hold workaround (Loop 424135e2). He marks it testing-only; it needs a hardware check first.
+- G7SensorKit upstream #124/#125: a separate look later; StartDelay is broken on watchOS.
