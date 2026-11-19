@@ -232,7 +232,9 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
                     smbIsOff: stored.smbIsOff,
                     isPreset: true,
                     id: stored.id ?? UUID().uuidString,
-                    overrideTarget: stored.overrideTarget,
+                    // OverrideStored has no `overrideTarget` flag: a stored target of 0/nil means "don't override
+                    // the target", as the phone treats it (OrefRun reads activeOverride?.target ?? 0).
+                    overrideTarget: (stored.target?.decimalValue ?? 0) != 0,
                     // target as stored: the real value when the preset overrides the target, else 0
                     target: stored.target?.decimalValue ?? 0,
                     advancedSettings: stored.advancedSettings,
