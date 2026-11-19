@@ -245,6 +245,9 @@ extension WatchLoanHost {
 
     /// Two cycles in a row without the pod and 5 minutes without a confirmed cycle: tell the user once.
     private func noPodContact(now: Date) {
+        // Before the watch's first reading it isn't looping or dosing yet (the "Waiting for first reading" screen),
+        // so a missing pump status in that window is not a pod problem to raise — and must not hide that screen.
+        guard !awaitingFirstReading else { return }
         cycleInfo.podContactFailures += 1
         let since = cycleInfo.lastConfirmedCycleAt ?? cycleInfo.holdingSince ?? now
         guard cycleInfo.podContactFailures >= 2, now.timeIntervalSince(since) >= WatchLoopPolicy.podLinkNoticeDelay,
