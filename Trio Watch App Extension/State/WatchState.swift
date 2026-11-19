@@ -82,6 +82,17 @@ import WidgetKit
     var forecastConeMax: [Double] = []
     var forecastLines: [String: [Double]] = [:] // "iob" / "cob" / "uam" / "zt" -> values
 
+    /// The phone's boluses, SMBs and carbs of the last 24 hours, for the glucose chart's treatment markers.
+    var phoneTreatmentMarkers: [WatchTreatmentMarker] = []
+
+    /// The watch's own boluses/SMBs/carbs while it loops; empty tethered, then the chart uses the phone's markers.
+    var treatmentMarkers: [WatchTreatmentMarker] = []
+
+    /// IOB/COB per loop for the chart's scrub line: the phone's history, and the watch's own while it loops.
+    /// Empty until wired through WatchConnectivity; the scrub header then shows "–" for IOB and COB.
+    var phoneIobCob: [WatchIobCobPoint] = []
+    var ownIobCob: [WatchIobCobPoint] = []
+
     // Acknowlegement handling
     var showCommsAnimation: Bool = false
     var showAcknowledgmentBanner: Bool = false
@@ -850,6 +861,17 @@ import WidgetKit
             forecastLines = forecastPayload[WatchMessageKeys.forecastLines] as? [String: [Double]] ?? [:]
         }
 
+        // the phone's carbs and boluses, times only, for the chart's markers
+        if let carbs = message[WatchMessageKeys.chartCarbs] as? [TimeInterval],
+           let boluses = message[WatchMessageKeys.chartBoluses] as? [TimeInterval],
+           let smbs = message[WatchMessageKeys.chartSMBs] as? [TimeInterval]
+        {
+            func markers(_ times: [TimeInterval], _ kind: WatchTreatmentMarker.Kind) -> [WatchTreatmentMarker] {
+                times.map { WatchTreatmentMarker(id: "\(kind)-\($0)", date: Date(timeIntervalSince1970: $0), kind: kind) }
+            }
+            phoneTreatmentMarkers = markers(boluses, .bolus) + markers(smbs, .smb) + markers(carbs, .carbs)
+        }
+
         if let critical = message[WatchMessageKeys.useCriticalAlertsWatch] as? Bool, critical != useCriticalAlerts {
             useCriticalAlerts = critical
         }
@@ -959,6 +981,13 @@ import WidgetKit
     }
 
     // MARK: - The watch's own sensor readings
+
+    /// True when the watch's own sensor link produced a reading within `ownReadingFreshFor`. This is the watch's
+    /// own link only, never the phone's copy, so a loan can go in control at once when the watch is already reading.
+    func hasFreshOwnReading(now: Date = Date()) -> Bool {
+        guard let latest = ownReadings.last?.dateString else { return false }
+        return now.timeIntervalSince(latest) < Self.ownReadingFreshFor
+    }
 
     /// Readings from the watch's own sensor link: shown first, the phone's only while these are not fresh.
     func applyOwnReadings(_ readings: [BloodGlucose]) {
