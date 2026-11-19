@@ -8,6 +8,11 @@ struct TrioMainWatchView: View {
 
     // misc
     @State private var currentPage: Int = 0
+    /// Scrubbing the glucose chart with the crown (see GlucoseChartView). Owned here, like the page crown.
+    @State private var isScrubbingChart = false
+    @State private var chartScrubSteps = 0.0
+    /// The pages' crown focus; the chart takes focus while scrubbing and this restores it afterwards.
+    @FocusState private var pagesFocused: Bool
     @State private var rotationDegrees: Double = 0.0
     @State private var showingTempTargetSheet = false
 
@@ -57,6 +62,9 @@ struct TrioMainWatchView: View {
     /// yellow while the sensor needs a look (warmup, grace period, an unreliable reading), red once it has failed or
     /// expired, and then always shown.
     private var linkIndicator: (symbol: String, waves: Bool, tint: Color)? {
+        // While a loan runs, the control line under the bubble already shows the watch icon; a second one
+        // beside the bubble is redundant. The syncing wave (phone handing data over) still shows.
+        if !state.showSyncingAnimation, loanStatus?.isLoanActive == true { return nil }
         if state.showSyncingAnimation { return ("iphone.radiowaves.left.and.right", true, .primary) }
         let host = WatchCGMHost.shared
         let tint = host.sensorHasEnded ? Color.loopRed : host.hasSensorProblem ? Color.yellow : .primary
@@ -149,7 +157,9 @@ struct TrioMainWatchView: View {
                 // Page 2: Glucose chart
                 GlucoseChartView(
                     state: state,
-                    glucoseValues: state.glucoseValues
+                    glucoseValues: state.glucoseValues,
+                    isScrubbing: $isScrubbingChart,
+                    scrubSteps: $chartScrubSteps
                 )
                 .containerBackground(trioBackgroundColor, for: .tabView)
                 .tag(1)
@@ -164,6 +174,7 @@ struct TrioMainWatchView: View {
                     TimelineView(.periodic(from: .now, by: 15)) { context in
                         TrioOnWatchStatusView(status: loan, now: context.date, actions: loanActions, scrollTo: debugScrollTo)
                     }
+                    .containerBackground(trioBackgroundColor, for: .tabView)
                     .tag(3)
                 }
             }
@@ -184,13 +195,30 @@ struct TrioMainWatchView: View {
                 /// Reset `bolusAmount` and `recommendedBolus` to ensure no stale / old value is set when user opens bolus input or meal combo the next time.
                 state.bolusAmount = 0
                 state.recommendedBolus = 0
+                // the pages own the crown by default, so a turn pages right away
+                if !isScrubbingChart { pagesFocused = true }
                 // Like the phone's Treatments view, every new bolus starts without reduced or super bolus.
                 state.useReducedBolus = false
                 state.useSuperBolus = false
             }
             // each page draws the phone's gradient: a vertical page view covers anything behind it
             .tabViewStyle(.verticalPage)
+            // The pages own the crown, except while the chart scrubs; after scrubbing the focus returns here so the
+            // crown turns pages again (otherwise it is left without a target — nightscout/LoopFollow scrub pattern).
+            .focusable(!isScrubbingChart)
+            .focused($pagesFocused)
             .digitalCrownRotation($currentPage.doubleBinding(), from: 0, through: Double(lastPage), by: 1)
+            .modifier(ChartScrubEnd(
+                isScrubbing: $isScrubbingChart,
+                scrubSteps: $chartScrubSteps,
+                currentPage: currentPage,
+                chartPage: 1
+            ))
+            .onChange(of: isScrubbingChart) { _, scrubbing in
+                // scrubbing over: hand the crown back to the pages on the next pass, once the chart has let go
+                guard !scrubbing else { return }
+                DispatchQueue.main.async { pagesFocused = true }
+            }
             .onChange(of: state.trend) { _, newTrend in
                 withAnimation {
                     updateRotation(for: newTrend)
@@ -479,4 +507,35 @@ struct TrioMainWatchView: View {
 
 #Preview {
     TrioMainWatchView()
+}
+
+/// Ends the chart's scrubbing (GlucoseChartView), which then hands the crown back to the pages: by turning the
+/// crown back past now, after 10 seconds without a turn, or on leaving the chart page. A tap on the chart ends it too.
+/// From Kristin Kandschur's feature/untethered-plus.
+struct ChartScrubEnd: ViewModifier {
+    @Binding var isScrubbing: Bool
+    @Binding var scrubSteps: Double
+    let currentPage: Int
+    let chartPage: Int
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: scrubSteps) { _, steps in
+                if isScrubbing, steps < 0 { stop() }
+            }
+            .onChange(of: currentPage) { _, page in
+                if page != chartPage, isScrubbing { stop() }
+            }
+            // restarts with every turn; 10 s still ends it
+            .task(id: isScrubbing ? scrubSteps : -2) {
+                guard isScrubbing else { return }
+                try? await Task.sleep(for: .seconds(10))
+                if !Task.isCancelled, isScrubbing { stop() }
+            }
+    }
+
+    private func stop() {
+        withAnimation { isScrubbing = false }
+        scrubSteps = 0
+    }
 }
