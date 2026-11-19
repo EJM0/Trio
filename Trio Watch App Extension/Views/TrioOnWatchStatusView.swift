@@ -168,7 +168,7 @@ struct TrioOnWatchStatusView: View {
                         ProgressView()
                     }
                 }
-                .listRowBackground(trioCard)
+                .trioRow()
 
                 ForEach(status.rows(now: now)) { row in
                     VStack(alignment: .leading, spacing: 2) {
@@ -181,12 +181,12 @@ struct TrioOnWatchStatusView: View {
                     }
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(row.accessibilityLabel)
-                    .listRowBackground(trioCard)
+                    .trioRow()
                 }
 
                 if status.isLoanActive {
                     historyLink
-                        .listRowBackground(trioCard)
+                        .trioRow()
                 }
 
                 if status.isInControl, status.bolusInProgress != nil {
@@ -257,12 +257,6 @@ struct TrioOnWatchStatusView: View {
         }
     }
 
-    /// A dark rounded card behind each list row, so the page sits on the Trio gradient like the other watch pages.
-    private var trioCard: some View {
-        RoundedRectangle(cornerRadius: 10)
-            .fill(Color.chart.opacity(0.65))
-    }
-
     @ViewBuilder private var historyLink: some View {
         NavigationLink {
             TrioOnWatchHistoryView()
@@ -325,7 +319,7 @@ struct TrioOnWatchStatusView: View {
                 ))
             }
         }
-        .listRowBackground(trioCard)
+        .trioRow()
     }
 
     @ViewBuilder private var insulinControls: some View {
@@ -512,5 +506,14 @@ struct ActionResultView: View {
                 WKInterfaceDevice.current().play(.failure)
             }
         }
+    }
+}
+
+private extension View {
+    /// A Trio-styled list row: a solid dark card (matching the Suspend/Resume buttons) with horizontal insets, so the
+    /// rows sit inset on the Trio gradient instead of edge to edge.
+    func trioRow() -> some View {
+        listRowBackground(RoundedRectangle(cornerRadius: 10).fill(Color.chart))
+            .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
     }
 }
