@@ -15,6 +15,12 @@ final class WatchLoanRecordStore {
         var tddHistory: [OrefInputs.TDDRow] = []
         var overrideCancelledAt: Date?
         var tempTargetCancelledAt: Date?
+        /// An override started on the watch during the loan (from a grant preset), with its start time. The started
+        /// value takes precedence over `overrideAtGrant`; a later `overrideCancelledAt` cancels it in turn.
+        var startedOverride: Override?
+        var startedOverrideAt: Date?
+        var startedTempTarget: TempTarget?
+        var startedTempTargetAt: Date?
         /// The batch sent last and what it carried, until the phone acknowledges it.
         var pendingBatch: UUID?
         var pendingKeys: [String] = []
@@ -163,6 +169,26 @@ final class WatchLoanRecordStore {
         try mutate { $0.tempTargetCancelledAt = date }
     }
 
+    /// Records an override started on the watch from a grant preset. Clears any earlier cancel so the newly
+    /// started override is active; `cancelOverride(at:)` afterwards cancels it again.
+    func startOverride(_ override: Override, at date: Date) throws {
+        try mutate {
+            $0.startedOverride = override
+            $0.startedOverrideAt = date
+            $0.overrideCancelledAt = nil
+        }
+    }
+
+    /// Records a temp target started on the watch from a grant preset. Clears any earlier cancel so the newly
+    /// started temp target is active; `cancelTempTarget(at:)` afterwards cancels it again.
+    func startTempTarget(_ tempTarget: TempTarget, at date: Date) throws {
+        try mutate {
+            $0.startedTempTarget = tempTarget
+            $0.startedTempTargetAt = date
+            $0.tempTargetCancelledAt = nil
+        }
+    }
+
     // MARK: - For oref
 
     func loopRecords(bolusIncrement: Decimal) -> WatchLoopRecords {
@@ -178,6 +204,10 @@ final class WatchLoanRecordStore {
         records.tddHistory = contents.tddHistory
         records.overrideCancelledAt = contents.overrideCancelledAt
         records.tempTargetCancelledAt = contents.tempTargetCancelledAt
+        records.startedOverride = contents.startedOverride
+        records.startedOverrideAt = contents.startedOverrideAt
+        records.startedTempTarget = contents.startedTempTarget
+        records.startedTempTargetAt = contents.startedTempTargetAt
         return records
     }
 
@@ -187,7 +217,7 @@ final class WatchLoanRecordStore {
     func nextBatch(epoch: Int64, now: Date) throws -> WatchLoanRecordBatch {
         try mutate { contents in
             let events = contents.pumpEvents.filter { !$0.value.acknowledged && !$0.value.record.dose.isMutable }
-            let batch = WatchLoanRecordBatch(
+            var batch = WatchLoanRecordBatch(
                 version: WatchLoanRecordBatch.currentVersion,
                 batchID: UUID(),
                 epoch: epoch,
@@ -199,6 +229,12 @@ final class WatchLoanRecordStore {
                 deletedCarbIDs: [],
                 glucose: contents.glucose.filter { !contents.acknowledgedGlucose.contains($0.id) }
             )
+            // the watch-started override/temp target ride along every batch; the phone applies the newest and
+            // treats a repeat as a no-op (idempotent by the preset's own start time)
+            batch.startedOverride = contents.startedOverride
+            batch.startedOverrideAt = contents.startedOverrideAt
+            batch.startedTempTarget = contents.startedTempTarget
+            batch.startedTempTargetAt = contents.startedTempTargetAt
             contents.pendingBatch = batch.batchID
             contents.pendingKeys = Array(events.keys)
                 + batch.carbs.map { "carbs:\($0.id ?? "")" }

@@ -44,8 +44,23 @@ extension WatchLoanHost {
             status.podEndsAt = snapshot.podEndsAt
             let now = env.now()
             let records = records.snapshot
-            status.override = Self.running(snapshot.overrideAtGrant, cancelledAt: records.overrideCancelledAt, now: now)
-            status.tempTarget = Self.running(snapshot.tempTargetAtGrant, cancelledAt: records.tempTargetCancelledAt, now: now)
+            status.override = Self.runningOverride(
+                grant: snapshot.overrideAtGrant,
+                started: records.startedOverride,
+                startedAt: records.startedOverrideAt,
+                cancelledAt: records.overrideCancelledAt,
+                now: now
+            )
+            status.tempTarget = Self.runningTempTarget(
+                grant: snapshot.tempTargetAtGrant,
+                started: records.startedTempTarget,
+                startedAt: records.startedTempTargetAt,
+                cancelledAt: records.tempTargetCancelledAt,
+                now: now
+            )
+            status.overridePresets = snapshot.overridePresets.map { .init(name: $0.name, isRunning: $0.name == status.override?.name) }
+            status.tempTargetPresets = snapshot.tempTargetPresets
+                .map { .init(name: $0.name ?? "", isRunning: $0.name == status.tempTarget?.name) }
             status.recentDoses = recentBoluses(snapshot: snapshot, now: now)
         }
         if let omnipod = pump as? OmniPumpManager {
@@ -55,6 +70,52 @@ extension WatchLoanHost {
             status.podFaulted = omnipod.deliveredUnitsAreFinal
         }
         return status
+    }
+
+    /// The override to show: once one has been started on the watch it replaces the grant's for the rest of the loan,
+    /// mirroring the oref logic.
+    private static func runningOverride(
+        grant: WatchLoanSnapshot.Adjustment?,
+        started: Override?,
+        startedAt: Date?,
+        cancelledAt: Date?,
+        now: Date
+    ) -> TrioOnWatchStatus.Adjustment? {
+        if let started {
+            guard WatchLoopInputs.isActive(
+                startedAt: startedAt,
+                duration: started.indefinite ? nil : started.duration,
+                cancelledAt: cancelledAt,
+                now: now
+            ) else { return nil }
+            let endsAt = started.indefinite ? nil
+                : startedAt?.addingTimeInterval(Double(truncating: started.duration as NSNumber) * 60)
+            return .init(name: started.name, endsAt: endsAt)
+        }
+        return running(grant, cancelledAt: cancelledAt, now: now)
+    }
+
+    /// The temp target to show: once one has been started on the watch it replaces the grant's for the rest of the loan.
+    private static func runningTempTarget(
+        grant: WatchLoanSnapshot.Adjustment?,
+        started: TempTarget?,
+        startedAt: Date?,
+        cancelledAt: Date?,
+        now: Date
+    ) -> TrioOnWatchStatus.Adjustment? {
+        if let started, let startedAt {
+            guard WatchLoopInputs.isActive(
+                startedAt: startedAt,
+                duration: started.duration,
+                cancelledAt: cancelledAt,
+                now: now
+            ) else { return nil }
+            let endsAt = started.duration > 0
+                ? startedAt.addingTimeInterval(Double(truncating: started.duration as NSNumber) * 60)
+                : nil
+            return .init(name: started.name, endsAt: endsAt)
+        }
+        return running(grant, cancelledAt: cancelledAt, now: now)
     }
 
     private static func running(

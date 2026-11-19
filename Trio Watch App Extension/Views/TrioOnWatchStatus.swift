@@ -22,6 +22,13 @@ struct TrioOnWatchStatus: Equatable {
         var endsAt: Date?
     }
 
+    /// A preset the loan can start, with whether it is the one currently running.
+    struct Preset: Equatable, Identifiable {
+        var name: String
+        var isRunning: Bool
+        var id: String { name }
+    }
+
     struct Dose: Equatable {
         var date: Date
         var units: Decimal
@@ -50,6 +57,9 @@ struct TrioOnWatchStatus: Equatable {
     var battery: Float?
     var override: Adjustment?
     var tempTarget: Adjustment?
+    /// The override and temp target presets the loan can start, from the grant.
+    var overridePresets: [Preset] = []
+    var tempTargetPresets: [Preset] = []
     var recentDoses: [Dose] = []
     var bolus: WatchLoanHost.BolusProgress = .idle
     /// A bolus the pump is giving right now, manual or an SMB: its start/end window, nil when none runs. Drives the

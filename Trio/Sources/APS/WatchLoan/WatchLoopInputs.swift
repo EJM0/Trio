@@ -9,6 +9,11 @@ struct WatchLoopRecords: Codable {
     var tddHistory: [OrefInputs.TDDRow] = []
     var overrideCancelledAt: Date?
     var tempTargetCancelledAt: Date?
+    /// An override and temp target started on the watch during the loan, with their start times.
+    var startedOverride: Override?
+    var startedOverrideAt: Date?
+    var startedTempTarget: TempTarget?
+    var startedTempTargetAt: Date?
 }
 
 /// The watch's oref inputs: the grant's snapshot plus what the watch recorded since, selected with the phone's windows,
@@ -47,12 +52,35 @@ enum WatchLoopInputs {
         // the phone counts its stored rows each cycle; the 10-day history holds every row the 7-day rule counts
         inputs.hasSufficientTDD = OrefInputs.hasSufficientTDD(inputs.tddHistory, now: now)
 
-        if !isActive(snapshot.overrideAtGrant, cancelledAt: records.overrideCancelledAt, now: now) {
+        // Adjustments: a value started on the watch during the loan takes precedence over the grant's. The grant's
+        // override/temp target stays active unless cancelled or expired; a watch-started one replaces it until it is
+        // in turn cancelled. All dosing-relevant fields are carried from the full preset model into the oref state.
+        // A watch-started override replaces the grant's for the rest of the loan (the phone ends the grant override
+        // when it activates a preset), so once one has been started the grant override no longer applies.
+        if let started = records.startedOverride {
+            inputs.activeOverride = isActive(
+                startedAt: records.startedOverrideAt,
+                duration: started.indefinite ? nil : started.duration,
+                cancelledAt: records.overrideCancelledAt,
+                now: now
+            ) ? OrefInputs.OverrideState(started) : nil
+        } else if !isActive(snapshot.overrideAtGrant, cancelledAt: records.overrideCancelledAt, now: now) {
             inputs.activeOverride = nil
         }
-        if !isActive(snapshot.tempTargetAtGrant, cancelledAt: records.tempTargetCancelledAt, now: now) {
+
+        if let started = records.startedTempTarget, let startedAt = records.startedTempTargetAt {
+            if isActive(startedAt: startedAt, duration: started.duration, cancelledAt: records.tempTargetCancelledAt, now: now) {
+                inputs.activeTempTarget = OrefInputs.TempTargetState(started, preferences: snapshot.oref.preferences)
+                // oref reads the newest temp target entry; add the started entry so file order follows the loan's order,
+                // matching the phone's `AdjustmentManager`, which writes the started entry to the temp targets file.
+                inputs.tempTargets.append(started)
+            } else {
+                inputs.activeTempTarget = nil
+            }
+        } else if !isActive(snapshot.tempTargetAtGrant, cancelledAt: records.tempTargetCancelledAt, now: now) {
             inputs.activeTempTarget = nil
         }
+
         if let cancelledAt = records.tempTargetCancelledAt {
             inputs.tempTargets.append(.cancel(at: cancelledAt))
         }
@@ -115,6 +143,17 @@ enum WatchLoopInputs {
     static func isActive(_ adjustment: WatchLoanSnapshot.Adjustment?, cancelledAt: Date?, now: Date) -> Bool {
         if cancelledAt != nil { return false }
         guard let endsAt = adjustment?.endsAt else { return true }
+        return now < endsAt
+    }
+
+    /// Whether an adjustment started on the watch at `startedAt` for `duration` minutes (nil = indefinite) is still
+    /// active: not cancelled after it started, and not past its duration. Used for watch-started overrides and TTs.
+    static func isActive(startedAt: Date?, duration: Decimal?, cancelledAt: Date?, now: Date) -> Bool {
+        guard let startedAt else { return false }
+        // A cancel at or after the start cancels this one; an older cancel belonged to the grant's value.
+        if let cancelledAt, cancelledAt >= startedAt { return false }
+        guard let duration, duration > 0 else { return true } // indefinite or no duration: runs until cancelled
+        let endsAt = startedAt.addingTimeInterval(Double(truncating: duration as NSNumber) * 60)
         return now < endsAt
     }
 
@@ -282,5 +321,93 @@ extension WatchDoseIntent {
         case .resume:
             return dose.type == .resume
         }
+    }
+}
+
+// MARK: - Preset to oref state (dosing-relevant conversions)
+
+extension Override {
+    /// The preset as started now: a live, non-preset override with a start time, mirroring the phone's
+    /// `AdjustmentManager.commitOverride` (enabled, dated now, fresh id).
+    func started(at date: Date) -> Override {
+        Override(
+            name: name,
+            enabled: true,
+            date: date,
+            duration: duration,
+            indefinite: indefinite,
+            percentage: percentage,
+            smbIsOff: smbIsOff,
+            isPreset: false,
+            id: UUID().uuidString,
+            overrideTarget: overrideTarget,
+            target: target,
+            advancedSettings: advancedSettings,
+            isfAndCr: isfAndCr,
+            isf: isf,
+            cr: cr,
+            smbIsScheduledOff: smbIsScheduledOff,
+            start: start,
+            end: end,
+            smbMinutes: smbMinutes,
+            uamMinutes: uamMinutes
+        )
+    }
+}
+
+extension TempTarget {
+    /// The preset as started at `date`: a live, enabled temp target with that timestamp and a fresh id, the entry
+    /// oref reads from the temp targets file. Mirrors the phone's `AdjustmentManager.orefTempTarget`.
+    func started(at date: Date) -> TempTarget {
+        TempTarget(
+            id: UUID().uuidString,
+            name: name,
+            createdAt: date,
+            targetTop: targetTop ?? targetBottom,
+            targetBottom: targetBottom ?? targetTop,
+            duration: duration,
+            enteredBy: TempTarget.local,
+            reason: reason ?? TempTarget.custom,
+            isPreset: isPreset,
+            enabled: true,
+            halfBasalTarget: halfBasalTarget
+        )
+    }
+}
+
+extension OrefInputs.OverrideState {
+    /// The active-override state oref reads, with every dosing-relevant field carried from the full preset. `target`
+    /// is 0 when the preset does not override the target, matching the phone's `OverrideStored.target` semantics
+    /// (`OverrideStorage`), which `OrefRun.trioCustomOrefVariables` reads as `activeOverride?.target ?? 0`.
+    init(_ override: Override) {
+        self.init(
+            enabled: override.enabled,
+            percentage: override.percentage,
+            indefinite: override.indefinite,
+            smbIsOff: override.smbIsOff,
+            target: override.overrideTarget ? override.target : 0,
+            duration: override.duration,
+            advancedSettings: override.advancedSettings,
+            isfAndCr: override.isfAndCr,
+            isf: override.isf,
+            cr: override.cr,
+            smbIsScheduledOff: override.smbIsScheduledOff,
+            start: override.start,
+            end: override.end,
+            smbMinutes: override.smbMinutes,
+            uamMinutes: override.uamMinutes
+        )
+    }
+}
+
+extension OrefInputs.TempTargetState {
+    /// The active-temp-target state oref reads: the target and the half basal target. `halfBasalTarget` falls back to
+    /// the preference, as the phone's `AdjustmentManager.orefTempTarget` does when a preset carries none.
+    init?(_ tempTarget: TempTarget, preferences: Preferences?) {
+        guard let target = tempTarget.targetBottom ?? tempTarget.targetTop else { return nil }
+        self.init(
+            target: target,
+            halfBasalTarget: tempTarget.halfBasalTarget ?? preferences?.halfBasalExerciseTarget
+        )
     }
 }

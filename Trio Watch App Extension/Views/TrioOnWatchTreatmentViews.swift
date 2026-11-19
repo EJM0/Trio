@@ -176,7 +176,8 @@ struct LoanCarbsSavedView: View {
     }
 }
 
-/// W9 while in control: the running override or temp target, with stop only (V2-25), confirmed as on iOS (G-M5).
+/// W9 while in control: the loan's override or temp target presets. Tapping one starts it (G-M5); the running one
+/// can be stopped. Starting and stopping use the watch's own record store, synced back to the phone at the loan's end.
 struct LoanAdjustmentSheet: View {
     enum Kind {
         case override
@@ -185,80 +186,123 @@ struct LoanAdjustmentSheet: View {
 
     let kind: Kind
     let adjustment: TrioOnWatchStatus.Adjustment?
+    /// The presets the loan can start, with their running state (from the grant).
+    var presets: [TrioOnWatchStatus.Preset] = []
     let stop: () async -> Bool
-    @State private var showingConfirmation = false
+    /// Starts the named preset during the loan.
+    var start: (String) async -> Void = { _ in }
+
+    @State private var pendingStop: String?
     @State private var result: ActionResult?
+
+    private var fallbackName: String {
+        kind == .override
+            ? String(localized: "Override", comment: "Fallback override name")
+            : String(localized: "Temp target", comment: "Fallback temp target name")
+    }
 
     var body: some View {
         List {
             if let adjustment {
-                let name = adjustment.name ?? (
-                    kind == .override
-                        ? String(localized: "Override", comment: "Fallback override name")
-                        : String(localized: "Temp target", comment: "Fallback temp target name")
-                )
-                VStack(alignment: .leading) {
-                    Text(name).font(.headline)
-                    Text(adjustment.endsAt.map {
-                        String(
-                            localized: "Runs until \($0.formatted(date: .omitted, time: .shortened))",
-                            comment: "Watch: end time of the running override or temp target"
-                        )
-                    } ?? String(localized: "No end time", comment: "Watch: override without an end"))
-                        .font(.footnote)
-                }
-                .accessibilityElement(children: .combine)
+                runningSection(adjustment)
+            }
 
-                Button(kind == .override ? String(localized: "Stop Override") : String(localized: "Stop Temp Target")) {
-                    showingConfirmation = true
-                }
-                .tint(.loopRed)
-                .confirmationDialog(
-                    kind == .override
-                        ? String(localized: "Override to Stop")
-                        : String(localized: "Temp Target to Stop"),
-                    isPresented: $showingConfirmation,
-                    titleVisibility: .visible
-                ) {
-                    Button(String(localized: "Stop"), role: .destructive) {
-                        Task {
-                            result = await stop()
-                                ? .success(
-                                    kind == .override
-                                        ? String(localized: "Override stopped.", comment: "Watch: override stopped")
-                                        : String(localized: "Temp target stopped.", comment: "Watch: temp target stopped")
-                                )
-                                : .failure(String(
-                                    localized: "Trio on Watch couldn't save. Nothing was changed.",
-                                    comment: "Watch: stopping an override or temp target failed"
-                                ))
-                        }
-                    }
-                    Button(String(localized: "Cancel", comment: "Cancel button"), role: .cancel) {}
-                } message: {
+            Section {
+                if presets.isEmpty {
                     Text(
                         kind == .override
-                            ? "Stop the Override \"\(name)\"?"
-                            : "Stop the Temp Target \"\(name)\"?"
+                            ? String(localized: "No override presets.", comment: "Watch: no override presets to start")
+                            : String(localized: "No temp target presets.", comment: "Watch: no temp target presets to start")
                     )
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                } else {
+                    ForEach(presets) { preset in
+                        Button {
+                            Task { await start(preset.name) }
+                        } label: {
+                            HStack {
+                                Text(preset.name).font(.caption)
+                                if preset.isRunning {
+                                    Spacer()
+                                    Text(String(localized: "running", comment: "Watch: preset currently running"))
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        .disabled(preset.isRunning)
+                    }
                 }
-            } else {
+            } header: {
                 Text(
                     kind == .override
-                        ? String(localized: "No override is running.", comment: "Watch: nothing running")
-                        : String(localized: "No temp target is running.", comment: "Watch: nothing running")
+                        ? String(localized: "Start an Override", comment: "Watch section header")
+                        : String(localized: "Start a Temp Target", comment: "Watch section header")
                 )
-                .font(.footnote)
-            }
-            Text(String(
-                localized: "You can stop it here. Starting or changing overrides and temp targets needs your iPhone.",
-                comment: "Watch: overrides and temp targets during Trio on Watch"
-            ))
+            } footer: {
+                Text(String(
+                    localized: "Creating or editing presets needs your iPhone.",
+                    comment: "Watch: presets can be started, not created, on the watch"
+                ))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
+            }
+        }
+        .confirmationDialog(
+            kind == .override
+                ? String(localized: "Override to Stop")
+                : String(localized: "Temp Target to Stop"),
+            isPresented: Binding(get: { pendingStop != nil }, set: { if !$0 { pendingStop = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Stop"), role: .destructive) {
+                Task {
+                    result = await stop()
+                        ? .success(
+                            kind == .override
+                                ? String(localized: "Override stopped.", comment: "Watch: override stopped")
+                                : String(localized: "Temp target stopped.", comment: "Watch: temp target stopped")
+                        )
+                        : .failure(String(
+                            localized: "Trio on Watch couldn't save. Nothing was changed.",
+                            comment: "Watch: stopping an override or temp target failed"
+                        ))
+                    pendingStop = nil
+                }
+            }
+            Button(String(localized: "Cancel", comment: "Cancel button"), role: .cancel) { pendingStop = nil }
+        } message: {
+            Text(kind == .override
+                ? "Stop the Override \"\(pendingStop ?? fallbackName)\"?"
+                : "Stop the Temp Target \"\(pendingStop ?? fallbackName)\"?")
         }
         .fullScreenCover(item: $result) { shown in
             ActionResultView(result: shown) { result = nil }
+        }
+    }
+
+    @ViewBuilder private func runningSection(_ adjustment: TrioOnWatchStatus.Adjustment) -> some View {
+        let name = adjustment.name ?? fallbackName
+        Section {
+            VStack(alignment: .leading) {
+                Text(name).font(.headline)
+                Text(adjustment.endsAt.map {
+                    String(
+                        localized: "Runs until \($0.formatted(date: .omitted, time: .shortened))",
+                        comment: "Watch: end time of the running override or temp target"
+                    )
+                } ?? String(localized: "No end time", comment: "Watch: override without an end"))
+                    .font(.footnote)
+            }
+            .accessibilityElement(children: .combine)
+
+            Button(kind == .override ? String(localized: "Stop Override") : String(localized: "Stop Temp Target")) {
+                pendingStop = name
+            }
+            .tint(.loopRed)
+        } header: {
+            Text(String(localized: "Running", comment: "Watch section header for the running adjustment"))
         }
     }
 }
