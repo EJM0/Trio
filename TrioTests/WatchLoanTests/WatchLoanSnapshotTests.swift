@@ -324,4 +324,55 @@ import Testing
         }
         #expect(phone.count == 6)
     }
+
+    // MARK: - Chunking
+
+    @Test("Small snapshot data stays one chunk") func chunkSingle() {
+        let data = Data(repeating: 7, count: WatchLoanSnapshot.chunkBytes)
+        #expect(WatchLoanSnapshot.chunk(data).count == 1)
+    }
+
+    @Test("Large data splits into budget-sized chunks that rejoin exactly") func chunkMany() {
+        let data = Data((0 ..< (WatchLoanSnapshot.chunkBytes * 3 + 123)).map { UInt8($0 & 0xFF) })
+        let chunks = WatchLoanSnapshot.chunk(data)
+        #expect(chunks.count == 4)
+        #expect(chunks.dropLast().allSatisfy { $0.count == WatchLoanSnapshot.chunkBytes })
+        #expect(chunks.allSatisfy { $0.count <= WatchLoanSnapshot.chunkBytes })
+        #expect(chunks.reduce(into: Data()) { $0.append($1) } == data)
+    }
+
+    @Test("The assembler joins slices arriving out of order") func assemblerOutOfOrder() {
+        let data = Data((0 ..< (WatchLoanSnapshot.chunkBytes * 2 + 50)).map { UInt8($0 & 0xFF) })
+        let chunks = WatchLoanSnapshot.chunk(data)
+        var assembler = WatchLoanSnapshot.ChunkAssembler()
+        // add in reverse
+        for i in stride(from: chunks.count - 1, through: 0, by: -1) {
+            assembler.add(chunks[i], index: i, count: chunks.count, epoch: 5)
+        }
+        #expect(assembler.joined(expectedCount: chunks.count, epoch: 5) == data)
+    }
+
+    @Test("The assembler is not complete until every slice is in") func assemblerIncomplete() {
+        let data = Data((0 ..< (WatchLoanSnapshot.chunkBytes * 2)).map { UInt8($0 & 0xFF) })
+        let chunks = WatchLoanSnapshot.chunk(data)
+        var assembler = WatchLoanSnapshot.ChunkAssembler()
+        assembler.add(chunks[0], index: 0, count: chunks.count, epoch: 5)
+        #expect(assembler.joined(expectedCount: chunks.count, epoch: 5) == nil)
+        assembler.add(chunks[1], index: 1, count: chunks.count, epoch: 5)
+        #expect(assembler.joined(expectedCount: chunks.count, epoch: 5) == data)
+    }
+
+    @Test("A slice from a newer epoch starts the collection over") func assemblerEpochResets() {
+        let old = Data((0 ..< (WatchLoanSnapshot.chunkBytes * 2)).map { _ in UInt8(1) })
+        let new = Data((0 ..< (WatchLoanSnapshot.chunkBytes * 2)).map { _ in UInt8(2) })
+        let oldChunks = WatchLoanSnapshot.chunk(old)
+        let newChunks = WatchLoanSnapshot.chunk(new)
+        var assembler = WatchLoanSnapshot.ChunkAssembler()
+        assembler.add(oldChunks[0], index: 0, count: oldChunks.count, epoch: 5)
+        // a slice for epoch 6 arrives: the epoch-5 slice must be forgotten
+        assembler.add(newChunks[0], index: 0, count: newChunks.count, epoch: 6)
+        assembler.add(newChunks[1], index: 1, count: newChunks.count, epoch: 6)
+        #expect(assembler.joined(expectedCount: oldChunks.count, epoch: 5) == nil)
+        #expect(assembler.joined(expectedCount: newChunks.count, epoch: 6) == new)
+    }
 }

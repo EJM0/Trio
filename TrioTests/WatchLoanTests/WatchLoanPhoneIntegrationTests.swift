@@ -152,6 +152,28 @@ import Testing
         #expect(try await rig.count(GlucoseStored.self) == 2)
     }
 
+    @Test("A glucose of 0 from the watch is dropped, never stored as a reading") func zeroGlucoseDropped() async throws {
+        let rig = try await Self.makeRig()
+        let now = Date()
+        let batch = WatchLoanRecordBatch(
+            version: WatchLoanRecordBatch.currentVersion,
+            batchID: UUID(),
+            epoch: 1,
+            sentAt: now,
+            pumpEvents: [],
+            runningTemp: nil,
+            carbs: [],
+            deletedCarbIDs: [],
+            // a real reading and a 0 (a gap/sensor error): only the real one may be stored
+            glucose: [Self.reading(now.addingTimeInterval(-300), 112), Self.reading(now, 0)]
+        )
+
+        try await rig.host.merge(batch)
+
+        #expect(try await rig.count(GlucoseStored.self) == 1)
+        #expect(try await rig.count(GlucoseStored.self, NSPredicate(format: "glucose == 0")) == 0)
+    }
+
     @Test("A kit record that replaces a watch booking deletes the phone's copy of the booking") func replacedBooking(
     ) async throws {
         let rig = try await Self.makeRig()
