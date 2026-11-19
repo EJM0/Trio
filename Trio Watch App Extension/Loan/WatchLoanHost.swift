@@ -45,8 +45,8 @@ struct WatchLoanEnvironment {
     var appBuild: String
     var timeZone: () -> TimeZone = { TimeZone.current }
     /// True when the watch's own sensor link already has a fresh reading, so an adopt need not wait for a first one.
-    /// Also true when the watch already holds an established, problem-free CGM link: the sensor is connected, a
-    /// reading is imminent at the next cadence, so waiting for a brand-new first reading is unnecessary.
+    /// Also true when the watch already has a CGM set up and paired: the "Waiting for first reading" screen is only
+    /// meant for a watch with no sensor set up yet, so a current/connected sensor skips it even with a stale reading.
     var hasFreshOwnReading: @MainActor() -> Bool = {
         WatchState.shared.hasFreshOwnReading() || WatchCGMHost.shared.hasReadySensorLink
     }

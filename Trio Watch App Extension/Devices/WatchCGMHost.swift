@@ -35,10 +35,12 @@ import WatchKit
     /// The sensor gives no more readings (failed, expired).
     private(set) var sensorHasEnded = false
 
-    /// The watch holds an established, problem-free CGM link: connected, paired, no sensor fault. A reading is then
-    /// imminent at the next cadence, so an adopt need not wait for a brand-new first reading.
+    /// The watch holds a CGM that is set up and paired (connected to the sensor). Whether the sensor currently has a
+    /// problem or a stale reading does not matter here: once the sensor is set up with the watch, an adopt need not
+    /// wait for a brand-new first reading. The "Waiting for first reading" screen is only for a watch that still has
+    /// no sensor set up.
     var hasReadySensorLink: Bool {
-        isReadingDirectly && !pairingUnfinished && !hasSensorProblem && !sensorHasEnded
+        isReadingDirectly && !pairingUnfinished
     }
 
     /// A background refresh this long after each reading re-checks acquisition, in case watchOS froze the app before
