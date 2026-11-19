@@ -120,6 +120,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             shouldSmoothGlucose: settings.smoothGlucose
         )
         let adjustments = try await activeAdjustments()
+        let presets = try await presetAdjustments()
         let info = Bundle.main.infoDictionary
         let appBuild = "\(info?["CFBundleShortVersionString"] as? String ?? "") (\(info?["CFBundleVersion"] as? String ?? ""))"
 
@@ -141,6 +142,8 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             oref: oref,
             overrideAtGrant: adjustments.override,
             tempTargetAtGrant: adjustments.tempTarget,
+            overridePresets: presets.overrides,
+            tempTargetPresets: presets.tempTargets,
             bolusCalculator: WatchLoanSnapshot.BolusCalculatorSettings(
                 units: settings.units,
                 fraction: settings.overrideFactor,
@@ -207,6 +210,65 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         }
     }
 
+    /// The phone's override and temp target presets as full models, so the watch can start one during a loan. Reads
+    /// the same Core Data preset rows the tethered presets come from (`AppleWatchManager`), but carries every
+    /// dosing-relevant field. The `halfBasalTarget` fallback matches `AdjustmentManager.orefTempTarget`.
+    private func presetAdjustments() async throws -> (overrides: [Override], tempTargets: [TempTarget]) {
+        let context = makeContext()
+        context.name = "watchLoanPresets"
+        let halfBasalDefault = settingsManager.preferences.halfBasalExerciseTarget
+        return try await context.perform {
+            let overrideRequest = OverrideStored.fetchRequest() as NSFetchRequest<OverrideStored>
+            overrideRequest.predicate = NSPredicate.allOverridePresets
+            overrideRequest.sortDescriptors = [NSSortDescriptor(key: "orderPosition", ascending: true)]
+            let overrides = try context.fetch(overrideRequest).map { stored in
+                Override(
+                    name: stored.name ?? "",
+                    enabled: stored.enabled,
+                    date: stored.date ?? Date(),
+                    duration: stored.duration?.decimalValue ?? 0,
+                    indefinite: stored.indefinite,
+                    percentage: stored.percentage,
+                    smbIsOff: stored.smbIsOff,
+                    isPreset: true,
+                    id: stored.id ?? UUID().uuidString,
+                    overrideTarget: stored.overrideTarget,
+                    // target as stored: the real value when the preset overrides the target, else 0
+                    target: stored.target?.decimalValue ?? 0,
+                    advancedSettings: stored.advancedSettings,
+                    isfAndCr: stored.isfAndCr,
+                    isf: stored.isf,
+                    cr: stored.cr,
+                    smbIsScheduledOff: stored.smbIsScheduledOff,
+                    start: stored.start?.decimalValue ?? 0,
+                    end: stored.end?.decimalValue ?? 0,
+                    smbMinutes: stored.smbMinutes?.decimalValue ?? 0,
+                    uamMinutes: stored.uamMinutes?.decimalValue ?? 0
+                )
+            }
+
+            let tempTargetRequest = TempTargetStored.fetchRequest() as NSFetchRequest<TempTargetStored>
+            tempTargetRequest.predicate = NSPredicate.allTempTargetPresets
+            tempTargetRequest.sortDescriptors = [NSSortDescriptor(key: "orderPosition", ascending: true)]
+            let tempTargets = try context.fetch(tempTargetRequest).map { stored in
+                TempTarget(
+                    id: stored.id?.uuidString ?? UUID().uuidString,
+                    name: stored.name,
+                    createdAt: stored.date ?? Date(),
+                    targetTop: stored.target?.decimalValue,
+                    targetBottom: stored.target?.decimalValue,
+                    duration: stored.duration?.decimalValue ?? 0,
+                    enteredBy: TempTarget.local,
+                    reason: TempTarget.custom,
+                    isPreset: stored.isPreset,
+                    enabled: false,
+                    halfBasalTarget: stored.halfBasalTarget?.decimalValue ?? halfBasalDefault
+                )
+            }
+            return (overrides, tempTargets)
+        }
+    }
+
     // MARK: Records
 
     func merge(_ batch: WatchLoanRecordBatch) async throws {
@@ -244,6 +306,51 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         let glucose = try await glucoseNotStored(batch.glucose)
         if !glucose.isEmpty {
             try await glucoseStorage.storeGlucose(glucose)
+        }
+
+        await applyWatchAdjustments(batch)
+    }
+
+    /// The phone's key for the newest watch-started adjustment it has already activated, so a repeat in a later
+    /// batch is a no-op. Keyed by the start time, which is unique per start.
+    private static let appliedOverrideKey = "watchLoan.appliedOverrideStartedAt"
+    private static let appliedTempTargetKey = "watchLoan.appliedTempTargetStartedAt"
+
+    /// Activates an override or temp target the watch started during the loan, through the same path the phone uses
+    /// for any preset activation (`AdjustmentManager`), so the phone's own store, Nightscout and the determination
+    /// all reflect it. Idempotent: a given start time is applied once, even though it rides along several batches.
+    private func applyWatchAdjustments(_ batch: WatchLoanRecordBatch) async {
+        guard let adjustmentManager = resolver.resolve(AdjustmentManager.self) else {
+            if batch.startedOverrideAt != nil || batch.startedTempTargetAt != nil {
+                warning(.watch, "No AdjustmentManager to apply a watch-started override or temp target")
+            }
+            return
+        }
+        let defaults = UserDefaults.standard
+
+        if let override = batch.startedOverride, let startedAt = batch.startedOverrideAt,
+           defaults.double(forKey: Self.appliedOverrideKey) != startedAt.timeIntervalSinceReferenceDate
+        {
+            do {
+                try await adjustmentManager.activateOverride(.presetName(override.name), source: .watch)
+                defaults.set(startedAt.timeIntervalSinceReferenceDate, forKey: Self.appliedOverrideKey)
+                info(.watch, "Activated watch-started override \"\(override.name)\" on the iPhone")
+            } catch {
+                warning(.watch, "Activating the watch-started override failed", error: error)
+            }
+        }
+
+        if let tempTarget = batch.startedTempTarget, let startedAt = batch.startedTempTargetAt,
+           let name = tempTarget.name,
+           defaults.double(forKey: Self.appliedTempTargetKey) != startedAt.timeIntervalSinceReferenceDate
+        {
+            do {
+                try await adjustmentManager.activateTempTarget(.presetName(name), source: .watch)
+                defaults.set(startedAt.timeIntervalSinceReferenceDate, forKey: Self.appliedTempTargetKey)
+                info(.watch, "Activated watch-started temp target \"\(name)\" on the iPhone")
+            } catch {
+                warning(.watch, "Activating the watch-started temp target failed", error: error)
+            }
         }
     }
 

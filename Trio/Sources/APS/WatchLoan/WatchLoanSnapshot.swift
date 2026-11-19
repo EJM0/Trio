@@ -62,6 +62,10 @@ struct WatchLoanSnapshot: Codable {
     var oref: OrefInputs
     var overrideAtGrant: Adjustment?
     var tempTargetAtGrant: Adjustment?
+    /// The phone's override and temp target presets as full models, so the watch can start one during the loan.
+    /// Empty from grants built before this field was sent.
+    var overridePresets: [Override] = []
+    var tempTargetPresets: [TempTarget] = []
     var bolusCalculator: BolusCalculatorSettings
     var glucoseAlarms: [GlucoseAlert]
     var glucoseAlarmConfiguration: GlucoseAlertConfiguration

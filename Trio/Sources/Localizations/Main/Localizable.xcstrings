@@ -77970,7 +77970,7 @@
       }
     },
     "Cancel bolus" : {
-      "comment" : "A button that cancels a bolus.",
+      "comment" : "Watch accessibility: cancel the running bolus",
       "localizations" : {
         "bg" : {
           "stringUnit" : {

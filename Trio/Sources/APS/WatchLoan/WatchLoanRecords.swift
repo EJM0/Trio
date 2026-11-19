@@ -31,6 +31,12 @@ struct WatchLoanRecordBatch: Codable {
     var glucose: [BloodGlucose]
     /// The watch's last confirmed loop. Nil from a watch build that doesn't send it.
     var lastLoopAt: Date?
+    /// An override started on the watch during the loan (from a grant preset), with its start time, so the phone can
+    /// activate it in its own store once the loan ends. Nil from a watch build that doesn't send it.
+    var startedOverride: Override? = nil
+    var startedOverrideAt: Date? = nil
+    var startedTempTarget: TempTarget? = nil
+    var startedTempTargetAt: Date? = nil
 
     /// Mutable doses would be purged by the phone driver's next pending report, and a dose without
     /// a sync identifier can't be merged twice safely.

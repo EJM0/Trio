@@ -13,6 +13,9 @@ struct TrioOnWatchActions {
     /// True once the stop was saved.
     var stopOverride: () async -> Bool = { true }
     var stopTempTarget: () async -> Bool = { true }
+    /// Starts an override or temp target from a grant preset during the loan.
+    var startOverride: (String) async -> Void = { _ in }
+    var startTempTarget: (String) async -> Void = { _ in }
     var cancelBolus: () async -> Void = {}
     /// The phone answered a live query; End is tried, not blocked on a flag.
     var phoneAnswers: () async -> Bool = { true }
@@ -30,6 +33,8 @@ struct TrioOnWatchActions {
             resume: { await host.resumeInsulinConfirmed() },
             stopOverride: { await host.stopAdjustmentConfirmed(override: true) },
             stopTempTarget: { await host.stopAdjustmentConfirmed(override: false) },
+            startOverride: { await host.startOverride(presetName: $0) },
+            startTempTarget: { await host.startTempTarget(presetName: $0) },
             cancelBolus: { await host.cancelBolus() },
             phoneAnswers: { await host.phoneAnswers() },
             clearNotice: { host.lastAlert = nil }

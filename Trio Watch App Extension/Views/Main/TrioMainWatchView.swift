@@ -97,11 +97,13 @@ struct TrioMainWatchView: View {
     }
 
     private var isTempTargetActive: Bool {
-        isAdjustmentActive(for: state.tempTargetPresets) { $0.isEnabled }
+        if let loan = loanStatus, loan.isLoanActive { return loan.tempTarget != nil }
+        return isAdjustmentActive(for: state.tempTargetPresets) { $0.isEnabled }
     }
 
     private var isOverrideActive: Bool {
-        isAdjustmentActive(for: state.overridePresets) { $0.isEnabled }
+        if let loan = loanStatus, loan.isLoanActive { return loan.override != nil }
+        return isAdjustmentActive(for: state.overridePresets) { $0.isEnabled }
     }
 
     private var trioBackgroundColor = LinearGradient(
@@ -359,7 +361,13 @@ struct TrioMainWatchView: View {
             }
             .sheet(isPresented: $showingOverrideSheet) {
                 if let loan, loanActive {
-                    LoanAdjustmentSheet(kind: .override, adjustment: loan.override, stop: loanActions.stopOverride)
+                    LoanAdjustmentSheet(
+                        kind: .override,
+                        adjustment: loan.override,
+                        presets: loan.overridePresets,
+                        stop: loanActions.stopOverride,
+                        start: loanActions.startOverride
+                    )
                 } else {
                     OverridePresetsView(
                         state: state,
@@ -372,7 +380,13 @@ struct TrioMainWatchView: View {
             }
             .sheet(isPresented: $showingTempTargetSheet) {
                 if let loan, loanActive {
-                    LoanAdjustmentSheet(kind: .tempTarget, adjustment: loan.tempTarget, stop: loanActions.stopTempTarget)
+                    LoanAdjustmentSheet(
+                        kind: .tempTarget,
+                        adjustment: loan.tempTarget,
+                        presets: loan.tempTargetPresets,
+                        stop: loanActions.stopTempTarget,
+                        start: loanActions.startTempTarget
+                    )
                 } else {
                     TempTargetPresetsView(
                         state: state,
@@ -478,7 +492,12 @@ struct TrioMainWatchView: View {
             case .carbsSaved:
                 return AnyView(LoanCarbsSavedView(navigationPath: .constant(NavigationPath()), saved: LoanCarbsSaved(grams: 30)))
             case .adjustment:
-                return AnyView(LoanAdjustmentSheet(kind: .override, adjustment: status.override, stop: { true }))
+                return AnyView(LoanAdjustmentSheet(
+                    kind: .override,
+                    adjustment: status.override,
+                    presets: status.overridePresets,
+                    stop: { true }
+                ))
             }
         }
     #endif
