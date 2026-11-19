@@ -19,10 +19,11 @@ import WatchKit
 }
 
 /// A bolus sent while the watch holds the pump, for the navigation stack.
-struct LoanBolusRequest: Hashable {
+struct LoanBolusRequest: Hashable, Identifiable {
     var units: Decimal
     var withCarbs: Bool
     var requestedAt: Date
+    var id: Date { requestedAt }
 }
 
 /// Carbs saved on the watch, for the navigation stack.
@@ -36,6 +37,8 @@ struct LoanBolusProgressView: View {
     @Binding var navigationPath: NavigationPath
     let request: LoanBolusRequest
     let actions: TrioOnWatchActions
+    /// When shown as a cover (bolus failed), closing dismisses the cover instead of popping the stack.
+    var onClose: (() -> Void)?
 
     @State private var showingDoses = false
 
@@ -93,7 +96,11 @@ struct LoanBolusProgressView: View {
     }
 
     private func close() {
-        navigationPath.removeLast(navigationPath.count)
+        if let onClose {
+            onClose()
+        } else {
+            navigationPath.removeLast(navigationPath.count)
+        }
     }
 }
 

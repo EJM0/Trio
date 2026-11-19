@@ -91,7 +91,9 @@ struct BolusConfirmationView: View {
                         state.clearEntry()
                         host.bolus = .idle
                         Task { await host.requestBolus(units: units, carbs: carbs) }
-                        navigationPath.append(LoanBolusRequest(units: units, withCarbs: carbs > 0, requestedAt: Date()))
+                        // No separate progress page: the ring around the home "+" button shows delivery, and the
+                        // main view presents a message view only if the bolus fails (see TrioMainWatchView).
+                        navigationPath.removeLast(navigationPath.count)
                         return
                     }
                     // Sends carbs and bolus, or refuses an entry older than 2 min; either way the entry is cleared
