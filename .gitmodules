@@ -1,7 +1,7 @@
 [submodule "LoopKit"]
 	path = LoopKit
-	url = https://github.com/loopandlearn/LoopKit.git
-	branch = trio-next-dev
+	url = https://github.com/dnzxy/LoopKit.git
+	branch = feat/trio-on-watch
 [submodule "CGMBLEKit"]
 	path = CGMBLEKit
 	url = https://github.com/loopandlearn/CGMBLEKit.git
@@ -16,8 +16,8 @@
 	branch = trio-next-dev
 [submodule "G7SensorKit"]
 	path = G7SensorKit
-	url = https://github.com/loopandlearn/G7SensorKit.git
-	branch = trio-next-dev
+	url = https://github.com/EJM0/G7SensorKit.git
+	branch = sync/next-dev-before-delegate-queue-removal
 [submodule "MinimedKit"]
 	path = MinimedKit
 	url = https://github.com/loopandlearn/MinimedKit.git
@@ -40,8 +40,8 @@
 	branch = trio-next-dev
 [submodule "OmnipodKit"]
 	path = OmnipodKit
-	url = https://github.com/loopandlearn/OmnipodKit
-	branch = next-dev
+	url = https://github.com/EJM0/OmnipodKit.git
+	branch = my-dev-trio-on-watch
 [submodule "AccuChekKit"]
 	path = AccuChekKit
 	url = https://github.com/loopandlearn/AccuChekKit

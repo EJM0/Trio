@@ -1,8 +1,8 @@
 import SwiftUI
 import Testing
+@testable import Trio
 import UIKit
 import WatchKit
-@testable import Trio_Watch_App
 
 @Suite("Watch App Tests", .serialized) @MainActor final class TrioWatchAppTests {
     var watchState = WatchState()

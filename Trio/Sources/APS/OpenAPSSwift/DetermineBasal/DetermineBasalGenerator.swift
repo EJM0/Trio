@@ -84,6 +84,7 @@ enum DeterminationGenerator {
         if let reason = checkCurrentTempBasalRateSafety(
             currentTemp: currentTemp,
             lastTempTarget: lastTempTarget,
+            microBolusAllowed: microBolusAllowed,
             currentTime: currentTime
         ) {
             return Determination(
@@ -338,6 +339,7 @@ enum DeterminationGenerator {
             minGuardGlucose: forecastResult.minGuardGlucose,
             threshold: threshold,
             glucoseStatus: glucoseStatus,
+            microBolusAllowed: microBolusAllowed,
             trioCustomOrefVariables: trioCustomOrefVariables,
             clock: currentTime
         )

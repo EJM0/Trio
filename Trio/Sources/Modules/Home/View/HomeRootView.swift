@@ -45,6 +45,8 @@ extension Home {
         @State var showSnoozeSheet: Bool = false
         @State var showManualGlucose: Bool = false
         @State var showReleaseNotes: Bool = false
+        @State var trioOnWatch = TrioOnWatchPhoneModel()
+        @State var showTrioOnWatch = false
         @ObservedObject var releaseNotesService = ReleaseNotesService.shared
         // Pull-down-to-force-loop (see HomeRootView+Refresh.swift)
         @State var pullOffset: CGFloat = 0
@@ -246,6 +248,29 @@ extension Home {
             .task {
                 await releaseNotesService.load()
             }
+            .task {
+                trioOnWatch.attach(resolver)
+                #if DEBUG
+                    if TrioOnWatchPhoneFixture.current?.opensSheet == true { showTrioOnWatch = true }
+                    switch TrioOnWatchPhoneFixture.current?.opens {
+                    case "treatments": state.showModal(for: .treatmentView)
+                    case "adjustments": selectedTab = 2
+                    case "settings": selectedTab = 3
+                    default: break
+                    }
+                #endif
+                while !Task.isCancelled {
+                    await trioOnWatch.refresh()
+                    try? await Task.sleep(nanoseconds: 5_000_000_000)
+                }
+            }
+            .sheet(isPresented: $showTrioOnWatch) {
+                #if DEBUG
+                    TrioOnWatchSheet(model: trioOnWatch, presents: TrioOnWatchPhoneFixture.current?.dialog)
+                #else
+                    TrioOnWatchSheet(model: trioOnWatch)
+                #endif
+            }
             .navigationTitle("Home")
             .navigationBarHidden(true)
             // sideways the chart owns the screen; the bar would spend a fifth of its height
@@ -285,6 +310,7 @@ extension Home {
                     PumpConfig.PumpSettingsView(
                         pumpManager: pumpManager,
                         bluetoothManager: state.provider.apsManager.bluetoothManager!,
+                        watchLoanGate: resolver.resolve(WatchLoanGate.self)!,
                         completionDelegate: state,
                         setupDelegate: state
                     )
@@ -295,6 +321,7 @@ extension Home {
                         pumpEntry: pumpEntry,
                         pumpInitialSettings: state.pumpInitialSettings,
                         bluetoothManager: state.provider.apsManager.bluetoothManager!,
+                        watchLoanGate: resolver.resolve(WatchLoanGate.self)!,
                         completionDelegate: state,
                         setupDelegate: state
                     )
@@ -481,6 +508,8 @@ extension Home {
                     state.showModal(for: .treatmentView)
                 }
                 .onLongPressGesture(minimumDuration: 0.5) {
+                    // carbs stored here wouldn't reach the watch; Treatments says why
+                    guard !trioOnWatch.status.replacesLoopRing else { return state.showModal(for: .treatmentView) }
                     guard state.enableQuickPickTreatments else { return }
                     let impactHeavy = UIImpactFeedbackGenerator(style: .heavy)
                     impactHeavy.impactOccurred()

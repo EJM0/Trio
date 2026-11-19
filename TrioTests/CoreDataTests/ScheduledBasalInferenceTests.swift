@@ -41,7 +41,8 @@ import Testing
         let segments = ScheduledBasalInference.segments(
             events: [tempBasal(time(9), time(9, 30))],
             profile: flatProfile,
-            now: time(12)
+            now: time(12),
+            timeZone: TimeZone.current
         )
 
         #expect(!segments.isEmpty, "Uncovered gap must be filled")
@@ -55,14 +56,20 @@ import Testing
         let segments = ScheduledBasalInference.segments(
             events: [tempBasal(time(10), time(10, 30))],
             profile: flatProfile,
-            now: time(12)
+            now: time(12),
+            timeZone: TimeZone.current
         )
 
         #expect(segments.allSatisfy { $0.start >= time(10, 30) }, "History before the first event is unknowable")
     }
 
     @Test("No events yields no segments") func testNoEvents() {
-        let segments = ScheduledBasalInference.segments(events: [], profile: flatProfile, now: time(12))
+        let segments = ScheduledBasalInference.segments(
+            events: [],
+            profile: flatProfile,
+            now: time(12),
+            timeZone: TimeZone.current
+        )
         #expect(segments.isEmpty)
     }
 
@@ -70,7 +77,8 @@ import Testing
         let segments = ScheduledBasalInference.segments(
             events: [tempBasal(time(9), time(9, 30))],
             profile: [],
-            now: time(12)
+            now: time(12),
+            timeZone: TimeZone.current
         )
         #expect(segments.isEmpty)
     }
@@ -82,7 +90,8 @@ import Testing
                 tempBasal(time(9, 30).addingTimeInterval(30), time(12))
             ],
             profile: flatProfile,
-            now: time(12)
+            now: time(12),
+            timeZone: TimeZone.current
         )
         #expect(segments.isEmpty, "A 30-second gap is noise, not missing delivery")
     }
@@ -95,7 +104,8 @@ import Testing
         let segments = ScheduledBasalInference.segments(
             events: [tempBasal(time(4), time(5))],
             profile: profile,
-            now: time(7)
+            now: time(7),
+            timeZone: TimeZone.current
         )
 
         #expect(segments.count == 2, "Gap crossing one boundary yields two segments")
@@ -115,7 +125,8 @@ import Testing
                 TimelineEvent(start: time(10), kind: .resume)
             ],
             profile: flatProfile,
-            now: time(12)
+            now: time(12),
+            timeZone: TimeZone.current
         )
 
         let suspended = DateInterval(start: time(9), end: time(10))
@@ -135,7 +146,8 @@ import Testing
                 TimelineEvent(start: time(10), kind: .suspend)
             ],
             profile: flatProfile,
-            now: time(12)
+            now: time(12),
+            timeZone: TimeZone.current
         )
 
         #expect(segments.allSatisfy { $0.end <= time(10).addingTimeInterval(1) }, "Nothing after the open suspend")
@@ -149,7 +161,8 @@ import Testing
                 TimelineEvent(start: time(10), kind: .resume)
             ],
             profile: flatProfile,
-            now: time(12)
+            now: time(12),
+            timeZone: TimeZone.current
         )
 
         // the suspend happened before the window; only 10:00-12:00 may fill
@@ -172,7 +185,8 @@ import Testing
                 TimelineEvent(start: time(10), kind: .resume)
             ],
             profile: profile,
-            now: time(11)
+            now: time(11),
+            timeZone: TimeZone.current
         )
 
         // 09:30 boundary sits inside the suspension; only 10:00-11:00 may fill
@@ -191,7 +205,8 @@ import Testing
                 tempBasal(time(8, 30), time(9))
             ],
             profile: flatProfile,
-            now: time(12)
+            now: time(12),
+            timeZone: TimeZone.current
         )
 
         #expect(segments.count == 1)
@@ -239,7 +254,8 @@ import Testing
             events: events,
             suspensions: suspensions,
             profile: profile ?? flatProfile,
-            now: now
+            now: now,
+            timeZone: TimeZone.current
         )
     }
 

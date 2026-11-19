@@ -10,8 +10,11 @@ struct AlarmSnoozeView: View {
             // measure from now, so calculation is not based off stale tick date
             // cf. https://github.com/nightscout/Trio/issues/1381
             let now = max(context.date, Date())
-            let isSnoozed = state.snoozeUntilDate > now
-            let remainingMinutes = max(Int(ceil(state.snoozeUntilDate.timeIntervalSince(now) / 60)), 0)
+            // while Trio on Watch reads the sensor, the watch's own alarms are what this page snoozes
+            let watchSnooze = TrioOnWatchSource.snoozedUntil
+            let snoozeUntil = watchSnooze ?? state.snoozeUntilDate
+            let isSnoozed = snoozeUntil > now
+            let remainingMinutes = max(Int(ceil(snoozeUntil.timeIntervalSince(now) / 60)), 0)
 
             VStack {
                 Button {
@@ -40,18 +43,27 @@ struct AlarmSnoozeView: View {
                     isSnoozed
                         ? String(
                             format: String(localized: "Snoozed until %@"),
-                            state.snoozeUntilDate.formatted(date: .omitted, time: .shortened)
+                            snoozeUntil.formatted(date: .omitted, time: .shortened)
                         )
                         : String(localized: "Alarms active")
                 )
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
+                if watchSnooze != nil {
+                    Text(String(localized: "Alarms on this watch", comment: "Watch snooze page while Trio on Watch runs"))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text("Alarms"))
+            .accessibilityLabel(Text(
+                watchSnooze != nil ? String(localized: "Alarms on this watch") :
+                    String(localized: "Alarms")
+            ))
             .accessibilityValue(Text(
                 isSnoozed
                     ? String(
@@ -79,9 +91,9 @@ struct AlarmSnoozeOptionsView: View {
     var body: some View {
         NavigationView {
             List {
-                if state.snoozeUntilDate > Date() {
+                if (TrioOnWatchSource.snoozedUntil ?? state.snoozeUntilDate) > Date() {
                     Button {
-                        state.sendSnoozeRequest(minutes: 0)
+                        snooze(minutes: 0)
                         onDismiss()
                     } label: {
                         HStack(spacing: 8) {
@@ -98,12 +110,21 @@ struct AlarmSnoozeOptionsView: View {
 
                 ForEach(NotificationResponseAction.allCases, id: \.self) { action in
                     Button(action.localizedTitle) {
-                        state.sendSnoozeRequest(minutes: action.minutes)
+                        snooze(minutes: action.minutes)
                         onDismiss()
                     }
                 }
             }
             .navigationTitle("Snooze Alerts")
+        }
+    }
+
+    /// The watch's own alarms while Trio on Watch reads the sensor (G-M8); the iPhone's otherwise.
+    private func snooze(minutes: Int) {
+        if let host = WatchLoanRuntime.host, host.ownsGlucoseAlarms {
+            host.snoozeAlarms(minutes: minutes)
+        } else {
+            state.sendSnoozeRequest(minutes: minutes)
         }
     }
 }

@@ -87,6 +87,9 @@ extension Notification.Name {
         _ = resolver.resolve(IOBService.self)!
         _ = resolver.resolve(GlucoseAlertCoordinator.self)!
         _ = resolver.resolve(NotLoopingMonitor.self)!
+        // after NotLoopingMonitor: the relaunch re-asserts which loop alarms are armed
+        let watchLoanCoordinator = resolver.resolve(WatchLoanCoordinator.self)!
+        Task { await watchLoanCoordinator.start() }
         _ = DeviceAlertsStore.shared
         // Last: needs the pump manager's AlertResponder registration and the
         // seeded DeviceAlertsStore in place before re-presenting alerts.

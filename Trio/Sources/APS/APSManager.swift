@@ -27,7 +27,7 @@ protocol APSManager {
     var isManualTempBasal: Bool { get }
     var isScheduledBasal: Bool? { get }
     var isSuspended: Bool { get }
-    func determineBasal() async throws
+    @discardableResult func determineBasal() async throws -> Determination?
     /// Runs a determination outside the loop, after a treatment or adjustment changed what the
     /// algorithm reads. Waits for a loop in flight to finish first, since that loop determined
     /// before the change landed. Concurrent calls collapse into the one already running. Algorithm
@@ -42,6 +42,8 @@ protocol APSManager {
     var lastError: CurrentValueSubject<Error?, Never> { get }
     func cancelBolus(_ callback: ((Bool, String) -> Void)?) async
     var iobFileDidUpdate: PassthroughSubject<Void, Never> { get }
+    /// Returns once no loop is running, no bolus is under way and the pump's events are stored.
+    func awaitPumpIdle() async
 }
 
 /// Notified after a bolus-related failure so observing UI (e.g. the
@@ -77,7 +79,7 @@ enum APSError: LocalizedError {
 // MARK: - Thread-safe loop serialization
 
 /// Ensures only one loop runs at a time via actor isolation
-private actor LoopGuard {
+actor LoopGuard {
     private var isRunning = false
     private var isDeterminingStandalone = false
     private var loopWaiters: [CheckedContinuation<Void, Never>] = []
@@ -134,6 +136,7 @@ final class BaseAPSManager: APSManager, Injectable {
     @Injected() private var tddStorage: TDDStorage!
     @Injected() private var broadcaster: Broadcaster!
     @Injected() private var trioAlertManager: TrioAlertManager!
+    @Injected() private var watchLoanGate: WatchLoanGate!
     @Persisted(key: "lastLoopStartDate") private var lastLoopStartDate: Date = .distantPast
     private var lastDosingMode: DosingMode?
     @Persisted(key: "lastLoopDate") var lastLoopDate: Date = .distantPast {
@@ -146,7 +149,8 @@ final class BaseAPSManager: APSManager, Injectable {
 
     private var lifetime = Lifetime()
 
-    private let loopGuard = LoopGuard()
+    // internal for tests
+    let loopGuard = LoopGuard()
     /// All reads/writes are dispatched onto `processQueue` so the bolus
     /// trigger sink, `cancelBolus`, and the `DoseProgressReporter`
     /// callback (which the pump manager already invokes on
@@ -308,6 +312,8 @@ final class BaseAPSManager: APSManager, Injectable {
                 return
             }
 
+            guard watchLoanGate.permits("Loop") else { return }
+
             // Atomic check-and-set via actor — eliminates the race between
             // checking isLooping.value and sending isLooping(true).
             guard await loopGuard.tryStart(
@@ -374,12 +380,12 @@ final class BaseAPSManager: APSManager, Injectable {
 
     /// Returns whether the determination was enacted.
     private func executeLoop(loopStatRecord: inout LoopStats) async throws -> Bool {
-        try await determineBasal()
+        let determination = try await determineBasal()
 
         // Closed loop: also enact the determination.
         var enacted = false
         if settings.dosingMode.automation != .off {
-            enacted = try await enactDetermination()
+            enacted = try await enactDetermination(id: determination?.id)
         }
 
         let endDate = Date()
@@ -442,6 +448,9 @@ final class BaseAPSManager: APSManager, Injectable {
         guard let pump = pumpManager else {
             return APSError.invalidPumpState(message: String(localized: "Pump not set"))
         }
+        if let refusal = watchLoanGate.refusal("Bolus", userInitiated: true) {
+            return APSError.invalidPumpState(message: refusal)
+        }
         let status = pump.status.pumpStatus
 
         guard !status.bolusing else {
@@ -456,8 +465,7 @@ final class BaseAPSManager: APSManager, Injectable {
     }
 
     func autosense() async throws -> Bool {
-        guard let autosense = await storage.retrieveAsync(OpenAPS.Settings.autosense, as: Autosens.self),
-              (autosense.timestamp ?? .distantPast).addingTimeInterval(30.minutes.timeInterval) > Date()
+        guard OrefRun.isAutosensFresh(await storage.retrieveAsync(OpenAPS.Settings.autosense, as: Autosens.self), now: Date())
         else {
             let result = try await openAPS.autosense(
                 shouldSmoothGlucose: settingsManager.settings.smoothGlucose
@@ -470,7 +478,7 @@ final class BaseAPSManager: APSManager, Injectable {
 
     /// Calculates and stores the Total Daily Dose (TDD)
     private func calculateAndStoreTDD() async throws {
-        guard let pumpManager else { return }
+        guard let pumpManager, watchLoanGate.permits("Total daily dose") else { return }
 
         let basalProfile = storage.retrieve(OpenAPS.Settings.basalProfile, as: [BasalProfileEntry].self) ?? []
 
@@ -485,7 +493,7 @@ final class BaseAPSManager: APSManager, Injectable {
         await tddStorage.storeTDD(tddResult)
     }
 
-    func determineBasal() async throws {
+    @discardableResult func determineBasal() async throws -> Determination? {
         try await calculateAndStoreTDD()
 
         var invalidGlucoseError: String?
@@ -509,21 +517,21 @@ final class BaseAPSManager: APSManager, Injectable {
                 return false
             }
 
-            guard glucose.count > 2 else {
-                debug(.loop, "Glucose check failed: \(glucose.count) readings in the last hour, need 3")
+            switch LoopGlucoseGuard.check(lastHour: glucose.map(\.date), now: Date()) {
+            case let .notEnoughReadings(count):
+                debug(.loop, "Glucose check failed: \(count) readings in the last hour, need 3")
                 invalidGlucoseError =
                     String(
                         localized: "Not enough glucose data. You need at least three glucose readings in the last six hours to run the algorithm."
                     )
                 return false
-            }
-
-            let dateOfLastGlucose = glucose.first?.date
-            guard dateOfLastGlucose ?? Date() >= Date().addingTimeInterval(-12.minutes.timeInterval) else {
+            case .stale:
                 debug(.loop, "Glucose check failed: latest reading older than 12 min")
                 invalidGlucoseError =
                     String(localized: "Glucose data is stale. The most recent glucose reading is from more than 12 minutes ago.")
                 return false
+            case nil:
+                break
             }
 
             info(.loop, "Glucose ready: BG \(glucose.first?.glucose ?? 0) mg/dL, \(glucose.count) recent readings")
@@ -564,6 +572,7 @@ final class BaseAPSManager: APSManager, Injectable {
                     }
                 }
             }
+            return determination
         } catch {
             iobFileDidUpdate.send(())
 
@@ -577,6 +586,14 @@ final class BaseAPSManager: APSManager, Injectable {
                 throw APSError.apsError(message: "Error determining basal: \(error.localizedDescription)")
             }
         }
+    }
+
+    func awaitPumpIdle() async {
+        await loopGuard.waitForLoop()
+        while !Task.isCancelled, pumpManager?.status.bolusState ?? .noBolus != .noBolus {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+        }
+        await deviceDataManager.awaitPumpEventStorage()
     }
 
     func determineBasalSync() async throws {
@@ -712,6 +729,10 @@ final class BaseAPSManager: APSManager, Injectable {
 
     func cancelBolus(_ callback: ((Bool, String) -> Void)?) async {
         guard let pump = pumpManager, pump.status.pumpStatus.bolusing else { return }
+        if let refusal = watchLoanGate.refusal("Bolus cancel", userInitiated: true) {
+            callback?(false, refusal)
+            return
+        }
         debug(.bolus, "Cancelling bolus")
         do {
             _ = try await pump.cancelBolus()
@@ -780,10 +801,14 @@ final class BaseAPSManager: APSManager, Injectable {
     }
 
     /// Returns false when the determination is skipped because the pump is suspended.
-    private func enactDetermination() async throws -> Bool {
-        guard let determinationID = try await determinationStorage
-            .fetchLastDeterminationObjectID(predicate: NSPredicate.predicateFor30MinAgoForDetermination).first
-        else {
+    func enactDetermination(id: UUID?) async throws -> Bool {
+        if let refusal = watchLoanGate.refusal("Determination") {
+            throw APSError.invalidPumpState(message: refusal)
+        }
+        // only the determination this cycle saved; never fall back to an older one
+        let context = CoreDataStack.shared.newTaskContext()
+        context.name = "enactDetermination"
+        guard let id, let values = try await Self.dosingValues(ofDeterminationWithID: id, on: context) else {
             throw APSError.apsError(message: "Determination not found")
         }
 
@@ -801,7 +826,7 @@ final class BaseAPSManager: APSManager, Injectable {
             throw APSError.manualBasalTemp(message: "Loop not possible during the manual basal temp")
         }
 
-        let (rateDecimal, durationInSeconds, smbToDeliver) = try await setValues(determinationID: determinationID)
+        let (rateDecimal, durationInSeconds, smbToDeliver) = values
 
         if let rate = rateDecimal, let duration = durationInSeconds {
             try await performBasal(pump: pump, rate: rate, duration: duration)
@@ -816,23 +841,21 @@ final class BaseAPSManager: APSManager, Injectable {
         return true
     }
 
-    private func setValues(determinationID: NSManagedObjectID) async throws
-        -> (NSDecimalNumber?, TimeInterval?, NSDecimalNumber?)
+    /// Temp basal and SMB of the determination with this id; nil if it wasn't saved or was already enacted.
+    static func dosingValues(ofDeterminationWithID id: UUID, on context: NSManagedObjectContext) async throws
+        -> (NSDecimalNumber?, TimeInterval?, NSDecimalNumber?)?
     {
-        let context = CoreDataStack.shared.newTaskContext()
-        context.name = "setValues"
-        return try await context.perform {
-            do {
-                let determination = try context.existingObject(with: determinationID) as? OrefDetermination
+        try await context.perform {
+            let request = OrefDetermination.fetchRequest() as NSFetchRequest<OrefDetermination>
+            request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+            request.fetchLimit = 1
+            guard let determination = try context.fetch(request).first, !determination.enacted else { return nil }
 
-                let rate = determination?.rate
-                let duration = determination?.duration.flatMap { TimeInterval(truncating: $0) * 60 }
-                let smbToDeliver = determination?.smbToDeliver ?? 0
+            let rate = determination.rate
+            let duration = determination.duration.flatMap { TimeInterval(truncating: $0) * 60 }
+            let smbToDeliver = determination.smbToDeliver ?? 0
 
-                return (rate, duration, smbToDeliver)
-            } catch {
-                throw error
-            }
+            return (rate, duration, smbToDeliver)
         }
     }
 
@@ -1514,8 +1537,8 @@ extension BaseAPSManager: SettingsObserver {
     }
 
     /// Clears a Trio-set temp so a basal test starts from the scheduled rate.
-    private func cancelAutomaticTempBasal() async {
-        guard let pump = pumpManager else { return }
+    func cancelAutomaticTempBasal() async {
+        guard let pump = pumpManager, watchLoanGate.permits("Temp basal cancel") else { return }
 
         // A temp the user set on the pump is theirs to cancel.
         guard !isManualTempBasal else { return }

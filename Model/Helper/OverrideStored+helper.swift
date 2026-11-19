@@ -6,12 +6,14 @@ extension NSPredicate {
         NSPredicate(format: "isPreset == %@", true as NSNumber)
     }
 
-    static var lastActiveOverride: NSPredicate {
+    static var lastActiveOverride: NSPredicate { lastActiveOverride(now: Date()) }
+
+    static func lastActiveOverride(now: Date) -> NSPredicate {
         // For non-indefinite overrides, we still want to filter by date
         // For indefinite overrides, we want them regardless of date
         NSPredicate(
             format: "(date >= %@ OR indefinite == %@) AND enabled == %@",
-            Date.oneDayAgo as NSDate,
+            Calendar.current.date(byAdding: .day, value: -1, to: now)! as NSDate,
             true as NSNumber,
             true as NSNumber
         )

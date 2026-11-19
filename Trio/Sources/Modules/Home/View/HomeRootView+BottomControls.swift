@@ -636,6 +636,7 @@ extension Home.RootView {
             tidepoolLoginRequired: state.tidepoolLoginRequired,
             hasUnacknowledgedReleaseNotes: releaseNotesService.hasUnacknowledgedNotes,
             dosingMode: state.dosingMode,
+            trioOnWatch: trioOnWatch.status.showsBanner,
             now: state.timerDate
         )
     }
@@ -761,6 +762,17 @@ extension Home.RootView {
                 tint: .orange
             ) {
                 openDosingModeSetting()
+            }
+        case .trioOnWatch:
+            let banner = trioOnWatch.status.banner(now: state.timerDate)
+            panelBanner(
+                systemImage: banner.symbol,
+                title: banner.title,
+                subtitle: banner.subtitle,
+                tint: banner.tint,
+                isCritical: banner.isCritical
+            ) {
+                showTrioOnWatch = true
             }
         case .stats:
             statsBanner()

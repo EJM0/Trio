@@ -20,6 +20,10 @@ final class TrioWatchAppDelegate: NSObject, WKApplicationDelegate {
             return
         }
         for task in backgroundTasks {
+            if let host = WatchLoanRuntime.host {
+                let name = String(describing: type(of: task))
+                Task { await host.noteWake(name) }
+            }
             if task is WKApplicationRefreshBackgroundTask {
                 // the CGM's acquisition backstop (`WatchCGMHost`): a sensor connect still missing goes in now
                 task.expirationHandler = { [weak self, weak task] in

@@ -7,6 +7,7 @@ extension NightscoutConfig {
     final class Provider: BaseProvider, NightscoutConfigProvider {
         private let processQueue = DispatchQueue(label: "NightscoutConfigProvider.processQueue")
         @Injected() private var broadcaster: Broadcaster!
+        @Injected() private var watchLoanGate: WatchLoanGate!
 
         func checkConnection(url: URL, secret: String?) -> AnyPublisher<Void, Error> {
             NightscoutAPI(url: url, secret: secret).checkConnection()
@@ -31,6 +32,9 @@ extension NightscoutConfig {
             guard let pump = deviceManager?.pumpManager else {
                 save(settings)
                 return Just(()).setFailureType(to: Error.self).eraseToAnyPublisher()
+            }
+            if let refusal = watchLoanGate.refusal("Delivery limits sync", userInitiated: true) {
+                return Fail(error: APSError.invalidPumpState(message: refusal)).eraseToAnyPublisher()
             }
             let limits = DeliveryLimits(
                 maximumBasalRate: LoopQuantity(unit: .internationalUnitsPerHour, doubleValue: Double(settings.maxBasal)),

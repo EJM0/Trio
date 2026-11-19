@@ -64,6 +64,38 @@ jobs:
           fi
         shell: bash
 
+  watch-flag-build:
+    name: Build Watch App (TRIO_ON_WATCH=YES)
+    runs-on: macos-26
+    if: github.repository_owner == 'nightscout'
+
+    steps:
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer
+
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+          submodules: recursive
+
+      # Trio on Watch is off by default, so no other job builds it. Build only: this catches a broken flag-on
+      # Info.plist or entitlements path and a missing embedded framework (check-watch-frameworks phase).
+      - name: Build watch app with Trio on Watch
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -workspace Trio.xcworkspace \
+            -scheme "Trio Watch App" \
+            -destination "generic/platform=watchOS Simulator" \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            -quiet \
+            TRIO_ON_WATCH=YES \
+            CODE_SIGNING_ALLOWED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            2>&1 | tee xcodebuild-watch.log
+
   test:
     name: Run Unit Tests
     runs-on: macos-26
@@ -244,6 +276,18 @@ jobs:
             2>&1 | tee xcodebuild.log || _rc=$?
           echo "Run tests|$(( $(date +%s) - _start ))" >> "$GITHUB_WORKSPACE/.timings"
           exit ${_rc:-0}
+
+      # Changes the process time zone, which would race the parallel suites above, so it runs alone.
+      - name: Run time zone escape test
+        id: run_tz_escape
+        run: |
+          set -o pipefail
+          TEST_RUNNER_TRIO_TZ_ESCAPE=1 xcodebuild test-without-building \
+            -workspace Trio.xcworkspace \
+            -scheme "Trio Tests" \
+            -destination "$DESTINATION" \
+            -only-testing:TrioTests/ProcessTimeZoneEscapeTests \
+            2>&1 | tee xcodebuild-tz-escape.log
 
       # Report the ACTUAL xcodebuild test outcome, not a grep guess. A crash or
       # a test-host launch failure exits 65 without a "Failing tests:" section,

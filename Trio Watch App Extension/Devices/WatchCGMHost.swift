@@ -18,6 +18,8 @@ import WatchKit
     @ObservationIgnored private var swap: Task<Void, Never>?
     /// A pairing's Bluetooth bond never finished (the app was in the background); the kit retracts it on a reading.
     @ObservationIgnored private var pairingUnfinished = false
+    /// While Trio on Watch holds the pump, its loan also gets this manager's readings, errors and alerts.
+    @ObservationIgnored private weak var loan: WatchLoanCGM?
 
     /// For the glucose bubble.
     private(set) var isReadingDirectly = false
@@ -53,7 +55,8 @@ import WatchKit
               let raw = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
               let configuration = SharedDeviceConfiguration(rawValue: raw)
         else {
-            if cgmManager != nil {
+            // a running loan keeps the sensor, shared or not; the next state after it ends lets go
+            if cgmManager != nil, loan == nil {
                 WatchLogger.shared.info(.data, "The phone stopped sharing its CGM; letting go of the sensor")
                 swap = Task {
                     await remove()
@@ -87,6 +90,19 @@ import WatchKit
         builtFrom = configuration.state
         install(manager)
         save(manager)
+    }
+
+    /// A loan starts or relaunches. Without a manager of its own (the phone doesn't share its CGM), the grant's
+    /// configuration builds one.
+    func lend(to loan: WatchLoanCGM, configuration: SharedDeviceConfiguration?) {
+        self.loan = loan
+        guard cgmManager == nil, swap == nil, let configuration else { return }
+        WatchLogger.shared.info(.data, "Building the watch's CGM manager from the loan's grant")
+        build(from: configuration)
+    }
+
+    func endLoan(_ loan: WatchLoanCGM) {
+        if self.loan === loan { self.loan = nil }
     }
 
     /// Any wake that is not the sensor's own.
@@ -194,6 +210,7 @@ extension WatchCGMHost: CGMManagerDelegate {
         MainActor.assumeIsolated {
             switch readingResult {
             case let .newData(samples):
+                loan?.received(samples)
                 let readings = Self.readings(from: samples)
                 guard !readings.isEmpty else { return }
                 WatchLogger.shared.info(.data, "Direct reading: \(readings.count) sample(s)")
@@ -205,6 +222,7 @@ extension WatchCGMHost: CGMManagerDelegate {
                 noteSensorProblem(true)
             case let .error(error):
                 WatchLogger.shared.warning(.data, "CGM reading failed", error: error)
+                loan?.failed(error)
                 // a reading the sensor withholds arrives as an error
                 updateStatus()
             case .noData:
@@ -260,14 +278,16 @@ extension WatchCGMHost: CGMManagerDelegate {
 
     nonisolated func deviceManager(_: DeviceManager, recordAnalyticsEvent _: String, properties _: [AnyHashable: Any]?) {}
 
-    // The phone issues the sensor's alerts; the watch only logs them.
+    // The phone issues the sensor's alerts; the watch only logs them, unless a loan decides to show them.
     nonisolated func issueAlert(_ alert: Alert) async {
-        WatchLogger.shared.info(.data, "Alert from the watch's CGM, not shown: \(alert.identifier.value)")
+        WatchLogger.shared.info(.data, "Alert from the watch's CGM: \(alert.identifier.value)")
         await setPairingUnfinished(alert.identifier, true)
+        await loan?.issueAlert(alert)
     }
 
     nonisolated func retractAlert(identifier: Alert.Identifier) async {
         await setPairingUnfinished(identifier, false)
+        await loan?.retractAlert(identifier: identifier)
     }
 
     /// The one alert the watch keeps as a note: a pairing it must finish with the app open.

@@ -33,6 +33,11 @@ protocol DeviceDataManager {
     func updatePumpBLEHeartbeat(lastCGMReadingDate: Date?, expectedCGMReadingInterval: TimeInterval?)
     func updateCGMHeartbeatCapability(providesBLEHeartbeat: Bool)
     func createBolusProgressReporter() -> DoseProgressReporter?
+    /// Reports each new foreign pod session the kit detects.
+    var foreignPodSession: PassthroughSubject<Date, Never> { get }
+    func awaitPumpEventStorage() async
+    /// Sends what the gate held back while the phone wasn't the pump's owner: delivery limits and the heartbeat request.
+    func resyncPumpAfterTakeBack()
     var alertHistoryStorage: AlertHistoryStorage! { get }
 }
 
@@ -51,6 +56,7 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
     @Injected() private var bluetoothProvider: BluetoothStateManager!
     @Injected() private var trioAlertManager: TrioAlertManager!
     @Injected() private var deviceLogStore: DeviceLogStore!
+    @Injected() private var watchLoanGate: WatchLoanGate!
     // lazy to avoid circular dependency (NightscoutManager → PumpHistoryStorage)
     private var resolver: Resolver?
     // serializes event batches: a PM may report again before the prior store finished
@@ -67,6 +73,9 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
     let manualTempBasal = PassthroughSubject<Bool, Never>()
     let scheduledBasal = PassthroughSubject<Bool?, Never>()
     let suspended = PassthroughSubject<Bool, Never>()
+    let foreignPodSession = PassthroughSubject<Date, Never>()
+    // logging only: the loan coordinator keeps which foreign session it handled
+    private var lastForeignPodSession: Date?
 
     @SyncAccess private var pumpUpdateCancellable: AnyCancellable?
     private var pumpUpdatePromise: Future<Bool, Never>.Promise?
@@ -84,7 +93,7 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
 
                 // Re-apply the latest CGM-aligned heartbeat request to a freshly set pump
                 if let heartbeatRequest = lastPumpHeartbeatRequest {
-                    pumpManager.setBLEHeartbeatRequest(heartbeatRequest)
+                    sendBLEHeartbeatRequest(heartbeatRequest)
                 }
 
                 trioAlertManager?.register(responder: pumpManager, for: pumpManager.pluginIdentifier)
@@ -113,24 +122,7 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
                     .bolusIncrement = bolusIncrement > 0 ? bolusIncrement : 0.1
                 storage.save(modifiedPreferences, as: OpenAPS.Settings.preferences)
 
-                // Ensure the pump manager's delivery limits always reflect the user's
-                // current settings. Without this, the active pump manager instance
-                // may use a stale or default value from deserialized state
-                // — silently rejecting temp basals that oref correctly
-                // determines are within the user's configured maxBasal.
-                let pumpSettings = settingsManager.pumpSettings
-                let deliveryLimits = DeliveryLimits(
-                    maximumBasalRate: LoopQuantity(unit: .internationalUnitsPerHour, doubleValue: Double(pumpSettings.maxBasal)),
-                    maximumBolus: LoopQuantity(unit: .internationalUnit, doubleValue: Double(pumpSettings.maxBolus))
-                )
-
-                processQueue.async {
-                    pumpManager.syncDeliveryLimits(limits: deliveryLimits) { result in
-                        if case let .failure(error) = result {
-                            warning(.pump, "Syncing delivery limits to the pump failed", error: error)
-                        }
-                    }
-                }
+                syncDeliveryLimits(to: pumpManager)
 
                 if let medtrumPump = pumpManager as? MedtrumPumpManager {
                     // Medtrum's state.patchExpiresAt is actually lifespan + grace
@@ -256,6 +248,39 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
         }
     }
 
+    /// Keeps the pump manager's delivery limits on the user's current settings. Without this, the active
+    /// pump manager may use a stale or default value from deserialized state — silently rejecting temp
+    /// basals that oref correctly determines are within the user's configured maxBasal.
+    private func syncDeliveryLimits(to pumpManager: PumpManagerUI) {
+        let pumpSettings = settingsManager.pumpSettings
+        let deliveryLimits = DeliveryLimits(
+            maximumBasalRate: LoopQuantity(unit: .internationalUnitsPerHour, doubleValue: Double(pumpSettings.maxBasal)),
+            maximumBolus: LoopQuantity(unit: .internationalUnit, doubleValue: Double(pumpSettings.maxBolus))
+        )
+
+        if watchLoanGate.permits("Delivery limits sync") {
+            processQueue.async {
+                pumpManager.syncDeliveryLimits(limits: deliveryLimits) { result in
+                    if case let .failure(error) = result {
+                        warning(.pump, "Syncing delivery limits to the pump failed", error: error)
+                    }
+                }
+            }
+        }
+    }
+
+    func resyncPumpAfterTakeBack() {
+        guard let pumpManager else { return }
+        syncDeliveryLimits(to: pumpManager)
+        if let lastPumpHeartbeatRequest {
+            sendBLEHeartbeatRequest(lastPumpHeartbeatRequest)
+        }
+    }
+
+    func awaitPumpEventStorage() async {
+        await pumpEventsTask?.value
+    }
+
     func createBolusProgressReporter() -> DoseProgressReporter? {
         pumpManager?.createBolusProgressReporter(reportingOn: processQueue)
     }
@@ -265,14 +290,14 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
         // A CGM with its own heartbeat relieves the pump; retract any standing request
         if providesBLEHeartbeat {
             lastPumpHeartbeatRequest = nil
-            pumpManager?.setBLEHeartbeatRequest(nil)
+            sendBLEHeartbeatRequest(nil)
         }
     }
 
     func updatePumpBLEHeartbeat(lastCGMReadingDate: Date?, expectedCGMReadingInterval: TimeInterval?) {
         guard !cgmProvidesBLEHeartbeat else {
             lastPumpHeartbeatRequest = nil
-            pumpManager?.setBLEHeartbeatRequest(nil)
+            sendBLEHeartbeatRequest(nil)
             return
         }
         // Tell the pump when the next CGM reading is due so it can align its BLE heartbeat (LoopKit#599)
@@ -281,6 +306,11 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
             expectedCGMReadingInterval: expectedCGMReadingInterval ?? .minutes(5)
         )
         lastPumpHeartbeatRequest = request
+        sendBLEHeartbeatRequest(request)
+    }
+
+    private func sendBLEHeartbeatRequest(_ request: PumpHeartbeatRequest?) {
+        guard watchLoanGate.permits("BLE heartbeat request") else { return }
         pumpManager?.setBLEHeartbeatRequest(request)
     }
 
@@ -294,6 +324,8 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
             debug(.pump, "Pump update skipped: loop is running")
             return
         }
+
+        guard watchLoanGate.permits("Pump data refresh") else { return }
 
         func update(_: Future<Bool, Never>.Promise?) {}
 
@@ -386,6 +418,13 @@ extension BaseDeviceDataManager: PumpManagerDelegate {
 
     func pumpManagerDidUpdateState(_ pumpManager: PumpManager) {
         rawPumpManager = pumpManager.rawValue
+        if let detectedAt = WatchLoanPumpAdapter(pumpManager)?.foreignSessionDetectedAt,
+           detectedAt != lastForeignPodSession
+        {
+            lastForeignPodSession = detectedAt
+            warning(.pump, "The pod reported a session from another device")
+            foreignPodSession.send(detectedAt)
+        }
         if self.pumpManager == nil, let newPumpManager = pumpManager as? PumpManagerUI {
             self.pumpManager = newPumpManager
         }

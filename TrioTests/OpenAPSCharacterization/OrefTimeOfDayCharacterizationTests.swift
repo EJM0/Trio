@@ -1,0 +1,188 @@
+import Foundation
+import Testing
+@testable import Trio
+
+/// Goldens for schedule lookups: non-flat basal, ISF, carb ratio and target schedules at a fixed clock,
+/// including clocks a few hours after both Europe/Berlin DST changes. `OpenAPS` reads `Date()`, so these
+/// run through `OrefRun.run`, which takes the clock from its inputs.
+@Suite(
+    "OrefRun time-of-day goldens",
+    .serialized,
+    .enabled(if: TimeZone.current.identifier == "Europe/Berlin", "recorded in Europe/Berlin")
+) struct OrefTimeOfDayCharacterizationTests {
+    static let clocks: [String: String] = [
+        // 07:40:10 CEST
+        "time-of-day-non-flat": "2026-06-15T05:40:10Z",
+        // 03:20:10 CEST, 1 h 20 min after the clocks skipped 02:00-03:00
+        "time-of-day-dst-spring-forward": "2026-03-29T01:20:10Z",
+        // 06:40:10 CET, 3 h 40 min after 02:00-03:00 repeated
+        "time-of-day-dst-fall-back": "2026-10-25T05:40:10Z"
+    ]
+
+    static let scenarioNames = clocks.keys.sorted()
+
+    static let nonFlatSchedules: [String: RawJSON] = [
+        OpenAPS.Settings.basalProfile: """
+        [{"start": "00:00:00", "minutes": 0, "rate": 0.8}, {"start": "02:00:00", "minutes": 120, "rate": 0.95},
+         {"start": "03:00:00", "minutes": 180, "rate": 1.1}, {"start": "06:00:00", "minutes": 360, "rate": 1.4},
+         {"start": "07:30:00", "minutes": 450, "rate": 1.2}, {"start": "12:00:00", "minutes": 720, "rate": 0.9},
+         {"start": "18:00:00", "minutes": 1080, "rate": 1.0}, {"start": "22:00:00", "minutes": 1320, "rate": 0.7}]
+        """,
+        OpenAPS.Settings.insulinSensitivities: """
+        {"units": "mg/dL", "user_preferred_units": "mg/dL", "sensitivities": [
+         {"sensitivity": 60, "offset": 0, "start": "00:00:00"}, {"sensitivity": 57, "offset": 120, "start": "02:00:00"},
+         {"sensitivity": 52, "offset": 180, "start": "03:00:00"}, {"sensitivity": 45, "offset": 360, "start": "06:00:00"},
+         {"sensitivity": 50, "offset": 450, "start": "07:30:00"}, {"sensitivity": 55, "offset": 720, "start": "12:00:00"}]}
+        """,
+        OpenAPS.Settings.carbRatios: """
+        {"units": "grams", "schedule": [
+         {"start": "00:00:00", "offset": 0, "ratio": 12}, {"start": "02:00:00", "offset": 120, "ratio": 11},
+         {"start": "03:00:00", "offset": 180, "ratio": 10}, {"start": "06:00:00", "offset": 360, "ratio": 8},
+         {"start": "07:30:00", "offset": 450, "ratio": 9}, {"start": "11:00:00", "offset": 660, "ratio": 10}]}
+        """,
+        OpenAPS.Settings.bgTargets: """
+        {"units": "mg/dL", "user_preferred_units": "mg/dL", "targets": [
+         {"low": 110, "high": 110, "start": "00:00:00", "offset": 0}, {"low": 105, "high": 105, "start": "03:00:00", "offset": 180},
+         {"low": 100, "high": 100, "start": "06:00:00", "offset": 360}, {"low": 95, "high": 95, "start": "07:30:00", "offset": 450},
+         {"low": 110, "high": 110, "start": "22:00:00", "offset": 1320}]}
+        """
+    ]
+
+    /// The closed-loop baseline at a fixed clock with non-flat schedules.
+    static func scenario(_ name: String, clock: Date? = nil) -> OrefCharacterizationScenario {
+        let clock = clock ?? ISO8601DateFormatter().date(from: clocks[name]!)!
+        var scenario = OrefCharacterizationScenarios.build("closed-loop-baseline", clock: clock)
+        scenario.settingsFiles.merge(nonFlatSchedules) { $1 }
+        return scenario
+    }
+
+    @Test("OrefRun matches the time-of-day golden", arguments: scenarioNames) func matchesGolden(scenarioName: String) throws {
+        let scenario = Self.scenario(scenarioName)
+        let inputs = try OrefRunCharacterizationTests.roundTrip(try OrefRunCharacterizationTests.inputs(for: scenario))
+
+        let outputs = try OrefRun.run(inputs)
+
+        for (stage, json) in try OrefRunCharacterizationTests.stages(outputs, clock: scenario.clock) {
+            try OrefGoldens.check(json, clock: scenario.clock, scenario: scenarioName, stage: stage)
+        }
+        if OrefGoldens.isRecording {
+            Issue.record("goldens recorded for \(scenarioName); re-run without TRIO_RECORD_CHARACTERIZATION to compare")
+        }
+    }
+
+    @Test("another time zone looks schedules up at its own local time") func otherTimeZone() throws {
+        var inputs = try OrefRunCharacterizationTests.inputs(for: Self.scenario("time-of-day-non-flat"))
+        // 01:40:10 EDT instead of 07:40:10 CEST
+        inputs.timeZone = try #require(TimeZone(identifier: "America/New_York"))
+
+        let profile = try OrefRun.run(inputs).profile
+
+        #expect(profile.currentBasal == Decimal(string: "0.8"))
+        #expect(profile.sens == 60)
+        #expect(profile.carbRatio == 12)
+        #expect(profile.minBg == 110)
+    }
+
+    @Test("the same local time in another time zone matches the golden") func sameLocalTimeElsewhere() throws {
+        let berlinClock = try #require(ISO8601DateFormatter().date(from: Self.clocks["time-of-day-non-flat"]!))
+        // 07:40:10 JST is 7 h before 07:40:10 CEST; neither zone changes offset in the 24 h before
+        let tokyoClock = berlinClock.addingTimeInterval(-7 * 3600)
+        var inputs = try OrefRunCharacterizationTests.inputs(for: Self.scenario("time-of-day-non-flat", clock: tokyoClock))
+        inputs.timeZone = try #require(TimeZone(identifier: "Asia/Tokyo"))
+
+        let outputs = try OrefRun.run(inputs)
+
+        for (stage, json) in try OrefRunCharacterizationTests.stages(outputs, clock: tokyoClock) {
+            try OrefGoldens.check(json, clock: tokyoClock, scenario: "time-of-day-non-flat", stage: stage)
+        }
+    }
+
+    @Test("profile getters use the bound time zone") func profileGetters() throws {
+        let outputs = try OrefRun.run(try OrefRunCharacterizationTests.inputs(for: Self.scenario("time-of-day-non-flat")))
+        let profile = outputs.profile
+        let clock = Self.scenario("time-of-day-non-flat").clock
+
+        #expect(profile.basalFor(time: clock) == Decimal(string: "1.2"))
+        #expect(profile.sensitivityFor(time: clock) == 50)
+        #expect(profile.carbRatioFor(time: clock) == 9)
+
+        let newYork = try #require(TimeZone(identifier: "America/New_York"))
+        WallClock.$boundTimeZone.withValue(newYork) {
+            #expect(profile.basalFor(time: clock) == Decimal(string: "0.8"))
+            #expect(profile.sensitivityFor(time: clock) == 60)
+            #expect(profile.carbRatioFor(time: clock) == 12)
+            #expect(clock.minutesSinceMidnight == 100)
+        }
+    }
+}
+
+/// Changes the process time zone, which races every suite running in parallel, so it runs only on
+/// request and alone: `TRIO_TZ_ESCAPE=1 … -only-testing:TrioTests/ProcessTimeZoneEscapeTests`.
+@Suite(
+    "Explicit time zones ignore the process time zone",
+    .serialized,
+    .enabled(if: ProcessInfo.processInfo.environment["TRIO_TZ_ESCAPE"] == "1", "changes the process time zone")
+) struct ProcessTimeZoneEscapeTests {
+    @Test("OrefRun, TDD and alarm windows match their Europe/Berlin results") func noEscape() throws {
+        let berlin = try #require(TimeZone(identifier: "Europe/Berlin"))
+        let profile = [
+            BasalProfileEntry(start: "00:00", minutes: 0, rate: 0.5),
+            BasalProfileEntry(start: "06:00", minutes: 360, rate: 1),
+            BasalProfileEntry(start: "12:00", minutes: 720, rate: 1.5)
+        ]
+        let now = try #require(ISO8601DateFormatter().date(from: "2026-06-15T05:40:10Z"))
+        func tdd() -> Decimal {
+            OrefInputs.tddInsulin(
+                pumpHistory: [
+                    PumpHistoryEvent(id: "temp", type: .tempBasal, timestamp: now - 4 * 3600, amount: 2, duration: 60),
+                    PumpHistoryEvent(
+                        id: "schedule",
+                        type: .tempBasal,
+                        timestamp: now - 20 * 3600,
+                        amount: 1,
+                        duration: 1440,
+                        isScheduledBasal: true
+                    )
+                ],
+                basalProfile: profile,
+                now: now,
+                timeZone: berlin,
+                roundToSupportedBasalRate: { $0 }
+            ).scheduledBasal
+        }
+        var nightAlarm = GlucoseAlert(type: .low)
+        nightAlarm.activeOption = .night
+        // 23:30 CEST: night in Berlin, morning in Kiritimati
+        let lateEvening = try #require(ISO8601DateFormatter().date(from: "2026-06-15T21:30:00Z"))
+        let berlinTDD = tdd()
+
+        let savedTZ = ProcessInfo.processInfo.environment["TZ"]
+        setenv("TZ", "Pacific/Kiritimati", 1)
+        tzset()
+        NSTimeZone.resetSystemTimeZone()
+        defer {
+            if let savedTZ { setenv("TZ", savedTZ, 1) } else { unsetenv("TZ") }
+            tzset()
+            NSTimeZone.resetSystemTimeZone()
+        }
+        try #require(TimeZone.current.identifier == "Pacific/Kiritimati")
+        try #require(Calendar.current.timeZone.identifier == "Pacific/Kiritimati")
+
+        for name in OrefTimeOfDayCharacterizationTests.scenarioNames {
+            let scenario = OrefTimeOfDayCharacterizationTests.scenario(name)
+            var inputs = try OrefRunCharacterizationTests.inputs(for: scenario)
+            inputs.timeZone = berlin
+            let outputs = try OrefRun.run(inputs)
+            for (stage, json) in try OrefRunCharacterizationTests.stages(outputs, clock: scenario.clock) {
+                try OrefGoldens.check(json, clock: scenario.clock, scenario: name, stage: stage)
+            }
+        }
+        #expect(tdd() == berlinTDD)
+        #expect(GlucoseAlarmEvaluation.isEligible(
+            nightAlarm,
+            at: lateEvening,
+            configuration: GlucoseAlertConfiguration(),
+            timeZone: berlin
+        ))
+    }
+}

@@ -102,6 +102,7 @@ extension PumpConfig {
                         PumpSettingsView(
                             pumpManager: pumpManager,
                             bluetoothManager: state.provider.apsManager.bluetoothManager!,
+                            watchLoanGate: resolver.resolve(WatchLoanGate.self)!,
                             completionDelegate: state,
                             setupDelegate: state
                         )
@@ -110,6 +111,7 @@ extension PumpConfig {
                             pumpEntry: pumpEntry,
                             pumpInitialSettings: state.initialSettings,
                             bluetoothManager: state.provider.apsManager.bluetoothManager!,
+                            watchLoanGate: resolver.resolve(WatchLoanGate.self)!,
                             completionDelegate: state,
                             setupDelegate: state
                         )

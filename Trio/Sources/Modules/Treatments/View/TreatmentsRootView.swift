@@ -23,6 +23,8 @@ extension Treatments {
 
         @State var state = StateModel()
 
+        @State private var showPresetSheet = false
+        @State private var watchHasPump = false
         @State private var autofocus: Bool = true
         @State private var calculatorDetent = PresentationDetent.large
         @State private var pushed: Bool = false
@@ -513,21 +515,26 @@ extension Treatments {
 
         @ViewBuilder func listView() -> some View {
             List {
-                Section {
-                    foodSearch
-                }.listRowBackground(Color.chart)
+                // the phone's forecast and recommendation are stale while the watch doses (G-M9)
+                if watchHasPump {
+                    Section { TrioOnWatchBlockedNote(message: TrioOnWatchBlockedNote.treatments) }
+                } else {
+                    Section {
+                        foodSearch
+                    }.listRowBackground(Color.chart)
 
-                Section {
-                    ForecastChart(state: state)
-                }.listRowBackground(Color.chart)
+                    Section {
+                        ForecastChart(state: state)
+                    }.listRowBackground(Color.chart)
 
-                Section {
-                    inputsView
-                }.listRowBackground(Color.chart)
+                    Section {
+                        inputsView
+                    }.listRowBackground(Color.chart)
 
-                Section {
-                    optionsView
-                }.listRowBackground(Color.chart)
+                    Section {
+                        optionsView
+                    }.listRowBackground(Color.chart)
+                }
             }
             .listStyle(.insetGrouped)
             .listSectionSpacing(sectionSpacing)
@@ -586,6 +593,10 @@ extension Treatments {
                     mealManager.isInitial = false
                 }
 
+                watchHasPump = resolver.resolve(WatchLoanGate.self)?.phoneMayCommandPump == false
+                #if DEBUG
+                    if TrioOnWatchPhoneFixture.showsBlockedNotes { watchHasPump = true }
+                #endif
                 configureView {
                     state.isActive = true
                     Task { @MainActor in
@@ -708,22 +719,22 @@ extension Treatments {
 
         private var bolusWarning: (shouldConfirm: Bool, warningMessage: String, color: Color) {
             let isGlucoseVeryLow = state.currentBG < 54
-            let isForecastVeryLow = state.minPredBG < 54
 
             // Only warn when enacting a bolus via pump
             guard !state.externalInsulin, state.amount > 0 else {
                 return (false, "", .primary)
             }
 
-            let warningMessage =
-                isGlucoseVeryLow
-                    ? String(localized: "Glucose is very low.")
-                    : isForecastVeryLow ? String(localized: "Glucose forecast is very low.") : ""
+            let warningMessage = LowGlucoseBolusWarning.message(currentBG: state.currentBG, minPredBG: state.minPredBG) ?? ""
 
             let warningColor: Color =
                 isGlucoseVeryLow ? .red : colorScheme == .dark ? .orange : .accentColor
 
-            let shouldConfirm = state.confirmBolus && (isGlucoseVeryLow || isForecastVeryLow)
+            let shouldConfirm = LowGlucoseBolusWarning.shouldConfirm(
+                confirmBolus: state.confirmBolus,
+                currentBG: state.currentBG,
+                minPredBG: state.minPredBG
+            )
 
             return (shouldConfirm, warningMessage, warningColor)
         }
@@ -967,7 +978,7 @@ extension Treatments {
         }
 
         private var disableTaskButton: Bool {
-            bolusInProgressForEntry || state.addButtonPressed || limitExceeded
+            watchHasPump || bolusInProgressForEntry || state.addButtonPressed || limitExceeded
         }
     }
 

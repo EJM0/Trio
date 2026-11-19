@@ -15,7 +15,7 @@ import Testing
     @Injected() var settingsManager: SettingsManager!
     @Injected() var fileStorage: FileStorage!
     @Injected() var apsManager: APSManager!
-    let resolver = TrioApp().resolver
+    let resolver = TrioApp.resolver
 
     init() {
         injectServices(resolver)

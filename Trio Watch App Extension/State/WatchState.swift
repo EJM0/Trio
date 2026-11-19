@@ -388,6 +388,7 @@ import WidgetKit
     /// Handles incoming messages from the paired iPhone when Phone is in the foreground
     func session(_: WCSession, didReceiveMessage message: [String: Any]) {
         if WatchLogger.shared.handlePhoneMessage(message) { return }
+        if WatchLoanRuntime.receive(message) { return }
 
         // Ack at top level — no `watchState` wrapper, no staleness check.
         if let acknowledged = message[WatchMessageKeys.acknowledged] as? Bool,
@@ -421,6 +422,7 @@ import WidgetKit
 
     func session(_: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
         if WatchLogger.shared.handlePhoneMessage(userInfo) { return }
+        if WatchLoanRuntime.receive(userInfo) { return }
         handleIncomingWatchStatePayload(userInfo)
     }
 
