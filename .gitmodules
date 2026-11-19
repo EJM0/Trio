@@ -1,7 +1,7 @@
 [submodule "LoopKit"]
 	path = LoopKit
-	url = https://github.com/loopandlearn/LoopKit.git
-	branch = trio-next-dev
+	url = https://github.com/dnzxy/LoopKit.git
+	branch = feat/trio-on-watch
 [submodule "CGMBLEKit"]
 	path = CGMBLEKit
 	url = https://github.com/loopandlearn/CGMBLEKit.git
@@ -40,8 +40,8 @@
 	branch = trio-next-dev
 [submodule "OmnipodKit"]
 	path = OmnipodKit
-	url = https://github.com/loopandlearn/OmnipodKit
-	branch = next-dev
+	url = https://github.com/dnzxy/OmnipodKit.git
+	branch = feat/trio-on-watch
 [submodule "AccuChekKit"]
 	path = AccuChekKit
 	url = https://github.com/loopandlearn/AccuChekKit
