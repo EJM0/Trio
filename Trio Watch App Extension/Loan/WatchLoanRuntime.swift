@@ -30,7 +30,7 @@ import WatchKit
                     return settings.authorizationStatus == .authorized && settings.timeSensitiveSetting == .enabled
                 },
                 modelIdentifier: { WatchLoanRuntime.modelIdentifier },
-                appBuild: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "",
+                appBuild: WatchLoanRuntime.appBuild,
                 beginActivity: { ExpiringActivity(reason: $0) }
             ))
             cgm.host = created
@@ -52,6 +52,13 @@ import WatchKit
         var buffer = [CChar](repeating: 0, count: size)
         guard sysctlbyname("hw.machine", &buffer, &size, nil, 0) == 0 else { return nil }
         return String(cString: buffer)
+    }
+
+    /// The build string the phone compares the grant against. Must match `WatchLoanPhoneHost`'s exactly:
+    /// `"<CFBundleShortVersionString> (<CFBundleVersion>)"`.
+    nonisolated static var appBuild: String {
+        let info = Bundle.main.infoDictionary
+        return "\(info?["CFBundleShortVersionString"] as? String ?? "") (\(info?["CFBundleVersion"] as? String ?? ""))"
     }
 
     /// A WatchConnectivity payload; true when it was a loan payload.
@@ -137,14 +144,27 @@ final class WCSessionLoanTransport: WatchLoanTransport {
             WatchLogger.shared.warning(.connectivity, "Loan payload not sent: session not active")
             return
         }
-        if session.isReachable {
+        // A live `sendMessage` is capped near 64 KB. A record batch that built up over a long phone absence can
+        // exceed that; rather than let the live send fail first, hand an oversized payload straight to the queued
+        // transfer, which has no such limit. Small payloads still go live for immediacy.
+        if session.isReachable, Self.fitsLiveMessage(payload) {
             session.sendMessage(payload, replyHandler: nil) { error in
                 WatchLogger.shared.warning(.connectivity, "Live loan send failed; queued instead", error: error)
                 session.transferUserInfo(payload)
             }
         } else {
+            if session.isReachable {
+                WatchLogger.shared.info(.connectivity, "Loan payload too large for a live message; queued instead")
+            }
             session.transferUserInfo(payload)
         }
+    }
+
+    /// Whether `payload` is small enough to send live. Measures the `Data` values (records, messages, snapshots are
+    /// all binary) against the live-message budget, leaving headroom for the dictionary encoding `sendMessage` adds.
+    private static func fitsLiveMessage(_ payload: [String: Any]) -> Bool {
+        let dataBytes = payload.values.reduce(0) { $0 + (($1 as? Data)?.count ?? 0) }
+        return dataBytes <= WatchLoanSnapshot.grantBudgetBytes
     }
 
     func sendLive(_ payload: [String: Any], reply: (([String: Any]) -> Void)?) -> Bool {

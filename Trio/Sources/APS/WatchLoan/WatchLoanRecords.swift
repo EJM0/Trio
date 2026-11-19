@@ -63,8 +63,15 @@ enum WatchLoanWireKey {
     static let snapshot = "watchLoanSnapshot"
     static let records = "watchLoanRecords"
     static let recordsAck = "watchLoanRecordsAck"
+    /// One slice of a compressed `WatchLoanSnapshot` too large for a single live message. The grant that follows
+    /// carries the slice count; the watch reassembles the slices in index order before it adopts.
+    static let snapshotChunk = "watchLoanSnapshotChunk"
+    static let snapshotChunkIndex = "watchLoanSnapshotChunkIndex"
+    static let snapshotChunkCount = "watchLoanSnapshotChunkCount"
+    /// The loan epoch a chunk belongs to, so a stale slice from an earlier grant is dropped.
+    static let snapshotChunkEpoch = "watchLoanSnapshotChunkEpoch"
 
-    static let all = [message, snapshot, records, recordsAck]
+    static let all = [message, snapshot, records, recordsAck, snapshotChunk]
 
     /// Loan payloads go to the loan coordinator; every other watch message keeps its existing path.
     static func isLoanPayload(_ payload: [String: Any]) -> Bool {

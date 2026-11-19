@@ -146,11 +146,11 @@ struct CurrentGlucoseView: View {
     }
 
     private var delta: String {
-        guard glucose.count >= 2 else {
+        guard glucose.count >= 2, let last = glucose.last?.glucose, last > 0 else {
             return "--"
         }
 
-        let lastGlucose = Decimal(glucose.last?.glucose ?? 0)
+        let lastGlucose = Decimal(last)
         let secondLastGlucose = Decimal(glucose.first?.glucose ?? 0)
         return (lastGlucose - secondLastGlucose).formattedDelta(for: units)
     }
@@ -244,9 +244,10 @@ struct CurrentGlucoseView: View {
     /// Matches `APSManager`'s loop-input freshness gate — readings older than
     /// 12 minutes (one missed CGM transmission on a 5-min schedule) get
     /// masked to dashes. Handles warmup + sensor failure naturally: no
-    /// fresh data → no number on the bobble.
+    /// fresh data → no number on the bobble. A glucose of 0 is a gap or
+    /// sensor error, never a real reading, so it is treated as not fresh.
     private var isReadingFresh: Bool {
-        guard let date = glucose.last?.date else { return false }
+        guard let date = glucose.last?.date, let value = glucose.last?.glucose, value > 0 else { return false }
         return Date().timeIntervalSince(date) < 12 * 60
     }
 
