@@ -1715,3 +1715,26 @@ Checked Jeremy Barnum's public work since 2026-11-15 (OmnipodKit #177 branch, Lo
 - `otherControllerDetectedAt` (LoopKit#702). It's additive, and Trio reads `foreignSessionDetectedAt`.
 - His watch address-hold workaround (Loop 424135e2). He marks it testing-only; it needs a hardware check first.
 - G7SensorKit upstream #124/#125: a separate look later; StartDelay is broken on watchOS.
+
+## #1648 merge and the watch App ID (2026-11-19)
+
+**#1648 (Watch bolus safety checks, open upstream)** is merged as `0fdbdc882`. It brings only its own 4 commits. It replaces the side fix U-2 (`fix/watch-bolus-guards`, never committed): U-2 only blocked a manual bolus over max bolus, and #1648 checks that and more for watch boluses.
+
+**Conflicts resolved:**
+
+- **"No answer" timeout.** Dev now times out a missing answer in `WatchState` (15 s, then a banner), so #1648's 5 s timer in the view is dropped. A stale timeout can't close the confirmation: `handleMissingAcknowledgment` does nothing once `showCommsAnimation` is false, and #1648 clears it when the confirmation appears.
+- **After the crown confirm.** #1648's jump back to the start screen when the iPhone is unreachable is removed. It would have hidden dev's "iPhone not reachable. Nothing was sent." banner, and the banner already returns to the start screen when it closes.
+- **Shared checks.** `BolusSafetyCheck`, `BolusSafetyRejection.check`, `localizedMessage(requestedAmount:)` and the `overriding:` parameter now live in the shared `BolusSafetyEvaluator.swift`, which the watch also compiles. The watch-holds-pump bolus path calls `evaluate` without overrides, so it still blocks outright.
+- **Logging.** #1648's `.watchManager` category no longer exists on dev. Its lines now use the `.bolus` category, give units and have no emoji; a failure to run the checks logs a warning.
+- **String catalog.** Merged on its own; nothing was hand-merged.
+
+**Watch App ID:** `d3f49d443` adds `USERNOTIFICATIONS_TIMESENSITIVE` to the watch App ID in the Fastfile. CI pins fastlane 2.240.1, which has it. Browser builders re-run "Add Identifiers", then "Create Certificates". On dev, the iPhone app also has the time-sensitive entitlement without it in the Fastfile; that isn't checked.
+
+| # | Step | Result |
+|---|---|---|
+| P1 | iOS app, flag off and on | 0, 0 |
+| P2 | Watch app, flag off and on | 0, 0 |
+| P3 | Full `Trio Tests` | 0; 1267 passed (+8: #1648's validator tests), 1 known issue |
+| P4 | `Trio Watch AppTests`, flag off and on | 70 / 70, 70 / 70 |
+
+**Not verified:** the confirmation screen and the watch handlers on a paired watch; #1648 has no automated test for them. See #1648's manual list.
