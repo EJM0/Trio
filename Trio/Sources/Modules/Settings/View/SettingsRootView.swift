@@ -19,6 +19,7 @@ extension Settings {
         @StateObject var state = StateModel()
 
         @State private var searchText: String = ""
+        @State private var watchHasPump = false
         @State var hintDetent = PresentationDetent.large
         @State private var hintPayload: HintPayload?
 
@@ -48,7 +49,9 @@ extension Settings {
             latestDevVersion: nil,
             isDevUpdateAvailable: false
         )
-        @State private var dosingModeDisabled = true
+        @State private var dosingModeLockReason: String? = String(
+            localized: "Add a CGM and pump to enable automated insulin delivery"
+        )
         @State private var showCopiedToast = false
         @ObservedObject private var releaseNotesService = ReleaseNotesService.shared
 
@@ -139,6 +142,9 @@ extension Settings {
 
         var body: some View {
             List {
+                if watchHasPump {
+                    TrioOnWatchBlockedNote(message: TrioOnWatchBlockedNote.settings)
+                }
                 if searchText.isEmpty {
                     let buildDetails = BuildDetails.shared
 
@@ -207,13 +213,21 @@ extension Settings {
                     ).listRowBackground(Color.chart)
 
                     let miniHintTextColorForDisabled: Color = colorScheme == .dark ? .orange : .accentColor
-                    let miniHintTextColor: Color = dosingModeDisabled ? miniHintTextColorForDisabled : .secondary
+                    let miniHintTextColor: Color = dosingModeLockReason != nil ? miniHintTextColorForDisabled :
+                        .secondary
                     Section(
                         header: Text("Automated Insulin Delivery"),
                         content: {
                             VStack {
                                 Picker(
-                                    selection: $state.dosingMode,
+                                    selection: Binding(
+                                        get: { state.dosingMode },
+                                        set: { mode in
+                                            // the pump can be handed over while this screen is open
+                                            dosingModeLockReason = state.dosingModeLockReason()
+                                            if dosingModeLockReason == nil { state.dosingMode = mode }
+                                        }
+                                    ),
                                     label: Text("Dosing Mode")
                                 ) {
                                     ForEach(DosingMode.userSelectable) { mode in
@@ -221,17 +235,13 @@ extension Settings {
                                     }
                                 }
                                 .padding(.top)
-                                .disabled(dosingModeDisabled)
+                                .disabled(dosingModeLockReason != nil)
 
                                 HStack(alignment: .center) {
-                                    Text(
-                                        dosingModeDisabled ?
-                                            String(localized: "Add a CGM and pump to enable automated insulin delivery") :
-                                            state.dosingMode.miniHint
-                                    )
-                                    .font(.footnote)
-                                    .foregroundColor(miniHintTextColor)
-                                    .lineLimit(nil)
+                                    Text(dosingModeLockReason ?? state.dosingMode.miniHint)
+                                        .font(.footnote)
+                                        .foregroundColor(miniHintTextColor)
+                                        .lineLimit(nil)
                                     Spacer()
                                     Button(
                                         action: {
@@ -266,7 +276,16 @@ extension Settings {
                     .listRowBackground(Color.chart)
                     .settingsSearchTarget(label: String(localized: "Dosing Mode"))
                     .onAppear {
-                        dosingModeDisabled = !state.hasCgmAndPump()
+                        dosingModeLockReason = state.dosingModeLockReason()
+                        #if DEBUG
+                            // screenshot harness: the lock text only; the picker's own check still asks the gate
+                            if TrioOnWatchPhoneFixture.showsBlockedNotes {
+                                dosingModeLockReason = Settings.StateModel.dosingModeLockReason(
+                                    hasCgmAndPump: true,
+                                    phoneMayCommandPump: false
+                                )
+                            }
+                        #endif
                     }
 
                     Section(
@@ -395,6 +414,12 @@ extension Settings {
                 )
             }
             .onAppear(perform: configureView)
+            .onAppear {
+                watchHasPump = resolver.resolve(WatchLoanGate.self)?.phoneMayCommandPump == false
+                #if DEBUG
+                    if TrioOnWatchPhoneFixture.showsBlockedNotes { watchHasPump = true }
+                #endif
+            }
             .task {
                 await releaseNotesService.load()
             }

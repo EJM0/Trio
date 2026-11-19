@@ -14,7 +14,7 @@ protocol WatchManager {
 /// Main implementation of the Watch communication manager
 /// Handles bidirectional communication between iPhone and Apple Watch
 final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchManager {
-    private var session: WCSession?
+    private(set) var session: WCSession?
 
     @Injected() var broadcaster: Broadcaster!
     @Injected() private var apsManager: APSManager!
@@ -29,6 +29,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     @Injected() private var iobService: IOBService!
     @Injected() private var notificationsManager: UserNotificationsManager!
     @Injected() private var fetchGlucoseManager: FetchGlucoseManager!
+    @Injected() var watchLoanCoordinator: WatchLoanCoordinator!
 
     private var units: GlucoseUnits = .mgdL
     private var glucoseColorScheme: GlucoseColorScheme = .staticColor
@@ -732,6 +733,13 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         didReceiveMessage message: [String: Any],
         replyHandler: @escaping ([String: Any]) -> Void
     ) {
+        if WatchLoanStartFacts.isQuery(message) {
+            return answerStartFactsQuery(replyHandler)
+        }
+        if WatchLoanWireKey.isStatusQuery(message) {
+            return answerLoanStatusQuery(replyHandler)
+        }
+
         guard let requestWatchUpdate = message[WatchMessageKeys.requestWatchUpdate] as? String,
               requestWatchUpdate == WatchMessageKeys.watchState
         else {
@@ -765,6 +773,11 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         if let logs = message["watchLogs"] as? String {
             WatchLogIngest.legacyRecords(from: logs).forEach(TrioLogger.sink.accept)
             if message.count == 1 { return }
+        }
+
+        if WatchLoanWireKey.isLoanPayload(message) {
+            forwardLoanPayload(message)
+            return
         }
 
         Task { @MainActor [weak self] in
@@ -903,6 +916,11 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     func session(_: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
         if let logs = userInfo["watchLogs"] as? String {
             WatchLogIngest.legacyRecords(from: logs).forEach(TrioLogger.sink.accept)
+        }
+
+        if WatchLoanWireKey.isLoanPayload(userInfo) {
+            forwardLoanPayload(userInfo)
+            return
         }
 
         if let snoozeMinutes = userInfo[WatchMessageKeys.snoozeDuration] as? Int {

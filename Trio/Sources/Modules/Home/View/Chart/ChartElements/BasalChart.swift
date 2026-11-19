@@ -322,7 +322,12 @@ extension MainChartCanvas {
             let isSuspend = event.type == PumpEventStored.EventType.pumpSuspend.rawValue
             return ScheduledBasalInference.TimelineEvent(start: timestamp, kind: isSuspend ? .suspend : .resume)
         }
-        for segment in ScheduledBasalInference.segments(events: timeline, profile: state.basalProfile, now: now) {
+        for segment in ScheduledBasalInference.segments(
+            events: timeline,
+            profile: state.basalProfile,
+            now: now,
+            timeZone: TimeZone.current
+        ) {
             prepared.append(PreparedTempBasal(
                 start: segment.start,
                 end: segment.end,

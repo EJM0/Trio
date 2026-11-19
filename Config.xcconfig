@@ -17,6 +17,13 @@ BUNDLE_IDENTIFIER = de.artpancreas.$(DEVELOPMENT_TEAM).FreeAPS
 // to build with GitHub actions and to work with xDrip4iOS
 TRIO_APP_GROUP_ID = group.org.nightscout.$(DEVELOPMENT_TEAM).trio.trio-app-group
 
+// Trio on Watch is experimental and off by default. TRIO_ON_WATCH = YES (in ConfigOverride.xcconfig)
+// adds the watch app's Bluetooth background mode and time-sensitive notifications entitlement,
+// and lets iPhone hand the pump to the watch
+TRIO_ON_WATCH = NO
+TRIO_ON_WATCH_SWIFT_CONDITION_YES = TRIO_ON_WATCH
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) $(TRIO_ON_WATCH_SWIFT_CONDITION_$(TRIO_ON_WATCH))
+
 // The developers set the version numbers, please leave them alone
 APP_VERSION = 1.0.2
 APP_DEV_VERSION = 1.0.2.76
@@ -29,4 +36,4 @@ COPYRIGHT_NOTICE =
 #include? "ConfigOverride.xcconfig"
 
 // dev-watch-cgm only: no "built from a branch" warning on launch
-SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) DEV_BRANCH_WARNING_DISABLED
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) $(TRIO_ON_WATCH_SWIFT_CONDITION_$(TRIO_ON_WATCH)) DEV_BRANCH_WARNING_DISABLED

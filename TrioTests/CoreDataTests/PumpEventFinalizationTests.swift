@@ -668,7 +668,6 @@ import Testing
     @Test(
         "Overlapping scheduled-basal rows accrue delivery once, not once per row"
     ) func testOverlappingScheduledBasalRowsDoNotMultiply() throws {
-        let tddStorage = resolver.resolve(TDDStorage.self) as! BaseTDDStorage
         let now = Date()
         let start = now.addingTimeInterval(-60.minutes.timeInterval)
         // five 24 h rows a minute apart, as one basal-schedule edit produces on Medtronic
@@ -684,11 +683,12 @@ import Testing
         }
 
         let segments = ScheduledBasalInference.segments(
-            events: BaseTDDStorage.timelineEvents(from: history),
+            events: OrefInputs.timelineEvents(from: history),
             profile: [BasalProfileEntry(start: "00:00", minutes: 0, rate: 1.0)],
-            now: now
+            now: now,
+            timeZone: TimeZone.current
         )
-        let insulin = tddStorage.calculateScheduledBasalInsulin(
+        let insulin = OrefInputs.calculateScheduledBasalInsulin(
             segments,
             roundToSupportedBasalRate: { $0 }
         )
@@ -713,14 +713,15 @@ import Testing
             )
         ]
 
-        let events = BaseTDDStorage.timelineEvents(from: history)
+        let events = OrefInputs.timelineEvents(from: history)
         #expect(events.count == 1)
         #expect(events[0].end == events[0].start, "A 24 h placeholder must not mark a day covered")
 
         let segments = ScheduledBasalInference.segments(
             events: events,
             profile: [BasalProfileEntry(start: "00:00", minutes: 0, rate: 1.0)],
-            now: now
+            now: now,
+            timeZone: TimeZone.current
         )
         #expect(!segments.isEmpty, "The hour since the row was reported is still swept")
     }
@@ -748,9 +749,10 @@ import Testing
         ]
 
         let segments = ScheduledBasalInference.segments(
-            events: BaseTDDStorage.timelineEvents(from: history),
+            events: OrefInputs.timelineEvents(from: history),
             profile: [BasalProfileEntry(start: "00:00", minutes: 0, rate: 1.0)],
-            now: now
+            now: now,
+            timeZone: TimeZone.current
         )
 
         // the temp basal covers the whole window, so scheduled basal is not billed on top of it
@@ -773,9 +775,10 @@ import Testing
         ]
 
         let segments = ScheduledBasalInference.segments(
-            events: BaseTDDStorage.timelineEvents(from: history),
+            events: OrefInputs.timelineEvents(from: history),
             profile: [BasalProfileEntry(start: "00:00", minutes: 0, rate: 1.0)],
-            now: now
+            now: now,
+            timeZone: TimeZone.current
         )
 
         #expect(!segments.isEmpty, "No row covers the last half hour, so the profile fills it")
@@ -798,7 +801,7 @@ import Testing
         let r1 = now.addingTimeInterval(-2.hours.timeInterval)
         let s2 = now.addingTimeInterval(-1.hours.timeInterval)
 
-        let spans = BaseTDDStorage.suspensionSpans(
+        let spans = OrefInputs.suspensionSpans(
             suspends: [suspendEvent(s2), suspendEvent(s1)],
             resumes: [resumeEvent(r1)],
             now: now
@@ -816,7 +819,7 @@ import Testing
         let s2 = now.addingTimeInterval(-2.hours.timeInterval)
         let r2 = now.addingTimeInterval(-1.hours.timeInterval)
 
-        let spans = BaseTDDStorage.suspensionSpans(
+        let spans = OrefInputs.suspensionSpans(
             suspends: [suspendEvent(s2), suspendEvent(s1)],
             resumes: [resumeEvent(r2), resumeEvent(r1)],
             now: now
@@ -832,7 +835,7 @@ import Testing
         let s1 = now.addingTimeInterval(-2.hours.timeInterval)
         let r1 = now.addingTimeInterval(-1.hours.timeInterval)
 
-        let spans = BaseTDDStorage.suspensionSpans(
+        let spans = OrefInputs.suspensionSpans(
             suspends: [suspendEvent(s1)],
             resumes: [resumeEvent(r1), resumeEvent(r0)],
             now: now
@@ -844,18 +847,17 @@ import Testing
 
     @Test("A suspension inside a running temp basal is not counted as delivered") func testSuspensionReducesTempBasalInsulin(
     ) throws {
-        let tddStorage = resolver.resolve(TDDStorage.self) as! BaseTDDStorage
         let now = Date()
         let start = now.addingTimeInterval(-4.hours.timeInterval)
         // 1 U/hr for 4 h, suspended for the middle hour
         let tempBasal = PumpHistoryEvent(id: "tbr", type: .tempBasal, timestamp: start, amount: 1.0, duration: 240)
-        let spans = BaseTDDStorage.suspensionSpans(
+        let spans = OrefInputs.suspensionSpans(
             suspends: [suspendEvent(start.addingTimeInterval(1.hours.timeInterval))],
             resumes: [resumeEvent(start.addingTimeInterval(2.hours.timeInterval))],
             now: now
         )
 
-        let insulin = tddStorage.calculateTempBasalInsulin(
+        let insulin = OrefInputs.calculateTempBasalInsulin(
             [tempBasal],
             suspensions: spans,
             now: now,
@@ -866,7 +868,6 @@ import Testing
     }
 
     @Test("A running temp basal is clamped to now and to its successor") func testTempBasalClampedToNowAndSuccessor() throws {
-        let tddStorage = resolver.resolve(TDDStorage.self) as! BaseTDDStorage
         let now = Date()
         let first = now.addingTimeInterval(-2.hours.timeInterval)
         // 2 U/hr scheduled for 2 h but replaced after 1 h, then 1 U/hr still running with 1 h elapsed
@@ -879,7 +880,7 @@ import Testing
             duration: 120
         )
 
-        let insulin = tddStorage.calculateTempBasalInsulin(
+        let insulin = OrefInputs.calculateTempBasalInsulin(
             [superseded, running],
             suspensions: [],
             now: now,

@@ -9,20 +9,31 @@ final class OpenAPS {
     private let tddStorage: TDDStorage
     private let glucoseStorage: GlucoseStorage
     private let carbsStorage: CarbsStorage
+    private let makeContext: () -> NSManagedObjectContext
+    private let now: () -> Date
 
     let jsonConverter = JSONConverter()
 
     private func newContext(_ name: String) -> NSManagedObjectContext {
-        let context = CoreDataStack.shared.newTaskContext()
+        let context = makeContext()
         context.name = name
         return context
     }
 
-    init(storage: FileStorage, tddStorage: TDDStorage, glucoseStorage: GlucoseStorage, carbsStorage: CarbsStorage) {
+    init(
+        storage: FileStorage,
+        tddStorage: TDDStorage,
+        glucoseStorage: GlucoseStorage,
+        carbsStorage: CarbsStorage,
+        contextProvider: (() -> NSManagedObjectContext)? = nil,
+        now: @escaping () -> Date = Date.init
+    ) {
         self.storage = storage
         self.tddStorage = tddStorage
         self.glucoseStorage = glucoseStorage
         self.carbsStorage = carbsStorage
+        makeContext = contextProvider ?? { CoreDataStack.shared.newTaskContext() }
+        self.now = now
     }
 
     static let dateFormatter: ISO8601DateFormatter = {
@@ -38,10 +49,10 @@ final class OpenAPS {
     }
 
     // Use the helper function for cleaner code
-    func processDetermination(_ determination: Determination, on context: NSManagedObjectContext) async {
+    func processDetermination(_ determination: Determination, on context: NSManagedObjectContext) async throws {
         await context.perform {
             let newOrefDetermination = OrefDetermination(context: context)
-            newOrefDetermination.id = UUID()
+            newOrefDetermination.id = determination.id ?? UUID()
             newOrefDetermination.insulinSensitivity = self.decimalToNSDecimalNumber(determination.isf)
             newOrefDetermination.currentTarget = self.decimalToNSDecimalNumber(determination.current_target)
             newOrefDetermination.eventualBG = determination.eventualBG.map(NSDecimalNumber.init)
@@ -87,17 +98,13 @@ final class OpenAPS {
         }
 
         // First save the current Determination to Core Data
-        await attemptToSaveContext(on: context)
+        try await attemptToSaveContext(on: context)
     }
 
-    func attemptToSaveContext(on context: NSManagedObjectContext) async {
-        await context.perform {
-            do {
-                guard context.hasChanges else { return }
-                try context.save()
-            } catch {
-                warning(.storage, "Saving the determination failed", error: error)
-            }
+    func attemptToSaveContext(on context: NSManagedObjectContext) async throws {
+        try await context.perform {
+            guard context.hasChanges else { return }
+            try context.save()
         }
     }
 
@@ -105,7 +112,7 @@ final class OpenAPS {
         let results = try await CoreDataStack.shared.fetchEntitiesAsync(
             ofType: PumpEventStored.self,
             onContext: context,
-            predicate: NSPredicate.pumpHistoryLast1440Minutes,
+            predicate: NSPredicate.pumpHistoryLast1440Minutes(now: now()),
             key: "timestamp",
             ascending: false,
             batchSize: 50
@@ -174,7 +181,7 @@ final class OpenAPS {
         PumpHistoryEvent(
             id: UUID().uuidString,
             type: .bolus,
-            timestamp: Date().addingTimeInterval(-1),
+            timestamp: now().addingTimeInterval(-1),
             amount: simulatedBolusAmount,
             duration: 0,
             isSMB: true,
@@ -187,7 +194,7 @@ final class OpenAPS {
         let results = try await CoreDataStack.shared.fetchEntitiesAsync(
             ofType: PumpEventStored.self,
             onContext: context,
-            predicate: NSPredicate.pumpHistoryLast48h,
+            predicate: NSPredicate.pumpHistoryLast48h(now: now()),
             key: "timestamp",
             ascending: true,
             batchSize: 250
@@ -198,37 +205,8 @@ final class OpenAPS {
                 throw CoreDataError.fetchError(function: #function, file: #file)
             }
 
-            let pumpEventResults = pumpEventResultsFull
-                .filter { $0.type == EventType.pumpSuspend.rawValue || $0.type == EventType.pumpResume.rawValue }
-
-            // we define an orphaned resume as one without a paired suspend within
-            // the most recent 24 hours.
-            // **Important**: we pick 48 hours because the standard pump history
-            // is 24 hours + 24 hours of inspection for resumes.
-            let orphanedResumes = zip(pumpEventResults, pumpEventResults.dropFirst())
-                .compactMap { (prev, curr) -> PumpEventStored? in
-                    guard let prevTimestamp = prev.timestamp, let currTimestamp = curr.timestamp else {
-                        return nil
-                    }
-                    let interval = currTimestamp.timeIntervalSince(prevTimestamp)
-
-                    // check if the current event is an orphaned resume
-                    //  - previous event not a suspend
-                    //  - previous event is a suspend but it's more than 24 hours ago
-                    if curr.type == EventType.pumpResume.rawValue,
-                       prev.type != EventType.pumpSuspend.rawValue || interval > TimeInterval(hours: 24)
-                    {
-                        return curr
-                    }
-                    return nil
-                }
-            // check the first event to see if it's an orphaned resume
-            let firstResumeOrphaned = pumpEventResults.first.flatMap({ event -> [PumpEventStored]? in
-                guard event.type == EventType.pumpResume.rawValue else { return nil }
-                return [event]
-            }) ?? []
-
-            return (firstResumeOrphaned + orphanedResumes).map(\.objectID)
+            return OrefInputs.orphanedResumes(in: pumpEventResultsFull, type: { $0.type }, timestamp: { $0.timestamp })
+                .map(\.objectID)
         }
     }
 
@@ -253,9 +231,9 @@ final class OpenAPS {
         )
 
         // second, independent read into the algorithm; needs the same clamp as the profile
-        var preferences = (await storage.retrieveAsync(OpenAPS.Settings.preferences, as: Preferences.self) ?? Preferences())
+        let preferences = (await storage.retrieveAsync(OpenAPS.Settings.preferences, as: Preferences.self) ?? Preferences())
             .clamped(for: dosingMode)
-        let glucoseFetchHours = preferences.maxMealAbsorptionTime + 0.5 // MMAT + half hour buffer
+        let glucoseFetchHours = OrefInputs.determinationGlucoseHours(preferences)
         async let glucoseFetch = glucoseStorage.getGlucoseForAlgorithm(
             shouldSmoothGlucose: shouldSmoothGlucose,
             fetchHours: glucoseFetchHours
@@ -289,31 +267,33 @@ final class OpenAPS {
         )
 
         // Decode the JSON-at-rest inputs into native models at the call boundary.
-        var profile = try JSONBridge.profile(from: rawProfile)
-        // pump capability is injected here rather than persisted, so it can never go stale
-        profile.supportedBasalRates = supportedBasalRates
-        // derived here, not baked into profile.json, which the JS parity goldens compare
-        profile.suspendOnly = dosingMode.automation == .hypoSuspendOnly
+        let profile = OrefRun.determinationProfile(
+            try JSONBridge.profile(from: rawProfile),
+            supportedBasalRates: supportedBasalRates,
+            dosingMode: dosingMode
+        )
         let basalProfile = try JSONBridge.basalProfile(from: rawBasalProfile)
         let autosens = try JSONBridge.autosens(from: rawAutosens.isEmpty ? .null : rawAutosens)
         let trioCustomOrefVariables = try JSONBridge.trioCustomOrefVariables(from: rawTrioCustomOrefVariables)
 
         // Meal calculation
-        let meal = try self.meal(
+        let meal = try OrefRun.meal(
             pumphistory: pumpHistory,
             profile: profile,
             basalProfile: basalProfile,
             clock: clock,
             carbs: carbs,
-            glucose: glucose
+            glucose: glucose,
+            timeZone: TimeZone.current
         )
 
         // IOB calculation
-        let iob = try self.iob(
+        let iob = try OrefRun.iob(
             pumphistory: pumpHistory,
             profile: profile,
             clock: clock,
-            autosens: autosens
+            autosens: autosens,
+            timeZone: TimeZone.current
         )
 
         // TODO: refactor this to core data
@@ -321,23 +301,20 @@ final class OpenAPS {
             storage.save(iob, as: Monitor.iob)
         }
 
-        if !hasSufficientTdd, preferences.useNewFormula || (preferences.useNewFormula && preferences.sigmoid) {
-            debug(.algorithm, "Dynamic ISF off for this run: not enough TDD history")
-            preferences.useNewFormula = false
-            preferences.sigmoid = false
-        }
-
-        // Determine basal
-        let orefDetermination = try determineBasal(
+        // Determine basal; the determination time is now(), not `clock`
+        let orefDetermination = try OrefRun.determine(
             glucose: glucose,
             currentTemp: currentTemp,
             iob: iob,
             profile: profile,
             autosens: autosens,
             meal: meal,
-            microBolusAllowed: true,
             preferences: preferences,
-            trioCustomOrefVariables: trioCustomOrefVariables
+            hasSufficientTDD: hasSufficientTdd,
+            microBolusAllowed: true,
+            trioCustomOrefVariables: trioCustomOrefVariables,
+            currentTime: now(),
+            timeZone: TimeZone.current
         )
 
         debug(
@@ -345,11 +322,7 @@ final class OpenAPS {
             "Determination\(simulation ? " (simulation)" : ""): BG \(orefDetermination?.bg ?? 0) mg/dL, IOB \(orefDetermination?.iob ?? 0) U, COB \(orefDetermination?.cob ?? 0) g, ISF \(orefDetermination?.isf ?? 0) mg/dL/U, sensitivity ratio \(orefDetermination?.sensitivityRatio ?? 1)"
         )
 
-        if var determination = orefDetermination, let deliverAt = determination.deliverAt {
-            // set both timestamp and deliverAt to the SAME date; this will be updated for timestamp once it is enacted
-            // AAPS does it the same way! we'll follow their example!
-            determination.timestamp = deliverAt
-
+        if let determination = orefDetermination, let deliverAt = determination.deliverAt {
             if !simulation {
                 // TODO: refactor this to core data
                 let cobEntries = (determination.cobProjection ?? []).enumerated().map { index, cob in
@@ -358,7 +331,7 @@ final class OpenAPS {
                 storage.save(cobEntries, as: Monitor.cob)
 
                 // save to core data asynchronously
-                await processDetermination(determination, on: context)
+                try await processDetermination(determination, on: context)
             }
 
             return determination
@@ -370,62 +343,24 @@ final class OpenAPS {
 
     func prepareTrioCustomOrefVariables(on context: NSManagedObjectContext) async throws -> RawJSON {
         try await context.perform {
+            let now = self.now()
+
             // Retrieve user preferences
             let userPreferences = self.storage.retrieve(OpenAPS.Settings.preferences, as: Preferences.self)
-            let weightPercentage = userPreferences?.weightPercentage ?? 1.0
-            let maxSMBBasalMinutes = userPreferences?.maxSMBBasalMinutes ?? 30
-            let maxUAMBasalMinutes = userPreferences?.maxUAMSMBBasalMinutes ?? 30
 
             // Fetch historical events for Total Daily Dose (TDD) calculation
-            let tenDaysAgo = Date().addingTimeInterval(-10.days.timeInterval)
-            let twoHoursAgo = Date().addingTimeInterval(-2.hours.timeInterval)
-            let historicalTDDData = try self.fetchHistoricalTDDData(from: tenDaysAgo, on: context)
+            let historicalTDDData = try self.fetchHistoricalTDDData(from: OrefInputs.tddHistoryStart(now: now), on: context)
 
             // Fetch the last active Override
-            let activeOverrides = try self.fetchActiveOverrides(on: context)
-            let isOverrideActive = activeOverrides.first?.enabled ?? false
-            let overridePercentage = Decimal(activeOverrides.first?.percentage ?? 100)
-            let isOverrideIndefinite = activeOverrides.first?.indefinite ?? true
-            let disableSMBs = activeOverrides.first?.smbIsOff ?? false
-            let overrideTargetBG = activeOverrides.first?.target?.decimalValue ?? 0
+            let activeOverride = try self.fetchActiveOverrides(on: context).first
 
-            // Calculate averages for Total Daily Dose (TDD)
-            let totalTDD = historicalTDDData.compactMap { ($0["total"] as? NSDecimalNumber)?.decimalValue }.reduce(0, +)
-            let totalDaysCount = max(historicalTDDData.count, 1)
-
-            // Fetch recent TDD data for the past two hours
-            let recentTDDData = historicalTDDData.filter { ($0["date"] as? Date ?? Date()) >= twoHoursAgo }
-            let recentDataCount = max(recentTDDData.count, 1)
-            let recentTotalTDD = recentTDDData.compactMap { ($0["total"] as? NSDecimalNumber)?.decimalValue }
-                .reduce(0, +)
-
-            let currentTDD = historicalTDDData.last?["total"] as? Decimal ?? 0
-            let averageTDDLastTwoHours = recentTotalTDD / Decimal(recentDataCount)
-            let averageTDDLastTenDays = totalTDD / Decimal(totalDaysCount)
-            let weightedTDD = weightPercentage * averageTDDLastTwoHours + (1 - weightPercentage) * averageTDDLastTenDays
-
-            // Prepare Trio's custom oref variables
-            let trioCustomOrefVariablesData = TrioCustomOrefVariables(
-                average_total_data: currentTDD > 0 ? averageTDDLastTenDays : 0,
-                weightedAverage: currentTDD > 0 ? weightedTDD : 1,
-                currentTDD: currentTDD,
-                past2hoursAverage: currentTDD > 0 ? averageTDDLastTwoHours : 0,
-                date: Date(),
-                overridePercentage: overridePercentage,
-                useOverride: isOverrideActive,
-                duration: activeOverrides.first?.duration?.decimalValue ?? 0,
-                unlimited: isOverrideIndefinite,
-                overrideTarget: overrideTargetBG,
-                smbIsOff: disableSMBs,
-                advancedSettings: activeOverrides.first?.advancedSettings ?? false,
-                isfAndCr: activeOverrides.first?.isfAndCr ?? false,
-                isf: activeOverrides.first?.isf ?? false,
-                cr: activeOverrides.first?.cr ?? false,
-                smbIsScheduledOff: activeOverrides.first?.smbIsScheduledOff ?? false,
-                start: (activeOverrides.first?.start ?? 0) as Decimal,
-                end: (activeOverrides.first?.end ?? 0) as Decimal,
-                smbMinutes: activeOverrides.first?.smbMinutes?.decimalValue ?? maxSMBBasalMinutes,
-                uamMinutes: activeOverrides.first?.uamMinutes?.decimalValue ?? maxUAMBasalMinutes
+            let trioCustomOrefVariablesData = OrefRun.trioCustomOrefVariables(
+                preferences: userPreferences,
+                tddHistory: historicalTDDData.map {
+                    OrefInputs.TDDRow(date: $0["date"] as? Date, total: ($0["total"] as? NSDecimalNumber)?.decimalValue)
+                },
+                activeOverride: activeOverride.map(OrefInputs.OverrideState.init),
+                now: now
             )
 
             // Save and return contents of Trio's custom oref variables
@@ -443,7 +378,7 @@ final class OpenAPS {
         // Autosens needs the full 24h window for its sensitivity algorithm.
         async let glucoseFetch = glucoseStorage.getGlucoseForAlgorithm(
             shouldSmoothGlucose: shouldSmoothGlucose,
-            fetchHours: 24
+            fetchHours: OrefInputs.autosensGlucoseHours
         )
         async let getProfile = loadFileFromStorageAsync(name: Settings.profile)
         async let getBasalProfile = loadFileFromStorageAsync(name: Settings.basalProfile)
@@ -465,18 +400,19 @@ final class OpenAPS {
         let tempTargets = try JSONBridge.tempTargets(from: rawTempTargets)
 
         // Autosense
-        var autosens = try autosense(
+        var autosens = try OrefRun.autosens(
             glucose: glucose,
             pumpHistory: pumpHistory,
             basalProfile: basalProfile,
             profile: profile,
             carbs: carbs,
             tempTargets: tempTargets,
-            clock: Date()
+            clock: now(),
+            timeZone: TimeZone.current
         )
 
         debug(.algorithm, "Autosens ratio \(autosens.ratio)")
-        autosens.timestamp = Date()
+        autosens.timestamp = now()
         await storage.saveAsync(autosens, as: Settings.autosense)
 
         return autosens
@@ -504,48 +440,22 @@ final class OpenAPS {
 
         // Retrieve user preferences, or set defaults if not available
         let preferences = storage.retrieve(OpenAPS.Settings.preferences, as: Preferences.self) ?? Preferences()
-        let defaultHalfBasalTarget = preferences.halfBasalExerciseTarget
-        var adjustedPreferences = preferences
 
-        // Check for active Temp Targets and adjust HBT if necessary
-        try await context.perform {
-            // Check if a Temp Target is active and check HBT differs from setting and adjust
-            if let activeTempTarget = try self.fetchActiveTempTargets(on: context).first,
-               activeTempTarget.enabled,
-               let targetValue = activeTempTarget.target?.decimalValue
-            {
-                // Compute effective HBT - handles both custom HBT and standard TT (where HBT might need adjustment)
-                let effectiveHBT = TempTargetCalculations.computeEffectiveHBT(
-                    tempTargetHalfBasalTarget: activeTempTarget.halfBasalTarget?.decimalValue,
-                    settingHalfBasalTarget: defaultHalfBasalTarget,
-                    target: targetValue,
-                    autosensMax: preferences.autosensMax
-                )
-
-                if let effectiveHBT, effectiveHBT != defaultHalfBasalTarget {
-                    adjustedPreferences.halfBasalExerciseTarget = effectiveHBT
-                    let percentage = Int(TempTargetCalculations.computeAdjustedPercentage(
-                        halfBasalTarget: effectiveHBT,
-                        target: targetValue,
-                        autosensMax: preferences.autosensMax
-                    ).rounded())
-                    debug(
-                        .algorithm,
-                        "Temp target \(targetValue) mg/dL: half basal target \(defaultHalfBasalTarget) -> \(effectiveHBT) mg/dL, \(percentage)%"
-                    )
-                }
-            }
-            // Overwrite the lowTTlowersSens if autosensMax does not support it
-            if preferences.lowTemptargetLowersSensitivity, preferences.autosensMax <= 1 {
-                adjustedPreferences.lowTemptargetLowersSensitivity = false
-                debug(.algorithm, "Low temp target lowers sensitivity off: autosens max \(preferences.autosensMax) is 1 or below")
+        let activeTempTarget = try await context.perform {
+            try self.fetchActiveTempTargets(on: context).first.flatMap { tempTarget -> OrefInputs.TempTargetState? in
+                guard tempTarget.enabled, let target = tempTarget.target?.decimalValue else { return nil }
+                return OrefInputs.TempTargetState(target: target, halfBasalTarget: tempTarget.halfBasalTarget?.decimalValue)
             }
         }
 
-        // clamp after the HBT block above, which needs the user's real autosensMax
-        adjustedPreferences = adjustedPreferences.clamped(for: dosingMode)
+        // Adjusts HBT for an active temp target, then clamps for the dosing mode
+        let adjustedPreferences = OrefRun.profilePreferences(
+            preferences,
+            activeTempTarget: activeTempTarget,
+            dosingMode: dosingMode
+        )
 
-        let clock = Date()
+        let clock = now()
         do {
             // Decode the raw settings into native models. The bundled-defaults
             // fallback still happens in loadFileFromStorageAsync above, so decoding
@@ -557,26 +467,16 @@ final class OpenAPS {
             let carbRatios = try JSONBridge.carbRatios(from: carbRatios)
             let tempTargets = try JSONBridge.tempTargets(from: tempTargets)
 
-            let pumpProfile = try ProfileGenerator.generate(
+            let (pumpProfile, profile) = try OrefRun.profiles(
                 pumpSettings: pumpSettings,
                 bgTargets: bgTargets,
                 basalProfile: basalProfile,
-                isf: insulinSensitivities,
-                preferences: adjustedPreferences,
+                insulinSensitivities: insulinSensitivities,
                 carbRatios: carbRatios,
                 tempTargets: tempTargets,
-                clock: clock
-            )
-
-            let profile = try ProfileGenerator.generate(
-                pumpSettings: pumpSettings,
-                bgTargets: bgTargets,
-                basalProfile: basalProfile,
-                isf: insulinSensitivities,
                 preferences: adjustedPreferences,
-                carbRatios: carbRatios,
-                tempTargets: tempTargets,
-                clock: clock
+                clock: clock,
+                timeZone: TimeZone.current
             )
 
             // Save the profiles
@@ -588,116 +488,66 @@ final class OpenAPS {
         }
     }
 
-    private func iob(
-        pumphistory: [PumpHistoryEvent],
-        profile: Profile,
-        clock: Date,
-        autosens: Autosens?
-    ) throws -> [IobResult] {
-        // FIXME: For now we'll just remove duplicate suspends here (ISSUE-399)
-        let pumphistory = pumphistory.removingDuplicateSuspendResumeEvents()
-
-        return try IobGenerator.generate(
-            history: pumphistory,
-            profile: profile,
-            clock: clock,
-            autosens: autosens
-        )
-    }
-
-    private func meal(
-        pumphistory: [PumpHistoryEvent],
-        profile: Profile,
-        basalProfile: [BasalProfileEntry],
-        clock: Date,
-        carbs: [CarbsEntry],
-        glucose: [BloodGlucose]
-    ) throws -> ComputedCarbs? {
-        try MealGenerator.generate(
-            pumpHistory: pumphistory,
-            profile: profile,
-            basalProfile: basalProfile,
-            clock: clock,
-            carbHistory: carbs,
-            glucoseHistory: glucose
-        )
-    }
-
-    private func autosense(
-        glucose: [BloodGlucose],
-        pumpHistory: [PumpHistoryEvent],
-        basalProfile: [BasalProfileEntry],
-        profile: Profile,
-        carbs: [CarbsEntry],
-        tempTargets: [TempTarget],
-        clock: Date
-    ) throws -> Autosens {
-        // both runs use identical inputs, so compute the treatments once;
-        // gated on the same count as the generate early return
-        let precomputedTreatments = glucose.count >= 72 ? try IobHistory.calcTempTreatments(
-            history: pumpHistory.map { $0.computedEvent() },
-            profile: profile,
-            clock: clock,
-            autosens: nil,
-            zeroTempDuration: nil
-        ) : nil
-
-        // this logic is from prepare/autosens.js
-        let ratio8h = try AutosensGenerator.generate(
-            glucose: glucose,
-            pumpHistory: pumpHistory,
-            basalProfile: basalProfile,
-            profile: profile,
-            carbs: carbs,
-            tempTargets: tempTargets,
-            maxDeviations: 96,
-            clock: clock,
-            precomputedTreatments: precomputedTreatments
-        )
-
-        let ratio24h = try AutosensGenerator.generate(
-            glucose: glucose,
-            pumpHistory: pumpHistory,
-            basalProfile: basalProfile,
-            profile: profile,
-            carbs: carbs,
-            tempTargets: tempTargets,
-            maxDeviations: 288,
-            clock: clock,
-            precomputedTreatments: precomputedTreatments
-        )
-
-        return ratio8h.ratio < ratio24h.ratio ? ratio8h : ratio24h
-    }
-
-    private func determineBasal(
-        glucose: [BloodGlucose],
+    /// The oref inputs as `createProfiles`, `autosense` and `determineBasal` gather them, for `OrefRun.run` on another device.
+    func orefInputs(
+        for dosingMode: DosingMode,
         currentTemp: TempBasal,
-        iob: [IobResult],
-        profile: Profile,
-        autosens: Autosens?,
-        meal: ComputedCarbs?,
-        microBolusAllowed: Bool,
-        preferences: Preferences,
-        trioCustomOrefVariables: TrioCustomOrefVariables
-    ) throws -> Determination? {
-        let clock = Date()
+        supportedBasalRates: [Decimal],
+        shouldSmoothGlucose: Bool
+    ) async throws -> OrefInputs {
+        let context = newContext("orefInputs")
+        let clock = now()
 
-        guard let meal = meal, let autosens = autosens else {
-            throw DeterminationError.missingInputs
+        async let pumpHistoryObjectIDs = fetchPumpHistoryObjectIDs(on: context) ?? []
+        async let carbsFetch = carbsStorage.getCarbsForAlgorithm(additionalCarbs: nil, carbsDate: nil)
+        async let glucoseFetch = glucoseStorage.getGlucoseForAlgorithm(
+            shouldSmoothGlucose: shouldSmoothGlucose,
+            fetchHours: OrefInputs.autosensGlucoseHours
+        )
+        async let hasSufficientTddForDynamic = tddStorage.hasSufficientTDD()
+        async let getPumpSettings = loadFileFromStorageAsync(name: Settings.settings)
+        async let getBGTargets = loadFileFromStorageAsync(name: Settings.bgTargets)
+        async let getBasalProfile = loadFileFromStorageAsync(name: Settings.basalProfile)
+        async let getInsulinSensitivities = loadFileFromStorageAsync(name: Settings.insulinSensitivities)
+        async let getCarbRatios = loadFileFromStorageAsync(name: Settings.carbRatios)
+        async let getTempTargets = loadFileFromStorageAsync(name: Settings.tempTargets)
+
+        let (activeTempTarget, activeOverride, tddRows) = try await context.perform {
+            let tempTarget = try self.fetchActiveTempTargets(on: context).first
+                .flatMap { tempTarget -> OrefInputs.TempTargetState? in
+                    guard tempTarget.enabled, let target = tempTarget.target?.decimalValue else { return nil }
+                    return OrefInputs.TempTargetState(target: target, halfBasalTarget: tempTarget.halfBasalTarget?.decimalValue)
+                }
+            let override = try self.fetchActiveOverrides(on: context).first.map(OrefInputs.OverrideState.init)
+            let rows = try self.fetchHistoricalTDDData(from: OrefInputs.tddHistoryStart(now: clock), on: context).map {
+                OrefInputs.TDDRow(date: $0["date"] as? Date, total: ($0["total"] as? NSDecimalNumber)?.decimalValue)
+            }
+            return (tempTarget, override, rows)
         }
 
-        return try DeterminationGenerator.generate(
-            profile: profile,
-            preferences: preferences,
+        let autosens = storage.retrieve(Settings.autosense, as: Autosens.self)
+        return try await OrefInputs(
+            pumpSettings: JSONBridge.pumpSettings(from: getPumpSettings),
+            bgTargets: JSONBridge.bgTargets(from: getBGTargets),
+            basalProfile: JSONBridge.basalProfile(from: getBasalProfile),
+            insulinSensitivities: JSONBridge.insulinSensitivities(from: getInsulinSensitivities),
+            carbRatios: JSONBridge.carbRatios(from: getCarbRatios),
+            tempTargets: JSONBridge.tempTargets(from: getTempTargets),
+            preferences: storage.retrieve(OpenAPS.Settings.preferences, as: Preferences.self),
+            dosingMode: dosingMode,
+            microBolusAllowed: true,
+            activeTempTarget: activeTempTarget,
+            activeOverride: activeOverride,
+            tddHistory: OrefInputs.tddHistory(tddRows, now: clock),
+            hasSufficientTDD: hasSufficientTddForDynamic,
+            glucose: glucoseFetch,
+            pumpHistory: parsePumpHistory(on: context, pumpHistoryObjectIDs),
+            carbs: carbsFetch,
             currentTemp: currentTemp,
-            iobData: iob,
-            mealData: meal,
-            autosensData: autosens,
-            glucose: glucose,
-            microBolusAllowed: microBolusAllowed,
-            trioCustomOrefVariables: trioCustomOrefVariables,
-            currentTime: clock
+            supportedBasalRates: supportedBasalRates,
+            autosens: OrefRun.isAutosensFresh(autosens, now: clock) ? autosens : nil,
+            clock: clock,
+            timeZone: TimeZone.current
         )
     }
 
@@ -765,7 +615,7 @@ extension OpenAPS {
         try CoreDataStack.shared.fetchEntities(
             ofType: TempTargetStored.self,
             onContext: context,
-            predicate: NSPredicate.lastActiveTempTarget,
+            predicate: NSPredicate.lastActiveTempTarget(now: now()),
             key: "date",
             ascending: false,
             fetchLimit: 1
@@ -776,7 +626,7 @@ extension OpenAPS {
         try CoreDataStack.shared.fetchEntities(
             ofType: OverrideStored.self,
             onContext: context,
-            predicate: NSPredicate.lastActiveOverride,
+            predicate: NSPredicate.lastActiveOverride(now: now()),
             key: "date",
             ascending: false,
             fetchLimit: 1
@@ -792,5 +642,27 @@ extension OpenAPS {
             ascending: true,
             propertiesToFetch: ["date", "total"]
         ) as? [[String: Any]] ?? []
+    }
+}
+
+extension OrefInputs.OverrideState {
+    init(_ stored: OverrideStored) {
+        self.init(
+            enabled: stored.enabled,
+            percentage: stored.percentage,
+            indefinite: stored.indefinite,
+            smbIsOff: stored.smbIsOff,
+            target: stored.target?.decimalValue,
+            duration: stored.duration?.decimalValue,
+            advancedSettings: stored.advancedSettings,
+            isfAndCr: stored.isfAndCr,
+            isf: stored.isf,
+            cr: stored.cr,
+            smbIsScheduledOff: stored.smbIsScheduledOff,
+            start: stored.start?.decimalValue,
+            end: stored.end?.decimalValue,
+            smbMinutes: stored.smbMinutes?.decimalValue,
+            uamMinutes: stored.uamMinutes?.decimalValue
+        )
     }
 }

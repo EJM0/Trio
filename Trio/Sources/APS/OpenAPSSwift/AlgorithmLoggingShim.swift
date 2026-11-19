@@ -7,9 +7,10 @@ import Foundation
 // `AlgorithmPackage/Package.swift`, which compiles the oref algorithm (plus its
 // models) as a standalone macOS-capable module so `swift test` can run the
 // algorithm suite without building the iOS app or booting a simulator.
+// The watch app compiles it too and routes the output to its own logger.
 //
 
-#if TRIO_ALGORITHM_PACKAGE
+#if TRIO_ALGORITHM_PACKAGE || os(watchOS)
 
     /// Stands in for the app's `Logger` so `Logger.Category` resolves in the package.
     enum Logger {
@@ -36,8 +37,16 @@ import Foundation
         }
     }
 
-    /// Set by a test to capture algorithm log output; defaults to discarding it.
-    nonisolated(unsafe) var algorithmLogSink: ((Logger.Category, String) -> Void)?
+    enum AlgorithmLogLevel {
+        case debug
+        case info
+        case warning
+        case error
+        case fault
+    }
+
+    /// Set by a test or the watch app to receive algorithm log output; defaults to discarding it.
+    nonisolated(unsafe) var algorithmLogSink: ((AlgorithmLogLevel, Logger.Category, String, Swift.Error?) -> Void)?
 
     func debug(
         _ category: Logger.Category,
@@ -47,7 +56,7 @@ import Foundation
         function _: String = #function,
         line _: UInt = #line
     ) {
-        algorithmLogSink?(category, message())
+        algorithmLogSink?(.debug, category, message(), nil)
     }
 
     func info(
@@ -57,43 +66,47 @@ import Foundation
         function _: String = #function,
         line _: UInt = #line
     ) {
-        algorithmLogSink?(category, message)
+        algorithmLogSink?(.info, category, message, nil)
     }
 
     func warning(
         _ category: Logger.Category,
         _ message: String,
-        description _: String? = nil,
-        error _: Swift.Error? = nil,
+        description: String? = nil,
+        error maybeError: Swift.Error? = nil,
         file _: String = #file,
         function _: String = #function,
         line _: UInt = #line
     ) {
-        algorithmLogSink?(category, message)
+        algorithmLogSink?(.warning, category, composed(message, description), maybeError)
     }
 
     func error(
         _ category: Logger.Category,
         _ message: String,
-        description _: String? = nil,
-        error _: Swift.Error? = nil,
+        description: String? = nil,
+        error maybeError: Swift.Error? = nil,
         file _: String = #file,
         function _: String = #function,
         line _: UInt = #line
     ) {
-        algorithmLogSink?(category, message)
+        algorithmLogSink?(.error, category, composed(message, description), maybeError)
     }
 
     func fault(
         _ category: Logger.Category,
         _ message: String,
-        description _: String? = nil,
-        error _: Swift.Error? = nil,
+        description: String? = nil,
+        error maybeError: Swift.Error? = nil,
         file _: String = #file,
         function _: String = #function,
         line _: UInt = #line
     ) {
-        algorithmLogSink?(category, message)
+        algorithmLogSink?(.fault, category, composed(message, description), maybeError)
+    }
+
+    private func composed(_ message: String, _ description: String?) -> String {
+        [message, description].compactMap { $0 }.joined(separator: ": ")
     }
 
 #endif

@@ -71,11 +71,29 @@ struct BolusConfirmationView: View {
         .onAppear {
             isCrownFocused = true
         }
+        // VoiceOver may not turn the crown (DD-14, check on a device); only while the watch holds the pump
+        .accessibilityActions {
+            if LoanTreatments.host != nil {
+                Button(String(localized: "Confirm bolus", comment: "Watch accessibility action: confirms the bolus")) {
+                    confirmationProgress = 1.0
+                }
+            }
+        }
         .onChange(of: confirmationProgress) { _, newValue in
             if newValue >= 1.0 {
                 WKInterfaceDevice.current().play(.success)
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    // while the watch holds the pump it doses itself; an expired entry takes the refusal path below
+                    if let host = LoanTreatments.host, let limits = host.bolusLimits, state.isEntryFresh() {
+                        let units = LoanTreatments.units(bolusAmount, increment: limits.increment)
+                        let carbs = Decimal(state.carbsAmount)
+                        state.clearEntry()
+                        host.bolus = .idle
+                        Task { await host.requestBolus(units: units, carbs: carbs) }
+                        navigationPath.append(LoanBolusRequest(units: units, withCarbs: carbs > 0, requestedAt: Date()))
+                        return
+                    }
                     // Sends carbs and bolus, or refuses an entry older than 2 min; either way the entry is cleared
                     state.sendConfirmedEntry(bolusAmount: bolusAmount)
                     navigationPath.append(NavigationDestinations.acknowledgmentPending)

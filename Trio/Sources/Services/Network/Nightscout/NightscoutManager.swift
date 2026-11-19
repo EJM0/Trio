@@ -39,6 +39,7 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
     @Injected() var healthkitManager: HealthKitManager!
     @Injected() private var bolusCalculationManager: BolusCalculationManager!
     @Injected() private var apsManager: APSManager!
+    @Injected() private var watchLoanGate: WatchLoanGate!
 
     private let processQueue = DispatchQueue(label: "BaseNetworkManager.processQueue")
     private var ping: TimeInterval?
@@ -80,6 +81,11 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
 
     private var isUploadEnabled: Bool {
         settingsManager.settings.isUploadEnabled
+    }
+
+    /// While Apple Watch holds the pump, this phone's IOB, loop and pump status are stale; uploading them would mislead.
+    var isDeviceStatusUploadAllowed: Bool {
+        watchLoanGate.phoneMayCommandPump
     }
 
     private var isDownloadEnabled: Bool {
@@ -555,6 +561,10 @@ final class BaseNightscoutManager: NightscoutManager, Injectable {
     private func performUploadDeviceStatus() async throws {
         guard let nightscout = nightscoutAPI, isUploadEnabled else {
             debug(.nightscout, "Device status upload skipped: Nightscout not set up or upload disabled")
+            return
+        }
+        guard isDeviceStatusUploadAllowed else {
+            debug(.nightscout, "Device status upload skipped: Apple Watch holds the pump")
             return
         }
 

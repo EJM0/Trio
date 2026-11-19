@@ -1,0 +1,34 @@
+{
+  "edge-inside" : {
+    "currentBG" : "150",
+    "deltaBG" : "20"
+  },
+  "edge-outside" : {
+    "currentBG" : "150",
+    "deltaBG" : "0"
+  },
+  "falling" : {
+    "currentBG" : "80",
+    "deltaBG" : "-30"
+  },
+  "latest-stale" : {
+    "currentBG" : "99",
+    "deltaBG" : "0"
+  },
+  "latest-without-date" : {
+    "currentBG" : "77",
+    "deltaBG" : "-5"
+  },
+  "none" : {
+    "currentBG" : "0",
+    "deltaBG" : "0"
+  },
+  "one-fresh" : {
+    "currentBG" : "120",
+    "deltaBG" : "0"
+  },
+  "window-of-four" : {
+    "currentBG" : "140",
+    "deltaBG" : "22"
+  }
+}

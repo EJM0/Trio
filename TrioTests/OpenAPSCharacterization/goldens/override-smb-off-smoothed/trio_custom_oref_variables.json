@@ -1,0 +1,22 @@
+{
+  "advancedSettings" : false,
+  "average_total_data" : 30.7220333333333333333333333333333333333,
+  "cr" : true,
+  "currentTDD" : 30.0137,
+  "date" : "<now>",
+  "duration" : 60,
+  "end" : 0,
+  "isf" : true,
+  "isfAndCr" : true,
+  "overridePercentage" : 120,
+  "overrideTarget" : 95,
+  "past2hoursAverage" : 30.7012,
+  "smbIsOff" : true,
+  "smbIsScheduledOff" : false,
+  "smbMinutes" : 30,
+  "start" : 0,
+  "uamMinutes" : 30,
+  "unlimited" : false,
+  "useOverride" : true,
+  "weightedAverage" : 30.7147416666666666666666666666666666666
+}

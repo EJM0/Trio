@@ -8,10 +8,16 @@ extension PumpConfig {
         let pumpEntry: PumpCatalogEntry
         let pumpInitialSettings: PumpInitialSettings
         let bluetoothManager: BluetoothStateManager
+        let watchLoanGate: WatchLoanGate
         weak var completionDelegate: CompletionDelegate?
         weak var setupDelegate: PumpManagerOnboardingDelegate?
 
-        func makeUIViewController(context _: UIViewControllerRepresentableContext<PumpSetupView>) -> UIViewController {
+        func makeCoordinator() -> KitScreenToken { KitScreenToken() }
+
+        func makeUIViewController(context: UIViewControllerRepresentableContext<PumpSetupView>) -> UIViewController {
+            if let handedOver = PumpConfig.handedOverViewController(gate: watchLoanGate) { return handedOver }
+            context.coordinator.open()
+
             // var setupViewController: PumpManagerSetupViewController & UIViewController & CompletionNotifying
             var setupViewController: SetupUIResult<
                 PumpManagerViewController,
@@ -52,5 +58,9 @@ extension PumpConfig {
         }
 
         func updateUIViewController(_: UIViewController, context _: UIViewControllerRepresentableContext<PumpSetupView>) {}
+
+        static func dismantleUIViewController(_: UIViewController, coordinator: KitScreenToken) {
+            coordinator.close()
+        }
     }
 }

@@ -38,15 +38,17 @@ enum ScheduledBasalInference {
         events: [TimelineEvent],
         profile: [BasalProfileEntry],
         now: Date,
+        timeZone: TimeZone,
         minGapSeconds: TimeInterval = minGapSeconds
     ) -> [Segment] {
+        let calendar = WallClock.calendar(in: timeZone)
         guard !profile.isEmpty,
               let firstStart = events.map(\.start).min(),
               firstStart < now
         else { return [] }
 
         var timeline = events
-        timeline += profileRateChangeEvents(from: firstStart, to: now, profile: profile)
+        timeline += profileRateChangeEvents(from: firstStart, to: now, profile: profile, calendar: calendar)
         timeline.append(TimelineEvent(start: now, kind: .now))
         timeline.sort { $0.start < $1.start }
 
@@ -67,7 +69,8 @@ enum ScheduledBasalInference {
             coveredUntil = max(coveredUntil, curr.end)
 
             guard !suspended, next.start.timeIntervalSince(coveredUntil) >= minGapSeconds else { continue }
-            guard let rate = findBasalRateForOffset(for: minutesOfDay(coveredUntil), in: profile) else { continue }
+            guard let rate = findBasalRateForOffset(for: minutesOfDay(coveredUntil, calendar: calendar), in: profile)
+            else { continue }
 
             segments.append(Segment(start: coveredUntil, end: next.start, rate: rate))
         }
@@ -78,9 +81,9 @@ enum ScheduledBasalInference {
     private static func profileRateChangeEvents(
         from start: Date,
         to end: Date,
-        profile: [BasalProfileEntry]
+        profile: [BasalProfileEntry],
+        calendar: Calendar
     ) -> [TimelineEvent] {
-        let calendar = Calendar.current
         var rateChanges: [TimelineEvent] = []
         var day = calendar.startOfDay(for: start)
 
@@ -103,8 +106,8 @@ enum ScheduledBasalInference {
         return rateChanges
     }
 
-    private static func minutesOfDay(_ date: Date) -> Int {
-        let components = Calendar.current.dateComponents([.hour, .minute], from: date)
+    private static func minutesOfDay(_ date: Date, calendar: Calendar) -> Int {
+        let components = calendar.dateComponents([.hour, .minute], from: date)
         return (components.hour ?? 0) * 60 + (components.minute ?? 0)
     }
 }
@@ -132,7 +135,8 @@ extension ScheduledBasalInference {
         events: [BasalEvent],
         suspensions: [(date: Date, isSuspend: Bool)],
         profile: [BasalProfileEntry],
-        now: Date
+        now: Date,
+        timeZone: TimeZone
     ) -> Delivery? {
         let lastSuspension = suspensions.last { $0.date <= now }
         if lastSuspension?.isSuspend == true { return .suspended }
@@ -148,7 +152,8 @@ extension ScheduledBasalInference {
             return .temp(current.rate)
         }
 
-        guard let rate = findBasalRateForOffset(for: minutesOfDay(now), in: profile) else { return nil }
+        guard let rate = findBasalRateForOffset(for: minutesOfDay(now, calendar: WallClock.calendar(in: timeZone)), in: profile)
+        else { return nil }
         return .scheduled(rate)
     }
 }

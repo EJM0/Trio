@@ -16,6 +16,8 @@ protocol FetchGlucoseManager: SourceInfoProvider {
     /// state; see `CGMSensorStateLog`. Call on every reading.
     func reportCGMSensorObservation(_ observation: CGMSensorObservation)
     func startCGMSensorSession(startedAt: Date)
+    /// The readings the next smoothing pass reads, raw: what a watch loan needs to smooth as the phone does.
+    func smoothingWindow() async throws -> [WatchLoanSnapshot.RawReading]
     var glucoseSource: GlucoseSource? { get }
     var cgmManager: CGMManagerUI? { get }
     var cgmGlucoseSourceType: CGMType { get set }
@@ -445,9 +447,29 @@ extension BaseFetchGlucoseManager: SettingsObserver {
 }
 
 extension BaseFetchGlucoseManager {
+    func smoothingWindow() async throws -> [WatchLoanSnapshot.RawReading] {
+        let context = CoreDataStack.shared.newTaskContext()
+        context.name = "smoothingWindow"
+        let objectIDs = try await fetchGlucose(context: context)
+        return await context.perform {
+            objectIDs.compactMap { context.object(with: $0) as? GlucoseStored }.compactMap { reading in
+                guard let id = reading.id, let date = reading.date else { return nil }
+                return WatchLoanSnapshot.RawReading(id: id, date: date, glucose: reading.glucose)
+            }
+        }
+    }
+
     func fetchGlucose(context: NSManagedObjectContext) async throws -> [NSManagedObjectID] {
+        try await Self.fetchSmoothingWindow(context: context, now: Date())
+    }
+
+    /// The readings the smoothing pass reads, oldest first. `now` is a seam for tests.
+    static func fetchSmoothingWindow(context: NSManagedObjectContext, now: Date) async throws -> [NSManagedObjectID] {
         // Compound predicate: time window + non-manual + valid date
-        let timePredicate = NSPredicate.predicateForOneDayAgoInMinutes
+        let timePredicate = NSPredicate(
+            format: "date >= %@",
+            Calendar.current.date(byAdding: .minute, value: -1440, to: now)! as NSDate
+        )
         let manualPredicate = NSPredicate.cgmGlucose
         let datePredicate = NSPredicate(format: "date != nil")
 
@@ -485,33 +507,7 @@ extension BaseFetchGlucoseManager {
         let startTime = Date()
 
         do {
-            // get objectIDs
-            let objectIDs = try await fetchGlucose(context: context)
-
-            try await context.perform {
-                // Load managed objects from object IDs
-                // Filtering (isManual, date) already done at DB level in fetchGlucose
-                let glucoseReadings = objectIDs.compactMap {
-                    context.object(with: $0) as? GlucoseStored
-                }
-
-                guard !glucoseReadings.isEmpty else { return }
-
-                // Static method call to avoid self-capture
-                Self.applyExponentialSmoothingAndStore(
-                    glucoseReadings: glucoseReadings,
-                    minimumWindowSize: 4,
-                    maximumAllowedGapMinutes: 12,
-                    xDripErrorGlucose: 38,
-                    minimumSmoothedGlucose: 39,
-                    firstOrderWeight: 0.4,
-                    firstOrderAlpha: 0.5,
-                    secondOrderAlpha: 0.4,
-                    secondOrderBeta: 1.0
-                )
-
-                try context.save()
-            }
+            try await Self.smoothStoredGlucose(context: context, now: startTime)
 
             let duration = Date().timeIntervalSince(startTime)
             debug(.cgm, String(format: "Glucose smoothing took %.3f s", duration))
@@ -520,121 +516,26 @@ extension BaseFetchGlucoseManager {
         }
     }
 
-    private static func applyExponentialSmoothingAndStore(
-        glucoseReadings data: [GlucoseStored],
-        minimumWindowSize: Int,
-        maximumAllowedGapMinutes: Int,
-        xDripErrorGlucose: Int,
-        minimumSmoothedGlucose: Decimal,
-        firstOrderWeight: Decimal,
-        firstOrderAlpha: Decimal,
-        secondOrderAlpha: Decimal,
-        secondOrderBeta: Decimal
-    ) {
-        guard !data.isEmpty else { return }
+    /// The smoothing pass on the stored readings. `now` is a seam for tests.
+    static func smoothStoredGlucose(context: NSManagedObjectContext, now: Date) async throws {
+        // get objectIDs
+        let objectIDs = try await fetchSmoothingWindow(context: context, now: now)
 
-        // Determine the size of the valid most-recent smoothing window.
-        // We walk adjacent pairs from newest -> oldest to preserve the same window semantics
-        // as the original implementation, but avoid manual reverse indexing.
-        var validWindowCount = max(data.count - 1, 0)
-
-        for (recentOffset, pair) in zip(data.dropFirst().reversed(), data.dropLast().reversed()).enumerated() {
-            let (newer, older) = pair
-
-            guard let newerDate = newer.date, let olderDate = older.date else { continue }
-
-            let gapSeconds = newerDate.timeIntervalSince(olderDate)
-            let gapMinutesRounded = Int((gapSeconds / 60.0).rounded())
-
-            if gapMinutesRounded >= maximumAllowedGapMinutes {
-                validWindowCount = recentOffset + 1 // include the more recent reading
-                break
+        try await context.perform {
+            // Load managed objects from object IDs
+            // Filtering (isManual, date) already done at DB level in fetchGlucose
+            let glucoseReadings = objectIDs.compactMap {
+                context.object(with: $0) as? GlucoseStored
             }
 
-            // Ported from AAPS: 38 mg/dL may represent an xDrip error state.
-            if Int(newer.glucose) == xDripErrorGlucose {
-                validWindowCount = recentOffset // exclude this 38 value
-                break
-            }
-        }
+            guard !glucoseReadings.isEmpty else { return }
 
-        // Not enough recent contiguous readings to smooth (e.g. after CGM gap).
-        // IMPORTANT: Only apply fallback to the recent window, not all data.
-        // Otherwise a recent gap would overwrite historical smoothed values.
-        guard validWindowCount >= minimumWindowSize else {
-            let recentWindow = data.suffix(validWindowCount)
-
-            for object in recentWindow {
-                let raw = Decimal(Int(object.glucose))
-                object.smoothedGlucose = max(raw, minimumSmoothedGlucose) as NSDecimalNumber
+            let smoothed = OrefInputs.exponentiallySmoothedGlucose(glucoseReadings.map { ($0.date, $0.glucose) })
+            for (object, value) in zip(glucoseReadings, smoothed) {
+                if let value { object.smoothedGlucose = value as NSDecimalNumber }
             }
 
-            return
-        }
-
-        // Restrict smoothing to the valid most-recent window, still in chronological order.
-        let validWindow = data.suffix(validWindowCount)
-
-        guard let oldest = validWindow.first else { return }
-
-        // ---- 1st order smoothing ----
-        var firstOrderSmoothed: [Decimal] = []
-        firstOrderSmoothed.reserveCapacity(validWindow.count)
-
-        var firstOrderCurrent = Decimal(Int(oldest.glucose))
-        firstOrderSmoothed.append(firstOrderCurrent)
-
-        for sample in validWindow.dropFirst() {
-            let raw = Decimal(Int(sample.glucose))
-            firstOrderCurrent = firstOrderCurrent + firstOrderAlpha * (raw - firstOrderCurrent)
-            firstOrderSmoothed.append(firstOrderCurrent)
-        }
-
-        // ---- 2nd order smoothing ----
-        let secondOrderInput = Array(validWindow)
-        guard secondOrderInput.count >= 2 else { return }
-
-        var secondOrderSmoothed: [Decimal] = []
-        secondOrderSmoothed.reserveCapacity(secondOrderInput.count)
-
-        var secondOrderDeltas: [Decimal] = []
-        secondOrderDeltas.reserveCapacity(secondOrderInput.count)
-
-        var previousSecondOrderSmoothed = Decimal(Int(secondOrderInput[0].glucose))
-        var previousSecondOrderDelta =
-            Decimal(Int(secondOrderInput[1].glucose) - Int(secondOrderInput[0].glucose))
-
-        secondOrderSmoothed.append(previousSecondOrderSmoothed)
-        secondOrderDeltas.append(previousSecondOrderDelta)
-
-        for sample in secondOrderInput.dropFirst() {
-            let raw = Decimal(Int(sample.glucose))
-
-            let nextSmoothed =
-                secondOrderAlpha * raw
-                    + (1 - secondOrderAlpha) * (previousSecondOrderSmoothed + previousSecondOrderDelta)
-
-            let nextDelta =
-                secondOrderBeta * (nextSmoothed - previousSecondOrderSmoothed)
-                    + (1 - secondOrderBeta) * previousSecondOrderDelta
-
-            previousSecondOrderSmoothed = nextSmoothed
-            previousSecondOrderDelta = nextDelta
-
-            secondOrderSmoothed.append(nextSmoothed)
-            secondOrderDeltas.append(nextDelta)
-        }
-
-        // ---- Weighted blend ----
-        let blended = zip(firstOrderSmoothed, secondOrderSmoothed).map { firstOrder, secondOrder in
-            firstOrderWeight * firstOrder + (1 - firstOrderWeight) * secondOrder
-        }
-
-        // Apply to the most recent valid-window readings.
-        for (object, blendedValue) in zip(validWindow, blended) {
-            let rounded = blendedValue.rounded(toPlaces: 0) // nearest integer, ties away from zero
-            let clamped = max(rounded, minimumSmoothedGlucose)
-            object.smoothedGlucose = clamped as NSDecimalNumber
+            try context.save()
         }
     }
 }
