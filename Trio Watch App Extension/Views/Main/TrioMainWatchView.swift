@@ -322,10 +322,16 @@ struct TrioMainWatchView: View {
                                 BolusProgressRing(window: window)
                             }
                         }
-                        .disabled(loan?.bolusInProgress == nil && (loanActive ? loanBlocksTreatments : isWatchStateDated || isSessionUnreachable))
-                        .accessibilityLabel(Text(loan?.bolusInProgress != nil
+                        .disabled(
+                            loan?
+                                .bolusInProgress == nil &&
+                                (loanActive ? loanBlocksTreatments : isWatchStateDated || isSessionUnreachable)
+                        )
+                        .accessibilityLabel(Text(
+                            loan?.bolusInProgress != nil
                                 ? String(localized: "Cancel bolus", comment: "Watch accessibility: cancel the running bolus")
-                                : String(localized: "Add treatment", comment: "Watch accessibility: add treatment button")))
+                                : String(localized: "Add treatment", comment: "Watch accessibility: add treatment button")
+                        ))
 
                         Button {
                             showingTempTargetSheet = true
@@ -581,10 +587,10 @@ struct BolusProgressRing: View {
         TimelineView(.periodic(from: .now, by: 0.5)) { context in
             let progress = window.map { min(1, max(0, context.date.timeIntervalSince($0.start) / max($0.duration, 1))) } ?? 0
             ZStack {
-                Circle().stroke(Color.insulin.opacity(0.25), lineWidth: 3)
+                Circle().stroke(Color.tabBar.opacity(0.25), lineWidth: 3)
                 Circle()
                     .trim(from: 0, to: progress)
-                    .stroke(Color.insulin, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .stroke(Color.tabBar, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                     .animation(.linear(duration: 0.5), value: progress)
             }
