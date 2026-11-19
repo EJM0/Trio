@@ -244,7 +244,10 @@ final class BaseGlucoseStorage: GlucoseStorage, Injectable {
 
     private func configureGlucoseEntry(_ entry: GlucoseStored, with glucose: BloodGlucose) {
         entry.id = UUID()
-        entry.glucose = Int16(glucose.glucose ?? 0)
+        // CGM readings carry their value in `sgv`; only manual/calibration entries fill `glucose`. Readings the
+        // watch records during a loan (via OrefInputs.bloodGlucose) arrive with `sgv` set and `glucose` nil, so a
+        // bare `glucose ?? 0` stored them all as 0. Fall back to `sgv` then `mbg`, as the rest of the app does.
+        entry.glucose = Int16(glucose.glucose ?? glucose.sgv ?? glucose.mbg ?? 0)
         entry.date = glucose.dateString
         entry.direction = glucose.direction?.rawValue
         entry.isManual = glucose.mbg != nil
