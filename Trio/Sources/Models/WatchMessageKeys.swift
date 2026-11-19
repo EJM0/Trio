@@ -48,6 +48,10 @@ enum WatchMessageKeys {
     static let chartBoluses = "chartBoluses"
     static let chartSMBs = "chartSMBs"
     static let chartCarbs = "chartCarbs"
+    /// Each loop's IOB, COB and time over the last 24 h, for the chart's scrub line: parallel arrays, same length.
+    static let chartIob = "chartIob"
+    static let chartCob = "chartCob"
+    static let chartIobCobDates = "chartIobCobDates"
 
     // Limits and Settings Keys
     static let maxBolus = "maxBolus"

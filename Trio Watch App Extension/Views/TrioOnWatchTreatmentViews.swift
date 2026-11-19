@@ -245,8 +245,8 @@ struct LoanAdjustmentSheet: View {
                     localized: "Creating or editing presets needs your iPhone.",
                     comment: "Watch: presets can be started, not created, on the watch"
                 ))
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
         }
         .confirmationDialog(
@@ -273,9 +273,11 @@ struct LoanAdjustmentSheet: View {
             }
             Button(String(localized: "Cancel", comment: "Cancel button"), role: .cancel) { pendingStop = nil }
         } message: {
-            Text(kind == .override
-                ? "Stop the Override \"\(pendingStop ?? fallbackName)\"?"
-                : "Stop the Temp Target \"\(pendingStop ?? fallbackName)\"?")
+            Text(
+                kind == .override
+                    ? "Stop the Override \"\(pendingStop ?? fallbackName)\"?"
+                    : "Stop the Temp Target \"\(pendingStop ?? fallbackName)\"?"
+            )
         }
         .fullScreenCover(item: $result) { shown in
             ActionResultView(result: shown) { result = nil }

@@ -872,6 +872,17 @@ import WidgetKit
             phoneTreatmentMarkers = markers(boluses, .bolus) + markers(smbs, .smb) + markers(carbs, .carbs)
         }
 
+        // the phone's per-loop IOB and COB, for the chart's scrub line
+        if let dates = message[WatchMessageKeys.chartIobCobDates] as? [TimeInterval],
+           let iob = message[WatchMessageKeys.chartIob] as? [Double],
+           let cob = message[WatchMessageKeys.chartCob] as? [Double],
+           dates.count == iob.count, dates.count == cob.count
+        {
+            phoneIobCob = dates.indices.map { index in
+                WatchIobCobPoint(date: Date(timeIntervalSince1970: dates[index]), iob: iob[index], cob: cob[index])
+            }
+        }
+
         if let critical = message[WatchMessageKeys.useCriticalAlertsWatch] as? Bool, critical != useCriticalAlerts {
             useCriticalAlerts = critical
         }
@@ -987,6 +998,62 @@ import WidgetKit
     func hasFreshOwnReading(now: Date = Date()) -> Bool {
         guard let latest = ownReadings.last?.dateString else { return false }
         return now.timeIntervalSince(latest) < Self.ownReadingFreshFor
+    }
+
+    /// The forecast from the watch's own loop, so the chart's prediction lines/cone update each loop while the watch
+    /// holds the pump. Mirrors the phone's forecast math (`AppleWatchManager`): cone is the per-step min/max over the
+    /// four series; lines are the four series as sent. `anchor` is the loop's deliver time. Clearing when empty.
+    func applyOwnForecast(iob: [Int]?, zt: [Int]?, cob: [Int]?, uam: [Int]?, anchor: Date, isMmol: Bool) {
+        func convert(_ values: [Int]?) -> [Double] {
+            guard let values else { return [] }
+            return values.map { isMmol ? Double(truncating: Decimal($0).asMmolL as NSNumber) : Double($0) }
+        }
+        // 2 hours of 5-minute forecasts, as the phone caps it
+        let capped: ([Int]?) -> [Int]? = { $0.map { Array($0.prefix(24)) } }
+        let series = [capped(iob), capped(zt), capped(cob), capped(uam)]
+        guard series.contains(where: { !($0?.isEmpty ?? true) }) else {
+            forecastStartDate = nil
+            forecastConeMin = []
+            forecastConeMax = []
+            forecastLines = [:]
+            return
+        }
+        forecastStartDate = anchor
+        if isForecastCone {
+            let present = series.compactMap { $0 }
+            let count = present.map(\.count).min() ?? 0
+            var coneMin: [Double] = []
+            var coneMax: [Double] = []
+            for i in 0 ..< count {
+                let valuesAtIndex = present.compactMap { $0.indices.contains(i) ? $0[i] : nil }
+                guard let minRaw = valuesAtIndex.min(), let maxRaw = valuesAtIndex.max() else { continue }
+                coneMin.append(convert([minRaw])[0])
+                coneMax.append(convert([maxRaw])[0])
+            }
+            forecastConeMin = coneMin
+            forecastConeMax = coneMax
+            forecastLines = [:]
+        } else {
+            var lines: [String: [Double]] = [:]
+            if let iob = capped(iob) { lines["iob"] = convert(iob) }
+            if let cob = capped(cob) { lines["cob"] = convert(cob) }
+            if let uam = capped(uam) { lines["uam"] = convert(uam) }
+            if let zt = capped(zt) { lines["zt"] = convert(zt) }
+            forecastLines = lines
+            forecastConeMin = []
+            forecastConeMax = []
+        }
+    }
+
+    /// This loop's IOB and COB from the watch's own loop, so the chart's scrub line has them during a loan. Kept in
+    /// memory, deduped by minute, trimmed to the last 24 h (as the phone's series).
+    func applyOwnIobCob(iob: Double, cob: Double, at date: Date) {
+        let minute = Int(date.timeIntervalSince1970 / 60)
+        ownIobCob.removeAll { Int($0.date.timeIntervalSince1970 / 60) == minute }
+        ownIobCob.append(WatchIobCobPoint(date: date, iob: iob, cob: cob))
+        ownIobCob.sort { $0.date < $1.date }
+        let cutoff = Date().addingTimeInterval(-24 * 60 * 60)
+        ownIobCob.removeAll { $0.date < cutoff }
     }
 
     /// Readings from the watch's own sensor link: shown first, the phone's only while these are not fresh.

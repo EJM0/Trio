@@ -59,6 +59,10 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var chartBoluses: [TimeInterval] = []
     var chartSMBs: [TimeInterval] = []
     var chartCarbs: [TimeInterval] = []
+    /// Each loop's IOB, COB and time over the last 24 h, for the chart's scrub line. Parallel, equal length.
+    var chartIob: [Double] = []
+    var chartCob: [Double] = []
+    var chartIobCobDates: [TimeInterval] = []
 
     var snoozeUntilDate: Date = .distantPast
 
@@ -108,6 +112,9 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
             lhs.chartBoluses == rhs.chartBoluses &&
             lhs.chartSMBs == rhs.chartSMBs &&
             lhs.chartCarbs == rhs.chartCarbs &&
+            lhs.chartIob == rhs.chartIob &&
+            lhs.chartCob == rhs.chartCob &&
+            lhs.chartIobCobDates == rhs.chartIobCobDates &&
             lhs.snoozeUntilDate == rhs.snoozeUntilDate
     }
 
@@ -156,6 +163,9 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(chartBoluses)
         hasher.combine(chartSMBs)
         hasher.combine(chartCarbs)
+        hasher.combine(chartIob)
+        hasher.combine(chartCob)
+        hasher.combine(chartIobCobDates)
         hasher.combine(snoozeUntilDate)
     }
 }

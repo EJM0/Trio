@@ -211,6 +211,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
             // Treatment-marker times (boluses, SMBs, real carbs) of the last 24 h, for the watch chart.
             let markerTimes = await fetchTreatmentMarkerTimes()
+            let iobCobSeries = await fetchIobCobSeries()
 
             let watchState: WatchState = await context.perform {
                 var watchState = WatchState(date: Date())
@@ -221,6 +222,11 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 watchState.chartBoluses = markerTimes.boluses
                 watchState.chartSMBs = markerTimes.smbs
                 watchState.chartCarbs = markerTimes.carbs
+
+                // Each loop's IOB and COB of the last 24 h, for the chart's scrub line.
+                watchState.chartIobCobDates = iobCobSeries.dates
+                watchState.chartIob = iobCobSeries.iob
+                watchState.chartCob = iobCobSeries.cob
 
                 // Set lastLoopDate
                 let lastLoopMinutes = Int((Date().timeIntervalSince(self.apsManager.lastLoopDate) - 30) / 60) + 1
@@ -561,6 +567,30 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         }
     }
 
+    /// Each loop's IOB, COB and deliver time over the last 24 h, for the chart's scrub line, as the phone's own
+    /// COB/IOB chart reads them. Parallel arrays of equal length; empty on failure.
+    private func fetchIobCobSeries() async -> (dates: [TimeInterval], iob: [Double], cob: [Double]) {
+        let context = CoreDataStack.shared.newTaskContext()
+        context.name = "watchChartIobCob"
+        let since = Date.oneDayAgo
+        let request = NSFetchRequest<OrefDetermination>(entityName: "OrefDetermination")
+        request.predicate = NSPredicate.determinationsForCobIobCharts(since: since)
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \OrefDetermination.deliverAt, ascending: true)]
+        return await context.perform {
+            let determinations = (try? context.fetch(request)) ?? []
+            var dates: [TimeInterval] = []
+            var iob: [Double] = []
+            var cob: [Double] = []
+            for determination in determinations {
+                guard let date = determination.deliverAt else { continue }
+                dates.append(date.timeIntervalSince1970)
+                iob.append(determination.iob?.doubleValue ?? 0)
+                cob.append(Double(determination.cob))
+            }
+            return (dates, iob, cob)
+        }
+    }
+
     /// Fetches last pump event that is a non-external bolus from CoreData
     /// - Returns: NSManagedObjectIDs for last bolus
     func fetchLastBolus() async throws -> NSManagedObjectID? {
@@ -674,6 +704,9 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         dictionary[WatchMessageKeys.chartBoluses] = state.chartBoluses
         dictionary[WatchMessageKeys.chartSMBs] = state.chartSMBs
         dictionary[WatchMessageKeys.chartCarbs] = state.chartCarbs
+        dictionary[WatchMessageKeys.chartIob] = state.chartIob
+        dictionary[WatchMessageKeys.chartCob] = state.chartCob
+        dictionary[WatchMessageKeys.chartIobCobDates] = state.chartIobCobDates
 
         dictionary[WatchMessageKeys.useCriticalAlertsWatch] = state.useCriticalAlertsWatch
         dictionary[WatchMessageKeys.watchSensorConfiguration] = state.watchSensorConfiguration
