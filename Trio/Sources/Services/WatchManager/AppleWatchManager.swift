@@ -1086,7 +1086,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         Task {
             let context = CoreDataStack.shared.newTaskContext()
 
-            await context.perform {
+            let saved: Bool = await context.perform {
                 let carbEntry = CarbEntryStored(context: context)
                 carbEntry.id = UUID()
                 carbEntry.carbs = Double(truncating: amount as NSNumber)
@@ -1105,7 +1105,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                             message: "Error! Something went wrong when processing your request.",
                             ackCode: .genericFailure
                         )
-                        return
+                        return false
                     }
                     try context.save()
                     debug(.treatments, "Saved \(amount) g carbs from watch")
@@ -1119,12 +1119,22 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                         ),
                         ackCode: .carbsLogged
                     )
+                    return true
                 } catch let saveError {
                     error(.treatments, "Saving carbs from watch failed", error: saveError)
 
                     // Acknowledge failure
                     self.sendAcknowledgment(toWatch: false, message: "Error logging carbs", ackCode: .genericFailure)
+                    return false
                 }
+            }
+
+            // Carbs alone: COB updates now, not at the next loop, so a bolus asked for next counts them
+            guard saved else { return }
+            do {
+                try await self.apsManager.determineBasalSync()
+            } catch {
+                warning(.watch, "Determination after carbs from watch failed", error: error)
             }
         }
     }

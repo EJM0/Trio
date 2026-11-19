@@ -179,8 +179,9 @@ struct BolusInputView: View {
                 state.maxBolus = limits.maxBolus
                 state.bolusIncrement = limits.increment
                 if bolusAmount == 0 {
-                    state.recommendedBolus = host.recommendBolus(carbs: Decimal(state.carbsAmount))?.insulinCalculated ?? 0
-                    bolusAmount = Double(truncating: NSDecimalNumber(decimal: state.recommendedBolus))
+                    let carbs = Decimal(state.carbsAmount)
+                    // lands through onChange(of: recommendedBolus), which also fills the amount
+                    Task { state.recommendedBolus = await host.recommendBolus(carbs: carbs)?.insulinCalculated ?? 0 }
                 }
             } else if bolusAmount == 0 {
                 state.requestBolusRecommendation()

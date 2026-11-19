@@ -4,19 +4,31 @@ import LoopKit
 /// Treatments on the watch while it holds the pump: bolus and carbs, suspend and resume, and cancelling the
 /// override or temp target the loan started with. Creating or editing those stays on the phone.
 extension WatchLoanHost {
-    /// The calculator's recommendation from the last determination; nil before the first cycle.
-    func recommendBolus(carbs: Decimal) -> CalculationResult? {
-        guard let snapshot, let pump, let outputs = lastOutputs, let determination = outputs.determination,
+    /// The calculator's recommendation from a determination run now on the records as they are, so carbs entered
+    /// since the last cycle count even when that cycle didn't reach the pump; the last cycle's when that run fails.
+    func recommendBolus(carbs: Decimal) async -> CalculationResult? {
+        guard let snapshot, let pump else { return nil }
+        let now = env.now()
+        let preferences = snapshot.oref.preferences ?? Preferences()
+        var inputs = WatchLoopInputs.orefInputs(
+            snapshot: snapshot,
+            records: records.loopRecords(bolusIncrement: preferences.bolusIncrement),
+            now: now,
+            currentTemp: currentTemp(pump.status.basalDeliveryState, now: now),
+            autosens: cycleInfo.autosens,
+            microBolusAllowed: false
+        )
+        inputs.autosens = inputs.autosens ?? lastOutputs?.autosens
+        let fresh = try? await Self.runOref(inputs)
+        guard let outputs = fresh ?? lastOutputs, let determination = outputs.determination,
               let isf = determination.isf ?? outputs.profile.sens,
               let carbRatio = outputs.profile.carbRatio,
               let target = determination.current_target
         else { return nil }
-        let now = env.now()
         let readings = (snapshot.oref.glucose + records.snapshot.glucose)
             .sorted { $0.dateString > $1.dateString }
             .map { (date: Optional($0.dateString), glucose: Int16($0.glucose ?? $0.sgv ?? 0)) }
         let glucose = BolusCalculator.glucoseVariables(readings: readings, now: now)
-        let preferences = snapshot.oref.preferences ?? Preferences()
         let input = CalculationInput(
             carbs: carbs,
             currentBG: glucose.currentBG,
