@@ -147,7 +147,9 @@ extension WatchLoanHost {
     }
 
     func cancelBolus() async {
-        guard let pump, bolus == .delivering || bolus == .accepted else { return }
+        // Cancel any bolus the pump is giving — a manual one the status model tracks, or an SMB the loop started
+        // (which only the pump knows about). `bolusWindow` reads the pump's own in-progress state.
+        guard let pump, bolus == .delivering || bolus == .accepted || bolusWindow() != nil else { return }
         do {
             _ = try await pump.cancelBolus()
             bolus = .cancelled

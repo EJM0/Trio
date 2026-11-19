@@ -35,6 +35,12 @@ import WatchKit
     /// The sensor gives no more readings (failed, expired).
     private(set) var sensorHasEnded = false
 
+    /// The watch holds an established, problem-free CGM link: connected, paired, no sensor fault. A reading is then
+    /// imminent at the next cadence, so an adopt need not wait for a brand-new first reading.
+    var hasReadySensorLink: Bool {
+        isReadingDirectly && !pairingUnfinished && !hasSensorProblem && !sensorHasEnded
+    }
+
     /// A background refresh this long after each reading re-checks acquisition, in case watchOS froze the app before
     /// it lodged the next connect. Past the G7's 35 s tail clearance, so a connect never lands in its advertising tail.
     static let acquisitionBackstopDelay: TimeInterval = 60
@@ -65,7 +71,9 @@ import WatchKit
             }
             return
         }
-        if cgmManager != nil, let builtFrom, (builtFrom as NSDictionary).isEqual(to: configuration.state) {
+        if let cgmManager, let builtFrom, cgmManager.pluginIdentifier == configuration.managerIdentifier,
+           type(of: cgmManager).sameSensor(builtFrom, configuration.state)
+        {
             recheckAcquisition()
             return
         }

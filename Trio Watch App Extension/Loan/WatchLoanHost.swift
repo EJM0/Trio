@@ -44,6 +44,13 @@ struct WatchLoanEnvironment {
     var modelIdentifier: () -> String?
     var appBuild: String
     var timeZone: () -> TimeZone = { TimeZone.current }
+    /// True when the watch's own sensor link already has a fresh reading, so an adopt need not wait for a first one.
+    /// Also true when the watch already holds an established, problem-free CGM link: the sensor is connected, a
+    /// reading is imminent at the next cadence, so waiting for a brand-new first reading is unnecessary.
+    var hasFreshOwnReading: @MainActor() -> Bool = {
+        WatchState.shared.hasFreshOwnReading() || WatchCGMHost.shared.hasReadySensorLink
+    }
+
     /// Holds background time for a piece of work; the host ends it on every path.
     var beginActivity: (String) -> LoanBackgroundActivity = { _ in NoBackgroundActivity() }
     var adoptTimeout: TimeInterval = 60
@@ -110,6 +117,8 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     @ObservationIgnored var intents: [WatchDoseIntent] = []
     @ObservationIgnored var cycleInfo = WatchLoanCycleInfo()
     @ObservationIgnored private var inbox = WatchLoanInbox()
+    /// Snapshot slices for the grant being delivered, joined once every slice of its epoch has arrived.
+    @ObservationIgnored private var snapshotChunks = WatchLoanSnapshot.ChunkAssembler()
     @ObservationIgnored private var tail: Task<Void, Never>?
     @ObservationIgnored private var followUps: [WatchSideLoanEvent] = []
     @ObservationIgnored private var lastReportedForeignSession = false
@@ -441,8 +450,15 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         }
         install(manager)
         adoptedAt = env.now()
-        awaitingFirstReading = true
-        WatchLogger.shared.info(.loop, "Pump adopted from the grant; taking control")
+        // If the watch is already reading its own sensor (fresh within 5 min), it is in control at once. Only an
+        // adopt that must still bring up the G7 link waits for that first reading, keeping Trio in front for the bond.
+        awaitingFirstReading = !env.hasFreshOwnReading()
+        WatchLogger.shared.info(
+            .loop,
+            awaitingFirstReading
+                ? "Pump adopted from the grant; taking control, waiting for the watch's first sensor reading"
+                : "Pump adopted from the grant; taking control with a fresh own reading already in hand"
+        )
         await offMain { manager.takeControl() }
         await env.cgm?.adopt(export: snapshot.cgmExport)
         watchAdopt(manager)
@@ -526,8 +542,12 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         try? await WatchLoanFiles.io {
             try files.remove(.pumpState)
             try files.remove(.intent)
+            // Clear the loan's cycle so the next session's "Starting…" doesn't show this loan's last loop age (G-R3).
+            try files.remove(.cycle)
         }
+        cycleInfo = WatchLoanCycleInfo()
         intents = []
+        loop = LoopStatus()
         await env.cgm?.retire()
     }
 
@@ -633,6 +653,16 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             }
             return true
         }
+        // A snapshot slice: collect it and wait for the grant that follows. Reassembly happens when the grant lands.
+        if let slice = payload[WatchLoanWireKey.snapshotChunk] as? Data,
+           let index = payload[WatchLoanWireKey.snapshotChunkIndex] as? Int,
+           let count = payload[WatchLoanWireKey.snapshotChunkCount] as? Int,
+           let chunkEpoch = (payload[WatchLoanWireKey.snapshotChunkEpoch] as? NSNumber)?.int64Value
+        {
+            snapshotChunks.add(slice, index: index, count: count, epoch: chunkEpoch)
+            WatchLogger.shared.debug(.connectivity, "Received grant snapshot chunk \(index + 1)/\(count), epoch \(chunkEpoch)")
+            return true
+        }
         guard let data = payload[WatchLoanWireKey.message] as? Data else { return false }
         switch WatchLoanWire.decode(data) {
         case let .stop(stop):
@@ -646,7 +676,10 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             let (files, inbox) = (env.files, inbox)
             WatchLoanFiles.later("the loan inbox") { try files.save(inbox, to: .inbox) }
             if case .grant = envelope.message.kind, case .requesting = state {
-                await acceptSnapshot(payload[WatchLoanWireKey.snapshot] as? Data, epoch: envelope.message.epoch)
+                await acceptSnapshot(
+                    grantSnapshotData(from: payload, epoch: envelope.message.epoch),
+                    epoch: envelope.message.epoch
+                )
             }
             WatchLogger.shared.info(
                 .connectivity,
@@ -659,6 +692,19 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             WatchLogger.shared.warning(.connectivity, "Malformed loan message dropped")
         }
         return true
+    }
+
+    /// The grant's snapshot data: the single `snapshot` key when present (a one-message grant from an older phone),
+    /// otherwise the slices collected for this epoch, joined. Nil when a slice is missing. Clears the collector.
+    private func grantSnapshotData(from payload: [String: Any], epoch: Int64) -> Data? {
+        defer { snapshotChunks.reset() }
+        if let single = payload[WatchLoanWireKey.snapshot] as? Data { return single }
+        guard let count = payload[WatchLoanWireKey.snapshotChunkCount] as? Int else { return nil }
+        guard let joined = snapshotChunks.joined(expectedCount: count, epoch: epoch) else {
+            WatchLogger.shared.warning(.loop, "Grant arrived before all \(count) snapshot chunks for epoch \(epoch)")
+            return nil
+        }
+        return joined
     }
 
     /// Saved before the grant is decided, so an adopt after a crash still has it.
