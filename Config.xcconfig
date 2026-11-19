@@ -20,7 +20,7 @@ TRIO_APP_GROUP_ID = group.org.nightscout.$(DEVELOPMENT_TEAM).trio.trio-app-group
 // Trio on Watch is experimental and off by default. TRIO_ON_WATCH = YES (in ConfigOverride.xcconfig)
 // adds the watch app's Bluetooth background mode and time-sensitive notifications entitlement,
 // and lets iPhone hand the pump to the watch
-TRIO_ON_WATCH = NO
+TRIO_ON_WATCH = YES
 TRIO_ON_WATCH_SWIFT_CONDITION_YES = TRIO_ON_WATCH
 SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) $(TRIO_ON_WATCH_SWIFT_CONDITION_$(TRIO_ON_WATCH))
 
