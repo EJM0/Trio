@@ -511,9 +511,15 @@ struct ActionResultView: View {
 
 private extension View {
     /// A Trio-styled list row: a solid dark card (matching the Suspend/Resume buttons) with horizontal insets, so the
-    /// rows sit inset on the Trio gradient instead of edge to edge.
+    /// rows sit inset on the Trio gradient instead of edge to edge. A fixed dark color, so it never flips to the
+    /// light (white) appearance of `Color.chart`.
     func trioRow() -> some View {
-        listRowBackground(RoundedRectangle(cornerRadius: 10).fill(Color.chart))
+        listRowBackground(RoundedRectangle(cornerRadius: 10).fill(Color.trioCard))
             .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
     }
+}
+
+extension Color {
+    /// The dark card behind watch list rows; the dark value of the Chart color, fixed so it never renders white.
+    static let trioCard = Color(red: 0.13, green: 0.13, blue: 0.18)
 }

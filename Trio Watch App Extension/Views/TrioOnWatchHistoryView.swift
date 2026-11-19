@@ -112,7 +112,7 @@ struct TrioOnWatchHistoryView: View {
             value
         }
         .listRowBackground(
-            RoundedRectangle(cornerRadius: 10).fill(Color.chart)
+            RoundedRectangle(cornerRadius: 10).fill(Color.trioCard)
         )
         .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
     }
