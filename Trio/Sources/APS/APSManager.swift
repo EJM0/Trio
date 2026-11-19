@@ -21,6 +21,9 @@ protocol APSManager {
     var isLooping: CurrentValueSubject<Bool, Never> { get }
     var lastLoopDate: Date { get }
     var lastLoopDateSubject: PassthroughSubject<Date, Never> { get }
+    /// While the watch holds the pump, the phone doesn't loop, so its `lastLoopDate` goes stale. The watch's loop
+    /// time, carried back on each record batch, is recorded here so the phone's loop timer reflects the watch's loop.
+    func noteWatchLoop(at date: Date)
     var bolusProgress: CurrentValueSubject<Decimal?, Never> { get }
     var pumpExpiresAtDate: CurrentValueSubject<Date?, Never> { get }
     var pumpActivatedAtDate: CurrentValueSubject<Date?, Never> { get }
@@ -143,6 +146,14 @@ final class BaseAPSManager: APSManager, Injectable {
         didSet {
             lastLoopDateSubject.send(lastLoopDate)
         }
+    }
+
+    /// The watch looped while it held the pump; reflect its loop time in the phone's loop timer. Only ever advances,
+    /// so a late or out-of-order batch can't move the timer backwards. The phone's own loop is gated off during a
+    /// loan (`watchLoanGate.permits("Loop")`), so this never races a phone loop.
+    func noteWatchLoop(at date: Date) {
+        guard date > lastLoopDate else { return }
+        lastLoopDate = date
     }
 
     private var openAPS: OpenAPS!

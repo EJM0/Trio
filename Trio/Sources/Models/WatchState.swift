@@ -54,6 +54,12 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var forecastConeMax: [Double] = []
     var forecastLines: [String: [Double]] = [:] // "iob" / "cob" / "uam" / "zt" -> values
 
+    /// Epoch-second timestamps of the phone's boluses, SMBs and real carbs in the last 24 h, for the watch chart's
+    /// treatment markers. Times only — the amounts aren't needed to place the markers.
+    var chartBoluses: [TimeInterval] = []
+    var chartSMBs: [TimeInterval] = []
+    var chartCarbs: [TimeInterval] = []
+
     var snoozeUntilDate: Date = .distantPast
 
     static func == (lhs: WatchState, rhs: WatchState) -> Bool {
@@ -99,6 +105,9 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
             lhs.forecastConeMin == rhs.forecastConeMin &&
             lhs.forecastConeMax == rhs.forecastConeMax &&
             lhs.forecastLines == rhs.forecastLines &&
+            lhs.chartBoluses == rhs.chartBoluses &&
+            lhs.chartSMBs == rhs.chartSMBs &&
+            lhs.chartCarbs == rhs.chartCarbs &&
             lhs.snoozeUntilDate == rhs.snoozeUntilDate
     }
 
@@ -144,6 +153,9 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(forecastConeMin)
         hasher.combine(forecastConeMax)
         hasher.combine(forecastLines)
+        hasher.combine(chartBoluses)
+        hasher.combine(chartSMBs)
+        hasher.combine(chartCarbs)
         hasher.combine(snoozeUntilDate)
     }
 }

@@ -44,6 +44,11 @@ enum WatchMessageKeys {
     static let overridePresets = "overridePresets"
     static let tempTargetPresets = "tempTargetPresets"
 
+    // Treatment markers on the glucose chart: epoch-second timestamps of the last 24 h, times only.
+    static let chartBoluses = "chartBoluses"
+    static let chartSMBs = "chartSMBs"
+    static let chartCarbs = "chartCarbs"
+
     // Limits and Settings Keys
     static let maxBolus = "maxBolus"
     static let maxCarbs = "maxCarbs"

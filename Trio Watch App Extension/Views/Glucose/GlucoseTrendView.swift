@@ -195,7 +195,10 @@ struct GlucoseTrendView: View {
                     } else {
                         Text(
                             isWatchStateDated ?
-                                String(localized: "STALE DATA", comment: "Information displayed when watch app data outdated or stale.") :
+                                String(
+                                    localized: "STALE DATA",
+                                    comment: "Information displayed when watch app data outdated or stale."
+                                ) :
                                 state
                                 .lastLoopTime ?? "--"
                         )

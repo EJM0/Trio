@@ -209,10 +209,18 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             let tempTargetPresetObjects: [TempTargetStored] = try await CoreDataStack.shared
                 .getNSManagedObject(with: tempTargetPresetIds, context: context)
 
+            // Treatment-marker times (boluses, SMBs, real carbs) of the last 24 h, for the watch chart.
+            let markerTimes = await fetchTreatmentMarkerTimes()
+
             let watchState: WatchState = await context.perform {
                 var watchState = WatchState(date: Date())
                 watchState.snoozeUntilDate = UserDefaults.standard
                     .object(forKey: "UserNotificationsManager.snoozeUntilDate") as? Date ?? .distantPast
+
+                // Boluses, SMBs and carbs of the last 24 h, times only, for the chart's markers.
+                watchState.chartBoluses = markerTimes.boluses
+                watchState.chartSMBs = markerTimes.smbs
+                watchState.chartCarbs = markerTimes.carbs
 
                 // Set lastLoopDate
                 let lastLoopMinutes = Int((Date().timeIntervalSince(self.apsManager.lastLoopDate) - 30) / 60) + 1
@@ -247,7 +255,11 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                     )
                 }
 
-                guard let latestGlucose = glucoseObjects.first else {
+                // A glucose of 0 is physiologically impossible: it marks a gap or sensor error, never a real
+                // reading. Drop such rows so the latest value, the chart and the delta never show a false 0.
+                let validGlucose = glucoseObjects.filter { $0.glucose > 0 }
+
+                guard let latestGlucose = validGlucose.first else {
                     return watchState
                 }
 
@@ -281,7 +293,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 }
 
                 // Map glucose values
-                watchState.glucoseValues = glucoseObjects.compactMap { glucose in
+                watchState.glucoseValues = validGlucose.compactMap { glucose in
                     let glucoseValue = self.units == .mgdL
                         ? Double(glucose.glucose)
                         : Double(truncating: Decimal(glucose.glucose).asMmolL as NSNumber)
@@ -304,7 +316,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
                 // Set axis domain: min and max Y-axis values
                 // Apply unit parsing conditionally, if user uses mmol/L
-                let maxGlucoseValue = Decimal(glucoseObjects.map { Int($0.glucose) }.max() ?? 200)
+                let maxGlucoseValue = Decimal(validGlucose.map { Int($0.glucose) }.max() ?? 200)
                 var maxYValue = Decimal(200)
 
                 if maxGlucoseValue > maxYValue, maxGlucoseValue <= 225 {
@@ -331,9 +343,9 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 watchState.trend = latestGlucose.direction
 
                 // Calculate delta if we have at least 2 readings
-                if glucoseObjects.count >= 2 {
-                    let glucoseLast = Decimal(glucoseObjects[0].glucose)
-                    let glucoseSecondLast = Decimal(glucoseObjects[1].glucose)
+                if validGlucose.count >= 2 {
+                    let glucoseLast = Decimal(validGlucose[0].glucose)
+                    let glucoseSecondLast = Decimal(validGlucose[1].glucose)
                     watchState.delta = (glucoseLast - glucoseSecondLast).formattedDelta(for: self.units)
                 }
 
@@ -492,6 +504,63 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         }
     }
 
+    /// The phone's bolus, SMB and real-carb timestamps of the last 24 hours, for the watch chart's treatment markers.
+    /// Times only (epoch seconds): the amounts aren't needed to place a marker. Boluses and SMBs come from the same
+    /// pump events, told apart by the related bolus's `isSMB` flag (external insulin is left out); carbs are the real
+    /// entries, FPUs excluded.
+    private func fetchTreatmentMarkerTimes() async -> (boluses: [TimeInterval], smbs: [TimeInterval], carbs: [TimeInterval]) {
+        let since = Date.oneDayAgo
+        do {
+            let bolusContext = CoreDataStack.shared.newTaskContext()
+            bolusContext.name = "fetchTreatmentMarkerBoluses"
+            let bolusResults = try await CoreDataStack.shared.fetchEntitiesAsync(
+                ofType: PumpEventStored.self,
+                onContext: bolusContext,
+                predicate: NSPredicate(format: "timestamp >= %@ AND bolus != nil", since as NSDate),
+                key: "timestamp",
+                ascending: true,
+                relationshipKeyPathsForPrefetching: ["bolus"]
+            )
+            let (bolusTimes, smbTimes): ([TimeInterval], [TimeInterval]) = try await bolusContext.perform {
+                guard let events = bolusResults as? [PumpEventStored] else {
+                    throw CoreDataError.fetchError(function: #function, file: #file)
+                }
+                var normal: [TimeInterval] = []
+                var smb: [TimeInterval] = []
+                for event in events {
+                    guard let timestamp = event.timestamp, let bolus = event.bolus else { continue }
+                    if bolus.isSMB {
+                        smb.append(timestamp.timeIntervalSince1970)
+                    } else if !bolus.isExternal {
+                        normal.append(timestamp.timeIntervalSince1970)
+                    }
+                }
+                return (normal, smb)
+            }
+
+            let carbContext = CoreDataStack.shared.newTaskContext()
+            carbContext.name = "fetchTreatmentMarkerCarbs"
+            let carbResults = try await CoreDataStack.shared.fetchEntitiesAsync(
+                ofType: CarbEntryStored.self,
+                onContext: carbContext,
+                predicate: NSPredicate.carbsForChart, // isFPU == false AND date >= oneDayAgo AND carbs > 0
+                key: "date",
+                ascending: true
+            )
+            let carbTimes: [TimeInterval] = try await carbContext.perform {
+                guard let entries = carbResults as? [CarbEntryStored] else {
+                    throw CoreDataError.fetchError(function: #function, file: #file)
+                }
+                return entries.compactMap { $0.date?.timeIntervalSince1970 }
+            }
+
+            return (bolusTimes, smbTimes, carbTimes)
+        } catch {
+            warning(.watch, "Fetching treatment marker times failed", error: error)
+            return ([], [], [])
+        }
+    }
+
     /// Fetches last pump event that is a non-external bolus from CoreData
     /// - Returns: NSManagedObjectIDs for last bolus
     func fetchLastBolus() async throws -> NSManagedObjectID? {
@@ -600,6 +669,11 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         }
 
         dictionary[WatchMessageKeys.forecastData] = forecastData
+
+        // the phone's boluses, SMBs and carbs of the last 24 h, times only, for the chart's markers (empty when none)
+        dictionary[WatchMessageKeys.chartBoluses] = state.chartBoluses
+        dictionary[WatchMessageKeys.chartSMBs] = state.chartSMBs
+        dictionary[WatchMessageKeys.chartCarbs] = state.chartCarbs
 
         dictionary[WatchMessageKeys.useCriticalAlertsWatch] = state.useCriticalAlertsWatch
         dictionary[WatchMessageKeys.watchSensorConfiguration] = state.watchSensorConfiguration

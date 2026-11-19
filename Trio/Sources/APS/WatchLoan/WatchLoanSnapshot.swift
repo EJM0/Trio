@@ -160,3 +160,61 @@ extension WatchLoanSnapshot {
         return try JSONCoding.decoder.decode(WatchLoanSnapshot.self, from: json)
     }
 }
+
+// MARK: - Chunking
+
+extension WatchLoanSnapshot {
+    /// Bytes per snapshot slice. Under `grantBudgetBytes`, leaving room for the chunk's own keys and the dictionary
+    /// encoding `sendMessage` adds, so every slice fits one live message.
+    static let chunkBytes = 45000
+
+    /// Splits compressed snapshot data into live-message-sized slices, in order. A snapshot within one slice yields
+    /// a single element, so a small grant is one chunk like before.
+    static func chunk(_ data: Data) -> [Data] {
+        guard data.count > chunkBytes else { return [data] }
+        var slices: [Data] = []
+        var start = data.startIndex
+        while start < data.endIndex {
+            let end = data.index(start, offsetBy: chunkBytes, limitedBy: data.endIndex) ?? data.endIndex
+            slices.append(data.subdata(in: start ..< end))
+            start = end
+        }
+        return slices
+    }
+
+    /// Collects snapshot slices for one loan epoch until every index has arrived, then hands back the joined data.
+    /// A slice from a different epoch or a changed count starts the collection over, so a stale grant never mixes in.
+    struct ChunkAssembler {
+        private(set) var epoch: Int64?
+        private var count = 0
+        private var slices: [Int: Data] = [:]
+
+        /// Adds a slice. A slice from a different epoch or count starts the collection over.
+        mutating func add(_ slice: Data, index: Int, count totalCount: Int, epoch sliceEpoch: Int64) {
+            if epoch != sliceEpoch || count != totalCount {
+                epoch = sliceEpoch
+                count = totalCount
+                slices = [:]
+            }
+            guard index >= 0, index < totalCount else { return }
+            slices[index] = slice
+        }
+
+        /// The joined snapshot data when every slice of `expectedCount` for `epoch` is present, otherwise nil.
+        func joined(expectedCount: Int, epoch expectedEpoch: Int64) -> Data? {
+            guard epoch == expectedEpoch, count == expectedCount, slices.count == expectedCount else { return nil }
+            var joined = Data()
+            for i in 0 ..< expectedCount {
+                guard let part = slices[i] else { return nil }
+                joined.append(part)
+            }
+            return joined
+        }
+
+        mutating func reset() {
+            epoch = nil
+            count = 0
+            slices = [:]
+        }
+    }
+}

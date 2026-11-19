@@ -271,7 +271,10 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
 
     /// The phone reads the same sensor: keep only readings it has nothing for within the glucose filter time.
     private func glucoseNotStored(_ glucose: [BloodGlucose]) async throws -> [BloodGlucose] {
-        let dates = glucose.map(\.dateString)
+        // A glucose of 0 is physiologically impossible: it marks a gap or sensor error, never a real reading.
+        // Drop it here so it never reaches storage and then the home screen's or the watch state's latest value.
+        let valid = glucose.filter { ($0.glucose ?? $0.sgv ?? 0) > 0 }
+        let dates = valid.map(\.dateString)
         guard let first = dates.min(), let last = dates.max() else { return [] }
         let window = Self.glucoseFilterTime
         let context = makeContext()
@@ -284,7 +287,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             )
             return try context.fetch(request).compactMap(\.date)
         }
-        return glucose.filter { reading in !stored.contains { abs($0.timeIntervalSince(reading.dateString)) < window } }
+        return valid.filter { reading in !stored.contains { abs($0.timeIntervalSince(reading.dateString)) < window } }
     }
 
     // MARK: Audit
@@ -472,6 +475,10 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         deviceDataManager.foreignPodSession
             .sink { _ in action() }
             .store(in: &subscriptions)
+    }
+
+    func noteWatchLoop(at date: Date) {
+        apsManager.noteWatchLoop(at: date)
     }
 }
 

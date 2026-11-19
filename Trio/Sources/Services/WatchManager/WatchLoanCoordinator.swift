@@ -30,6 +30,8 @@ protocol WatchLoanPhoneHost: AnyObject {
     func alert(_ alert: LoanAlert)
     func auditNotice(units: Double, isShortfall: Bool)
     func didReturnHome()
+    /// The watch looped (from a record batch's loop time), so the phone's loop timer reflects the watch's loop.
+    func noteWatchLoop(at date: Date)
     func onForeignPodSession(_ action: @escaping () -> Void)
     /// What the watch's Start screen shows before the user confirms.
     func startFacts() async -> WatchLoanStartFacts
@@ -257,6 +259,8 @@ actor WatchLoanCoordinator {
         }
         if let at = batch.lastLoopAt, ledger.watchLoop.map({ ($0.epoch, $0.at) < (batch.epoch, at) }) ?? true {
             ledger.watchLoop = WatchLoanLedger.WatchLoop(epoch: batch.epoch, at: at)
+            // the phone doesn't loop while the watch holds the pump, so its loop timer follows the watch's loop
+            host.noteWatchLoop(at: at)
         }
         saveLedger()
         acknowledge(batch)
@@ -315,6 +319,15 @@ actor WatchLoanCoordinator {
                 try store.save(next)
             } catch let saveError {
                 error(.watch, "Saving the watch loan state failed; nothing more is done", error: saveError)
+                // A lend abandoned here never reached `lending`, so no `releaseResult` will tell the watch.
+                // Refuse the request outright so it leaves `requesting` now instead of waiting out its timeout.
+                if case .lending = next, case let .received(message) = event, case let .request(requestID) = message.kind {
+                    warning(.watch, "Lend abandoned before it could start; refusing the watch request")
+                    send(WatchLoanMessage(
+                        epoch: state.epoch ?? message.epoch,
+                        kind: .refused(requestID: requestID, reason: .busy)
+                    ))
+                }
                 return false
             }
             let previous = state
@@ -504,15 +517,36 @@ actor WatchLoanCoordinator {
             message: message
         )
         guard let messageData = try? WatchLoanWire.encode(envelope) else { return reject(.snapshotIncomplete) }
-        let size = messageData.count + snapshotData.count
-        guard size <= WatchLoanSnapshot.grantBudgetBytes else {
-            warning(.watch, "Grant too large for a live message: \(size) bytes")
+
+        // Split the compressed snapshot into live-message-sized slices. One slice for a small grant, as before.
+        let chunks = WatchLoanSnapshot.chunk(snapshotData)
+        guard messageData.count <= WatchLoanSnapshot.grantBudgetBytes else {
+            warning(.watch, "Grant too large for a live message: \(messageData.count) bytes")
             return reject(.snapshotIncomplete)
         }
-        guard host.transport?.sendLive([WatchLoanWireKey.message: messageData, WatchLoanWireKey.snapshot: snapshotData]) == true
-        else { return reject(.phoneUnreachable) }
 
-        info(.watch, "Grant sent to Apple Watch, \(size) bytes")
+        // Send every slice live first. A slice that can't go live fails the whole grant, so the watch never adopts
+        // from a partial snapshot; the phone takes the pod back exactly as for any other unsent grant.
+        for (index, slice) in chunks.enumerated() {
+            let payload: [String: Any] = [
+                WatchLoanWireKey.snapshotChunk: slice,
+                WatchLoanWireKey.snapshotChunkIndex: index,
+                WatchLoanWireKey.snapshotChunkCount: chunks.count,
+                WatchLoanWireKey.snapshotChunkEpoch: NSNumber(value: epoch)
+            ]
+            guard host.transport?.sendLive(payload) == true else { return reject(.phoneUnreachable) }
+        }
+
+        // The grant arrives last and names the slice count, so the watch reassembles only once every slice is in.
+        let grantPayload: [String: Any] = [
+            WatchLoanWireKey.message: messageData,
+            WatchLoanWireKey.snapshotChunkCount: chunks.count,
+            WatchLoanWireKey.snapshotChunkEpoch: NSNumber(value: epoch)
+        ]
+        guard host.transport?.sendLive(grantPayload) == true else { return reject(.phoneUnreachable) }
+
+        let size = messageData.count + snapshotData.count
+        info(.watch, "Grant sent to Apple Watch, \(size) bytes in \(chunks.count) chunk(s)")
         grantTimer?.cancel()
         grantTimer = Task { [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(WatchLoan.grantConfirmTimeout * 1_000_000_000))
