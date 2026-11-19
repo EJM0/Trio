@@ -70,6 +70,12 @@ struct TrioOnWatchActions {
         #endif
         return WatchLoanRuntime.host?.carbsSaved(since: date) == true
     }
+
+    /// The watch's recorded history over the last 6 hours for the history screen; empty without a host.
+    static func history(since date: Date) -> TrioOnWatchHistory {
+        WatchLoanRuntime.host?.history(since: date)
+            ?? TrioOnWatchHistory(glucose: [], carbs: [], insulin: [], units: .mgdL)
+    }
 }
 
 enum HandOffKind: Equatable {
@@ -137,6 +143,7 @@ struct TrioOnWatchStatusView: View {
     @State private var showingStart = false
     @State private var showingEndConfirmation = false
     @State private var showingSuspendConfirmation = false
+    @State private var showingCancelBolusConfirmation = false
     @State private var handOff: HandOffKind?
     @State private var endPhoneSilent = false
     @State private var result: ActionResult?
@@ -149,7 +156,9 @@ struct TrioOnWatchStatusView: View {
                     Label {
                         Text(header.title).font(.headline)
                     } icon: {
-                        Image(systemName: header.symbol).foregroundStyle(header.tint)
+                        if let symbol = header.symbol {
+                            Image(systemName: symbol).foregroundStyle(header.tint)
+                        }
                     }
                     .foregroundStyle(header.tint)
                     .accessibilityElement(children: .combine)
@@ -159,6 +168,7 @@ struct TrioOnWatchStatusView: View {
                         ProgressView()
                     }
                 }
+                .listRowBackground(trioCard)
 
                 ForEach(status.rows(now: now)) { row in
                     VStack(alignment: .leading, spacing: 2) {
@@ -171,6 +181,16 @@ struct TrioOnWatchStatusView: View {
                     }
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(row.accessibilityLabel)
+                    .listRowBackground(trioCard)
+                }
+
+                if status.isLoanActive {
+                    historyLink
+                        .listRowBackground(trioCard)
+                }
+
+                if status.isInControl, status.bolusInProgress != nil {
+                    cancelBolusControl
                 }
 
                 if status.isInControl {
@@ -185,6 +205,7 @@ struct TrioOnWatchStatusView: View {
                         .foregroundStyle(Color.secondary)
                 }
             }
+            .scrollContentBackground(.hidden)
             .onAppear {
                 if presentsEndConfirmation { showingEndConfirmation = true }
                 if let scrollTo { proxy.scrollTo(scrollTo, anchor: .top) }
@@ -236,6 +257,23 @@ struct TrioOnWatchStatusView: View {
         }
     }
 
+    /// A dark rounded card behind each list row, so the page sits on the Trio gradient like the other watch pages.
+    private var trioCard: some View {
+        RoundedRectangle(cornerRadius: 10)
+            .fill(Color.chart.opacity(0.65))
+    }
+
+    @ViewBuilder private var historyLink: some View {
+        NavigationLink {
+            TrioOnWatchHistoryView()
+        } label: {
+            Label(
+                String(localized: "History", comment: "Watch: link to the recorded history"),
+                systemImage: "list.bullet"
+            )
+        }
+    }
+
     @ViewBuilder private var primaryButton: some View {
         switch status.primaryAction {
         case .start:
@@ -258,6 +296,36 @@ struct TrioOnWatchStatusView: View {
         case nil:
             EmptyView()
         }
+    }
+
+    @ViewBuilder private var cancelBolusControl: some View {
+        Section {
+            Button(role: .destructive) {
+                showingCancelBolusConfirmation = true
+            } label: {
+                Label(
+                    String(localized: "Cancel Bolus", comment: "Watch button to cancel a running bolus"),
+                    systemImage: "xmark.app"
+                )
+            }
+            .tint(.loopRed)
+            .confirmationDialog(
+                String(localized: "Cancel the running bolus?", comment: "Watch cancel-bolus confirmation title"),
+                isPresented: $showingCancelBolusConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(String(localized: "Cancel Bolus", comment: "Watch cancel-bolus confirm button"), role: .destructive) {
+                    Task { await actions.cancelBolus() }
+                }
+                Button(String(localized: "Keep Delivering", comment: "Watch: dismiss the cancel-bolus dialog"), role: .cancel) {}
+            } message: {
+                Text(String(
+                    localized: "Your pump stops this bolus. Insulin already delivered still counts.",
+                    comment: "Watch cancel-bolus confirmation message"
+                ))
+            }
+        }
+        .listRowBackground(trioCard)
     }
 
     @ViewBuilder private var insulinControls: some View {

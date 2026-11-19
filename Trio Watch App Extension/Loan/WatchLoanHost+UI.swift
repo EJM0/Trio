@@ -28,6 +28,7 @@ extension WatchLoanHost {
         status.cob = loop.cob
         status.insulinSuspended = loop.pumpSuspended
         status.bolus = bolus
+        status.bolusInProgress = bolusWindow()
         status.lastAlert = lastAlert
         status.battery = env.batteryLevel()
         status.podUnreachable = cycleInfo.podLinkNoticeShown
@@ -110,6 +111,57 @@ extension WatchLoanHost {
     func carbsSaved(since date: Date) -> Bool {
         records.snapshot.carbs.contains { $0.createdAt >= date }
     }
+
+    /// The window of a bolus the pump is giving right now (manual or an SMB the loop started), nil when none runs.
+    /// Read from the pump's own state, so an SMB the status model doesn't track is still cancellable.
+    func bolusWindow() -> DateInterval? {
+        guard let pump, case let .inProgress(dose) = pump.status.bolusState else { return nil }
+        let end = max(dose.endDate, dose.startDate.addingTimeInterval(1))
+        return DateInterval(start: dose.startDate, end: end)
+    }
+
+    /// The watch's recorded history, newest first, for the Trio on Watch history screen. Read-only: it joins
+    /// the phone's window at the grant with what the watch logged since, the same sources `uiStatus` reads.
+    func history(since date: Date) -> TrioOnWatchHistory {
+        let records = records.snapshot
+        let oref = snapshot?.oref
+
+        let glucose = ((oref?.glucose ?? []) + records.glucose)
+            .filter { $0.dateString >= date }
+            .sorted { $0.dateString > $1.dateString }
+
+        let carbs = ((oref?.carbs ?? []) + records.carbs)
+            .filter { ($0.actualDate ?? $0.createdAt) >= date && !($0.isFPU ?? false) }
+            .sorted { ($0.actualDate ?? $0.createdAt) > ($1.actualDate ?? $1.createdAt) }
+
+        let phoneInsulin = (oref?.pumpHistory ?? [])
+        let bolusIncrement = oref?.preferences?.bolusIncrement ?? 0.05
+        let watchInsulin = records.pumpEvents.values
+            .sorted { $0.record.date > $1.record.date }
+            .flatMap {
+                WatchLoopInputs.pumpHistoryEvents($0.record.newPumpEvent, storedAt: $0.storedAt, bolusIncrement: bolusIncrement)
+            }
+        let insulin = (phoneInsulin + watchInsulin)
+            .filter {
+                [.bolus, .smb, .tempBasal, .pumpSuspend, .pumpResume].contains($0.type) && $0.timestamp >= date
+            }
+            .sorted { $0.timestamp > $1.timestamp }
+
+        return TrioOnWatchHistory(
+            glucose: glucose,
+            carbs: carbs,
+            insulin: insulin,
+            units: snapshot?.bolusCalculator.units ?? .mgdL
+        )
+    }
+}
+
+/// A read-only snapshot of the watch's recorded history for the history screen.
+struct TrioOnWatchHistory {
+    var glucose: [BloodGlucose]
+    var carbs: [CarbsEntry]
+    var insulin: [PumpHistoryEvent]
+    var units: GlucoseUnits
 }
 
 // MARK: - Actions that report their outcome to the screens
