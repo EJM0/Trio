@@ -25,6 +25,8 @@ struct TrioMainWatchView: View {
 
     // treatments
     @State private var selectedTreatment: TreatmentOption?
+    /// A failed or unconfirmed bolus to show as a message (there is no separate progress page any more).
+    @State private var bolusError: LoanBolusRequest?
 
     /// Trio on Watch; nil in builds without it, so the tethered remote stays as it is.
     private var loanStatus: TrioOnWatchStatus? { TrioOnWatchSource.status }
@@ -224,6 +226,26 @@ struct TrioMainWatchView: View {
                     updateRotation(for: newTrend)
                 }
             }
+            // No separate bolus progress page: show a message only when a bolus fails or is unconfirmed (G-3).
+            .onChange(of: loan?.bolus) { _, newBolus in
+                switch newBolus {
+                case .failed,
+                     .uncertain:
+                    bolusError = LoanBolusRequest(units: 0, withCarbs: false, requestedAt: Date())
+                default:
+                    break
+                }
+            }
+            .fullScreenCover(item: $bolusError) { request in
+                NavigationStack {
+                    LoanBolusProgressView(
+                        navigationPath: .constant(NavigationPath()),
+                        request: request,
+                        actions: loanActions,
+                        onClose: { bolusError = nil }
+                    )
+                }
+            }
             .toolbar {
                 // the status page has its own actions; the main page's bar would cover them
                 if currentPage != 3 {
@@ -281,19 +303,29 @@ struct TrioMainWatchView: View {
                             comment: "Watch accessibility: overrides button"
                         )))
 
+                        // while the watch's pump delivers a bolus, the button stops it (icon switches to a stop square)
                         Button {
-                            showingTreatmentMenuSheet = true
+                            if loan?.bolusInProgress != nil {
+                                Task { await loanActions.cancelBolus() }
+                            } else {
+                                showingTreatmentMenuSheet = true
+                            }
                         } label: {
-                            Image(systemName: "plus")
+                            Image(systemName: loan?.bolusInProgress != nil ? "square.fill" : "plus")
                                 .foregroundStyle(Color.bgDarkerDarkBlue)
                         }
                         .controlSize(.large)
                         .buttonStyle(WatchOSButtonStyle(deviceType: state.deviceType))
-                        .disabled(loanActive ? loanBlocksTreatments : isWatchStateDated || isSessionUnreachable)
-                        .accessibilityLabel(Text(String(
-                            localized: "Add treatment",
-                            comment: "Watch accessibility: add treatment button"
-                        )))
+                        .overlay {
+                            // the running bolus fills a ring around the button, instead of a separate page
+                            if let window = loan?.bolusInProgress {
+                                BolusProgressRing(window: window)
+                            }
+                        }
+                        .disabled(loan?.bolusInProgress == nil && (loanActive ? loanBlocksTreatments : isWatchStateDated || isSessionUnreachable))
+                        .accessibilityLabel(Text(loan?.bolusInProgress != nil
+                                ? String(localized: "Cancel bolus", comment: "Watch accessibility: cancel the running bolus")
+                                : String(localized: "Add treatment", comment: "Watch accessibility: add treatment button")))
 
                         Button {
                             showingTempTargetSheet = true
@@ -537,5 +569,27 @@ struct ChartScrubEnd: ViewModifier {
     private func stop() {
         withAnimation { isScrubbing = false }
         scrubSteps = 0
+    }
+}
+
+/// The running bolus as a ring around the treatment button that fills as it is delivered, by the clock, as the pump
+/// counts a bolus done (ported from feat/watch-loop-5/5's BolusProgressRing). Hit testing off, so the button works.
+struct BolusProgressRing: View {
+    let window: DateInterval?
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 0.5)) { context in
+            let progress = window.map { min(1, max(0, context.date.timeIntervalSince($0.start) / max($0.duration, 1))) } ?? 0
+            ZStack {
+                Circle().stroke(Color.insulin.opacity(0.25), lineWidth: 3)
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(Color.insulin, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.linear(duration: 0.5), value: progress)
+            }
+            .padding(-4)
+        }
+        .allowsHitTesting(false)
     }
 }
