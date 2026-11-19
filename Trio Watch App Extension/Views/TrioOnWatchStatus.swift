@@ -52,6 +52,9 @@ struct TrioOnWatchStatus: Equatable {
     var tempTarget: Adjustment?
     var recentDoses: [Dose] = []
     var bolus: WatchLoanHost.BolusProgress = .idle
+    /// A bolus the pump is giving right now, manual or an SMB: its start/end window, nil when none runs. Drives the
+    /// Cancel Bolus button on the status page while the watch is in control.
+    var bolusInProgress: DateInterval?
     var lastAlert: LoanAlert?
 
     /// The watch gives insulin; the treatment buttons talk to the watch, not the phone.
@@ -273,7 +276,7 @@ extension TrioOnWatchStatus {
 extension TrioOnWatchStatus {
     struct MainValues: Equatable {
         var glucose: String
-        /// Delta and reading age on one line (G-14).
+        /// The reading's delta while the loan loops; empty when there is no recent delta (G-14).
         var detail: String
         var isStale: Bool
         var iob: String
@@ -301,16 +304,17 @@ extension TrioOnWatchStatus {
         let delta = readings.count > 1 && latest.date.timeIntervalSince(readings[1].date) <= 15 * 60
             ? Decimal(latest.mgdl - readings[1].mgdl).formattedDelta(for: units)
             : nil
-        let age = latest.date.formattedTimeAgo()
         return MainValues(
             glucose: glucose,
-            detail: delta.map { "\($0) · \(age)" } ?? age,
+            // Only the delta: while the loan loops, a fresh loop means a fresh reading, so the reading's age
+            // is redundant (a stale reading already falls through to "--" above). Empty when there is no delta.
+            detail: delta ?? "",
             isStale: false,
             iob: iobText,
             cob: cobText,
             accessibilityLabel: String(
-                localized: "Glucose \(glucose) \(units.rawValue), \(delta.map { String(localized: "delta \($0), ", comment: "Watch accessibility: glucose delta") } ?? "")\(latest.date.formattedSpokenTimeAgo())",
-                comment: "Watch accessibility: glucose, unit, optional delta, reading age"
+                localized: "Glucose \(glucose) \(units.rawValue)\(delta.map { String(localized: ", delta \($0)", comment: "Watch accessibility: glucose delta") } ?? "")",
+                comment: "Watch accessibility: glucose, unit, optional delta"
             )
         )
     }
@@ -334,13 +338,14 @@ extension TrioOnWatchStatus {
         case acknowledgeStop
     }
 
-    var header: (symbol: String, title: String, tint: Color) {
+    var header: (symbol: String?, title: String, tint: Color) {
         switch phase {
         case .phone:
             return ("iphone", String(localized: "Your iPhone is in control", comment: "Watch status header"), .primary)
         case .starting,
              .waitingForReading:
-            return ("applewatch", String(localized: "Starting…", comment: "Watch status header while starting"), .primary)
+            // No icon while starting: the progress spinner already shows it is working.
+            return (nil, String(localized: "Starting Loop", comment: "Watch status header while starting"), .primary)
         case .inControl:
             return ("applewatch", String(localized: "Your watch is in control", comment: "Watch status header"), .primary)
         case .ending:

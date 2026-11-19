@@ -783,6 +783,8 @@
 		BDA25EFD2D261C0000035F34 /* WatchState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDA25EFC2D261BF200035F34 /* WatchState.swift */; };
 		BDA25F1C2D26BD0700035F34 /* TrendShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDA25F1B2D26BD0300035F34 /* TrendShape.swift */; };
 		BDA25F1E2D26D5DD00035F34 /* GlucoseChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDA25F1D2D26D5D800035F34 /* GlucoseChartView.swift */; };
+		C0DE0002A5C0000000000003 /* CombinedGlucoseChartview.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE0002A5C0000000000001 /* CombinedGlucoseChartview.swift */; };
+		C0DE0002A5C0000000000004 /* TreatmentMarks.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE0002A5C0000000000002 /* TreatmentMarks.swift */; };
 		BDA25F202D26D5FE00035F34 /* CarbsInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDA25F1F2D26D5FB00035F34 /* CarbsInputView.swift */; };
 		BDA25F222D26D62800035F34 /* BolusInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDA25F212D26D62200035F34 /* BolusInputView.swift */; };
 		BDA6CC882CAF219B00F942F9 /* TempTargetSetup.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDA6CC872CAF219800F942F9 /* TempTargetSetup.swift */; };
@@ -987,6 +989,7 @@
 		2AFE944317FDD3A88B7E1AAE /* TrioOnWatchFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C21FF38356B485856C18061 /* TrioOnWatchFixtures.swift */; };
 		CEBDA3366E90B4052E0CBBA7 /* TrioOnWatchTreatmentViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFE36CA7A9C036A7A9A656D5 /* TrioOnWatchTreatmentViews.swift */; };
 		1D1D64C3F68E55C61927B1A9 /* TrioOnWatchStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E141B1BB89678B47F959C26 /* TrioOnWatchStatusView.swift */; };
+		CA9C7E8B26C8CFF23AF238CB /* TrioOnWatchHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E44EF7D7C1F5F8410C927B27 /* TrioOnWatchHistoryView.swift */; };
 		9CBFB479DF8BDFA6586AF4AC /* TrioOnWatchStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92AE3FCA6866D690B55746B9 /* TrioOnWatchStatus.swift */; };
 		DD2CC85C2D25DA1000445446 /* GlucoseTargetsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD2CC85B2D25D9CE00445446 /* GlucoseTargetsView.swift */; };
 		DD3078682D42F5CE00DE0490 /* WatchGlucoseObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD3078672D42F5CE00DE0490 /* WatchGlucoseObject.swift */; };
@@ -1359,6 +1362,7 @@
 		E3D8D605CD8B1A97D990EBD1 /* GlucoseAlertType.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1179572F4E22C100F90001 /* GlucoseAlertType.swift */; };
 		2ED73001C94AEC5059F66DE2 /* AlarmSoundCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD11797C2F4E22C100F90001 /* AlarmSoundCatalog.swift */; };
 		C3BD7AD0606C44262DC72648 /* DeviceAlertSeverity.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1179842F4E22C100F90001 /* DeviceAlertSeverity.swift */; };
+		5FF929A3F520485588B50998 /* DeviceAlertSeverityConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1179862F4E22C100F90001 /* DeviceAlertSeverityConfig.swift */; };
 		9D6551F4E74FBFD3DC88C165 /* WatchLoan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A000000000000000001 /* WatchLoan.swift */; };
 		9EF6C4EDEE7FF2E6D6CF0F1D /* WatchLoanStartFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF8222E99D914FB75AD5E64 /* WatchLoanStartFacts.swift */; };
 		E69382BEFD524EDF234B46DF /* WatchLoanMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A10A000000000000000003 /* WatchLoanMessage.swift */; };
@@ -2287,6 +2291,8 @@
 		BDA25EFC2D261BF200035F34 /* WatchState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchState.swift; sourceTree = "<group>"; };
 		BDA25F1B2D26BD0300035F34 /* TrendShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrendShape.swift; sourceTree = "<group>"; };
 		BDA25F1D2D26D5D800035F34 /* GlucoseChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseChartView.swift; sourceTree = "<group>"; };
+		C0DE0002A5C0000000000001 /* CombinedGlucoseChartview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CombinedGlucoseChartview.swift; sourceTree = "<group>"; };
+		C0DE0002A5C0000000000002 /* TreatmentMarks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreatmentMarks.swift; sourceTree = "<group>"; };
 		BDA25F1F2D26D5FB00035F34 /* CarbsInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarbsInputView.swift; sourceTree = "<group>"; };
 		BDA25F212D26D62200035F34 /* BolusInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BolusInputView.swift; sourceTree = "<group>"; };
 		BDA6CC872CAF219800F942F9 /* TempTargetSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempTargetSetup.swift; sourceTree = "<group>"; };
@@ -2496,6 +2502,7 @@
 		1C21FF38356B485856C18061 /* TrioOnWatchFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrioOnWatchFixtures.swift; sourceTree = "<group>"; };
 		BFE36CA7A9C036A7A9A656D5 /* TrioOnWatchTreatmentViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrioOnWatchTreatmentViews.swift; sourceTree = "<group>"; };
 		1E141B1BB89678B47F959C26 /* TrioOnWatchStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrioOnWatchStatusView.swift; sourceTree = "<group>"; };
+		E44EF7D7C1F5F8410C927B27 /* TrioOnWatchHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrioOnWatchHistoryView.swift; sourceTree = "<group>"; };
 		92AE3FCA6866D690B55746B9 /* TrioOnWatchStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrioOnWatchStatus.swift; sourceTree = "<group>"; };
 		DD2CC85B2D25D9CE00445446 /* GlucoseTargetsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseTargetsView.swift; sourceTree = "<group>"; };
 		DD3078672D42F5CE00DE0490 /* WatchGlucoseObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchGlucoseObject.swift; sourceTree = "<group>"; };
@@ -4920,6 +4927,7 @@
 				1C21FF38356B485856C18061 /* TrioOnWatchFixtures.swift */,
 				BFE36CA7A9C036A7A9A656D5 /* TrioOnWatchTreatmentViews.swift */,
 				1E141B1BB89678B47F959C26 /* TrioOnWatchStatusView.swift */,
+				E44EF7D7C1F5F8410C927B27 /* TrioOnWatchHistoryView.swift */,
 				92AE3FCA6866D690B55746B9 /* TrioOnWatchStatus.swift */,
 			);
 			path = Views;
@@ -5977,6 +5985,8 @@
 				BDA25F1D2D26D5D800035F34 /* GlucoseChartView.swift */,
 				DD246F052D2836AA0027DDE0 /* GlucoseTrendView.swift */,
 				BDA25F1B2D26BD0300035F34 /* TrendShape.swift */,
+				C0DE0002A5C0000000000001 /* CombinedGlucoseChartview.swift */,
+				C0DE0002A5C0000000000002 /* TreatmentMarks.swift */,
 			);
 			path = Glucose;
 			sourceTree = "<group>";
@@ -7587,6 +7597,7 @@
 				9D6551F4E74FBFD3DC88C165 /* WatchLoan.swift in Sources */,
 				9EF6C4EDEE7FF2E6D6CF0F1D /* WatchLoanStartFacts.swift in Sources */,
 				C3BD7AD0606C44262DC72648 /* DeviceAlertSeverity.swift in Sources */,
+				5FF929A3F520485588B50998 /* DeviceAlertSeverityConfig.swift in Sources */,
 				2ED73001C94AEC5059F66DE2 /* AlarmSoundCatalog.swift in Sources */,
 				E3D8D605CD8B1A97D990EBD1 /* GlucoseAlertType.swift in Sources */,
 				C62F65F4471C7C2A22382EC0 /* GlucoseAlertConfiguration.swift in Sources */,
@@ -7606,6 +7617,8 @@
 				BD54A95C2D2808A300F9C1EE /* OverridePresetWatch.swift in Sources */,
 				BD54A9592D27FB7800F9C1EE /* OverridePresetsView.swift in Sources */,
 				BDA25F1E2D26D5DD00035F34 /* GlucoseChartView.swift in Sources */,
+				C0DE0002A5C0000000000003 /* CombinedGlucoseChartview.swift in Sources */,
+				C0DE0002A5C0000000000004 /* TreatmentMarks.swift in Sources */,
 				C0DE0001A5C0000000000004 /* ComplicationState.swift in Sources */,
 				C0DE0001A5C000000000000B /* ComplicationViews.swift in Sources */,
 				DD6F63CC2D27F615007D94CF /* TreatmentMenuView.swift in Sources */,
@@ -7614,6 +7627,7 @@
 				2AFE944317FDD3A88B7E1AAE /* TrioOnWatchFixtures.swift in Sources */,
 				CEBDA3366E90B4052E0CBBA7 /* TrioOnWatchTreatmentViews.swift in Sources */,
 				1D1D64C3F68E55C61927B1A9 /* TrioOnWatchStatusView.swift in Sources */,
+				CA9C7E8B26C8CFF23AF238CB /* TrioOnWatchHistoryView.swift in Sources */,
 				9CBFB479DF8BDFA6586AF4AC /* TrioOnWatchStatus.swift in Sources */,
 				BD432CA22D2F4E4000D1EB79 /* WatchMessageKeys.swift in Sources */,
 				C0DE0001A5C0000000000008 /* WatchComplicationValue.swift in Sources */,
@@ -8121,7 +8135,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = "$(APP_VERSION)";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(BUNDLE_IDENTIFIER).watchkitapp.TrioWatchComplication";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -8161,7 +8175,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = "$(APP_VERSION)";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(BUNDLE_IDENTIFIER).watchkitapp.TrioWatchComplication";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -8202,7 +8216,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = "$(APP_VERSION)";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(BUNDLE_IDENTIFIER).watchkitapp";
 				PRODUCT_MODULE_NAME = Trio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -8248,7 +8262,7 @@
 					"@executable_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = "$(APP_VERSION)";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(BUNDLE_IDENTIFIER).watchkitapp";
 				PRODUCT_MODULE_NAME = Trio;
 				PRODUCT_NAME = "$(TARGET_NAME)";
