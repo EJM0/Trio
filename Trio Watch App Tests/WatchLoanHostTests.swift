@@ -82,6 +82,8 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
     var battery: Float = 1
     var model = "Watch7,1"
     var notificationsAllowed = true
+    /// Whether the watch already has a fresh own sensor reading when it adopts.
+    var freshOwnReading = false
     var activity = FakeActivity()
     var requestTimeout = WatchLoan.watchRequestTimeout
     var handBackResend: TimeInterval = 60
@@ -127,6 +129,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
             notificationsAllowed: { [weak self] in self?.notificationsAllowed ?? false },
             modelIdentifier: { [weak self] in self?.model },
             appBuild: "1",
+            hasFreshOwnReading: { [weak self] in self?.freshOwnReading ?? false },
             beginActivity: { [weak self] _ in self?.activity ?? FakeActivity() },
             requestTimeout: requestTimeout,
             handBackResendInterval: handBackResend,
@@ -334,6 +337,19 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         await world.reading(150)
         #expect(world.pump?.commands.count == count)
         #expect(world.violations.isEmpty, "\(world.violations)")
+    }
+
+    @Test(
+        "Adopt with a fresh own reading goes in control at once, without waiting for a first reading"
+    ) func adoptWithFreshReading() async throws {
+        let world = LoanFixture()
+        world.freshOwnReading = true
+        try await world.startLoan()
+        #expect(world.host.state == .holding(epoch: 1))
+        #expect(world.adopted == 1)
+        #expect(world.pump?.takeControlCalls == 1)
+        // No waiting phase: the watch is in control immediately because it already reads its own sensor.
+        #expect(!world.host.awaitingFirstReading && world.host.isInControl)
     }
 
     @Test("Micro boluses only in the foreground") func microBolusForeground() async throws {

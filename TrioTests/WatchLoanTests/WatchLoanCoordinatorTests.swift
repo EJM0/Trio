@@ -63,6 +63,22 @@ final class FakeLoanTransport: WatchLoanTransport {
                 ($0[WatchLoanWireKey.recordsAck] as? Data)
                     .flatMap { try? JSONDecoder().decode(WatchLoanRecordAck.self, from: $0) } }
     }
+
+    /// Live snapshot slices, in send order: (index, count, epoch, bytes).
+    var snapshotChunks: [(index: Int, count: Int, epoch: Int64, data: Data)] {
+        live.compactMap { payload in
+            guard let data = payload[WatchLoanWireKey.snapshotChunk] as? Data,
+                  let index = payload[WatchLoanWireKey.snapshotChunkIndex] as? Int,
+                  let count = payload[WatchLoanWireKey.snapshotChunkCount] as? Int,
+                  let epoch = (payload[WatchLoanWireKey.snapshotChunkEpoch] as? NSNumber)?.int64Value else { return nil }
+            return (index, count, epoch, data)
+        }
+    }
+
+    /// The live grant payload (the one carrying a loan message), if sent.
+    var grantPayload: [String: Any]? {
+        live.last { $0[WatchLoanWireKey.message] != nil }
+    }
 }
 
 /// The app side, in memory: booked pump history, alarms, alerts.
@@ -73,6 +89,8 @@ final class FakeLoanHost: WatchLoanPhoneHost {
     var refusal: LoanRefusal?
     var idle: () async -> Void = {}
     var snapshotFails = false
+    /// Extra raw readings stuffed into the snapshot's smoothing window, to push it past one live message.
+    var snapshotPaddingReadings = 0
     /// Scheduled basal 0, so the audit numbers are only boluses and temps.
     var profile = [BasalProfileEntry(start: "00:00", minutes: 0, rate: 0)]
 
@@ -82,6 +100,8 @@ final class FakeLoanHost: WatchLoanPhoneHost {
     private(set) var alerts: [LoanAlert] = []
     private(set) var notices: [(units: Double, isShortfall: Bool)] = []
     private(set) var returnedHome = 0
+    /// Loop times the coordinator reported from record batches (BUG 1 fix).
+    private(set) var watchLoopNotes: [Date] = []
     private(set) var snapshots: [WatchLoanSnapshot] = []
 
     init(clock: TestClock) {
@@ -109,6 +129,17 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         snapshot.expiresAt = expiresAt
         snapshot.releaseReading = release
         snapshot.pumpExport = try pump.exportedConfiguration()
+        if snapshotPaddingReadings > 0 {
+            // Random bytes resist LZFSE, so the compressed snapshot grows past one live message.
+            snapshot.smoothGlucose = true
+            snapshot.smoothingWindow = (0 ..< snapshotPaddingReadings).map { i in
+                WatchLoanSnapshot.RawReading(
+                    id: UUID(),
+                    date: clock.now.addingTimeInterval(Double(-i) * 300),
+                    glucose: Int16.random(in: 40 ... 400)
+                )
+            }
+        }
         snapshots.append(snapshot)
         return snapshot
     }
@@ -145,6 +176,7 @@ final class FakeLoanHost: WatchLoanPhoneHost {
     func alert(_ alert: LoanAlert) { alerts.append(alert) }
     func auditNotice(units: Double, isShortfall: Bool) { notices.append((units, isShortfall)) }
     func didReturnHome() { returnedHome += 1 }
+    func noteWatchLoop(at date: Date) { watchLoopNotes.append(date) }
     func onForeignPodSession(_: @escaping () -> Void) {}
 
     var auditRows: [PumpHistoryEvent] { booked.filter { $0.id.hasPrefix(WatchLoanAudit.auditBolusIDPrefix) } }
@@ -170,17 +202,18 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         init(
             state: PhoneLoanState? = nil,
             ledger: WatchLoanLedger? = nil,
-            pumpIdleTimeout: TimeInterval = WatchLoanCoordinator.defaultPumpIdleTimeout
+            pumpIdleTimeout: TimeInterval = WatchLoanCoordinator.defaultPumpIdleTimeout,
+            store: WatchLoanStore<PhoneLoanState>? = nil
         ) throws {
             host = FakeLoanHost(clock: clock)
-            store = WatchLoanStoreTests.temporaryStore()
+            self.store = store ?? WatchLoanStoreTests.temporaryStore()
             ledgerStore = WatchLoanStoreTests.temporaryStore(WatchLoanLedger.self)
-            if let state { try store.save(state) }
+            if let state { try self.store.save(state) }
             if let ledger { try ledgerStore.save(ledger) }
             let clock = clock
             coordinator = WatchLoanCoordinator(
                 host: host,
-                store: store,
+                store: self.store,
                 ledgerStore: ledgerStore,
                 now: { clock.now },
                 pumpIdleTimeout: pumpIdleTimeout
@@ -221,7 +254,12 @@ final class FakeLoanHost: WatchLoanPhoneHost {
             try await receive(F.message(1, .holding))
         }
 
-        func batch(epoch: Int64, id: UUID = UUID(), doses: [(minutesFromNow: Double, units: Double)]) throws -> [String: Any] {
+        func batch(
+            epoch: Int64,
+            id: UUID = UUID(),
+            doses: [(minutesFromNow: Double, units: Double)],
+            lastLoopAt: Date? = nil
+        ) throws -> [String: Any] {
             let batch = WatchLoanRecordBatch(
                 version: WatchLoanRecordBatch.currentVersion,
                 batchID: id,
@@ -242,7 +280,8 @@ final class FakeLoanHost: WatchLoanPhoneHost {
                 runningTemp: nil,
                 carbs: [],
                 deletedCarbIDs: [],
-                glucose: []
+                glucose: [],
+                lastLoopAt: lastLoopAt
             )
             return [WatchLoanWireKey.records: try batch.encoded()]
         }
@@ -258,10 +297,15 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(await rig.coordinator.state == .lending(epoch: 1, requestID: F.requestA))
         #expect(try rig.store.load().get() == .lending(epoch: 1, requestID: F.requestA))
         #expect(rig.double.commands == ["tempBasal(0.0)", "refreshDeliveredUnits", "releaseControl", "export"])
-        let grant = try #require(rig.transport.live.last)
+        let grant = try #require(rig.transport.grantPayload)
         let grantMessage = try #require(rig.transport.messages.last)
         #expect(grantMessage == F.message(1, .grant(requestID: F.requestA, expiresAt: rig.clock.now.addingTimeInterval(30))))
-        let snapshot = try WatchLoanSnapshot.decode(try #require(grant[WatchLoanWireKey.snapshot] as? Data))
+        // A small snapshot is one chunk, sent under the chunk key; reassemble it the way the watch does.
+        let chunks = rig.transport.snapshotChunks
+        #expect(chunks.count == 1)
+        #expect(grant[WatchLoanWireKey.snapshotChunkCount] as? Int == 1)
+        let snapshotData = chunks.sorted { $0.index < $1.index }.reduce(into: Data()) { $0.append($1.data) }
+        let snapshot = try WatchLoanSnapshot.decode(snapshotData)
         let expectation = WatchLoanSnapshot.Expectation(
             requestID: F.requestA, epoch: 1, appBuild: WatchLoanSnapshotTests.appBuild, now: rig.clock.now,
             timeZone: TimeZone(identifier: "Europe/Berlin")!
@@ -272,6 +316,17 @@ final class FakeLoanHost: WatchLoanPhoneHost {
 
         try await rig.receive(F.message(1, .holding))
         #expect(await rig.coordinator.state == .lent(epoch: 1))
+    }
+
+    @Test("A record batch's loop time is reported so the phone's loop timer follows the watch") func watchLoopTimeReported() async throws {
+        let rig = try Rig()
+        try await rig.lend()
+        #expect(await rig.coordinator.state == .lent(epoch: 1))
+
+        let loopedAt = rig.clock.now.addingTimeInterval(-60)
+        await rig.coordinator.receive(try rig.batch(epoch: 1, doses: [], lastLoopAt: loopedAt))
+
+        #expect(rig.host.watchLoopNotes == [loopedAt])
     }
 
     @Test("Status query: the phone answers the watch with its epoch") func statusAnswer() async throws {
@@ -301,6 +356,23 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(rig.transport.messages == [F.message(0, .refused(requestID: F.requestA, reason: .pumpScreenOpen))])
     }
 
+    @Test("Start: a lend that can't persist refuses the watch at once instead of leaving it to retry") func lendPersistFails() async throws {
+        // A store whose parent directory doesn't exist: the atomic write throws, so `lending` is never entered.
+        let unwritable = WatchLoanStore<PhoneLoanState>(
+            url: FileManager.default.temporaryDirectory
+                .appendingPathComponent("watch-loan-missing-\(UUID())", isDirectory: true)
+                .appendingPathComponent("state.json")
+        )
+        let rig = try Rig(store: unwritable)
+        try await rig.receive(F.message(0, .request(requestID: F.requestA)))
+
+        // The phone stays home (nothing persisted) and never touches the pump.
+        #expect(await rig.coordinator.state == .home(epoch: 0, lastLoan: nil))
+        #expect(rig.double.commands.isEmpty)
+        // The watch is told right away, so it leaves `requesting` without waiting out its timeout.
+        #expect(rig.transport.messages == [F.message(0, .refused(requestID: F.requestA, reason: .busy))])
+    }
+
     @Test("Start: a grant that can't go live is never queued; the phone takes the pump straight back") func grantNotLive() async throws {
         let rig = try Rig()
         rig.transport.isReachable = false
@@ -311,6 +383,46 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(rig.transport.stops == [WatchLoanStop(kind: .revoke, epoch: 2)])
         #expect(rig.double.commands.suffix(3) == ["takeControl", "tempBasal(0.0)", "refreshDeliveredUnits"])
         #expect(!rig.double.isControlReleased)
+    }
+
+    @Test(
+        "Start: an over-budget snapshot is sent as several live chunks, then the grant, and reassembles whole"
+    ) func grantChunked() async throws {
+        let rig = try Rig()
+        // Enough random readings that the compressed snapshot can't fit one live message.
+        rig.host.snapshotPaddingReadings = 6000
+        try await rig.receive(F.message(0, .request(requestID: F.requestA)))
+
+        // The lend completed and the grant went live.
+        #expect(await rig.coordinator.state == .lending(epoch: 1, requestID: F.requestA))
+        let built = try #require(rig.host.snapshots.last)
+        let whole = try built.encoded()
+        #expect(whole.count > WatchLoanSnapshot.grantBudgetBytes) // the case under test
+
+        // More than one slice, each within a live message's budget, numbered 0..<count for epoch 1.
+        let chunks = rig.transport.snapshotChunks
+        #expect(chunks.count > 1)
+        #expect(chunks.allSatisfy { $0.data.count <= WatchLoanSnapshot.grantBudgetBytes })
+        #expect(chunks.map(\.index) == Array(0 ..< chunks.count))
+        #expect(chunks.allSatisfy { $0.epoch == 1 })
+        #expect(chunks.allSatisfy { $0.count == chunks.count })
+
+        // The grant is the last live payload and names the same slice count.
+        let grant = try #require(rig.transport.grantPayload)
+        #expect(grant[WatchLoanWireKey.snapshotChunkCount] as? Int == chunks.count)
+        let grantMessage = try #require(rig.transport.messages.last)
+        if case .grant = grantMessage.kind {} else { Issue.record("last message was not a grant") }
+
+        // The slices, joined in index order, decode back to the exact snapshot the phone built.
+        let joined = chunks.sorted { $0.index < $1.index }.reduce(into: Data()) { $0.append($1.data) }
+        #expect(joined == whole)
+        let reassembled = try WatchLoanSnapshot.decode(joined)
+        #expect(reassembled.epoch == 1)
+        #expect(reassembled.smoothingWindow.count == 6000)
+        #expect(reassembled.refusal(for: WatchLoanSnapshot.Expectation(
+            requestID: F.requestA, epoch: 1, appBuild: WatchLoanSnapshotTests.appBuild,
+            now: rig.clock.now, timeZone: TimeZone(identifier: "Europe/Berlin")!
+        )) == nil)
     }
 
     @Test("Start: a snapshot that can't be built retakes the same way") func snapshotFails() async throws {

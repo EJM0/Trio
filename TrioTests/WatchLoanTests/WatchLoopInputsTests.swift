@@ -382,7 +382,7 @@ import Testing
 
     @Test(
         "A late finalization of an earlier SMB never replaces a later SMB's booking; a new kit record replaces the closest"
-    )  func bookingReplacement() {
+    ) func bookingReplacement() {
         var stored: [String: WatchLoanStoredPumpEvent] = [:]
         WatchLoopInputs.store(
             [smb("earlier", at: now, mutable: true)],

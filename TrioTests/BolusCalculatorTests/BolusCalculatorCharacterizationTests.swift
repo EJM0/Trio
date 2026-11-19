@@ -240,6 +240,7 @@ final class RoundingAPSManagerStub: APSManager {
     let isLooping = CurrentValueSubject<Bool, Never>(false)
     var lastLoopDate: Date { .distantPast }
     let lastLoopDateSubject = PassthroughSubject<Date, Never>()
+    func noteWatchLoop(at _: Date) {}
     let bolusProgress = CurrentValueSubject<Decimal?, Never>(nil)
     let pumpExpiresAtDate = CurrentValueSubject<Date?, Never>(nil)
     let pumpActivatedAtDate = CurrentValueSubject<Date?, Never>(nil)
