@@ -99520,6 +99520,9 @@
     "Creates one file you can send when asking for help." : {
 
     },
+    "Creating or editing presets needs your iPhone." : {
+      "comment" : "Watch: presets can be started, not created, on the watch"
+    },
     "Critical" : {
       "comment" : "Name of the critical alarm sound.",
       "localizations" : {
@@ -226925,9 +226928,6 @@
         }
       }
     },
-    "No override is running." : {
-      "comment" : "Watch: nothing running"
-    },
     "No Override Presets" : {
       "localizations" : {
         "bg" : {
@@ -227057,6 +227057,9 @@
           }
         }
       }
+    },
+    "No override presets." : {
+      "comment" : "Watch: no override presets to start"
     },
     "No presets yet" : {
 
@@ -228270,9 +228273,6 @@
         }
       }
     },
-    "No temp target is running." : {
-      "comment" : "Watch: nothing running"
-    },
     "No Temp Target Presets" : {
       "localizations" : {
         "bg" : {
@@ -228402,6 +228402,9 @@
           }
         }
       }
+    },
+    "No temp target presets." : {
+      "comment" : "Watch: no temp target presets to start"
     },
     "No treatment history yet" : {
       "comment" : "Alert title when no quick-pick treatments history exists",
@@ -271870,6 +271873,12 @@
     "Run remote commands or upload loop status to Nightscout" : {
       "comment" : "Trio on Watch sheet: blocked on iPhone"
     },
+    "running" : {
+      "comment" : "Watch: preset currently running"
+    },
+    "Running" : {
+      "comment" : "Watch section header for the running adjustment"
+    },
     "Running Trio in closed loop mode requires an active CGM sensor session and a connected pump. This enables automated insulin delivery." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -296478,6 +296487,12 @@
           }
         }
       }
+    },
+    "Start a Temp Target" : {
+      "comment" : "Watch section header"
+    },
+    "Start an Override" : {
+      "comment" : "Watch section header"
     },
     "Start Date" : {
       "localizations" : {
@@ -368443,9 +368458,6 @@
           }
         }
       }
-    },
-    "You can stop it here. Starting or changing overrides and temp targets needs your iPhone." : {
-      "comment" : "Watch: overrides and temp targets during Trio on Watch"
     },
     "You can use Nightscout to import your existing therapy settings, or if you prefer, you can only connect to Nightscout, and configure therapy settings from scratch." : {
       "localizations" : {

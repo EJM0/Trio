@@ -187,7 +187,19 @@ struct GlucoseTrendView: View {
             Spacer()
 
             if let controlLine {
-                ControlLineView(line: controlLine, action: onControlLineTap)
+                if let sensorProblemText {
+                    // A sensor problem outranks the control line: it needs the user's eye, and the one line under the
+                    // bubble can't show both. The control line returns once the sensor is fine again.
+                    Text(sensorProblemText)
+                        .font(.system(size: minutesAgoFontSize))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+                        .foregroundStyle(WatchCGMHost.shared.sensorHasEnded ? Color.loopRed : .yellow)
+                        .onTapGesture { onControlLineTap() }
+                } else {
+                    ControlLineView(line: controlLine, action: onControlLineTap)
+                }
             } else {
                 Group {
                     if isReadingDirectly {
@@ -244,6 +256,14 @@ struct GlucoseTrendView: View {
             }
         }
         return sensorStateText
+    }
+
+    /// A sensor problem worth showing under the bubble during a loan: the warmup countdown, a sensor issue, a failed
+    /// or expired sensor, a needed code. Nil when the sensor is fine, so the control line stays as it is.
+    private var sensorProblemText: String? {
+        let host = WatchCGMHost.shared
+        guard host.hasSensorProblem || host.sensorHasEnded else { return nil }
+        return actionText
     }
 
     /// The loop's age once it is late or not known (the ring's green says it is on time), else the sensor's note.

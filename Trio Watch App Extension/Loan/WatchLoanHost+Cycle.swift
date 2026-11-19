@@ -273,6 +273,26 @@ extension WatchLoanHost {
         }
         loop.pumpSuspended = pump.status.basalDeliveryState?.isSuspended ?? false
         if !loop.pumpSuspended { cancelSuspendReminders() }
+
+        // Publish the watch's own forecast so the chart's lines/cone update each loop, not only from the phone.
+        if let determination = outputs.determination {
+            let predictions = determination.predictions
+            let anchor = determination.deliverAt ?? determination.timestamp ?? env.now()
+            WatchState.shared.applyOwnForecast(
+                iob: predictions?.iob,
+                zt: predictions?.zt,
+                cob: predictions?.cob,
+                uam: predictions?.uam,
+                anchor: anchor,
+                isMmol: WatchState.shared.glucoseRange.isMmol
+            )
+            // and this loop's IOB and COB, so the chart's scrub line has them during a loan too
+            WatchState.shared.applyOwnIobCob(
+                iob: outputs.iob.first?.iob.nearestDouble ?? 0,
+                cob: outputs.meal?.mealCOB.nearestDouble ?? 0,
+                at: anchor
+            )
+        }
     }
 
     static func seconds(since start: Date, now: Date) -> String {

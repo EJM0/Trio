@@ -58,7 +58,8 @@ extension WatchLoanHost {
                 cancelledAt: records.tempTargetCancelledAt,
                 now: now
             )
-            status.overridePresets = snapshot.overridePresets.map { .init(name: $0.name, isRunning: $0.name == status.override?.name) }
+            status.overridePresets = snapshot.overridePresets
+                .map { .init(name: $0.name, isRunning: $0.name == status.override?.name) }
             status.tempTargetPresets = snapshot.tempTargetPresets
                 .map { .init(name: $0.name ?? "", isRunning: $0.name == status.tempTarget?.name) }
             status.recentDoses = recentBoluses(snapshot: snapshot, now: now)
