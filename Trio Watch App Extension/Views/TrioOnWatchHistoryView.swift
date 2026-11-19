@@ -112,8 +112,9 @@ struct TrioOnWatchHistoryView: View {
             value
         }
         .listRowBackground(
-            RoundedRectangle(cornerRadius: 10).fill(Color.chart.opacity(0.65))
+            RoundedRectangle(cornerRadius: 10).fill(Color.chart)
         )
+        .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
     }
 
     private func describe(_ event: PumpHistoryEvent) -> String {
