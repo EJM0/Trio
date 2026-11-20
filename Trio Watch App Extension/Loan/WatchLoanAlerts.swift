@@ -8,6 +8,9 @@ final class WatchLoanAlerts {
     static let notLoopingPrefix = "trio.loan.notLooping."
     static let glucosePrefix = "trio.loan.glucose."
     static let glucoseCategory = "trio.loan.glucose"
+    /// A pod alert the watch can acknowledge while it holds the pod: the pod stops beeping.
+    static let podAlertCategory = "trio.loan.podAlert"
+    static let acknowledgeAction = "trio.loan.podAlert.acknowledge"
 
     private let notifier: WatchLoanNotifier
 
@@ -321,7 +324,7 @@ final class WatchLoanAlerts {
     }
 
     /// A kit alert as a notification, at the time the kit asked for. A repeating one is shown once.
-    func postKitAlert(_ alert: Alert, line: String, now: Date) {
+    func postKitAlert(_ alert: Alert, line: String, now: Date, acknowledgeable: Bool = false) {
         let date: Date?
         switch alert.trigger {
         case .immediate: date = nil
@@ -334,7 +337,7 @@ final class WatchLoanAlerts {
             body: alert.backgroundContent.body + "\n" + line,
             at: date,
             timeSensitive: true,
-            category: nil
+            category: acknowledgeable ? Self.podAlertCategory : nil
         )
         WatchLogger.shared.info(.loop, "Device alert \(date == nil ? "shown" : "scheduled"): \(alert.identifier.alertIdentifier)")
     }
