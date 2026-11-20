@@ -45,8 +45,8 @@ struct TrioOnWatchActions {
             startTempTarget: { await host.startTempTarget(presetName: $0) },
             cancelBolus: { await host.cancelBolus() },
             acknowledgePodAlert: { await host.acknowledgePodAlert(notificationID: $0) },
-            deactivatePod: { await host.deactivateFaultedPod() },
             readPod: { await host.readPodForStatusPage() },
+            deactivatePod: { await host.deactivateFaultedPod() },
             phoneAnswers: { await host.phoneAnswers() },
             clearNotice: { host.lastAlert = nil }
         )
