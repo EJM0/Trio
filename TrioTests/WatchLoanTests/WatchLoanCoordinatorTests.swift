@@ -39,6 +39,8 @@ final class FakeLoanTransport: WatchLoanTransport {
 
     func cancelOutstandingLoanTransfers() { cancelled += 1 }
 
+    func sendNewest(_ payload: [String: Any], key _: String) { queued.append(payload) }
+
     private var all: [[String: Any]] { live + queued }
 
     var messages: [WatchLoanMessage] {
@@ -112,6 +114,7 @@ final class FakeLoanHost: WatchLoanPhoneHost {
 
     var pump: WatchLoanPumpAdapter? { WatchLoanPumpAdapter(double) }
     var transport: WatchLoanTransport? { fakeTransport }
+    var standingCopyAllowed = false
 
     func startRefusal() async -> LoanRefusal? { refusal }
     func awaitPumpIdle() async { await idle() }
@@ -121,7 +124,8 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         epoch: Int64,
         expiresAt: Date,
         release: WatchLoanSnapshot.OdometerReading,
-        pump: WatchLoanPumpAdapter
+        pump: WatchLoanPumpAdapter,
+        asCopy _: Bool
     ) async throws -> WatchLoanSnapshot {
         if snapshotFails { throw WatchLoanHostError.noSharedCGM }
         var snapshot = try WatchLoanSnapshotTests.snapshot(epoch: epoch, now: clock.now)

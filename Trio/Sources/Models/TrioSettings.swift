@@ -67,6 +67,12 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var showForecastWatch: Bool = false
     /// The watch’s own urgent low alarm sounds through Silent Mode.
     var useCriticalAlertsWatch: Bool = false
+    /// Trio on Watch: the watch can take over the pump and loop (with the build's TRIO_ON_WATCH).
+    var trioOnWatchEnabled: Bool = false
+    /// The phone leaves a copy with the watch after each loop; the watch can start from it without the phone.
+    var trioOnWatchWithoutPhone: Bool = false
+    /// The watch starts from the copy by itself when the phone has stopped looping.
+    var trioOnWatchFallback: Bool = false
     var watchComplicationCornerValue: WatchComplicationValue = WatchComplicationDefaults.cornerValue
     var watchComplicationSecondaryValue: WatchComplicationValue = WatchComplicationDefaults.secondaryValue
     var overrideFactor: Decimal = 0.8
@@ -437,6 +443,18 @@ extension TrioSettings: Decodable {
 
         if let useCriticalAlertsWatch = try? container.decode(Bool.self, forKey: .useCriticalAlertsWatch) {
             settings.useCriticalAlertsWatch = useCriticalAlertsWatch
+        }
+
+        if let value = try? container.decode(Bool.self, forKey: .trioOnWatchEnabled) {
+            settings.trioOnWatchEnabled = value
+        }
+
+        if let value = try? container.decode(Bool.self, forKey: .trioOnWatchWithoutPhone) {
+            settings.trioOnWatchWithoutPhone = value
+        }
+
+        if let value = try? container.decode(Bool.self, forKey: .trioOnWatchFallback) {
+            settings.trioOnWatchFallback = value
         }
 
         if let value = try? container.decode(WatchComplicationValue.self, forKey: .watchComplicationCornerValue) {

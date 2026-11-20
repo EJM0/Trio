@@ -26,6 +26,8 @@ enum LoanRefusal: String, Codable, Equatable, Hashable {
     case snapshotIncomplete
     case clockOffset
     case timeZoneMismatch
+    // Start without the phone
+    case noUsableCopy
 }
 
 /// A loan message. `epoch` is the sender's loan epoch; for a grant it's the new loan's epoch.

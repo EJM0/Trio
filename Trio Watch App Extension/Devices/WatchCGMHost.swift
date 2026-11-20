@@ -227,6 +227,7 @@ extension WatchCGMHost: CGMManagerDelegate {
                 updateStatus()
                 WatchState.shared.applyOwnReadings(readings)
                 WatchAlarms.shared.check(own: readings)
+                WatchLoanRuntime.host?.ownReadingsArrived(readings, sensorProblem: hasSensorProblem)
                 scheduleAcquisitionBackstop()
             case .unreliableData:
                 noteSensorProblem(true)

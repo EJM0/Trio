@@ -67,6 +67,15 @@ extension WatchState {
     }
 
     /// Sends a request to cancel the current override preset to the paired iPhone
+    /// Stops the bolus the phone is delivering.
+    func sendCancelBolusRequest() {
+        guard let session = reachableSession(.bolus, notSentLog: "Bolus cancel not sent, phone unreachable") else { return }
+
+        WatchLogger.shared.info(.bolus, "Bolus cancel requested")
+
+        send([WatchMessageKeys.cancelBolus: true], on: session, .bolus, failureLog: "Sending bolus cancel failed")
+    }
+
     func sendCancelOverrideRequest() {
         guard let session = reachableSession(.treatments, notSentLog: "Override cancel not sent, phone unreachable")
         else { return }

@@ -360,6 +360,7 @@ final class BaseCarbsStorage: CarbsStorage, Injectable {
         let context = makeContext()
         context.name = "replaceCarbs"
         context.transactionAuthor = "replaceCarbs"
+        var replaced: [String] = []
 
         try await context.perform {
             // A fetch reads the store, so rows removed by a batch delete are not served from the row cache.
@@ -370,6 +371,7 @@ final class BaseCarbsStorage: CarbsStorage, Injectable {
             guard let storedEntry = try context.fetch(rootRequest).first else {
                 throw CoreDataError.fetchError(function: #function, file: #file)
             }
+            replaced = [storedEntry.id, storedEntry.fpuID].compactMap { $0?.uuidString }
 
             // Deleted through the context instead of an NSBatchDeleteRequest, which would commit on its own.
             if let fpuID = storedEntry.fpuID {
@@ -391,6 +393,10 @@ final class BaseCarbsStorage: CarbsStorage, Injectable {
         }
 
         updateSubject.send(())
+        Foundation.NotificationCenter.default.post(
+            name: WatchLoanPhoneChanges.notification,
+            object: WatchLoanPhoneChanges(deletedCarbIDs: replaced, carbs: [entry] + carbEquivalents)
+        )
     }
 
     private func saveFPUToCoreDataAsBatchInsert(entries: [CarbsEntry], areFetchedFromRemote: Bool) async {
@@ -515,6 +521,7 @@ final class BaseCarbsStorage: CarbsStorage, Injectable {
         context.name = "deleteCarbsEntryStored"
 
         var carbEntryFromCoreData: CarbEntryStored?
+        var deleted: [String] = []
 
         await context.perform {
             do {
@@ -523,6 +530,7 @@ final class BaseCarbsStorage: CarbsStorage, Injectable {
                     warning(.storage, "Carb entry to delete not found")
                     return
                 }
+                deleted = [carbEntry.id, carbEntry.fpuID].compactMap { $0?.uuidString }
 
                 // entry has fpuID
                 // case 1: carb equivalent entry
@@ -556,8 +564,15 @@ final class BaseCarbsStorage: CarbsStorage, Injectable {
                 }
 
             } catch {
+                deleted = []
                 warning(.storage, "Deleting carb entry failed", error: error)
             }
+        }
+        if !deleted.isEmpty {
+            Foundation.NotificationCenter.default.post(
+                name: WatchLoanPhoneChanges.notification,
+                object: WatchLoanPhoneChanges(deletedCarbIDs: deleted)
+            )
         }
     }
 

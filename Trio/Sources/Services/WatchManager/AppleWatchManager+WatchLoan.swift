@@ -49,6 +49,12 @@ extension BaseWatchManager: WatchLoanTransport {
         }
     }
 
+    func sendNewest(_ payload: [String: Any], key: String) {
+        guard let session, session.activationState == .activated, session.isPaired, session.isWatchAppInstalled else { return }
+        session.outstandingUserInfoTransfers.filter { $0.userInfo[key] != nil }.forEach { $0.cancel() }
+        session.transferUserInfo(payload)
+    }
+
     func cancelOutstandingLoanTransfers() {
         guard let session else { return }
         let loanTransfers = session.outstandingUserInfoTransfers.filter { transfer in

@@ -6,6 +6,8 @@ protocol WatchLoanTransport: AnyObject {
     func sendLive(_ payload: [String: Any]) -> Bool
     /// Live when reachable, otherwise queued for delivery.
     func send(_ payload: [String: Any])
+    /// Queued, replacing any queued payload under the same key.
+    func sendNewest(_ payload: [String: Any], key: String)
     func cancelOutstandingLoanTransfers()
 }
 
@@ -13,6 +15,8 @@ protocol WatchLoanTransport: AnyObject {
 protocol WatchLoanPhoneHost: AnyObject {
     var pump: WatchLoanPumpAdapter? { get }
     var transport: WatchLoanTransport? { get }
+    /// Trio on Watch and Allow Without iPhone are on: the phone leaves a copy with the watch.
+    var standingCopyAllowed: Bool { get }
     func startRefusal() async -> LoanRefusal?
     func awaitPumpIdle() async
     func snapshot(
@@ -20,7 +24,9 @@ protocol WatchLoanPhoneHost: AnyObject {
         epoch: Int64,
         expiresAt: Date,
         release: WatchLoanSnapshot.OdometerReading,
-        pump: WatchLoanPumpAdapter
+        pump: WatchLoanPumpAdapter,
+        /// The copy for a start without the phone: exported while the phone still holds the pod.
+        asCopy: Bool
     ) async throws -> WatchLoanSnapshot
     func merge(_ batch: WatchLoanRecordBatch) async throws
     func bookedEvents(since date: Date) async throws -> [PumpHistoryEvent]
@@ -79,6 +85,8 @@ struct WatchLoanLedger: Codable, Equatable {
     var replacedBookings: [String]?
     /// The kit's latest foreign-session time this phone has handled, saved after the audit it caused.
     var lastForeignSessionHandled: Date?
+    /// The last copy left with the watch for a start without the phone.
+    var standingCopySentAt: Date?
 
     mutating func save(_ audit: Audit) {
         audits.removeAll { $0.epoch == audit.epoch && $0.start == audit.start }
@@ -297,7 +305,7 @@ actor WatchLoanCoordinator {
     }
 
     private func process(_ event: PhoneLoanEvent) async {
-        var context = PhoneLoanContext(now: now())
+        var context = PhoneLoanContext(now: now(), standingCopyOut: host.standingCopyAllowed && ledger.standingCopySentAt != nil)
         if case let .received(message) = event, case .request = message.kind, case .home = state {
             context.startRefusal = await host.startRefusal()
             if let refusal = context.startRefusal { info(.watch, "Trio on Watch start refused: \(refusal.rawValue)") }
@@ -379,6 +387,21 @@ actor WatchLoanCoordinator {
             guard let pump = host.pump else {
                 enqueue(.releaseResult(epoch: epoch, released: false))
                 return false
+            }
+            // standing aside for a watch that started without the phone: the window starts at the phone's last own
+            // reading, not touching the pod, so the hand-back's audit covers exactly the watch's loan
+            if case let .lent(lentEpoch) = state, !ledger.audits.contains(where: { $0.epoch == lentEpoch }),
+               let reading = pump.deliveredUnits
+            {
+                ledger.save(WatchLoanLedger.Audit(
+                    epoch: lentEpoch,
+                    start: reading.at,
+                    startUnits: reading.units,
+                    basalProfile: await host.basalProfile(),
+                    timeZoneIdentifier: pump.status.timeZone.identifier,
+                    pulse: pump.pulse
+                ))
+                saveLedger()
             }
             let released = await pump.release()
             info(.pump, released ? "Pump released for Apple Watch" : "The pump refused the release")
@@ -498,7 +521,8 @@ actor WatchLoanCoordinator {
                 epoch: epoch,
                 expiresAt: expiresAt,
                 release: WatchLoanSnapshot.OdometerReading(units: audit.startUnits, at: audit.start),
-                pump: pump
+                pump: pump,
+                asCopy: false
             )
             guard snapshot.missingParts.isEmpty else {
                 warning(.watch, "Grant snapshot incomplete: \(snapshot.missingParts.joined(separator: ", "))")
@@ -552,6 +576,38 @@ actor WatchLoanCoordinator {
             try? await Task.sleep(nanoseconds: UInt64(WatchLoan.grantConfirmTimeout * 1_000_000_000))
             guard !Task.isCancelled else { return }
             await self?.handle(.grantUnconfirmed)
+        }
+    }
+
+    // MARK: - The copy for a start without the phone
+
+    /// After each of the phone's own loops: the newest copy, built as a grant's snapshot without releasing the pod.
+    /// Exporting the pod marks it shared, so the phone's driver refuses a pod another controller used since.
+    func sendStandingCopy() async {
+        // a bolus under way would be in the copy's history whole but only partly in its pump total: the last copy stands
+        guard host.standingCopyAllowed, case let .home(epoch, _) = state, let pump = host.pump,
+              pump.status.bolusState == .noBolus, let reading = pump.deliveredUnits
+        else { return }
+        do {
+            let snapshot = try await host.snapshot(
+                requestID: UUID(),
+                epoch: epoch,
+                expiresAt: now(),
+                release: WatchLoanSnapshot.OdometerReading(units: reading.units, at: reading.at),
+                pump: pump,
+                asCopy: true
+            )
+            guard snapshot.missingParts.isEmpty else {
+                debug(.watch, "Copy for Apple Watch incomplete: \(snapshot.missingParts.joined(separator: ", "))")
+                return
+            }
+            let data = try snapshot.encoded()
+            host.transport?.sendNewest([WatchLoanWireKey.standingCopy: data], key: WatchLoanWireKey.standingCopy)
+            ledger.standingCopySentAt = now()
+            saveLedger()
+            debug(.watch, "Copy left with Apple Watch, \(data.count) bytes")
+        } catch {
+            warning(.watch, "Copy for Apple Watch not built", error: error)
         }
     }
 

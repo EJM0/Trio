@@ -44,6 +44,9 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var watchSensorConfiguration: Data? = nil
     var watchReadsSensor: Bool = false
     var useCriticalAlertsWatch: Bool = false
+    var trioOnWatchEnabled: Bool = false
+    var trioOnWatchWithoutPhone: Bool = false
+    var trioOnWatchFallback: Bool = false
     /// The range and color scheme the watch colors its own readings by.
     var glucoseRangeLow: Decimal = 70
     var glucoseRangeHigh: Decimal = 180
@@ -71,6 +74,9 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         let watchSensorIsEqual = lhs.watchSensorConfiguration == rhs.watchSensorConfiguration &&
             lhs.watchReadsSensor == rhs.watchReadsSensor &&
             lhs.useCriticalAlertsWatch == rhs.useCriticalAlertsWatch &&
+            lhs.trioOnWatchEnabled == rhs.trioOnWatchEnabled &&
+            lhs.trioOnWatchWithoutPhone == rhs.trioOnWatchWithoutPhone &&
+            lhs.trioOnWatchFallback == rhs.trioOnWatchFallback &&
             lhs.glucoseRangeLow == rhs.glucoseRangeLow &&
             lhs.glucoseRangeHigh == rhs.glucoseRangeHigh &&
             lhs.glucoseRangeTarget == rhs.glucoseRangeTarget &&
@@ -152,6 +158,9 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(watchSensorConfiguration)
         hasher.combine(watchReadsSensor)
         hasher.combine(useCriticalAlertsWatch)
+        hasher.combine(trioOnWatchEnabled)
+        hasher.combine(trioOnWatchWithoutPhone)
+        hasher.combine(trioOnWatchFallback)
         hasher.combine(glucoseRangeLow)
         hasher.combine(glucoseRangeHigh)
         hasher.combine(glucoseRangeTarget)

@@ -13,6 +13,9 @@ extension WatchConfig {
         @Published var confirmBolusFaster = false
         @Published var showForecastWatch = false
         @Published var useCriticalAlertsWatch = false
+        @Published var trioOnWatchEnabled = false
+        @Published var trioOnWatchWithoutPhone = false
+        @Published var trioOnWatchFallback = false
         /// The CGM can pass its configuration to the watch, which then reads it itself.
         @Published var cgmSharesWithWatch = false
         @Published var cgmName = ""
@@ -34,6 +37,9 @@ extension WatchConfig {
             subscribeSetting(\.confirmBolusFaster, on: $confirmBolusFaster) { confirmBolusFaster = $0 }
             subscribeSetting(\.showForecastWatch, on: $showForecastWatch) { showForecastWatch = $0 }
             subscribeSetting(\.useCriticalAlertsWatch, on: $useCriticalAlertsWatch) { useCriticalAlertsWatch = $0 }
+            subscribeSetting(\.trioOnWatchEnabled, on: $trioOnWatchEnabled) { trioOnWatchEnabled = $0 }
+            subscribeSetting(\.trioOnWatchWithoutPhone, on: $trioOnWatchWithoutPhone) { trioOnWatchWithoutPhone = $0 }
+            subscribeSetting(\.trioOnWatchFallback, on: $trioOnWatchFallback) { trioOnWatchFallback = $0 }
             subscribeSetting(\.watchComplicationCornerValue, on: $complicationCornerValue) { complicationCornerValue = $0 }
             subscribeSetting(\.watchComplicationSecondaryValue, on: $complicationSecondaryValue) {
                 complicationSecondaryValue = $0

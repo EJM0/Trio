@@ -21,6 +21,10 @@ final class WatchLoanRecordStore {
         var startedOverrideAt: Date?
         var startedTempTarget: TempTarget?
         var startedTempTargetAt: Date?
+        /// Meals (ids and fpuIDs) and readings removed during the loan, on either side: hidden from the grant's
+        /// snapshot too, and sent to the phone with every batch.
+        var deletedCarbIDs: [String]?
+        var deletedGlucoseDates: [Date]?
         /// Determinations the phone hasn't acknowledged yet.
         var determinations: [WatchLoanRecordBatch.DeterminationRecord]?
         /// The batch sent last and what it carried, until the phone acknowledges it.
@@ -121,6 +125,26 @@ final class WatchLoanRecordStore {
         }
     }
 
+    /// Insulin the copy's records don't explain (the phone's doses since the copy), as a bolus in the watch's own
+    /// history: IOB errs high, so dosing errs low. Acknowledged at once: the phone has the doses themselves.
+    func bookUnexplained(_ units: Double, at date: Date) throws {
+        let raw = Data("trio-watch-copy-check-\(Int(date.timeIntervalSince1970))".utf8)
+        let dose = DoseEntry(
+            type: .bolus, startDate: date, endDate: date, value: units, unit: .units,
+            decisionId: nil, deliveredUnits: units, automatic: true
+        )
+        let event = NewPumpEvent(date: date, dose: dose, raw: raw, title: "Insulin the copy doesn't explain")
+        guard let key = event.dose?.syncIdentifier, let booked = event.dose else { return }
+        try mutate { contents in
+            contents.pumpEvents[key] = WatchLoanStoredPumpEvent(
+                record: .init(date: date, raw: raw, title: event.title, dose: booked),
+                storedAt: date,
+                bookedIntent: false,
+                acknowledged: true
+            )
+        }
+    }
+
     /// Whether the kit recorded this command's dose.
     func kitRecorded(_ intent: WatchDoseIntent) -> Bool {
         lock.withLock {
@@ -157,6 +181,50 @@ final class WatchLoanRecordStore {
 
     func storeCarbs(_ entry: CarbsEntry) throws {
         try mutate { $0.carbs.insert(entry, at: 0) }
+    }
+
+    /// Removes a meal; with `wholeMeal`, its carb equivalents too (an edit keeps them, the phone rebuilds its own).
+    func deleteCarbs(_ entry: CarbsEntry, wholeMeal: Bool) throws {
+        let ids = [entry.id, wholeMeal ? entry.fpuID : nil].compactMap { $0 }
+        try mutate { contents in
+            contents.carbs.removeAll { WatchLoanPhoneChanges.isDeleted($0, by: ids) }
+            contents.deletedCarbIDs = Self.union(contents.deletedCarbIDs, ids)
+        }
+    }
+
+    func deleteGlucose(_ reading: BloodGlucose) throws {
+        try mutate { contents in
+            contents.glucose.removeAll { WatchLoanPhoneChanges.isDeleted($0, by: [reading.dateString]) }
+            contents.deletedGlucoseDates = Self.union(contents.deletedGlucoseDates, [reading.dateString])
+        }
+    }
+
+    /// What the phone changed in its history. Its edited meals are stored as acknowledged: the phone has them.
+    func apply(_ changes: WatchLoanPhoneChanges) throws {
+        try mutate { contents in
+            contents.carbs.removeAll { WatchLoanPhoneChanges.isDeleted($0, by: changes.deletedCarbIDs) }
+            contents.glucose.removeAll { WatchLoanPhoneChanges.isDeleted($0, by: changes.deletedGlucoseDates) }
+            contents.deletedCarbIDs = Self.union(contents.deletedCarbIDs, changes.deletedCarbIDs)
+            contents.deletedGlucoseDates = Self.union(contents.deletedGlucoseDates, changes.deletedGlucoseDates)
+            let known = Set(contents.carbs.compactMap(\.id))
+            let new = changes.carbs.filter { !known.contains($0.id ?? "") }
+            contents.carbs.insert(contentsOf: new, at: 0)
+            contents.acknowledgedCarbs.formUnion(new.compactMap(\.id))
+        }
+    }
+
+    /// A deletion can come back from the other side.
+    private static func union<T: Hashable>(_ kept: [T]?, _ new: [T]) -> [T] {
+        Array(Set(kept ?? []).union(new))
+    }
+
+    /// The grant's snapshot without what was deleted during the loan.
+    func pruned(_ snapshot: WatchLoanSnapshot) -> WatchLoanSnapshot {
+        let contents = self.snapshot
+        var snapshot = snapshot
+        snapshot.oref.carbs.removeAll { WatchLoanPhoneChanges.isDeleted($0, by: contents.deletedCarbIDs ?? []) }
+        snapshot.oref.glucose.removeAll { WatchLoanPhoneChanges.isDeleted($0, by: contents.deletedGlucoseDates ?? []) }
+        return snapshot
     }
 
     func storeDetermination(_ determination: Determination, enacted: Bool) throws {
@@ -232,9 +300,10 @@ final class WatchLoanRecordStore {
                 runningTemp: contents.pumpEvents.values.map(\.record.dose)
                     .first { $0.isMutable && $0.type == .tempBasal && $0.endDate > now },
                 carbs: contents.carbs.filter { !contents.acknowledgedCarbs.contains($0.id ?? "") },
-                deletedCarbIDs: [],
+                deletedCarbIDs: contents.deletedCarbIDs ?? [],
                 glucose: contents.glucose.filter { !contents.acknowledgedGlucose.contains($0.id) }
             )
+            batch.deletedGlucoseDates = contents.deletedGlucoseDates
             // the watch-started override/temp target ride along every batch; the phone applies the newest and
             // treats a repeat as a no-op (idempotent by the preset's own start time)
             batch.startedOverride = contents.startedOverride

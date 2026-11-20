@@ -1,11 +1,19 @@
 import SwiftUI
 
 /// The watch's recorded history over the last 6 hours while it holds the pump: glucose, carbs and insulin,
-/// switched by the bottom toolbar. Read-only; ported from feat/watch-loop-5/5's WatchLoopHistoryView.
+/// switched by the bottom toolbar. Swipe a meal to edit or delete it, a reading to delete it; the phone follows.
+/// Ported from feat/watch-loop-5/5's WatchLoopHistoryView.
 struct TrioOnWatchHistoryView: View {
     /// Reloaded on appear and whenever the tab changes, so a new reading or dose shows without leaving the page.
     @State private var history = TrioOnWatchHistory(glucose: [], carbs: [], insulin: [], units: .mgdL)
     @State private var kind = Kind.glucose
+    @State private var deleting: Deletion?
+    @State private var editing: CarbsEntry?
+
+    enum Deletion {
+        case carbs(CarbsEntry)
+        case glucose(BloodGlucose)
+    }
 
     /// Live from the loan host; overridden in previews and the screenshot harness.
     var load: () -> TrioOnWatchHistory = {
@@ -54,6 +62,32 @@ struct TrioOnWatchHistoryView: View {
         .navigationTitle(String(localized: "History", comment: "Watch history screen title"))
         .onAppear { history = load() }
         .onChange(of: kind) { _, _ in history = load() }
+        .confirmationDialog(
+            deletionTitle,
+            isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Delete", comment: "Watch history: confirm deleting an entry"), role: .destructive) {
+                guard let deletion = deleting else { return }
+                Task {
+                    switch deletion {
+                    case let .carbs(entry): await WatchLoanRuntime.host?.deleteCarbs(entry)
+                    case let .glucose(reading): await WatchLoanRuntime.host?.deleteGlucose(reading)
+                    }
+                    history = load()
+                }
+            }
+            Button(String(localized: "Cancel", comment: "Watch history: keep the entry"), role: .cancel) {}
+        }
+        .sheet(item: $editing) { entry in
+            CarbEditView(entry: entry) { grams, date in
+                editing = nil
+                Task {
+                    await WatchLoanRuntime.host?.editCarbs(entry, grams: grams, at: date)
+                    history = load()
+                }
+            }
+        }
         .toolbar {
             ToolbarItemGroup(placement: .bottomBar) {
                 ForEach(Kind.allCases, id: \.self) { tab in
@@ -81,6 +115,9 @@ struct TrioOnWatchHistoryView: View {
                 reading.dateString,
                 reading.mbg != nil ? Text(Image(systemName: "drop.circle")) + Text(verbatim: " ") + shown : shown
             )
+            .swipeActions {
+                deleteButton { deleting = .glucose(reading) }
+            }
         }
     }
 
@@ -93,6 +130,13 @@ struct TrioOnWatchHistoryView: View {
                 entry.actualDate ?? entry.createdAt,
                 Text("\(entry.carbs.formatted(.number.precision(.fractionLength(0)))) g").foregroundStyle(.orange)
             )
+            .swipeActions {
+                deleteButton { deleting = .carbs(entry) }
+                Button { editing = entry } label: {
+                    Label(String(localized: "Edit", comment: "Watch history: edit a meal"), systemImage: "pencil")
+                }
+                .tint(.orange)
+            }
         }
     }
 
@@ -102,6 +146,23 @@ struct TrioOnWatchHistoryView: View {
         }
         ForEach(history.insulin, id: \.id) { event in
             row(event.timestamp, Text(describe(event)).foregroundStyle(.blue))
+        }
+    }
+
+    private func deleteButton(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(String(localized: "Delete", comment: "Watch history: delete an entry"), systemImage: "trash")
+        }
+        .tint(.red)
+    }
+
+    private var deletionTitle: String {
+        switch deleting {
+        case .glucose: return String(
+                localized: "Delete this reading?",
+                comment: "Watch history: confirm deleting a glucose reading"
+            )
+        default: return String(localized: "Delete this meal?", comment: "Watch history: confirm deleting a meal")
         }
     }
 
@@ -137,5 +198,42 @@ struct TrioOnWatchHistoryView: View {
         case .carbs: return Text(String(localized: "Carbs", comment: "Watch history tab"))
         case .insulin: return Text(String(localized: "Insulin", comment: "Watch history tab"))
         }
+    }
+}
+
+/// A meal's carbs and time; the Digital Crown turns the grams.
+private struct CarbEditView: View {
+    let entry: CarbsEntry
+    let save: (Decimal, Date) -> Void
+    @State private var grams: Double
+    @State private var date: Date
+
+    init(entry: CarbsEntry, save: @escaping (Decimal, Date) -> Void) {
+        self.entry = entry
+        self.save = save
+        _grams = State(initialValue: NSDecimalNumber(decimal: entry.carbs).doubleValue)
+        _date = State(initialValue: entry.actualDate ?? entry.createdAt)
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack {
+                Text("\(Int(grams)) g")
+                    .font(.title2)
+                    .foregroundStyle(.orange)
+                    .focusable()
+                    .digitalCrownRotation($grams, from: 1, through: 250, by: 1, sensitivity: .medium)
+                DatePicker(
+                    String(localized: "Time", comment: "Watch history: meal time"),
+                    selection: $date,
+                    displayedComponents: .hourAndMinute
+                )
+                Button(String(localized: "Save", comment: "Watch history: save the edited meal")) {
+                    save(Decimal(Int(grams)), date)
+                }
+                .tint(.orange)
+            }
+        }
+        .navigationTitle(String(localized: "Edit Meal", comment: "Watch history: edit meal title"))
     }
 }

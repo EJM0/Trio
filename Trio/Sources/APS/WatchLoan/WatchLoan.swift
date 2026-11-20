@@ -41,6 +41,7 @@ enum LoanAlert: Equatable, Hashable {
     case podTakenOnThisPhone
     case loanStateUnreadable
     case podTotalUnreliable
+    case watchStartedWithoutPhone
     // Watch
     case phoneDidNotAnswer
     case startRefused(LoanRefusal)
@@ -113,15 +114,20 @@ struct PhoneLoanContext: Equatable {
     var now: Date
     /// Why Start is refused (preconditions or the build flag off), nil when it may proceed.
     var startRefusal: LoanRefusal?
+    /// A copy is out (Allow Without iPhone): the watch may have started from it while the phone was away.
+    var standingCopyOut: Bool
 
-    init(now: Date, startRefusal: LoanRefusal? = nil) {
+    init(now: Date, startRefusal: LoanRefusal? = nil, standingCopyOut: Bool = false) {
         self.now = now
         self.startRefusal = startRefusal
+        self.standingCopyOut = standingCopyOut
     }
 }
 
 enum WatchSideLoanEvent: Equatable, Hashable {
     case startTapped
+    /// Start from the phone's copy, the phone silent (control row 2). `copyEpoch` is the phone's epoch in the copy.
+    case startWithoutPhoneTapped(copyEpoch: Int64)
     case requestTimedOut
     case received(WatchLoanMessage)
     case receivedStop(WatchLoanStop)
@@ -144,19 +150,23 @@ struct WatchSideLoanContext: Equatable {
     var endRefusal: LoanRefusal?
     /// The host's grant validation (snapshot, versions, clock, time zone), nil when it passed.
     var grantRefusal: LoanRefusal?
+    /// The host's check of the copy for a start without the phone (age, versions, time zone), nil when it passed.
+    var copyRefusal: LoanRefusal?
 
     init(
         now: Date,
         newRequestID: UUID = UUID(),
         startRefusal: LoanRefusal? = nil,
         endRefusal: LoanRefusal? = nil,
-        grantRefusal: LoanRefusal? = nil
+        grantRefusal: LoanRefusal? = nil,
+        copyRefusal: LoanRefusal? = nil
     ) {
         self.now = now
         self.newRequestID = newRequestID
         self.startRefusal = startRefusal
         self.endRefusal = endRefusal
         self.grantRefusal = grantRefusal
+        self.copyRefusal = copyRefusal
     }
 }
 
@@ -284,6 +294,13 @@ enum WatchLoan {
                     .alert(.watchContactedPodAfterTakeBack)
                 ])
             }
+            // Control row 17 without the watch's word: the copy started a loan above this epoch, and the kit's refused
+            // handshake left the watch's session alone. Standing aside keeps the pod with the looping watch; its
+            // records name the loan, a Take Back ends it.
+            if context.standingCopyOut, case let .home(epoch, _) = state {
+                let (next, effects) = standAside(from: state, epoch: epoch + 1)
+                return (next, [.podSession(.refuse)] + effects + [.alert(.watchStartedWithoutPhone)])
+            }
             return (state, [.podSession(.refuse), .audit(loan?.audit ?? .podLifetime), .alert(.unexpectedPodSession)])
 
         case .relaunched:
@@ -335,6 +352,11 @@ enum WatchLoan {
 
         case .holding,
              .records:
+            // Control row 17: the watch started from the copy, above this phone's epoch, and is looping
+            if case let .home(epoch, _) = state, message.epoch > epoch {
+                let (next, effects) = standAside(from: state, epoch: message.epoch)
+                return (next, effects + [.alert(.watchStartedWithoutPhone)])
+            }
             guard case let .lending(epoch, _) = state, epoch == message.epoch else { return (state, []) }
             return enterLent(from: state, epoch: epoch)
 
@@ -360,6 +382,12 @@ enum WatchLoan {
              .statusQuery:
             return (state, [])
         }
+    }
+
+    /// The pod stays with a watch that started without the phone: no temp cancel, the phone's driver lets go.
+    private static func standAside(from state: PhoneLoanState, epoch: Int64) -> (PhoneLoanState, [PhoneLoanEffect]) {
+        let (next, effects) = enterLent(from: state, epoch: epoch)
+        return (next, effects + [.releaseControl])
     }
 
     private static func enterLent(from state: PhoneLoanState, epoch: Int64) -> (PhoneLoanState, [PhoneLoanEffect]) {
@@ -402,6 +430,21 @@ enum WatchLoan {
                 next,
                 [.persist(next), .send(WatchLoanMessage(epoch: epoch, kind: .request(requestID: context.newRequestID)))]
             )
+
+        case let .startWithoutPhoneTapped(copyEpoch):
+            guard case let .idle(epoch) = state else { return (state, []) }
+            if let refusal = context.startRefusal ?? context.copyRefusal {
+                return (state, [.alert(.startRefused(refusal))])
+            }
+            // above any epoch this watch knows, so the phone's word can tell this loan from an older one
+            let newEpoch = max(epoch, copyEpoch) + 1
+            let next = WatchLoanState.holding(epoch: newEpoch)
+            return (next, [
+                .arm(.watchNotLooping),
+                .persist(next),
+                .adoptControl,
+                .send(WatchLoanMessage(epoch: newEpoch, kind: .holding))
+            ])
 
         case .requestTimedOut:
             guard case let .requesting(epoch, _) = state else { return (state, []) }
