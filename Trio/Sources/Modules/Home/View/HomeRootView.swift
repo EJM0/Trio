@@ -281,6 +281,7 @@ extension Home {
                 #endif
                 while !Task.isCancelled {
                     await trioOnWatch.refresh()
+                    if state.watchLoopSpans != trioOnWatch.spans { state.watchLoopSpans = trioOnWatch.spans }
                     try? await Task.sleep(nanoseconds: 5_000_000_000)
                 }
             }

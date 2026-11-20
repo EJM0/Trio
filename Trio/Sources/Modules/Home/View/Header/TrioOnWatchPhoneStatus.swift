@@ -351,6 +351,8 @@ struct TrioOnWatchPhoneStatus: Equatable {
 /// Polls the loan coordinator for the Home screen. Reads only; the two actions are the user's own taps.
 @MainActor @Observable final class TrioOnWatchPhoneModel {
     private(set) var status = TrioOnWatchPhoneStatus()
+    /// When the watch had the pump, for the chart's band.
+    private(set) var spans: [WatchLoanLedger.Span] = []
     private var state: PhoneLoanState = .initial
     private var since = Date()
     @ObservationIgnored private var resolver: Resolver?
@@ -373,6 +375,8 @@ struct TrioOnWatchPhoneStatus: Equatable {
         let next = await coordinator.state
         let lastBatchAt = await coordinator.lastBatchAt
         let lastLoopAt = await coordinator.watchLoopAt
+        let spans = await coordinator.watchLoopSpans
+        if spans != self.spans { self.spans = spans }
         if !Self.sameCase(next, state) { since = now }
         state = next
         let refuses = resolver?.resolve(DeviceDataManager.self).flatMap { WatchLoanPumpAdapter($0.pumpManager) }?

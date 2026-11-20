@@ -7,4 +7,6 @@ extension WatchLoanCoordinator {
 
     /// The watch's last confirmed loop in this loan.
     var watchLoopAt: Date? { ledger.watchLoop.flatMap { $0.epoch == state.epoch ? $0.at : nil } }
+
+    var watchLoopSpans: [WatchLoanLedger.Span] { ledger.spans ?? [] }
 }

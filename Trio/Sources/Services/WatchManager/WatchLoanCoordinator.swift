@@ -73,7 +73,14 @@ struct WatchLoanLedger: Codable, Equatable {
         var at: Date
     }
 
+    /// When the watch had the pump, for the chart's band. Nil end: it still has it.
+    struct Span: Codable, Equatable {
+        var start: Date
+        var end: Date?
+    }
+
     static let keptAudits = 20
+    static let keptSpans = 50
     static let keptReplacedBookings = 512
 
     var audits: [Audit] = []
@@ -87,6 +94,7 @@ struct WatchLoanLedger: Codable, Equatable {
     var lastForeignSessionHandled: Date?
     /// The last copy left with the watch for a start without the phone.
     var standingCopySentAt: Date?
+    var spans: [Span]?
 
     mutating func save(_ audit: Audit) {
         audits.removeAll { $0.epoch == audit.epoch && $0.start == audit.start }
@@ -345,6 +353,7 @@ actor WatchLoanCoordinator {
             }
             let previous = state
             state = next
+            noteSpan(next)
             if previous.loan?.supersededUntil != nil, next.loan?.supersededUntil == nil, previous.loan?.epoch == next.loan?.epoch,
                let pump = host.pump
             {
@@ -753,6 +762,20 @@ actor WatchLoanCoordinator {
         guard let pendingStatus else { return }
         self.pendingStatus = nil
         pendingStatus.resume(returning: answer)
+    }
+
+    /// The chart's band: from lent until the phone is home again.
+    private func noteSpan(_ next: PhoneLoanState) {
+        var spans = ledger.spans ?? []
+        if case .lent = next, spans.last.map({ $0.end != nil }) ?? true {
+            spans.append(WatchLoanLedger.Span(start: now()))
+        } else if case .home = next, !spans.isEmpty, spans[spans.count - 1].end == nil {
+            spans[spans.count - 1].end = now()
+        } else {
+            return
+        }
+        ledger.spans = Array(spans.suffix(WatchLoanLedger.keptSpans))
+        saveLedger()
     }
 
     private func saveLedger() {
