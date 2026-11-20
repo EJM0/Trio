@@ -46,6 +46,10 @@ struct WatchLoanRecordBatch: Codable {
     var startedOverrideAt: Date? = nil
     var startedTempTarget: TempTarget? = nil
     var startedTempTargetAt: Date? = nil
+    /// The override or temp target running on the watch was stopped there: the phone ends the one it runs, unless the
+    /// user started it on the phone after this time.
+    var overrideCancelledAt: Date? = nil
+    var tempTargetCancelledAt: Date? = nil
     /// The watch loop's determinations, for the phone's chart, loop status and Nightscout.
     var determinations: [DeterminationRecord]? = nil
     /// The watch deactivated the faulted pod: the phone forgets it, as the controller that ended it booked its end.

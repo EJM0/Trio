@@ -385,42 +385,99 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
     /// batch is a no-op. Keyed by the start time, which is unique per start.
     private static let appliedOverrideKey = "watchLoan.appliedOverrideStartedAt"
     private static let appliedTempTargetKey = "watchLoan.appliedTempTargetStartedAt"
+    /// The newest watch stop the phone has applied, by the stop time.
+    private static let appliedOverrideCancelKey = "watchLoan.appliedOverrideCancelledAt"
+    private static let appliedTempTargetCancelKey = "watchLoan.appliedTempTargetCancelledAt"
+    /// When the phone activated the watch's start, so a stop arriving later still ends that one.
+    private static let overrideActivatedKey = "watchLoan.overrideActivatedAt"
+    private static let tempTargetActivatedKey = "watchLoan.tempTargetActivatedAt"
 
-    /// Activates an override or temp target the watch started during the loan, through the same path the phone uses
-    /// for any preset activation (`AdjustmentManager`), so the phone's own store, Nightscout and the determination
-    /// all reflect it. Idempotent: a given start time is applied once, even though it rides along several batches.
+    /// Applies an override or temp target the watch started or stopped during the loan, through the same path the
+    /// phone uses for any preset (`AdjustmentManager`), so the phone's own store, Nightscout and the determination all
+    /// reflect it. Idempotent: each start and stop time is applied once, though it rides along every batch.
     private func applyWatchAdjustments(_ batch: WatchLoanRecordBatch) async {
         guard let adjustmentManager = resolver.resolve(AdjustmentManager.self) else {
-            if batch.startedOverrideAt != nil || batch.startedTempTargetAt != nil {
-                warning(.watch, "No AdjustmentManager to apply a watch-started override or temp target")
+            if batch.startedOverrideAt != nil || batch.startedTempTargetAt != nil || batch.overrideCancelledAt != nil
+                || batch.tempTargetCancelledAt != nil
+            {
+                warning(.watch, "No AdjustmentManager to apply a watch-started or -stopped override or temp target")
             }
             return
         }
-        let defaults = UserDefaults.standard
+        await applyWatchAdjustment(
+            kind: "override",
+            entity: "OverrideStored",
+            started: batch.startedOverride.map(\.name),
+            startedAt: batch.startedOverrideAt,
+            cancelledAt: batch.overrideCancelledAt,
+            keys: (Self.appliedOverrideKey, Self.overrideActivatedKey, Self.appliedOverrideCancelKey),
+            activate: { _ = try await adjustmentManager.activateOverride(.presetName($0), source: .watch) },
+            cancel: { _ = try await adjustmentManager.cancelOverride(source: .watch) }
+        )
+        await applyWatchAdjustment(
+            kind: "temp target",
+            entity: "TempTargetStored",
+            started: batch.startedTempTarget?.name,
+            startedAt: batch.startedTempTargetAt,
+            cancelledAt: batch.tempTargetCancelledAt,
+            keys: (Self.appliedTempTargetKey, Self.tempTargetActivatedKey, Self.appliedTempTargetCancelKey),
+            activate: { _ = try await adjustmentManager.activateTempTarget(.presetName($0), source: .watch) },
+            cancel: { _ = try await adjustmentManager.cancelTempTarget(source: .watch) }
+        )
+    }
 
-        if let override = batch.startedOverride, let startedAt = batch.startedOverrideAt,
-           defaults.double(forKey: Self.appliedOverrideKey) != startedAt.timeIntervalSinceReferenceDate
-        {
-            do {
-                try await adjustmentManager.activateOverride(.presetName(override.name), source: .watch)
-                defaults.set(startedAt.timeIntervalSinceReferenceDate, forKey: Self.appliedOverrideKey)
-                info(.watch, "Activated watch-started override \"\(override.name)\" on the iPhone")
-            } catch {
-                warning(.watch, "Activating the watch-started override failed", error: error)
+    private func applyWatchAdjustment(
+        kind: String,
+        entity: String,
+        started name: String?,
+        startedAt: Date?,
+        cancelledAt: Date?,
+        keys: (started: String, activated: String, cancelled: String),
+        activate: (String) async throws -> Void,
+        cancel: () async throws -> Void
+    ) async {
+        let defaults = UserDefaults.standard
+        func applied(_ key: String, _ date: Date) -> Bool { defaults.double(forKey: key) == date.timeIntervalSinceReferenceDate }
+
+        if let name, let startedAt, !applied(keys.started, startedAt) {
+            // a start always clears the watch's stop, so a stop beside it came later: nothing to start here
+            if cancelledAt == nil {
+                do {
+                    try await activate(name)
+                    defaults.set(Date().timeIntervalSinceReferenceDate, forKey: keys.activated)
+                    info(.watch, "Activated watch-started \(kind) \"\(name)\" on the iPhone")
+                } catch {
+                    warning(.watch, "Activating the watch-started \(kind) failed", error: error)
+                    return
+                }
             }
+            defaults.set(startedAt.timeIntervalSinceReferenceDate, forKey: keys.started)
         }
 
-        if let tempTarget = batch.startedTempTarget, let startedAt = batch.startedTempTargetAt,
-           let name = tempTarget.name,
-           defaults.double(forKey: Self.appliedTempTargetKey) != startedAt.timeIntervalSinceReferenceDate
-        {
-            do {
-                try await adjustmentManager.activateTempTarget(.presetName(name), source: .watch)
-                defaults.set(startedAt.timeIntervalSinceReferenceDate, forKey: Self.appliedTempTargetKey)
-                info(.watch, "Activated watch-started temp target \"\(name)\" on the iPhone")
-            } catch {
-                warning(.watch, "Activating the watch-started temp target failed", error: error)
+        guard let cancelledAt, !applied(keys.cancelled, cancelledAt) else { return }
+        // ends what ran when the watch stopped it, or what this phone activated from the watch; never one the user
+        // started on the phone after the loan
+        let activatedAt = Date(timeIntervalSinceReferenceDate: defaults.double(forKey: keys.activated))
+        do {
+            if try await runs(entity, startedBefore: max(cancelledAt, activatedAt.addingTimeInterval(1))) {
+                try await cancel()
+                info(.watch, "Stopped the \(kind) on the iPhone, as on Apple Watch")
             }
+            defaults.set(cancelledAt.timeIntervalSinceReferenceDate, forKey: keys.cancelled)
+        } catch AdjustmentError.nothingActive {
+            defaults.set(cancelledAt.timeIntervalSinceReferenceDate, forKey: keys.cancelled)
+        } catch {
+            warning(.watch, "Stopping the \(kind) the watch stopped failed", error: error)
+        }
+    }
+
+    /// Whether an enabled override or temp target started before `date`.
+    private func runs(_ entity: String, startedBefore date: Date) async throws -> Bool {
+        let context = makeContext()
+        return try await context.perform {
+            let request = NSFetchRequest<NSFetchRequestResult>(entityName: entity)
+            request.predicate = NSPredicate(format: "enabled == YES AND date < %@", date as NSDate)
+            return try context.count(for: request) > 0
         }
     }
 
