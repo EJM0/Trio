@@ -83,6 +83,10 @@ extension WatchLoanHost {
             WatchLogger.shared.debug(.loop, "Cycle skipped: not holding the pump")
             return
         }
+        guard cycleInfo.podDeactivatedAt == nil else {
+            WatchLogger.shared.debug(.loop, "Cycle skipped: the pod was deactivated")
+            return
+        }
         let start = env.now()
         isCycleRunning = true
         defer { isCycleRunning = false }
@@ -193,6 +197,13 @@ extension WatchLoanHost {
         }
         if let units = plan.bolus {
             confirmed = await command(.bolus(units: units, automatic: true)) == .confirmed && confirmed
+        }
+        // A quiet wake reads the pod anyway: the next wake's temp change then needs no status read first. Status, cancel
+        // and set in one wake (6 messages) push watchOS's background notification count up toward its limit; 2 or 4
+        // don't. The read also raises pod alerts on the watch.
+        if plan.tempBasal == nil, plan.bolus == nil, lastSync < start {
+            let read = await pump.refreshDeliveredUnits()
+            WatchLogger.shared.info(.loop, "Quiet wake: pod status \(read ? "read" : "not read")")
         }
 
         updateLoopStatus(outputs, pump: pump)
@@ -587,6 +598,7 @@ extension WatchLoanHost {
             let (records, now) = (records, env.now())
             var batch = try await WatchLoanFiles.io { try records.nextBatch(epoch: epoch, now: now) }
             batch.lastLoopAt = cycleInfo.lastConfirmedCycleAt
+            batch.podDeactivatedAt = cycleInfo.podDeactivatedAt
             let data = try batch.encoded()
             env.transport.send([WatchLoanWireKey.records: data])
             WatchLogger.shared.info(

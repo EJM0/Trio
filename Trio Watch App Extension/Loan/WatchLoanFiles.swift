@@ -102,6 +102,8 @@ struct WatchLoanCycleInfo: Codable {
     var copyChecked: Bool?
     /// The Fallback Loop started it; it goes back once the phone is back.
     var startedByFallback: Bool?
+    /// The faulted pod was deactivated on the watch: no more cycles, and the phone forgets the pod from the next batch.
+    var podDeactivatedAt: Date?
     var summary = DailySummary()
 
     /// Counts for one log line a day, so a hardware run shows its wakes, readings and cycles.

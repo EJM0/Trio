@@ -20,6 +20,8 @@ struct TrioOnWatchActions {
     var cancelBolus: () async -> Void = {}
     /// Acknowledges the pod alert with this notification id.
     var acknowledgePodAlert: (String) async -> Void = { _ in }
+    /// True once the faulted pod was deactivated.
+    var deactivatePod: () async -> Bool = { true }
     /// The phone answered a live query; End is tried, not blocked on a flag.
     var phoneAnswers: () async -> Bool = { true }
     /// Forgets the last notice, so an old refusal doesn't show as the next hand-off's outcome.
@@ -41,6 +43,7 @@ struct TrioOnWatchActions {
             startTempTarget: { await host.startTempTarget(presetName: $0) },
             cancelBolus: { await host.cancelBolus() },
             acknowledgePodAlert: { await host.acknowledgePodAlert(notificationID: $0) },
+            deactivatePod: { await host.deactivateFaultedPod() },
             phoneAnswers: { await host.phoneAnswers() },
             clearNotice: { host.lastAlert = nil }
         )
@@ -158,6 +161,7 @@ struct TrioOnWatchStatusView: View {
     @State private var showingEndConfirmation = false
     @State private var showingSuspendConfirmation = false
     @State private var showingCancelBolusConfirmation = false
+    @State private var showingDeactivatePod = false
     @State private var handOff: HandOffKind?
     @State private var endPhoneSilent = false
     @State private var result: ActionResult?
@@ -190,11 +194,27 @@ struct TrioOnWatchStatusView: View {
                             .font(.footnote.weight(.semibold))
                             .foregroundStyle(Color.orange)
                         Text(alert.body).font(.footnote)
-                        Button(String(localized: "Acknowledge", comment: "Watch: acknowledge a pod alert")) {
-                            Task { await actions.acknowledgePodAlert(alert.id) }
+                        // a faulted pod takes no acknowledgement: it alarms until deactivated
+                        if !status.podFaulted {
+                            Button(String(localized: "Acknowledge", comment: "Watch: acknowledge a pod alert")) {
+                                Task { await actions.acknowledgePodAlert(alert.id) }
+                            }
+                            .tint(.orange)
                         }
-                        .tint(.orange)
                     }
+                    .trioRow()
+                }
+
+                if status.canDeactivatePod {
+                    Button(role: .destructive) {
+                        showingDeactivatePod = true
+                    } label: {
+                        Label(
+                            String(localized: "Deactivate Pod", comment: "Watch: deactivate the faulted pod"),
+                            systemImage: "xmark.octagon"
+                        )
+                    }
+                    .tint(.loopRed)
                     .trioRow()
                 }
 
@@ -292,6 +312,31 @@ struct TrioOnWatchStatusView: View {
         }
         .fullScreenCover(item: $result) { result in
             ActionResultView(result: result) { self.result = nil }
+        }
+        .confirmationDialog(
+            String(localized: "Deactivate your pod?", comment: "Watch: confirm deactivating the faulted pod"),
+            isPresented: $showingDeactivatePod,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Deactivate", comment: "Watch: confirm deactivating the pod"), role: .destructive) {
+                Task {
+                    result = await actions.deactivatePod()
+                        ? .success(String(
+                            localized: "Pod deactivated. Pair a new pod on your iPhone.",
+                            comment: "Watch: faulted pod deactivated"
+                        ))
+                        : .failure(String(
+                            localized: "Your pod didn't answer. Keep your watch close to it and try again.",
+                            comment: "Watch: deactivating the pod failed"
+                        ))
+                }
+            }
+            Button(String(localized: "Cancel", comment: "Cancel button"), role: .cancel) {}
+        } message: {
+            Text(String(
+                localized: "Your pod has stopped and alarms until it is deactivated. Remove it afterwards and pair a new pod on your iPhone.",
+                comment: "Watch: deactivate faulted pod confirmation message"
+            ))
         }
         .confirmationDialog(
             String(localized: "End Trio on Watch?", comment: "Watch End confirmation title"),

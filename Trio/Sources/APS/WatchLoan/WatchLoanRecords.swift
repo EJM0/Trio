@@ -48,6 +48,8 @@ struct WatchLoanRecordBatch: Codable {
     var startedTempTargetAt: Date? = nil
     /// The watch loop's determinations, for the phone's chart, loop status and Nightscout.
     var determinations: [DeterminationRecord]? = nil
+    /// The watch deactivated the faulted pod: the phone forgets it, as the controller that ended it booked its end.
+    var podDeactivatedAt: Date? = nil
 
     /// Mutable doses would be purged by the phone driver's next pending report, and a dose without
     /// a sync identifier can't be merged twice safely.

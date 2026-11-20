@@ -120,7 +120,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     @ObservationIgnored private var lastSensorProblemAt: Date?
     @ObservationIgnored private var isCheckingFallback = false
     /// Pod alerts shown and not yet acknowledged, by notification id, for the status page.
-    private(set) var podAlerts: [String: PendingPodAlert] = [:]
+    var podAlerts: [String: PendingPodAlert] = [:]
 
     struct PendingPodAlert: Equatable {
         var alertIdentifier: Alert.AlertIdentifier
@@ -708,7 +708,9 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
 
     func issueKitAlert(_ alert: Alert) async {
         let now = env.now()
-        alerts.postKitAlert(alert, line: WatchLoanAlerts.podNeedsPhone, now: now, acknowledgeable: true)
+        // a pod fault takes no acknowledgement: it alarms until the status page's Deactivate Pod
+        let isFault = alert.identifier.managerIdentifier.hasSuffix(LoopNotificationCategory.pumpFault.rawValue)
+        alerts.postKitAlert(alert, line: WatchLoanAlerts.podNeedsPhone, now: now, acknowledgeable: !isFault)
         let firesAt: Date
         switch alert.trigger {
         case .immediate: firesAt = now

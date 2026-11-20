@@ -99,6 +99,11 @@ final class WatchLoanPumpAdapter {
         _ = await take(.superseding(until: until))
     }
 
+    /// The watch deactivated the faulted pod and booked its end: forgotten here without booking a discard.
+    func forgetDeactivatedElsewhere() async {
+        await (manager as? OmniPumpManager)?.forgetDeviceDeactivatedElsewhere()
+    }
+
     /// The superseded watch confirmed its release, or the window ended: a further foreign session stops this phone.
     func endSuperseding() async {
         await offMain { self.manager.stopSupersedingAnotherController() }
