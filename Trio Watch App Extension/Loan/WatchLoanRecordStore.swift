@@ -310,6 +310,8 @@ final class WatchLoanRecordStore {
             batch.startedOverrideAt = contents.startedOverrideAt
             batch.startedTempTarget = contents.startedTempTarget
             batch.startedTempTargetAt = contents.startedTempTargetAt
+            batch.overrideCancelledAt = contents.overrideCancelledAt
+            batch.tempTargetCancelledAt = contents.tempTargetCancelledAt
             batch.determinations = contents.determinations
             contents.pendingBatch = batch.batchID
             contents.pendingKeys = Array(events.keys)
