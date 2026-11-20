@@ -44,7 +44,10 @@ extension WatchLoanHost {
         if let snapshot {
             status.units = snapshot.bolusCalculator.units
             status.readings = (snapshot.oref.glucose + records.snapshot.glucose)
-                .compactMap { reading in (reading.glucose ?? reading.sgv).map { .init(date: reading.dateString, mgdl: $0) } }
+                .compactMap { reading in
+                    (reading.glucose ?? reading.sgv)
+                        .map { .init(date: reading.dateString, mgdl: $0, direction: reading.direction) }
+                }
                 .sorted { $0.date > $1.date }
                 .prefix(2)
                 .map { $0 }
