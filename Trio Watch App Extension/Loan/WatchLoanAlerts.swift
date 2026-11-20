@@ -19,9 +19,11 @@ final class WatchLoanAlerts {
     }
 
     /// An insulin amount with its localized unit, as LoopKit formats it.
-    static func insulin(_ units: Decimal) -> String {
+    static func insulin(_ units: Decimal, maxFractionDigits: Int? = nil) -> String {
         let quantity = LoopQuantity(unit: .internationalUnit, doubleValue: units.nearestDouble)
-        return QuantityFormatter(for: .internationalUnit).string(from: quantity) ?? units.description
+        let formatter = QuantityFormatter(for: .internationalUnit)
+        if let maxFractionDigits { formatter.numberFormatter.maximumFractionDigits = maxFractionDigits }
+        return formatter.string(from: quantity) ?? units.description
     }
 
     // MARK: - Not looping
