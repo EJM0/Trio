@@ -242,7 +242,10 @@ extension WatchLoanHost {
             return
         }
         let read = await pump.refreshDeliveredUnits()
-        WatchLogger.shared.info(.loop, "Quiet wake: pod status \(read ? "read" : "not read") \(String(format: "%.1f s", sinceLinkUp)) into the wake")
+        WatchLogger.shared.info(
+            .loop,
+            "Quiet wake: pod status \(read ? "read" : "not read") \(String(format: "%.1f s", sinceLinkUp)) into the wake"
+        )
     }
 
     /// The latest point in a wake, from the sensor's link-up, at which a quiet wake still reads the pod: about 2 s of
