@@ -274,6 +274,19 @@ extension WatchLoanHost {
         return true
     }
 
+    /// The status page open: in the foreground a pod read counts toward no background Bluetooth limit, and it shows
+    /// the pod's alerts at once, ready to acknowledge. Not again within a minute of the last read.
+    func readPodForStatusPage() async {
+        await serially {
+            guard case .holding = self.state, self.env.isForeground(), self.cycleInfo.podDeactivatedAt == nil,
+                  let pump = self.pump, !pump.refusesSessions,
+                  (pump.deliveredUnits.map { self.env.now().timeIntervalSince($0.at) } ?? .infinity) > 60
+            else { return }
+            let read = await pump.refreshDeliveredUnits()
+            WatchLogger.shared.info(.pump, "Pod status \(read ? "read" : "not read") for the status page")
+        }
+    }
+
     /// A faulted pod alarms until it is deactivated, and only the controller holding it can. Afterwards the watch hands
     /// back when the phone is near; the phone forgets the pod from the record batch either way.
     func deactivateFaultedPod() async -> Bool {

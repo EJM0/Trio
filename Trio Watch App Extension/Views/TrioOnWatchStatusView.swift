@@ -20,6 +20,8 @@ struct TrioOnWatchActions {
     var cancelBolus: () async -> Void = {}
     /// Acknowledges the pod alert with this notification id.
     var acknowledgePodAlert: (String) async -> Void = { _ in }
+    /// Reads the pod while the status page is open, for its alerts.
+    var readPod: () async -> Void = {}
     /// True once the faulted pod was deactivated.
     var deactivatePod: () async -> Bool = { true }
     /// The phone answered a live query; End is tried, not blocked on a flag.
@@ -44,6 +46,7 @@ struct TrioOnWatchActions {
             cancelBolus: { await host.cancelBolus() },
             acknowledgePodAlert: { await host.acknowledgePodAlert(notificationID: $0) },
             deactivatePod: { await host.deactivateFaultedPod() },
+            readPod: { await host.readPodForStatusPage() },
             phoneAnswers: { await host.phoneAnswers() },
             clearNotice: { host.lastAlert = nil }
         )
@@ -273,6 +276,7 @@ struct TrioOnWatchStatusView: View {
                 if presentsEndConfirmation { showingEndConfirmation = true }
                 if let scrollTo { proxy.scrollTo(scrollTo, anchor: .top) }
             }
+            .task { await actions.readPod() }
         }
         .navigationTitle(String(localized: "Trio on Watch", comment: "Watch status page title"))
         .sheet(isPresented: $showingStart) {
