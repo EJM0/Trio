@@ -151,6 +151,35 @@ enum WatchDosingGate {
         }
         return plan
     }
+
+    /// What the pod delivers now, as far as the dedup needs it.
+    enum RunningBasal: Equatable {
+        case scheduled
+        case temp(unitsPerHour: Decimal, endsAt: Date)
+    }
+
+    /// Loop's `adjustForCurrentDelivery`: a temp the pod already runs at this rate with more than this left is not
+    /// sent again. oref renews a 30-minute temp after 10 minutes; each pod command counts toward watchOS's background
+    /// Bluetooth limit.
+    static let continuationInterval: TimeInterval = 11 * 60
+
+    /// True when sending `temp` would change nothing: the pod runs that rate with time to spare, or the scheduled
+    /// basal runs and `temp` asks for it (a neutral temp) or for a cancel. Rates are compared as the pump rounds them.
+    static func isRedundant(
+        _ temp: TempCommand,
+        running: RunningBasal,
+        scheduledBasal: Decimal,
+        now: Date,
+        round: (Decimal) -> Decimal
+    ) -> Bool {
+        switch running {
+        case .scheduled:
+            return temp.minutes == 0 || round(temp.unitsPerHour) == round(scheduledBasal)
+        case let .temp(unitsPerHour, endsAt):
+            return temp.minutes > 0 && round(temp.unitsPerHour) == round(unitsPerHour)
+                && endsAt.timeIntervalSince(now) > continuationInterval
+        }
+    }
 }
 
 /// When the watch starts Trio on Watch by itself (Fallback Loop, from feat/watch-loop-5/5): the phone has stopped
