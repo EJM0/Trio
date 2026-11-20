@@ -273,6 +273,11 @@ actor WatchLoanCoordinator {
         saveLedger()
         acknowledge(batch)
         info(.watch, "Watch records stored: \(batch.pumpEvents.count) pump events, \(batch.carbs.count) carb entries")
+        // the kit forgets only a released pod it still has, so a repeat is a no-op
+        if batch.podDeactivatedAt != nil, case let .lent(epoch) = state, epoch == batch.epoch, let pump = host.pump {
+            await pump.forgetDeactivatedElsewhere()
+            info(.pump, "The watch deactivated the faulted pod; forgotten on this iPhone")
+        }
 
         await recomputeAudits(after: batch)
         if WatchLoanInbox.passes(WatchLoanMessage(epoch: batch.epoch, kind: .records), phoneEpoch: state.epoch) {

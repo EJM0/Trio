@@ -51,6 +51,9 @@ struct TrioOnWatchStatus: Equatable {
     var reservoir: Double?
     var podEndsAt: Date?
     var podFaulted = false
+    /// The faulted pod can be deactivated from the watch (it alarms until then).
+    var canDeactivatePod = false
+    var podDeactivated = false
     var podUnreachable = false
     var insulinSuspended = false
     /// A command the pump hasn't confirmed: boluses, SMBs and high temps wait, and End is refused.
@@ -250,6 +253,16 @@ extension TrioOnWatchStatus {
 
     /// The most serious pump condition, or nil when the pump delivers as the loop asks.
     var pumpCondition: PumpCondition? {
+        if podDeactivated {
+            return PumpCondition(
+                text: String(localized: "No pod", comment: "Watch control line: pod deactivated on the watch"),
+                spoken: String(
+                    localized: "Your pod is deactivated. Pair a new pod on your iPhone.",
+                    comment: "Watch status: pod deactivated on the watch"
+                ),
+                tier: .stale
+            )
+        }
         if podFaulted {
             return PumpCondition(
                 text: String(localized: "Pod stopped", comment: "Watch control line: pod fault"),
@@ -546,7 +559,13 @@ extension TrioOnWatchStatus {
 
         var pumpLines: [String] = []
         var pumpTint = Color.secondary
-        if podFaulted {
+        if podDeactivated {
+            pumpLines.append(String(
+                localized: "Your pod is deactivated. Pair a new pod on your iPhone.",
+                comment: "Watch status: pod deactivated on the watch"
+            ))
+            pumpTint = .loopRed
+        } else if podFaulted {
             pumpLines
                 .append(String(localized: "Your pod has stopped. It is not giving insulin.", comment: "Watch status: pod fault"))
             pumpTint = .loopRed

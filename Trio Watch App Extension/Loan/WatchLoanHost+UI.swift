@@ -80,7 +80,9 @@ extension WatchLoanHost {
             status.reservoir = omnipod.state.podState?.lastInsulinMeasurements?.reservoirLevel
             status.podEndsAt = omnipod.state.podState?.expiresAt ?? status.podEndsAt
             status.podFaulted = omnipod.deliveredUnitsAreFinal
+            status.canDeactivatePod = omnipod.failedDeviceDeactivationTitle != nil
         }
+        status.podDeactivated = cycleInfo.podDeactivatedAt != nil
         return status
     }
 
@@ -270,6 +272,34 @@ extension WatchLoanHost {
             )
         }
         return true
+    }
+
+    /// A faulted pod alarms until it is deactivated, and only the controller holding it can. Afterwards the watch hands
+    /// back when the phone is near; the phone forgets the pod from the record batch either way.
+    func deactivateFaultedPod() async -> Bool {
+        var deactivated = false
+        await serially {
+            guard case let .holding(epoch) = self.state, let omnipod = self.pump as? OmniPumpManager,
+                  omnipod.failedDeviceDeactivationTitle != nil
+            else { return }
+            do {
+                try await omnipod.deactivateFailedDevice()
+            } catch {
+                WatchLogger.shared.warning(.pump, "Deactivating the faulted pod failed", error: error)
+                return
+            }
+            WatchLogger.shared.info(.pump, "Faulted pod deactivated on the watch")
+            self.cycleInfo.podDeactivatedAt = self.env.now()
+            self.saveCycleInfo()
+            self.env.notifier.cancel(ids: Array(self.podAlerts.keys))
+            self.podAlerts = [:]
+            // the copy names this pod: neither the button nor the Fallback Loop may start from it
+            self.dropStandingCopy()
+            await self.sendRecords(epoch: epoch)
+            deactivated = true
+        }
+        if deactivated { await endTapped() }
+        return deactivated
     }
 
     /// A resume from anywhere, or the pump leaving this watch, ends the reminders.
