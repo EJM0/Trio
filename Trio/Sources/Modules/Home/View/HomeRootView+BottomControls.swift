@@ -357,7 +357,7 @@ extension Home.RootView {
 
                             Spacer(minLength: 0)
 
-                            adjustmentsCancelView({
+                            if !trioOnWatch.status.replacesLoopRing { adjustmentsCancelView({
                                 if !latestTempTarget.isEmpty, !latestOverride.isEmpty {
                                     showCancelConfirmDialog = true
                                 } else if !latestOverride.isEmpty {
@@ -365,20 +365,21 @@ extension Home.RootView {
                                 } else if !latestTempTarget.isEmpty {
                                     showCancelAlert = true
                                 }
-                            })
+                            }) }
                         }
                         .frame(maxWidth: .infinity)
                     }
                 } else if let overrideString = overrideString {
                     adjustmentsOverrideView(overrideString)
                     Spacer()
-                    adjustmentsCancelOverrideView()
+                    // while Apple Watch loops, only the watch stops an adjustment
+                    if !trioOnWatch.status.replacesLoopRing { adjustmentsCancelOverrideView() }
 
                 } else if let tempTargetString = tempTargetString {
                     HStack {
                         adjustmentsTempTargetView(tempTargetString)
                         Spacer()
-                        adjustmentsCancelTempTargetView()
+                        if !trioOnWatch.status.replacesLoopRing { adjustmentsCancelTempTargetView() }
                     }
                 } else {
                     noActiveAdjustmentsView()

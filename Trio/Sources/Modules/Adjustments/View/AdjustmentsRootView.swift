@@ -28,11 +28,12 @@ extension Adjustments {
         @State var pendingPresetActivation: PendingPresetActivation?
 
         private var shouldDisplayStickyOverrideStopButton: Bool {
-            state.isOverrideEnabled && state.activeOverrideName.isNotEmpty
+            // while Apple Watch loops, only the watch stops an adjustment
+            !watchHasPump && state.isOverrideEnabled && state.activeOverrideName.isNotEmpty
         }
 
         private var shouldDisplayStickyTempTargetStopButton: Bool {
-            state.isTempTargetEnabled && state.activeTempTargetName.isNotEmpty
+            !watchHasPump && state.isTempTargetEnabled && state.activeTempTargetName.isNotEmpty
         }
 
         @Environment(\.colorScheme) var colorScheme
