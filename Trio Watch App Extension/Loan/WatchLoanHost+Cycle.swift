@@ -198,12 +198,8 @@ extension WatchLoanHost {
         if let units = plan.bolus {
             confirmed = await command(.bolus(units: units, automatic: true)) == .confirmed && confirmed
         }
-        // A quiet wake reads the pod anyway: the next wake's temp change then needs no status read first. Status, cancel
-        // and set in one wake (6 messages) push watchOS's background notification count up toward its limit; 2 or 4
-        // don't. The read also raises pod alerts on the watch.
-        if plan.tempBasal == nil, plan.bolus == nil, lastSync < start {
-            let read = await pump.refreshDeliveredUnits()
-            WatchLogger.shared.info(.loop, "Quiet wake: pod status \(read ? "read" : "not read")")
+        if plan.tempBasal == nil, plan.bolus == nil {
+            await readPodAheadOfNextWake(pump, lastSync: lastSync)
         }
 
         updateLoopStatus(outputs, pump: pump)
@@ -228,6 +224,32 @@ extension WatchLoanHost {
             }
         }
     }
+
+    /// kristinkand (20 November): a background wake that sends the pod nothing skips the pod read (its data is under 6
+    /// minutes old), so the next wake's is 10 minutes old; when that wake changes the temp basal it needs a read, a
+    /// cancel and the new temp, 6 pod messages, and each such wake added 14 or 15 to the watchOS count that cuts all of
+    /// Trio's links near 200. Wakes of 2 or 4 messages added nothing. The quiet wake reads instead, and only early in
+    /// the wake: messages past ~10 s from the sensor's link-up count toward the limit, and a late read can be cut off
+    /// half-way. Without a known link-up it isn't known how late it is: no read. The read also raises pod alerts.
+    private func readPodAheadOfNextWake(_ pump: LoanPump, lastSync: Date) async {
+        guard !env.isForeground(), env.now().timeIntervalSince(lastSync) > Self.quietWakeReadAfter else { return }
+        let sinceLinkUp = WatchCGMHost.shared.linkUpAt.map { env.now().timeIntervalSince($0) }
+        guard let sinceLinkUp, sinceLinkUp < Self.quietWakeReadWithin else {
+            WatchLogger.shared.info(
+                .loop,
+                "Quiet wake: no pod read ahead of the next wake, \(sinceLinkUp.map { String(format: "%.1f s", $0) } ?? "unknown") into the wake"
+            )
+            return
+        }
+        let read = await pump.refreshDeliveredUnits()
+        WatchLogger.shared.info(.loop, "Quiet wake: pod status \(read ? "read" : "not read") \(String(format: "%.1f s", sinceLinkUp)) into the wake")
+    }
+
+    /// The latest point in a wake, from the sensor's link-up, at which a quiet wake still reads the pod: about 2 s of
+    /// the ~10 s watchOS gives before pod messages count toward its limit.
+    static let quietWakeReadWithin: TimeInterval = 8
+    /// Pod data younger than this needs no read ahead of the next wake.
+    static let quietWakeReadAfter: TimeInterval = 2 * 60
 
     /// The phone's current-temp rule (`APSManager.fetchCurrentTempBasal`) on the pump's own state; between states,
     /// the newest temp basal in the history.

@@ -25,6 +25,9 @@ import WatchKit
     private(set) var isReadingDirectly = false
     /// The watch's link to the sensor is up: the radio waves of the left indicator.
     private(set) var isTalkingToSensor = false
+    /// When the sensor's link last came up: a background wake has about 10 s of Bluetooth from then; pod messages
+    /// after that count toward a watchOS limit that cuts all of Trio's links (kristinkand, 19 November).
+    @ObservationIgnored private(set) var linkUpAt: Date?
     private(set) var sensorStateText: String?
     /// After the reading's age while the loop is on time: a state that needs nothing done.
     private(set) var sensorNote: String?
@@ -276,14 +279,16 @@ extension WatchCGMHost: CGMManagerDelegate {
         WatchLogger.shared.debug(.data, "CGM \(type): \(message)")
         completion?(nil)
         guard type == .connection else { return }
+        let at = Date()
         // in order with the manager's other news, which comes on main
         DispatchQueue.main.async {
-            MainActor.assumeIsolated { self.noteLink(afterLog: message) }
+            MainActor.assumeIsolated { self.noteLink(afterLog: message, at: at) }
         }
     }
 
-    private func noteLink(afterLog message: String) {
+    private func noteLink(afterLog message: String, at: Date) {
         guard let cgmManager, let linkIsUp = type(of: cgmManager).watchLinkIsUp(afterLog: message) else { return }
+        if linkIsUp, !isTalkingToSensor { linkUpAt = at }
         isTalkingToSensor = linkIsUp
     }
 
