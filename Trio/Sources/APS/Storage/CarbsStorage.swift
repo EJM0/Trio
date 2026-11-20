@@ -395,7 +395,7 @@ final class BaseCarbsStorage: CarbsStorage, Injectable {
         updateSubject.send(())
         Foundation.NotificationCenter.default.post(
             name: WatchLoanPhoneChanges.notification,
-            object: WatchLoanPhoneChanges(deletedCarbIDs: replaced, carbs: [entry] + carbEquivalents)
+            object: WatchLoanPhoneChanges(deletedCarbIDs: replaced, carbs: ([entry] + carbEquivalents).map(Self.asStored))
         )
     }
 
@@ -513,6 +513,16 @@ final class BaseCarbsStorage: CarbsStorage, Injectable {
             enteredBy: CarbsEntry.local,
             isFPU: false,
             fpuID: nil
+        )
+    }
+
+    /// An entry dated as the store keeps it and oref reads it back: the meal's time in both dates. An edit's
+    /// `createdAt` is the time of the edit, which the watch's oref would take for the meal's time.
+    private static func asStored(_ entry: CarbsEntry) -> CarbsEntry {
+        let date = entry.actualDate ?? entry.createdAt
+        return CarbsEntry(
+            id: entry.id, createdAt: date, actualDate: date, carbs: entry.carbs, fat: entry.fat, protein: entry.protein,
+            note: entry.note, enteredBy: entry.enteredBy, isFPU: entry.isFPU, fpuID: entry.fpuID
         )
     }
 
