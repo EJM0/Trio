@@ -852,10 +852,13 @@ import WidgetKit
             snoozeUntilDate = Date(timeIntervalSince1970: snoozeTimestamp)
         }
 
-        if let forecastPayload = message[WatchMessageKeys.forecastData] as? [String: Any] {
-            if let startTimestamp = forecastPayload[WatchMessageKeys.forecastStartDate] as? TimeInterval {
-                forecastStartDate = Date(timeIntervalSince1970: startTimestamp)
-            }
+        // the newer forecast wins: during a loan the phone's last one is older than the watch's own loop's
+        if let forecastPayload = message[WatchMessageKeys.forecastData] as? [String: Any],
+           case let phoneStart = (forecastPayload[WatchMessageKeys.forecastStartDate] as? TimeInterval)
+           .map(Date.init(timeIntervalSince1970:)),
+           phoneStart ?? .distantPast >= forecastStartDate ?? .distantPast
+        {
+            forecastStartDate = phoneStart
             forecastConeMin = forecastPayload[WatchMessageKeys.forecastConeMin] as? [Double] ?? []
             forecastConeMax = forecastPayload[WatchMessageKeys.forecastConeMax] as? [Double] ?? []
             forecastLines = forecastPayload[WatchMessageKeys.forecastLines] as? [String: [Double]] ?? [:]
