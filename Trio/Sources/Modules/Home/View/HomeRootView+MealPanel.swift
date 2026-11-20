@@ -137,9 +137,17 @@ extension Home.RootView {
         withAnimation(ChartSelectionLookup.readoutFade) { isChartReadoutVisible = false }
     }
 
-    /// While Apple Watch doses, this phone's own IOB and COB are from before the loan, so they aren't shown (G-M9).
+    /// While Apple Watch doses, this phone's own IOB is from before the loan (G-M9): the watch's synced determination
+    /// stands in while it is fresh.
+    private var watchDetermination: OrefDetermination? {
+        guard let latest = state.enactedAndNonEnactedDeterminations.first,
+              let at = latest.timestamp ?? latest.deliverAt, Date().timeIntervalSince(at) < 15 * 60
+        else { return nil }
+        return latest
+    }
+
     private var cobText: String {
-        guard !trioOnWatch.status.replacesLoopRing else { return "--" }
+        guard !trioOnWatch.status.replacesLoopRing || watchDetermination != nil else { return "--" }
         return (
             Formatter.decimalFormatterWithTwoFractionDigits.string(
                 from: NSNumber(value: state.enactedAndNonEnactedDeterminations.first?.cob ?? 0)
@@ -148,8 +156,14 @@ extension Home.RootView {
     }
 
     private var iobText: String {
-        guard !trioOnWatch.status.replacesLoopRing else { return "--" }
-        return (Formatter.decimalFormatterWithTwoFractionDigits.string(from: state.currentIOB as NSNumber) ?? "0")
+        let iob: NSNumber
+        if trioOnWatch.status.replacesLoopRing {
+            guard let watchIOB = watchDetermination?.iob else { return "--" }
+            iob = watchIOB
+        } else {
+            iob = state.currentIOB as NSNumber
+        }
+        return (Formatter.decimalFormatterWithTwoFractionDigits.string(from: iob) ?? "0")
             + String(localized: " U", comment: "Insulin unit")
     }
 
@@ -202,7 +216,8 @@ extension Home.RootView {
             }.bold()
                 .foregroundStyle(Color.red)
                 .font(.callout)
-        } else if !trioOnWatch.status.replacesLoopRing, let basal = currentBasalReadout {
+        } else if let basal = currentBasalReadout {
+            // during a loan from the watch's synced pump records
             HStack {
                 Image(systemName: basal.isManual ? "hand.raised.fill" : "drop.circle")
                     .font(.callout)
