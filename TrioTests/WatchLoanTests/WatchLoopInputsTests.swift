@@ -445,9 +445,8 @@ import Testing
         }
     }
 
-    @Test("Micro boluses only in the foreground, as a constant") func microBolus() {
-        #expect(!WatchLoopPolicy.allowsMicroBolusInBackground)
-        #expect(!WatchLoopPolicy.microBolusAllowed(inForeground: false))
+    @Test("Micro boluses in the foreground and from background wakes") func microBolus() {
+        #expect(WatchLoopPolicy.microBolusAllowed(inForeground: false))
         #expect(WatchLoopPolicy.microBolusAllowed(inForeground: true))
     }
 

@@ -2,8 +2,8 @@ import Foundation
 
 /// Fixed rules of the watch loop. Constants, never settings.
 enum WatchLoopPolicy {
-    /// No SMB from a background wake until a hardware run shows a pump command fits its time window.
-    static let allowsMicroBolusInBackground = false
+    /// SMB from a background wake too: the watch confirmed SMB commands in about 1.3 s, temps in under 11 s.
+    static let allowsMicroBolusInBackground = true
 
     static func microBolusAllowed(inForeground: Bool) -> Bool {
         inForeground || allowsMicroBolusInBackground
