@@ -14,6 +14,11 @@ struct GlucoseTrendView: View {
     var loan: TrioOnWatchStatus?
     var onControlLineTap: () -> Void = {}
 
+    /// The sensor directions the arrow draws; anything else (none, not computable) shows no arrow.
+    private static let directions: Set<String> = [
+        "DoubleUp", "SingleUp", "FortyFiveUp", "Flat", "FortyFiveDown", "SingleDown", "DoubleDown"
+    ]
+
     /// While a loan runs, the watch's own values replace the phone's snapshot.
     private var loanValues: TrioOnWatchStatus.MainValues? {
         guard let loan, loan.isLoanActive else { return nil }
@@ -145,8 +150,10 @@ struct GlucoseTrendView: View {
                     .shadow(color: ringColor, radius: shadowRadius)
 
                 TrendShape(
-                    // the phone's trend arrow doesn't describe the watch's readings
-                    isWatchStateDated: loanValues != nil || isWatchStateDated,
+                    // during a loan only the watch's own fresh reading's trend describes what the bubble shows
+                    isWatchStateDated: loanValues.map {
+                        $0.isStale || !state.newestReadingIsOwn || !Self.directions.contains(state.trend ?? "")
+                    } ?? isWatchStateDated,
                     rotationDegrees: rotationDegrees,
                     deviceType: state.deviceType
                 )
