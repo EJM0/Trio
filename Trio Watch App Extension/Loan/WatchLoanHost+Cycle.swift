@@ -177,7 +177,7 @@ extension WatchLoanHost {
         )
         evaluateDeterminationAlarms(determination, now: now)
 
-        var plan = WatchDosingGate.plan(
+        let plan = WatchDosingGate.plan(
             automation: inputs.dosingMode.automation,
             rate: determination.rate,
             durationMinutes: determination.duration,
@@ -186,18 +186,6 @@ extension WatchLoanHost {
             suspended: pump.status.basalDeliveryState?.isSuspended ?? false,
             deliveryUncertain: uncertain
         )
-        if let temp = plan.tempBasal, let running = Self.runningBasal(pump.status.basalDeliveryState),
-           WatchDosingGate.isRedundant(
-               temp,
-               running: running,
-               scheduledBasal: outputs.profile.currentBasal ?? 0,
-               now: now,
-               round: { Decimal(pump.roundToSupportedBasalRate(unitsPerHour: Double(truncating: $0 as NSNumber))) }
-           )
-        {
-            WatchLogger.shared.info(.loop, "Temp basal \(temp.unitsPerHour) U/h not sent: the pod already delivers it")
-            plan.tempBasal = nil
-        }
         var confirmed = plan.heldBack.allSatisfy { $0 == .pumpSuspended }
         if !plan.heldBack.isEmpty {
             WatchLogger.shared.warning(.loop, "Held back: \(plan.heldBack.map { "\($0)" }.joined(separator: ", "))")
@@ -238,15 +226,6 @@ extension WatchLoanHost {
                 saveCycleInfo()
                 WatchLogger.shared.info(.loop, "Autosens updated after enactment, ratio \(computed.ratio)")
             }
-        }
-    }
-
-    /// Nil between states (starting, cancelling, suspended): then the temp is sent as oref asks.
-    static func runningBasal(_ state: PumpManagerStatus.BasalDeliveryState?) -> WatchDosingGate.RunningBasal? {
-        switch state {
-        case .active: return .scheduled
-        case let .tempBasal(dose): return .temp(unitsPerHour: Decimal(dose.unitsPerHour), endsAt: dose.endDate)
-        default: return nil
         }
     }
 
