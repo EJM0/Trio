@@ -15,6 +15,8 @@ struct TrioOnWatchStatus: Equatable {
     struct Reading: Equatable {
         var date: Date
         var mgdl: Int
+        /// The sensor's own trend, as the phone draws its arrow from it.
+        var direction: BloodGlucose.Direction? = nil
     }
 
     struct Adjustment: Equatable {
@@ -303,6 +305,36 @@ extension TrioOnWatchStatus {
         var iob: String
         var cob: String
         var accessibilityLabel: String
+        /// The arrow's angle: the sensor's trend of the newest reading, as on the phone; without one, the rate between
+        /// the two readings the delta comes from (Nightscout's bands). Nil draws no arrow.
+        var trendRotation: Double? = nil
+    }
+
+    /// The phone's arrow angles for the sensor's trend; nil for none, not computable or out of range.
+    static func trendRotation(_ direction: BloodGlucose.Direction?) -> Double? {
+        switch direction {
+        case .doubleUp,
+             .singleUp,
+             .tripleUp: return -90
+        case .fortyFiveUp: return -45
+        case .flat: return 0
+        case .fortyFiveDown: return 45
+        case .doubleDown,
+             .singleDown,
+             .tripleDown: return 90
+        default: return nil
+        }
+    }
+
+    /// Nightscout's direction bands, mg/dL per minute, as the bubble's arrow angle: up is -90, flat 0, down 90.
+    static func trendRotation(mgdlPerMinute rate: Double) -> Double {
+        switch rate {
+        case 2...: return -90
+        case 1 ..< 2: return -45
+        case -1 ..< 1: return 0
+        case -2 ..< -1: return 45
+        default: return 90
+        }
     }
 
     func mainValues(now: Date) -> MainValues {
@@ -322,9 +354,12 @@ extension TrioOnWatchStatus {
             )
         }
         let glucose = Decimal(latest.mgdl).formatted(for: units)
-        let delta = readings.count > 1 && latest.date.timeIntervalSince(readings[1].date) <= 15 * 60
-            ? Decimal(latest.mgdl - readings[1].mgdl).formattedDelta(for: units)
-            : nil
+        let previous = readings.count > 1 && latest.date.timeIntervalSince(readings[1].date) <= 15 * 60 ? readings[1] : nil
+        let delta = previous.map { Decimal(latest.mgdl - $0.mgdl).formattedDelta(for: units) }
+        let rotation = Self.trendRotation(latest.direction) ?? previous.flatMap { previous -> Double? in
+            let minutes = latest.date.timeIntervalSince(previous.date) / 60
+            return minutes > 0 ? Self.trendRotation(mgdlPerMinute: Double(latest.mgdl - previous.mgdl) / minutes) : nil
+        }
         return MainValues(
             glucose: glucose,
             // Only the delta: while the loan loops, a fresh loop means a fresh reading, so the reading's age
@@ -336,7 +371,8 @@ extension TrioOnWatchStatus {
             accessibilityLabel: String(
                 localized: "Glucose \(glucose) \(units.rawValue)\(delta.map { String(localized: ", delta \($0)", comment: "Watch accessibility: glucose delta") } ?? "")",
                 comment: "Watch accessibility: glucose, unit, optional delta"
-            )
+            ),
+            trendRotation: rotation
         )
     }
 }
