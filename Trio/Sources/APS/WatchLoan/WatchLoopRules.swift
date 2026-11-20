@@ -2,6 +2,11 @@ import Foundation
 
 /// Fixed rules of the watch loop. Constants, never settings.
 enum WatchLoopPolicy {
+    /// The phone's copy starts the watch on a tap while younger than this.
+    static let copyMaxAgeForButton: TimeInterval = 15 * 60
+    /// The Fallback Loop waits for 10 min of the phone's silence, so its copy may be older (5/5's limit); the pod
+    /// total check books what the copy's records miss.
+    static let copyMaxAgeForFallback: TimeInterval = 60 * 60
     /// SMB from a background wake too: the watch confirmed SMB commands in about 1.3 s, temps in under 11 s.
     static let allowsMicroBolusInBackground = true
 
@@ -145,5 +150,49 @@ enum WatchDosingGate {
             }
         }
         return plan
+    }
+}
+
+/// When the watch starts Trio on Watch by itself (Fallback Loop, from feat/watch-loop-5/5): the phone has stopped
+/// looping, and the watch's own sensor readings show the body is with the watch. Noisy readings and a sensor with a
+/// problem never start it.
+enum WatchLoanFallback {
+    struct Inputs {
+        /// The watch's own readings that arrived live (not backfill) with a valid glucose, any order.
+        var ownReadings: [Date]
+        var phoneNewestReading: Date?
+        var phoneLastLoop: Date?
+        /// The phone answered the watch's last question.
+        var phoneAnswered: Bool
+        var sensorProblemNow: Bool
+        var lastSensorProblemAt: Date?
+        var copyUsable: Bool
+        var now: Date
+    }
+
+    static let phoneSilence: TimeInterval = 10 * 60
+    static let readingWindow: TimeInterval = 12 * 60
+    static let sensorCalm: TimeInterval = 15 * 60
+
+    static func shouldStart(_ i: Inputs) -> Bool {
+        guard !i.phoneAnswered, i.copyUsable, !i.sensorProblemNow else { return false }
+        if let problem = i.lastSensorProblemAt, i.now.timeIntervalSince(problem) < sensorCalm { return false }
+        let phoneReading = i.phoneNewestReading ?? .distantPast
+        guard i.now.timeIntervalSince(phoneReading) > phoneSilence,
+              i.now.timeIntervalSince(i.phoneLastLoop ?? .distantPast) > phoneSilence
+        else { return false }
+        // two consecutive readings of the sensor's own 5-minute cadence, recent, and ones the phone doesn't have
+        let readings = i.ownReadings
+            .filter { $0 > phoneReading && i.now.timeIntervalSince($0) <= readingWindow }
+            .sorted()
+        return zip(readings, readings.dropFirst()).contains { earlier, later in
+            (3.5 * 60 ... 6.5 * 60).contains(later.timeIntervalSince(earlier))
+        }
+    }
+
+    /// A loan the fallback started goes back once the phone answers again with fresh readings of its own.
+    static func shouldHandBack(phoneReachable: Bool, phoneNewestReading: Date?, now: Date) -> Bool {
+        guard phoneReachable, let phoneNewestReading else { return false }
+        return now.timeIntervalSince(phoneNewestReading) < phoneSilence
     }
 }

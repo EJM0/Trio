@@ -112,6 +112,14 @@ extension WatchLoanHost {
         }
         let uncertain = pump.status.deliveryIsUncertain || !intents.isEmpty
 
+        if cycleInfo.startedWithoutPhone == true, cycleInfo.copyChecked != true,
+           await !checkCopyAgainstPump(pump, copy: snapshot)
+        {
+            WatchLogger.shared.warning(.loop, "Cycle stopped: the pod's total isn't checked against the copy yet")
+            finish(start: start, confirmed: false)
+            return
+        }
+
         let glucoseDates = (snapshot.oref.glucose + records.snapshot.glucose).map(\.dateString)
         if let failure = LoopGlucoseGuard.check(
             lastHour: LoopGlucoseGuard.lastHour(glucoseDates, now: statusRead),
@@ -261,6 +269,55 @@ extension WatchLoanHost {
         else { return }
         cycleInfo.podLinkNoticeShown = true
         alerts.postPodUnreachable(phoneReachable: env.transport.isReachable)
+    }
+
+    /// Before the first dose of a loan started from the copy: the pod's total since the copy against the copy's records.
+    /// What they don't explain (the phone's doses since the copy) is booked as a bolus. False without a fresh total.
+    private func checkCopyAgainstPump(_ pump: LoanPump, copy: WatchLoanSnapshot) async -> Bool {
+        guard let reading = pump.deliveredUnits, reading.at >= copy.releaseReading.at else { return false }
+        // a bolus the phone started may still be under way: the pod's status says how much is left, whoever started it
+        let secondsPerUnit = pump.estimatedDuration(toBolus: 1)
+        let bolusEndsAt = pump.bolusUnderWayEndsAt.flatMap { $0 > reading.at ? $0 : nil }
+        let remainder = bolusEndsAt.map { endsAt in
+            secondsPerUnit > 0 ? (endsAt.timeIntervalSince(reading.at) / secondsPerUnit / copy.deliveryPulseUnits)
+                .rounded() * copy.deliveryPulseUnits : 0
+        } ?? 0
+        let result = WatchLoanAudit.evaluate(WatchLoanAudit.Input(
+            start: copy.releaseReading.at,
+            startUnits: copy.releaseReading.units,
+            end: reading.at,
+            endUnits: reading.units,
+            bolusRemainder: remainder,
+            basalProfile: copy.oref.basalProfile,
+            timeZone: copy.timeZone ?? copy.oref.timeZone,
+            pulse: copy.deliveryPulseUnits,
+            events: copy.oref.pumpHistory,
+            ownBolusID: ""
+        ))
+        if result.unexplained > 0 {
+            // under way: back-dated to the bolus's estimated start, so IOB decays as the pod delivers it; otherwise at
+            // the reading, which counts it as recent and so errs high
+            let bookedAt = bolusEndsAt.map { endsAt in
+                min(reading.at, max(copy.releaseReading.at, endsAt.addingTimeInterval(-result.unexplained * secondsPerUnit)))
+            } ?? reading.at
+            foreignBolusStartedAt = bolusEndsAt == nil ? nil : bookedAt
+            do {
+                let records = records
+                let units = result.unexplained
+                try await WatchLoanFiles.io { try records.bookUnexplained(units, at: bookedAt) }
+            } catch {
+                WatchLogger.shared.error(.loop, "Booking insulin the copy doesn't explain failed; no dose", error: error)
+                return false
+            }
+            alerts.postCopyInsulinBooked(units: result.unexplained)
+        }
+        WatchLogger.shared.info(
+            .loop,
+            "Pod total checked against the copy: delivered \(result.actual) U incl. \(remainder) U still under way, the copy explains \(result.expected) U, booked \(result.unexplained) U"
+        )
+        cycleInfo.copyChecked = true
+        saveCycleInfo()
+        return true
     }
 
     func saveCycleInfo() {

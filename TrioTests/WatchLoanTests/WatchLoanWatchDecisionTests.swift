@@ -317,3 +317,147 @@ import Testing
         }
     }
 }
+
+/// Starting without the phone (Documentation/TrioOnWatch/StartWithoutPhone.md), control rows 2 and 17.
+@Suite("Watch loan: start without the phone") struct WatchLoanWithoutPhoneTests {
+    typealias F = LoanFixture
+
+    private func watch(_ state: WatchLoanState, _ event: WatchSideLoanEvent, _ context: WatchSideLoanContext? = nil)
+        -> (WatchLoanState, [WatchSideLoanEffect])
+    {
+        WatchLoan.decide(state, event, context ?? WatchSideLoanContext(now: F.now))
+    }
+
+    private func phone(_ state: PhoneLoanState, _ event: PhoneLoanEvent, copyOut: Bool = true)
+        -> (PhoneLoanState, [PhoneLoanEffect])
+    {
+        WatchLoan.decide(state, event, PhoneLoanContext(now: F.now, standingCopyOut: copyOut))
+    }
+
+    @Test("Row 2: the copy starts the loan above every epoch the watch knows, through the grant's adopt") func startsAbove() {
+        let (state, effects) = watch(.idle(epoch: 3), .startWithoutPhoneTapped(copyEpoch: 5))
+        #expect(state == .holding(epoch: 6))
+        #expect(effects == [
+            .arm(.watchNotLooping),
+            .persist(.holding(epoch: 6)),
+            .adoptControl,
+            .send(F.message(6, .holding))
+        ])
+        #expect(watch(.idle(epoch: 7), .startWithoutPhoneTapped(copyEpoch: 5)).0 == .holding(epoch: 8))
+    }
+
+    @Test("Row 2: an old copy or a start precondition refuses; only idle starts") func refuses() {
+        for context in [
+            WatchSideLoanContext(now: F.now, copyRefusal: .noUsableCopy),
+            WatchSideLoanContext(now: F.now, startRefusal: .watchBatteryLow)
+        ] {
+            let refusal = context.startRefusal ?? context.copyRefusal!
+            #expect(
+                watch(.idle(epoch: 3), .startWithoutPhoneTapped(copyEpoch: 3), context)
+                    == (.idle(epoch: 3), [.alert(.startRefused(refusal))])
+            )
+        }
+        #expect(watch(.holding(epoch: 4), .startWithoutPhoneTapped(copyEpoch: 3)) == (.holding(epoch: 4), []))
+    }
+
+    @Test("Row 17: the watch's word above the phone's epoch keeps the pod with the watch") func phoneStandsAside() {
+        for kind in [WatchLoanMessage.Kind.records, .holding] {
+            let (state, effects) = phone(.home(epoch: 5, lastLoan: nil), .received(F.message(6, kind)))
+            #expect(state == .lent(epoch: 6))
+            #expect(effects.contains(.persist(.lent(epoch: 6))))
+            #expect(effects.contains(.releaseControl))
+            #expect(effects.contains(.alert(.watchStartedWithoutPhone)))
+            #expect(!effects.contains(.cancelTemp))
+        }
+        // an older loan's word changes nothing at home
+        #expect(phone(.home(epoch: 5, lastLoan: nil), .received(F.message(5, .records))).0 == .home(epoch: 5, lastLoan: nil))
+    }
+
+    @Test(
+        "Row 17 without the watch's word: a foreign pod session with a copy out stands aside, never doses"
+    ) func foreignSessionWithCopy() {
+        let (state, effects) = phone(.home(epoch: 5, lastLoan: nil), .foreignPodSession)
+        #expect(state == .lent(epoch: 6))
+        #expect(effects.first == .podSession(.refuse))
+        #expect(effects.contains(.releaseControl))
+        #expect(effects.contains(.alert(.watchStartedWithoutPhone)))
+        #expect(!effects.contains(where: { if case .takeControl = $0 { true } else { false } }))
+    }
+
+    @Test("Without a copy out, a foreign pod session is refused as before") func foreignSessionWithoutCopy() {
+        let (state, effects) = phone(.home(epoch: 5, lastLoan: nil), .foreignPodSession, copyOut: false)
+        #expect(state == .home(epoch: 5, lastLoan: nil))
+        #expect(effects.contains(.alert(.unexpectedPodSession)))
+    }
+
+    @Test("Take Back after standing aside makes the watch's loan the older one") func takeBackSupersedes() {
+        let (state, _) = phone(.lent(epoch: 6), .takeBackTapped(watchAnswer: nil))
+        guard case let .takingBack(epoch, _) = state else { return #expect(Bool(false)) }
+        #expect(epoch > 6)
+    }
+
+    // MARK: Fallback Loop (feat/watch-loop-5/5's tests)
+
+    private func inputs(_ readingsMinutesAgo: [Double]) -> WatchLoanFallback.Inputs {
+        WatchLoanFallback.Inputs(
+            ownReadings: readingsMinutesAgo.map { F.now.addingTimeInterval(-$0 * 60) },
+            phoneNewestReading: F.now.addingTimeInterval(-20 * 60),
+            phoneLastLoop: F.now.addingTimeInterval(-20 * 60),
+            phoneAnswered: false,
+            sensorProblemNow: false,
+            lastSensorProblemAt: nil,
+            copyUsable: true,
+            now: F.now
+        )
+    }
+
+    @Test("Fallback: two consecutive own readings, phone silent, starts") func fallbackStarts() {
+        #expect(WatchLoanFallback.shouldStart(inputs([1, 6])))
+    }
+
+    @Test("Fallback: one reading, or two not five minutes apart, or too old, starts nothing") func fallbackCadence() {
+        #expect(!WatchLoanFallback.shouldStart(inputs([1])))
+        #expect(!WatchLoanFallback.shouldStart(inputs([1, 2])))
+        #expect(!WatchLoanFallback.shouldStart(inputs([1, 11])))
+        #expect(!WatchLoanFallback.shouldStart(inputs([13, 18])))
+    }
+
+    @Test("Fallback: a sensor problem now or in the last 15 minutes starts nothing") func fallbackSensor() {
+        var problem = inputs([1, 6])
+        problem.sensorProblemNow = true
+        #expect(!WatchLoanFallback.shouldStart(problem))
+        var recent = inputs([1, 6])
+        recent.lastSensorProblemAt = F.now.addingTimeInterval(-10 * 60)
+        #expect(!WatchLoanFallback.shouldStart(recent))
+        recent.lastSensorProblemAt = F.now.addingTimeInterval(-16 * 60)
+        #expect(WatchLoanFallback.shouldStart(recent))
+    }
+
+    @Test("Fallback: a phone that answers, loops or reads the sensor keeps the pod; no copy, no start") func fallbackPhone() {
+        var answered = inputs([1, 6])
+        answered.phoneAnswered = true
+        #expect(!WatchLoanFallback.shouldStart(answered))
+        var looping = inputs([1, 6])
+        looping.phoneLastLoop = F.now.addingTimeInterval(-4 * 60)
+        #expect(!WatchLoanFallback.shouldStart(looping))
+        var reading = inputs([1, 6])
+        reading.phoneNewestReading = F.now.addingTimeInterval(-3 * 60)
+        #expect(!WatchLoanFallback.shouldStart(reading))
+        var noCopy = inputs([1, 6])
+        noCopy.copyUsable = false
+        #expect(!WatchLoanFallback.shouldStart(noCopy))
+    }
+
+    @Test("Fallback: goes back once the phone is reachable with a fresh reading") func fallbackHandBack() {
+        #expect(
+            WatchLoanFallback
+                .shouldHandBack(phoneReachable: true, phoneNewestReading: F.now.addingTimeInterval(-60), now: F.now)
+        )
+        #expect(!WatchLoanFallback.shouldHandBack(phoneReachable: false, phoneNewestReading: F.now, now: F.now))
+        #expect(!WatchLoanFallback.shouldHandBack(
+            phoneReachable: true,
+            phoneNewestReading: F.now.addingTimeInterval(-11 * 60),
+            now: F.now
+        ))
+    }
+}

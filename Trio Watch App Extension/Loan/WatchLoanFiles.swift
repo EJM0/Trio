@@ -21,6 +21,8 @@ struct WatchLoanFiles {
         case records = "loan-records.json"
         case inbox = "loan-inbox.json"
         case cycle = "loan-cycle.json"
+        /// The phone's newest copy for a start without it.
+        case standingCopy = "standing-copy.data"
     }
 
     func url(_ name: Name) -> URL {
@@ -94,6 +96,12 @@ struct WatchLoanCycleInfo: Codable {
     /// Cycles in a row that got no pump status, and whether the user was told.
     var podContactFailures: Int = 0
     var podLinkNoticeShown = false
+    /// Started from the phone's copy, without the phone; until `copyChecked`, no dose before the pod's total is
+    /// checked against the copy.
+    var startedWithoutPhone: Bool?
+    var copyChecked: Bool?
+    /// The Fallback Loop started it; it goes back once the phone is back.
+    var startedByFallback: Bool?
     var summary = DailySummary()
 
     /// Counts for one log line a day, so a hardware run shows its wakes, readings and cycles.

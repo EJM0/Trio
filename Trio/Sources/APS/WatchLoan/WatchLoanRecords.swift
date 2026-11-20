@@ -33,8 +33,11 @@ struct WatchLoanRecordBatch: Codable {
     /// The temp basal running when the batch was sent. Shown, never stored: the watch sends it finalized once it ends.
     var runningTemp: DoseEntry?
     var carbs: [CarbsEntry]
+    /// Meals removed on the watch, by id or by fpuID; sent every batch until the loan ends, the phone skips gone ones.
     var deletedCarbIDs: [String]
     var glucose: [BloodGlucose]
+    /// Readings removed on the watch, by date (the watch's own readings carry their own ids).
+    var deletedGlucoseDates: [Date]? = nil
     /// The watch's last confirmed loop. Nil from a watch build that doesn't send it.
     var lastLoopAt: Date?
     /// An override started on the watch during the loan (from a grant preset), with its start time, so the phone can
@@ -63,6 +66,38 @@ struct WatchLoanRecordBatch: Codable {
     }
 }
 
+/// Meals and readings changed in the phone's history while the watch holds the pump.
+struct WatchLoanPhoneChanges: Codable, Equatable {
+    var deletedCarbIDs: [String] = []
+    var deletedGlucoseDates: [Date] = []
+    /// A meal edited on the phone: its replacement and carb equivalents.
+    var carbs: [CarbsEntry] = []
+
+    /// The same reading on phone and watch: their sensor timestamps differ by seconds.
+    static let sameReadingWindow: TimeInterval = 30
+
+    static func isDeleted(_ entry: CarbsEntry, by ids: [String]) -> Bool {
+        [entry.id, entry.fpuID].contains { $0.map(ids.contains) ?? false }
+    }
+
+    static func isDeleted(_ reading: BloodGlucose, by dates: [Date]) -> Bool {
+        dates.contains { abs($0.timeIntervalSince(reading.dateString)) < sameReadingWindow }
+    }
+
+    /// Posted by the phone's carb and glucose storage; the object is a `WatchLoanPhoneChanges`.
+    static let notification = Notification.Name("WatchLoanPhoneChanges")
+
+    func encoded() throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .customISO8601
+        return try encoder.encode(self)
+    }
+
+    static func decode(_ data: Data) throws -> WatchLoanPhoneChanges {
+        try JSONCoding.decoder.decode(WatchLoanPhoneChanges.self, from: data)
+    }
+}
+
 /// The phone's answer once a batch is persisted.
 struct WatchLoanRecordAck: Codable, Equatable {
     var epoch: Int64
@@ -77,6 +112,11 @@ enum WatchLoanWireKey {
     static let snapshot = "watchLoanSnapshot"
     static let records = "watchLoanRecords"
     static let recordsAck = "watchLoanRecordsAck"
+    /// `WatchLoanPhoneChanges` data, phone to watch.
+    static let phoneChanges = "watchLoanPhoneChanges"
+    /// Compressed `WatchLoanSnapshot` the phone leaves after each of its loops, for a start without it. Queued,
+    /// newest only.
+    static let standingCopy = "watchLoanStandingCopy"
     /// One slice of a compressed `WatchLoanSnapshot` too large for a single live message. The grant that follows
     /// carries the slice count; the watch reassembles the slices in index order before it adopts.
     static let snapshotChunk = "watchLoanSnapshotChunk"
@@ -85,7 +125,7 @@ enum WatchLoanWireKey {
     /// The loan epoch a chunk belongs to, so a stale slice from an earlier grant is dropped.
     static let snapshotChunkEpoch = "watchLoanSnapshotChunkEpoch"
 
-    static let all = [message, snapshot, records, recordsAck, snapshotChunk]
+    static let all = [message, snapshot, records, recordsAck, phoneChanges, standingCopy, snapshotChunk]
 
     /// Loan payloads go to the loan coordinator; every other watch message keeps its existing path.
     static func isLoanPayload(_ payload: [String: Any]) -> Bool {

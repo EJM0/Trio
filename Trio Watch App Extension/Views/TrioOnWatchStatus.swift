@@ -66,6 +66,8 @@ struct TrioOnWatchStatus: Equatable {
     /// Cancel Bolus button on the status page while the watch is in control.
     var bolusInProgress: DateInterval?
     var lastAlert: LoanAlert?
+    /// When the phone made the copy Start Without iPhone would use; nil when there is no usable one.
+    var copyMadeAt: Date?
 
     /// The watch gives insulin; the treatment buttons talk to the watch, not the phone.
     var isInControl: Bool { phase == .inControl }
@@ -687,6 +689,11 @@ extension TrioOnWatchStatus {
         switch reason {
         case .featureOff:
             return String(localized: "Trio on your iPhone doesn't include Trio on Watch.", comment: "Watch refusal")
+        case .noUsableCopy:
+            return String(
+                localized: "The copy from your iPhone is older than 15 minutes. Bring your iPhone near to start.",
+                comment: "Watch refusal: no usable copy for a start without the phone"
+            )
         case .bolusRunning:
             return String(localized: "A bolus is running. Try again when it's finished.", comment: "Watch refusal")
         case .deliveryUncertain,

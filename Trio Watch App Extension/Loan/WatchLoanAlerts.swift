@@ -101,6 +101,7 @@ final class WatchLoanAlerts {
              .unexpectedPodSession,
              .watchContactedPodAfterTakeBack,
              .watchDidNotConfirm,
+             .watchStartedWithoutPhone,
              .watchStopped:
             return
         }
@@ -248,6 +249,38 @@ final class WatchLoanAlerts {
             body: String(
                 localized: "No pump commands are sent until it can. Check your watch's storage, or take the pump back on your iPhone.",
                 comment: "Watch alert body when a file can't be written"
+            ),
+            at: nil,
+            timeSensitive: true,
+            category: nil
+        )
+    }
+
+    func postFallbackStarted() {
+        notifier.post(
+            id: "trio.loan.fallbackStarted",
+            title: String(localized: "Fallback Loop Started", comment: "Watch alert title when the watch started by itself"),
+            body: String(
+                localized: "Your iPhone stopped looping, so the watch took over the pod. It hands it back once the iPhone is back.",
+                comment: "Watch alert body when the watch started by itself"
+            ),
+            at: nil,
+            timeSensitive: true,
+            category: nil
+        )
+    }
+
+    func postCopyInsulinBooked(units: Double) {
+        let amount = units.formatted(.number.precision(.fractionLength(2)))
+        notifier.post(
+            id: "trio.loan.copyInsulinBooked",
+            title: String(
+                localized: "Insulin Counted as a Bolus",
+                comment: "Watch alert title after the start without the phone"
+            ),
+            body: String(
+                localized: "The pod delivered \(amount) U your iPhone's copy doesn't explain, likely its doses since the copy. Trio on Watch counts it as a bolus, so it doses less.",
+                comment: "Watch alert body after the start without the phone (1: units)"
             ),
             at: nil,
             timeSensitive: true,

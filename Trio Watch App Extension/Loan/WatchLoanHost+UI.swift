@@ -30,6 +30,10 @@ extension WatchLoanHost {
         status.bolus = bolus
         status.bolusInProgress = bolusWindow()
         status.lastAlert = lastAlert
+        // the watch doses from its own readings, so the button needs them
+        if case .idle = state, env.hasFreshOwnReading(), let copy = usableStandingCopy() {
+            status.copyMadeAt = copy.phoneTime
+        }
         status.battery = env.batteryLevel()
         status.podUnreachable = cycleInfo.podLinkNoticeShown
         status.insulinPaused = !intents.isEmpty || pump?.status.deliveryIsUncertain == true
@@ -177,9 +181,15 @@ extension WatchLoanHost {
     /// The window of a bolus the pump is giving right now (manual or an SMB the loop started), nil when none runs.
     /// Read from the pump's own state, so an SMB the status model doesn't track is still cancellable.
     func bolusWindow() -> DateInterval? {
-        guard let pump, case let .inProgress(dose) = pump.status.bolusState else { return nil }
-        let end = max(dose.endDate, dose.startDate.addingTimeInterval(1))
-        return DateInterval(start: dose.startDate, end: end)
+        guard let pump else { return nil }
+        if case let .inProgress(dose) = pump.status.bolusState {
+            let end = max(dose.endDate, dose.startDate.addingTimeInterval(1))
+            return DateInterval(start: dose.startDate, end: end)
+        }
+        // a bolus the phone started before this loan took the pod: only the pod's status knows it
+        guard let endsAt = pump.bolusUnderWayEndsAt else { return nil }
+        let start = min(foreignBolusStartedAt ?? endsAt.addingTimeInterval(-1), endsAt.addingTimeInterval(-1))
+        return DateInterval(start: start, end: endsAt)
     }
 
     /// The watch's recorded history, newest first, for the Trio on Watch history screen. Read-only: it joins

@@ -128,6 +128,7 @@ struct TrioMainWatchView: View {
         let loan = loanStatus
         let loanActive = loan?.isLoanActive == true
         let loanBlocksTreatments = loanActive && loan?.isInControl != true
+        let isBolusRunning = loan?.bolusInProgress != nil || state.phoneBolusProgress != nil
         return NavigationStack(path: $navigationPath) {
             TabView(selection: $currentPage) {
                 // Page 1: Current glucose trend in "BG bobble"
@@ -305,15 +306,17 @@ struct TrioMainWatchView: View {
                             comment: "Watch accessibility: overrides button"
                         )))
 
-                        // while the watch's pump delivers a bolus, the button stops it (icon switches to a stop square)
+                        // while the watch's pump or the phone delivers a bolus, the button stops it (icon switches to a stop square)
                         Button {
                             if loan?.bolusInProgress != nil {
                                 Task { await loanActions.cancelBolus() }
+                            } else if state.phoneBolusProgress != nil {
+                                state.sendCancelBolusRequest()
                             } else {
                                 showingTreatmentMenuSheet = true
                             }
                         } label: {
-                            Image(systemName: loan?.bolusInProgress != nil ? "square.fill" : "plus")
+                            Image(systemName: isBolusRunning ? "square.fill" : "plus")
                                 .foregroundStyle(Color.bgDarkerDarkBlue)
                         }
                         .controlSize(.large)
@@ -322,15 +325,16 @@ struct TrioMainWatchView: View {
                             // the running bolus fills a ring around the button, instead of a separate page
                             if let window = loan?.bolusInProgress {
                                 BolusProgressRing(window: window)
+                            } else if let progress = state.phoneBolusProgress {
+                                BolusProgressRing(window: nil, progress: progress)
                             }
                         }
                         .disabled(
-                            loan?
-                                .bolusInProgress == nil &&
+                            !isBolusRunning &&
                                 (loanActive ? loanBlocksTreatments : isWatchStateDated || isSessionUnreachable)
                         )
                         .accessibilityLabel(Text(
-                            loan?.bolusInProgress != nil
+                            isBolusRunning
                                 ? String(localized: "Cancel bolus", comment: "Watch accessibility: cancel the running bolus")
                                 : String(localized: "Add treatment", comment: "Watch accessibility: add treatment button")
                         ))
@@ -601,10 +605,13 @@ struct ChartScrubEnd: ViewModifier {
 /// counts a bolus done (ported from feat/watch-loop-5/5's BolusProgressRing). Hit testing off, so the button works.
 struct BolusProgressRing: View {
     let window: DateInterval?
+    /// The phone's reported progress, used instead of the clock.
+    var progress: Double?
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 0.5)) { context in
-            let progress = window.map { min(1, max(0, context.date.timeIntervalSince($0.start) / max($0.duration, 1))) } ?? 0
+            let progress = self.progress ?? window
+                .map { min(1, max(0, context.date.timeIntervalSince($0.start) / max($0.duration, 1))) } ?? 0
             ZStack {
                 Circle().stroke(Color.tabBar.opacity(0.25), lineWidth: 3)
                 Circle()

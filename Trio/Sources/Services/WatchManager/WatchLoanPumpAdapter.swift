@@ -114,6 +114,16 @@ final class WatchLoanPumpAdapter {
         )
     }
 
+    /// The copy a watch may start from without the phone, exported while this phone still holds the pod: the kit marks
+    /// the pod shared, so it refuses a session another controller made since instead of resyncing to it.
+    func copyConfiguration() throws -> Data {
+        try PropertyListSerialization.data(
+            fromPropertyList: manager.exportConfiguration().rawValue,
+            format: .binary,
+            options: 0
+        )
+    }
+
     /// What a bolus under way at `reading` has still to deliver, in whole pulses. OmnipodKit derives the end
     /// time from the pod's `bolusNotDelivered` at that status read, at the rate `estimatedDuration` uses.
     func bolusRemainder(at reading: Date) -> Double {

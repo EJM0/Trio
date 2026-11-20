@@ -44,9 +44,31 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         makeContext = contextProvider ?? { CoreDataStack.shared.newTaskContext() }
         injectServices(resolver)
         resolver.resolve(Broadcaster.self)?.register(SnoozeObserver.self, observer: self)
+        // the phone's history edits reach the watch loop while it holds the pump
+        Foundation.NotificationCenter.default.publisher(for: WatchLoanPhoneChanges.notification)
+            .compactMap { $0.object as? WatchLoanPhoneChanges }
+            .sink { [weak self] changes in self?.sendToWatch(changes) }
+            .store(in: &subscriptions)
+    }
+
+    private func sendToWatch(_ changes: WatchLoanPhoneChanges) {
+        guard resolver.resolve(WatchLoanGate.self)?.phoneMayCommandPump == false else { return }
+        do {
+            transport?.send([WatchLoanWireKey.phoneChanges: try changes.encoded()])
+        } catch {
+            warning(.watch, "History change not sent to the watch", error: error)
+        }
     }
 
     var pump: WatchLoanPumpAdapter? { WatchLoanPumpAdapter(deviceDataManager.pumpManager) }
+
+    var standingCopyAllowed: Bool {
+        #if TRIO_ON_WATCH
+            settingsManager.settings.trioOnWatchEnabled && settingsManager.settings.trioOnWatchWithoutPhone
+        #else
+            false
+        #endif
+    }
 
     // resolved late: the watch manager forwards loan messages to the coordinator
     var transport: WatchLoanTransport? { resolver.resolve(WatchManager.self) as? WatchLoanTransport }
@@ -61,6 +83,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
 
     func startRefusal() async -> LoanRefusal? {
         #if TRIO_ON_WATCH
+            guard settingsManager.settings.trioOnWatchEnabled else { return .featureOff }
             let override = (try? await activeAdjustments())?.override
             return Self.preconditionRefusal(
                 dosingMode: settingsManager.settings.dosingMode,
@@ -107,7 +130,8 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         epoch: Int64,
         expiresAt: Date,
         release: WatchLoanSnapshot.OdometerReading,
-        pump: WatchLoanPumpAdapter
+        pump: WatchLoanPumpAdapter,
+        asCopy: Bool
     ) async throws -> WatchLoanSnapshot {
         guard let cgm = sharedCGM else { throw WatchLoanHostError.noSharedCGM }
         let settings = settingsManager.settings
@@ -155,7 +179,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             ),
             glucoseAlarms: GlucoseAlertsStore.shared.alerts,
             glucoseAlarmConfiguration: GlucoseAlertsStore.shared.configuration,
-            pumpExport: try pump.exportedConfiguration(),
+            pumpExport: try asCopy ? pump.copyConfiguration() : pump.exportedConfiguration(),
             cgmExport: try PropertyListSerialization.data(
                 fromPropertyList: cgm.exportConfiguration().rawValue,
                 format: .binary,
@@ -291,6 +315,19 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             // finalized rows are never purged by the phone driver's pending report
             try await pumpHistoryStorage.storePumpEvents(pumpEvents, replacePendingEvents: false)
         }
+        // the watch's running temp, pending as the phone stores its own, so the basal chart and IOB include it;
+        // its finalized row (same start and type) takes over, and a temp that ended is purged
+        let runningTemp = batch.runningTemp.flatMap { dose -> NewPumpEvent? in
+            guard let id = dose.syncIdentifier, !id.isEmpty else { return nil }
+            return NewPumpEvent(date: dose.startDate, dose: dose, raw: Data(id.utf8), title: "Watch temp basal")
+        }
+        // only while the watch holds the pump: after it, the pending rows are the phone driver's own
+        if resolver.resolve(WatchLoanGate.self)?.phoneMayCommandPump == false {
+            let purged = try await pumpHistoryStorage.storePumpEvents(runningTemp.map { [$0] } ?? [], replacePendingEvents: true)
+            if let nightscoutManager = resolver.resolve(NightscoutManager.self) {
+                for id in purged { await nightscoutManager.deleteInsulin(withID: id) }
+            }
+        }
 
         let carbs = try await carbsNotStored(batch.carbs)
         if !carbs.isEmpty {
@@ -309,6 +346,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         if !glucose.isEmpty {
             try await glucoseStorage.storeGlucose(glucose)
         }
+        try await deleteGlucose(at: batch.deletedGlucoseDates ?? [])
 
         try await storeDeterminations(batch.determinations ?? [])
 
@@ -396,6 +434,34 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             return Set(try context.fetch(request).compactMap(\.id))
         }
         return carbs.filter { entry in entry.id.flatMap(UUID.init(uuidString:)).map { !stored.contains($0) } ?? true }
+    }
+
+    /// Readings deleted on the watch, matched by date as the phone's own copy of the same reading.
+    private func deleteGlucose(at dates: [Date]) async throws {
+        guard let first = dates.min(), let last = dates.max() else { return }
+        let window = WatchLoanPhoneChanges.sameReadingWindow
+        let context = makeContext()
+        let rows: [(objectID: NSManagedObjectID, id: String?, date: Date)] = try await context.perform {
+            let request = GlucoseStored.fetchRequest() as NSFetchRequest<GlucoseStored>
+            request.predicate = NSPredicate(
+                format: "date >= %@ AND date <= %@",
+                first.addingTimeInterval(-window) as NSDate,
+                last.addingTimeInterval(window) as NSDate
+            )
+            return try context.fetch(request).compactMap { row in
+                guard let date = row.date, dates.contains(where: { abs($0.timeIntervalSince(date)) < window }) else { return nil }
+                return (row.objectID, row.id?.uuidString, date)
+            }
+        }
+        // as the phone's history deletes them: Nightscout and Apple Health too
+        for row in rows {
+            if let id = row.id {
+                await resolver.resolve(NightscoutManager.self)?.deleteGlucose(withID: id, withDate: row.date)
+                await resolver.resolve(HealthKitManager.self)?.deleteGlucose(syncID: id)
+            }
+            await glucoseStorage.deleteGlucose(row.objectID)
+        }
+        if !rows.isEmpty { info(.watch, "\(rows.count) reading(s) deleted on Apple Watch") }
     }
 
     private func carbObjectID(_ id: String) async throws -> NSManagedObjectID? {
@@ -577,6 +643,13 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
                 String(localized: "Another Device Used Your Pod"),
                 String(localized: "iPhone stopped sending commands to your pod.") + " " + pumpFailSafe + " " +
                     String(localized: "Open Trio to use the pod on this iPhone.")
+            )
+        case .watchStartedWithoutPhone:
+            return (
+                String(localized: "Apple Watch Is Looping"),
+                String(
+                    localized: "Your watch started Trio on Watch while your iPhone was away, so it keeps the pod. End it on the watch, or take back your pump in Trio."
+                )
             )
         case .podTakenOnThisPhone:
             return (

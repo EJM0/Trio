@@ -83,6 +83,10 @@ enum WatchMessageKeys {
     static let showForecastWatch = "showForecastWatch"
     /// Whether the watch's own urgent low alarm should use Critical Alerts.
     static let useCriticalAlertsWatch = "useCriticalAlertsWatch"
+    /// Trio on Watch's own setting, and its Allow Without iPhone and Fallback Loop.
+    static let trioOnWatchEnabled = "trioOnWatchEnabled"
+    static let trioOnWatchWithoutPhone = "trioOnWatchWithoutPhone"
+    static let trioOnWatchFallback = "trioOnWatchFallback"
     /// Latest CGM export for the watch's own sensor link; can be absent while the phone is starting.
     static let watchSensorConfiguration = "watchSensorConfiguration"
     /// The CGM's Read on Apple Watch; independent of whether the phone's CGM manager is loaded yet.

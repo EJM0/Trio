@@ -125,6 +125,9 @@ import WidgetKit
 
     var recommendedBolus: Decimal = 0
 
+    /// The phone's running bolus, 0...1, while the phone delivers one.
+    var phoneBolusProgress: Double?
+
     /// Set by the "Meal & Bolus" complication or App Intent; the main view opens the flow and clears it.
     var isMealBolusShortcutPending: Bool = false
 
@@ -170,6 +173,20 @@ import WidgetKit
                 }
             }
         }
+    }
+
+    /// Trio on Watch's Allow Without iPhone and Fallback Loop, cached so they apply while the phone is away.
+    /// Trio on Watch's own setting: its page shows only while it is on (or a loan still runs).
+    var trioOnWatchEnabled: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.trioOnWatchEnabled) {
+        didSet { UserDefaults.standard.set(trioOnWatchEnabled, forKey: WatchMessageKeys.trioOnWatchEnabled) }
+    }
+
+    var trioOnWatchWithoutPhone: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.trioOnWatchWithoutPhone) {
+        didSet { UserDefaults.standard.set(trioOnWatchWithoutPhone, forKey: WatchMessageKeys.trioOnWatchWithoutPhone) }
+    }
+
+    var trioOnWatchFallback: Bool = UserDefaults.standard.bool(forKey: WatchMessageKeys.trioOnWatchFallback) {
+        didSet { UserDefaults.standard.set(trioOnWatchFallback, forKey: WatchMessageKeys.trioOnWatchFallback) }
     }
 
     /// The last CGM export from the phone. Persisted so the link comes back after watchOS ends the app while the phone
@@ -418,6 +435,13 @@ import WidgetKit
             return
         }
 
+        if let progress = message[WatchMessageKeys.bolusProgress] as? Double {
+            DispatchQueue.main.async {
+                self.phoneBolusProgress = progress >= 0 ? progress : nil
+            }
+            return
+        }
+
         // Recommended bolus is also not part of the WatchState message.
         if let recommendedBolus = message[WatchMessageKeys.recommendedBolus] as? NSNumber {
             WatchLogger.shared.debug(.bolus, "Bolus recommendation of \(recommendedBolus) U received")
@@ -540,6 +564,8 @@ import WidgetKit
     /// The main view resets the entry fields when it appears.
     func handleReachabilityChange(isReachable: Bool) {
         self.isReachable = isReachable
+        // the bolus's end may not have reached the watch; the next progress message brings a running one back
+        if !isReachable { phoneBolusProgress = nil }
         if WatchLogger.shared.shouldLog("reachability", state: "\(isReachable)") {
             WatchLogger.shared.debug(.connectivity, "Phone reachable: \(isReachable)")
         }
@@ -889,6 +915,18 @@ import WidgetKit
         if let critical = message[WatchMessageKeys.useCriticalAlertsWatch] as? Bool, critical != useCriticalAlerts {
             useCriticalAlerts = critical
         }
+        if let enabled = message[WatchMessageKeys.trioOnWatchEnabled] as? Bool, enabled != trioOnWatchEnabled {
+            trioOnWatchEnabled = enabled
+        }
+        if let withoutPhone = message[WatchMessageKeys.trioOnWatchWithoutPhone] as? Bool,
+           withoutPhone != trioOnWatchWithoutPhone
+        {
+            trioOnWatchWithoutPhone = withoutPhone
+            if !withoutPhone { Task { @MainActor in WatchLoanRuntime.host?.dropStandingCopy() } }
+        }
+        if let fallback = message[WatchMessageKeys.trioOnWatchFallback] as? Bool, fallback != trioOnWatchFallback {
+            trioOnWatchFallback = fallback
+        }
 
         if let low = message[WatchMessageKeys.glucoseRangeLow] as? Double,
            let high = message[WatchMessageKeys.glucoseRangeHigh] as? Double
@@ -998,6 +1036,11 @@ import WidgetKit
 
     /// True when the watch's own sensor link produced a reading within `ownReadingFreshFor`. This is the watch's
     /// own link only, never the phone's copy, so a loan can go in control at once when the watch is already reading.
+    /// The watch's own readings after `date`, for a loan started from the phone's copy.
+    func ownReadings(after date: Date) -> [BloodGlucose] {
+        ownReadings.filter { $0.dateString > date }
+    }
+
     func hasFreshOwnReading(now: Date = Date()) -> Bool {
         guard let latest = ownReadings.last?.dateString else { return false }
         return now.timeIntervalSince(latest) < Self.ownReadingFreshFor

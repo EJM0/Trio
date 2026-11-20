@@ -850,11 +850,18 @@ final class BaseGlucoseStorage: GlucoseStorage, Injectable {
                     deletedEntry.isManualGlucoseEntry = glucoseToDelete.isManual
                 }
 
+                let date = glucoseToDelete.date
                 context.delete(glucoseToDelete)
 
                 guard context.hasChanges else { return }
                 try context.save()
                 debug(.storage, "Deleted glucose entry")
+                if let date {
+                    Foundation.NotificationCenter.default.post(
+                        name: WatchLoanPhoneChanges.notification,
+                        object: WatchLoanPhoneChanges(deletedGlucoseDates: [date])
+                    )
+                }
             } catch {
                 warning(.storage, "Deleting glucose entry failed", error: error)
             }

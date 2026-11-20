@@ -113,6 +113,17 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     @ObservationIgnored private(set) var pump: LoanPump?
     @ObservationIgnored private var pumpDelegate: WatchLoanPumpDelegate
     @ObservationIgnored private(set) var snapshot: WatchLoanSnapshot?
+    /// The phone's newest copy for a start without it (Allow Without iPhone).
+    private(set) var standingCopy: WatchLoanSnapshot?
+    /// The watch's own readings that arrived live, for the Fallback Loop.
+    @ObservationIgnored private var liveReadingDates: [Date] = []
+    @ObservationIgnored private var lastSensorProblemAt: Date?
+    @ObservationIgnored private var isCheckingFallback = false
+    /// The estimated start of a bolus the phone started that was still under way when this loan took the pod, for
+    /// the bolus ring and Cancel Bolus.
+    @ObservationIgnored var foreignBolusStartedAt: Date?
+    /// The copy's age limit for the start under way: the button's, or the Fallback Loop's.
+    @ObservationIgnored private var startCopyMaxAge = WatchLoopPolicy.copyMaxAgeForButton
     /// Commands written down before they were sent, until each outcome is known. Never overwritten: each command adds one.
     @ObservationIgnored var intents: [WatchDoseIntent] = []
     @ObservationIgnored var cycleInfo = WatchLoanCycleInfo()
@@ -151,6 +162,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         var intents: [WatchDoseIntent] = []
         var inbox: WatchLoanInbox?
         var snapshot: WatchLoanSnapshot?
+        var standingCopy: WatchLoanSnapshot?
     }
 
     /// Reads every loan file off the main thread before any event, cycle or treatment runs.
@@ -169,6 +181,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
                 saved.intents = try files.load([WatchDoseIntent].self, from: .intent) ?? []
                 saved.inbox = try files.load(WatchLoanInbox.self, from: .inbox)
                 saved.snapshot = try files.read(.snapshot).map { try WatchLoanSnapshot.decode($0) }
+                saved.standingCopy = try? files.read(.standingCopy).map { try WatchLoanSnapshot.decode($0) }
             } catch {
                 WatchLogger.shared.error(.loop, "Watch loan files can't be read", error: error)
             }
@@ -185,9 +198,53 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         cycleInfo = saved.cycleInfo ?? WatchLoanCycleInfo()
         intents = saved.intents
         inbox = saved.inbox ?? WatchLoanInbox()
-        snapshot = saved.snapshot
+        snapshot = saved.snapshot.map(records.pruned)
+        standingCopy = saved.standingCopy
         loop.lastCycleAt = cycleInfo.lastCycleAt
         loop.lastConfirmedCycleAt = cycleInfo.lastConfirmedCycleAt
+    }
+
+    // MARK: - History changes
+
+    func deleteCarbs(_ entry: CarbsEntry) async {
+        await changeHistory("Meal deleted on the watch") { try $0.deleteCarbs(entry, wholeMeal: true) }
+    }
+
+    /// An edit replaces the meal: the phone deletes the old one and stores the new one.
+    func editCarbs(_ entry: CarbsEntry, grams: Decimal, at date: Date) async {
+        let replacement = CarbsEntry(
+            id: UUID().uuidString, createdAt: date, actualDate: date, carbs: grams, fat: entry.fat, protein: entry.protein,
+            note: entry.note, enteredBy: CarbsEntry.local, isFPU: false, fpuID: nil
+        )
+        await changeHistory("Meal edited on the watch") {
+            try $0.deleteCarbs(entry, wholeMeal: false)
+            try $0.storeCarbs(replacement)
+        }
+    }
+
+    func deleteGlucose(_ reading: BloodGlucose) async {
+        await changeHistory("Reading deleted on the watch") { try $0.deleteGlucose(reading) }
+    }
+
+    /// Only while the watch holds the pump; the loop runs again with the change and the phone hears of it.
+    private func changeHistory(_ what: String, _ change: @escaping (WatchLoanRecordStore) throws -> Void) async {
+        var epoch: Int64?
+        await serially {
+            guard case let .holding(held) = self.state else { return }
+            do {
+                let records = self.records
+                try await WatchLoanFiles.io { try change(records) }
+                self.snapshot = self.snapshot.map(records.pruned)
+                epoch = held
+                WatchLogger.shared.info(.treatments, what)
+            } catch {
+                WatchLogger.shared.error(.treatments, "\(what), not saved", error: error)
+                self.alerts.postNotSaved()
+            }
+        }
+        guard let epoch else { return }
+        await sendRecords(epoch: epoch)
+        await runCycle(trigger: .user)
     }
 
     // MARK: - Serial work
@@ -222,9 +279,10 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         let context = WatchSideLoanContext(
             now: env.now(),
             newRequestID: UUID(),
-            startRefusal: event == .startTapped ? await startRefusal() : nil,
+            startRefusal: await startRefusal(for: event),
             endRefusal: event == .endTapped ? endRefusal() : nil,
-            grantRefusal: grantRefusal(for: event)
+            grantRefusal: grantRefusal(for: event),
+            copyRefusal: copyRefusal(for: event)
         )
         let (next, effects) = WatchLoan.decide(state, event, context)
         if next != state {
@@ -242,11 +300,19 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
 
     static let minimumStartBattery: Float = 0.3
 
-    private func startRefusal() async -> LoanRefusal? {
+    private func startRefusal(for event: WatchSideLoanEvent) async -> LoanRefusal? {
+        switch event {
+        case .startTapped: return await startRefusal(needsPhone: true)
+        case .startWithoutPhoneTapped: return await startRefusal(needsPhone: false)
+        default: return nil
+        }
+    }
+
+    private func startRefusal(needsPhone: Bool) async -> LoanRefusal? {
         guard let model = env.modelIdentifier(), WatchLoopPolicy.isSupportedWatch(modelIdentifier: model) else {
             return .unsupportedWatch
         }
-        if !env.transport.isReachable { return .phoneUnreachable }
+        if needsPhone, !env.transport.isReachable { return .phoneUnreachable }
         if let level = env.batteryLevel(), level < Self.minimumStartBattery { return .watchBatteryLow }
         let notificationsAllowed = await env.notificationsAllowed()
         if !notificationsAllowed { return .notificationsOff }
@@ -273,6 +339,20 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             now: env.now(),
             timeZone: env.timeZone()
         ))
+    }
+
+    /// A copy is a snapshot the phone made without releasing the pod: no request, no expiry, its own age instead.
+    private func copyRefusal(for event: WatchSideLoanEvent) -> LoanRefusal? {
+        guard case .startWithoutPhoneTapped = event else { return nil }
+        guard let copy = usableStandingCopy(maxAge: startCopyMaxAge) else { return .noUsableCopy }
+        guard copy.versions.schema == WatchLoanSnapshot.currentSchemaVersion,
+              copy.versions.protocolVersion == WatchLoanEnvelope.currentProtocolVersion,
+              copy.versions.appBuild == env.appBuild
+        else { return .versionMismatch }
+        guard copy.missingParts.isEmpty else { return .snapshotIncomplete }
+        guard copy.oref.dosingMode == .closed else { return .notClosedLoop }
+        guard copy.timeZone?.identifier == env.timeZone().identifier else { return .timeZoneMismatch }
+        return nil
     }
 
     // MARK: - Effects
@@ -653,6 +733,16 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             }
             return true
         }
+        if let data = payload[WatchLoanWireKey.standingCopy] as? Data {
+            await keepStandingCopy(data)
+            return true
+        }
+        if let data = payload[WatchLoanWireKey.phoneChanges] as? Data {
+            if let changes = try? WatchLoanPhoneChanges.decode(data) {
+                await changeHistory("Phone history change") { try $0.apply(changes) }
+            }
+            return true
+        }
         // A snapshot slice: collect it and wait for the grant that follows. Reassembly happens when the grant lands.
         if let slice = payload[WatchLoanWireKey.snapshotChunk] as? Data,
            let index = payload[WatchLoanWireKey.snapshotChunkIndex] as? Int,
@@ -726,6 +816,131 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             WatchLogger.shared.warning(.loop, "Grant snapshot can't be read or saved", error: error)
             snapshot = nil
         }
+    }
+
+    // MARK: - Start without the phone
+
+    /// The copy the button may start from: Allow Without iPhone on, younger than 15 min.
+    func usableStandingCopy(maxAge: TimeInterval = WatchLoopPolicy.copyMaxAgeForButton) -> WatchLoanSnapshot? {
+        guard UserDefaults.standard.bool(forKey: WatchMessageKeys.trioOnWatchWithoutPhone), let copy = standingCopy,
+              env.now().timeIntervalSince(copy.phoneTime) < maxAge
+        else { return nil }
+        return copy
+    }
+
+    /// Newest only; dropped with the setting.
+    private func keepStandingCopy(_ data: Data) async {
+        guard UserDefaults.standard.bool(forKey: WatchMessageKeys.trioOnWatchWithoutPhone) else { return }
+        do {
+            let copy = try WatchLoanSnapshot.decode(data)
+            guard copy.phoneTime > standingCopy?.phoneTime ?? .distantPast else { return }
+            let files = env.files
+            try await WatchLoanFiles.io { try files.write(data, to: .standingCopy) }
+            standingCopy = copy
+            WatchLogger.shared.debug(.connectivity, "Copy from the phone kept, made \(copy.phoneTime)")
+        } catch {
+            WatchLogger.shared.warning(.connectivity, "Copy from the phone can't be read or saved", error: error)
+        }
+    }
+
+    func dropStandingCopy() {
+        standingCopy = nil
+        let files = env.files
+        WatchLoanFiles.later("the copy") { try files.remove(.standingCopy) }
+    }
+
+    /// Control row 2: from the copy, under an epoch above any this watch knows. The first cycle checks the pod's total
+    /// against the copy before it doses.
+    func startWithoutPhone(byFallback: Bool = false) async {
+        await serially {
+            self.startCopyMaxAge = byFallback ? WatchLoopPolicy.copyMaxAgeForFallback : WatchLoopPolicy.copyMaxAgeForButton
+            guard case .idle = self.state, let copy = self.usableStandingCopy(maxAge: self.startCopyMaxAge) else { return }
+            do {
+                let (files, data) = (self.env.files, try copy.encoded())
+                try await WatchLoanFiles.io { try files.write(data, to: .snapshot) }
+            } catch {
+                WatchLogger.shared.error(.loop, "Start without the phone stopped: the copy can't be saved", error: error)
+                self.alerts.postNotSaved()
+                return
+            }
+            self.snapshot = copy
+            await self.process(.startWithoutPhoneTapped(copyEpoch: copy.epoch))
+            guard case .holding = self.state else { return }
+            self.cycleInfo.startedWithoutPhone = true
+            self.cycleInfo.copyChecked = false
+            self.cycleInfo.startedByFallback = byFallback
+            self.saveCycleInfo()
+            // the copy's readings end when it was made; the watch's own since then are the loop's newest
+            let newestKnown = copy.oref.glucose.map(\.dateString).max()
+            let own = WatchState.shared.ownReadings(after: newestKnown ?? copy.phoneTime)
+            do {
+                let records = self.records
+                try await WatchLoanFiles.io { try records.storeGlucose(own, newestKnown: newestKnown) }
+            } catch {
+                WatchLogger.shared.warning(.loop, "Storing the watch's readings since the copy failed", error: error)
+            }
+            if byFallback { self.alerts.postFallbackStarted() }
+            WatchLogger.shared.info(
+                .loop,
+                "Started without the phone\(byFallback ? " by the fallback" : ""), from the copy made \(copy.phoneTime)"
+            )
+        }
+        await runCycle(trigger: .user)
+    }
+
+    // MARK: - Fallback Loop
+
+    /// Each of the watch's own readings: with no loan, the Fallback Loop may start; a loan it started goes back once
+    /// the phone is back.
+    func ownReadingsArrived(_ readings: [BloodGlucose], sensorProblem: Bool) {
+        let now = env.now()
+        if sensorProblem { lastSensorProblemAt = now }
+        // backfill arrives late: only a reading from the last 2 minutes is live
+        if let newest = readings.filter({ ($0.glucose ?? $0.sgv ?? 0) > 0 }).map(\.dateString).max(),
+           now.timeIntervalSince(newest) < 2 * 60
+        {
+            liveReadingDates.append(newest)
+        }
+        liveReadingDates.removeAll { now.timeIntervalSince($0) > WatchLoanFallback.readingWindow }
+        Task { await self.checkFallback(sensorProblem: sensorProblem) }
+    }
+
+    private func checkFallback(sensorProblem: Bool) async {
+        let watchState = WatchState.shared
+        if case .holding = state, cycleInfo.startedByFallback == true, WatchLoanFallback.shouldHandBack(
+            phoneReachable: env.transport.isReachable,
+            phoneNewestReading: watchState.phoneNewestReading,
+            now: env.now()
+        ) {
+            WatchLogger.shared.info(.loop, "Fallback Loop: the iPhone is back; handing the pod back")
+            await endTapped()
+            return
+        }
+        guard case .idle = state, !isCheckingFallback,
+              UserDefaults.standard.bool(forKey: WatchMessageKeys.trioOnWatchFallback)
+        else { return }
+        var inputs = WatchLoanFallback.Inputs(
+            ownReadings: liveReadingDates,
+            phoneNewestReading: watchState.phoneNewestReading,
+            phoneLastLoop: watchState.lastLoopDate,
+            phoneAnswered: false,
+            sensorProblemNow: sensorProblem,
+            lastSensorProblemAt: lastSensorProblemAt,
+            copyUsable: usableStandingCopy(maxAge: WatchLoopPolicy.copyMaxAgeForFallback) != nil,
+            now: env.now()
+        )
+        guard WatchLoanFallback.shouldStart(inputs) else { return }
+        // the health question: a phone that answers keeps the pod
+        isCheckingFallback = true
+        defer { isCheckingFallback = false }
+        inputs.phoneAnswered = await askPhoneEpoch() != nil
+        inputs.now = env.now()
+        guard WatchLoanFallback.shouldStart(inputs) else {
+            WatchLogger.shared.info(.loop, "Fallback Loop: the iPhone answered; it keeps the pod")
+            return
+        }
+        WatchLogger.shared.warning(.loop, "Fallback Loop: the iPhone stopped looping; starting on the watch")
+        await startWithoutPhone(byFallback: true)
     }
 
     // MARK: - User

@@ -87,6 +87,27 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             }
             .store(in: &subscriptions)
 
+        // after each of the phone's loops, the copy for a start on the watch without the phone
+        apsManager.lastLoopDateSubject
+            .sink { [weak self] _ in
+                guard let coordinator = self?.watchLoanCoordinator else { return }
+                Task { await coordinator.sendStandingCopy() }
+            }
+            .store(in: &subscriptions)
+
+        // the running bolus, so the watch can show and stop it; -1 once it ended
+        apsManager.bolusProgress
+            .throttle(for: .seconds(1), scheduler: queue, latest: true)
+            .removeDuplicates()
+            .sink { [weak self] progress in
+                guard let session = self?.session, session.isReachable else { return }
+                let value = progress.map { NSDecimalNumber(decimal: $0).doubleValue } ?? -1
+                session.sendMessage([WatchMessageKeys.bolusProgress: value], replyHandler: nil) { error in
+                    debug(.watch, "Sending bolus progress failed: \(error.localizedDescription)")
+                }
+            }
+            .store(in: &subscriptions)
+
         registerHandlers()
     }
 
@@ -383,6 +404,10 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 watchState.showForecast = self.settingsManager.settings.showForecastWatch
                 watchState.isForecastCone = self.settingsManager.settings.forecastDisplayType == .cone
                 watchState.useCriticalAlertsWatch = self.settingsManager.settings.useCriticalAlertsWatch
+                let settings = self.settingsManager.settings
+                watchState.trioOnWatchEnabled = settings.trioOnWatchEnabled
+                watchState.trioOnWatchWithoutPhone = settings.trioOnWatchEnabled && settings.trioOnWatchWithoutPhone
+                watchState.trioOnWatchFallback = watchState.trioOnWatchWithoutPhone && settings.trioOnWatchFallback
 
                 // the watch reads the sensor itself while the CGM shares its configuration (G7: Read on Apple Watch),
                 // as LoopKit/Loop#2545's WatchDataManager does
@@ -709,6 +734,9 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         dictionary[WatchMessageKeys.chartIobCobDates] = state.chartIobCobDates
 
         dictionary[WatchMessageKeys.useCriticalAlertsWatch] = state.useCriticalAlertsWatch
+        dictionary[WatchMessageKeys.trioOnWatchEnabled] = state.trioOnWatchEnabled
+        dictionary[WatchMessageKeys.trioOnWatchWithoutPhone] = state.trioOnWatchWithoutPhone
+        dictionary[WatchMessageKeys.trioOnWatchFallback] = state.trioOnWatchFallback
         dictionary[WatchMessageKeys.watchSensorConfiguration] = state.watchSensorConfiguration
         dictionary[WatchMessageKeys.watchReadsSensor] = state.watchReadsSensor
         dictionary[WatchMessageKeys.glucoseRangeLow] = NSDecimalNumber(decimal: state.glucoseRangeLow).doubleValue
@@ -894,6 +922,12 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             if message[WatchMessageKeys.requestWatchUpdate] as? String == WatchMessageKeys.watchState {
                 debug(.watch, "Watch requested a state update without a reply handler")
                 await self.pushWatchState()
+                return
+            }
+
+            if message[WatchMessageKeys.cancelBolus] as? Bool == true {
+                info(.watch, "Watch requested bolus cancel")
+                await self.handleCancelBolus()
                 return
             }
 
@@ -1219,6 +1253,22 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 error(.watch, "Logging carbs and bolus from watch failed", error: requestError)
                 sendAcknowledgment(toWatch: false, message: "Failed to log carbs and bolus", ackCode: .genericFailure)
             }
+        }
+    }
+
+    private func handleCancelBolus() async {
+        var answered = false
+        await apsManager.cancelBolus { success, message in
+            answered = true
+            self.sendAcknowledgment(toWatch: success, message: message, ackCode: success ? .genericSuccess : .genericFailure)
+        }
+        // cancelBolus returns without a word when no bolus runs
+        if !answered {
+            sendAcknowledgment(
+                toWatch: false,
+                message: String(localized: "No bolus is running.", comment: "Watch: cancel requested while no bolus runs"),
+                ackCode: .genericFailure
+            )
         }
     }
 

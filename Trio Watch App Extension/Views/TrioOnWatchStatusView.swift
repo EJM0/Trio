@@ -4,6 +4,7 @@ import WatchKit
 /// The host calls behind the Trio on Watch screens. Fixtures leave them empty.
 struct TrioOnWatchActions {
     var start: () async -> Void = {}
+    var startWithoutPhone: () async -> Void = {}
     var end: () async -> Void = {}
     var acknowledgeStop: () async -> Void = {}
     var startFacts: () async -> WatchLoanStartFacts? = { nil }
@@ -26,6 +27,7 @@ struct TrioOnWatchActions {
         guard let host = WatchLoanRuntime.host else { return TrioOnWatchActions() }
         return TrioOnWatchActions(
             start: { await host.startTapped() },
+            startWithoutPhone: { await host.startWithoutPhone() },
             end: { await host.endTapped() },
             acknowledgeStop: { await host.stopAcknowledged() },
             startFacts: { await host.startFacts() },
@@ -48,7 +50,10 @@ struct TrioOnWatchActions {
         #if DEBUG
             if let fixture = TrioOnWatchFixture.current { return fixture.status }
         #endif
-        return WatchLoanRuntime.host?.uiStatus()
+        guard let host = WatchLoanRuntime.host else { return nil }
+        // the setting hides the page; a loan that still runs keeps it, so it can be ended here
+        if !WatchState.shared.trioOnWatchEnabled, case .idle = host.state { return nil }
+        return host.uiStatus()
     }
 
     static var actions: TrioOnWatchActions {
@@ -146,6 +151,7 @@ struct TrioOnWatchStatusView: View {
     var scrollTo: String?
 
     @State private var showingStart = false
+    @State private var showingStartWithoutPhone = false
     @State private var showingEndConfirmation = false
     @State private var showingSuspendConfirmation = false
     @State private var showingCancelBolusConfirmation = false
@@ -209,6 +215,21 @@ struct TrioOnWatchStatusView: View {
                         .font(.footnote)
                         .foregroundStyle(Color.secondary)
                 }
+
+                if status.primaryAction == .start, let copyMadeAt = status.copyMadeAt {
+                    Section {
+                        Button(String(localized: "Start Without iPhone", comment: "Watch: start from the phone's copy")) {
+                            showingStartWithoutPhone = true
+                        }
+                    } footer: {
+                        Text(String(
+                            localized: "From your iPhone's settings of \(copyMadeAt.formatted(date: .omitted, time: .shortened)).",
+                            comment: "Watch: when the copy for a start without the iPhone was made"
+                        ))
+                            .font(.footnote)
+                            .foregroundStyle(Color.secondary)
+                    }
+                }
             }
             .scrollContentBackground(.hidden)
             .onAppear {
@@ -234,6 +255,23 @@ struct TrioOnWatchStatusView: View {
                 handOff = nil
                 actions.clearNotice()
             }
+        }
+        .confirmationDialog(
+            String(localized: "Start Without iPhone?", comment: "Watch: confirm the start from the phone's copy"),
+            isPresented: $showingStartWithoutPhone,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Start", comment: "Watch: confirm the start without the iPhone")) {
+                actions.clearNotice()
+                handOff = .start
+                Task { await actions.startWithoutPhone() }
+            }
+            Button(String(localized: "Cancel", comment: "Cancel button"), role: .cancel) {}
+        } message: {
+            Text(String(
+                localized: "Your watch takes the pod with your iPhone's last settings. It first counts any insulin the iPhone gave since then. When your iPhone is back, the watch keeps the pod until you end.",
+                comment: "Watch: start without the iPhone confirmation message"
+            ))
         }
         .fullScreenCover(item: $result) { result in
             ActionResultView(result: result) { self.result = nil }
