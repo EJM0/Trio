@@ -18,6 +18,12 @@ struct WatchLoanRecordBatch: Codable {
         var newPumpEvent: NewPumpEvent { NewPumpEvent(date: date, dose: dose, raw: raw, title: title) }
     }
 
+    /// A watch loop's determination and whether its cycle confirmed the pump's state, as the phone marks its own.
+    struct DeterminationRecord: Codable, Equatable {
+        var determination: Determination
+        var enacted: Bool
+    }
+
     var version: Int
     var batchID: UUID
     var epoch: Int64
@@ -37,6 +43,8 @@ struct WatchLoanRecordBatch: Codable {
     var startedOverrideAt: Date? = nil
     var startedTempTarget: TempTarget? = nil
     var startedTempTargetAt: Date? = nil
+    /// The watch loop's determinations, for the phone's chart, loop status and Nightscout.
+    var determinations: [DeterminationRecord]? = nil
 
     /// Mutable doses would be purged by the phone driver's next pending report, and a dose without
     /// a sync identifier can't be merged twice safely.

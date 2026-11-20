@@ -190,6 +190,12 @@ extension WatchLoanHost {
         updateLoopStatus(outputs, pump: pump)
         finish(start: start, confirmed: confirmed)
         checkBattery()
+        do {
+            let records = records
+            try await WatchLoanFiles.io { try records.storeDetermination(determination, enacted: confirmed) }
+        } catch {
+            WatchLogger.shared.warning(.loop, "Storing the determination failed", error: error)
+        }
         await sendRecords(epoch: epoch)
 
         // the heaviest stage runs after the commands, on its 30-minute cadence
@@ -528,7 +534,7 @@ extension WatchLoanHost {
             env.transport.send([WatchLoanWireKey.records: data])
             WatchLogger.shared.info(
                 .connectivity,
-                "Record batch queued: \(batch.pumpEvents.count) pump events, \(batch.glucose.count) readings, \(data.count) bytes"
+                "Record batch queued: \(batch.pumpEvents.count) pump events, \(batch.glucose.count) readings, \(batch.determinations?.count ?? 0) determinations, \(data.count) bytes"
             )
         } catch {
             WatchLogger.shared.warning(.connectivity, "Record batch not sent", error: error)

@@ -21,6 +21,8 @@ final class WatchLoanRecordStore {
         var startedOverrideAt: Date?
         var startedTempTarget: TempTarget?
         var startedTempTargetAt: Date?
+        /// Determinations the phone hasn't acknowledged yet.
+        var determinations: [WatchLoanRecordBatch.DeterminationRecord]?
         /// The batch sent last and what it carried, until the phone acknowledges it.
         var pendingBatch: UUID?
         var pendingKeys: [String] = []
@@ -157,6 +159,10 @@ final class WatchLoanRecordStore {
         try mutate { $0.carbs.insert(entry, at: 0) }
     }
 
+    func storeDetermination(_ determination: Determination, enacted: Bool) throws {
+        try mutate { $0.determinations = ($0.determinations ?? []) + [.init(determination: determination, enacted: enacted)] }
+    }
+
     func storeTDD(_ row: OrefInputs.TDDRow) throws {
         try mutate { $0.tddHistory.append(row) }
     }
@@ -235,10 +241,12 @@ final class WatchLoanRecordStore {
             batch.startedOverrideAt = contents.startedOverrideAt
             batch.startedTempTarget = contents.startedTempTarget
             batch.startedTempTargetAt = contents.startedTempTargetAt
+            batch.determinations = contents.determinations
             contents.pendingBatch = batch.batchID
             contents.pendingKeys = Array(events.keys)
                 + batch.carbs.map { "carbs:\($0.id ?? "")" }
                 + batch.glucose.map { "glucose:\($0.id)" }
+                + (batch.determinations ?? []).compactMap(\.determination.id).map { "determination:\($0.uuidString)" }
             return batch
         }
     }
@@ -251,6 +259,9 @@ final class WatchLoanRecordStore {
                     contents.acknowledgedCarbs.insert(String(key.dropFirst(6)))
                 } else if key.hasPrefix("glucose:") {
                     contents.acknowledgedGlucose.insert(String(key.dropFirst(8)))
+                } else if key.hasPrefix("determination:") {
+                    let id = UUID(uuidString: String(key.dropFirst(14)))
+                    contents.determinations?.removeAll { $0.determination.id == id }
                 } else {
                     contents.pumpEvents[key]?.acknowledged = true
                 }

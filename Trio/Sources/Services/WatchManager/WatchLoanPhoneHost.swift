@@ -310,7 +310,37 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             try await glucoseStorage.storeGlucose(glucose)
         }
 
+        try await storeDeterminations(batch.determinations ?? [])
+
         await applyWatchAdjustments(batch)
+    }
+
+    /// The watch loop's determinations, stored as the phone stores its own and marked enacted as it marks its own.
+    private func storeDeterminations(_ records: [WatchLoanRecordBatch.DeterminationRecord]) async throws {
+        let ids = records.compactMap(\.determination.id)
+        guard !ids.isEmpty else { return }
+        let context = makeContext()
+        func rows() throws -> [OrefDetermination] {
+            let request = OrefDetermination.fetchRequest() as NSFetchRequest<OrefDetermination>
+            request.predicate = NSPredicate(format: "id IN %@", ids)
+            return try context.fetch(request)
+        }
+        let stored: Set<UUID> = try await context.perform { Set(try rows().compactMap(\.id)) }
+        let new = records.filter { $0.determination.id.map { !stored.contains($0) } ?? false }
+        guard !new.isEmpty else { return }
+        for record in new {
+            try await openAPS.processDetermination(record.determination, on: context)
+        }
+        let byID = Dictionary(new.map { ($0.determination.id!, $0) }, uniquingKeysWith: { first, _ in first })
+        try await context.perform {
+            for row in try rows() {
+                guard let id = row.id, let record = byID[id] else { continue }
+                row.enacted = record.enacted
+                row.timestamp = record.determination.timestamp ?? record.determination.deliverAt
+            }
+            if context.hasChanges { try context.save() }
+        }
+        info(.watch, "\(new.count) watch determination(s) stored")
     }
 
     /// The phone's key for the newest watch-started adjustment it has already activated, so a repeat in a later
