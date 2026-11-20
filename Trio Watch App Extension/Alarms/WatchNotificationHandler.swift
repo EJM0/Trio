@@ -18,9 +18,20 @@ final class WatchNotificationHandler: NSObject, UNUserNotificationCenterDelegate
     private func registerCategories(on center: UNUserNotificationCenter) {
         center.getNotificationCategories { existingCategories in
             let glucoseCategory = NotificationCategoryFactory.createGlucoseCategory()
+            let podAlertCategory = UNNotificationCategory(
+                identifier: WatchLoanAlerts.podAlertCategory,
+                actions: [UNNotificationAction(
+                    identifier: WatchLoanAlerts.acknowledgeAction,
+                    title: String(localized: "Acknowledge", comment: "Watch notification action: acknowledge a pod alert"),
+                    options: []
+                )],
+                intentIdentifiers: [],
+                options: []
+            )
 
             var categories = existingCategories
             categories.update(with: glucoseCategory)
+            categories.update(with: podAlertCategory)
             // UNUserNotificationCenter methods should be called on main thread
             Task { @MainActor in
                 center.setNotificationCategories(categories)
@@ -49,6 +60,15 @@ final class WatchNotificationHandler: NSObject, UNUserNotificationCenterDelegate
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
+        // a pod alert: the watch holding the pod tells the pod, which stops beeping; done once the pod answered
+        if response.actionIdentifier == WatchLoanAlerts.acknowledgeAction {
+            let id = response.notification.request.identifier
+            Task { @MainActor in
+                await WatchLoanRuntime.host?.acknowledgePodAlert(notificationID: id)
+                completionHandler()
+            }
+            return
+        }
         defer { completionHandler() }
 
         guard let action = NotificationResponseAction(rawValue: response.actionIdentifier) else { return }

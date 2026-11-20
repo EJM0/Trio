@@ -30,6 +30,10 @@ extension WatchLoanHost {
         status.bolus = bolus
         status.bolusInProgress = bolusWindow()
         status.lastAlert = lastAlert
+        status.podAlerts = podAlerts
+            .filter { $0.value.firesAt <= env.now() }
+            .sorted { $0.value.firesAt < $1.value.firesAt }
+            .map { TrioOnWatchStatus.PodAlert(id: $0.key, title: $0.value.title, body: $0.value.body) }
         // the watch doses from its own readings, so the button needs them
         if case .idle = state, env.hasFreshOwnReading(), let copy = usableStandingCopy() {
             status.copyMadeAt = copy.phoneTime

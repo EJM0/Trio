@@ -119,6 +119,16 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     @ObservationIgnored private var liveReadingDates: [Date] = []
     @ObservationIgnored private var lastSensorProblemAt: Date?
     @ObservationIgnored private var isCheckingFallback = false
+    /// Pod alerts shown and not yet acknowledged, by notification id, for the status page.
+    private(set) var podAlerts: [String: PendingPodAlert] = [:]
+
+    struct PendingPodAlert: Equatable {
+        var alertIdentifier: Alert.AlertIdentifier
+        var title: String
+        var body: String
+        var firesAt: Date
+    }
+
     /// The estimated start of a bolus the phone started that was still under way when this loan took the pod, for
     /// the bolus ring and Cancel Bolus.
     @ObservationIgnored var foreignBolusStartedAt: Date?
@@ -602,6 +612,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             }
             pump.pumpManagerDelegate = nil
             self.pump = nil
+            podAlerts = [:]
             WatchLogger.shared.info(.loop, "Pump manager let go after the loan")
         }
         // what never settled is booked as the cycle would book it, and goes to the phone before it is forgotten
@@ -696,7 +707,40 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     }
 
     func issueKitAlert(_ alert: Alert) async {
-        alerts.postKitAlert(alert, line: WatchLoanAlerts.podNeedsPhone, now: env.now())
+        let now = env.now()
+        alerts.postKitAlert(alert, line: WatchLoanAlerts.podNeedsPhone, now: now, acknowledgeable: true)
+        let firesAt: Date
+        switch alert.trigger {
+        case .immediate: firesAt = now
+        case let .delayed(interval),
+             let .repeating(interval): firesAt = now.addingTimeInterval(interval)
+        }
+        podAlerts[WatchLoanAlerts.kitPrefix + alert.identifier.value] = PendingPodAlert(
+            alertIdentifier: alert.identifier.alertIdentifier,
+            title: alert.foregroundContent?.title ?? alert.backgroundContent.title,
+            body: alert.foregroundContent?.body ?? alert.backgroundContent.body,
+            firesAt: firesAt
+        )
+    }
+
+    /// From the notification's action or the status page. The pod stops beeping once the kit has told it.
+    func acknowledgePodAlert(notificationID id: String) async {
+        await serially {
+            guard let pump = self.pump else { return }
+            // after a relaunch only the notification id is left: it is the prefix, the kit's identifier, a dot, the alert's
+            let prefix = WatchLoanAlerts.kitPrefix + pump.pluginIdentifier + "."
+            guard let alertIdentifier = self.podAlerts[id]?.alertIdentifier
+                ?? (id.hasPrefix(prefix) ? String(id.dropFirst(prefix.count)) : nil)
+            else { return }
+            do {
+                try await pump.acknowledgeAlert(alertIdentifier: alertIdentifier)
+                self.podAlerts[id] = nil
+                self.env.notifier.cancel(ids: [id])
+                WatchLogger.shared.info(.pump, "Pod alert acknowledged on the watch: \(alertIdentifier)")
+            } catch {
+                WatchLogger.shared.warning(.pump, "Acknowledging the pod alert \(alertIdentifier) failed", error: error)
+            }
+        }
     }
 
     /// The sensor's own alerts, while the watch reads it: with the phone away nothing else tells the user (G-R2).
@@ -711,6 +755,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
 
     func retractKitAlert(_ identifier: Alert.Identifier) async {
         alerts.retractKitAlert(identifier)
+        podAlerts[WatchLoanAlerts.kitPrefix + identifier.value] = nil
     }
 
     // MARK: - Messages

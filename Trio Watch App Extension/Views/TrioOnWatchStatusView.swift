@@ -18,6 +18,8 @@ struct TrioOnWatchActions {
     var startOverride: (String) async -> Void = { _ in }
     var startTempTarget: (String) async -> Void = { _ in }
     var cancelBolus: () async -> Void = {}
+    /// Acknowledges the pod alert with this notification id.
+    var acknowledgePodAlert: (String) async -> Void = { _ in }
     /// The phone answered a live query; End is tried, not blocked on a flag.
     var phoneAnswers: () async -> Bool = { true }
     /// Forgets the last notice, so an old refusal doesn't show as the next hand-off's outcome.
@@ -38,6 +40,7 @@ struct TrioOnWatchActions {
             startOverride: { await host.startOverride(presetName: $0) },
             startTempTarget: { await host.startTempTarget(presetName: $0) },
             cancelBolus: { await host.cancelBolus() },
+            acknowledgePodAlert: { await host.acknowledgePodAlert(notificationID: $0) },
             phoneAnswers: { await host.phoneAnswers() },
             clearNotice: { host.lastAlert = nil }
         )
@@ -180,6 +183,20 @@ struct TrioOnWatchStatusView: View {
                     }
                 }
                 .trioRow()
+
+                ForEach(status.podAlerts) { alert in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label(alert.title, systemImage: "exclamationmark.triangle.fill")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Color.orange)
+                        Text(alert.body).font(.footnote)
+                        Button(String(localized: "Acknowledge", comment: "Watch: acknowledge a pod alert")) {
+                            Task { await actions.acknowledgePodAlert(alert.id) }
+                        }
+                        .tint(.orange)
+                    }
+                    .trioRow()
+                }
 
                 ForEach(status.rows(now: now)) { row in
                     VStack(alignment: .leading, spacing: 2) {

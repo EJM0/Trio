@@ -68,6 +68,15 @@ struct TrioOnWatchStatus: Equatable {
     var lastAlert: LoanAlert?
     /// When the phone made the copy Start Without iPhone would use; nil when there is no usable one.
     var copyMadeAt: Date?
+    /// Pod alerts that went off and wait for an acknowledgement, oldest first.
+    var podAlerts: [PodAlert] = []
+
+    struct PodAlert: Equatable, Identifiable {
+        /// The alert's notification id.
+        var id: String
+        var title: String
+        var body: String
+    }
 
     /// The watch gives insulin; the treatment buttons talk to the watch, not the phone.
     var isInControl: Bool { phase == .inControl }
