@@ -1765,6 +1765,17 @@ extension MainChartCanvas {
                 viewContext: context
             )
 
+            // while Apple Watch had the pump: a band at the target, as an override without a target of its own
+            ForEach(state.watchLoopSpans, id: \.start) { span in
+                RuleMark(
+                    xStart: .value("Start", span.start, unit: .second),
+                    xEnd: .value("End", span.end ?? state.timerDate, unit: .second),
+                    y: .value("Value", state.units == .mgdL ? state.currentGlucoseTarget : state.currentGlucoseTarget.asMmolL)
+                )
+                .foregroundStyle(Color.insulin.opacity(span.end == nil ? 0.4 : 0.25))
+                .lineStyle(.init(lineWidth: 8))
+            }
+
             ForecastView(
                 preprocessedData: state.preprocessedData,
                 minForecast: state.minForecast,

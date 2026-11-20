@@ -47,6 +47,8 @@ extension Home {
             ?? BGTargets(units: .mgdL, userPreferredUnits: .mgdL, targets: [])
         var targetProfiles: [TargetProfile] = []
         var timerDate = Date()
+        /// When Apple Watch had the pump, for the chart's band.
+        var watchLoopSpans: [WatchLoanLedger.Span] = []
         var alarmsSnoozeUntil: Date = UserDefaults.standard
             .object(forKey: "UserNotificationsManager.snoozeUntilDate") as? Date ?? .distantPast
         var dosingMode: DosingMode = .open
