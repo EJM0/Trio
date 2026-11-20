@@ -514,6 +514,29 @@ import Testing
         #expect(openLoop == .init(heldBack: [.automationOff]))
     }
 
+    @Test("A temp the pod already runs with over 11 minutes left, or a neutral temp, is not sent again") func dedup() {
+        let round: (Decimal) -> Decimal = { rounded($0 * 20, scale: 0, roundingMode: .plain) / 20 }
+        func redundant(_ rate: Decimal, _ minutes: Int = 30, _ running: WatchDosingGate.RunningBasal) -> Bool {
+            WatchDosingGate.isRedundant(
+                .init(unitsPerHour: rate, minutes: minutes),
+                running: running,
+                scheduledBasal: 1,
+                now: now,
+                round: round
+            )
+        }
+        let running = WatchDosingGate.RunningBasal.temp(unitsPerHour: 1.5, endsAt: now.addingTimeInterval(20 * 60))
+        #expect(redundant(1.5, running))
+        #expect(redundant(1.51, running))
+        #expect(!redundant(1.6, running))
+        #expect(!redundant(1.5, .temp(unitsPerHour: 1.5, endsAt: now.addingTimeInterval(10 * 60))))
+        #expect(!redundant(1, running))
+        #expect(redundant(1, .scheduled))
+        #expect(redundant(0, 0, .scheduled))
+        #expect(!redundant(0, 30, .scheduled))
+        #expect(!redundant(1.5, .scheduled))
+    }
+
     func intent(_ kind: WatchDoseIntent.Kind, addsInsulin: Bool = true, before: Double? = 10) -> WatchDoseIntent {
         WatchDoseIntent(id: UUID(), kind: kind, createdAt: now, epoch: 1, addsInsulin: addsInsulin, deliveredBefore: before)
     }
