@@ -129,8 +129,8 @@ enum TrioOnWatchRules {
         return .stale
     }
 
-    static func insulin(_ units: Decimal) -> String {
-        WatchLoanAlerts.insulin(units)
+    static func insulin(_ units: Decimal, maxFractionDigits: Int? = nil) -> String {
+        WatchLoanAlerts.insulin(units, maxFractionDigits: maxFractionDigits)
     }
 
     static func timeLeft(until date: Date, now: Date) -> String {
@@ -353,7 +353,7 @@ extension TrioOnWatchStatus {
     func mainValues(now: Date) -> MainValues {
         let latest = readings.first
         let isStale = latest.map { now.timeIntervalSince($0.date) > TrioOnWatchRules.readingMaxAge } ?? true
-        let iobText = iob.map { TrioOnWatchRules.insulin($0) } ?? "--"
+        let iobText = iob.map { TrioOnWatchRules.insulin($0, maxFractionDigits: 2) } ?? "--"
         let cobText = cob
             .map { String(localized: "\(Int(truncating: $0 as NSNumber)) g", comment: "Carbs on board in grams") } ?? "--"
         guard let latest, !isStale else {
