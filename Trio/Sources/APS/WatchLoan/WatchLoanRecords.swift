@@ -1,6 +1,21 @@
 import Foundation
 import LoopKit
 
+/// An override or temp target the watch started or stopped. The phone applies each one once, by `id`.
+struct WatchLoanAdjustmentChange: Codable, Equatable {
+    enum Kind: String, Codable {
+        case override
+        case tempTarget
+    }
+
+    var id: UUID
+    var kind: Kind
+    /// The preset started; nil stops the running one.
+    var presetID: String?
+    var presetName: String?
+    var at: Date
+}
+
 /// Records the watch sends while it holds the pump, and after. Merged by sync identifier.
 struct WatchLoanRecordBatch: Codable {
     static let currentVersion = 1
@@ -31,6 +46,8 @@ struct WatchLoanRecordBatch: Codable {
     var glucose: [BloodGlucose]
     /// The watch's last confirmed loop. Nil from a watch build that doesn't send it.
     var lastLoopAt: Date?
+    /// The watch's latest override and temp target change, sent in every batch until the loan ends.
+    var adjustmentChanges: [WatchLoanAdjustmentChange]? = nil
 
     /// Mutable doses would be purged by the phone driver's next pending report, and a dose without
     /// a sync identifier can't be merged twice safely.

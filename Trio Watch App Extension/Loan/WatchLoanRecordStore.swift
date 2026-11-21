@@ -13,8 +13,8 @@ final class WatchLoanRecordStore {
         var acknowledgedGlucose: Set<String> = []
         var acknowledgedCarbs: Set<String> = []
         var tddHistory: [OrefInputs.TDDRow] = []
-        var overrideCancelledAt: Date?
-        var tempTargetCancelledAt: Date?
+        var overrideChange: WatchLoanAdjustmentChange?
+        var tempTargetChange: WatchLoanAdjustmentChange?
         /// The batch sent last and what it carried, until the phone acknowledges it.
         var pendingBatch: UUID?
         var pendingKeys: [String] = []
@@ -156,11 +156,11 @@ final class WatchLoanRecordStore {
     }
 
     func cancelOverride(at date: Date) throws {
-        try mutate { $0.overrideCancelledAt = date }
+        try mutate { $0.overrideChange = WatchLoanAdjustmentChange(id: UUID(), kind: .override, at: date) }
     }
 
     func cancelTempTarget(at date: Date) throws {
-        try mutate { $0.tempTargetCancelledAt = date }
+        try mutate { $0.tempTargetChange = WatchLoanAdjustmentChange(id: UUID(), kind: .tempTarget, at: date) }
     }
 
     // MARK: - For oref
@@ -176,8 +176,8 @@ final class WatchLoanRecordStore {
         records.glucose = contents.glucose
         records.carbs = contents.carbs
         records.tddHistory = contents.tddHistory
-        records.overrideCancelledAt = contents.overrideCancelledAt
-        records.tempTargetCancelledAt = contents.tempTargetCancelledAt
+        records.overrideChange = contents.overrideChange
+        records.tempTargetChange = contents.tempTargetChange
         return records
     }
 
@@ -197,7 +197,8 @@ final class WatchLoanRecordStore {
                     .first { $0.isMutable && $0.type == .tempBasal && $0.endDate > now },
                 carbs: contents.carbs.filter { !contents.acknowledgedCarbs.contains($0.id ?? "") },
                 deletedCarbIDs: [],
-                glucose: contents.glucose.filter { !contents.acknowledgedGlucose.contains($0.id) }
+                glucose: contents.glucose.filter { !contents.acknowledgedGlucose.contains($0.id) },
+                adjustmentChanges: [contents.overrideChange, contents.tempTargetChange].compactMap { $0 }
             )
             contents.pendingBatch = batch.batchID
             contents.pendingKeys = Array(events.keys)

@@ -25,6 +25,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
     @Injected() private var tddStorage: TDDStorage!
     @Injected() private var trioAlertManager: TrioAlertManager!
     @Injected() private var notLoopingMonitor: NotLoopingMonitor!
+    @Injected() private var adjustmentManager: AdjustmentManager!
 
     private let resolver: Resolver
     private let makeContext: () -> NSManagedObjectContext
@@ -244,6 +245,37 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         if !glucose.isEmpty {
             try await glucoseStorage.storeGlucose(glucose)
         }
+
+        await applyAdjustmentChanges(batch.adjustmentChanges ?? [])
+    }
+
+    private static let appliedAdjustmentChangesKey = "WatchLoan.appliedAdjustmentChanges"
+
+    /// The watch's override and temp target changes, each applied once. Every batch carries the latest ones.
+    private func applyAdjustmentChanges(_ changes: [WatchLoanAdjustmentChange]) async {
+        var applied = UserDefaults.standard.stringArray(forKey: Self.appliedAdjustmentChangesKey) ?? []
+        for change in changes.sorted(by: { $0.at < $1.at }) where !applied.contains(change.id.uuidString) {
+            do {
+                switch (change.kind, change.presetID) {
+                case (.override, nil):
+                    try await adjustmentManager.cancelOverride(source: .watch)
+                case (.tempTarget, nil):
+                    try await adjustmentManager.cancelTempTarget(source: .watch)
+                case let (.override, presetID?):
+                    try await adjustmentManager.activateOverride(.presetID(presetID), source: .watch)
+                case let (.tempTarget, presetID?):
+                    try await adjustmentManager.activateTempTarget(.presetID(presetID), source: .watch)
+                }
+            } catch AdjustmentError.nothingActive {
+                // already stopped here
+            } catch {
+                warning(.watch, "Applying an Apple Watch \(change.kind.rawValue) change failed", error: error)
+                continue
+            }
+            info(.watch, "Apple Watch \(change.kind.rawValue) change applied: \(change.presetName ?? "stop")")
+            applied.append(change.id.uuidString)
+        }
+        UserDefaults.standard.set(Array(applied.suffix(50)), forKey: Self.appliedAdjustmentChangesKey)
     }
 
     private func carbsNotStored(_ carbs: [CarbsEntry]) async throws -> [CarbsEntry] {

@@ -48,8 +48,8 @@ extension WatchLoanHost {
             status.podEndsAt = snapshot.podEndsAt
             let now = env.now()
             let records = records.snapshot
-            status.override = Self.running(snapshot.overrideAtGrant, cancelledAt: records.overrideCancelledAt, now: now)
-            status.tempTarget = Self.running(snapshot.tempTargetAtGrant, cancelledAt: records.tempTargetCancelledAt, now: now)
+            status.override = Self.running(snapshot.overrideAtGrant, cancelledAt: records.overrideChange?.at, now: now)
+            status.tempTarget = Self.running(snapshot.tempTargetAtGrant, cancelledAt: records.tempTargetChange?.at, now: now)
             status.recentDoses = recentBoluses(snapshot: snapshot, now: now)
         }
         if let omnipod = pump as? OmniPumpManager {
@@ -168,7 +168,7 @@ extension WatchLoanHost {
     func stopAdjustmentConfirmed(override: Bool) async -> Bool {
         let since = env.now()
         if override { await cancelOverride() } else { await cancelTempTarget() }
-        let cancelledAt = override ? records.snapshot.overrideCancelledAt : records.snapshot.tempTargetCancelledAt
+        let cancelledAt = override ? records.snapshot.overrideChange?.at : records.snapshot.tempTargetChange?.at
         return (cancelledAt ?? .distantPast) >= since
     }
 

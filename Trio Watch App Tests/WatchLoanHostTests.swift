@@ -963,8 +963,10 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.pump?.commands.contains("resume") == true)
         await world.host.cancelOverride()
         await world.host.cancelTempTarget()
-        #expect(world.host.records.snapshot.overrideCancelledAt != nil)
-        #expect(world.host.records.snapshot.tempTargetCancelledAt != nil)
+        #expect(world.host.records.snapshot.overrideChange?.presetID == nil)
+        #expect(world.host.records.snapshot.overrideChange != nil)
+        #expect(world.host.records.snapshot.tempTargetChange != nil)
+        #expect(world.transport.batches.last?.adjustmentChanges?.count == 2, "the phone hears about both stops")
         #expect(world.violations.isEmpty)
     }
 

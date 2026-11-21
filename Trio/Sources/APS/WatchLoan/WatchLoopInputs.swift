@@ -7,8 +7,9 @@ struct WatchLoopRecords: Codable {
     var glucose: [BloodGlucose] = []
     var carbs: [CarbsEntry] = []
     var tddHistory: [OrefInputs.TDDRow] = []
-    var overrideCancelledAt: Date?
-    var tempTargetCancelledAt: Date?
+    /// The watch's latest override and temp target change; each ends the adjustment the loan started with.
+    var overrideChange: WatchLoanAdjustmentChange?
+    var tempTargetChange: WatchLoanAdjustmentChange?
 }
 
 /// The watch's oref inputs: the grant's snapshot plus what the watch recorded since, selected with the phone's windows,
@@ -47,14 +48,14 @@ enum WatchLoopInputs {
         // the phone counts its stored rows each cycle; the 10-day history holds every row the 7-day rule counts
         inputs.hasSufficientTDD = OrefInputs.hasSufficientTDD(inputs.tddHistory, now: now)
 
-        if !isActive(snapshot.overrideAtGrant, cancelledAt: records.overrideCancelledAt, now: now) {
+        if !isActive(snapshot.overrideAtGrant, cancelledAt: records.overrideChange?.at, now: now) {
             inputs.activeOverride = nil
         }
-        if !isActive(snapshot.tempTargetAtGrant, cancelledAt: records.tempTargetCancelledAt, now: now) {
+        if !isActive(snapshot.tempTargetAtGrant, cancelledAt: records.tempTargetChange?.at, now: now) {
             inputs.activeTempTarget = nil
         }
-        if let cancelledAt = records.tempTargetCancelledAt {
-            inputs.tempTargets.append(.cancel(at: cancelledAt))
+        if let stop = records.tempTargetChange, stop.presetID == nil {
+            inputs.tempTargets.append(.cancel(at: stop.at))
         }
         return inputs
     }

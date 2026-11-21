@@ -303,8 +303,8 @@ import Testing
         #expect(inputs(at: clock.addingTimeInterval(3600)).activeOverride == nil)
 
         var cancelled = WatchLoopRecords()
-        cancelled.overrideCancelledAt = clock.addingTimeInterval(300)
-        cancelled.tempTargetCancelledAt = clock.addingTimeInterval(300)
+        cancelled.overrideChange = WatchLoanAdjustmentChange(id: UUID(), kind: .override, at: clock.addingTimeInterval(300))
+        cancelled.tempTargetChange = WatchLoanAdjustmentChange(id: UUID(), kind: .tempTarget, at: clock.addingTimeInterval(300))
         let afterCancel = inputs(at: clock.addingTimeInterval(600), cancelled)
         #expect(afterCancel.activeOverride == nil && afterCancel.activeTempTarget == nil)
         #expect(afterCancel.tempTargets.last?.duration == 0)
