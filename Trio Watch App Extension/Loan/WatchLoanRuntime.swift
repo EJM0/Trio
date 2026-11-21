@@ -30,7 +30,7 @@ import WatchKit
                     return settings.authorizationStatus == .authorized && settings.timeSensitiveSetting == .enabled
                 },
                 modelIdentifier: { WatchLoanRuntime.modelIdentifier },
-                appBuild: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "",
+                appBuild: WatchLoanSnapshot.appBuild(Bundle.main.infoDictionary),
                 beginActivity: { ExpiringActivity(reason: $0) }
             ))
             cgm.host = created

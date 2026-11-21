@@ -120,8 +120,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             shouldSmoothGlucose: settings.smoothGlucose
         )
         let adjustments = try await activeAdjustments()
-        let info = Bundle.main.infoDictionary
-        let appBuild = "\(info?["CFBundleShortVersionString"] as? String ?? "") (\(info?["CFBundleVersion"] as? String ?? ""))"
+        let appBuild = WatchLoanSnapshot.appBuild(Bundle.main.infoDictionary)
 
         return WatchLoanSnapshot(
             versions: WatchLoanSnapshot.Versions(

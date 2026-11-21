@@ -84,6 +84,11 @@ struct WatchLoanSnapshot: Codable {
     func podEndsSoon(now: Date) -> Bool { Self.endsSoon(podEndsAt, now: now) }
     func sensorEndsSoon(now: Date) -> Bool { Self.endsSoon(sensorEndsAt, now: now) }
 
+    /// "1.0.2 (27)", the same on phone and watch.
+    static func appBuild(_ info: [String: Any]?) -> String {
+        "\(info?["CFBundleShortVersionString"] as? String ?? "") (\(info?["CFBundleVersion"] as? String ?? ""))"
+    }
+
     static func endsSoon(_ date: Date?, now: Date) -> Bool {
         guard let date else { return false }
         return date.timeIntervalSince(now) < endingSoonWindow
