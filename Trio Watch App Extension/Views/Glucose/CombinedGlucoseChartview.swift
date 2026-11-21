@@ -307,9 +307,9 @@ struct MinimizedGlucoseChartView: View {
                     .symbolSize(glucosePointSize)
                 }
 
-                // the phone's boluses, SMBs and carbs, as on the big chart
+                // boluses, SMBs and carbs, the watch's own while it loops, as on the big chart
                 TreatmentMarks(
-                    markers: state.phoneTreatmentMarkers,
+                    markers: state.treatmentMarkers.isEmpty ? state.phoneTreatmentMarkers : state.treatmentMarkers,
                     glucose: filteredValues
                 )
 

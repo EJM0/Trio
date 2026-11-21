@@ -201,12 +201,16 @@ struct TrioOnWatchHistoryView: View {
     }
 }
 
-/// A meal's carbs and time; the Digital Crown turns the grams.
+/// A meal's carbs and time. The crown turns the grams, as on the carbs entry; no ScrollView, which took the crown, and
+/// no DatePicker, which can't present from this sheet: the time moves in 5-minute steps.
 private struct CarbEditView: View {
     let entry: CarbsEntry
     let save: (Decimal, Date) -> Void
     @State private var grams: Double
     @State private var date: Date
+    @FocusState private var crownFocused: Bool
+
+    private var maxGrams: Double { max(1, NSDecimalNumber(decimal: WatchState.shared.maxCarbs).doubleValue) }
 
     init(entry: CarbsEntry, save: @escaping (Decimal, Date) -> Void) {
         self.entry = entry
@@ -216,24 +220,49 @@ private struct CarbEditView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack {
+        VStack(spacing: 6) {
+            HStack {
+                stepButton("minus.circle.fill") { grams = max(1, grams - 5) }
+                Spacer()
                 Text("\(Int(grams)) g")
-                    .font(.title2)
+                    .font(.system(.title2, design: .rounded).bold())
                     .foregroundStyle(.orange)
-                    .focusable()
-                    .digitalCrownRotation($grams, from: 1, through: 250, by: 1, sensitivity: .medium)
-                DatePicker(
-                    String(localized: "Time", comment: "Watch history: meal time"),
-                    selection: $date,
-                    displayedComponents: .hourAndMinute
-                )
-                Button(String(localized: "Save", comment: "Watch history: save the edited meal")) {
-                    save(Decimal(Int(grams)), date)
-                }
-                .tint(.orange)
+                    .focusable(true)
+                    .focused($crownFocused)
+                    .digitalCrownRotation(
+                        $grams,
+                        from: 1,
+                        through: maxGrams,
+                        by: 1,
+                        sensitivity: .medium,
+                        isContinuous: false,
+                        isHapticFeedbackEnabled: true
+                    )
+                Spacer()
+                stepButton("plus.circle.fill") { grams = min(maxGrams, grams + 5) }
             }
+            HStack {
+                stepButton("minus.circle.fill") { date = date.addingTimeInterval(-5 * 60) }
+                Spacer()
+                Text(date, style: .time).font(.system(.title3, design: .rounded)).monospacedDigit()
+                Spacer()
+                stepButton("plus.circle.fill") { date = date.addingTimeInterval(5 * 60) }
+            }
+            Button(String(localized: "Save", comment: "Watch history: save the edited meal")) {
+                save(Decimal(Int(grams)), date)
+            }
+            .buttonStyle(.bordered)
+            .tint(.orange)
         }
+        .padding(.horizontal)
+        .onAppear { crownFocused = true }
         .navigationTitle(String(localized: "Edit Meal", comment: "Watch history: edit meal title"))
+    }
+
+    private func stepButton(_ symbol: String, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol).font(.title3).foregroundStyle(.orange)
+        }
+        .buttonStyle(.borderless)
     }
 }
