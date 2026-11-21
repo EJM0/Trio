@@ -509,18 +509,31 @@ actor WatchLoanCoordinator {
         )
         guard let messageData = try? WatchLoanWire.encode(envelope) else { return reject(.snapshotIncomplete) }
         let size = messageData.count + snapshotData.count
-        guard size <= WatchLoanSnapshot.grantBudgetBytes else {
-            warning(.watch, "Grant too large for a live message: \(size) bytes")
-            if let parts = builtSnapshot?.partSizes() {
-                let list = parts.map { "\($0.part) \($0.bytes) B (\($0.count))" }.joined(separator: ", ")
-                warning(.watch, "Grant parts, compressed: \(list)")
+        if size <= WatchLoanSnapshot.grantBudgetBytes {
+            guard host.transport?.sendLive([WatchLoanWireKey.message: messageData, WatchLoanWireKey.snapshot: snapshotData]) ==
+                true
+            else { return reject(.phoneUnreachable) }
+            info(.watch, "Grant sent to Apple Watch, \(size) bytes")
+        } else {
+            let pieces = WatchLoanSnapshot.split(snapshotData, requestID: requestID, epoch: epoch)
+            let parts = builtSnapshot?.partSizes().map { "\($0.part) \($0.bytes) B (\($0.count))" }.joined(separator: ", ")
+            guard pieces.count <= WatchLoanSnapshot.maxParts else {
+                warning(.watch, "Grant too large even in \(WatchLoanSnapshot.maxParts) parts: \(size) bytes; \(parts ?? "")")
+                return reject(.snapshotIncomplete)
             }
-            return reject(.snapshotIncomplete)
+            let encoder = JSONEncoder()
+            for (offset, piece) in pieces.enumerated() {
+                guard let header = try? encoder.encode(piece.header) else { return reject(.snapshotIncomplete) }
+                var payload: [String: Any] = [
+                    WatchLoanWireKey.snapshotPartHeader: header,
+                    WatchLoanWireKey.snapshotPart: piece.bytes
+                ]
+                if offset == pieces.count - 1 { payload[WatchLoanWireKey.message] = messageData }
+                guard host.transport?.sendLive(payload) == true else { return reject(.phoneUnreachable) }
+            }
+            info(.watch, "Grant sent to Apple Watch, \(size) bytes in \(pieces.count) parts")
+            if let parts { info(.watch, "Grant parts, compressed: \(parts)") }
         }
-        guard host.transport?.sendLive([WatchLoanWireKey.message: messageData, WatchLoanWireKey.snapshot: snapshotData]) == true
-        else { return reject(.phoneUnreachable) }
-
-        info(.watch, "Grant sent to Apple Watch, \(size) bytes")
         grantTimer?.cancel()
         grantTimer = Task { [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(WatchLoan.grantConfirmTimeout * 1_000_000_000))

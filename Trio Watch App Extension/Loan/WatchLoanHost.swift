@@ -50,6 +50,7 @@ struct WatchLoanEnvironment {
     var requestTimeout: TimeInterval = WatchLoan.watchRequestTimeout
     var handBackResendInterval: TimeInterval = 60
     var phoneAnswerTimeout: TimeInterval = 5
+    var grantPartsWait: TimeInterval = 5
 }
 
 /// Background time held for one cycle or message.
@@ -110,6 +111,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     @ObservationIgnored var intents: [WatchDoseIntent] = []
     @ObservationIgnored var cycleInfo = WatchLoanCycleInfo()
     @ObservationIgnored private var inbox = WatchLoanInbox()
+    @ObservationIgnored private var snapshotParts = WatchLoanSnapshotAssembler()
     @ObservationIgnored private var tail: Task<Void, Never>?
     @ObservationIgnored private var followUps: [WatchSideLoanEvent] = []
     @ObservationIgnored private var lastReportedForeignSession = false
@@ -633,7 +635,8 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             }
             return true
         }
-        guard let data = payload[WatchLoanWireKey.message] as? Data else { return false }
+        let part = receivePart(payload)
+        guard let data = payload[WatchLoanWireKey.message] as? Data else { return part != nil }
         switch WatchLoanWire.decode(data) {
         case let .stop(stop):
             WatchLogger.shared.info(.connectivity, "Received \(stop.kind.rawValue), epoch \(stop.epoch)")
@@ -645,8 +648,19 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             }
             let (files, inbox) = (env.files, inbox)
             WatchLoanFiles.later("the loan inbox") { try files.save(inbox, to: .inbox) }
-            if case .grant = envelope.message.kind, case .requesting = state {
-                await acceptSnapshot(payload[WatchLoanWireKey.snapshot] as? Data, epoch: envelope.message.epoch)
+            if case let .grant(requestID, expiresAt) = envelope.message.kind, case .requesting = state {
+                if let whole = payload[WatchLoanWireKey.snapshot] as? Data {
+                    await acceptSnapshot(whole, epoch: envelope.message.epoch)
+                } else if part != nil {
+                    let assembled = await assembleSnapshot(
+                        requestID: requestID,
+                        epoch: envelope.message.epoch,
+                        until: min(expiresAt, env.now().addingTimeInterval(env.grantPartsWait))
+                    )
+                    await acceptSnapshot(assembled, epoch: envelope.message.epoch)
+                } else {
+                    await acceptSnapshot(nil, epoch: envelope.message.epoch)
+                }
             }
             WatchLogger.shared.info(
                 .connectivity,
@@ -659,6 +673,46 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             WatchLogger.shared.warning(.connectivity, "Malformed loan message dropped")
         }
         return true
+    }
+
+    private func receivePart(_ payload: [String: Any]) -> WatchLoanSnapshotPart? {
+        guard let headerData = payload[WatchLoanWireKey.snapshotPartHeader] as? Data,
+              let bytes = payload[WatchLoanWireKey.snapshotPart] as? Data,
+              let header = try? JSONDecoder().decode(WatchLoanSnapshotPart.self, from: headerData)
+        else { return nil }
+        guard case let .requesting(_, requestID) = state, header.requestID == requestID else {
+            WatchLogger.shared.debug(
+                .connectivity,
+                "Grant part \(header.index + 1) of \(header.count) dropped: not requesting it"
+            )
+            return header
+        }
+        snapshotParts.add(header, bytes)
+        WatchLogger.shared.debug(.connectivity, "Grant part \(header.index + 1) of \(header.count) received")
+        return header
+    }
+
+    /// Waits for missing pieces until `deadline`. Nil when incomplete or the digest doesn't match.
+    private func assembleSnapshot(requestID: UUID, epoch: Int64, until deadline: Date) async -> Data? {
+        defer { snapshotParts.reset() }
+        var polls = Int(max(0, deadline.timeIntervalSince(env.now())) / 0.1)
+        while (snapshotParts.missing(requestID: requestID, epoch: epoch) ?? 1) > 0, polls > 0 {
+            polls -= 1
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        let missing = snapshotParts.missing(requestID: requestID, epoch: epoch)
+        guard let data = snapshotParts.assembled(requestID: requestID, epoch: epoch) else {
+            let reason: String
+            switch missing {
+            case nil: reason = "no parts for this grant"
+            case 0?: reason = "the parts don't match their digest"
+            case let count?: reason = "\(count) part(s) missing"
+            }
+            WatchLogger.shared.warning(.connectivity, "Grant snapshot incomplete: \(reason)")
+            return nil
+        }
+        WatchLogger.shared.info(.connectivity, "Grant snapshot assembled, \(data.count) bytes")
+        return data
     }
 
     /// Saved before the grant is decided, so an adopt after a crash still has it.

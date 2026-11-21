@@ -130,7 +130,8 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
             beginActivity: { [weak self] _ in self?.activity ?? FakeActivity() },
             requestTimeout: requestTimeout,
             handBackResendInterval: handBackResend,
-            phoneAnswerTimeout: 0.2
+            phoneAnswerTimeout: 0.2,
+            grantPartsWait: 0.3
         ))
         return created
     }
@@ -263,6 +264,22 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         return payload
     }
 
+    func partPayloads(_ message: WatchLoanMessage, snapshot data: Data, requestID: UUID, epoch: Int64) throws
+        -> [[String: Any]]
+    {
+        let envelope = WatchLoanEnvelope(protocolVersion: 1, messageID: UUID(), sentAt: clock, message: message)
+        let messageData = try WatchLoanWire.encode(envelope)
+        let pieces = WatchLoanSnapshot.split(data, requestID: requestID, epoch: epoch)
+        return try pieces.enumerated().map { offset, piece in
+            var payload: [String: Any] = [
+                WatchLoanWireKey.snapshotPartHeader: try JSONEncoder().encode(piece.header),
+                WatchLoanWireKey.snapshotPart: piece.bytes
+            ]
+            if offset == pieces.count - 1 { payload[WatchLoanWireKey.message] = messageData }
+            return payload
+        }
+    }
+
     /// Start, then the phone's grant for epoch 1: the watch holds the pump.
     func startLoan(
         glucose: Int = 160,
@@ -344,6 +361,73 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         let commands = try #require(world.pump?.commands)
         #expect(commands.contains { $0.contains("SMB") }, "\(commands)")
         #expect(world.violations.isEmpty)
+    }
+
+    private func splitGrant(_ world: LoanFixture) async throws -> (grant: WatchLoanMessage, payloads: [[String: Any]])? {
+        await world.host.startTapped()
+        guard case let .request(requestID) = world.transport.messages.last?.kind else {
+            Issue.record("no request sent")
+            return nil
+        }
+        world.pod.holder = .nobody
+        let now = world.clock
+        var snapshot = try world.snapshot(requestID: requestID, epoch: 1, now: now, glucose: 160, alarms: [])
+        // random ids don't compress, so the snapshot needs more than one piece
+        snapshot.smoothingWindow = (0 ..< 5000).map { index in
+            WatchLoanSnapshot.RawReading(id: UUID(), date: now.addingTimeInterval(-Double(index) * 17), glucose: 100)
+        }
+        let data = try snapshot.encoded()
+        #expect(data.count > WatchLoanSnapshot.partBytes)
+        let grant = WatchLoanMessage(epoch: 1, kind: .grant(requestID: requestID, expiresAt: now.addingTimeInterval(30)))
+        let payloads = try world.partPayloads(grant, snapshot: data, requestID: requestID, epoch: 1)
+        #expect(payloads.count >= 2)
+        return (grant, payloads)
+    }
+
+    @Test("A grant in pieces is adopted once every piece arrived, also when the grant comes first") func grantInParts(
+    ) async throws {
+        for grantFirst in [false, true] {
+            let world = LoanFixture()
+            let (_, payloads) = try #require(try await splitGrant(world))
+            if grantFirst {
+                let last = try #require(payloads.last)
+                let grantDone = Task { @MainActor in await world.host.receive(last) }
+                try await Task.sleep(nanoseconds: 50_000_000)
+                for payload in payloads.dropLast() { await world.host.receive(payload) }
+                _ = await grantDone.value
+            } else {
+                for payload in payloads { await world.host.receive(payload) }
+            }
+            #expect(world.host.state == .holding(epoch: 1), "grant first: \(grantFirst)")
+            #expect(world.adopted == 1)
+            #expect(world.host.snapshot?.smoothingWindow.count == 5000)
+        }
+    }
+
+    @Test(
+        "A grant missing a piece, or with a corrupted one, is rejected as incomplete; nothing is adopted"
+    ) func grantInPartsIncomplete() async throws {
+        for corrupt in [false, true] {
+            let world = LoanFixture()
+            let (_, payloads) = try #require(try await splitGrant(world))
+            if corrupt {
+                var first = payloads[0]
+                var bytes = try #require(first[WatchLoanWireKey.snapshotPart] as? Data)
+                bytes[bytes.startIndex] ^= 0xFF
+                first[WatchLoanWireKey.snapshotPart] = bytes
+                await world.host.receive(first)
+                for payload in payloads.dropFirst() { await world.host.receive(payload) }
+            } else {
+                for payload in payloads.dropFirst() { await world.host.receive(payload) }
+            }
+            #expect(world.host.state == .idle(epoch: 0), "corrupt: \(corrupt)")
+            #expect(world.adopted == 0)
+            guard case let .grantRejected(_, reason) = world.transport.messages.last?.kind else {
+                Issue.record("no rejection sent, corrupt: \(corrupt)")
+                continue
+            }
+            #expect(reason == .snapshotIncomplete)
+        }
     }
 
     @Test("A grant that isn't Closed Loop is rejected: no adopt, nothing reaches the pump") func grantNotClosedLoop() async throws {

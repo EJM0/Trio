@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 /// What the watch needs to loop with the phone's exact inputs. Travels with the grant.
@@ -190,5 +191,85 @@ extension WatchLoanSnapshot {
     static func decode(_ data: Data) throws -> WatchLoanSnapshot {
         let json = try (data as NSData).decompressed(using: .lzfse) as Data
         return try JSONCoding.decoder.decode(WatchLoanSnapshot.self, from: json)
+    }
+}
+
+// MARK: - Parts
+
+/// One piece of a compressed snapshot that is too large for one message.
+struct WatchLoanSnapshotPart: Codable, Equatable {
+    var requestID: UUID
+    var epoch: Int64
+    var index: Int
+    var count: Int
+    var byteCount: Int
+    /// SHA-256 of the whole snapshot.
+    var digest: Data
+}
+
+extension WatchLoanSnapshot {
+    static let partBytes = 40000
+    static let maxParts = 4
+
+    static func digest(_ data: Data) -> Data {
+        Data(SHA256.hash(data: data))
+    }
+
+    static func split(_ data: Data, requestID: UUID, epoch: Int64) -> [(header: WatchLoanSnapshotPart, bytes: Data)] {
+        let count = max(1, (data.count + partBytes - 1) / partBytes)
+        let digest = digest(data)
+        return (0 ..< count).map { index in
+            let start = data.startIndex + index * partBytes
+            let end = min(start + partBytes, data.endIndex)
+            let header = WatchLoanSnapshotPart(
+                requestID: requestID,
+                epoch: epoch,
+                index: index,
+                count: count,
+                byteCount: data.count,
+                digest: digest
+            )
+            return (header, Data(data[start ..< end]))
+        }
+    }
+}
+
+/// Collects the pieces of one grant. A piece from another request or epoch starts over.
+struct WatchLoanSnapshotAssembler {
+    private(set) var header: WatchLoanSnapshotPart?
+    private var pieces: [Int: Data] = [:]
+
+    mutating func add(_ part: WatchLoanSnapshotPart, _ bytes: Data) {
+        guard part.count >= 1, part.count <= WatchLoanSnapshot.maxParts, (0 ..< part.count).contains(part.index) else {
+            return
+        }
+        if let header, header.requestID != part.requestID || header.epoch != part.epoch || header.count != part.count ||
+            header.byteCount != part.byteCount || header.digest != part.digest
+        {
+            pieces = [:]
+        }
+        header = part
+        pieces[part.index] = bytes
+    }
+
+    func missing(requestID: UUID, epoch: Int64) -> Int? {
+        guard let header, header.requestID == requestID, header.epoch == epoch else { return nil }
+        return header.count - pieces.count
+    }
+
+    func assembled(requestID: UUID, epoch: Int64) -> Data? {
+        guard let header, missing(requestID: requestID, epoch: epoch) == 0 else { return nil }
+        var data = Data()
+        for index in 0 ..< header.count {
+            guard let piece = pieces[index] else { return nil }
+            data.append(piece)
+        }
+        guard data.count == header.byteCount, WatchLoanSnapshot.digest(data) == header.digest else { return nil }
+        return data
+    }
+
+    mutating func reset() {
+        header = nil
+        pieces = [:]
     }
 }

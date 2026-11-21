@@ -61,10 +61,13 @@ enum WatchLoanWireKey {
     static let message = "watchLoan"
     /// Compressed `WatchLoanSnapshot`, only next to a grant.
     static let snapshot = "watchLoanSnapshot"
+    /// A snapshot too large for one message goes in pieces; the last one comes with the grant.
+    static let snapshotPartHeader = "watchLoanSnapshotPartHeader"
+    static let snapshotPart = "watchLoanSnapshotPart"
     static let records = "watchLoanRecords"
     static let recordsAck = "watchLoanRecordsAck"
 
-    static let all = [message, snapshot, records, recordsAck]
+    static let all = [message, snapshot, snapshotPartHeader, snapshotPart, records, recordsAck]
 
     /// Loan payloads go to the loan coordinator; every other watch message keeps its existing path.
     static func isLoanPayload(_ payload: [String: Any]) -> Bool {

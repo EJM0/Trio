@@ -73,6 +73,7 @@ final class FakeLoanHost: WatchLoanPhoneHost {
     var refusal: LoanRefusal?
     var idle: () async -> Void = {}
     var snapshotFails = false
+    var snapshotPadding = 0
     /// Scheduled basal 0, so the audit numbers are only boluses and temps.
     var profile = [BasalProfileEntry(start: "00:00", minutes: 0, rate: 0)]
 
@@ -109,6 +110,12 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         snapshot.expiresAt = expiresAt
         snapshot.releaseReading = release
         snapshot.pumpExport = try pump.exportedConfiguration()
+        if snapshotPadding > 0 {
+            let now = clock.now
+            snapshot.smoothingWindow = (0 ..< snapshotPadding).map { index in
+                WatchLoanSnapshot.RawReading(id: UUID(), date: now.addingTimeInterval(-Double(index) * 17), glucose: 100)
+            }
+        }
         snapshots.append(snapshot)
         return snapshot
     }
@@ -312,6 +319,36 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(rig.double.commands.suffix(3) == ["takeControl", "tempBasal(0.0)", "refreshDeliveredUnits"])
         #expect(!rig.double.isControlReleased)
         #expect(rig.transport.messages.contains(F.message(1, .refused(requestID: F.requestA, reason: .phoneUnreachable))))
+    }
+
+    @Test(
+        "Start: a grant over one message goes in pieces, the last with the grant, and the pieces make the snapshot"
+    ) func grantInParts() async throws {
+        let rig = try Rig()
+        rig.host.snapshotPadding = 4000
+        try await rig.receive(F.message(0, .request(requestID: F.requestA)))
+        #expect(await rig.coordinator.state == .lending(epoch: 1, requestID: F.requestA))
+        let live = rig.transport.live
+        #expect(live.count >= 2)
+        var assembler = WatchLoanSnapshotAssembler()
+        for (offset, payload) in live.enumerated() {
+            let header = try JSONDecoder().decode(
+                WatchLoanSnapshotPart.self,
+                from: try #require(payload[WatchLoanWireKey.snapshotPartHeader] as? Data)
+            )
+            #expect(header.index == offset && header.count == live.count)
+            #expect(header.requestID == F.requestA && header.epoch == 1)
+            #expect((payload[WatchLoanWireKey.message] != nil) == (offset == live.count - 1))
+            #expect(payload[WatchLoanWireKey.snapshot] == nil)
+            let bytes = try #require(payload[WatchLoanWireKey.snapshotPart] as? Data)
+            #expect(bytes.count <= WatchLoanSnapshot.partBytes)
+            assembler.add(header, bytes)
+        }
+        let data = try #require(assembler.assembled(requestID: F.requestA, epoch: 1))
+        #expect(try WatchLoanSnapshot.decode(data).smoothingWindow.count == 4000)
+        #expect(rig.transport.queued.isEmpty)
+        try await rig.receive(F.message(1, .holding))
+        #expect(await rig.coordinator.state == .lent(epoch: 1))
     }
 
     @Test("Start: a snapshot that can't be built retakes the same way") func snapshotFails() async throws {
