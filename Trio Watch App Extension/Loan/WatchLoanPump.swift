@@ -24,6 +24,12 @@ struct LoanPumpFactory {
     /// Saved with the kit's state so a relaunch rebuilds the same kit. States saved without it are Omnipod's.
     static let pluginKey = "trioLoanPlugin"
 
+    /// An open Medtrum link wakes the watch app every few seconds until watchOS cuts its Bluetooth links.
+    private static func onDemand(_ manager: MedtrumPumpManager?) -> MedtrumPumpManager? {
+        manager?.setConnectsOnDemand(true)
+        return manager
+    }
+
     static func savedState(of pump: PumpManager) -> [String: Any] {
         var raw = pump.rawState
         raw[pluginKey] = pump.pluginIdentifier
@@ -33,14 +39,14 @@ struct LoanPumpFactory {
     static let kits = LoanPumpFactory(
         adopt: { configuration, localState in
             switch configuration.managerIdentifier {
-            case "Medtrum": return MedtrumPumpManager(adopting: configuration, localState: localState)
+            case "Medtrum": return onDemand(MedtrumPumpManager(adopting: configuration, localState: localState))
             case "Omni": return OmniPumpManager(adopting: configuration, localState: localState)
             default: return nil
             }
         },
         restore: { raw in
             switch raw[pluginKey] as? String {
-            case "Medtrum": return MedtrumPumpManager(rawState: raw)
+            case "Medtrum": return onDemand(MedtrumPumpManager(rawState: raw))
             default: return OmniPumpManager(rawState: raw)
             }
         }
