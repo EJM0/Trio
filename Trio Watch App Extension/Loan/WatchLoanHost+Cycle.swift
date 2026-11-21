@@ -186,6 +186,9 @@ extension WatchLoanHost {
         if let units = plan.bolus {
             confirmed = await command(.bolus(units: units, automatic: true)) == .confirmed && confirmed
         }
+        if plan.tempBasal == nil, plan.bolus == nil {
+            await readPodAheadOfNextWake(pump)
+        }
 
         updateLoopStatus(outputs, pump: pump)
         finish(start: start, confirmed: confirmed)
@@ -218,6 +221,21 @@ extension WatchLoanHost {
             let bolusIncrement = snapshot?.oref.preferences?.bolusIncrement ?? Preferences().bolusIncrement
             let history = (snapshot?.oref.pumpHistory ?? []) + records.loopRecords(bolusIncrement: bolusIncrement).pumpHistory
             return WatchLoopInputs.fallbackTemp(history, now: now)
+        }
+    }
+
+    /// Read the pod in a background wake that sent nothing, so the next temp change needs no status read first.
+    /// Long wakes count toward the watchOS limit that cuts the app's Bluetooth links. From kristinkand/Trio.
+    private func readPodAheadOfNextWake(_ pump: LoanPump) async {
+        guard !env.isForeground(), activity?.isExpired != true, case .holding = state,
+              !pump.refusesSessions, pump.foreignSessionDetectedAt == nil
+        else { return }
+        let before = pump.lastSync
+        let synced = await withCheckedContinuation { (continuation: CheckedContinuation<Date?, Never>) in
+            pump.readStatusIfOlder(than: WatchLoopPolicy.quietWakeStatusAge) { continuation.resume(returning: $0) }
+        }
+        if synced != before {
+            WatchLogger.shared.info(.loop, "Quiet wake: pod status read ahead of the next wake")
         }
     }
 

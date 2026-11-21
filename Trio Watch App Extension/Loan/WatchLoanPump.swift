@@ -8,6 +8,8 @@ protocol LoanPump: PumpManager, ExclusiveDeviceControl, PumpDeliveryOdometer {
     /// After another controller used the pod, the kit runs no session at all.
     var refusesSessions: Bool { get }
     var foreignSessionDetectedAt: Date? { get }
+    /// Reads the pod's status once its data is older than `age` (below `ensureCurrentPumpData`'s 6 minutes).
+    func readStatusIfOlder(than age: TimeInterval, completion: @escaping (Date?) -> Void)
 }
 
 extension OmniPumpManager: LoanPump {}

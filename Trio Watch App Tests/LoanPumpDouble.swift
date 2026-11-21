@@ -183,6 +183,19 @@ final class LoanPumpDouble: LoanPump {
         completion?(lastSync)
     }
 
+    private(set) var aheadReads = 0
+
+    func readStatusIfOlder(than age: TimeInterval, completion: @escaping (Date?) -> Void) {
+        guard !refusesSessions, holdsPod, now().timeIntervalSince(lastSync ?? .distantPast) > age else {
+            completion(lastSync)
+            return
+        }
+        aheadReads += 1
+        commands.append("readStatusIfOlder")
+        if statusIsFresh { lastSync = now() }
+        completion(lastSync)
+    }
+
     private(set) var heartbeatRequests: [PumpHeartbeatRequest?] = []
     private(set) var mustProvideHeartbeat: [Bool] = []
 

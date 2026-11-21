@@ -14,6 +14,7 @@ enum WatchLoopPolicy {
     static let notLoopingMinutes = [20, 40, 60, 80, 100, 120, 180, 240, 300, 360]
     /// A cycle confirms the pump's state only with a status at most this old; the kit refreshes older ones.
     static let pumpStatusMaxAge: TimeInterval = 6 * 60
+    static let quietWakeStatusAge: TimeInterval = 2 * 60
     static let batteryWarningLevel: Float = 0.2
     static let batteryCriticalLevel: Float = 0.1
     /// Readings closer than this to the previous one are dropped, as the phone's glucose store does.
