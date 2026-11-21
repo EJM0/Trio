@@ -18,7 +18,10 @@ struct LiveActivityView: View {
     }
 
     var body: some View {
-        if isWatchOS, context.state.useDetailedViewWatchOS {
+        if context.state.watchMode != nil, !context.state.isInitialState {
+            LiveActivityWatchModeView(context: context, glucoseColor: glucoseColor)
+                .addLiveActivityModifiers(isWatchOS: isWatchOS)
+        } else if isWatchOS, context.state.useDetailedViewWatchOS {
             VStack {
                 LiveActivityBGLabelWatchView(context: context, glucoseColor: glucoseColor)
                 LiveActivityChartView(context: context, additionalState: context.state.detailedViewState)
@@ -230,8 +233,12 @@ struct LiveActivityExpandedTrailingView: View {
     var glucoseColor: Color
 
     var body: some View {
-        LiveActivityGlucoseDeltaLabelView(context: context, glucoseColor: glucoseColor).font(.title2)
-            .padding(.trailing, 5)
+        if context.state.watchMode != nil {
+            Image(systemName: "applewatch").font(.title2).padding(.trailing, 5)
+        } else {
+            LiveActivityGlucoseDeltaLabelView(context: context, glucoseColor: glucoseColor).font(.title2)
+                .padding(.trailing, 5)
+        }
     }
 }
 
@@ -241,6 +248,10 @@ struct LiveActivityExpandedBottomView: View {
     var body: some View {
         if context.state.isInitialState {
             Text("Live Activity Expired. Open Trio to Refresh").minimumScaleFactor(0.01)
+        } else if let watchMode = context.state.watchMode {
+            LiveActivityWatchModeTimes(readingAt: context.state.date, watchMode: watchMode)
+                .font(.caption)
+                .foregroundStyle(.secondary)
         } else if context.state.useDetailedViewIOS {
             LiveActivityChartView(context: context, additionalState: context.state.detailedViewState)
                 .addIsWatchOS()
@@ -252,10 +263,15 @@ struct LiveActivityExpandedCenterView: View {
     var context: ActivityViewContext<LiveActivityAttributes>
 
     var body: some View {
-        LiveActivityUpdatedLabelView(context: context, isDetailedLayout: false)
-            .font(Font.caption)
-            .foregroundStyle(Color.secondary)
-            .addIsWatchOS()
+        if context.state.watchMode != nil {
+            Text(String(localized: "Trio on Watch", comment: "Live Activity while Apple Watch controls the pump"))
+                .font(.caption.weight(.semibold))
+        } else {
+            LiveActivityUpdatedLabelView(context: context, isDetailedLayout: false)
+                .font(Font.caption)
+                .foregroundStyle(Color.secondary)
+                .addIsWatchOS()
+        }
     }
 }
 
@@ -275,9 +291,13 @@ struct LiveActivityCompactTrailingView: View {
     var glucoseColor: Color
 
     var body: some View {
-        LiveActivityGlucoseDeltaLabelView(context: context, glucoseColor: glucoseColor).padding(.trailing, 4)
-            .lineLimit(1)
-            .minimumScaleFactor(0.5)
+        if context.state.watchMode != nil {
+            Image(systemName: "applewatch").padding(.trailing, 4)
+        } else {
+            LiveActivityGlucoseDeltaLabelView(context: context, glucoseColor: glucoseColor).padding(.trailing, 4)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+        }
     }
 }
 
@@ -295,6 +315,66 @@ struct LiveActivityMinimalView: View {
             adjustedLabel.fontWidth(.compressed)
         } else {
             adjustedLabel.fontWidth(.compressed)
+        }
+    }
+}
+
+/// While Trio on Watch controls the pump the phone doesn't loop: its IOB, COB, forecast and loop time are old, so they
+/// make way for the watch's state.
+struct LiveActivityWatchModeView: View {
+    var context: ActivityViewContext<LiveActivityAttributes>
+    var glucoseColor: Color
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            LiveActivityBGAndTrendView(context: context, size: .expanded, glucoseColor: glucoseColor)
+                .font(.title)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+            Spacer(minLength: 0)
+            VStack(alignment: .trailing, spacing: 4) {
+                Label(
+                    String(localized: "Trio on Watch", comment: "Live Activity while Apple Watch controls the pump"),
+                    systemImage: "applewatch"
+                )
+                .font(.headline)
+                if let watchMode = context.state.watchMode {
+                    LiveActivityWatchModeTimes(readingAt: context.state.date, watchMode: watchMode)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+        }
+    }
+}
+
+/// The reading's time and the watch's last loop, as times rather than ages, so they stay right between updates.
+struct LiveActivityWatchModeTimes: View {
+    let readingAt: Date?
+    let watchMode: LiveActivityAttributes.WatchMode
+
+    var body: some View {
+        let reading = readingAt
+            .map {
+                Text(String(
+                    localized: "Reading",
+                    comment: "Live Activity in watch mode: label before the time of the latest reading"
+                )) + Text(" ") +
+                    Text($0, style: .time) }
+        let loop = watchMode.lastLoop.map {
+            Text(String(
+                localized: "Watch loop",
+                comment: "Live Activity in watch mode: label before the time of the watch's last loop"
+            )) + Text(" ") +
+                Text($0, style: .time)
+        } ?? Text(String(localized: "Since", comment: "Live Activity in watch mode: label before the time watch mode started")) +
+            Text(" ") + Text(watchMode.since, style: .time)
+        if let reading {
+            reading + Text(" · ") + loop
+        } else {
+            loop
         }
     }
 }

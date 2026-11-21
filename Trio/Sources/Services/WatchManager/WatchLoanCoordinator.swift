@@ -257,6 +257,7 @@ actor WatchLoanCoordinator {
         }
         if let at = batch.lastLoopAt, ledger.watchLoop.map({ ($0.epoch, $0.at) < (batch.epoch, at) }) ?? true {
             ledger.watchLoop = WatchLoanLedger.WatchLoop(epoch: batch.epoch, at: at)
+            announceWatchMode()
         }
         saveLedger()
         acknowledge(batch)
@@ -305,6 +306,28 @@ actor WatchLoanCoordinator {
         }
     }
 
+    // MARK: - Live Activity
+
+    /// Watch mode as the Live Activity shows it: from asking the watch to start until the phone has the pump back.
+    var watchMode: LiveActivityAttributes.WatchMode? {
+        guard state.isLent, let epoch = state.epoch else { return nil }
+        return LiveActivityAttributes.WatchMode(
+            since: ledger.audits.last { $0.epoch == epoch }?.start ?? now(),
+            lastLoop: ledger.watchLoop.flatMap { $0.epoch == epoch ? $0.at : nil }
+        )
+    }
+
+    private func announceWatchMode() {
+        let mode = watchMode
+        Task { @MainActor in
+            Foundation.NotificationCenter.default.post(
+                name: .trioOnWatchModeDidChange,
+                object: nil,
+                userInfo: ["mode": mode as Any]
+            )
+        }
+    }
+
     // MARK: - Effects
 
     /// False stops the rest of the list.
@@ -328,6 +351,7 @@ actor WatchLoanCoordinator {
             if case .takingBack = previous, case .home = next {
                 host.didReturnHome()
             }
+            if previous.isLent != next.isLent { announceWatchMode() }
 
         case .awaitPumpIdle:
             guard await finishes(within: pumpIdleTimeout, { [host] in await host.awaitPumpIdle() }) else {
@@ -736,6 +760,24 @@ extension PhoneLoanState {
         case let .lent(epoch): return "lent (epoch \(epoch))"
         case let .takingBack(epoch, _): return "taking back (epoch \(epoch))"
         case .unreadable: return "unreadable"
+        }
+    }
+}
+
+extension Notification.Name {
+    /// `userInfo["mode"]` is the `LiveActivityAttributes.WatchMode?` now shown.
+    static let trioOnWatchModeDidChange = Notification.Name("trioOnWatchModeDidChange")
+}
+
+extension PhoneLoanState {
+    /// The watch has the pump, or is being given it or giving it back.
+    var isLent: Bool {
+        switch self {
+        case .lending,
+             .lent,
+             .takingBack: return true
+        case .home,
+             .unreadable: return false
         }
     }
 }

@@ -281,6 +281,16 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(await rig.coordinator.state == .lent(epoch: 1))
     }
 
+    @Test("Live Activity: watch mode from the start until the phone has the pump back") func liveActivityWatchMode() async throws {
+        let rig = try Rig()
+        #expect(await rig.coordinator.watchMode == nil)
+        try await rig.lend()
+        let mode = try #require(await rig.coordinator.watchMode)
+        #expect(mode.since == rig.clock.now && mode.lastLoop == nil)
+        #expect(!PhoneLoanState.home(epoch: 1, lastLoan: nil).isLent && !PhoneLoanState.unreadable.isLent)
+        #expect(PhoneLoanState.takingBack(epoch: 1, loan: LoanRecord(epoch: 1)).isLent)
+    }
+
     @Test("Status query: the phone answers the watch with its epoch") func statusAnswer() async throws {
         let rig = try Rig()
         #expect(WatchLoanWireKey.isStatusQuery(try Rig.message(F.message(0, .statusQuery))))
