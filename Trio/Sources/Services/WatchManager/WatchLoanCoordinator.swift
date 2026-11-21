@@ -207,6 +207,11 @@ actor WatchLoanCoordinator {
                 debug(.watch, "Duplicate watch loan message dropped")
                 return
             }
+            let kind = String(describing: envelope.message.kind).prefix { $0 != "(" }
+            info(
+                .watch,
+                "Watch loan message received: \(kind), epoch \(envelope.message.epoch), phone at epoch \(state.epoch.map(String.init) ?? "none")"
+            )
             if case let .status(watchState) = envelope.message.kind, let pendingStatus {
                 self.pendingStatus = nil
                 pendingStatus.resume(returning: watchState)
