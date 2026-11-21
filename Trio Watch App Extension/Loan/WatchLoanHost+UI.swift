@@ -40,6 +40,7 @@ extension WatchLoanHost {
                 .prefix(2)
                 .map { $0 }
             status.sensorEndsAt = snapshot.sensorEndsAt
+            status.sensorNeedsPairing = env.cgm?.needsPairing ?? false
             status.podEndsAt = snapshot.podEndsAt
             let now = env.now()
             let records = records.snapshot

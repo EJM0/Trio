@@ -1,6 +1,7 @@
 import Foundation
 import G7SensorKit
 import LoopKit
+import WatchKit
 
 /// The G7 manager the watch keeps while it holds the pump: built once from the phone's configuration (the sensor is
 /// shared, the phone keeps reading it), then only from its own saved state. Only the kit's public API is used here.
@@ -16,6 +17,29 @@ import LoopKit
 
     init(files: WatchLoanFiles) {
         self.files = files
+        super.init()
+        // a new pairing can end in the system's Bluetooth pairing request, which shows only with Trio in front
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(appBecameActive), name: WKApplication.didBecomeActiveNotification, object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(appWillResignActive), name: WKApplication.willResignActiveNotification, object: nil
+        )
+    }
+
+    /// The watch has no key for this sensor yet, so its next connection pairs.
+    var needsPairing: Bool {
+        manager.map { $0.localState == nil } ?? false
+    }
+
+    @objc private func appBecameActive() {
+        guard let manager else { return }
+        manager.pairingAllowed = true
+        if needsPairing { manager.recheckAcquisition() }
+    }
+
+    @objc private func appWillResignActive() {
+        manager?.pairingAllowed = false
     }
 
     func adopt(export: Data) async {
@@ -77,6 +101,7 @@ import LoopKit
     }
 
     private func install(_ manager: G7CGMManager) {
+        manager.pairingAllowed = WKApplication.shared().applicationState == .active
         manager.delegateQueue = delegateQueue
         manager.cgmManagerDelegate = self
         self.manager = manager

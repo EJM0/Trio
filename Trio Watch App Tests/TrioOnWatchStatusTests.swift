@@ -137,6 +137,15 @@ import Testing
         #expect(!lines.contains { $0.contains("51") })
     }
 
+    @Test("While the watch still has to pair with the sensor, the sensor row asks to keep Trio open") func sensorPairing() {
+        var watch = status(.waitingForReading)
+        let sensorLines = { (status: TrioOnWatchStatus) in status.rows(now: now).first { $0.id == "sensor" }?.lines ?? [] }
+        let plain = sensorLines(watch).count
+        watch.sensorNeedsPairing = true
+        #expect(sensorLines(watch).count == plain + 1)
+        #expect(watch.rows(now: now).first { $0.id == "sensor" }?.tint == .orange)
+    }
+
     @Test("Primary action and footer by state") func primaryAndFooter() {
         #expect(status(.phone).primaryAction == .start)
         #expect(status(.starting).primaryAction == nil)

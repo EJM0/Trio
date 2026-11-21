@@ -49,6 +49,8 @@ struct TrioOnWatchStatus: Equatable {
     /// A command the pump hasn't confirmed: boluses, SMBs and high temps wait, and End is refused.
     var insulinPaused = false
     var sensorEndsAt: Date?
+    /// The watch has no key for the sensor yet and pairs at the next connection.
+    var sensorNeedsPairing = false
     var battery: Float?
     var override: Adjustment?
     var tempTarget: Adjustment?
@@ -469,6 +471,13 @@ extension TrioOnWatchStatus {
             String(localized: "Last reading \($0.date.formattedTimeAgo()) ago", comment: "Watch status: sensor reading age")
         } ?? String(localized: "No reading on this watch yet", comment: "Watch status: no sensor reading yet")]
         var sensorTint = Color.secondary
+        if sensorNeedsPairing {
+            sensorLines.append(String(
+                localized: "Keep Trio open on your watch to pair with the sensor.",
+                comment: "Watch status: the watch pairs with the G7 at its next connection"
+            ))
+            sensorTint = .orange
+        }
         if let sensorEndsAt {
             sensorLines.append(String(
                 localized: "Sensor ends in \(TrioOnWatchRules.timeLeft(until: sensorEndsAt, now: now))",
