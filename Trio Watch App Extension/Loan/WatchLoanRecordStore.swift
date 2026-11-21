@@ -159,6 +159,16 @@ final class WatchLoanRecordStore {
         try mutate { $0.overrideChange = WatchLoanAdjustmentChange(id: UUID(), kind: .override, at: date) }
     }
 
+    func startAdjustment(_ kind: WatchLoanAdjustmentChange.Kind, presetID: String, name: String, at date: Date) throws {
+        let change = WatchLoanAdjustmentChange(id: UUID(), kind: kind, presetID: presetID, presetName: name, at: date)
+        try mutate { contents in
+            switch kind {
+            case .override: contents.overrideChange = change
+            case .tempTarget: contents.tempTargetChange = change
+            }
+        }
+    }
+
     func cancelTempTarget(at date: Date) throws {
         try mutate { $0.tempTargetChange = WatchLoanAdjustmentChange(id: UUID(), kind: .tempTarget, at: date) }
     }

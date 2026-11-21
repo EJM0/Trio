@@ -19,6 +19,11 @@ struct TrioOnWatchStatus: Equatable {
         var direction: String? = nil
     }
 
+    struct Preset: Equatable, Identifiable {
+        var id: String
+        var name: String
+    }
+
     struct Adjustment: Equatable {
         var name: String?
         var endsAt: Date?
@@ -56,6 +61,9 @@ struct TrioOnWatchStatus: Equatable {
     var battery: Float?
     var override: Adjustment?
     var tempTarget: Adjustment?
+    /// The phone's presets the watch can start.
+    var overridePresets: [Preset] = []
+    var tempTargetPresets: [Preset] = []
     var recentDoses: [Dose] = []
     var bolus: WatchLoanHost.BolusProgress = .idle
     var lastAlert: LoanAlert?

@@ -54,8 +54,28 @@ enum WatchLoopInputs {
         if !isActive(snapshot.tempTargetAtGrant, cancelledAt: records.tempTargetChange?.at, now: now) {
             inputs.activeTempTarget = nil
         }
-        if let stop = records.tempTargetChange, stop.presetID == nil {
-            inputs.tempTargets.append(.cancel(at: stop.at))
+        if let change = records.tempTargetChange {
+            if change.presetID == nil {
+                inputs.tempTargets.append(.cancel(at: change.at))
+            } else if let preset = startedTempTarget(snapshot: snapshot, change: change) {
+                // as the phone's adjustment manager starts a preset: the file entry and the active row
+                let halfBasalFallback = snapshot.oref.preferences?.halfBasalExerciseTarget ?? Preferences().halfBasalExerciseTarget
+                inputs.tempTargets.append(TempTarget(
+                    name: preset.name,
+                    createdAt: change.at,
+                    targetTop: preset.target,
+                    targetBottom: preset.target,
+                    duration: preset.duration,
+                    enteredBy: TempTarget.local,
+                    reason: TempTarget.custom,
+                    isPreset: true,
+                    enabled: true,
+                    halfBasalTarget: preset.halfBasalTarget ?? halfBasalFallback
+                ))
+                if now < endDate(of: preset, startedAt: change.at) {
+                    inputs.activeTempTarget = OrefInputs.TempTargetState(target: preset.target, halfBasalTarget: preset.halfBasalTarget)
+                }
+            }
         }
         return inputs
     }
@@ -112,6 +132,16 @@ enum WatchLoopInputs {
 
     /// The phone's smoothing fetch limit.
     static let smoothingWindowLimit = 350
+
+    /// The temp target preset a watch change started.
+    static func startedTempTarget(snapshot: WatchLoanSnapshot, change: WatchLoanAdjustmentChange?) -> WatchLoanSnapshot.TempTargetPreset? {
+        guard let change, change.kind == .tempTarget, let id = change.presetID else { return nil }
+        return snapshot.tempTargetPresets.first { $0.id == id }
+    }
+
+    static func endDate(of preset: WatchLoanSnapshot.TempTargetPreset, startedAt: Date) -> Date {
+        startedAt.addingTimeInterval(Double(truncating: preset.duration as NSNumber) * 60)
+    }
 
     static func isActive(_ adjustment: WatchLoanSnapshot.Adjustment?, cancelledAt: Date?, now: Date) -> Bool {
         if cancelledAt != nil { return false }

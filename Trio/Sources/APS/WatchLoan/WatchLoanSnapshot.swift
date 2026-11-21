@@ -78,6 +78,18 @@ struct WatchLoanSnapshot: Codable {
     /// The phone's glucose smoothing setting, and its smoothing window (24 h of CGM readings, raw) when it is on.
     var smoothGlucose = false
     var smoothingWindow: [RawReading] = []
+    /// The phone's temp target presets, for the watch to start one.
+    var tempTargetPresets: [TempTargetPreset] = []
+
+    /// A temp target preset as the phone stores it.
+    struct TempTargetPreset: Codable, Equatable {
+        var id: String
+        var name: String
+        var target: Decimal
+        /// Minutes.
+        var duration: Decimal
+        var halfBasalTarget: Decimal?
+    }
 
     var timeZone: TimeZone? { TimeZone(identifier: timeZoneIdentifier) }
 

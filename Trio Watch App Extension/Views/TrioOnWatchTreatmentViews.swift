@@ -179,7 +179,10 @@ struct LoanAdjustmentSheet: View {
     let kind: Kind
     let adjustment: TrioOnWatchStatus.Adjustment?
     let stop: () async -> Bool
+    var presets: [TrioOnWatchStatus.Preset] = []
+    var start: (String) async -> Bool = { _ in false }
     @State private var showingConfirmation = false
+    @State private var presetToStart: TrioOnWatchStatus.Preset?
     @State private var result: ActionResult?
 
     var body: some View {
@@ -243,12 +246,42 @@ struct LoanAdjustmentSheet: View {
                 )
                 .font(.footnote)
             }
+            if !presets.isEmpty {
+                Section {
+                    ForEach(presets) { preset in
+                        Button(preset.name) { presetToStart = preset }
+                    }
+                } header: {
+                    Text(kind == .override ? String(localized: "Start an Override") : String(localized: "Start a Temp Target"))
+                }
+            }
             Text(String(
-                localized: "You can stop it here. Starting or changing overrides and temp targets needs your iPhone.",
+                localized: "Presets come from your iPhone. Changing them needs your iPhone.",
                 comment: "Watch: overrides and temp targets during Trio on Watch"
             ))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
+        }
+        .confirmationDialog(
+            presetToStart.map {
+                kind == .override ? String(localized: "Start the Override \"\($0.name)\"?")
+                    : String(localized: "Start the Temp Target \"\($0.name)\"?")
+            } ?? "",
+            isPresented: Binding(get: { presetToStart != nil }, set: { if !$0 { presetToStart = nil } }),
+            titleVisibility: .visible,
+            presenting: presetToStart
+        ) { preset in
+            Button(String(localized: "Start")) {
+                Task {
+                    result = await start(preset.id)
+                        ? .success(String(localized: "\(preset.name) started.", comment: "Watch: preset started"))
+                        : .failure(String(
+                            localized: "Trio on Watch couldn't save. Nothing was changed.",
+                            comment: "Watch: starting an override or temp target failed"
+                        ))
+                }
+            }
+            Button(String(localized: "Cancel", comment: "Cancel button"), role: .cancel) {}
         }
         .fullScreenCover(item: $result) { shown in
             ActionResultView(result: shown) { result = nil }

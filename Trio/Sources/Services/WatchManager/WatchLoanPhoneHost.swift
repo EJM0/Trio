@@ -26,6 +26,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
     @Injected() private var trioAlertManager: TrioAlertManager!
     @Injected() private var notLoopingMonitor: NotLoopingMonitor!
     @Injected() private var adjustmentManager: AdjustmentManager!
+    @Injected() private var tempTargetStorage: TempTargetsStorage!
 
     private let resolver: Resolver
     private let makeContext: () -> NSManagedObjectContext
@@ -163,8 +164,28 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             podEndsAt: pump.endsAt,
             sensorEndsAt: (cgm as? G7CGMManager)?.sensorEndsAt,
             smoothGlucose: settings.smoothGlucose,
-            smoothingWindow: settings.smoothGlucose ? try await fetchGlucoseManager.smoothingWindow() : []
+            smoothingWindow: settings.smoothGlucose ? try await fetchGlucoseManager.smoothingWindow() : [],
+            tempTargetPresets: try await tempTargetPresets()
         )
+    }
+
+    private func tempTargetPresets() async throws -> [WatchLoanSnapshot.TempTargetPreset] {
+        let ids = try await tempTargetStorage.fetchForTempTargetPresets()
+        let context = makeContext()
+        return try await context.perform {
+            try ids.compactMap { try context.existingObject(with: $0) as? TempTargetStored }.compactMap { preset in
+                guard let id = preset.id?.uuidString, let name = preset.name, let target = preset.target?.decimalValue else {
+                    return nil
+                }
+                return WatchLoanSnapshot.TempTargetPreset(
+                    id: id,
+                    name: name,
+                    target: target,
+                    duration: preset.duration?.decimalValue ?? 0,
+                    halfBasalTarget: preset.halfBasalTarget?.decimalValue
+                )
+            }
+        }
     }
 
     func startFacts() async -> WatchLoanStartFacts {

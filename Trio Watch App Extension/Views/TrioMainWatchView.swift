@@ -283,7 +283,13 @@ struct TrioMainWatchView: View {
             }
             .sheet(isPresented: $showingTempTargetSheet) {
                 if let loan, loanActive {
-                    LoanAdjustmentSheet(kind: .tempTarget, adjustment: loan.tempTarget, stop: loanActions.stopTempTarget)
+                    LoanAdjustmentSheet(
+                        kind: .tempTarget,
+                        adjustment: loan.tempTarget,
+                        stop: loanActions.stopTempTarget,
+                        presets: loan.isInControl ? loan.tempTargetPresets : [],
+                        start: loanActions.startTempTarget
+                    )
                 } else {
                     TempTargetPresetsView(
                         state: state,

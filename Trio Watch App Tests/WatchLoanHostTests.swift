@@ -86,6 +86,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
     var requestTimeout = WatchLoan.watchRequestTimeout
     var handBackResend: TimeInterval = 60
     var adoptTimeout: TimeInterval = 60
+    var tempTargetPresets: [WatchLoanSnapshot.TempTargetPreset] = []
     private(set) var adopted = 0
     private(set) var restored = 0
     private(set) var doubles: [LoanPumpDouble] = []
@@ -232,7 +233,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         )
         var oref = try Self.orefInputs(now: now, glucose: glucose, count: count)
         oref.dosingMode = dosingMode
-        return WatchLoanSnapshot(
+        var snapshot = WatchLoanSnapshot(
             versions: .init(schema: 1, protocolVersion: 1, appBuild: "1", pumpManager: "Double", cgmManager: "G7"),
             requestID: requestID,
             epoch: epoch,
@@ -257,6 +258,8 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
             deliveryPulseUnits: 0.05,
             releaseReading: .init(units: 10, at: now)
         )
+        snapshot.tempTargetPresets = tempTargetPresets
+        return snapshot
     }
 
     func payload(_ message: WatchLoanMessage, snapshot: WatchLoanSnapshot? = nil) throws -> [String: Any] {
@@ -968,6 +971,20 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.host.records.snapshot.tempTargetChange != nil)
         #expect(world.transport.batches.last?.adjustmentChanges?.count == 2, "the phone hears about both stops")
         #expect(world.violations.isEmpty)
+    }
+
+    @Test("A temp target preset started on the watch runs there and goes to the phone") func startTempTargetPreset() async throws {
+        let world = LoanFixture()
+        let preset = WatchLoanSnapshot.TempTargetPreset(id: UUID().uuidString, name: "Activity", target: 150, duration: 60)
+        world.tempTargetPresets = [preset]
+        try await world.startLoan()
+        #expect(world.host.uiStatus().tempTargetPresets.map(\.name) == ["Activity"])
+
+        #expect(await world.host.startAdjustmentConfirmed(.tempTarget, presetID: preset.id))
+        #expect(world.host.uiStatus().tempTarget?.name == "Activity")
+        let change = try #require(world.transport.batches.last?.adjustmentChanges?.first { $0.kind == .tempTarget })
+        #expect(change.presetID == preset.id)
+        #expect(!(await world.host.startAdjustmentConfirmed(.tempTarget, presetID: "unknown")))
     }
 
     @Test("An unacknowledged hand-back goes again while the phone is reachable, and stops at the ack (W17)") func handBackResend(

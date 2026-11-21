@@ -310,6 +310,38 @@ import Testing
         #expect(afterCancel.tempTargets.last?.duration == 0)
     }
 
+    @Test("A temp target preset started on the watch is what the phone would run") func startedTempTarget() throws {
+        let clock = OrefCharacterizationScenarios.makeClock()
+        let phone = try OrefRunCharacterizationTests.inputs(
+            for: OrefCharacterizationScenarios.build("closed-loop-baseline", clock: clock)
+        )
+        var snapshot = Self.snapshot(phone)
+        let preset = WatchLoanSnapshot.TempTargetPreset(id: UUID().uuidString, name: "Activity", target: 150, duration: 60)
+        snapshot.tempTargetPresets = [preset]
+        var records = WatchLoopRecords()
+        records.tempTargetChange = WatchLoanAdjustmentChange(
+            id: UUID(), kind: .tempTarget, presetID: preset.id, presetName: preset.name, at: clock
+        )
+        func inputs(at now: Date) -> OrefInputs {
+            WatchLoopInputs.orefInputs(
+                snapshot: snapshot,
+                records: records,
+                now: now,
+                currentTemp: TempBasal(duration: 0, rate: 0, temp: .absolute, timestamp: now),
+                autosens: nil,
+                microBolusAllowed: true
+            )
+        }
+
+        let during = inputs(at: clock.addingTimeInterval(600))
+        #expect(during.activeTempTarget?.target == 150)
+        #expect(during.activeTempTarget?.halfBasalTarget == nil, "as the phone's active row, without the fallback")
+        let entry = try #require(during.tempTargets.last)
+        #expect(entry.createdAt == clock && entry.targetTop == 150 && entry.targetBottom == 150 && entry.duration == 60)
+        #expect(entry.halfBasalTarget == (phone.preferences?.halfBasalExerciseTarget ?? Preferences().halfBasalExerciseTarget))
+        #expect(inputs(at: clock.addingTimeInterval(3601)).activeTempTarget == nil)
+    }
+
     @Test("Schedules are looked up in the grant's time zone") func grantTimeZone() throws {
         let clock = OrefCharacterizationScenarios.makeClock()
         var phone = try OrefRunCharacterizationTests.inputs(
