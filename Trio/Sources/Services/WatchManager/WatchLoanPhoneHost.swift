@@ -27,6 +27,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
     @Injected() private var notLoopingMonitor: NotLoopingMonitor!
     @Injected() private var adjustmentManager: AdjustmentManager!
     @Injected() private var tempTargetStorage: TempTargetsStorage!
+    @Injected() private var overrideStorage: OverrideStorage!
 
     private let resolver: Resolver
     private let makeContext: () -> NSManagedObjectContext
@@ -165,8 +166,26 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             sensorEndsAt: (cgm as? G7CGMManager)?.sensorEndsAt,
             smoothGlucose: settings.smoothGlucose,
             smoothingWindow: settings.smoothGlucose ? try await fetchGlucoseManager.smoothingWindow() : [],
-            tempTargetPresets: try await tempTargetPresets()
+            tempTargetPresets: try await tempTargetPresets(),
+            overridePresets: try await overridePresets()
         )
+    }
+
+    private func overridePresets() async throws -> [WatchLoanSnapshot.OverridePreset] {
+        let ids = try await overrideStorage.fetchForOverridePresets()
+        let context = makeContext()
+        return try await context.perform {
+            try ids.compactMap { try context.existingObject(with: $0) as? OverrideStored }.compactMap { preset in
+                guard let id = preset.id, let name = preset.name else { return nil }
+                return WatchLoanSnapshot.OverridePreset(
+                    id: id,
+                    name: name,
+                    state: OrefInputs.OverrideState(preset),
+                    indefinite: preset.indefinite,
+                    duration: preset.duration?.decimalValue
+                )
+            }
+        }
     }
 
     private func tempTargetPresets() async throws -> [WatchLoanSnapshot.TempTargetPreset] {

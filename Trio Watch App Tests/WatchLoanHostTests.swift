@@ -87,6 +87,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
     var handBackResend: TimeInterval = 60
     var adoptTimeout: TimeInterval = 60
     var tempTargetPresets: [WatchLoanSnapshot.TempTargetPreset] = []
+    var overridePresets: [WatchLoanSnapshot.OverridePreset] = []
     private(set) var adopted = 0
     private(set) var restored = 0
     private(set) var doubles: [LoanPumpDouble] = []
@@ -259,6 +260,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
             releaseReading: .init(units: 10, at: now)
         )
         snapshot.tempTargetPresets = tempTargetPresets
+        snapshot.overridePresets = overridePresets
         return snapshot
     }
 
@@ -985,6 +987,27 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         let change = try #require(world.transport.batches.last?.adjustmentChanges?.first { $0.kind == .tempTarget })
         #expect(change.presetID == preset.id)
         #expect(!(await world.host.startAdjustmentConfirmed(.tempTarget, presetID: "unknown")))
+    }
+
+    @Test("An override preset started on the watch shows as running and goes to the phone") func startOverridePreset() async throws {
+        let world = LoanFixture()
+        world.overridePresets = [.init(
+            id: "gym",
+            name: "Gym",
+            state: OrefInputs.OverrideState(
+                enabled: false, percentage: 80, indefinite: true, smbIsOff: false, target: nil, duration: nil,
+                advancedSettings: false, isfAndCr: true, isf: true, cr: true, smbIsScheduledOff: false,
+                start: nil, end: nil, smbMinutes: nil, uamMinutes: nil
+            ),
+            indefinite: true,
+            duration: nil
+        )]
+        try await world.startLoan()
+
+        #expect(await world.host.startAdjustmentConfirmed(.override, presetID: "gym"))
+        let running = try #require(world.host.uiStatus().override)
+        #expect(running.name == "Gym" && running.endsAt == nil)
+        #expect(world.transport.batches.last?.adjustmentChanges?.contains { $0.kind == .override && $0.presetID == "gym" } == true)
     }
 
     @Test("An unacknowledged hand-back goes again while the phone is reachable, and stops at the ack (W17)") func handBackResend(

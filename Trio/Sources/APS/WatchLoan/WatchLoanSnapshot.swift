@@ -80,6 +80,18 @@ struct WatchLoanSnapshot: Codable {
     var smoothingWindow: [RawReading] = []
     /// The phone's temp target presets, for the watch to start one.
     var tempTargetPresets: [TempTargetPreset] = []
+    /// The phone's override presets, for the watch to start one.
+    var overridePresets: [OverridePreset] = []
+
+    /// An override preset as the phone stores it; started, oref reads `state` with `enabled` set.
+    struct OverridePreset: Codable {
+        var id: String
+        var name: String
+        var state: OrefInputs.OverrideState
+        var indefinite: Bool
+        /// Minutes.
+        var duration: Decimal?
+    }
 
     /// A temp target preset as the phone stores it.
     struct TempTargetPreset: Codable, Equatable {

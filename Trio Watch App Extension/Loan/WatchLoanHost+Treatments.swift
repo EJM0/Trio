@@ -214,7 +214,7 @@ extension WatchLoanHost {
             let name: String?
             switch kind {
             case .tempTarget: name = snapshot.tempTargetPresets.first { $0.id == presetID }?.name
-            case .override: name = nil
+            case .override: name = snapshot.overridePresets.first { $0.id == presetID }?.name
             }
             guard let name else { return }
             let (records, now) = (self.records, self.env.now())

@@ -48,7 +48,8 @@ extension WatchLoanHost {
             status.podEndsAt = snapshot.podEndsAt
             let now = env.now()
             let records = records.snapshot
-            status.override = Self.running(snapshot.overrideAtGrant, cancelledAt: records.overrideChange?.at, now: now)
+            status.override = Self.runningOverride(snapshot: snapshot, change: records.overrideChange, now: now)
+            status.overridePresets = snapshot.overridePresets.map { .init(id: $0.id, name: $0.name) }
             status.tempTarget = Self.runningTempTarget(snapshot: snapshot, change: records.tempTargetChange, now: now)
             status.tempTargetPresets = snapshot.tempTargetPresets.map { .init(id: $0.id, name: $0.name) }
             status.recentDoses = recentBoluses(snapshot: snapshot, now: now)
@@ -63,6 +64,18 @@ extension WatchLoanHost {
             status.podFaulted = omnipod.deliveredUnitsAreFinal
         }
         return status
+    }
+
+    private static func runningOverride(
+        snapshot: WatchLoanSnapshot,
+        change: WatchLoanAdjustmentChange?,
+        now: Date
+    ) -> TrioOnWatchStatus.Adjustment? {
+        if let preset = WatchLoopInputs.startedOverride(snapshot: snapshot, change: change), let change {
+            let endsAt = WatchLoopInputs.endDate(of: preset, startedAt: change.at)
+            return endsAt.map { $0 > now } ?? true ? .init(name: preset.name, endsAt: endsAt) : nil
+        }
+        return running(snapshot.overrideAtGrant, cancelledAt: change?.at, now: now)
     }
 
     private static func runningTempTarget(

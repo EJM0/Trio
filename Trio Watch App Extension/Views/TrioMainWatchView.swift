@@ -270,7 +270,13 @@ struct TrioMainWatchView: View {
             }
             .sheet(isPresented: $showingOverrideSheet) {
                 if let loan, loanActive {
-                    LoanAdjustmentSheet(kind: .override, adjustment: loan.override, stop: loanActions.stopOverride)
+                    LoanAdjustmentSheet(
+                        kind: .override,
+                        adjustment: loan.override,
+                        stop: loanActions.stopOverride,
+                        presets: loan.isInControl ? loan.overridePresets : [],
+                        start: loanActions.startOverride
+                    )
                 } else {
                     OverridePresetsView(
                         state: state,

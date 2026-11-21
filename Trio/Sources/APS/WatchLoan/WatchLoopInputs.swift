@@ -51,6 +51,14 @@ enum WatchLoopInputs {
         if !isActive(snapshot.overrideAtGrant, cancelledAt: records.overrideChange?.at, now: now) {
             inputs.activeOverride = nil
         }
+        if let change = records.overrideChange, let preset = startedOverride(snapshot: snapshot, change: change),
+           endDate(of: preset, startedAt: change.at).map({ now < $0 }) ?? true
+        {
+            // the phone starts a preset by enabling its row
+            var state = preset.state
+            state.enabled = true
+            inputs.activeOverride = state
+        }
         if !isActive(snapshot.tempTargetAtGrant, cancelledAt: records.tempTargetChange?.at, now: now) {
             inputs.activeTempTarget = nil
         }
@@ -137,6 +145,18 @@ enum WatchLoopInputs {
     static func startedTempTarget(snapshot: WatchLoanSnapshot, change: WatchLoanAdjustmentChange?) -> WatchLoanSnapshot.TempTargetPreset? {
         guard let change, change.kind == .tempTarget, let id = change.presetID else { return nil }
         return snapshot.tempTargetPresets.first { $0.id == id }
+    }
+
+    /// The override preset a watch change started.
+    static func startedOverride(snapshot: WatchLoanSnapshot, change: WatchLoanAdjustmentChange?) -> WatchLoanSnapshot.OverridePreset? {
+        guard let change, change.kind == .override, let id = change.presetID else { return nil }
+        return snapshot.overridePresets.first { $0.id == id }
+    }
+
+    /// Nil: runs until stopped.
+    static func endDate(of preset: WatchLoanSnapshot.OverridePreset, startedAt: Date) -> Date? {
+        guard !preset.indefinite, let duration = preset.duration else { return nil }
+        return startedAt.addingTimeInterval(Double(truncating: duration as NSNumber) * 60)
     }
 
     static func endDate(of preset: WatchLoanSnapshot.TempTargetPreset, startedAt: Date) -> Date {
