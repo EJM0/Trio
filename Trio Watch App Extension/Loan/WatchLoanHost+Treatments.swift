@@ -37,7 +37,7 @@ extension WatchLoanHost {
             isf: isf,
             carbRatio: carbRatio,
             iob: outputs.iob.first?.iob ?? 0,
-            cob: Int16(truncating: (outputs.meal?.mealCOB ?? 0) as NSNumber),
+            cob: Int16((outputs.meal?.mealCOB ?? 0).nearestDouble.rounded()),
             useFattyMealCorrectionFactor: false,
             fattyMealFactor: snapshot.bolusCalculator.fattyMealFactor,
             useSuperBolus: false,
