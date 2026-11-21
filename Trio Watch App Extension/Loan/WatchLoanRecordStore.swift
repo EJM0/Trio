@@ -153,14 +153,6 @@ final class WatchLoanRecordStore {
         }
     }
 
-    func recentBolusUnits(since date: Date) -> Decimal {
-        lock.withLock {
-            contents.pumpEvents.values
-                .filter { $0.record.dose.type == .bolus && $0.record.date > date }
-                .reduce(Decimal(0)) { $0 + Decimal($1.record.dose.unitsInDeliverableIncrements) }
-        }
-    }
-
     // MARK: - Glucose, carbs, TDD, adjustments
 
     /// Keeps readings at least the phone's filter time after the newest one known. Returns the ones kept.

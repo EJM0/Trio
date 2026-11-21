@@ -55,8 +55,8 @@ extension WatchLoanHost {
         }
     }
 
-    /// A manual bolus, with optional carbs recorded first. Checked against max bolus, max IOB (recomputed now)
-    /// and recent boluses, then written down before it is sent. An unconfirmed bolus is never retried.
+    /// A manual bolus, with optional carbs recorded first. Checked against max bolus, max IOB (recomputed now),
+    /// then written down before it is sent. An unconfirmed bolus is never retried.
     func requestBolus(units: Decimal, carbs: Decimal = 0) async {
         var accepted: LoanPump?
         await serially { accepted = await self.bolusNow(units: units, carbs: carbs) }
@@ -93,21 +93,14 @@ extension WatchLoanHost {
         )
         inputs.autosens = inputs.autosens ?? lastOutputs?.autosens
         let currentIOB = try? await Self.runOref(inputs).iob.first?.iob
-        let recent = records.recentBolusUnits(
-            since: now.addingTimeInterval(-Double(BolusSafetyEvaluator.recentBolusWindowMinutes * 60))
-        ) + snapshot.oref.pumpHistory
-            .filter {
-                $0.type == .bolus && $0.timestamp > now
-                    .addingTimeInterval(-Double(BolusSafetyEvaluator.recentBolusWindowMinutes * 60))
-            }
-            .reduce(Decimal(0)) { $0 + ($1.amount ?? 0) }
         let safety = BolusSafetyEvaluator.evaluate(
             bolusAmount: units,
             inputs: BolusSafetyInputs(
                 maxBolus: snapshot.oref.pumpSettings.maxBolus,
                 maxIOB: preferences.maxIOB,
                 currentIOB: currentIOB,
-                totalRecentBolus: recent
+                // no recent-bolus check: it guards remote commands sent twice, and refused after the loop's SMBs
+                totalRecentBolus: 0
             )
         )
         if case let .rejected(reason) = safety {
