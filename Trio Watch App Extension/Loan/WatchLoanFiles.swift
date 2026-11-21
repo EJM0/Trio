@@ -17,6 +17,7 @@ struct WatchLoanFiles {
         case pumpState = "pump-state.plist"
         case pumpLocalState = "pump-local-state.plist"
         case cgmState = "cgm-state.plist"
+        case cgmLocalState = "cgm-local-state.plist"
         case intent = "dose-intent.json"
         case records = "loan-records.json"
         case inbox = "loan-inbox.json"

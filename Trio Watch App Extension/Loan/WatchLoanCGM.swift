@@ -27,14 +27,21 @@ import LoopKit
         }
         // the old manager goes first: a new central beside it with the same restore identifier never powers on
         await retire()
-        guard let adopted = G7CGMManager(adopting: configuration, localState: nil) else {
+        // the watch's own key for this sensor from an earlier loan: without it every loan pairs again, and that
+        // pairing needs the system prompt answered with Trio in front
+        let files = files
+        let localState = try? await WatchLoanFiles.io { try files.loadPlist(from: .cgmLocalState) }
+        guard let adopted = G7CGMManager(adopting: configuration, localState: localState) else {
             WatchLogger.shared.error(.cgm, "The grant's CGM configuration can't be read on the watch")
             return
         }
         install(adopted)
-        let (files, rawState) = (files, adopted.rawState)
+        let rawState = adopted.rawState
         WatchLoanFiles.later("the CGM state") { try files.savePlist(rawState, to: .cgmState) }
-        WatchLogger.shared.info(.cgm, "CGM manager built from the grant")
+        WatchLogger.shared.info(
+            .cgm,
+            "CGM manager built from the grant\(adopted.localState != nil ? ", with this watch's key from an earlier loan" : "")"
+        )
     }
 
     func restore() {
@@ -61,6 +68,9 @@ import LoopKit
         previous.cgmManagerDelegate = nil
         manager = nil
         let files = files
+        if let local = previous.localState {
+            try? await WatchLoanFiles.io { try files.savePlist(local, to: .cgmLocalState) }
+        }
         try? await WatchLoanFiles.io { try files.remove(.cgmState) }
         await previous.delete()
         WatchLogger.shared.info(.cgm, "CGM manager let go")
