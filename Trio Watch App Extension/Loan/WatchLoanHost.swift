@@ -121,7 +121,15 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     @ObservationIgnored let alerts: WatchLoanAlerts
     @ObservationIgnored private(set) var pump: LoanPump?
     @ObservationIgnored private var pumpDelegate: WatchLoanPumpDelegate
-    @ObservationIgnored private(set) var snapshot: WatchLoanSnapshot?
+    @ObservationIgnored private(set) var snapshot: WatchLoanSnapshot? {
+        didSet { alerts.pumpIsPatch = Self.isPatch(snapshot) }
+    }
+
+    /// A Medtrum patch, as the grant names the pump.
+    static func isPatch(_ snapshot: WatchLoanSnapshot?) -> Bool {
+        snapshot?.versions.pumpManager == "Medtrum"
+    }
+
     /// Commands written down before they were sent, until each outcome is known. Never overwritten: each command adds one.
     @ObservationIgnored var intents: [WatchDoseIntent] = []
     @ObservationIgnored var cycleInfo = WatchLoanCycleInfo()
@@ -200,6 +208,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         intents = saved.intents
         inbox = saved.inbox ?? WatchLoanInbox()
         snapshot = saved.snapshot
+        alerts.pumpIsPatch = Self.isPatch(saved.snapshot)
         loop.lastCycleAt = cycleInfo.lastCycleAt
         loop.lastConfirmedCycleAt = cycleInfo.lastConfirmedCycleAt
     }
@@ -646,7 +655,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     }
 
     func issueKitAlert(_ alert: Alert) async {
-        alerts.postKitAlert(alert, line: WatchLoanAlerts.podNeedsPhone, now: env.now())
+        alerts.postKitAlert(alert, line: WatchLoanAlerts.podNeedsPhone(patch: alerts.pumpIsPatch), now: env.now())
     }
 
     /// The sensor's own alerts, while the watch reads it: with the phone away nothing else tells the user (G-R2).

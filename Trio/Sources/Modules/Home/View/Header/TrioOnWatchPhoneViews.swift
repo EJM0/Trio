@@ -174,33 +174,54 @@ struct TrioOnWatchSheet: View {
                             }
                             Button(String(localized: "Cancel"), role: .cancel) {}
                         } message: {
-                            Text(TrioOnWatchPhoneStatus.takeBackMessage(status.takeBackContext))
+                            Text(TrioOnWatchPhoneStatus.takeBackMessage(status.takeBackContext, patch: status.pumpIsPatch))
                         }
                     }
                 }
 
                 if status.offersUsePod {
                     Section {
-                        Button(String(localized: "Use the Pod on This iPhone", comment: "Trio on Watch sheet button")) {
+                        Button(
+                            status
+                                .pumpIsPatch ?
+                                String(localized: "Use the Patch on This iPhone", comment: "Trio on Watch sheet button") :
+                                String(localized: "Use the Pod on This iPhone", comment: "Trio on Watch sheet button")
+                        ) {
                             showingUsePod = true
                         }
                         .confirmationDialog(
-                            String(localized: "Use the Pod on This iPhone?", comment: "Confirmation title"),
+                            status.pumpIsPatch ? String(
+                                localized: "Use the Patch on This iPhone?",
+                                comment: "Confirmation title"
+                            ) : String(localized: "Use the Pod on This iPhone?", comment: "Confirmation title"),
                             isPresented: $showingUsePod,
                             titleVisibility: .visible
                         ) {
-                            Button(String(localized: "Use the Pod on This iPhone", comment: "Confirmation button")) {
+                            Button(
+                                status
+                                    .pumpIsPatch ? String(
+                                        localized: "Use the Patch on This iPhone",
+                                        comment: "Confirmation button"
+                                    ) :
+                                    String(localized: "Use the Pod on This iPhone", comment: "Confirmation button")
+                            ) {
                                 Task { await model.usePodOnThisPhone() }
                             }
                             Button(String(localized: "Cancel"), role: .cancel) {}
                         } message: {
-                            Text(String(
+                            Text(status.pumpIsPatch ? String(
+                                localized: "Only do this if no other device should control this patch. If another device still runs it, it stops when it next reaches your patch.",
+                                comment: "Use the patch on this iPhone confirmation message"
+                            ) : String(
                                 localized: "Only do this if no other device should control this pod. If another device still runs it, it stops when it next reaches your pod.",
                                 comment: "Use the pod on this iPhone confirmation message"
                             ))
                         }
                     } footer: {
-                        Text(String(
+                        Text(status.pumpIsPatch ? String(
+                            localized: "Another device used your patch, so this iPhone stopped sending it commands.",
+                            comment: "Trio on Watch sheet footer for a refused patch"
+                        ) : String(
                             localized: "Another device used your pod, so this iPhone stopped sending it commands.",
                             comment: "Trio on Watch sheet footer for a refused pod"
                         ))
@@ -346,7 +367,7 @@ enum TrioOnWatchPhoneFixtureDialog {
                 answer: answer,
                 phase: model.status.phase,
                 elapsed: Date().timeIntervalSince(droppedAt),
-                patch: false
+                patch: model.status.pumpIsPatch
             )
             if step != .handOff(stage) {
                 withAnimation(.spring(duration: 0.45)) { step = .handOff(stage) }
@@ -523,7 +544,7 @@ struct TrioOnWatchStartOverlay<Ring: View>: View {
     }
 
     private func detail(_ stage: TrioOnWatchPhoneStart.Stage) -> String {
-        let patch = false
+        let patch = model.status.pumpIsPatch
         switch stage {
         case .handingOver:
             return String(localized: "Keep your iPhone and watch close.", comment: "Drag-to-watch Start: in progress")

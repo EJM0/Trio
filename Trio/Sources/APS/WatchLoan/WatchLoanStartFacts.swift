@@ -9,6 +9,8 @@ struct WatchLoanStartFacts: Codable, Equatable {
     var tempTarget: WatchLoanSnapshot.Adjustment?
     var podEndsAt: Date?
     var sensorEndsAt: Date?
+    /// The phone's pump is a Medtrum patch. Nil from a phone build that doesn't send it.
+    var pumpIsPatch: Bool? = nil
 
     static func isQuery(_ payload: [String: Any]) -> Bool {
         payload[queryKey] != nil

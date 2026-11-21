@@ -23,6 +23,7 @@ extension WatchLoanHost {
             status.phase = .stopped(reason)
         }
         status.phoneReachable = env.transport.isReachable
+        status.pumpIsPatch = Self.isPatch(snapshot)
         status.pumpAdopted = pump != nil
         status.lastLoopAt = loop.lastConfirmedCycleAt
         status.lastCycleAt = loop.lastCycleAt

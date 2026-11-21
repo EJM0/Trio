@@ -213,7 +213,8 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             override: adjustments?.override,
             tempTarget: adjustments?.tempTarget,
             podEndsAt: pump?.endsAt,
-            sensorEndsAt: (sharedCGM as? G7CGMManager)?.sensorEndsAt
+            sensorEndsAt: (sharedCGM as? G7CGMManager)?.sensorEndsAt,
+            pumpIsPatch: pumpIsPatch
         )
     }
 
@@ -468,7 +469,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
     }
 
     func alert(_ alert: LoanAlert) {
-        guard let (title, body) = Self.content(for: alert) else { return }
+        guard let (title, body) = Self.content(for: alert, patch: pumpIsPatch) else { return }
         issue(alertIdentifier: "\(alert)", title: title, body: body)
     }
 
@@ -479,7 +480,9 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             issue(
                 alertIdentifier: "auditShortfall",
                 title: String(localized: "Check Your Insulin History"),
-                body: String(
+                body: pumpIsPatch ? String(
+                    localized: "Trio on Watch recorded \(amount) more insulin than your patch reports delivering. Insulin on board may read high for a while."
+                ) : String(
                     localized: "Trio on Watch recorded \(amount) more insulin than your pod reports delivering. Insulin on board may read high for a while."
                 )
             )
@@ -487,7 +490,9 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             issue(
                 alertIdentifier: "auditExcess",
                 title: String(localized: "Insulin Added to History"),
-                body: String(
+                body: pumpIsPatch ? String(
+                    localized: "Your patch delivered \(amount) that Trio on Watch didn't record. Trio counts it as insulin on board, so insulin on board may read high for a while."
+                ) : String(
                     localized: "Your pod delivered \(amount) that Trio on Watch didn't record. Trio counts it as insulin on board, so insulin on board may read high for a while."
                 )
             )
@@ -511,7 +516,10 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         )
 
     /// Phone alerts only; the watch's are its own.
-    static func content(for alert: LoanAlert) -> (title: String, body: String)? {
+    /// The phone's pump is a Medtrum patch: the texts say "patch", not "pod".
+    private var pumpIsPatch: Bool { deviceDataManager.pumpManager?.pluginIdentifier == "Medtrum" }
+
+    static func content(for alert: LoanAlert, patch: Bool = false) -> (title: String, body: String)? {
         switch alert {
         case .watchDidNotConfirm:
             return (
@@ -526,7 +534,10 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         case .takeBackPodUnreachable:
             return (
                 String(localized: "Can't Reach Your Pump"),
-                String(localized: "Keep your iPhone close to your pod. Nothing is giving insulin automatically.") + " " +
+                (
+                    patch ? String(localized: "Keep your iPhone close to your patch. Nothing is giving insulin automatically.") :
+                        String(localized: "Keep your iPhone close to your pod. Nothing is giving insulin automatically.")
+                ) + " " +
                     pumpFailSafe
             )
         case .takeBackUseEnd:
@@ -542,21 +553,31 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             )
         case .watchContactedPodAfterTakeBack:
             return (
-                String(localized: "Apple Watch Contacted Your Pod"),
-                String(
+                patch ? String(localized: "Apple Watch Contacted Your Patch") :
+                    String(localized: "Apple Watch Contacted Your Pod"),
+                patch ? String(
+                    localized: "Apple Watch contacted your patch after you took it back. Trio counts any insulin it gave. Open Trio on your watch to stop it."
+                ) : String(
                     localized: "Apple Watch contacted your pod after you took it back. Trio counts any insulin it gave. Open Trio on your watch to stop it."
                 )
             )
         case .unexpectedPodSession:
             return (
-                String(localized: "Another Device Used Your Pod"),
-                String(localized: "iPhone stopped sending commands to your pod.") + " " + pumpFailSafe + " " +
-                    String(localized: "Open Trio to use the pod on this iPhone.")
+                patch ? String(localized: "Another Device Used Your Patch") : String(localized: "Another Device Used Your Pod"),
+                (
+                    patch ? String(localized: "iPhone stopped sending commands to your patch.") :
+                        String(localized: "iPhone stopped sending commands to your pod.")
+                ) + " " + pumpFailSafe + " " +
+                    (
+                        patch ? String(localized: "Open Trio to use the patch on this iPhone.") :
+                            String(localized: "Open Trio to use the pod on this iPhone.")
+                    )
             )
         case .podTakenOnThisPhone:
             return (
-                String(localized: "Pod in Use on This iPhone"),
-                String(localized: "If another device still runs this pod, it stops when it next reaches your pod.")
+                patch ? String(localized: "Patch in Use on This iPhone") : String(localized: "Pod in Use on This iPhone"),
+                patch ? String(localized: "If another device still runs this patch, it stops when it next reaches your patch.") :
+                    String(localized: "If another device still runs this pod, it stops when it next reaches your pod.")
             )
         case .loanStateUnreadable:
             return (
@@ -567,8 +588,10 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             )
         case .podTotalUnreliable:
             return (
-                String(localized: "Pod Total Not Checked"),
-                String(
+                patch ? String(localized: "Patch Total Not Checked") : String(localized: "Pod Total Not Checked"),
+                patch ? String(
+                    localized: "Trio couldn't check your patch's delivered insulin against your history, so it added nothing. Insulin on board may read too low. Check your insulin history."
+                ) : String(
                     localized: "Trio couldn't check your pod's delivered insulin against your history, so it added nothing. Insulin on board may read too low. Check your insulin history."
                 )
             )

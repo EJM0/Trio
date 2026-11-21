@@ -171,6 +171,17 @@ import Testing
         #expect(TrioOnWatchRules.readingTier(lastReadingAt: nil, now: now) == .unknown)
     }
 
+    @Test("With a Medtrum patch the texts say patch, not pod") func patchWording() {
+        var watch = status(.inControl)
+        watch.podFaulted = true
+        #expect(watch.controlLine(now: now, phoneLoopText: nil).text.lowercased().contains("pod"))
+        watch.pumpIsPatch = true
+        let line = watch.controlLine(now: now, phoneLoopText: nil)
+        #expect(line.text.lowercased().contains("patch") && !line.text.lowercased().contains("pod"))
+        #expect(watch.rows(now: now).allSatisfy { row in row.lines.allSatisfy { !$0.lowercased().contains(" pod") } })
+        #expect(TrioOnWatchStatus.stopReason(.foreignSession, patch: true).contains("patch"))
+    }
+
     @Test("In watch mode the graph shows the watch's readings and forecast") func watchModeGraph() {
         var watch = status(.inControl)
         let phone: [(date: Date, glucose: Double, color: Color)] = [(ago(60), 102, .green), (ago(55), 240, .orange), (ago(10), 101, .green)]
@@ -271,6 +282,11 @@ import Testing
         #expect(HandOffStage.stage(.start, status: watch) == .succeeded(
             "Your watch has your pod. It starts looping with its next sensor reading."
         ))
+        watch.pumpIsPatch = true
+        #expect(HandOffStage.stage(.start, status: watch) == .succeeded(
+            "Your watch has your patch. It starts looping with its next sensor reading."
+        ))
+        watch.pumpIsPatch = false
         watch.phase = .inControl
         #expect(HandOffStage.stage(.start, status: watch) == .succeeded("Your watch is in control."))
         watch.phase = .stopped(.foreignSession)
