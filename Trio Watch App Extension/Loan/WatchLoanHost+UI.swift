@@ -26,6 +26,10 @@ extension WatchLoanHost {
         status.lastCycleAt = loop.lastCycleAt
         status.iob = loop.iob
         status.cob = loop.cob
+        status.tempBasalRate = loop.tempBasalRate
+        status.tempBasalEndsAt = loop.tempBasalEndsAt
+        status.eventualGlucose = loop.eventualGlucose
+        status.reason = loop.reason
         status.insulinSuspended = loop.pumpSuspended
         status.bolus = bolus
         status.lastAlert = lastAlert

@@ -281,10 +281,13 @@ extension WatchLoanHost {
         loop.iob = outputs.iob.first?.iob
         loop.cob = outputs.meal?.mealCOB
         loop.eventualGlucose = outputs.determination?.eventualBG
+        loop.reason = outputs.determination?.reason
         if case let .tempBasal(dose) = pump.status.basalDeliveryState {
             loop.tempBasalRate = Decimal(dose.unitsPerHour)
+            loop.tempBasalEndsAt = dose.endDate
         } else {
             loop.tempBasalRate = nil
+            loop.tempBasalEndsAt = nil
         }
         loop.pumpSuspended = pump.status.basalDeliveryState?.isSuspended ?? false
         if !loop.pumpSuspended { cancelSuspendReminders() }

@@ -155,6 +155,13 @@ import Testing
         #expect(watch.trend(now: now) == nil, "a stale reading hides the arrow")
     }
 
+    @Test("Reading age colours: green to 6 min, yellow to 12, red beyond") func readingTier() {
+        #expect(TrioOnWatchRules.readingTier(lastReadingAt: ago(5), now: now) == .fresh)
+        #expect(TrioOnWatchRules.readingTier(lastReadingAt: ago(9), now: now) == .aging)
+        #expect(TrioOnWatchRules.readingTier(lastReadingAt: ago(13), now: now) == .stale)
+        #expect(TrioOnWatchRules.readingTier(lastReadingAt: nil, now: now) == .unknown)
+    }
+
     @Test("Primary action and footer by state") func primaryAndFooter() {
         #expect(status(.phone).primaryAction == .start)
         #expect(status(.starting).primaryAction == nil)

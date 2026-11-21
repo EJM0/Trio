@@ -1010,6 +1010,15 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.transport.batches.last?.adjustmentChanges?.contains { $0.kind == .override && $0.presetID == "gym" } == true)
     }
 
+    @Test("The loop page gets the loop's reasoning and eventual glucose after a cycle") func loopPageValues() async throws {
+        let world = LoanFixture()
+        try await world.startLoan(glucose: 180)
+        await world.reading(185)
+        let status = world.host.uiStatus()
+        #expect(status.reason?.isEmpty == false)
+        #expect(status.eventualGlucose != nil)
+    }
+
     @Test("An unacknowledged hand-back goes again while the phone is reachable, and stops at the ack (W17)") func handBackResend(
     ) async throws {
         let world = LoanFixture()

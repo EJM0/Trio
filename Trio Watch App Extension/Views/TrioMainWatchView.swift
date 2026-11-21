@@ -25,7 +25,10 @@ struct TrioMainWatchView: View {
     private var loanStatus: TrioOnWatchStatus? { TrioOnWatchSource.status }
     private var loanActions: TrioOnWatchActions { TrioOnWatchSource.actions }
 
-    private var lastPage: Int { loanStatus == nil ? 2 : 3 }
+    private var lastPage: Int {
+        guard let loanStatus else { return 2 }
+        return loanStatus.isLoanActive ? 4 : 3
+    }
 
     private var debugScrollTo: String? {
         #if DEBUG
@@ -145,6 +148,14 @@ struct TrioMainWatchView: View {
                         TrioOnWatchStatusView(status: loan, now: context.date, actions: loanActions, scrollTo: debugScrollTo)
                     }
                     .tag(3)
+                }
+
+                // Page 5: the watch's loop, in watch mode only
+                if let loan, loan.isLoanActive {
+                    TimelineView(.periodic(from: .now, by: 15)) { context in
+                        TrioOnWatchLoopPage(status: loan, now: context.date)
+                    }
+                    .tag(4)
                 }
             }
             .onAppear {

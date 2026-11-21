@@ -45,6 +45,11 @@ struct TrioOnWatchStatus: Equatable {
     var units: GlucoseUnits = .mgdL
     var iob: Decimal?
     var cob: Decimal?
+    var tempBasalRate: Decimal?
+    var tempBasalEndsAt: Date?
+    var eventualGlucose: Int?
+    /// The last determination's reasoning.
+    var reason: String?
     var pumpLastContact: Date?
     var reservoir: Double?
     /// An Omnipod reports its reservoir only below 50 U; above that it is shown as 50+, as on the phone.
@@ -111,6 +116,14 @@ enum TrioOnWatchRules {
             case .warning: return .orange
             }
         }
+    }
+
+    /// Reading age: green to 6 min, yellow to 12, red beyond.
+    static func readingTier(lastReadingAt: Date?, now: Date) -> Tier {
+        guard let lastReadingAt else { return .unknown }
+        let age = now.timeIntervalSince(lastReadingAt)
+        if age <= 6 * 60 { return .fresh }
+        return age <= readingMaxAge ? .aging : .stale
     }
 
     /// Loop age as iOS colours its ring: green to 5 min, yellow to 10, red beyond, after a 30 s grace.

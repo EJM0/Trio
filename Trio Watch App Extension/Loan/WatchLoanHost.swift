@@ -89,7 +89,10 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         var cob: Decimal?
         var eventualGlucose: Int?
         var tempBasalRate: Decimal?
+        var tempBasalEndsAt: Date?
         var pumpSuspended = false
+        /// The last determination's reasoning.
+        var reason: String?
     }
 
     private(set) var state: WatchLoanState

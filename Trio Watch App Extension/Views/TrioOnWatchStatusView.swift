@@ -451,3 +451,156 @@ struct ActionResultView: View {
         }
     }
 }
+
+// MARK: - Loop page
+
+/// Watch mode only: what the watch's loop works with, for reading. Tapping the loop row shows its reasoning.
+struct TrioOnWatchLoopPage: View {
+    let status: TrioOnWatchStatus
+    let now: Date
+    @State private var showingReason = false
+
+    private var latest: TrioOnWatchStatus.Reading? { status.readings.first }
+
+    var body: some View {
+        let values = status.mainValues(now: now)
+        List {
+            Button { showingReason = true } label: {
+                InfoRow(
+                    symbol: "arrow.triangle.2.circlepath",
+                    title: String(localized: "Loop", comment: "Watch loop page row"),
+                    value: status.lastLoopAt.map {
+                        String(localized: "\($0.formattedTimeAgo()) ago", comment: "Watch loop page: age")
+                    } ?? String(localized: "No loop yet", comment: "Watch loop page: no loop yet"),
+                    tint: TrioOnWatchRules.loopTier(lastLoopAt: status.lastLoopAt, now: now).color
+                )
+            }
+            .disabled(status.reason == nil)
+
+            InfoRow(
+                symbol: "sensor.tag.radiowaves.forward",
+                title: String(localized: "Sensor", comment: "Watch loop page row"),
+                value: latest.map {
+                    "\(Decimal($0.mgdl).formatted(for: status.units)) · " +
+                        String(localized: "\($0.date.formattedTimeAgo()) ago", comment: "Watch loop page: age")
+                } ?? String(localized: "No reading yet", comment: "Watch loop page: no reading yet"),
+                tint: TrioOnWatchRules.readingTier(lastReadingAt: latest?.date, now: now).color
+            )
+
+            InfoRow(
+                symbol: "drop.fill",
+                title: String(localized: "Reservoir", comment: "Watch loop page row"),
+                value: reservoirText,
+                tint: reservoirTint
+            )
+
+            InfoRow(
+                symbol: "waveform.path.ecg",
+                title: String(localized: "Temp basal", comment: "Watch loop page row"),
+                value: tempBasalText,
+                tint: status.insulinSuspended ? .orange : .secondary
+            )
+
+            InfoRow(
+                symbol: "syringe.fill",
+                title: String(localized: "IOB", comment: "Watch loop page row: insulin on board"),
+                value: values.iob,
+                tint: .insulin
+            )
+
+            InfoRow(
+                symbol: "fork.knife",
+                title: String(localized: "COB", comment: "Watch loop page row: carbs on board"),
+                value: values.cob,
+                tint: .orange
+            )
+
+            if let eventual = status.eventualGlucose {
+                InfoRow(
+                    symbol: "chart.line.uptrend.xyaxis",
+                    title: String(localized: "Eventual glucose", comment: "Watch loop page row"),
+                    value: Decimal(eventual).formatted(for: status.units),
+                    tint: .secondary
+                )
+            }
+
+            if let override = status.override {
+                InfoRow(
+                    symbol: "clock.arrow.2.circlepath",
+                    title: String(localized: "Override", comment: "Watch loop page row"),
+                    value: adjustmentText(override, fallback: String(localized: "Override", comment: "Fallback override name")),
+                    tint: .purple
+                )
+            }
+
+            if let tempTarget = status.tempTarget {
+                InfoRow(
+                    symbol: "target",
+                    title: String(localized: "Temp target", comment: "Watch loop page row"),
+                    value: adjustmentText(tempTarget, fallback: String(localized: "Temp target", comment: "Fallback temp target name")),
+                    tint: .green
+                )
+            }
+        }
+        .sheet(isPresented: $showingReason) {
+            ScrollView {
+                Text(status.reason ?? "")
+                    .font(.footnote)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .navigationTitle(String(localized: "Reasoning", comment: "Watch loop page: determination reason"))
+        }
+    }
+
+    private var reservoirText: String {
+        if status.reservoirAboveReadingLimit { return "50+ " + String(localized: "U", comment: "Insulin unit") }
+        return status.reservoir.map { TrioOnWatchRules.insulin(Decimal($0)) } ?? "--"
+    }
+
+    private var reservoirTint: Color {
+        guard !status.reservoirAboveReadingLimit, let reservoir = status.reservoir else { return .secondary }
+        return reservoir <= 10 ? .loopRed : reservoir <= 30 ? .orange : .secondary
+    }
+
+    private var tempBasalText: String {
+        if status.insulinSuspended { return String(localized: "Insulin suspended", comment: "Watch loop page") }
+        guard let rate = status.tempBasalRate else {
+            return String(localized: "Scheduled basal", comment: "Watch loop page: no temp basal")
+        }
+        let amount = (Formatter.decimalFormatterWithTwoFractionDigits.string(from: rate as NSNumber) ?? "\(rate)") + " " +
+            String(localized: "U/h", comment: "Insulin rate unit")
+        return status.tempBasalEndsAt.map {
+            String(
+                localized: "\(amount) until \($0.formatted(date: .omitted, time: .shortened))",
+                comment: "Watch loop page: temp basal and its end"
+            )
+        } ?? amount
+    }
+
+    private func adjustmentText(_ adjustment: TrioOnWatchStatus.Adjustment, fallback: String) -> String {
+        let name = adjustment.name ?? fallback
+        return adjustment.endsAt.map {
+            String(localized: "\(name) until \($0.formatted(date: .omitted, time: .shortened))", comment: "Watch loop page")
+        } ?? name
+    }
+
+    private struct InfoRow: View {
+        let symbol: String
+        let title: String
+        let value: String
+        let tint: Color
+
+        var body: some View {
+            HStack(spacing: 8) {
+                Image(systemName: symbol)
+                    .foregroundStyle(tint)
+                    .frame(width: 20)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title).font(.caption2).foregroundStyle(.secondary)
+                    Text(value).font(.footnote).foregroundStyle(tint == .secondary ? .primary : tint)
+                }
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+}
