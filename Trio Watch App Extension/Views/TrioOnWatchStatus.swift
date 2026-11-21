@@ -355,7 +355,7 @@ extension TrioOnWatchStatus {
         let isStale = latest.map { now.timeIntervalSince($0.date) > TrioOnWatchRules.readingMaxAge } ?? true
         let iobText = iob.map { TrioOnWatchRules.insulin($0, maxFractionDigits: 2) } ?? "--"
         let cobText = cob
-            .map { String(localized: "\(Int(truncating: $0 as NSNumber)) g", comment: "Carbs on board in grams") } ?? "--"
+            .map { String(localized: "\(Int($0.nearestDouble.rounded())) g", comment: "Carbs on board in grams") } ?? "--"
         guard let latest, !isStale else {
             return MainValues(
                 glucose: "--",
