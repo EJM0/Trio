@@ -472,6 +472,8 @@ actor WatchLoanCoordinator {
         guard case let .grant(requestID, expiresAt) = message.kind, case let .lending(epoch, _) = state else { return }
         func reject(_ reason: LoanRefusal) {
             warning(.watch, "Grant not sent to Apple Watch: \(reason.rawValue)")
+            // otherwise the watch waits until its request times out
+            send(WatchLoanMessage(epoch: epoch, kind: .refused(requestID: requestID, reason: reason)))
             enqueue(.received(WatchLoanMessage(epoch: epoch, kind: .grantRejected(requestID: requestID, reason: reason))))
         }
         guard let pump = host.pump, pump.isReleased,
@@ -479,6 +481,7 @@ actor WatchLoanCoordinator {
         else { return reject(.releaseRefused) }
 
         let snapshotData: Data
+        var builtSnapshot: WatchLoanSnapshot?
         do {
             let snapshot = try await host.snapshot(
                 requestID: requestID,
@@ -492,6 +495,7 @@ actor WatchLoanCoordinator {
                 return reject(.snapshotIncomplete)
             }
             snapshotData = try snapshot.encoded()
+            builtSnapshot = snapshot
         } catch {
             warning(.watch, "Building the grant snapshot failed", error: error)
             return reject(.snapshotIncomplete)
@@ -507,6 +511,10 @@ actor WatchLoanCoordinator {
         let size = messageData.count + snapshotData.count
         guard size <= WatchLoanSnapshot.grantBudgetBytes else {
             warning(.watch, "Grant too large for a live message: \(size) bytes")
+            if let parts = builtSnapshot?.partSizes() {
+                let list = parts.map { "\($0.part) \($0.bytes) B (\($0.count))" }.joined(separator: ", ")
+                warning(.watch, "Grant parts, compressed: \(list)")
+            }
             return reject(.snapshotIncomplete)
         }
         guard host.transport?.sendLive([WatchLoanWireKey.message: messageData, WatchLoanWireKey.snapshot: snapshotData]) == true

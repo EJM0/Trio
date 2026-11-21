@@ -205,6 +205,11 @@ import Testing
         print("Watch loan grant size: snapshot JSON \(json.count) B, compressed \(wire.count) B, envelope \(envelope.count) B")
         #expect(wire.count + envelope.count <= WatchLoanSnapshot.grantBudgetBytes)
         #expect(try WatchLoanSnapshot.decode(wire).oref.tddHistory.count == 2880)
+
+        let parts = snapshot.partSizes()
+        print("Watch loan grant parts: \(parts.map { "\($0.part) \($0.bytes) B (\($0.count))" }.joined(separator: ", "))")
+        #expect(parts.allSatisfy { $0.bytes > 0 })
+        #expect(parts.first { $0.part == "TDD history" }?.count == 2880)
     }
 
     // MARK: The phone's gathered inputs

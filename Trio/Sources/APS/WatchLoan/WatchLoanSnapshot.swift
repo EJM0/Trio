@@ -155,6 +155,38 @@ extension WatchLoanSnapshot {
         return try (encoder.encode(self) as NSData).compressed(using: .lzfse) as Data
     }
 
+    /// Compressed size of each large part, for the log.
+    func partSizes() -> [(part: String, count: Int, bytes: Int)] {
+        func size(_ value: some Encodable) -> Int {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .customISO8601
+            guard let json = try? encoder.encode(value),
+                  let compressed = try? (json as NSData).compressed(using: .lzfse)
+            else { return -1 }
+            return compressed.length
+        }
+        var rest = self
+        rest.oref.tddHistory = []
+        rest.oref.glucose = []
+        rest.oref.pumpHistory = []
+        rest.oref.carbs = []
+        rest.smoothingWindow = []
+        rest.glucoseAlarms = []
+        rest.pumpExport = Data()
+        rest.cgmExport = Data()
+        return [
+            ("TDD history", oref.tddHistory.count, size(oref.tddHistory)),
+            ("glucose", oref.glucose.count, size(oref.glucose)),
+            ("pump history", oref.pumpHistory.count, size(oref.pumpHistory)),
+            ("carbs", oref.carbs.count, size(oref.carbs)),
+            ("smoothing window", smoothingWindow.count, size(smoothingWindow)),
+            ("glucose alarms", glucoseAlarms.count, size(glucoseAlarms)),
+            ("pump export", pumpExport.count, size(pumpExport)),
+            ("CGM export", cgmExport.count, size(cgmExport)),
+            ("everything else", 1, size(rest))
+        ]
+    }
+
     static func decode(_ data: Data) throws -> WatchLoanSnapshot {
         let json = try (data as NSData).decompressed(using: .lzfse) as Data
         return try JSONCoding.decoder.decode(WatchLoanSnapshot.self, from: json)

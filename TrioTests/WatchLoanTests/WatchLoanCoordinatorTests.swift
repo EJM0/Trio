@@ -311,6 +311,7 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(rig.transport.stops == [WatchLoanStop(kind: .revoke, epoch: 2)])
         #expect(rig.double.commands.suffix(3) == ["takeControl", "tempBasal(0.0)", "refreshDeliveredUnits"])
         #expect(!rig.double.isControlReleased)
+        #expect(rig.transport.messages.contains(F.message(1, .refused(requestID: F.requestA, reason: .phoneUnreachable))))
     }
 
     @Test("Start: a snapshot that can't be built retakes the same way") func snapshotFails() async throws {
@@ -319,6 +320,7 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         try await rig.receive(F.message(0, .request(requestID: F.requestA)))
         #expect(await rig.coordinator.state == .home(epoch: 2, lastLoan: LoanRecord(epoch: 1)))
         #expect(rig.transport.live.allSatisfy { $0[WatchLoanWireKey.snapshot] == nil })
+        #expect(rig.transport.messages.contains(F.message(1, .refused(requestID: F.requestA, reason: .snapshotIncomplete))))
     }
 
     // MARK: Take Back (R-1, R-2, M3C-10)
