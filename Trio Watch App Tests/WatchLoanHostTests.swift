@@ -432,6 +432,16 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         }
     }
 
+    @Test("A new loan doesn't show the previous loan's last loop or values") func newLoanStartsBlank() async throws {
+        let world = LoanFixture()
+        world.host.loop.lastConfirmedCycleAt = world.clock.addingTimeInterval(-3 * 3600)
+        world.host.loop.lastCycleAt = world.clock.addingTimeInterval(-3 * 3600)
+        world.host.loop.iob = 2
+        try await world.startLoan()
+        #expect(world.host.loop == WatchLoanHost.LoopStatus())
+        #expect(world.host.uiStatus().lastLoopAt == nil)
+    }
+
     @Test("A pump that answered and then dropped its idle link is not reported unreachable") func idleLinkAfterAnswer() async throws {
         for answered in [true, false] {
             let world = LoanFixture()

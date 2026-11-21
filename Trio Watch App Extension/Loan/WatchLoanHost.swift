@@ -396,6 +396,8 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         let (records, pulse) = (records, snapshot?.deliveryPulseUnits ?? 0.05)
         try await WatchLoanFiles.io { try records.reset(epoch: epoch, pulseUnits: pulse) }
         cycleInfo = WatchLoanCycleInfo(holdingSince: env.now(), autosens: snapshot?.oref.autosens)
+        // the previous loan's loop time and values would show while this one waits for its first reading
+        loop = LoopStatus()
         let (files, info) = (env.files, cycleInfo)
         try await WatchLoanFiles.io { try files.save(info, to: .cycle) }
     }
