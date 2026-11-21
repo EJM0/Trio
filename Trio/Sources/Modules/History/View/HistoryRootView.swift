@@ -16,6 +16,8 @@ extension History {
         @State var isAmountUnconfirmed: Bool = true
         @State var showTreatmentTypeFilter = false
         @State var selectedTreatmentTypes: Set<TreatmentType> = Set(TreatmentType.allCases)
+        /// While Apple Watch loops, the history is the watch's to change: no edit or delete here.
+        @State var watchHasPump = false
 
         @Environment(\.colorScheme) var colorScheme
         @Environment(\.managedObjectContext) var context
@@ -89,6 +91,9 @@ extension History {
                 })
                     .background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
                     .onAppear(perform: configureView)
+                    .onAppear {
+                        watchHasPump = resolver.resolve(WatchLoanGate.self)?.phoneMayCommandPump == false
+                    }
                     .onDisappear {
                         state.carbEntryDeleted = false
                         state.insulinEntryDeleted = false
@@ -115,6 +120,7 @@ extension History {
                                 showManualGlucose = true
                                 state.manualGlucose = 0
                             })
+                                .disabled(watchHasPump)
                         })
                     }
                     .sheet(isPresented: $showManualGlucose) {

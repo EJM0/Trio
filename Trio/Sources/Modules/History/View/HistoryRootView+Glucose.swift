@@ -51,20 +51,24 @@ extension History.RootView {
                             + ", " + Formatter.dateFormatter.string(from: glucose.date ?? Date())
                     ))
                     .contextMenu {
-                        Button(
-                            "Delete",
-                            systemImage: "trash.fill",
-                            role: .destructive,
-                            action: { requestDelete(.glucose(glucose)) }
-                        ).tint(.red)
+                        if !watchHasPump {
+                            Button(
+                                "Delete",
+                                systemImage: "trash.fill",
+                                role: .destructive,
+                                action: { requestDelete(.glucose(glucose)) }
+                            ).tint(.red)
+                        }
                     }
                     .swipeActions {
-                        Button(
-                            "Delete",
-                            systemImage: "trash.fill",
-                            role: .none,
-                            action: { requestDelete(.glucose(glucose)) }
-                        ).tint(.red)
+                        if !watchHasPump {
+                            Button(
+                                "Delete",
+                                systemImage: "trash.fill",
+                                role: .none,
+                                action: { requestDelete(.glucose(glucose)) }
+                            ).tint(.red)
+                        }
                     }
                 }
             } else {

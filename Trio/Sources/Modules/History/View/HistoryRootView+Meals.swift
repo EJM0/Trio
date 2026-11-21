@@ -57,44 +57,48 @@ extension History.RootView {
             }
         }
         .contextMenu {
-            Button(
-                "Delete",
-                systemImage: "trash.fill",
-                role: .destructive,
-                action: { requestDelete(.carbs(meal)) }
-            ).tint(.red)
+            if !watchHasPump {
+                Button(
+                    "Delete",
+                    systemImage: "trash.fill",
+                    role: .destructive,
+                    action: { requestDelete(.carbs(meal)) }
+                ).tint(.red)
 
-            Button(
-                "Edit",
-                systemImage: "pencil",
-                role: .none,
-                action: {
-                    state.carbEntryToEdit = meal
-                    state.showCarbEntryEditor = true
-                }
-            )
-            .tint(!state.settingsManager.settings.useFPUconversion && meal.isFPU ? Color(.systemGray4) : Color.blue)
-            .disabled(!state.settingsManager.settings.useFPUconversion && meal.isFPU)
+                Button(
+                    "Edit",
+                    systemImage: "pencil",
+                    role: .none,
+                    action: {
+                        state.carbEntryToEdit = meal
+                        state.showCarbEntryEditor = true
+                    }
+                )
+                .tint(!state.settingsManager.settings.useFPUconversion && meal.isFPU ? Color(.systemGray4) : Color.blue)
+                .disabled(!state.settingsManager.settings.useFPUconversion && meal.isFPU)
+            }
         }
         .swipeActions {
-            Button(
-                "Delete",
-                systemImage: "trash.fill",
-                role: .none,
-                action: { requestDelete(.carbs(meal)) }
-            ).tint(.red)
+            if !watchHasPump {
+                Button(
+                    "Delete",
+                    systemImage: "trash.fill",
+                    role: .none,
+                    action: { requestDelete(.carbs(meal)) }
+                ).tint(.red)
 
-            Button(
-                "Edit",
-                systemImage: "pencil",
-                role: .none,
-                action: {
-                    state.carbEntryToEdit = meal
-                    state.showCarbEntryEditor = true
-                }
-            )
-            .tint(!state.settingsManager.settings.useFPUconversion && meal.isFPU ? Color(.systemGray4) : Color.blue)
-            .disabled(!state.settingsManager.settings.useFPUconversion && meal.isFPU)
+                Button(
+                    "Edit",
+                    systemImage: "pencil",
+                    role: .none,
+                    action: {
+                        state.carbEntryToEdit = meal
+                        state.showCarbEntryEditor = true
+                    }
+                )
+                .tint(!state.settingsManager.settings.useFPUconversion && meal.isFPU ? Color(.systemGray4) : Color.blue)
+                .disabled(!state.settingsManager.settings.useFPUconversion && meal.isFPU)
+            }
         }
     }
 }
