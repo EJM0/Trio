@@ -162,7 +162,9 @@ struct GlucoseTrendView: View {
                             .fontWeight(.semibold)
                             .font(.system(.caption))
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                             .minimumScaleFactor(0.7)
+                            .frame(maxWidth: circleSize * 0.75)
                     }
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(Text(loanValues.accessibilityLabel))

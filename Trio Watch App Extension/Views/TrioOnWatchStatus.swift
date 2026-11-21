@@ -305,7 +305,8 @@ extension TrioOnWatchStatus {
         let age = latest.date.formattedTimeAgo()
         return MainValues(
             glucose: glucose,
-            detail: delta.map { "\($0) · \(age)" } ?? age,
+            // the delta alone, as the phone-controlled screen; "-0,3 · 1 min" doesn't fit in the ring
+            detail: delta ?? age,
             isStale: false,
             iob: iobText,
             cob: cobText,

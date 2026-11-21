@@ -79,7 +79,9 @@ import Testing
         let fresh = status(.inControl).mainValues(now: now)
         #expect(!fresh.isStale)
         #expect(fresh.glucose != "--")
-        #expect(fresh.detail.contains("·"))
+        // the delta alone fits in the ring
+        #expect(!fresh.detail.contains("·"))
+        #expect(fresh.detail == Decimal(3).formattedDelta(for: .mgdL))
         #expect(!fresh.accessibilityLabel.isEmpty)
 
         var withIOB = status(.inControl)
