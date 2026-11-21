@@ -458,98 +458,112 @@ struct ActionResultView: View {
 struct TrioOnWatchLoopPage: View {
     let status: TrioOnWatchStatus
     let now: Date
-    @State private var showingReason = false
+    @State private var showingResult = false
 
     private var latest: TrioOnWatchStatus.Reading? { status.readings.first }
 
     var body: some View {
-        let values = status.mainValues(now: now)
-        List {
-            Button { showingReason = true } label: {
-                InfoRow(
-                    symbol: "arrow.triangle.2.circlepath",
-                    title: String(localized: "Loop", comment: "Watch loop page row"),
-                    value: status.lastLoopAt.map {
-                        String(localized: "\($0.formattedTimeAgo()) ago", comment: "Watch loop page: age")
-                    } ?? String(localized: "No loop yet", comment: "Watch loop page: no loop yet"),
-                    tint: TrioOnWatchRules.loopTier(lastLoopAt: status.lastLoopAt, now: now).color
-                )
+        ScrollView {
+            VStack(spacing: 6) {
+                Grid(horizontalSpacing: 6, verticalSpacing: 6) {
+                    GridRow {
+                        Button { showingResult = true } label: { loopTile }
+                            .buttonStyle(.plain)
+                            .disabled(status.lastCycleResult == nil && status.reason == nil)
+                        sensorTile
+                    }
+                    GridRow {
+                        Tile(
+                            symbol: "drop.fill",
+                            title: String(localized: "Reservoir", comment: "Watch loop page tile"),
+                            value: reservoirText,
+                            detail: nil,
+                            tint: reservoirTint
+                        )
+                        Tile(
+                            symbol: "waveform.path.ecg",
+                            title: String(localized: "Temp basal", comment: "Watch loop page tile"),
+                            value: tempBasalValue,
+                            detail: tempBasalDetail,
+                            tint: status.insulinSuspended ? .orange : .secondary
+                        )
+                    }
+                }
+
+                if let override = status.override {
+                    AdjustmentLine(
+                        symbol: "clock.arrow.2.circlepath",
+                        text: adjustmentText(override, fallback: String(localized: "Override", comment: "Fallback override name")),
+                        tint: .purple
+                    )
+                }
+                if let tempTarget = status.tempTarget {
+                    AdjustmentLine(
+                        symbol: "target",
+                        text: adjustmentText(
+                            tempTarget,
+                            fallback: String(localized: "Temp target", comment: "Fallback temp target name")
+                        ),
+                        tint: .green
+                    )
+                }
             }
-            .disabled(status.reason == nil)
-
-            InfoRow(
-                symbol: "sensor.tag.radiowaves.forward",
-                title: String(localized: "Sensor", comment: "Watch loop page row"),
-                value: latest.map {
-                    "\(Decimal($0.mgdl).formatted(for: status.units)) · " +
-                        String(localized: "\($0.date.formattedTimeAgo()) ago", comment: "Watch loop page: age")
-                } ?? String(localized: "No reading yet", comment: "Watch loop page: no reading yet"),
-                tint: TrioOnWatchRules.readingTier(lastReadingAt: latest?.date, now: now).color
-            )
-
-            InfoRow(
-                symbol: "drop.fill",
-                title: String(localized: "Reservoir", comment: "Watch loop page row"),
-                value: reservoirText,
-                tint: reservoirTint
-            )
-
-            InfoRow(
-                symbol: "waveform.path.ecg",
-                title: String(localized: "Temp basal", comment: "Watch loop page row"),
-                value: tempBasalText,
-                tint: status.insulinSuspended ? .orange : .secondary
-            )
-
-            InfoRow(
-                symbol: "syringe.fill",
-                title: String(localized: "IOB", comment: "Watch loop page row: insulin on board"),
-                value: values.iob,
-                tint: .insulin
-            )
-
-            InfoRow(
-                symbol: "fork.knife",
-                title: String(localized: "COB", comment: "Watch loop page row: carbs on board"),
-                value: values.cob,
-                tint: .orange
-            )
-
-            if let eventual = status.eventualGlucose {
-                InfoRow(
-                    symbol: "chart.line.uptrend.xyaxis",
-                    title: String(localized: "Eventual glucose", comment: "Watch loop page row"),
-                    value: Decimal(eventual).formatted(for: status.units),
-                    tint: .secondary
-                )
-            }
-
-            if let override = status.override {
-                InfoRow(
-                    symbol: "clock.arrow.2.circlepath",
-                    title: String(localized: "Override", comment: "Watch loop page row"),
-                    value: adjustmentText(override, fallback: String(localized: "Override", comment: "Fallback override name")),
-                    tint: .purple
-                )
-            }
-
-            if let tempTarget = status.tempTarget {
-                InfoRow(
-                    symbol: "target",
-                    title: String(localized: "Temp target", comment: "Watch loop page row"),
-                    value: adjustmentText(tempTarget, fallback: String(localized: "Temp target", comment: "Fallback temp target name")),
-                    tint: .green
-                )
-            }
+            .padding(.horizontal, 2)
         }
-        .sheet(isPresented: $showingReason) {
+        .sheet(isPresented: $showingResult) {
             ScrollView {
-                Text(status.reason ?? "")
-                    .font(.footnote)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 8) {
+                    if let result = status.lastCycleResult {
+                        Text(String(localized: "Last cycle", comment: "Watch loop page: heading for the last cycle's result"))
+                            .font(.caption2).foregroundStyle(.secondary)
+                        Text(result).font(.footnote)
+                    }
+                    if let reason = status.reason {
+                        Text(String(localized: "Reasoning", comment: "Watch loop page: determination reason"))
+                            .font(.caption2).foregroundStyle(.secondary)
+                        Text(reason).font(.footnote)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .navigationTitle(String(localized: "Reasoning", comment: "Watch loop page: determination reason"))
+            .navigationTitle(String(localized: "Loop", comment: "Watch loop page: last cycle sheet title"))
         }
+    }
+
+    private var loopTile: some View {
+        Tile(
+            symbol: "arrow.triangle.2.circlepath",
+            title: String(localized: "Loop", comment: "Watch loop page tile"),
+            value: status.lastLoopAt.map {
+                String(localized: "\($0.formattedTimeAgo()) ago", comment: "Watch loop page: age")
+            } ?? String(localized: "No loop yet", comment: "Watch loop page: no loop yet"),
+            detail: countText(status.count(status.confirmedLoops, now: now), accessibility: { done, possible in
+                String(localized: "\(done) of \(possible) loops", comment: "Watch loop page: loops done of possible")
+            }),
+            tint: TrioOnWatchRules.loopTier(lastLoopAt: status.lastLoopAt, now: now).color
+        )
+    }
+
+    private var sensorTile: some View {
+        Tile(
+            symbol: "sensor.tag.radiowaves.forward",
+            title: String(localized: "Sensor", comment: "Watch loop page tile"),
+            value: latest.map {
+                "\(Decimal($0.mgdl).formatted(for: status.units)) · " +
+                    String(localized: "\($0.date.formattedTimeAgo()) ago", comment: "Watch loop page: age")
+            } ?? String(localized: "No reading yet", comment: "Watch loop page: no reading yet"),
+            detail: countText(status.count(status.watchReadings, now: now), accessibility: { done, possible in
+                String(localized: "\(done) of \(possible) readings", comment: "Watch loop page: readings received of possible")
+            }),
+            tint: TrioOnWatchRules.readingTier(lastReadingAt: latest?.date, now: now).color
+        )
+    }
+
+    private func countText(
+        _ count: (done: Int, possible: Int)?,
+        accessibility: (Int, Int) -> String
+    ) -> Tile.Detail? {
+        count.map { .init(text: "\($0.done)/\($0.possible)", spoken: accessibility($0.done, $0.possible)) }
     }
 
     private var reservoirText: String {
@@ -562,19 +576,22 @@ struct TrioOnWatchLoopPage: View {
         return reservoir <= 10 ? .loopRed : reservoir <= 30 ? .orange : .secondary
     }
 
-    private var tempBasalText: String {
-        if status.insulinSuspended { return String(localized: "Insulin suspended", comment: "Watch loop page") }
+    private var tempBasalValue: String {
+        if status.insulinSuspended { return String(localized: "Suspended", comment: "Watch loop page: insulin suspended") }
         guard let rate = status.tempBasalRate else {
-            return String(localized: "Scheduled basal", comment: "Watch loop page: no temp basal")
+            return String(localized: "Scheduled", comment: "Watch loop page: no temp basal, scheduled basal runs")
         }
-        let amount = (Formatter.decimalFormatterWithTwoFractionDigits.string(from: rate as NSNumber) ?? "\(rate)") + " " +
+        return (Formatter.decimalFormatterWithTwoFractionDigits.string(from: rate as NSNumber) ?? "\(rate)") + " " +
             String(localized: "U/h", comment: "Insulin rate unit")
-        return status.tempBasalEndsAt.map {
-            String(
-                localized: "\(amount) until \($0.formatted(date: .omitted, time: .shortened))",
-                comment: "Watch loop page: temp basal and its end"
-            )
-        } ?? amount
+    }
+
+    private var tempBasalDetail: Tile.Detail? {
+        guard !status.insulinSuspended, status.tempBasalRate != nil, let endsAt = status.tempBasalEndsAt else { return nil }
+        let text = String(
+            localized: "until \(endsAt.formatted(date: .omitted, time: .shortened))",
+            comment: "Watch loop page: when the temp basal ends"
+        )
+        return .init(text: text, spoken: text)
     }
 
     private func adjustmentText(_ adjustment: TrioOnWatchStatus.Adjustment, fallback: String) -> String {
@@ -584,22 +601,57 @@ struct TrioOnWatchLoopPage: View {
         } ?? name
     }
 
-    private struct InfoRow: View {
+    private struct Tile: View {
+        struct Detail {
+            var text: String
+            var spoken: String
+        }
+
         let symbol: String
         let title: String
         let value: String
+        let detail: Detail?
         let tint: Color
 
         var body: some View {
-            HStack(spacing: 8) {
-                Image(systemName: symbol)
-                    .foregroundStyle(tint)
-                    .frame(width: 20)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(title).font(.caption2).foregroundStyle(.secondary)
-                    Text(value).font(.footnote).foregroundStyle(tint == .secondary ? .primary : tint)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Image(systemName: symbol).foregroundStyle(tint).imageScale(.small)
+                    Text(title).foregroundStyle(.secondary)
                 }
+                .font(.caption2)
+                .lineLimit(1)
+                Text(value)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(tint == .secondary ? .primary : tint)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+                Text(detail?.text ?? " ")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .accessibilityLabel(detail?.spoken ?? "")
             }
+            .frame(maxWidth: .infinity, minHeight: 70, alignment: .topLeading)
+            .padding(6)
+            .background(Color.secondary.opacity(0.15), in: RoundedRectangle(cornerRadius: 10))
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    private struct AdjustmentLine: View {
+        let symbol: String
+        let text: String
+        let tint: Color
+
+        var body: some View {
+            HStack(spacing: 6) {
+                Image(systemName: symbol).foregroundStyle(tint)
+                Text(text).font(.caption2).lineLimit(2)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 6)
             .accessibilityElement(children: .combine)
         }
     }

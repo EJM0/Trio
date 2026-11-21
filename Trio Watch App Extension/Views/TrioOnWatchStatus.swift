@@ -60,6 +60,12 @@ struct TrioOnWatchStatus: Equatable {
     var eventualGlucose: Int?
     /// The last determination's reasoning.
     var reason: String?
+    /// What the last cycle did.
+    var lastCycleResult: String?
+    var watchModeSince: Date?
+    /// Confirmed loops and the watch's own readings since `watchModeSince`, at most one per 4 minutes.
+    var confirmedLoops = 0
+    var watchReadings = 0
     var pumpLastContact: Date?
     var reservoir: Double?
     /// An Omnipod reports its reservoir only below 50 U; above that it is shown as 50+, as on the phone.
@@ -917,6 +923,78 @@ extension TrioOnWatchStatus {
                 showsCancel: false,
                 showsRecentDoses: true
             )
+        }
+    }
+}
+
+extension TrioOnWatchStatus {
+    /// Done out of possible since watch mode started, one possible every 5 minutes.
+    func count(_ done: Int, now: Date) -> (done: Int, possible: Int)? {
+        guard let since = watchModeSince else { return nil }
+        return (done, max(done, Int(now.timeIntervalSince(since) / (5 * 60))))
+    }
+
+    /// What a cycle did, in the words of the loop page.
+    enum CycleResult {
+        static func noPumpStatus(patch: Bool) -> String {
+            patch
+                ? String(localized: "Stopped: couldn't read the patch.", comment: "Watch loop result")
+                : String(localized: "Stopped: couldn't read the pod.", comment: "Watch loop result")
+        }
+
+        static func glucose(_ failure: LoopGlucoseGuard.Failure) -> String {
+            switch failure {
+            case .notEnoughReadings:
+                return String(localized: "Stopped: not enough glucose readings in the last hour.", comment: "Watch loop result")
+            case .stale:
+                return String(localized: "Stopped: no recent glucose reading.", comment: "Watch loop result")
+            }
+        }
+
+        static let algorithmFailed = String(localized: "Stopped: the algorithm failed.", comment: "Watch loop result")
+
+        static func enacted(_ plan: WatchDosingGate.Plan, tempConfirmed: Bool?, bolusConfirmed: Bool?) -> String {
+            var lines: [String] = []
+            if let temp = plan.tempBasal {
+                let rate = (Formatter.decimalFormatterWithTwoFractionDigits.string(from: temp.unitsPerHour as NSNumber) ??
+                    "\(temp.unitsPerHour)") + " " + String(localized: "U/h", comment: "Insulin rate unit")
+                lines.append(
+                    temp.minutes == 0
+                        ? String(localized: "Temp basal cancelled.", comment: "Watch loop result")
+                        : String(localized: "Temp basal \(rate) for \(temp.minutes) min.", comment: "Watch loop result")
+                )
+                if tempConfirmed == false {
+                    lines.append(String(localized: "The pump didn't confirm the temp basal.", comment: "Watch loop result"))
+                }
+            }
+            if let units = plan.bolus {
+                lines.append(String(localized: "SMB \(TrioOnWatchRules.insulin(units)).", comment: "Watch loop result"))
+                if bolusConfirmed == false {
+                    lines.append(String(localized: "The pump didn't confirm the SMB.", comment: "Watch loop result"))
+                }
+            }
+            for held in plan.heldBack {
+                switch held {
+                case .automationOff:
+                    lines.append(String(localized: "Automatic dosing is off: nothing sent.", comment: "Watch loop result"))
+                case .pumpSuspended:
+                    lines.append(String(localized: "Insulin is suspended: nothing sent.", comment: "Watch loop result"))
+                case .tempAddsInsulin:
+                    lines.append(String(
+                        localized: "Higher temp basal held back until the last command is confirmed.",
+                        comment: "Watch loop result"
+                    ))
+                case .bolus:
+                    lines.append(String(
+                        localized: "SMB held back until the last command is confirmed.",
+                        comment: "Watch loop result"
+                    ))
+                }
+            }
+            if lines.isEmpty {
+                lines.append(String(localized: "No change needed.", comment: "Watch loop result"))
+            }
+            return lines.joined(separator: "\n")
         }
     }
 }

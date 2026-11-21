@@ -180,6 +180,25 @@ import Testing
         #expect(watch.chartForecast(cone: false).lines["iob"] == [100, 110])
     }
 
+    @Test("Loop page counts: done out of one possible every 5 minutes since watch mode started") func loopPageCounts() {
+        var watch = status(.inControl)
+        #expect(watch.count(2, now: now) == nil)
+        watch.watchModeSince = ago(17)
+        #expect(watch.count(2, now: now)! == (2, 3))
+        #expect(watch.count(4, now: now)! == (4, 4))
+    }
+
+    @Test("Loop page: what the last cycle did") func cycleResult() {
+        typealias Result = TrioOnWatchStatus.CycleResult
+        #expect(Result.enacted(.init(), tempConfirmed: nil, bolusConfirmed: nil) == "No change needed.")
+        let temp = Result.enacted(.init(tempBasal: .init(unitsPerHour: 1.2, minutes: 30)), tempConfirmed: true, bolusConfirmed: nil)
+        #expect(temp.contains("30 min") && !temp.contains("confirm"))
+        let unconfirmed = Result.enacted(.init(bolus: 0.3), tempConfirmed: nil, bolusConfirmed: false)
+        #expect(unconfirmed.contains("SMB") && unconfirmed.contains("didn't confirm"))
+        #expect(Result.enacted(.init(heldBack: [.pumpSuspended]), tempConfirmed: nil, bolusConfirmed: nil).contains("suspended"))
+        #expect(Result.noPumpStatus(patch: true).contains("patch"))
+    }
+
     @Test("Primary action and footer by state") func primaryAndFooter() {
         #expect(status(.phone).primaryAction == .start)
         #expect(status(.starting).primaryAction == nil)

@@ -96,6 +96,11 @@ struct WatchLoanCycleInfo: Codable {
     var podContactFailures: Int = 0
     var podLinkNoticeShown = false
     var summary = DailySummary()
+    /// Confirmed cycles in this loan, at most one per 4 minutes, for the loop page's count.
+    var confirmedLoops: Int?
+    var lastCountedLoopAt: Date?
+    /// What the last cycle did, as the loop page shows it.
+    var lastResult: String?
 
     /// Counts for one log line a day, so a hardware run shows its wakes, readings and cycles.
     struct DailySummary: Codable {

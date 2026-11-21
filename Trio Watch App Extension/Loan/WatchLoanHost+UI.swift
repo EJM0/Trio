@@ -31,6 +31,9 @@ extension WatchLoanHost {
         status.eventualGlucose = loop.eventualGlucose
         status.reason = loop.reason
         status.forecast = loop.forecast
+        status.lastCycleResult = cycleInfo.lastResult
+        status.watchModeSince = cycleInfo.holdingSince
+        status.confirmedLoops = cycleInfo.confirmedLoops ?? 0
         status.insulinSuspended = loop.pumpSuspended
         status.bolus = bolus
         status.lastAlert = lastAlert
@@ -54,6 +57,15 @@ extension WatchLoanHost {
                 byDate[reading.dateString] = .init(date: reading.dateString, mgdl: mgdl, direction: reading.direction?.rawValue)
             }
             status.chartReadings = byDate.values.sorted { $0.date < $1.date }
+            if let since = cycleInfo.holdingSince {
+                var counted: Date?
+                status.watchReadings = records.snapshot.glucose.map(\.dateString).filter { $0 >= since }.sorted()
+                    .reduce(0) { count, date in
+                        guard date.timeIntervalSince(counted ?? .distantPast) >= Self.countedSpacing else { return count }
+                        counted = date
+                        return count + 1
+                    }
+            }
             status.sensorEndsAt = snapshot.sensorEndsAt
             status.sensorNeedsPairing = env.cgm?.needsPairing ?? false
             status.podEndsAt = snapshot.podEndsAt

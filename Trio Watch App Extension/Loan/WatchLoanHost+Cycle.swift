@@ -99,7 +99,7 @@ extension WatchLoanHost {
         guard let lastSync, statusRead.timeIntervalSince(lastSync) <= WatchLoopPolicy.pumpStatusMaxAge else {
             WatchLogger.shared.warning(.loop, "Cycle stopped: no fresh pump status")
             noPodContact(now: statusRead)
-            finish(start: start, confirmed: false)
+            finish(start: start, confirmed: false, result: TrioOnWatchStatus.CycleResult.noPumpStatus(patch: snapshot.versions.pumpManager == "Medtrum"))
             return
         }
         if pump.refusesSessions {
@@ -118,7 +118,7 @@ extension WatchLoanHost {
             now: statusRead
         ) {
             WatchLogger.shared.warning(.loop, "Cycle stopped: glucose check failed (\(failure))")
-            finish(start: start, confirmed: false)
+            finish(start: start, confirmed: false, result: TrioOnWatchStatus.CycleResult.glucose(failure))
             return
         }
 
@@ -149,12 +149,12 @@ extension WatchLoanHost {
             outputs = try await Self.runOref(inputs)
         } catch {
             WatchLogger.shared.error(.loop, "Cycle stopped: oref failed", error: error)
-            finish(start: start, confirmed: false)
+            finish(start: start, confirmed: false, result: TrioOnWatchStatus.CycleResult.algorithmFailed)
             return
         }
         guard let determination = outputs.determination else {
             WatchLogger.shared.error(.loop, "Cycle stopped: no determination")
-            finish(start: start, confirmed: false)
+            finish(start: start, confirmed: false, result: TrioOnWatchStatus.CycleResult.algorithmFailed)
             return
         }
         lastOutputs = outputs
@@ -178,20 +178,27 @@ extension WatchLoanHost {
         if !plan.heldBack.isEmpty {
             WatchLogger.shared.warning(.loop, "Held back: \(plan.heldBack.map { "\($0)" }.joined(separator: ", "))")
         }
+        var tempOutcome: CommandOutcome?
+        var bolusOutcome: CommandOutcome?
         if let temp = plan.tempBasal {
             WatchLogger.shared.info(.loop, "Command starts \(Self.seconds(since: start, now: env.now())) s after the wake")
-            confirmed = await command(.tempBasal(unitsPerHour: temp.unitsPerHour, minutes: temp.minutes)) == .confirmed &&
-                confirmed
+            tempOutcome = await command(.tempBasal(unitsPerHour: temp.unitsPerHour, minutes: temp.minutes))
+            confirmed = tempOutcome == .confirmed && confirmed
         }
         if let units = plan.bolus {
-            confirmed = await command(.bolus(units: units, automatic: true)) == .confirmed && confirmed
+            bolusOutcome = await command(.bolus(units: units, automatic: true))
+            confirmed = bolusOutcome == .confirmed && confirmed
         }
         if plan.tempBasal == nil, plan.bolus == nil {
             await readPodAheadOfNextWake(pump)
         }
 
         updateLoopStatus(outputs, pump: pump)
-        finish(start: start, confirmed: confirmed)
+        finish(start: start, confirmed: confirmed, result: TrioOnWatchStatus.CycleResult.enacted(
+            plan,
+            tempConfirmed: tempOutcome.map { $0 == .confirmed },
+            bolusConfirmed: bolusOutcome.map { $0 == .confirmed }
+        ))
         checkBattery()
         await sendRecords(epoch: epoch)
 
@@ -239,13 +246,18 @@ extension WatchLoanHost {
         }
     }
 
-    private func finish(start: Date, confirmed: Bool) {
+    private func finish(start: Date, confirmed: Bool, result: String) {
         noteSummary { summary in
             summary.cycles += 1
             if confirmed { summary.confirmed += 1 }
         }
         let now = env.now()
         cycleInfo.lastCycleAt = now
+        cycleInfo.lastResult = result
+        if confirmed, now.timeIntervalSince(cycleInfo.lastCountedLoopAt ?? .distantPast) >= Self.countedSpacing {
+            cycleInfo.confirmedLoops = (cycleInfo.confirmedLoops ?? 0) + 1
+            cycleInfo.lastCountedLoopAt = now
+        }
         if confirmed {
             cycleInfo.lastConfirmedCycleAt = now
             cycleInfo.podContactFailures = 0
