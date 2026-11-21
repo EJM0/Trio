@@ -52,6 +52,8 @@ struct WatchLoanEnvironment {
     var requestTimeout: TimeInterval = WatchLoan.watchRequestTimeout
     var handBackResendInterval: TimeInterval = 60
     var phoneAnswerTimeout: TimeInterval = 5
+    /// How long End keeps asking the phone before it says the phone didn't answer.
+    var phoneAnswerWindow: TimeInterval = 25
     var grantPartsWait: TimeInterval = 5
 }
 

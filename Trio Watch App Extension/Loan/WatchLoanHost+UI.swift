@@ -223,7 +223,43 @@ extension WatchLoanHost {
     }
 
     /// End is tried, not pre-blocked on a reachability flag (G-15): the phone must answer a live query first.
+    /// End asks until the phone answers or `phoneAnswerWindow` has passed: one unanswered try, or a moment the
+    /// phone isn't reachable, isn't enough to refuse. Each try is logged.
     func phoneAnswers() async -> Bool {
+        let clock = ContinuousClock()
+        let start = clock.now
+        let window = Duration.seconds(env.phoneAnswerWindow)
+        var tries = 0
+        var waitedForReach = false
+        while clock.now - start < window {
+            guard env.transport.isReachable else {
+                if !waitedForReach {
+                    WatchLogger.shared.info(.connectivity, "End: the phone isn't reachable, waiting for it")
+                    waitedForReach = true
+                }
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                continue
+            }
+            tries += 1
+            let asked = clock.now
+            if await askPhoneOnce() {
+                let seconds = (clock.now - asked).components.seconds
+                WatchLogger.shared.info(.connectivity, "End: the phone answered in \(seconds) s, try \(tries)")
+                return true
+            }
+            WatchLogger.shared.warning(
+                .connectivity,
+                "End: the phone didn't answer within \(Int(env.phoneAnswerTimeout)) s, try \(tries), reachable \(env.transport.isReachable)"
+            )
+        }
+        WatchLogger.shared.warning(
+            .connectivity,
+            "End not started: no answer from the phone in \(Int(env.phoneAnswerWindow)) s, \(tries) tries"
+        )
+        return false
+    }
+
+    private func askPhoneOnce() async -> Bool {
         let envelope = WatchLoanEnvelope(
             protocolVersion: WatchLoanEnvelope.currentProtocolVersion,
             messageID: UUID(),

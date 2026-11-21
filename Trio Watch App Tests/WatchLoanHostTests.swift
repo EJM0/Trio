@@ -135,6 +135,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
             requestTimeout: requestTimeout,
             handBackResendInterval: handBackResend,
             phoneAnswerTimeout: 0.2,
+            phoneAnswerWindow: 1.5,
             grantPartsWait: 0.3
         ))
         return created
@@ -1158,6 +1159,24 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.host.cycleInfo.phoneReadings == 1)
         #expect(world.host.cycleInfo.summary.cycles == cycles + 2)
         #expect(world.host.uiStatus().phoneReadings == 1)
+    }
+
+    @Test("End keeps asking the phone: it waits for reach and retries a silent one, within the window") func endAsksPhone(
+    ) async throws {
+        let world = LoanFixture()
+        try await world.startLoan()
+
+        world.transport.phoneEpoch = nil
+        #expect(await world.host.phoneAnswers() == false)
+        #expect(world.transport.messages.filter { $0.kind == .statusQuery }.count > 1)
+
+        world.transport.isReachable = false
+        world.transport.phoneEpoch = 1
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            world.transport.isReachable = true
+        }
+        #expect(await world.host.phoneAnswers())
     }
 
     @Test("Duplicate messages are dropped by their persisted id, across a relaunch") func dedupe() async throws {

@@ -9,8 +9,17 @@ extension BaseWatchManager: WatchLoanTransport {
 
     /// The watch asks after a relaunch whether the loan it holds still stands.
     func answerLoanStatusQuery(_ replyHandler: @escaping ([String: Any]) -> Void) {
-        guard let coordinator = watchLoanCoordinator else { return replyHandler([:]) }
-        Task { replyHandler(await coordinator.statusAnswer()) }
+        guard let coordinator = watchLoanCoordinator else {
+            warning(.watch, "Watch loan status query answered empty: no coordinator")
+            return replyHandler([:])
+        }
+        let asked = Date()
+        Task {
+            let answer = await coordinator.statusAnswer()
+            replyHandler(answer)
+            let epoch = (answer[WatchLoanWireKey.phoneEpoch] as? NSNumber).map { "\($0.int64Value)" } ?? "none"
+            info(.watch, "Watch loan status query answered in \(Int(Date().timeIntervalSince(asked) * 1000)) ms, epoch \(epoch)")
+        }
     }
 
     /// The watch's Start screen asks for the pod, sensor and override facts before the user confirms.
