@@ -82,6 +82,10 @@ import Testing
         #expect(fresh.detail.contains("·"))
         #expect(!fresh.accessibilityLabel.isEmpty)
 
+        var withIOB = status(.inControl)
+        withIOB.iob = Decimal(string: "7.995")
+        #expect(withIOB.mainValues(now: now).iob == Formatter.decimalFormatterWithTwoFractionDigits.string(from: 7.995 as NSNumber))
+
         var old = status(.inControl)
         old.readings = [.init(date: ago(13), mgdl: 112)]
         let stale = old.mainValues(now: now)

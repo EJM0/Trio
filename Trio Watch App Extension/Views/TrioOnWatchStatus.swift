@@ -284,7 +284,8 @@ extension TrioOnWatchStatus {
     func mainValues(now: Date) -> MainValues {
         let latest = readings.first
         let isStale = latest.map { now.timeIntervalSince($0.date) > TrioOnWatchRules.readingMaxAge } ?? true
-        let iobText = iob.map { TrioOnWatchRules.insulin($0) } ?? "--"
+        // as the phone-controlled main screen: at most two decimals, no unit
+        let iobText = iob.flatMap { Formatter.decimalFormatterWithTwoFractionDigits.string(from: $0 as NSNumber) } ?? "--"
         let cobText = cob
             .map { String(localized: "\(Int(truncating: $0 as NSNumber)) g", comment: "Carbs on board in grams") } ?? "--"
         guard let latest, !isStale else {
