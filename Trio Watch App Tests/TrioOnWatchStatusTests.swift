@@ -146,6 +146,15 @@ import Testing
         #expect(watch.rows(now: now).first { $0.id == "sensor" }?.tint == .orange)
     }
 
+    @Test("The arrow follows the watch's latest reading while it is fresh") func trendArrow() {
+        var watch = status(.inControl)
+        watch.readings = [.init(date: ago(3), mgdl: 112, direction: "FortyFiveUp")]
+        #expect(watch.trend(now: now) == "FortyFiveUp")
+        #expect(GlucoseTrendView.degrees(for: watch.trend(now: now)) == -45)
+        watch.readings = [.init(date: ago(13), mgdl: 112, direction: "FortyFiveUp")]
+        #expect(watch.trend(now: now) == nil, "a stale reading hides the arrow")
+    }
+
     @Test("Primary action and footer by state") func primaryAndFooter() {
         #expect(status(.phone).primaryAction == .start)
         #expect(status(.starting).primaryAction == nil)

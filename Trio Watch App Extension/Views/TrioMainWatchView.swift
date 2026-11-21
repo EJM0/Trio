@@ -387,22 +387,7 @@ struct TrioMainWatchView: View {
     #endif
 
     private func updateRotation(for trend: String?) {
-        switch trend {
-        case "DoubleUp",
-             "SingleUp":
-            rotationDegrees = -90
-        case "FortyFiveUp":
-            rotationDegrees = -45
-        case "Flat":
-            rotationDegrees = 0
-        case "FortyFiveDown":
-            rotationDegrees = 45
-        case "DoubleDown",
-             "SingleDown":
-            rotationDegrees = 90
-        default:
-            rotationDegrees = 0
-        }
+        rotationDegrees = GlucoseTrendView.degrees(for: trend)
     }
 
     private func handleTreatmentSelection() {

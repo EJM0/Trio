@@ -15,6 +15,8 @@ struct TrioOnWatchStatus: Equatable {
     struct Reading: Equatable {
         var date: Date
         var mgdl: Int
+        /// The sensor's trend, as a `BloodGlucose.Direction` raw value.
+        var direction: String? = nil
     }
 
     struct Adjustment: Equatable {
@@ -57,6 +59,14 @@ struct TrioOnWatchStatus: Equatable {
     var recentDoses: [Dose] = []
     var bolus: WatchLoanHost.BolusProgress = .idle
     var lastAlert: LoanAlert?
+
+    /// The trend of the watch's latest reading while it is fresh; nil hides the arrow.
+    func trend(now: Date) -> String? {
+        guard let latest = readings.first, now.timeIntervalSince(latest.date) <= TrioOnWatchRules.readingMaxAge else {
+            return nil
+        }
+        return latest.direction
+    }
 
     /// The watch gives insulin; the treatment buttons talk to the watch, not the phone.
     var isInControl: Bool { phase == .inControl }
