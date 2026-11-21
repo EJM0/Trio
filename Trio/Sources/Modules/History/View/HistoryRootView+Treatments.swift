@@ -113,7 +113,7 @@ extension History.RootView {
             Text(Formatter.dateFormatter.string(from: item.timestamp ?? Date())).moveDisabled(true)
         }
         .contextMenu {
-            if item.bolus != nil {
+            if !watchHasPump, item.bolus != nil {
                 Button(
                     "Delete",
                     systemImage: "trash.fill",
@@ -123,7 +123,7 @@ extension History.RootView {
             }
         }
         .swipeActions {
-            if item.bolus != nil {
+            if !watchHasPump, item.bolus != nil {
                 Button(
                     "Delete",
                     systemImage: "trash.fill",
