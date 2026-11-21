@@ -17,7 +17,8 @@ struct WatchIobCobPoint {
     let cob: Double
 }
 
-/// As on the phone's main chart: a blue triangle above the reading for insulin, an orange dot below it for carbs.
+/// As on the phone's main chart: a blue triangle pointing down above the reading for insulin, an orange one pointing
+/// up below it for carbs.
 struct TreatmentMarks: ChartContent {
     let markers: [WatchTreatmentMarker]
     let glucose: [(date: Date, glucose: Double, color: Color)]
@@ -40,7 +41,10 @@ struct TreatmentMarks: ChartContent {
                             .foregroundStyle(Color.insulin)
                             .offset(y: -8)
                     case .carbs:
-                        Circle().fill(Color.orange).frame(width: 7, height: 7).offset(y: 8)
+                        Image(systemName: "arrowtriangle.up.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(Color.orange)
+                            .offset(y: 8)
                     }
                 }
         }
