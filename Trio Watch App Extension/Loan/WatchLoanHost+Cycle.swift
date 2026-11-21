@@ -394,6 +394,21 @@ extension WatchLoanHost {
         }
     }
 
+    /// The boluses, SMBs and carbs of the last 24 hours, the copy's and the watch's own, for the chart's markers.
+    func publishChartMarkers() {
+        let recent = history(since: env.now().addingTimeInterval(-24 * 60 * 60))
+        let insulin = recent.insulin.compactMap { event -> WatchTreatmentMarker? in
+            guard event.type == .bolus || event.type == .smb else { return nil }
+            let kind: WatchTreatmentMarker.Kind = event.type == .smb || event.isSMB == true ? .smb : .bolus
+            return WatchTreatmentMarker(id: "insulin-\(event.id)", date: event.timestamp, kind: kind)
+        }
+        let carbs = recent.carbs.map { entry -> WatchTreatmentMarker in
+            let date = entry.actualDate ?? entry.createdAt
+            return WatchTreatmentMarker(id: "carbs-\(entry.id ?? "\(date.timeIntervalSince1970)")", date: date, kind: .carbs)
+        }
+        WatchState.shared.treatmentMarkers = insulin + carbs
+    }
+
     static func seconds(since start: Date, now: Date) -> String {
         String(format: "%.1f", now.timeIntervalSince(start))
     }
@@ -619,6 +634,7 @@ extension WatchLoanHost {
 
     /// Queues what the phone hasn't acknowledged yet.
     func sendRecords(epoch: Int64) async {
+        publishChartMarkers()
         do {
             let (records, now) = (records, env.now())
             var batch = try await WatchLoanFiles.io { try records.nextBatch(epoch: epoch, now: now) }
