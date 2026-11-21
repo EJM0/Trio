@@ -476,6 +476,9 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
 
     func didReturnHome() {
         deviceDataManager.resyncPumpAfterTakeBack()
+        // loop now instead of at the next reading, so the loop age doesn't count the time the watch had the pump
+        info(.loop, "Loop requested after taking the pump back from Apple Watch")
+        deviceDataManager.recommendsLoop.send()
     }
 
     func onForeignPodSession(_ action: @escaping () -> Void) {
