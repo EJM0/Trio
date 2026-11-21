@@ -759,7 +759,7 @@ extension TrioOnWatchStatus {
             return String(localized: "Bring your iPhone close and try again.", comment: "Watch refusal")
         case .unsupportedDevice:
             return String(
-                localized: "Trio on Watch works with an Omnipod DASH pod and a Dexcom G7 shared with your watch.",
+                localized: "Trio on Watch works with an Omnipod DASH pod or a Medtrum Nano patch, and a Dexcom G7 shared with your watch.",
                 comment: "Watch refusal"
             )
         case .pumpScreenOpen:

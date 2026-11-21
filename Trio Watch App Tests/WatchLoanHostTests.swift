@@ -1342,3 +1342,17 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         }
     }
 }
+
+@Suite("Watch loan pump kits") struct WatchLoanPumpKitTests {
+    @Test("The saved pump state names its kit, so a relaunch rebuilds the same one") func savedStateNamesKit() {
+        let pump = LoanPumpDouble(pod: PodModel())
+        let saved = LoanPumpFactory.savedState(of: pump)
+        #expect(saved[LoanPumpFactory.pluginKey] as? String == "LoanPumpDouble")
+        #expect(saved["double"] as? Bool == true)
+    }
+
+    @Test("A grant for a kit the watch doesn't have is refused") func unknownKit() {
+        let export = SharedDeviceConfiguration(managerIdentifier: "Unknown", asOf: Date(), state: [:])
+        #expect(LoanPumpFactory.kits.adopt(export, nil) == nil)
+    }
+}

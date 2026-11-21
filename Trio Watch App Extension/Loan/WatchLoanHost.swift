@@ -473,7 +473,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             return
         }
         do {
-            let rawState = manager.rawState
+            let rawState = LoanPumpFactory.savedState(of: manager)
             try await WatchLoanFiles.io { try files.savePlist(rawState, to: .pumpState) }
         } catch {
             // without its saved state a relaunch can't know the kit adopted: don't let it reach the pod

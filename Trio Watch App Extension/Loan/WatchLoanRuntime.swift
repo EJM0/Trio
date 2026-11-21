@@ -18,7 +18,7 @@ import WatchKit
                 files: files,
                 transport: WCSessionLoanTransport(),
                 notifier: UserNotificationLoanNotifier(),
-                pumpFactory: .omnipod,
+                pumpFactory: .kits,
                 cgm: cgm,
                 isForeground: { WKApplication.shared().applicationState == .active },
                 batteryLevel: {

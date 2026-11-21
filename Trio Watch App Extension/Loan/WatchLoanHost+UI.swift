@@ -1,5 +1,6 @@
 import Foundation
 import LoopKit
+import MedtrumKit
 import OmnipodKit
 
 /// Read-only values and the one query the Trio on Watch screens need. Nothing here commands the pump.
@@ -87,6 +88,11 @@ extension WatchLoanHost {
             status.reservoirAboveReadingLimit = reservoir.map { $0 > 50 } ?? false
             status.podEndsAt = omnipod.state.podState?.expiresAt ?? status.podEndsAt
             status.podFaulted = omnipod.deliveredUnitsAreFinal
+        } else if let medtrum = pump as? MedtrumPumpManager {
+            status.pumpLastContact = medtrum.lastSync
+            status.reservoir = medtrum.state.reservoir
+            status.podEndsAt = medtrum.deliveryEndsAt ?? status.podEndsAt
+            status.podFaulted = medtrum.deliveredUnitsAreFinal
         }
         return status
     }

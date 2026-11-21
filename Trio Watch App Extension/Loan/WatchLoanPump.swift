@@ -1,5 +1,6 @@
 import Foundation
 import LoopKit
+import MedtrumKit
 import OmnipodKit
 
 /// The pump the watch borrows: LoopKit's pump, hand-off and odometer APIs, and the kit's report of another
@@ -13,15 +14,36 @@ protocol LoanPump: PumpManager, ExclusiveDeviceControl, PumpDeliveryOdometer {
 }
 
 extension OmniPumpManager: LoanPump {}
+extension MedtrumPumpManager: LoanPump {}
 
 /// Builds the one pump manager the watch keeps: once from the grant, afterwards only from its own saved state.
 struct LoanPumpFactory {
     var adopt: (SharedDeviceConfiguration, [String: Any]?) -> LoanPump?
     var restore: ([String: Any]) -> LoanPump?
 
-    static let omnipod = LoanPumpFactory(
-        adopt: { OmniPumpManager(adopting: $0, localState: $1) },
-        restore: { OmniPumpManager(rawState: $0) }
+    /// Saved with the kit's state so a relaunch rebuilds the same kit. States saved without it are Omnipod's.
+    static let pluginKey = "trioLoanPlugin"
+
+    static func savedState(of pump: PumpManager) -> [String: Any] {
+        var raw = pump.rawState
+        raw[pluginKey] = pump.pluginIdentifier
+        return raw
+    }
+
+    static let kits = LoanPumpFactory(
+        adopt: { configuration, localState in
+            switch configuration.managerIdentifier {
+            case "Medtrum": return MedtrumPumpManager(adopting: configuration, localState: localState)
+            case "Omni": return OmniPumpManager(adopting: configuration, localState: localState)
+            default: return nil
+            }
+        },
+        restore: { raw in
+            switch raw[pluginKey] as? String {
+            case "Medtrum": return MedtrumPumpManager(rawState: raw)
+            default: return OmniPumpManager(rawState: raw)
+            }
+        }
     )
 }
 
@@ -41,7 +63,7 @@ final class WatchLoanPumpDelegate: PumpManagerDelegate {
 
     func pumpManagerDidUpdateState(_ pumpManager: PumpManager) {
         do {
-            try files.savePlist(pumpManager.rawState, to: .pumpState)
+            try files.savePlist(LoanPumpFactory.savedState(of: pumpManager), to: .pumpState)
         } catch {
             WatchLogger.shared.error(.pump, "Saving the pump state failed", error: error)
             Task { @MainActor [weak host] in host?.pumpStateNotSaved() }
