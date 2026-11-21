@@ -175,6 +175,7 @@ extension WatchLoanHost {
             .loop,
             "Determination in \(Self.seconds(since: orefStart, now: env.now())) s, SMB \(microBolusAllowed ? "allowed" : "off"): eventual BG \(determination.eventualBG.map { "\($0) mg/dL" } ?? "none"), temp basal \(determination.rate.map { "\($0) U/h for \(determination.duration ?? 0) min" } ?? "none"), SMB \(determination.units ?? 0) U"
         )
+        logMeal(outputs.meal, inputs: inputs, now: now)
         evaluateDeterminationAlarms(determination, now: now)
 
         let plan = WatchDosingGate.plan(
@@ -392,6 +393,17 @@ extension WatchLoanHost {
                 at: anchor
             )
         }
+    }
+
+    /// Why COB is what it is: oref's COB is 0 without carbs in its window, or without deviations from the last 45 min
+    /// of readings (its zombie-carb rule).
+    private func logMeal(_ meal: ComputedCarbs?, inputs: OrefInputs, now: Date) {
+        let newest = inputs.carbs.first.map { "\($0.carbs) g at \(Int(now.timeIntervalSince($0.createdAt) / 60)) min ago" } ?? "none"
+        let recentReadings = inputs.glucose.filter { now.timeIntervalSince($0.dateString) <= 45 * 60 }.count
+        WatchLogger.shared.info(
+            .loop,
+            "Meal: \(inputs.carbs.count) carb entries (newest \(newest)), COB \(meal.map { "\($0.mealCOB) g of \($0.carbs) g" } ?? "none"), \(meal?.allDeviations.count ?? 0) deviations, \(recentReadings) readings in the last 45 min"
+        )
     }
 
     /// The boluses, SMBs and carbs of the last 24 hours, the copy's and the watch's own, for the chart's markers.
