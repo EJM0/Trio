@@ -242,7 +242,7 @@ extension WatchLoopInputs {
 
     /// Mirrors the phone's pump history rules (`PumpHistoryStorage.storePumpEvents`): one event per sync identifier, a
     /// finalized one never changes, and a complete pending report drops the pending events it no longer has. Events
-    /// without a sync identifier are dropped (OmnipodKit always sets one). A new kit record of a dose the watch booked
+    /// without a sync identifier are dropped (the kits set one from the raw data). A new kit record of a dose the watch booked
     /// replaces the closest booking and names it, so the phone deletes its copy.
     static func store(
         _ events: [NewPumpEvent],
