@@ -93,6 +93,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         var pumpSuspended = false
         /// The last determination's reasoning.
         var reason: String?
+        var forecast: TrioOnWatchStatus.Forecast?
     }
 
     private(set) var state: WatchLoanState

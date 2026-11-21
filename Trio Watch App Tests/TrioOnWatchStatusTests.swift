@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 @testable import Trio
 
@@ -160,6 +161,23 @@ import Testing
         #expect(TrioOnWatchRules.readingTier(lastReadingAt: ago(9), now: now) == .aging)
         #expect(TrioOnWatchRules.readingTier(lastReadingAt: ago(13), now: now) == .stale)
         #expect(TrioOnWatchRules.readingTier(lastReadingAt: nil, now: now) == .unknown)
+    }
+
+    @Test("In watch mode the graph shows the watch's readings and forecast") func watchModeGraph() {
+        var watch = status(.inControl)
+        let phone: [(date: Date, glucose: Double, color: Color)] = [(ago(60), 102, .green), (ago(55), 240, .orange), (ago(10), 101, .green)]
+        #expect(watch.chartValues(phone: phone).count == 3)
+
+        watch.chartReadings = [.init(date: ago(10), mgdl: 101), .init(date: ago(5), mgdl: 250)]
+        let values = watch.chartValues(phone: phone)
+        #expect(values.map(\.date) == [ago(60), ago(55), ago(10), ago(5)])
+        #expect(values.last?.glucose == 250 && values.last?.color == .orange)
+
+        #expect(watch.chartForecast(cone: true).start == nil)
+        watch.forecast = .init(start: now, lines: ["iob": [100, 110], "zt": [90]])
+        let cone = watch.chartForecast(cone: true)
+        #expect(cone.start == now && cone.coneMin == [90] && cone.coneMax == [100])
+        #expect(watch.chartForecast(cone: false).lines["iob"] == [100, 110])
     }
 
     @Test("Primary action and footer by state") func primaryAndFooter() {

@@ -282,6 +282,14 @@ extension WatchLoanHost {
         loop.cob = outputs.meal?.mealCOB
         loop.eventualGlucose = outputs.determination?.eventualBG
         loop.reason = outputs.determination?.reason
+        loop.forecast = outputs.determination?.predictions.map { predictions in
+            TrioOnWatchStatus.Forecast(
+                start: outputs.determination?.deliverAt ?? env.now(),
+                lines: ["iob": predictions.iob, "zt": predictions.zt, "cob": predictions.cob, "uam": predictions.uam]
+                    .compactMapValues { $0.map { Array($0.prefix(24)) } }
+                    .filter { !$0.value.isEmpty }
+            )
+        }
         if case let .tempBasal(dose) = pump.status.basalDeliveryState {
             loop.tempBasalRate = Decimal(dose.unitsPerHour)
             loop.tempBasalEndsAt = dose.endDate

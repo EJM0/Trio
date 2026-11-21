@@ -132,9 +132,11 @@ struct TrioMainWatchView: View {
                 }.tag(0)
 
                 // Page 2: Glucose chart
+                // in watch mode the phone sends no new readings: the graph shows the watch's
                 GlucoseChartView(
                     state: state,
-                    glucoseValues: state.glucoseValues
+                    glucoseValues: loanActive ? loan?.chartValues(phone: state.glucoseValues) ?? [] : state.glucoseValues,
+                    forecast: loanActive ? loan?.chartForecast(cone: state.isForecastCone) : nil
                 )
                 .tag(1)
 

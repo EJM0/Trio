@@ -5,6 +5,24 @@ import SwiftUI
 struct GlucoseChartView: View {
     let state: WatchState
     let glucoseValues: [(date: Date, glucose: Double, color: Color)]
+    /// Nil shows the phone's forecast.
+    var forecast: Forecast? = nil
+
+    struct Forecast: Equatable {
+        var start: Date?
+        var coneMin: [Double] = []
+        var coneMax: [Double] = []
+        var lines: [String: [Double]] = [:]
+    }
+
+    private var shownForecast: Forecast {
+        forecast ?? Forecast(
+            start: state.forecastStartDate,
+            coneMin: state.forecastConeMin,
+            coneMax: state.forecastConeMax,
+            lines: state.forecastLines
+        )
+    }
 
     @State private var timeWindow: TimeWindow = .threeHours
 
@@ -67,10 +85,11 @@ struct GlucoseChartView: View {
     }
 
     private var forecastConePoints: [ForecastConePoint] {
-        guard state.showForecast, state.isForecastCone, let anchorDate = state.forecastStartDate else { return [] }
+        let forecast = shownForecast
+        guard state.showForecast, state.isForecastCone, let anchorDate = forecast.start else { return [] }
 
-        let minForecast = state.forecastConeMin
-        let maxForecast = state.forecastConeMax
+        let minForecast = forecast.coneMin
+        let maxForecast = forecast.coneMax
         let count = min(minForecast.count, maxForecast.count)
 
         var pts: [ForecastConePoint] = []
@@ -89,10 +108,11 @@ struct GlucoseChartView: View {
     }
 
     private var forecastLinePoints: [ForecastLinePoint] {
-        guard state.showForecast, !state.isForecastCone, let anchorDate = state.forecastStartDate else { return [] }
+        let forecast = shownForecast
+        guard state.showForecast, !state.isForecastCone, let anchorDate = forecast.start else { return [] }
 
         var pts: [ForecastLinePoint] = []
-        for (type, values) in state.forecastLines {
+        for (type, values) in forecast.lines {
             for i in 0 ..< values.count {
                 let date = anchorDate.addingTimeInterval(TimeInterval(i * 300))
                 pts.append(ForecastLinePoint(type: type, date: date, value: values[i]))
@@ -230,5 +250,42 @@ struct GlucoseChartView: View {
                 timeWindow = timeWindow.next
             }
         }
+    }
+}
+
+extension TrioOnWatchStatus {
+    /// The graph's readings in watch mode: the phone's from before the grant's first reading, then the watch's. Each
+    /// watch reading takes the phone's colour for it, or else the colour of the phone reading closest in value, as
+    /// the grant doesn't carry the colour settings.
+    func chartValues(phone: [(date: Date, glucose: Double, color: Color)]) -> [(date: Date, glucose: Double, color: Color)] {
+        guard let first = chartReadings.first?.date else { return phone }
+        let colorByDate = Dictionary(phone.map { ($0.date, $0.color) }, uniquingKeysWith: { first, _ in first })
+        return phone.filter { $0.date < first } + chartReadings.map { reading in
+            let value = display(reading.mgdl)
+            let color = colorByDate[reading.date]
+                ?? phone.min { abs($0.glucose - value) < abs($1.glucose - value) }?.color
+                ?? .green
+            return (reading.date, value, color)
+        }
+    }
+
+    /// The watch's forecast as the graph draws it; empty before the watch's first loop, not the phone's old one.
+    func chartForecast(cone: Bool) -> GlucoseChartView.Forecast {
+        guard let forecast else { return .init() }
+        let series = forecast.lines.values.filter { !$0.isEmpty }
+        guard cone else {
+            return .init(start: forecast.start, lines: forecast.lines.mapValues { $0.map(display) })
+        }
+        let count = series.map(\.count).min() ?? 0
+        let columns = (0 ..< count).map { index in series.map { $0[index] } }
+        return .init(
+            start: forecast.start,
+            coneMin: columns.compactMap { $0.min().map(display) },
+            coneMax: columns.compactMap { $0.max().map(display) }
+        )
+    }
+
+    private func display(_ mgdl: Int) -> Double {
+        units == .mmolL ? Double(truncating: Decimal(mgdl).asMmolL as NSNumber) : Double(mgdl)
     }
 }

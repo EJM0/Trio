@@ -30,6 +30,7 @@ extension WatchLoanHost {
         status.tempBasalEndsAt = loop.tempBasalEndsAt
         status.eventualGlucose = loop.eventualGlucose
         status.reason = loop.reason
+        status.forecast = loop.forecast
         status.insulinSuspended = loop.pumpSuspended
         status.bolus = bolus
         status.lastAlert = lastAlert
@@ -47,6 +48,12 @@ extension WatchLoanHost {
                 .sorted { $0.date > $1.date }
                 .prefix(2)
                 .map { $0 }
+            var byDate: [Date: TrioOnWatchStatus.Reading] = [:]
+            for reading in snapshot.oref.glucose + records.snapshot.glucose {
+                guard let mgdl = reading.glucose ?? reading.sgv else { continue }
+                byDate[reading.dateString] = .init(date: reading.dateString, mgdl: mgdl, direction: reading.direction?.rawValue)
+            }
+            status.chartReadings = byDate.values.sorted { $0.date < $1.date }
             status.sensorEndsAt = snapshot.sensorEndsAt
             status.sensorNeedsPairing = env.cgm?.needsPairing ?? false
             status.podEndsAt = snapshot.podEndsAt

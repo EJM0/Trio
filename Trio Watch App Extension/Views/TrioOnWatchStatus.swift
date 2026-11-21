@@ -19,6 +19,12 @@ struct TrioOnWatchStatus: Equatable {
         var direction: String? = nil
     }
 
+    struct Forecast: Equatable {
+        var start: Date
+        /// "iob", "zt", "cob" and "uam", as the phone names them.
+        var lines: [String: [Int]]
+    }
+
     struct Preset: Equatable, Identifiable {
         var id: String
         var name: String
@@ -42,6 +48,10 @@ struct TrioOnWatchStatus: Equatable {
     var lastLoopAt: Date?
     var lastCycleAt: Date?
     var readings: [Reading] = []
+    /// The grant's and the watch's readings for the graph, oldest first.
+    var chartReadings: [Reading] = []
+    /// The watch's last forecast, in mg/dL, one value every 5 minutes from `start`.
+    var forecast: Forecast?
     var units: GlucoseUnits = .mgdL
     var iob: Decimal?
     var cob: Decimal?
