@@ -49,7 +49,10 @@ extension WatchLoanHost {
         }
         if let omnipod = pump as? OmniPumpManager {
             status.pumpLastContact = omnipod.lastSync
-            status.reservoir = omnipod.state.podState?.lastInsulinMeasurements?.reservoirLevel
+            // above 50 U the pod reports a placeholder (51.15), as the phone's DeviceDataManager handles it
+            let reservoir = omnipod.state.podState?.lastInsulinMeasurements?.reservoirLevel
+            status.reservoir = reservoir
+            status.reservoirAboveReadingLimit = reservoir.map { $0 > 50 } ?? false
             status.podEndsAt = omnipod.state.podState?.expiresAt ?? status.podEndsAt
             status.podFaulted = omnipod.deliveredUnitsAreFinal
         }

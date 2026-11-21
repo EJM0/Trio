@@ -128,6 +128,15 @@ import Testing
         #expect((watch.rows(now: now).first { $0.id == "loop" }?.lines.count ?? 0) == 2)
     }
 
+    @Test("An Omnipod reservoir above 50 U shows as 50+, as on the phone") func reservoirAboveLimit() {
+        var watch = status(.inControl)
+        watch.reservoir = 51.15
+        watch.reservoirAboveReadingLimit = true
+        let lines = watch.rows(now: now).first { $0.id == "pump" }?.lines ?? []
+        #expect(lines.contains { $0.contains("50+") })
+        #expect(!lines.contains { $0.contains("51") })
+    }
+
     @Test("Primary action and footer by state") func primaryAndFooter() {
         #expect(status(.phone).primaryAction == .start)
         #expect(status(.starting).primaryAction == nil)

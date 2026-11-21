@@ -40,6 +40,8 @@ struct TrioOnWatchStatus: Equatable {
     var cob: Decimal?
     var pumpLastContact: Date?
     var reservoir: Double?
+    /// An Omnipod reports its reservoir only below 50 U; above that it is shown as 50+, as on the phone.
+    var reservoirAboveReadingLimit = false
     var podEndsAt: Date?
     var podFaulted = false
     var podUnreachable = false
@@ -512,7 +514,12 @@ extension TrioOnWatchStatus {
         pumpLines.append(pumpLastContact.map {
             String(localized: "Last contact \($0.formattedTimeAgo()) ago", comment: "Watch status: pump contact age")
         } ?? String(localized: "No pump contact yet", comment: "Watch status: no pump contact yet"))
-        if let reservoir {
+        if reservoirAboveReadingLimit {
+            pumpLines.append(String(
+                localized: "Reservoir 50+ \(String(localized: "U", comment: "Insulin unit"))",
+                comment: "Watch status: Omnipod reservoir above the 50 U it reports exactly"
+            ))
+        } else if let reservoir {
             pumpLines.append(String(
                 localized: "Reservoir \(TrioOnWatchRules.insulin(Decimal(reservoir)))",
                 comment: "Watch status: reservoir with unit"
