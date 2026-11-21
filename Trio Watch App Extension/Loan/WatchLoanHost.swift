@@ -100,6 +100,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         // the chart's own markers only while the watch holds the pump; the phone's after
         didSet { if case .holding = state {} else { WatchState.shared.treatmentMarkers = [] } }
     }
+
     var loop = LoopStatus()
     var bolus: BolusProgress = .idle
     var isCycleRunning = false

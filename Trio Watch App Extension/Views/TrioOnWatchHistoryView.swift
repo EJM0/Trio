@@ -80,11 +80,13 @@ struct TrioOnWatchHistoryView: View {
             Button(String(localized: "Cancel", comment: "Watch history: keep the entry"), role: .cancel) {}
         }
         .sheet(item: $editing) { entry in
-            CarbEditView(entry: entry) { grams, date in
-                editing = nil
-                Task {
-                    await WatchLoanRuntime.host?.editCarbs(entry, grams: grams, at: date)
-                    history = load()
+            NavigationStack {
+                CarbEditView(entry: entry) { grams, date in
+                    editing = nil
+                    Task {
+                        await WatchLoanRuntime.host?.editCarbs(entry, grams: grams, at: date)
+                        history = load()
+                    }
                 }
             }
         }
@@ -201,8 +203,8 @@ struct TrioOnWatchHistoryView: View {
     }
 }
 
-/// A meal's carbs and time. The crown turns the grams, as on the carbs entry; no ScrollView, which took the crown, and
-/// no DatePicker, which can't present from this sheet: the time moves in 5-minute steps.
+/// A meal's carbs and time. The crown turns the grams, as on the carbs entry (no ScrollView, which took the crown);
+/// the time is the system's picker, which presents from the sheet's own NavigationStack.
 private struct CarbEditView: View {
     let entry: CarbsEntry
     let save: (Decimal, Date) -> Void
@@ -241,13 +243,11 @@ private struct CarbEditView: View {
                 Spacer()
                 stepButton("plus.circle.fill") { grams = min(maxGrams, grams + 5) }
             }
-            HStack {
-                stepButton("minus.circle.fill") { date = date.addingTimeInterval(-5 * 60) }
-                Spacer()
-                Text(date, style: .time).font(.system(.title3, design: .rounded)).monospacedDigit()
-                Spacer()
-                stepButton("plus.circle.fill") { date = date.addingTimeInterval(5 * 60) }
-            }
+            DatePicker(
+                String(localized: "Time", comment: "Watch history: meal time"),
+                selection: $date,
+                displayedComponents: .hourAndMinute
+            )
             Button(String(localized: "Save", comment: "Watch history: save the edited meal")) {
                 save(Decimal(Int(grams)), date)
             }
