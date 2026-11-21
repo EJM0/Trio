@@ -558,6 +558,23 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             .sink { _ in action() }
             .store(in: &subscriptions)
     }
+
+    func onGlucoseStored(_ action: @escaping () -> Void) {
+        glucoseStorage.updatePublisher
+            .sink { _ in action() }
+            .store(in: &subscriptions)
+    }
+
+    func recentGlucose() async -> [BloodGlucose] {
+        let since = Date().addingTimeInterval(-20 * 60)
+        do {
+            return try await glucoseStorage.getGlucoseForAlgorithm(shouldSmoothGlucose: false, fetchHours: 1)
+                .filter { $0.dateString >= since }
+        } catch {
+            warning(.watch, "Reading the phone's glucose for the watch failed", error: error)
+            return []
+        }
+    }
 }
 
 enum WatchLoanHostError: Error {

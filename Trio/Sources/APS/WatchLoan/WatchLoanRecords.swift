@@ -66,6 +66,23 @@ struct WatchLoanRecordBatch: Codable {
     }
 }
 
+/// The phone's latest readings while the watch holds the pump. The phone's G7 connection stays up as a second display,
+/// so it often has a reading the watch missed.
+struct WatchLoanPhoneReadings: Codable, Equatable {
+    var epoch: Int64
+    var readings: [BloodGlucose]
+
+    func encoded() throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .customISO8601
+        return try encoder.encode(self)
+    }
+
+    static func decode(_ data: Data) throws -> WatchLoanPhoneReadings {
+        try JSONCoding.decoder.decode(WatchLoanPhoneReadings.self, from: data)
+    }
+}
+
 /// The phone's answer once a batch is persisted.
 struct WatchLoanRecordAck: Codable, Equatable {
     var epoch: Int64
@@ -83,8 +100,10 @@ enum WatchLoanWireKey {
     static let snapshotPart = "watchLoanSnapshotPart"
     static let records = "watchLoanRecords"
     static let recordsAck = "watchLoanRecordsAck"
+    /// `WatchLoanPhoneReadings`: the phone's own sensor readings, for the ones the watch misses.
+    static let phoneReadings = "watchLoanPhoneReadings"
 
-    static let all = [message, snapshot, snapshotPartHeader, snapshotPart, records, recordsAck]
+    static let all = [message, snapshot, snapshotPartHeader, snapshotPart, records, recordsAck, phoneReadings]
 
     /// Loan payloads go to the loan coordinator; every other watch message keeps its existing path.
     static func isLoanPayload(_ payload: [String: Any]) -> Bool {

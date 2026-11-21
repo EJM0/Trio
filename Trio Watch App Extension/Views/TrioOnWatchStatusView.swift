@@ -552,10 +552,34 @@ struct TrioOnWatchLoopPage: View {
                 "\(Decimal($0.mgdl).formatted(for: status.units)) · " +
                     String(localized: "\($0.date.formattedTimeAgo()) ago", comment: "Watch loop page: age")
             } ?? String(localized: "No reading yet", comment: "Watch loop page: no reading yet"),
-            detail: countText(status.count(status.watchReadings, now: now), accessibility: { done, possible in
-                String(localized: "\(done) of \(possible) readings", comment: "Watch loop page: readings received of possible")
-            }),
+            detail: readingCountText,
             tint: TrioOnWatchRules.readingTier(lastReadingAt: latest?.date, now: now).color
+        )
+    }
+
+    /// The watch's own readings out of possible, and the ones the phone filled in.
+    private var readingCountText: Tile.Detail? {
+        guard let count = status.count(status.watchReadings, now: now) else { return nil }
+        let phone = min(status.phoneReadings, count.done)
+        let own = count.done - phone
+        guard phone > 0 else {
+            return .init(
+                text: "\(own)/\(count.possible)",
+                spoken: String(
+                    localized: "\(own) of \(count.possible) readings",
+                    comment: "Watch loop page: readings received of possible"
+                )
+            )
+        }
+        return .init(
+            text: String(
+                localized: "\(own)/\(count.possible) +\(phone) iPhone",
+                comment: "Watch loop page: the watch sensor's readings of possible, and the ones from iPhone"
+            ),
+            spoken: String(
+                localized: "\(own) of \(count.possible) readings from the watch's sensor, \(phone) more from iPhone",
+                comment: "Watch loop page: readings from the watch's sensor and from iPhone"
+            )
         )
     }
 

@@ -33,10 +33,16 @@ protocol WatchLoanPhoneHost: AnyObject {
     func onForeignPodSession(_ action: @escaping () -> Void)
     /// What the watch's Start screen shows before the user confirms.
     func startFacts() async -> WatchLoanStartFacts
+    /// Called after the phone stores glucose, its own sensor's or the watch's.
+    func onGlucoseStored(_ action: @escaping () -> Void)
+    /// The phone's readings of the last 20 minutes, unsmoothed.
+    func recentGlucose() async -> [BloodGlucose]
 }
 
 extension WatchLoanPhoneHost {
     func startFacts() async -> WatchLoanStartFacts { WatchLoanStartFacts() }
+    func onGlucoseStored(_: @escaping () -> Void) {}
+    func recentGlucose() async -> [BloodGlucose] { [] }
 }
 
 /// What the phone keeps besides its loan state: release readings and audits, seen message ids, the last record batch.
@@ -117,6 +123,8 @@ actor WatchLoanCoordinator {
     /// Audits run one at a time: each reads its ledger entry, awaits the stores and writes the entry back.
     private var auditChain: Task<Void, Never>?
     private var isCheckingForeignSession = false
+    /// The newest reading sent to the watch, so each goes once.
+    private var lastForwardedReading: Date?
 
     init(
         host: WatchLoanPhoneHost,
@@ -145,6 +153,9 @@ actor WatchLoanCoordinator {
     func start() async {
         host.onForeignPodSession { [weak self] in
             Task { await self?.checkForeignSession() }
+        }
+        host.onGlucoseStored { [weak self] in
+            Task { await self?.forwardReadings() }
         }
         await handle(.relaunched)
         await checkForeignSession()
@@ -309,6 +320,24 @@ actor WatchLoanCoordinator {
         for effect in effects {
             guard await execute(effect, event: event) else { return }
         }
+    }
+
+    // MARK: - Readings for the watch
+
+    /// Sends the watch the phone's readings it hasn't sent yet. The watch uses one only when its own sensor missed it.
+    func forwardReadings() async {
+        guard case let .lent(epoch) = state else {
+            lastForwardedReading = nil
+            return
+        }
+        let readings = await host.recentGlucose()
+            .filter { $0.dateString > lastForwardedReading ?? .distantPast }
+        guard let newest = readings.map(\.dateString).max(),
+              let data = try? WatchLoanPhoneReadings(epoch: epoch, readings: readings).encoded()
+        else { return }
+        lastForwardedReading = newest
+        host.transport?.send([WatchLoanWireKey.phoneReadings: data])
+        debug(.watch, "Sent the watch \(readings.count) phone readings, newest \(newest)")
     }
 
     // MARK: - Live Activity

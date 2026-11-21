@@ -119,6 +119,9 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     /// Commands written down before they were sent, until each outcome is known. Never overwritten: each command adds one.
     @ObservationIgnored var intents: [WatchDoseIntent] = []
     @ObservationIgnored var cycleInfo = WatchLoanCycleInfo()
+    /// The phone's readings, kept until the watch's own sensor had its chance (`phoneReadingWait`).
+    @ObservationIgnored var pendingPhoneReadings: [BloodGlucose] = []
+    @ObservationIgnored var phoneReadingTimer: Task<Void, Never>?
     @ObservationIgnored private var inbox = WatchLoanInbox()
     @ObservationIgnored private var snapshotParts = WatchLoanSnapshotAssembler()
     @ObservationIgnored private var tail: Task<Void, Never>?
@@ -647,6 +650,12 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     }
 
     private func receiveHeld(_ payload: [String: Any]) async -> Bool {
+        if let data = payload[WatchLoanWireKey.phoneReadings] as? Data {
+            if let sent = try? WatchLoanPhoneReadings.decode(data), sent.epoch == state.epoch {
+                await receivePhoneReadings(sent.readings)
+            }
+            return true
+        }
         if let data = payload[WatchLoanWireKey.recordsAck] as? Data {
             if let ack = try? JSONDecoder().decode(WatchLoanRecordAck.self, from: data) {
                 let (records, now) = (records, env.now())

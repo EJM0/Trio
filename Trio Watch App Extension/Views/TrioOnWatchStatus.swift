@@ -66,6 +66,8 @@ struct TrioOnWatchStatus: Equatable {
     /// Confirmed loops and the watch's own readings since `watchModeSince`, at most one per 4 minutes.
     var confirmedLoops = 0
     var watchReadings = 0
+    /// Of `watchReadings`, the ones that came from the phone because the watch's sensor missed them.
+    var phoneReadings = 0
     var pumpLastContact: Date?
     var reservoir: Double?
     /// An Omnipod reports its reservoir only below 50 U; above that it is shown as 50+, as on the phone.

@@ -4,7 +4,67 @@ import LoopKit
 extension WatchLoanHost {
     enum CycleTrigger: String {
         case reading
+        case phoneReading = "phone reading"
         case user
+    }
+
+    /// How long a phone reading waits for the watch's own: the two get the same reading seconds apart.
+    static let phoneReadingWait: TimeInterval = 60
+
+    /// The phone's readings. One the watch's sensor also delivered is dropped; one it missed is used after
+    /// `phoneReadingWait`, counted and logged, and loops like the watch's own.
+    func receivePhoneReadings(_ readings: [BloodGlucose]) async {
+        await loaded.value
+        let known = Set(pendingPhoneReadings.map(\.dateString))
+        pendingPhoneReadings += readings.filter { !known.contains($0.dateString) }
+        await usePhoneReadings()
+    }
+
+    func usePhoneReadings() async {
+        phoneReadingTimer?.cancel()
+        guard let snapshot, readsGlucose else {
+            pendingPhoneReadings = []
+            return
+        }
+        let now = env.now()
+        let newest = (snapshot.oref.glucose + records.snapshot.glucose).map(\.dateString).max() ?? .distantPast
+        // the watch's own reading, or a newer one, already covers these
+        pendingPhoneReadings.removeAll { $0.dateString.addingTimeInterval(-WatchLoopPolicy.glucoseFilterTime) <= newest }
+        let due = pendingPhoneReadings.filter { now.timeIntervalSince($0.dateString) >= Self.phoneReadingWait }
+        pendingPhoneReadings.removeAll { reading in due.contains { $0.dateString == reading.dateString } }
+
+        if !due.isEmpty {
+            let kept: [BloodGlucose]
+            do {
+                let records = records
+                kept = try await WatchLoanFiles.io { try records.storeGlucose(due, newestKnown: newest) }
+            } catch {
+                WatchLogger.shared.error(.loop, "Storing the phone's glucose failed", error: error)
+                return
+            }
+            if let latest = kept.max(by: { $0.dateString < $1.dateString }) {
+                cycleInfo.phoneReadings = (cycleInfo.phoneReadings ?? 0) + kept.count
+                saveCycleInfo()
+                let times = kept.map { $0.dateString.formatted(date: .omitted, time: .shortened) }.joined(separator: ", ")
+                WatchLogger.shared.warning(
+                    .loop,
+                    "The watch's sensor missed the reading at \(times): used the phone's (\(cycleInfo.phoneReadings ?? 0) in this loan)"
+                )
+                evaluateGlucoseAlarms(latest: latest, now: now)
+                // an old one only fills the gap: the glucose check would stop a cycle on it
+                if now.timeIntervalSince(latest.dateString) < 6 * 60 {
+                    await runCycle(trigger: .phoneReading)
+                }
+            }
+        }
+
+        guard let next = pendingPhoneReadings.map(\.dateString).min() else { return }
+        let wait = max(1, next.addingTimeInterval(Self.phoneReadingWait).timeIntervalSince(now))
+        phoneReadingTimer = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            await self?.usePhoneReadings()
+        }
     }
 
     /// The CGM manager's new readings: store, check glucose alarms, then loop once.

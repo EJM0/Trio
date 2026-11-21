@@ -34,6 +34,7 @@ extension WatchLoanHost {
         status.lastCycleResult = cycleInfo.lastResult
         status.watchModeSince = cycleInfo.holdingSince
         status.confirmedLoops = cycleInfo.confirmedLoops ?? 0
+        status.phoneReadings = cycleInfo.phoneReadings ?? 0
         status.insulinSuspended = loop.pumpSuspended
         status.bolus = bolus
         status.lastAlert = lastAlert

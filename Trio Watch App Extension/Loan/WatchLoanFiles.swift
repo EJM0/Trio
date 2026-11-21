@@ -101,6 +101,8 @@ struct WatchLoanCycleInfo: Codable {
     var lastCountedLoopAt: Date?
     /// What the last cycle did, as the loop page shows it.
     var lastResult: String?
+    /// Readings in this loan that came from the phone because the watch's sensor missed them.
+    var phoneReadings: Int?
 
     /// Counts for one log line a day, so a hardware run shows its wakes, readings and cycles.
     struct DailySummary: Codable {

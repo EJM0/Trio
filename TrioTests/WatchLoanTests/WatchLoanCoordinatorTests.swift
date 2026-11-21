@@ -74,6 +74,7 @@ final class FakeLoanHost: WatchLoanPhoneHost {
     var idle: () async -> Void = {}
     var snapshotFails = false
     var snapshotPadding = 0
+    var phoneGlucose: [BloodGlucose] = []
     /// Scheduled basal 0, so the audit numbers are only boluses and temps.
     var profile = [BasalProfileEntry(start: "00:00", minutes: 0, rate: 0)]
 
@@ -93,6 +94,8 @@ final class FakeLoanHost: WatchLoanPhoneHost {
 
     var pump: WatchLoanPumpAdapter? { WatchLoanPumpAdapter(double) }
     var transport: WatchLoanTransport? { fakeTransport }
+
+    func recentGlucose() async -> [BloodGlucose] { phoneGlucose }
 
     func startRefusal() async -> LoanRefusal? { refusal }
     func awaitPumpIdle() async { await idle() }
@@ -289,6 +292,22 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(mode.since == rig.clock.now && mode.lastLoop == nil)
         #expect(!PhoneLoanState.home(epoch: 1, lastLoan: nil).isLent && !PhoneLoanState.unreadable.isLent)
         #expect(PhoneLoanState.takingBack(epoch: 1, loan: LoanRecord(epoch: 1)).isLent)
+    }
+
+    @Test("Phone readings go to the watch only while it holds the pump, each once") func forwardReadings() async throws {
+        let rig = try Rig()
+        let reading = WatchLoanPhoneIntegrationTests.reading(rig.clock.now, 120)
+        rig.host.phoneGlucose = [reading]
+        await rig.coordinator.forwardReadings()
+        #expect(rig.transport.live.allSatisfy { $0[WatchLoanWireKey.phoneReadings] == nil })
+
+        try await rig.lend()
+        await rig.coordinator.forwardReadings()
+        await rig.coordinator.forwardReadings()
+        let sent = rig.transport.live.compactMap { $0[WatchLoanWireKey.phoneReadings] as? Data }
+        #expect(sent.count == 1)
+        let decoded = try WatchLoanPhoneReadings.decode(try #require(sent.first))
+        #expect(decoded.epoch == 1 && decoded.readings.map(\.dateString) == [reading.dateString])
     }
 
     @Test("Status query: the phone answers the watch with its epoch") func statusAnswer() async throws {

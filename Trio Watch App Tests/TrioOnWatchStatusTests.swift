@@ -188,6 +188,15 @@ import Testing
         #expect(watch.count(4, now: now)! == (4, 4))
     }
 
+    @Test("Loop page: the phone's readings count as readings, shown apart") func phoneReadingCount() {
+        var watch = status(.inControl)
+        watch.watchModeSince = ago(50)
+        watch.watchReadings = 9
+        watch.phoneReadings = 2
+        let count = watch.count(watch.watchReadings, now: now)!
+        #expect(count == (9, 10))
+    }
+
     @Test("Loop page: what the last cycle did") func cycleResult() {
         typealias Result = TrioOnWatchStatus.CycleResult
         #expect(Result.enacted(.init(), tempConfirmed: nil, bolusConfirmed: nil) == "No change needed.")

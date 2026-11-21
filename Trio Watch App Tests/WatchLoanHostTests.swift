@@ -1133,6 +1133,33 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(summary.readings == 0 && summary.wakes == ["WKApplicationRefreshBackgroundTask": 1])
     }
 
+    @Test("A phone reading fills in only a reading the watch's sensor missed, and loops on it") func phoneReadings() async throws {
+        let world = LoanFixture()
+        try await world.startLoan()
+        await world.reading(160)
+        let cycles = world.host.cycleInfo.summary.cycles
+
+        // the watch's own reading arrives too: the phone's copy is dropped
+        world.clock = world.clock.addingTimeInterval(5 * 60)
+        let same = LoanFixture.readings(now: world.clock, count: 1, value: 150, newestAgo: 5)
+        await world.host.receivePhoneReadings(same)
+        await world.host.receiveReadings(LoanFixture.readings(now: world.clock, count: 1, value: 151, newestAgo: 3))
+        world.clock = world.clock.addingTimeInterval(70)
+        await world.host.usePhoneReadings()
+        #expect(world.host.cycleInfo.phoneReadings == nil)
+        #expect(world.host.pendingPhoneReadings.isEmpty)
+
+        // the watch misses the next one: after the wait the phone's is stored, counted and looped on
+        world.clock = world.clock.addingTimeInterval(4 * 60)
+        await world.host.receivePhoneReadings(LoanFixture.readings(now: world.clock, count: 1, value: 140, newestAgo: 10))
+        #expect(world.host.cycleInfo.phoneReadings == nil)
+        world.clock = world.clock.addingTimeInterval(60)
+        await world.host.usePhoneReadings()
+        #expect(world.host.cycleInfo.phoneReadings == 1)
+        #expect(world.host.cycleInfo.summary.cycles == cycles + 2)
+        #expect(world.host.uiStatus().phoneReadings == 1)
+    }
+
     @Test("Duplicate messages are dropped by their persisted id, across a relaunch") func dedupe() async throws {
         let world = LoanFixture()
         let query = try world.payload(WatchLoanMessage(epoch: 0, kind: .statusQuery))
@@ -1177,7 +1204,8 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
             "cycles",
             "confirmed",
             "budgetErrors",
-            "confirmedLoops"
+            "confirmedLoops",
+            "phoneReadings"
         ]
         let samples: [Any] = [
             WatchLoanCycleInfo(),
