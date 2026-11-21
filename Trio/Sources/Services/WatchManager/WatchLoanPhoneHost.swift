@@ -240,7 +240,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             }
         }
 
-        let glucose = try await glucoseNotStored(batch.glucose)
+        let glucose = try await glucoseNotStored(Self.storable(batch.glucose))
         if !glucose.isEmpty {
             try await glucoseStorage.storeGlucose(glucose)
         }
@@ -265,6 +265,17 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             let request = CarbEntryStored.fetchRequest() as NSFetchRequest<CarbEntryStored>
             request.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
             return try context.fetch(request).first?.objectID
+        }
+    }
+
+    /// The watch sends CGM readings with only `sgv` set, but the glucose store reads `glucose` and stores a missing
+    /// value as 0.
+    static func storable(_ glucose: [BloodGlucose]) -> [BloodGlucose] {
+        glucose.compactMap { reading in
+            guard let value = reading.glucose ?? reading.sgv, value > 0 else { return nil }
+            var reading = reading
+            reading.glucose = value
+            return reading
         }
     }
 

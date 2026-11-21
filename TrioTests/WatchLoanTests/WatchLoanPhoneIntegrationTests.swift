@@ -504,3 +504,27 @@ import Testing
         #expect(spy.issuedAlerts.count == disarmed)
     }
 }
+
+@Suite("Watch loan: glucose from the watch") struct WatchLoanWatchGlucoseTests {
+    static func reading(_ value: Int16) -> BloodGlucose {
+        OrefInputs.bloodGlucose(
+            id: nil, date: Date(), glucose: value, smoothedGlucose: nil, isManual: false, direction: "Flat",
+            shouldSmoothGlucose: false, roundingBehavior: NSDecimalNumberHandler(
+                roundingMode: .plain, scale: 0, raiseOnExactness: false, raiseOnOverflow: false,
+                raiseOnUnderflow: false, raiseOnDivideByZero: false
+            )
+        )
+    }
+
+    @Test("A watch reading is stored with its value, not as 0") func storedWithValue() {
+        let reading = Self.reading(169)
+        #expect(reading.glucose == nil && reading.sgv == 169)
+        #expect(BaseWatchLoanPhoneHost.storable([reading]).map(\.glucose) == [169])
+    }
+
+    @Test("A reading without a value is dropped") func withoutValue() {
+        var reading = Self.reading(169)
+        reading.sgv = nil
+        #expect(BaseWatchLoanPhoneHost.storable([reading]).isEmpty)
+    }
+}
