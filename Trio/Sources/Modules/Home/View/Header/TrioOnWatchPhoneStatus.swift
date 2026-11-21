@@ -375,8 +375,11 @@ struct TrioOnWatchPhoneStatus: Equatable {
         let lastLoopAt = await coordinator.watchLoopAt
         if !Self.sameCase(next, state) { since = now }
         state = next
-        let refuses = resolver?.resolve(DeviceDataManager.self).flatMap { WatchLoanPumpAdapter($0.pumpManager) }?
-            .refusesSessions ?? false
+        let pump = resolver?.resolve(DeviceDataManager.self).flatMap { WatchLoanPumpAdapter($0.pumpManager) }
+        // a pump released while the phone is home commands nothing until the user takes it back, as after a refusal
+        var releasedAtHome = false
+        if case .home = next, pump?.isReleased == true { releasedAtHome = true }
+        let refuses = (pump?.refusesSessions ?? false) || releasedAtHome
         let session = WCSession.isSupported() ? WCSession.default : nil
         let updated = TrioOnWatchPhoneStatus.make(
             state: next,
