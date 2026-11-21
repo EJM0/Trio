@@ -110,7 +110,9 @@ final class LoanPumpDouble: LoanPump {
         isControlReleased = false
     }
 
-    var isControlReady: Bool { holdsPod }
+    /// False: the link dropped, as a DASH pod's does when idle.
+    var linkUp = true
+    var isControlReady: Bool { holdsPod && linkUp }
 
     // MARK: Odometer
 

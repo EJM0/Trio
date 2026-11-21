@@ -121,6 +121,9 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     /// The background time of the cycle or message in progress.
     @ObservationIgnored var activity: LoanBackgroundActivity?
     @ObservationIgnored var adoptedAt: Date?
+    /// The kit reported the pump ready since the adopt. A DASH pod drops an idle link within seconds, so a later
+    /// `isControlReady` alone says nothing about whether it answered.
+    @ObservationIgnored var pumpAnsweredSinceAdopt = false
     @ObservationIgnored private var requestTimer: Task<Void, Never>?
     @ObservationIgnored private var handBackTimer: Task<Void, Never>?
     /// The saved files, read on the file queue; every entry point waits for it.
@@ -443,6 +446,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         }
         install(manager)
         adoptedAt = env.now()
+        pumpAnsweredSinceAdopt = false
         awaitingFirstReading = true
         WatchLogger.shared.info(.loop, "Pump adopted from the grant; taking control")
         await offMain { manager.takeControl() }
@@ -455,7 +459,8 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         let timeout = env.adoptTimeout
         Task { [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-            guard let self, self.pump === manager, !manager.refusesSessions, !manager.isControlReady,
+            guard let self, self.pump === manager, !manager.refusesSessions, !self.pumpAnsweredSinceAdopt,
+                  !manager.isControlReady,
                   case .holding = self.state
             else { return }
             await self.handle(.takeControlResult(succeeded: false))
@@ -550,6 +555,11 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         lastReportedForeignSession = true
         WatchLogger.shared.warning(.loop, "The pod reported a session this watch didn't start")
         Task { await self.handle(.foreignPodSession) }
+    }
+
+    func pumpControlBecameReady(_ manager: LoanPump) {
+        guard pump === manager else { return }
+        pumpAnsweredSinceAdopt = true
     }
 
     func pumpStateNotSaved() {

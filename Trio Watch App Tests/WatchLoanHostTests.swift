@@ -85,6 +85,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
     var activity = FakeActivity()
     var requestTimeout = WatchLoan.watchRequestTimeout
     var handBackResend: TimeInterval = 60
+    var adoptTimeout: TimeInterval = 60
     private(set) var adopted = 0
     private(set) var restored = 0
     private(set) var doubles: [LoanPumpDouble] = []
@@ -128,6 +129,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
             modelIdentifier: { [weak self] in self?.model },
             appBuild: "1",
             beginActivity: { [weak self] _ in self?.activity ?? FakeActivity() },
+            adoptTimeout: adoptTimeout,
             requestTimeout: requestTimeout,
             handBackResendInterval: handBackResend,
             phoneAnswerTimeout: 0.2,
@@ -427,6 +429,20 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
                 continue
             }
             #expect(reason == .snapshotIncomplete)
+        }
+    }
+
+    @Test("A pump that answered and then dropped its idle link is not reported unreachable") func idleLinkAfterAnswer() async throws {
+        for answered in [true, false] {
+            let world = LoanFixture()
+            world.adoptTimeout = 0.2
+            world.host = world.makeHost()
+            try await world.startLoan()
+            let pump = try #require(world.pump)
+            if answered { world.host.pumpControlBecameReady(pump) }
+            pump.linkUp = false
+            try await Task.sleep(nanoseconds: 500_000_000)
+            #expect((world.host.lastAlert == .podUnreachable) == !answered, "answered: \(answered)")
         }
     }
 

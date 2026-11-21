@@ -67,8 +67,10 @@ final class WatchLoanPumpDelegate: PumpManagerDelegate {
         }
     }
 
-    func deviceManagerControlDidBecomeReady(_: DeviceManager) {
+    func deviceManagerControlDidBecomeReady(_ manager: DeviceManager) {
         WatchLogger.shared.info(.pump, "Pump answered: control ready")
+        guard let pump = manager as? LoanPump else { return }
+        Task { @MainActor [weak host] in host?.pumpControlBecameReady(pump) }
     }
 
     func pumpManager(_: PumpManager, didError error: PumpManagerError) {
