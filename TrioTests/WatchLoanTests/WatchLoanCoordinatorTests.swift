@@ -645,6 +645,24 @@ final class FakeLoanHost: WatchLoanPhoneHost {
 
     // MARK: Alarms (V2-12, V2-14)
 
+    @Test("Queued batches that arrive together arm the watch-silence alarm once") func silenceAlarmBurst() async throws {
+        let rig = try Rig()
+        try await rig.lend()
+        rig.clock.advance(1800)
+        func silenceArms() -> Int { rig.host.alarms.filter { $0.alarm == .phoneNoWatchUpdates && $0.armed }.count }
+        let before = silenceArms()
+        for _ in 0 ..< 5 {
+            await rig.coordinator.receive(try rig.batch(epoch: 1, doses: []))
+            rig.clock.advance(1)
+        }
+        #expect(silenceArms() == before + 1)
+        #expect(rig.host.alarms.last { $0.alarm == .phoneNoWatchUpdates }?.anchor == rig.clock.now.addingTimeInterval(-5))
+
+        rig.clock.advance(WatchLoanCoordinator.silenceRearmInterval)
+        await rig.coordinator.receive(try rig.batch(epoch: 1, doses: []))
+        #expect(silenceArms() == before + 2)
+    }
+
     @Test("Lent: not-looping off, watch silence armed from the last batch, kept across a relaunch") func silenceAlarm() async throws {
         let rig = try Rig()
         try await rig.receive(F.message(0, .request(requestID: F.requestA)))

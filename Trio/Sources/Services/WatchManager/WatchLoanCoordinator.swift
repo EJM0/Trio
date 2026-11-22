@@ -128,6 +128,8 @@ actor WatchLoanCoordinator {
     /// Record batches are merged one at a time: each checks what is stored before storing, so batches that arrive
     /// together would otherwise each store the readings and carbs the others are about to store.
     private var recordsChain: Task<Void, Never>?
+    /// When the watch-silence alarm was last armed; a burst of queued batches arms it once.
+    private var silenceArmedAt: Date?
 
     init(
         host: WatchLoanPhoneHost,
@@ -282,7 +284,9 @@ actor WatchLoanCoordinator {
         }
         if case let .lent(epoch) = state, epoch == batch.epoch {
             ledger.lastBatchAt = now()
-            host.setAlarm(.phoneNoWatchUpdates, armed: true, anchor: ledger.lastBatchAt ?? now())
+            if silenceArmedAt.map({ now().timeIntervalSince($0) >= Self.silenceRearmInterval }) ?? true {
+                setAlarm(.phoneNoWatchUpdates, armed: true, anchor: now())
+            }
         }
         if let at = batch.lastLoopAt, ledger.watchLoop.map({ ($0.epoch, $0.at) < (batch.epoch, at) }) ?? true {
             ledger.watchLoop = WatchLoanLedger.WatchLoop(epoch: batch.epoch, at: at)
@@ -351,6 +355,14 @@ actor WatchLoanCoordinator {
         lastForwardedReading = newest
         host.transport?.send([WatchLoanWireKey.phoneReadings: data])
         debug(.watch, "Sent the watch \(readings.count) phone readings, newest \(newest)")
+    }
+
+    /// Batches closer together than this re-arm the watch-silence alarm once: its first warning is 30 min out.
+    static let silenceRearmInterval: TimeInterval = 60
+
+    private func setAlarm(_ alarm: LoanAlarm, armed: Bool, anchor: Date) {
+        if alarm == .phoneNoWatchUpdates { silenceArmedAt = armed ? now() : nil }
+        host.setAlarm(alarm, armed: armed, anchor: anchor)
     }
 
     // MARK: - Live Activity
@@ -502,10 +514,10 @@ actor WatchLoanCoordinator {
                     saveLedger()
                 }
             }
-            host.setAlarm(alarm, armed: true, anchor: anchor)
+            setAlarm(alarm, armed: true, anchor: anchor)
 
         case let .disarm(alarm):
-            host.setAlarm(alarm, armed: false, anchor: now())
+            setAlarm(alarm, armed: false, anchor: now())
 
         case let .alert(alert):
             host.alert(alert)
