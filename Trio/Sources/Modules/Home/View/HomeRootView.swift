@@ -291,6 +291,9 @@ extension Home {
                     try? await Task.sleep(nanoseconds: 5_000_000_000)
                 }
             }
+            .onChange(of: trioOnWatch.status.replacesLoopRing, initial: true) { _, watchHasPump in
+                state.watchHoldsPump = watchHasPump
+            }
             .sheet(isPresented: $showTrioOnWatch) {
                 #if DEBUG
                     TrioOnWatchSheet(model: trioOnWatch, presents: TrioOnWatchPhoneFixture.current?.dialog)
