@@ -258,6 +258,11 @@ import Testing
         #expect(HandOffStage.stage(.start, status: watch).isWorking)
         watch.phase = .waitingForReading
         #expect(HandOffStage.stage(.start, status: watch).isWorking)
+        // the check comes once the pump has moved, as on the phone, not with the first reading
+        watch.pumpAdopted = true
+        #expect(HandOffStage.stage(.start, status: watch) == .succeeded(
+            "Your watch has your pod. It starts looping with its next sensor reading."
+        ))
         watch.phase = .inControl
         #expect(HandOffStage.stage(.start, status: watch) == .succeeded("Your watch is in control."))
         watch.phase = .stopped(.foreignSession)

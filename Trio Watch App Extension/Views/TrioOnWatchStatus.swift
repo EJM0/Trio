@@ -44,6 +44,8 @@ struct TrioOnWatchStatus: Equatable {
 
     var phase: Phase = .phone
     var phoneReachable = true
+    /// The watch has adopted the pump from the grant: control has moved, even before the first reading.
+    var pumpAdopted = false
     /// The last cycle that confirmed the pump's state.
     var lastLoopAt: Date?
     var lastCycleAt: Date?

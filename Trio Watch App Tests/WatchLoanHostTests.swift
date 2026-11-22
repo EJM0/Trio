@@ -442,7 +442,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         world.configure = { _ in phaseDuringAdopt = world.host.uiStatus().phase }
         try await world.startLoan()
         #expect(phaseDuringAdopt == .waitingForReading)
-        #expect(world.host.uiStatus().phase == .waitingForReading)
+        #expect(world.host.uiStatus().phase == .waitingForReading && world.host.uiStatus().pumpAdopted)
         await world.reading(160)
         #expect(world.host.uiStatus().phase == .inControl)
     }

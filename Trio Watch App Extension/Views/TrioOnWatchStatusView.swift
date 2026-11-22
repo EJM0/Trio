@@ -103,6 +103,12 @@ enum HandOffStage: Equatable {
         switch (kind, status.phase) {
         case (.start, .inControl):
             return .succeeded(String(localized: "Your watch is in control.", comment: "Watch Start succeeded"))
+        case (.start, .waitingForReading) where status.pumpAdopted:
+            // control has moved, as the phone's Start card says; the first loop comes with the next reading
+            return .succeeded(String(
+                localized: "Your watch has your pod. It starts looping with its next sensor reading.",
+                comment: "Watch Start succeeded, before the first reading"
+            ))
         case (.start, .waitingForReading):
             return .working(
                 title: String(
