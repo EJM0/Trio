@@ -45,7 +45,7 @@ enum ComplicationKind: String, CaseIterable, Identifiable {
             )
         case .chart:
             return String(
-                localized: "Glucose, the Small Line and IOB next to the last three hours of readings. Rectangular slots only.",
+                localized: "Glucose, the Small Line and IOB next to the last three hours of readings, with boluses, carbs and 1.5 hours of forecast. Rectangular slots only.",
                 comment: "Description of the glucose chart watch complication"
             )
         }
@@ -466,8 +466,16 @@ struct ComplicationSparkline: View {
     private var history: [ComplicationPoint] { model.displayedState.history }
     private var band: ClosedRange<Double> { model.displayedState.inRangeBand }
 
+    private var forecastStart: TimeInterval? { model.displayedState.forecastStart?.timeIntervalSince1970 }
+    private var forecast: [String: [Double]] {
+        forecastStart == nil || model.isLoopStale ? [:] : model.displayedState.forecast ?? [:]
+    }
+
     private var valueRange: ClosedRange<Double> {
-        let values = history.map(\.glucose)
+        // a forecast far out of range would flatten the readings: it counts up to the gauge's bounds, and is clipped
+        let gauge = model.displayedState.gaugeRange
+        let values = history.map(\.glucose) +
+            forecast.values.joined().map { min(max($0, gauge.lowerBound), gauge.upperBound) }
         let lowest = min(values.min() ?? band.lowerBound, band.lowerBound)
         let highest = max(values.max() ?? band.upperBound, band.upperBound)
         return lowest ... max(highest, lowest + model.displayedState.chartMinimumSpan)
@@ -475,13 +483,14 @@ struct ComplicationSparkline: View {
 
     private var timeRange: ClosedRange<TimeInterval> {
         let end = model.displayedState.date.timeIntervalSince1970
-        return (end - ComplicationState.chartWindow) ... end
+        return (end - ComplicationState.chartWindow) ... (end + ComplicationState.forecastWindow)
     }
 
     var body: some View {
         GeometryReader { geometry in
             if history.count >= 2 {
                 chart(scale: ComplicationChartScale(size: geometry.size, timeRange: timeRange, valueRange: valueRange))
+                    .clipped()
             } else {
                 Text("no data")
                     .font(.system(size: 10, design: .rounded))
@@ -493,6 +502,7 @@ struct ComplicationSparkline: View {
 
     @ViewBuilder private func chart(scale: ComplicationChartScale) -> some View {
         inRangeBand(scale: scale)
+        forecastMarks(scale: scale)
         Path { $0.addLines(history.map(scale.position(of:))) }
             .stroke(model.glucoseColor, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
         if let latest = history.last {
@@ -500,6 +510,52 @@ struct ComplicationSparkline: View {
                 .fill(model.glucoseColor)
                 .frame(width: 4, height: 4)
                 .position(scale.position(of: latest))
+        }
+        treatmentMarks(scale: scale)
+    }
+
+    private func forecastPoints(_ values: [Double], scale: ComplicationChartScale) -> [CGPoint] {
+        guard let start = forecastStart else { return [] }
+        return values.enumerated().map { index, value in
+            scale.position(of: ComplicationPoint(timestamp: start + TimeInterval(index) * 5 * 60, glucose: value))
+        }
+    }
+
+    /// The cone filled between its bounds, or each line in the watch chart's colours, dashed.
+    @ViewBuilder private func forecastMarks(scale: ComplicationChartScale) -> some View {
+        if let low = forecast["min"], let high = forecast["max"] {
+            Path { path in
+                path.addLines(forecastPoints(high, scale: scale) + forecastPoints(low, scale: scale).reversed())
+                path.closeSubpath()
+            }
+            .fill(Color.blue.opacity(0.35))
+        } else {
+            ForEach(forecast.keys.sorted(), id: \.self) { type in
+                Path { $0.addLines(forecastPoints(forecast[type] ?? [], scale: scale)) }
+                    .stroke(
+                        model.fullColor ? Self.forecastColors[type] ?? .gray : .secondary,
+                        style: StrokeStyle(lineWidth: 1, lineCap: .round, dash: [2, 2])
+                    )
+            }
+        }
+    }
+
+    private static let forecastColors: [String: Color] = ["iob": .blue, "zt": .cyan, "cob": .orange, "uam": .yellow]
+
+    /// As on the watch chart: insulin a triangle down above the nearest reading, carbs one up below it.
+    @ViewBuilder private func treatmentMarks(scale: ComplicationChartScale) -> some View {
+        ForEach(Array((model.displayedState.markers ?? []).enumerated()), id: \.offset) { _, marker in
+            let gap: (ComplicationPoint) -> TimeInterval = { abs($0.timestamp - marker.timestamp) }
+            if let nearest = history.min(by: { gap($0) < gap($1) }), gap(nearest) <= 15 * 60 {
+                let isCarbs = marker.kind == .carbs
+                Image(systemName: isCarbs ? "arrowtriangle.up.fill" : "arrowtriangle.down.fill")
+                    .font(.system(size: marker.kind == .smb ? 4 : 6))
+                    .foregroundStyle(model.fullColor ? (isCarbs ? Color.orange : Color.blue) : .primary)
+                    .position(
+                        x: scale.horizontalPosition(of: marker.timestamp),
+                        y: scale.verticalPosition(of: nearest.glucose) + (isCarbs ? 5 : -5)
+                    )
+            }
         }
     }
 

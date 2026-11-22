@@ -398,7 +398,8 @@ extension WatchLoanHost {
     /// Why COB is what it is: oref's COB is 0 without carbs in its window, or without deviations from the last 45 min
     /// of readings (its zombie-carb rule).
     private func logMeal(_ meal: ComputedCarbs?, inputs: OrefInputs, now: Date) {
-        let newest = inputs.carbs.first.map { "\($0.carbs) g at \(Int(now.timeIntervalSince($0.createdAt) / 60)) min ago" } ?? "none"
+        let newest = inputs.carbs.first
+            .map { "\($0.carbs) g at \(Int(now.timeIntervalSince($0.createdAt) / 60)) min ago" } ?? "none"
         let recentReadings = inputs.glucose.filter { now.timeIntervalSince($0.dateString) <= 45 * 60 }.count
         WatchLogger.shared.info(
             .loop,

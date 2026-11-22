@@ -12,6 +12,13 @@ struct ComplicationPoint: Codable, Equatable {
     }
 }
 
+/// A bolus, SMB or carb entry on the chart complication.
+struct ComplicationMarker: Codable, Equatable {
+    enum Kind: String, Codable { case bolus, smb, carbs }
+    var timestamp: TimeInterval
+    var kind: Kind
+}
+
 struct ComplicationSlotSettings {
     var cornerValue = WatchComplicationDefaults.cornerValue
     var secondaryValue = WatchComplicationDefaults.secondaryValue
@@ -37,6 +44,12 @@ struct ComplicationState: Codable, Equatable {
     var limits: ClosedRange<Double>?
     /// Why the watch's own sensor gives no reading (a sensor issue, warmup): shown in the delta's place.
     var sensorState: String? = nil
+    /// Boluses, SMBs and carbs within the chart's window.
+    var markers: [ComplicationMarker]? = nil
+    /// The loop's forecast from `forecastStart` in 5-minute steps, `forecastWindow` long: the lines by type, or
+    /// "min" and "max" for the cone.
+    var forecastStart: Date? = nil
+    var forecast: [String: [Double]]? = nil
 
     static let missingValue = "--"
     static let defaultUnits = "mg/dL"
@@ -107,6 +120,7 @@ struct ComplicationState: Codable, Equatable {
     }
 
     static let chartWindow: TimeInterval = 3 * 60 * 60
+    static let forecastWindow: TimeInterval = 90 * 60
 
     static func isMmol(_ units: String) -> Bool {
         units.lowercased().hasPrefix("mmol")

@@ -86,7 +86,10 @@ import WidgetKit
     var phoneTreatmentMarkers: [WatchTreatmentMarker] = []
 
     /// The watch's own boluses/SMBs/carbs while it loops; empty tethered, then the chart uses the phone's markers.
-    var treatmentMarkers: [WatchTreatmentMarker] = []
+    var treatmentMarkers: [WatchTreatmentMarker] = [] {
+        // the cycle's SMB and the user's entries land after its IOB and forecast
+        didSet { saveComplicationSnapshot() }
+    }
 
     /// IOB/COB per loop for the chart's scrub line: the phone's history, and the watch's own while it loops.
     /// Empty until wired through WatchConnectivity; the scrub header then shows "–" for IOB and COB.
@@ -747,11 +750,16 @@ import WidgetKit
             phoneBubble.delta = delta
         }
 
-        if let iob = message[WatchMessageKeys.iob] as? String {
+        // the phone's IOB, COB and loop time give way to the watch's own loop while that one is newer
+        let phoneLoopDate = (message[WatchMessageKeys.lastLoopDate] as? NSNumber)
+            .map { Date(timeIntervalSince1970: $0.doubleValue) } ?? lastLoopDate ?? .distantPast
+        let ownLoopIsNewer = (ownIobCob.last?.date ?? .distantPast) > phoneLoopDate
+
+        if !ownLoopIsNewer, let iob = message[WatchMessageKeys.iob] as? String {
             self.iob = iob
         }
 
-        if let cob = message[WatchMessageKeys.cob] as? String {
+        if !ownLoopIsNewer, let cob = message[WatchMessageKeys.cob] as? String {
             self.cob = cob
         }
 
@@ -854,7 +862,7 @@ import WidgetKit
             glucoseUnits = units
         }
 
-        if let loopTimestamp = (message[WatchMessageKeys.lastLoopDate] as? NSNumber)?.doubleValue {
+        if !ownLoopIsNewer, let loopTimestamp = (message[WatchMessageKeys.lastLoopDate] as? NSNumber)?.doubleValue {
             lastLoopDate = Date(timeIntervalSince1970: loopTimestamp)
         }
 
@@ -995,8 +1003,34 @@ import WidgetKit
             history: complicationHistory(until: readingDate),
             loopDate: lastLoopDate,
             limits: complicationLimits,
-            sensorState: sensorStateText
+            sensorState: sensorStateText,
+            markers: complicationMarkers(until: readingDate),
+            forecastStart: forecastStartDate,
+            forecast: complicationForecast
         )
+    }
+
+    private func complicationMarkers(until end: Date) -> [ComplicationMarker] {
+        let shown = end.addingTimeInterval(-ComplicationState.chartWindow) ...
+            end.addingTimeInterval(ComplicationState.forecastWindow)
+        return (treatmentMarkers.isEmpty ? phoneTreatmentMarkers : treatmentMarkers)
+            .filter { shown.contains($0.date) }
+            .map { marker in
+                let kind: ComplicationMarker.Kind = switch marker.kind {
+                case .bolus: .bolus
+                case .smb: .smb
+                case .carbs: .carbs
+                }
+                return ComplicationMarker(timestamp: marker.date.timeIntervalSince1970, kind: kind)
+            }
+    }
+
+    /// The forecast's first `forecastWindow`, as the watch chart shows it: the cone, or the lines.
+    private var complicationForecast: [String: [Double]]? {
+        let steps = Int(ComplicationState.forecastWindow / (5 * 60)) + 1
+        let series = isForecastCone ? ["min": forecastConeMin, "max": forecastConeMax] : forecastLines
+        let capped = series.mapValues { Array($0.prefix(steps)) }.filter { !$0.value.isEmpty }
+        return capped.isEmpty ? nil : capped
     }
 
     /// The watch's own sensor's state text, for the complications.
@@ -1100,6 +1134,12 @@ import WidgetKit
         ownIobCob.sort { $0.date < $1.date }
         let cutoff = Date().addingTimeInterval(-24 * 60 * 60)
         ownIobCob.removeAll { $0.date < cutoff }
+        // the home screen's and the complications' values, as the phone formats them
+        guard date >= (lastLoopDate ?? .distantPast) else { return }
+        self.iob = iob.formatted(.number.precision(.fractionLength(2)))
+        self.cob = Int(cob.rounded()).formatted()
+        lastLoopDate = date
+        saveComplicationSnapshot()
     }
 
     /// Readings from the watch's own sensor link: shown first, the phone's only while these are not fresh.
