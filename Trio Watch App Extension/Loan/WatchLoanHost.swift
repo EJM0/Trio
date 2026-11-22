@@ -346,9 +346,11 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     }
 
     private func persist(_ next: WatchLoanState) async -> Bool {
+        var startsLoan = false
         do {
             if case let .holding(epoch) = next, state.epoch != epoch || !state.mayCommandPump {
                 try await startLoanRecords(epoch: epoch)
+                startsLoan = true
             }
             let files = env.files
             try await WatchLoanFiles.io { try files.save(next, to: .state) }
@@ -358,6 +360,8 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             return false
         }
         let previous = state
+        // until the first reading the watch isn't in control, also before the adopt has run
+        if startsLoan { awaitingFirstReading = true }
         state = next
         // the watch no longer sees the pump, so it can't tell when insulin resumes
         if previous.mayCommandPump, !next.mayCommandPump { cancelSuspendReminders() }

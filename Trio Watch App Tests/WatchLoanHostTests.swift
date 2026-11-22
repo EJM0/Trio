@@ -392,6 +392,18 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         return (grant, payloads)
     }
 
+    @Test("Start doesn't show the watch in control before its first reading, also while the adopt runs") func startNotInControlEarly(
+    ) async throws {
+        let world = LoanFixture()
+        var phaseDuringAdopt: TrioOnWatchStatus.Phase?
+        world.configure = { _ in phaseDuringAdopt = world.host.uiStatus().phase }
+        try await world.startLoan()
+        #expect(phaseDuringAdopt == .waitingForReading)
+        #expect(world.host.uiStatus().phase == .waitingForReading)
+        await world.reading(160)
+        #expect(world.host.uiStatus().phase == .inControl)
+    }
+
     @Test("A grant in pieces is adopted once every piece arrived, also when the grant comes first") func grantInParts(
     ) async throws {
         for grantFirst in [false, true] {
