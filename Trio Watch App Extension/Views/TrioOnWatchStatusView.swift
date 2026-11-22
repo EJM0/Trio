@@ -475,9 +475,9 @@ struct TrioOnWatchLoopPage: View {
                     GridRow {
                         Tile(
                             symbol: "drop.fill",
-                            title: String(localized: "Reservoir", comment: "Watch loop page tile"),
+                            title: String(localized: "Pump", comment: "Watch loop page tile: reservoir and last contact"),
                             value: reservoirText,
-                            detail: nil,
+                            detail: pumpContactDetail,
                             tint: reservoirTint
                         )
                         Tile(
@@ -588,6 +588,14 @@ struct TrioOnWatchLoopPage: View {
         accessibility: (Int, Int) -> String
     ) -> Tile.Detail? {
         count.map { .init(text: "\($0.done)/\($0.possible)", spoken: accessibility($0.done, $0.possible)) }
+    }
+
+    /// When the watch last heard the pump.
+    private var pumpContactDetail: Tile.Detail? {
+        let text = status.pumpLastContact.map {
+            String(localized: "Last contact \($0.formattedTimeAgo()) ago", comment: "Watch status: pump contact age")
+        } ?? String(localized: "No pump contact yet", comment: "Watch status: no pump contact yet")
+        return .init(text: text, spoken: text)
     }
 
     private var reservoirText: String {

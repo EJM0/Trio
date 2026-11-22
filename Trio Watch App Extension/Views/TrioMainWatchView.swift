@@ -187,8 +187,8 @@ struct TrioMainWatchView: View {
                 }
             }
             .toolbar {
-                // the status page has its own actions; the main page's bar would cover them
-                if currentPage != 3 {
+                // the status page has its own actions, and the loop page is information only
+                if currentPage != 3, currentPage != 4 {
                     ToolbarItem(placement: .topBarLeading) {
                         VStack {
                             Image(systemName: "syringe.fill")
