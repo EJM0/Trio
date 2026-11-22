@@ -125,6 +125,9 @@ actor WatchLoanCoordinator {
     private var isCheckingForeignSession = false
     /// The newest reading sent to the watch, so each goes once.
     private var lastForwardedReading: Date?
+    /// Record batches are merged one at a time: each checks what is stored before storing, so batches that arrive
+    /// together would otherwise each store the readings and carbs the others are about to store.
+    private var recordsChain: Task<Void, Never>?
 
     init(
         host: WatchLoanPhoneHost,
@@ -242,6 +245,16 @@ actor WatchLoanCoordinator {
     }
 
     private func receiveRecords(_ data: Data) async {
+        let previous = recordsChain
+        let next = Task {
+            await previous?.value
+            await self.mergeRecords(data)
+        }
+        recordsChain = next
+        await next.value
+    }
+
+    private func mergeRecords(_ data: Data) async {
         guard var batch = try? WatchLoanRecordBatch.decode(data), batch.version == WatchLoanRecordBatch.currentVersion else {
             warning(.watch, "Watch record batch can't be read; not acknowledged")
             return
