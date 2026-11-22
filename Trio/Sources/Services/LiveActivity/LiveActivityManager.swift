@@ -419,19 +419,26 @@ final class LiveActivityData: ObservableObject {
             return
         }
 
-        var content = LiveActivityAttributes.ContentState(
-            new: bg,
-            prev: prevGlucose,
-            units: settings.units,
-            chart: glucose,
-            settings: settings,
-            determination: determination,
-            iob: data.iob,
-            override: data.override,
-            tempTarget: data.tempTarget,
-            widgetItems: data.widgetItems
-        )
-        content.watchMode = data.watchMode
+        let content = LiveActivityAttributes.ContentState.fitting { spacing in
+            var content = LiveActivityAttributes.ContentState(
+                new: bg,
+                prev: prevGlucose,
+                units: settings.units,
+                chart: glucose,
+                settings: settings,
+                determination: determination,
+                iob: data.iob,
+                override: data.override,
+                tempTarget: data.tempTarget,
+                widgetItems: data.widgetItems,
+                chartSpacing: spacing
+            )
+            content.watchMode = data.watchMode
+            return content
+        }
+        if !content.fitsUpdateLimit {
+            warning(.liveActivity, "Live Activity update is larger than iOS accepts, \(content.encodedSize) bytes")
+        }
 
         await pushUpdate(content)
     }

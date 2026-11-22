@@ -663,6 +663,43 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(silenceArms() == before + 2)
     }
 
+    @Test("Live Activity: one chart reading per interval, whole seconds, and an update that fits in 4 KB") func liveActivitySize(
+    ) {
+        let now = Date()
+        // a sensor read by the phone and the watch: a reading every 2.5 min for 6 hours
+        let doubled = (0 ..< 144).map {
+            GlucoseData(glucose: 100 + $0 % 40, date: now.addingTimeInterval(-Double($0) * 150 - 0.37), direction: .flat)
+        }
+        let thinned = LiveActivityAttributes.ContentState.thinned(doubled, spacing: 240)
+        #expect(thinned.count == 72)
+        #expect(thinned.first?.date == doubled.first?.date)
+
+        func state(_ chart: [GlucoseData]) -> LiveActivityAttributes.ContentState {
+            .fitting { spacing in
+                LiveActivityAttributes.ContentState(
+                    new: chart[0], prev: chart[1], units: .mgdL, chart: chart, settings: TrioSettings(), determination: nil,
+                    iob: 1, override: nil, tempTarget: nil, widgetItems: LiveActivityAttributes.LiveActivityItem.defaultItems,
+                    chartSpacing: spacing
+                )
+            }
+        }
+        let fromDoubled = state(doubled)
+        #expect(fromDoubled.fitsUpdateLimit)
+        #expect(fromDoubled.detailedViewState.chart.count == 72)
+        #expect(fromDoubled.detailedViewState.chart.allSatisfy {
+            $0.date.timeIntervalSinceReferenceDate == $0.date.timeIntervalSinceReferenceDate.rounded()
+        })
+
+        // a reading a minute: thinner still until it fits
+        let everyMinute = (0 ..< 360).map {
+            GlucoseData(glucose: 100 + $0 % 40, date: now.addingTimeInterval(-Double($0) * 60), direction: .flat)
+        }
+        let fromEveryMinute = state(everyMinute)
+        #expect(fromEveryMinute.fitsUpdateLimit)
+        // the delta still comes from the two newest readings
+        #expect(fromEveryMinute.change == LiveActivityAttributes.ContentState.calculateChange(chart: everyMinute, units: .mgdL))
+    }
+
     @Test("Lent: not-looping off, watch silence armed from the last batch, kept across a relaunch") func silenceAlarm() async throws {
         let rig = try Rig()
         try await rig.receive(F.message(0, .request(requestID: F.requestA)))
