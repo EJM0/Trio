@@ -86,6 +86,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
     var requestTimeout = WatchLoan.watchRequestTimeout
     var handBackResend: TimeInterval = 60
     var adoptTimeout: TimeInterval = 60
+    private(set) var logShipments = 0
     var tempTargetPresets: [WatchLoanSnapshot.TempTargetPreset] = []
     var overridePresets: [WatchLoanSnapshot.OverridePreset] = []
     private(set) var adopted = 0
@@ -136,7 +137,8 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
             handBackResendInterval: handBackResend,
             phoneAnswerTimeout: 0.2,
             phoneAnswerWindow: 1.5,
-            grantPartsWait: 0.3
+            grantPartsWait: 0.3,
+            shipLogs: { [weak self] in self?.logShipments += 1 }
         ))
         return created
     }
@@ -390,6 +392,24 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         let payloads = try world.partPayloads(grant, snapshot: data, requestID: requestID, epoch: 1)
         #expect(payloads.count >= 2)
         return (grant, payloads)
+    }
+
+    @Test("The log goes to the phone when watch mode ends, by End or a stop, and not before") func logsAfterLoan() async throws {
+        let world = LoanFixture()
+        try await world.startLoan()
+        await world.reading(160)
+        await world.host.endTapped()
+        #expect(world.host.state == .returning(epoch: 1))
+        #expect(world.logShipments == 0)
+        await world.host.receive(try world.payload(WatchLoanMessage(epoch: 1, kind: .handBackAck)))
+        #expect(world.host.state == .idle(epoch: 1))
+        #expect(world.logShipments == 1)
+
+        #expect(WatchLoanHost.loanEnds(from: .holding(epoch: 1), to: .returning(epoch: 1)) == false)
+        #expect(WatchLoanHost.loanEnds(from: .returning(epoch: 1), to: .idle(epoch: 1)))
+        #expect(WatchLoanHost.loanEnds(from: .holding(epoch: 1), to: .stopped(epoch: 1, reason: .foreignSession)))
+        #expect(WatchLoanHost.loanEnds(from: .idle(epoch: 1), to: .idle(epoch: 2)) == false)
+        #expect(WatchLoanHost.loanEnds(from: .requesting(epoch: 1, requestID: UUID()), to: .idle(epoch: 1)) == false)
     }
 
     @Test("Start doesn't show the watch in control before its first reading, also while the adopt runs") func startNotInControlEarly(

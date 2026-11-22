@@ -55,6 +55,8 @@ struct WatchLoanEnvironment {
     /// How long End keeps asking the phone before it says the phone didn't answer.
     var phoneAnswerWindow: TimeInterval = 25
     var grantPartsWait: TimeInterval = 5
+    /// Sends the watch's log to the phone once a loan ends, so an export after End has all of it.
+    var shipLogs: () -> Void = { WatchLogger.shared.shipAfterLoan() }
 }
 
 /// Background time held for one cycle or message.
@@ -368,8 +370,22 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         if case .idle = next, previous != next {
             Task { await self.retireDevices() }
         }
+        if Self.loanEnds(from: previous, to: next) {
+            WatchLogger.shared.info(.connectivity, "Watch mode ended; sending the log to the phone")
+            env.shipLogs()
+        }
         updateRequestTimeout(from: previous, to: next)
         return true
+    }
+
+    static func loanEnds(from previous: WatchLoanState, to next: WatchLoanState) -> Bool {
+        switch (previous, next) {
+        case (.holding, .idle),
+             (.holding, .stopped),
+             (.returning, .idle),
+             (.returning, .stopped): return true
+        default: return false
+        }
     }
 
     /// Until the phone acknowledges, the hand-back goes again while the phone is reachable (W17); an unreachable phone
