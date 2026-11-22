@@ -337,6 +337,14 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(rig.transport.messages == [F.message(0, .refused(requestID: F.requestA, reason: .pumpScreenOpen))])
     }
 
+    @Test("Start: a watch that gave up on its request takes the pump back on the phone, from its older epoch") func watchGaveUp(
+    ) async throws {
+        let rig = try Rig()
+        try await rig.receive(F.message(0, .request(requestID: F.requestA)))
+        try await rig.receive(F.message(0, .grantRejected(requestID: F.requestA, reason: .grantExpired)))
+        #expect(await rig.coordinator.state == .home(epoch: 2, lastLoan: LoanRecord(epoch: 1)))
+    }
+
     @Test("Start: a grant that can't go live is never queued; the phone takes the pump straight back") func grantNotLive() async throws {
         let rig = try Rig()
         rig.transport.isReachable = false
@@ -741,10 +749,13 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(rig.transport.messages.count == 2)
     }
 
-    @Test("Below the phone's epoch only request, hand-back and records pass") func epochFilter() {
-        let passing: [WatchLoanMessage.Kind] = [.request(requestID: F.requestA), .handBack, .records]
+    @Test("Below the phone's epoch only request, grant rejected, hand-back and records pass") func epochFilter() {
+        // a watch that never got the grant rejects it from its older epoch
+        let passing: [WatchLoanMessage.Kind] = [
+            .request(requestID: F.requestA), .grantRejected(requestID: F.requestA, reason: .grantExpired), .handBack, .records
+        ]
         let dropped: [WatchLoanMessage.Kind] = [
-            .holding, .grantRejected(requestID: F.requestA, reason: .grantExpired), .status(.idle(epoch: 1)),
+            .holding, .status(.idle(epoch: 1)),
             .handBackAck, .statusQuery, .refused(requestID: F.requestA, reason: .busy),
             .grant(requestID: F.requestA, expiresAt: F.now)
         ]

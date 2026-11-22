@@ -53,10 +53,14 @@ import Testing
         #expect(effects == [.alert(.startRefused(.watchBatteryLow))])
     }
 
-    @Test("W3 requesting + timeout (request or grant lost): idle, alert") func w3() {
+    @Test("W3 requesting + timeout (request or grant lost): idle, tell the phone, alert") func w3() {
         let (state, effects) = decide(.requesting(epoch: 3, requestID: F.requestA), .requestTimedOut)
         #expect(state == .idle(epoch: 3))
-        #expect(effects == [.persist(.idle(epoch: 3)), .alert(.phoneDidNotAnswer)])
+        #expect(effects == [
+            .persist(.idle(epoch: 3)),
+            .send(WatchLoanMessage(epoch: 3, kind: .grantRejected(requestID: F.requestA, reason: .grantExpired))),
+            .alert(.phoneDidNotAnswer)
+        ])
     }
 
     @Test("W4 requesting + valid grant: arm, persist holding, then adopt, then send holding") func w4() {

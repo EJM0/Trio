@@ -148,8 +148,10 @@ struct WatchLoanInbox: Codable, Equatable {
              .records,
              .request:
             return true
+        case .grantRejected:
+            // a watch that never got the grant doesn't know its epoch; the phone acts only on its own request ID
+            return true
         case .grant,
-             .grantRejected,
              .handBackAck,
              .holding,
              .refused,

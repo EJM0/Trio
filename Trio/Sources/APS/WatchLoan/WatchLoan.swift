@@ -404,9 +404,11 @@ enum WatchLoan {
             )
 
         case .requestTimedOut:
-            guard case let .requesting(epoch, _) = state else { return (state, []) }
+            guard case let .requesting(epoch, requestID) = state else { return (state, []) }
             let next = WatchLoanState.idle(epoch: epoch)
-            return (next, [.persist(next), .alert(.phoneDidNotAnswer)])
+            // the phone may have released the pump and lost the grant on the way: it takes the pump back at once
+            let giveUp = WatchLoanMessage(epoch: epoch, kind: .grantRejected(requestID: requestID, reason: .grantExpired))
+            return (next, [.persist(next), .send(giveUp), .alert(.phoneDidNotAnswer)])
 
         case let .received(message):
             return watchReceived(state, message, context)
