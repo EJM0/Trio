@@ -113,6 +113,12 @@ enum WatchLoanWireKey {
     /// In the phone's reply to the watch's status query: the phone's loan epoch.
     static let phoneEpoch = "watchLoanPhoneEpoch"
 
+    /// The phone's drag-to-watch Start: asks the watch to start as if Start was tapped on it. Live only, with a reply.
+    static let startAsk = "watchLoanStartAsk"
+    /// In the watch's reply: `startRequested`, or the `LoanRefusal` raw value that kept it from asking.
+    static let startAnswer = "watchLoanStartAnswer"
+    static let startRequested = "requested"
+
     static func isStatusQuery(_ payload: [String: Any]) -> Bool {
         guard let data = payload[message] as? Data, case let .message(envelope) = WatchLoanWire.decode(data) else { return false }
         return envelope.message.kind == .statusQuery

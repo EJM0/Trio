@@ -791,6 +791,22 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     // MARK: - User
 
     func startTapped() async { await handle(.startTapped) }
+
+    /// The phone's drag-to-watch Start: the watch's own checks and request, as when Start is tapped here. The user
+    /// confirmed on the phone, so there is no Start sheet. Nil once the request is on its way.
+    func startAskedByPhone() async -> LoanRefusal? {
+        await loaded.value
+        guard case .idle = state else { return .busy }
+        if let refusal = await startRefusal() {
+            WatchLogger.shared.info(.loop, "Start asked by the iPhone, refused: \(refusal.rawValue)")
+            return refusal
+        }
+        WatchLogger.shared.info(.loop, "Start asked by the iPhone")
+        await startTapped()
+        if case .requesting = state { return nil }
+        return .busy
+    }
+
     func endTapped() async { await handle(.endTapped) }
     func stopAcknowledged() async { await handle(.stopAcknowledged) }
 

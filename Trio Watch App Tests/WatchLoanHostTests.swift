@@ -394,6 +394,29 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         return (grant, payloads)
     }
 
+    @Test("The phone's drag-to-watch Start: the watch's own checks, then its request") func startAskedByPhone() async throws {
+        let world = LoanFixture()
+        world.battery = 0.1
+        #expect(await world.host.startAskedByPhone() == .watchBatteryLow)
+        guard case .idle = world.host.state else {
+            Issue.record("not idle")
+            return
+        }
+        #expect(world.transport.messages.isEmpty)
+
+        world.battery = 1
+        #expect(await world.host.startAskedByPhone() == nil)
+        guard case .requesting = world.host.state else {
+            Issue.record("not requesting")
+            return
+        }
+        guard case .request = world.transport.messages.last?.kind else {
+            Issue.record("no request sent")
+            return
+        }
+        #expect(await world.host.startAskedByPhone() == .busy)
+    }
+
     @Test("The log goes to the phone when watch mode ends, by End or a stop, and not before") func logsAfterLoan() async throws {
         let world = LoanFixture()
         try await world.startLoan()
