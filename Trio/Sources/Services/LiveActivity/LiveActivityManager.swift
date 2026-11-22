@@ -270,7 +270,9 @@ final class LiveActivityData: ObservableObject {
             } else {
                 let content = ActivityContent(
                     state: state,
-                    staleDate: min(state.date ?? Date.now, Date.now).addingTimeInterval(360)
+                    // stale by the newest reading, which the phone reads itself also while the watch loops
+                    staleDate: min(state.detailedViewState.chart.first?.date ?? state.date ?? Date.now, Date.now)
+                        .addingTimeInterval(360)
                 )
                 // Before the update, check if currentActivity is still valid
                 if let stillCurrent = self.currentActivity, stillCurrent.activity.id == currentActivity.activity.id {
@@ -400,18 +402,14 @@ final class LiveActivityData: ObservableObject {
         }
         let prevGlucose = data.glucoseFromPersistence?.dropFirst().first
 
-        guard let determination = data.determination else {
-            debug(.liveActivity, "Live Activity not updated, no determination available")
-            return
-        }
-
         let content = LiveActivityAttributes.ContentState(
             new: bg,
             prev: prevGlucose,
             units: settings.units,
             chart: glucose,
             settings: settings,
-            determination: determination,
+            // none in the last 30 min (a watch loop whose batches are late): the phone's own readings still show
+            determination: data.determination,
             iob: data.iob,
             override: data.override,
             tempTarget: data.tempTarget,
