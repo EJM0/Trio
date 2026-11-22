@@ -349,8 +349,31 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         try await deleteGlucose(at: batch.deletedGlucoseDates ?? [])
 
         try await storeDeterminations(batch.determinations ?? [])
+        try await storeTDD(batch.tdd ?? [])
 
         await applyWatchAdjustments(batch)
+    }
+
+    /// The watch loop's TDD rows, skipping those already stored (same date), so the phone's Dynamic ISF counts the loan.
+    private func storeTDD(_ rows: [OrefInputs.TDDRow]) async throws {
+        let dated = rows.compactMap { row in row.date.map { ($0, row.total ?? 0) } }
+        guard let first = dated.map(\.0).min(), let last = dated.map(\.0).max() else { return }
+        let context = makeContext()
+        let count = try await context.perform {
+            let request = TDDStored.fetchRequest() as NSFetchRequest<TDDStored>
+            request.predicate = NSPredicate(format: "date >= %@ AND date <= %@", first as NSDate, last as NSDate)
+            let stored = Set(try context.fetch(request).compactMap(\.date))
+            let new = dated.filter { !stored.contains($0.0) }
+            for (date, total) in new {
+                let row = TDDStored(context: context)
+                row.id = UUID()
+                row.date = date
+                row.total = NSDecimalNumber(decimal: total)
+            }
+            if context.hasChanges { try context.save() }
+            return new.count
+        }
+        if count > 0 { info(.watch, "\(count) watch TDD row(s) stored") }
     }
 
     /// The watch loop's determinations, stored as the phone stores its own and marked enacted as it marks its own.

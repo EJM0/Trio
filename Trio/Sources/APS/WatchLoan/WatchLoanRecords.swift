@@ -52,6 +52,8 @@ struct WatchLoanRecordBatch: Codable {
     var tempTargetCancelledAt: Date? = nil
     /// The watch loop's determinations, for the phone's chart, loop status and Nightscout.
     var determinations: [DeterminationRecord]? = nil
+    /// The watch loop's TDD rows, stored by the phone as its own so its 7-day Dynamic ISF check counts the loan.
+    var tdd: [OrefInputs.TDDRow]? = nil
     /// The watch deactivated the faulted pod: the phone forgets it, as the controller that ended it booked its end.
     var podDeactivatedAt: Date? = nil
 

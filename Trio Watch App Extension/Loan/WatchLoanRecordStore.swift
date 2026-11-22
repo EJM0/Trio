@@ -13,6 +13,8 @@ final class WatchLoanRecordStore {
         var acknowledgedGlucose: Set<String> = []
         var acknowledgedCarbs: Set<String> = []
         var tddHistory: [OrefInputs.TDDRow] = []
+        /// The newest TDD row the phone has acknowledged.
+        var tddAcknowledgedUntil: Date?
         var overrideCancelledAt: Date?
         var tempTargetCancelledAt: Date?
         /// An override started on the watch during the loan (from a grant preset), with its start time. The started
@@ -305,11 +307,13 @@ final class WatchLoanRecordStore {
             batch.overrideCancelledAt = contents.overrideCancelledAt
             batch.tempTargetCancelledAt = contents.tempTargetCancelledAt
             batch.determinations = contents.determinations
+            batch.tdd = contents.tddHistory.filter { ($0.date ?? .distantPast) > (contents.tddAcknowledgedUntil ?? .distantPast) }
             contents.pendingBatch = batch.batchID
             contents.pendingKeys = Array(events.keys)
                 + batch.carbs.map { "carbs:\($0.id ?? "")" }
                 + batch.glucose.map { "glucose:\($0.id)" }
                 + (batch.determinations ?? []).compactMap(\.determination.id).map { "determination:\($0.uuidString)" }
+                + ((batch.tdd ?? []).compactMap(\.date).max().map { ["tdd:\($0.timeIntervalSince1970)"] } ?? [])
             return batch
         }
     }
@@ -322,6 +326,8 @@ final class WatchLoanRecordStore {
                     contents.acknowledgedCarbs.insert(String(key.dropFirst(6)))
                 } else if key.hasPrefix("glucose:") {
                     contents.acknowledgedGlucose.insert(String(key.dropFirst(8)))
+                } else if key.hasPrefix("tdd:") {
+                    contents.tddAcknowledgedUntil = Double(key.dropFirst(4)).map(Date.init(timeIntervalSince1970:))
                 } else if key.hasPrefix("determination:") {
                     let id = UUID(uuidString: String(key.dropFirst(14)))
                     contents.determinations?.removeAll { $0.determination.id == id }
