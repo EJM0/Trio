@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// P1: replaces the loop ring while the phone isn't in control. Symbol, word and age; colour only adds to them.
 struct TrioOnWatchPill: View {
@@ -297,3 +298,326 @@ enum TrioOnWatchPhoneFixtureDialog {
         }
     }
 #endif
+
+// MARK: - Drag the glucose onto the watch
+
+/// Starting Trio on Watch from Home: hold the glucose, drag it onto the watch, then the hand-off.
+@MainActor @Observable final class TrioOnWatchStartDrag {
+    enum Step: Equatable {
+        case idle
+        case dragging
+        case handOff(TrioOnWatchPhoneStart.Stage)
+    }
+
+    var step: Step = .idle
+    /// The glucose on Home, in global coordinates.
+    var ringFrame: CGRect = .zero
+    var translation: CGSize = .zero
+    /// The long press finished: the rest of this touch belongs to it.
+    var holdStarted = false
+
+    var isActive: Bool { step != .idle }
+    var ringCenter: CGPoint { CGPoint(x: ringFrame.midX + translation.width, y: ringFrame.midY + translation.height) }
+    /// The watch to drop on: under the glucose, a thumb's drag away.
+    var targetCenter: CGPoint { CGPoint(x: ringFrame.midX, y: ringFrame.maxY + Self.targetDistance) }
+    var isOverTarget: Bool { hypot(ringCenter.x - targetCenter.x, ringCenter.y - targetCenter.y) < Self.dropRadius }
+    /// Let go about where it was picked up: the long press it always was, snooze.
+    var isNearStart: Bool { hypot(translation.width, translation.height) < Self.snoozeRadius }
+
+    static let targetDistance: CGFloat = 190
+    static let dropRadius: CGFloat = 60
+    static let snoozeRadius: CGFloat = 24
+    static let pollInterval: UInt64 = 500_000_000
+
+    func reset() {
+        step = .idle
+        translation = .zero
+    }
+
+    /// Dropped on the watch: ask it to start, then follow the phone's loan state until the watch has the pump.
+    func handOff(model: TrioOnWatchPhoneModel) async {
+        let droppedAt = Date()
+        withAnimation(.spring(duration: 0.45)) { step = .handOff(.handingOver) }
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        let answer = await model.startFromPhone()
+        while case .handOff = step {
+            await model.refresh()
+            let stage = TrioOnWatchPhoneStart.stage(
+                answer: answer,
+                phase: model.status.phase,
+                elapsed: Date().timeIntervalSince(droppedAt),
+                patch: false
+            )
+            if step != .handOff(stage) {
+                withAnimation(.spring(duration: 0.45)) { step = .handOff(stage) }
+                switch stage {
+                case .done: UINotificationFeedbackGenerator().notificationOccurred(.success)
+                case .failed: UINotificationFeedbackGenerator().notificationOccurred(.error)
+                case .handingOver,
+                     .stillWaiting: break
+                }
+            }
+            switch stage {
+            case .done,
+                 .failed: return
+            case .handingOver,
+                 .stillWaiting:
+                try? await Task.sleep(nanoseconds: Self.pollInterval)
+            }
+        }
+    }
+}
+
+/// Over all of Home while the glucose is held: the lifted glucose and the watch to drop it on, then the hand-off card.
+struct TrioOnWatchStartOverlay<Ring: View>: View {
+    @Bindable var drag: TrioOnWatchStartDrag
+    let model: TrioOnWatchPhoneModel
+    let reading: TrioOnWatchFaceCard.Reading?
+    @ViewBuilder let ring: () -> Ring
+    /// Opens the Trio on Watch screen, where control is taken back.
+    let onEnd: () -> Void
+
+    var body: some View {
+        GeometryReader { geo in
+            let origin = geo.frame(in: .global).origin
+            ZStack {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .overlay(Color.black.opacity(0.3))
+                switch drag.step {
+                case .dragging:
+                    dragging(origin: origin)
+                case let .handOff(stage):
+                    handOff(stage)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .transition(.scale(scale: 0.4).combined(with: .opacity))
+                case .idle:
+                    EmptyView()
+                }
+            }
+        }
+        .ignoresSafeArea()
+        .transition(.opacity)
+        .task(id: drag.step == .dragging) {
+            // the watch app opening or closing turns the drop target on and off while the glucose is held
+            while drag.step == .dragging, !Task.isCancelled {
+                await model.refresh()
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+            }
+        }
+    }
+
+    private var watchReachable: Bool { model.status.watchReachable }
+
+    @ViewBuilder private func dragging(origin: CGPoint) -> some View {
+        let over = drag.isOverTarget && watchReachable
+        let target = CGPoint(x: drag.targetCenter.x - origin.x, y: drag.targetCenter.y - origin.y)
+        let ringAt = CGPoint(x: drag.ringCenter.x - origin.x, y: drag.ringCenter.y - origin.y)
+
+        if drag.isNearStart {
+            Text(String(localized: "Let go to snooze alerts", comment: "Hint while the glucose is held on Home"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .position(x: drag.ringFrame.midX - origin.x, y: drag.ringFrame.minY - origin.y - 14)
+        }
+
+        ZStack {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.white.opacity(over ? 0.18 : 0.08))
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(TrioOnWatchFaceCard.gradient, lineWidth: over ? 3 : 1.5)
+            Image(systemName: "applewatch")
+                .font(.system(size: 30, weight: .medium))
+        }
+        .frame(width: 68, height: 68)
+        .scaleEffect(over ? 1.25 : 1)
+        .shadow(color: TrioOnWatchFaceCard.glow.opacity(over ? 0.9 : 0.3), radius: over ? 22 : 8)
+        .opacity(watchReachable ? 1 : 0.4)
+        .position(target)
+        .accessibilityHidden(true)
+
+        Text(targetText(over: over))
+            .font(.callout.weight(.semibold))
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: 260)
+            .position(x: target.x, y: target.y + 66)
+
+        ring()
+            .scaleEffect(over ? 0.8 : 1.05)
+            .shadow(color: TrioOnWatchFaceCard.glow.opacity(over ? 0.9 : 0.5), radius: over ? 26 : 16)
+            .position(ringAt)
+            .animation(.interactiveSpring(duration: 0.2), value: drag.translation)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+
+    private func targetText(over: Bool) -> String {
+        if !watchReachable {
+            return String(
+                localized: "Open Trio on your watch to start it from here",
+                comment: "Drag-to-watch Start: the watch app isn't open"
+            )
+        }
+        return over
+            ? String(localized: "Release to start Trio on Watch", comment: "Drag-to-watch Start: over the watch")
+            : String(localized: "Drag onto the watch", comment: "Drag-to-watch Start: the hint under the watch")
+    }
+
+    @ViewBuilder private func handOff(_ stage: TrioOnWatchPhoneStart.Stage) -> some View {
+        VStack(spacing: 18) {
+            TrioOnWatchFaceCard(reading: reading, stage: stage)
+            VStack(spacing: 8) {
+                Text(title(stage))
+                    .font(.title3.weight(.semibold))
+                Text(detail(stage))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .multilineTextAlignment(.center)
+            .accessibilityElement(children: .combine)
+
+            switch stage {
+            case .done:
+                Button(String(localized: "Done", comment: "Drag-to-watch Start: close after the watch took over")) {
+                    close()
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.insulin)
+                Button(String(localized: "End Trio on Watch", comment: "Drag-to-watch Start: open the screen to take back")) {
+                    close()
+                    onEnd()
+                }
+                .font(.subheadline)
+            case .failed:
+                Button(String(localized: "OK", comment: "Dismiss button")) { close() }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.insulin)
+            case .handingOver,
+                 .stillWaiting:
+                // the hand-off goes on; Home's banner follows it
+                Button(String(localized: "Hide", comment: "Drag-to-watch Start: hide the card while the hand-off goes on")) {
+                    close()
+                }
+                .font(.subheadline)
+            }
+        }
+        .padding(32)
+        .frame(maxWidth: 380)
+    }
+
+    private func close() {
+        withAnimation(.easeOut(duration: 0.25)) { drag.reset() }
+    }
+
+    private func title(_ stage: TrioOnWatchPhoneStart.Stage) -> String {
+        switch stage {
+        case .handingOver:
+            return String(localized: "Handing over to your watch…", comment: "Drag-to-watch Start: in progress")
+        case .stillWaiting:
+            return String(localized: "Waiting for your watch", comment: "Drag-to-watch Start: no confirmation yet")
+        case .done:
+            return String(localized: "Your watch is in control", comment: "Drag-to-watch Start: done")
+        case .failed:
+            return String(localized: "Trio on Watch didn't start", comment: "Drag-to-watch Start: failed")
+        }
+    }
+
+    private func detail(_ stage: TrioOnWatchPhoneStart.Stage) -> String {
+        let patch = false
+        switch stage {
+        case .handingOver:
+            return String(localized: "Keep your iPhone and watch close.", comment: "Drag-to-watch Start: in progress")
+        case .stillWaiting:
+            return String(
+                localized: "Your watch hasn't confirmed it has your pump. Check Trio on your watch.",
+                comment: "Drag-to-watch Start: no confirmation yet"
+            )
+        case .done:
+            return patch ? String(
+                localized: "It has your patch now and loops with its own sensor readings, the first within 5 minutes.",
+                comment: "Drag-to-watch Start: done"
+            ) : String(
+                localized: "It has your pod now and loops with its own sensor readings, the first within 5 minutes.",
+                comment: "Drag-to-watch Start: done"
+            )
+        case let .failed(text):
+            return text
+        }
+    }
+}
+
+/// The watch the glucose was dropped on: the reading, then how the hand-off is going.
+struct TrioOnWatchFaceCard: View {
+    struct Reading: Equatable {
+        var value: String
+        var delta: String
+        var date: Date?
+    }
+
+    let reading: Reading?
+    let stage: TrioOnWatchPhoneStart.Stage
+
+    static let glow = Color(red: 0.62, green: 0.42, blue: 0.98)
+    static let gradient = LinearGradient(
+        colors: [Color(red: 0.72, green: 0.34, blue: 1), Color(red: 0.26, green: 0.73, blue: 0.91)],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+
+    var body: some View {
+        ZStack {
+            // the band
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.gray.opacity(0.22))
+                .frame(width: 112, height: 270)
+            VStack(spacing: 4) {
+                if let date = reading?.date {
+                    Text(date, style: .time)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Text(reading?.value ?? "--")
+                    .font(.system(size: 46, weight: .bold, design: .rounded))
+                    .minimumScaleFactor(0.6)
+                    .lineLimit(1)
+                if let delta = reading?.delta, !delta.isEmpty {
+                    Text(delta)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                badge
+                    .padding(.top, 6)
+            }
+            .foregroundStyle(.white)
+            .padding(14)
+            .frame(width: 168, height: 196)
+            .background(RoundedRectangle(cornerRadius: 42, style: .continuous).fill(Color.black))
+            .overlay(RoundedRectangle(cornerRadius: 42, style: .continuous).strokeBorder(Self.gradient, lineWidth: 4))
+            .shadow(color: Self.glow.opacity(0.55), radius: 22)
+        }
+        .accessibilityHidden(true)
+    }
+
+    @ViewBuilder private var badge: some View {
+        switch stage {
+        case .handingOver,
+             .stillWaiting:
+            ProgressView()
+                .tint(.white)
+        case .done:
+            Label(
+                String(localized: "Trio on Watch", comment: "Badge on the watch card once the watch took over"),
+                systemImage: "checkmark"
+            )
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(Color.loopGreen)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(Capsule().fill(Color.loopGreen.opacity(0.2)))
+        case .failed:
+            Image(systemName: "xmark")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Color.loopRed)
+        }
+    }
+}
