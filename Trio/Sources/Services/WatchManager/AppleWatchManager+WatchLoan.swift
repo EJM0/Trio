@@ -34,10 +34,11 @@ extension BaseWatchManager: WatchLoanTransport {
 
     var isReachable: Bool { session?.isReachable ?? false }
 
-    func sendLive(_ payload: [String: Any]) -> Bool {
+    func sendLive(_ payload: [String: Any], failed: ((Error) -> Void)?) -> Bool {
         guard let session, session.activationState == .activated, session.isReachable else { return false }
         session.sendMessage(payload, replyHandler: nil) { error in
             warning(.watch, "Sending a watch loan message failed", error: error)
+            failed?(error)
         }
         return true
     }

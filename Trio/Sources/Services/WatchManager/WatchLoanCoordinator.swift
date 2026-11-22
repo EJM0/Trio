@@ -2,11 +2,15 @@ import Foundation
 
 protocol WatchLoanTransport: AnyObject {
     var isReachable: Bool { get }
-    /// A live message only. False when the watch isn't reachable.
-    func sendLive(_ payload: [String: Any]) -> Bool
+    /// A live message only. False when the watch isn't reachable; `failed` when it didn't get there after all.
+    func sendLive(_ payload: [String: Any], failed: ((Error) -> Void)?) -> Bool
     /// Live when reachable, otherwise queued for delivery.
     func send(_ payload: [String: Any])
     func cancelOutstandingLoanTransfers()
+}
+
+extension WatchLoanTransport {
+    func sendLive(_ payload: [String: Any]) -> Bool { sendLive(payload, failed: nil) }
 }
 
 /// What the coordinator needs from the rest of the app.
@@ -120,6 +124,8 @@ actor WatchLoanCoordinator {
     private var isDraining = false
     private var pendingStatus: CheckedContinuation<WatchLoanState?, Never>?
     private var grantTimer: Task<Void, Never>?
+    /// A grant part that didn't reach the watch: the grant goes again while it is valid, then the pump comes back.
+    private var grantResend: Task<Void, Never>?
     /// Audits run one at a time: each reads its ledger entry, awaits the stores and writes the entry back.
     private var auditChain: Task<Void, Never>?
     private var isCheckingForeignSession = false
@@ -554,10 +560,10 @@ actor WatchLoanCoordinator {
     private func sendGrant(_ message: WatchLoanMessage) async {
         guard case let .grant(requestID, expiresAt) = message.kind, case let .lending(epoch, _) = state else { return }
         func reject(_ reason: LoanRefusal) {
-            warning(.watch, "Grant not sent to Apple Watch: \(reason.rawValue)")
-            // otherwise the watch waits until its request times out
-            send(WatchLoanMessage(epoch: epoch, kind: .refused(requestID: requestID, reason: reason)))
-            enqueue(.received(WatchLoanMessage(epoch: epoch, kind: .grantRejected(requestID: requestID, reason: reason))))
+            rejectGrant(epoch: epoch, requestID: requestID, reason: reason)
+        }
+        let partFailed: (Error) -> Void = { [weak self] _ in
+            Task { await self?.grantPartFailed(message) }
         }
         guard let pump = host.pump, pump.isReleased,
               let audit = ledger.audits.last(where: { $0.epoch == epoch })
@@ -593,8 +599,10 @@ actor WatchLoanCoordinator {
         guard let messageData = try? WatchLoanWire.encode(envelope) else { return reject(.snapshotIncomplete) }
         let size = messageData.count + snapshotData.count
         if size <= WatchLoanSnapshot.grantBudgetBytes {
-            guard host.transport?.sendLive([WatchLoanWireKey.message: messageData, WatchLoanWireKey.snapshot: snapshotData]) ==
-                true
+            guard host.transport?.sendLive(
+                [WatchLoanWireKey.message: messageData, WatchLoanWireKey.snapshot: snapshotData],
+                failed: partFailed
+            ) == true
             else { return reject(.phoneUnreachable) }
             info(.watch, "Grant sent to Apple Watch, \(size) bytes")
         } else {
@@ -612,7 +620,7 @@ actor WatchLoanCoordinator {
                     WatchLoanWireKey.snapshotPart: piece.bytes
                 ]
                 if offset == pieces.count - 1 { payload[WatchLoanWireKey.message] = messageData }
-                guard host.transport?.sendLive(payload) == true else { return reject(.phoneUnreachable) }
+                guard host.transport?.sendLive(payload, failed: partFailed) == true else { return reject(.phoneUnreachable) }
             }
             info(.watch, "Grant sent to Apple Watch, \(size) bytes in \(pieces.count) parts")
             if let parts { info(.watch, "Grant parts, compressed: \(parts)") }
@@ -623,6 +631,45 @@ actor WatchLoanCoordinator {
             guard !Task.isCancelled else { return }
             await self?.handle(.grantUnconfirmed)
         }
+    }
+
+    private func rejectGrant(epoch: Int64, requestID: UUID, reason: LoanRefusal) {
+        warning(.watch, "Grant not sent to Apple Watch: \(reason.rawValue)")
+        // otherwise the watch waits until its request times out
+        send(WatchLoanMessage(epoch: epoch, kind: .refused(requestID: requestID, reason: reason)))
+        enqueue(.received(WatchLoanMessage(epoch: epoch, kind: .grantRejected(requestID: requestID, reason: reason))))
+    }
+
+    static let grantResendPoll: UInt64 = 500_000_000
+
+    /// The pump is released, so a grant the watch never got leaves nothing in control: send it again once the watch
+    /// is reachable, or take the pump back once the grant has expired.
+    private func grantPartFailed(_ message: WatchLoanMessage) {
+        guard case let .grant(requestID, _) = message.kind, case let .lending(_, current) = state, current == requestID,
+              grantResend == nil
+        else { return }
+        warning(.watch, "Part of the grant didn't reach Apple Watch; sending it again")
+        grantResend = Task { [weak self] in await self?.resendGrant(message) }
+    }
+
+    private func resendGrant(_ message: WatchLoanMessage) async {
+        guard case let .grant(requestID, expiresAt) = message.kind else { return }
+        while !Task.isCancelled {
+            guard case let .lending(epoch, current) = state, current == requestID else { break }
+            if now() >= expiresAt {
+                grantResend = nil
+                warning(.watch, "The grant didn't reach Apple Watch before it expired; taking the pump back")
+                rejectGrant(epoch: epoch, requestID: requestID, reason: .grantExpired)
+                return
+            }
+            if host.transport?.isReachable == true {
+                grantResend = nil
+                await sendGrant(message)
+                return
+            }
+            try? await Task.sleep(nanoseconds: Self.grantResendPoll)
+        }
+        grantResend = nil
     }
 
     // MARK: - Audit

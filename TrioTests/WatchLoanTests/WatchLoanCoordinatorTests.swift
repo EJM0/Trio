@@ -27,9 +27,18 @@ final class FakeLoanTransport: WatchLoanTransport {
     private(set) var queued: [[String: Any]] = []
     private(set) var cancelled = 0
 
-    func sendLive(_ payload: [String: Any]) -> Bool {
+    /// Live sends that go out but don't arrive, as when the watch drops away right after.
+    var undeliveredLiveSends = 0
+    var unreachableAfterFailure = false
+
+    func sendLive(_ payload: [String: Any], failed: ((Error) -> Void)?) -> Bool {
         guard isReachable else { return false }
         live.append(payload)
+        if undeliveredLiveSends > 0 {
+            undeliveredLiveSends -= 1
+            if unreachableAfterFailure { isReachable = false }
+            failed?(NSError(domain: "WCErrorDomain", code: 7007))
+        }
         return true
     }
 
@@ -335,6 +344,40 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(await rig.coordinator.state == .initial)
         #expect(rig.double.commands.isEmpty)
         #expect(rig.transport.messages == [F.message(0, .refused(requestID: F.requestA, reason: .pumpScreenOpen))])
+    }
+
+    private static func eventually(_ timeout: TimeInterval = 3, _ condition: () async -> Bool) async -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if await condition() { return true }
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+        return await condition()
+    }
+
+    private static func grants(_ transport: FakeLoanTransport) -> Int {
+        transport.messages.filter { if case .grant = $0.kind { return true } else { return false } }.count
+    }
+
+    @Test("Start: a grant that went out but didn't arrive goes again once the watch is reachable") func grantResent() async throws {
+        let rig = try Rig()
+        rig.transport.undeliveredLiveSends = 1
+        try await rig.receive(F.message(0, .request(requestID: F.requestA)))
+        #expect(await Self.eventually { Self.grants(rig.transport) == 2 })
+        #expect(await rig.coordinator.state == .lending(epoch: 1, requestID: F.requestA))
+    }
+
+    @Test("Start: a grant still not delivered when it expires: the phone takes the pump back by itself") func grantLostExpired(
+    ) async throws {
+        let rig = try Rig()
+        rig.transport.undeliveredLiveSends = 1
+        rig.transport.unreachableAfterFailure = true
+        try await rig.receive(F.message(0, .request(requestID: F.requestA)))
+        #expect(await rig.coordinator.state == .lending(epoch: 1, requestID: F.requestA))
+        rig.clock.advance(WatchLoan.grantLifetime + 1)
+        #expect(await Self.eventually { await rig.coordinator.state == .home(epoch: 2, lastLoan: LoanRecord(epoch: 1)) })
+        #expect(Self.grants(rig.transport) == 1)
+        #expect(rig.transport.messages.contains(F.message(1, .refused(requestID: F.requestA, reason: .grantExpired))))
     }
 
     @Test("Start: a watch that gave up on its request takes the pump back on the phone, from its older epoch") func watchGaveUp(
