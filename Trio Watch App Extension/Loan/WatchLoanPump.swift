@@ -91,15 +91,20 @@ final class WatchLoanPumpDelegate: PumpManagerDelegate {
     func pumpManager(_: PumpManager, didUpdatePumpRecordsBasalProfileStartEvents _: Bool) {}
     func pumpManager(
         _: PumpManager,
-        didReadReservoirValue _: Double,
-        at _: Date,
+        didReadReservoirValue units: Double,
+        at date: Date,
         completion: @escaping (Result<
             (newValue: ReservoirValue, lastValue: ReservoirValue?, areStoredValuesContinuous: Bool),
             Error
         >)
             -> Void
     ) {
-        completion(.failure(WatchLoanHostError.notStored))
+        // the kit keeps the level in its own status; like the phone, the watch keeps no reservoir history
+        completion(.success((
+            newValue: LoanReservoirValue(startDate: date, unitVolume: units),
+            lastValue: nil,
+            areStoredValuesContinuous: true
+        )))
     }
 
     func pumpManager(_: PumpManager, didAdjustPumpClockBy adjustment: TimeInterval) {
@@ -147,4 +152,9 @@ final class WatchLoanPumpDelegate: PumpManagerDelegate {
     func lookupAllUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }
     func lookupAllUnacknowledgedUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }
     func recordRetractedAlert(_: Alert, at _: Date) async throws {}
+}
+
+private struct LoanReservoirValue: ReservoirValue {
+    let startDate: Date
+    let unitVolume: Double
 }
