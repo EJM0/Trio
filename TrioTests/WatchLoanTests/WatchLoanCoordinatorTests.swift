@@ -480,6 +480,21 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(await rig.coordinator.state == .home(epoch: 2, lastLoan: .superseding(epoch: 1, at: rig.clock.now)))
     }
 
+    @Test(
+        "Hand-back after the watch deactivated the pod: no pod to cancel or read, the phone still goes home"
+    ) func handBackAfterDeactivation(
+    ) async throws {
+        let rig = try Rig()
+        try await rig.lend()
+        rig.double.deliveryStartedAt = nil
+        rig.double.failTempBasal = true
+        rig.double.refreshSucceeds = false
+        try await rig.receive(F.message(1, .handBack))
+        #expect(await rig.coordinator.state == .home(epoch: 2, lastLoan: LoanRecord(epoch: 1)))
+        #expect(!rig.host.alerts.contains(.takeBackPodUnreachable))
+        #expect(!rig.double.commands.contains("tempBasal(0.0)"))
+    }
+
     @Test("Take Back: the undelivered rest of a bolus under way is counted") func takeBackDuringBolus() async throws {
         let rig = try Rig()
         try await rig.lend()

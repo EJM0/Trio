@@ -131,6 +131,8 @@ actor WatchLoanCoordinator {
     private var waiters: [CheckedContinuation<Void, Never>] = []
     private var isDraining = false
     private var pendingStatus: CheckedContinuation<WatchLoanState?, Never>?
+    /// The loan whose pod the watch deactivated. Noted before the batch's merge, during which the hand-back can run.
+    private var podDeactivatedInLoan: Int64?
     private var grantTimer: Task<Void, Never>?
     /// Audits run one at a time: each reads its ledger entry, awaits the stores and writes the entry back.
     private var auditChain: Task<Void, Never>?
@@ -252,6 +254,7 @@ actor WatchLoanCoordinator {
             acknowledge(batch)
             return
         }
+        if batch.podDeactivatedAt != nil { podDeactivatedInLoan = batch.epoch }
         let replaced = Set(ledger.replacedBookings ?? [])
         batch.pumpEvents.removeAll { $0.newPumpEvent.dose?.syncIdentifier.map(replaced.contains) ?? false }
         do {
@@ -281,11 +284,7 @@ actor WatchLoanCoordinator {
         saveLedger()
         acknowledge(batch)
         info(.watch, "Watch records stored: \(batch.pumpEvents.count) pump events, \(batch.carbs.count) carb entries")
-        // the kit forgets only a released pod it still has, so a repeat is a no-op
-        if batch.podDeactivatedAt != nil, case let .lent(epoch) = state, epoch == batch.epoch, let pump = host.pump {
-            await pump.forgetDeactivatedElsewhere()
-            info(.pump, "The watch deactivated the faulted pod; forgotten on this iPhone")
-        }
+        await forgetPodIfDeactivated()
 
         await recomputeAudits(after: batch)
         if WatchLoanInbox.passes(WatchLoanMessage(epoch: batch.epoch, kind: .records), phoneEpoch: state.epoch) {
@@ -371,6 +370,8 @@ actor WatchLoanCoordinator {
             }
 
         case .cancelTemp:
+            // a pod the watch deactivated is forgotten here: no temp to cancel, no total to read
+            if case .takingBack = state, host.pump?.startedAt == nil { break }
             guard let pump = host.pump else { return failPumpStep() }
             do {
                 try await pump.cancelTempBasal()
@@ -380,6 +381,7 @@ actor WatchLoanCoordinator {
             }
 
         case .refreshDeliveredUnits:
+            if case .takingBack = state, host.pump?.startedAt == nil { break }
             guard let pump = host.pump, await pump.refreshDeliveredUnits(), let reading = pump.deliveredUnits else {
                 warning(.pump, "Reading the pump's delivered total for the hand-off failed")
                 return failPumpStep()
@@ -430,6 +432,7 @@ actor WatchLoanCoordinator {
             // no window and no known peer: the user chose this phone (or the state file was lost)
             let take: WatchLoanPumpAdapter.Take = until.map { .superseding(until: $0) }
                 ?? (state.loan.map { $0.epoch == nil } == true ? .liftingRefusal : .plain)
+            await forgetPodIfDeactivated()
             let succeeded = await pump.take(take)
             info(.pump, succeeded ? "Pump taken back" : "Taking the pump back failed")
             enqueue(.takeControlResult(epoch: epoch, succeeded: succeeded))
@@ -490,6 +493,17 @@ actor WatchLoanCoordinator {
             host.alert(alert)
         }
         return true
+    }
+
+    /// Before any take: a take first would resume the dead pod and look for it. The kit forgets only a released pod
+    /// it still has, so a repeat, or a pod this phone holds, is a no-op.
+    private func forgetPodIfDeactivated() async {
+        guard let epoch = podDeactivatedInLoan, state.epoch == epoch || state.loan?.epoch == epoch, let pump = host.pump,
+              pump.isReleased
+        else { return }
+        podDeactivatedInLoan = nil
+        await pump.forgetDeactivatedElsewhere()
+        info(.pump, "The watch deactivated the faulted pod; forgotten on this iPhone")
     }
 
     /// A failed pump step: a lend reports the release as refused, a take-back keeps the pump closed and tells the user.
