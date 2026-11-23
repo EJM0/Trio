@@ -370,6 +370,17 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(await rig.coordinator.state == .lending(epoch: 1, requestID: F.requestA))
     }
 
+    @Test("Start: several failed pieces of one grant send it again once") func grantPiecesFailOnce() async throws {
+        let rig = try Rig()
+        rig.host.snapshotPadding = 4000
+        rig.transport.undeliveredLiveSends = 2
+        try await rig.receive(F.message(0, .request(requestID: F.requestA)))
+        #expect(await Self.eventually { Self.grants(rig.transport) == 2 })
+        try await Task.sleep(nanoseconds: 300_000_000)
+        #expect(Self.grants(rig.transport) == 2)
+        #expect(await rig.coordinator.state == .lending(epoch: 1, requestID: F.requestA))
+    }
+
     @Test("Start: a grant still not delivered when it expires: the phone takes the pump back by itself") func grantLostExpired(
     ) async throws {
         let rig = try Rig()

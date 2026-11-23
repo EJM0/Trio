@@ -126,6 +126,8 @@ actor WatchLoanCoordinator {
     private var grantTimer: Task<Void, Never>?
     /// A grant part that didn't reach the watch: the grant goes again while it is valid, then the pump comes back.
     private var grantResend: Task<Void, Never>?
+    /// Counts grant sends, so a failure reported for an earlier send doesn't start another.
+    private var grantSends = 0
     /// Audits run one at a time: each reads its ledger entry, awaits the stores and writes the entry back.
     private var auditChain: Task<Void, Never>?
     private var isCheckingForeignSession = false
@@ -562,8 +564,10 @@ actor WatchLoanCoordinator {
         func reject(_ reason: LoanRefusal) {
             rejectGrant(epoch: epoch, requestID: requestID, reason: reason)
         }
+        grantSends += 1
+        let send = grantSends
         let partFailed: (Error) -> Void = { [weak self] _ in
-            Task { await self?.grantPartFailed(message) }
+            Task { await self?.grantPartFailed(message, send: send) }
         }
         guard let pump = host.pump, pump.isReleased,
               let audit = ledger.audits.last(where: { $0.epoch == epoch })
@@ -642,7 +646,8 @@ actor WatchLoanCoordinator {
 
     /// The pump is released, so a grant the watch never got leaves nothing in control: send it again once the watch
     /// is reachable, or take the pump back once the grant has expired.
-    private func grantPartFailed(_ message: WatchLoanMessage) {
+    private func grantPartFailed(_ message: WatchLoanMessage, send: Int) {
+        guard send == grantSends else { return }
         resendLater(message, "Part of the grant didn't reach Apple Watch; sending it again")
     }
 
