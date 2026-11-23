@@ -336,6 +336,8 @@ enum TrioOnWatchPhoneFixtureDialog {
     var translation: CGSize = .zero
     /// The long press finished: the rest of this touch belongs to it.
     var holdStarted = false
+    /// Dropped on the watch: the user confirms, with what changes, before the watch is asked.
+    var isConfirming = false
 
     var isActive: Bool { step != .idle }
     var ringCenter: CGPoint { CGPoint(x: ringFrame.midX + translation.width, y: ringFrame.midY + translation.height) }
@@ -353,6 +355,25 @@ enum TrioOnWatchPhoneFixtureDialog {
     func reset() {
         step = .idle
         translation = .zero
+        isConfirming = false
+    }
+
+    /// What the watch's own Start screen discloses; this Start doesn't show it.
+    static var confirmationText: String {
+        [
+            String(
+                localized: "Check that your pod and sensor don't end soon.",
+                comment: "Drag-to-watch Start confirmation"
+            ),
+            String(
+                localized: "On your watch, Trio's alarms may only tap your wrist when Silent Mode or a Focus is on. Keep your watch on and notifications allowed.",
+                comment: "Watch Start disclosure about alarms (G-6b)"
+            ),
+            String(
+                localized: "Nightscout updates and remote commands pause until you end Trio on Watch.",
+                comment: "Watch Start disclosure for caregivers (G-8, V2-26)"
+            )
+        ].joined(separator: "\n\n")
     }
 
     /// Dropped on the watch: ask it to start, then follow the phone's loan state until the watch has the pump.

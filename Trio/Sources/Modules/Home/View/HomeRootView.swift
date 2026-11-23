@@ -38,6 +38,8 @@ extension Home {
         @State var trioOnWatch = TrioOnWatchPhoneModel()
         @State var showTrioOnWatch = false
         @State var watchStartDrag = TrioOnWatchStartDrag()
+        /// True while a touch holds the glucose; resets on its own when the system cancels the touch.
+        @GestureState var glucoseTouched = false
         @ObservedObject var releaseNotesService = ReleaseNotesService.shared
         // Pull-down-to-force-loop (see HomeRootView+Refresh.swift)
         @State var pullOffset: CGFloat = 0
@@ -658,6 +660,19 @@ extension Home {
                     },
                     isPresented: $showQuickPickTreatmentsPicker
                 )
+            }
+            .alert(
+                String(localized: "Start Trio on Watch?", comment: "Drag-to-watch Start confirmation title"),
+                isPresented: $watchStartDrag.isConfirming
+            ) {
+                Button(String(localized: "Start", comment: "Drag-to-watch Start confirmation button")) {
+                    Task { await watchStartDrag.handOff(model: trioOnWatch) }
+                }
+                Button(String(localized: "Cancel"), role: .cancel) {
+                    withAnimation(.spring(duration: 0.3)) { watchStartDrag.reset() }
+                }
+            } message: {
+                Text(TrioOnWatchStartDrag.confirmationText)
             }
             .alert(
                 String(

@@ -98,6 +98,17 @@ extension Home.RootView {
                 }
             }
             .gesture(glucoseHoldGesture)
+            .onChange(of: glucoseTouched) { _, touched in
+                guard !touched else { return }
+                // after the gesture's own end has run: a hold still marked started was cancelled, not ended
+                DispatchQueue.main.async {
+                    guard watchStartDrag.holdStarted else { return }
+                    watchStartDrag.holdStarted = false
+                    if watchStartDrag.step == .dragging, !watchStartDrag.isConfirming {
+                        withAnimation(.spring(duration: 0.3)) { watchStartDrag.reset() }
+                    }
+                }
+            }
             .accessibilityAction {
                 if !state.cgmAvailable {
                     showCGMSelection.toggle()
@@ -113,7 +124,7 @@ extension Home.RootView {
                 comment: "Accessibility action on the glucose: the drag-to-watch Start without dragging"
             ))) {
                 guard trioOnWatch.status.offersDragToStart else { return }
-                Task { await watchStartDrag.handOff(model: trioOnWatch) }
+                watchStartDrag.isConfirming = true
             }
     }
 
@@ -121,6 +132,7 @@ extension Home.RootView {
     var glucoseHoldGesture: some Gesture {
         LongPressGesture(minimumDuration: 0.5)
             .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .global))
+            .updating($glucoseTouched) { _, touched, _ in touched = true }
             .onChanged { value in
                 guard case let .second(true, drag) = value else { return }
                 if !watchStartDrag.holdStarted {
@@ -142,7 +154,7 @@ extension Home.RootView {
                 watchStartDrag.holdStarted = false
                 guard watchStartDrag.step == .dragging else { return }
                 if watchStartDrag.isOverTarget, trioOnWatch.status.watchReachable {
-                    Task { await watchStartDrag.handOff(model: trioOnWatch) }
+                    watchStartDrag.isConfirming = true
                 } else if watchStartDrag.isNearStart {
                     watchStartDrag.reset()
                     showSnoozeSheet = true

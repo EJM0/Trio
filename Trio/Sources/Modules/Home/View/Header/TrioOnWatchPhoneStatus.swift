@@ -507,10 +507,13 @@ enum TrioOnWatchPhoneStart {
                 comment: "Drag-to-watch Start: the watch app isn't open"
             ))
         case .noAnswer:
-            return .failed(String(
-                localized: "Your watch didn't answer. Open Trio on your watch and try again.",
-                comment: "Drag-to-watch Start: no answer from the watch"
-            ))
+            // the answer can be lost after the watch sent its request: go by the loan state until it is clear
+            if phase == .home || phase == .podRefused {
+                return elapsed < requestArrivalTimeout ? .handingOver : .failed(String(
+                    localized: "Your watch didn't answer. Open Trio on your watch and try again.",
+                    comment: "Drag-to-watch Start: no answer from the watch"
+                ))
+            }
         case .requested:
             break
         }

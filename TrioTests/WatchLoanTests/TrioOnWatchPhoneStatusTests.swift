@@ -203,7 +203,11 @@ import Testing
         #expect(Start.stage(answer: .requested, phase: .home, elapsed: 31, patch: true).isFailed)
         #expect(Start.stage(answer: .requested, phase: .takingBack, elapsed: 20, patch: true).isFailed)
         #expect(Start.stage(answer: .watchAsleep, phase: .home, elapsed: 0, patch: false).isFailed)
-        #expect(Start.stage(answer: .noAnswer, phase: .home, elapsed: 10, patch: false).isFailed)
+        // a lost answer goes by the loan state: the watch may have sent its request anyway
+        #expect(Start.stage(answer: .noAnswer, phase: .home, elapsed: 10, patch: false) == .handingOver)
+        #expect(Start.stage(answer: .noAnswer, phase: .home, elapsed: 31, patch: false).isFailed)
+        #expect(Start.stage(answer: .noAnswer, phase: .starting, elapsed: 12, patch: false) == .handingOver)
+        #expect(Start.stage(answer: .noAnswer, phase: .inControl, elapsed: 15, patch: false) == .done)
         #expect(
             Start.stage(answer: .refused(.watchBatteryLow), phase: .home, elapsed: 1, patch: false)
                 == .failed(Start.refusalText(.watchBatteryLow, patch: false))
