@@ -373,7 +373,9 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.violations.isEmpty)
     }
 
-    private func splitGrant(_ world: LoanFixture) async throws -> (grant: WatchLoanMessage, payloads: [[String: Any]])? {
+    private func splitGrant(_ world: LoanFixture) async throws
+        -> (grant: WatchLoanMessage, payloads: [[String: Any]], snapshot: WatchLoanSnapshot)?
+    {
         await world.host.startTapped()
         guard case let .request(requestID) = world.transport.messages.last?.kind else {
             Issue.record("no request sent")
@@ -391,7 +393,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         let grant = WatchLoanMessage(epoch: 1, kind: .grant(requestID: requestID, expiresAt: now.addingTimeInterval(30)))
         let payloads = try world.partPayloads(grant, snapshot: data, requestID: requestID, epoch: 1)
         #expect(payloads.count >= 2)
-        return (grant, payloads)
+        return (grant, payloads, snapshot)
     }
 
     @Test("Each loop's TDD row goes to the phone until it is acknowledged") func tddRowsToPhone() async throws {
@@ -467,7 +469,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
     ) async throws {
         for grantFirst in [false, true] {
             let world = LoanFixture()
-            let (_, payloads) = try #require(try await splitGrant(world))
+            let (_, payloads, _) = try #require(try await splitGrant(world))
             if grantFirst {
                 let last = try #require(payloads.last)
                 let grantDone = Task { @MainActor in await world.host.receive(last) }
@@ -483,12 +485,28 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         }
     }
 
+    @Test("A copy of a grant that gives up waiting for its pieces leaves the adopted snapshot alone") func lateGrantCopy(
+    ) async throws {
+        let world = LoanFixture()
+        let (grant, payloads, snapshot) = try #require(try await splitGrant(world))
+        // the first copy's grant arrives without its other pieces and waits for them
+        let first = try #require(payloads.last)
+        let firstDone = Task { @MainActor in await world.host.receive(first) }
+        try await Task.sleep(nanoseconds: 50_000_000)
+        // the resent copy arrives whole and is adopted while the first still waits
+        await world.host.receive(try world.payload(grant, snapshot: snapshot))
+        #expect(world.host.state == .holding(epoch: 1))
+        _ = await firstDone.value
+        #expect(world.host.state == .holding(epoch: 1))
+        #expect(world.host.snapshot?.smoothingWindow.count == 5000)
+    }
+
     @Test(
         "A grant missing a piece, or with a corrupted one, is rejected as incomplete; nothing is adopted"
     ) func grantInPartsIncomplete() async throws {
         for corrupt in [false, true] {
             let world = LoanFixture()
-            let (_, payloads) = try #require(try await splitGrant(world))
+            let (_, payloads, _) = try #require(try await splitGrant(world))
             if corrupt {
                 var first = payloads[0]
                 var bytes = try #require(first[WatchLoanWireKey.snapshotPart] as? Data)

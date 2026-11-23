@@ -713,16 +713,16 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             WatchLoanFiles.later("the loan inbox") { try files.save(inbox, to: .inbox) }
             if case let .grant(requestID, expiresAt) = envelope.message.kind, case .requesting = state {
                 if let whole = payload[WatchLoanWireKey.snapshot] as? Data {
-                    await acceptSnapshot(whole, epoch: envelope.message.epoch)
+                    await acceptSnapshot(whole, epoch: envelope.message.epoch, requestID: requestID)
                 } else if part != nil {
                     let assembled = await assembleSnapshot(
                         requestID: requestID,
                         epoch: envelope.message.epoch,
                         until: min(expiresAt, env.now().addingTimeInterval(env.grantPartsWait))
                     )
-                    await acceptSnapshot(assembled, epoch: envelope.message.epoch)
+                    await acceptSnapshot(assembled, epoch: envelope.message.epoch, requestID: requestID)
                 } else {
-                    await acceptSnapshot(nil, epoch: envelope.message.epoch)
+                    await acceptSnapshot(nil, epoch: envelope.message.epoch, requestID: requestID)
                 }
             }
             WatchLogger.shared.info(
@@ -779,7 +779,12 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     }
 
     /// Saved before the grant is decided, so an adopt after a crash still has it.
-    private func acceptSnapshot(_ data: Data?, epoch: Int64) async {
+    private func acceptSnapshot(_ data: Data?, epoch: Int64, requestID: UUID) async {
+        // a copy that finished assembling after another copy was adopted must not touch the held snapshot
+        guard case let .requesting(_, requesting) = state, requesting == requestID else {
+            WatchLogger.shared.debug(.connectivity, "Grant snapshot dropped: no longer requesting it")
+            return
+        }
         guard let data else {
             snapshot = nil
             return
