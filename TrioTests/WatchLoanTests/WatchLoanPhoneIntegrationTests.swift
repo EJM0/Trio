@@ -243,6 +243,58 @@ import Testing
         ) == 1)
     }
 
+    @Test("The watch's TDD rows fill the phone's TDD history once, so Dynamic ISF keeps its 7 days") func tddRows() async throws {
+        let rig = try await Self.makeRig()
+        let now = Date()
+        // a week of watch loops, a row every 5 minutes
+        let rows = (0 ..< 7 * 288).map {
+            OrefInputs.TDDRow(date: now.addingTimeInterval(-Double($0) * 300 - 30), total: Decimal(30 + $0 % 7))
+        }
+        func batch(_ rows: [OrefInputs.TDDRow]) -> WatchLoanRecordBatch {
+            var batch = WatchLoanRecordBatch(
+                version: WatchLoanRecordBatch.currentVersion, batchID: UUID(), epoch: 1, sentAt: now, pumpEvents: [],
+                runningTemp: nil, carbs: [], deletedCarbIDs: [], glucose: []
+            )
+            batch.tddRows = rows
+            return batch
+        }
+        #expect(try await !BaseTDDStorage.hasSufficientTDD(context: rig.context, now: now))
+
+        // through the wire format, as the watch sends it
+        let sent = try WatchLoanRecordBatch.decode(batch(rows).encoded())
+        try await rig.host.merge(sent)
+        // a resend of rows the phone already has, as before an acknowledgement, adds nothing
+        try await rig.host.merge(sent)
+        #expect(try await rig.count(TDDStored.self) == rows.count)
+        #expect(try await BaseTDDStorage.hasSufficientTDD(context: rig.context, now: now))
+
+        let newest = try await rig.context.perform {
+            let request = TDDStored.fetchRequest() as NSFetchRequest<TDDStored>
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \TDDStored.date, ascending: false)]
+            request.fetchLimit = 1
+            return try rig.context.fetch(request).first.map { ($0.date, $0.total?.decimalValue) }
+        }
+        #expect(abs((newest?.0 ?? .distantPast).timeIntervalSince(rows[0].date!)) < 1)
+        #expect(newest?.1 == rows[0].total)
+
+        // read back as the phone's loop does, then through oref's TDD values
+        let loaded = try await rig.context.perform {
+            let request = TDDStored.fetchRequest() as NSFetchRequest<TDDStored>
+            request.predicate = NSPredicate(format: "date > %@ AND total > 0", OrefInputs.tddHistoryStart(now: now) as NSDate)
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \TDDStored.date, ascending: true)]
+            return try rig.context.fetch(request).map { OrefInputs.TDDRow(date: $0.date, total: $0.total?.decimalValue) }
+        }
+        let values = OrefRun.trioCustomOrefVariables(
+            preferences: nil,
+            tddHistory: OrefInputs.tddHistory(loaded, now: now),
+            activeOverride: nil,
+            now: now
+        )
+        let mean = rows.compactMap(\.total).reduce(0, +) / Decimal(rows.count)
+        #expect(values.currentTDD == rows[0].total)
+        #expect(values.average_total_data == mean)
+    }
+
     @Test("Batches that arrive together, each repeating the last, store every reading and carb entry once") func burstOfBatches(
     ) async throws {
         let rig = try await Self.makeRig(freshContexts: true)

@@ -394,6 +394,22 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         return (grant, payloads)
     }
 
+    @Test("Each loop's TDD row goes to the phone until it is acknowledged") func tddRowsToPhone() async throws {
+        let world = LoanFixture()
+        try await world.startLoan()
+        await world.reading(160)
+        let first = try #require(world.transport.batches.last)
+        let firstRows = try #require(first.tddRows)
+        #expect(firstRows.count == 1 && firstRows[0].date != nil && firstRows[0].total != nil)
+
+        let ack = try JSONEncoder().encode(WatchLoanRecordAck(epoch: first.epoch, batchID: first.batchID))
+        await world.host.receive([WatchLoanWireKey.recordsAck: ack])
+        await world.reading(150)
+        let next = try #require(world.transport.batches.last?.tddRows)
+        #expect(next.count == 1)
+        #expect(next.first?.date != firstRows.first?.date)
+    }
+
     @Test("The phone's drag-to-watch Start: the watch's own checks, then its request") func startAskedByPhone() async throws {
         let world = LoanFixture()
         world.battery = 0.1

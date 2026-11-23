@@ -13,6 +13,8 @@ final class WatchLoanRecordStore {
         var acknowledgedGlucose: Set<String> = []
         var acknowledgedCarbs: Set<String> = []
         var tddHistory: [OrefInputs.TDDRow] = []
+        /// `tddKey` of the rows the phone has; optional so records saved before it still load.
+        var acknowledgedTDD: Set<String>? = nil
         var overrideChange: WatchLoanAdjustmentChange?
         var tempTargetChange: WatchLoanAdjustmentChange?
         /// The batch sent last and what it carried, until the phone acknowledges it.
@@ -155,6 +157,10 @@ final class WatchLoanRecordStore {
         try mutate { $0.tddHistory.append(row) }
     }
 
+    static func tddKey(_ row: OrefInputs.TDDRow) -> String {
+        "tdd:\(row.date.map { Int64(($0.timeIntervalSince1970 * 1000).rounded()) } ?? 0)"
+    }
+
     func cancelOverride(at date: Date) throws {
         try mutate { $0.overrideChange = WatchLoanAdjustmentChange(id: UUID(), kind: .override, at: date) }
     }
@@ -208,12 +214,14 @@ final class WatchLoanRecordStore {
                 carbs: contents.carbs.filter { !contents.acknowledgedCarbs.contains($0.id ?? "") },
                 deletedCarbIDs: [],
                 glucose: contents.glucose.filter { !contents.acknowledgedGlucose.contains($0.id) },
-                adjustmentChanges: [contents.overrideChange, contents.tempTargetChange].compactMap { $0 }
+                adjustmentChanges: [contents.overrideChange, contents.tempTargetChange].compactMap { $0 },
+                tddRows: contents.tddHistory.filter { !(contents.acknowledgedTDD ?? []).contains(Self.tddKey($0)) }
             )
             contents.pendingBatch = batch.batchID
             contents.pendingKeys = Array(events.keys)
                 + batch.carbs.map { "carbs:\($0.id ?? "")" }
                 + batch.glucose.map { "glucose:\($0.id)" }
+                + (batch.tddRows ?? []).map(Self.tddKey)
             return batch
         }
     }
@@ -226,6 +234,8 @@ final class WatchLoanRecordStore {
                     contents.acknowledgedCarbs.insert(String(key.dropFirst(6)))
                 } else if key.hasPrefix("glucose:") {
                     contents.acknowledgedGlucose.insert(String(key.dropFirst(8)))
+                } else if key.hasPrefix("tdd:") {
+                    contents.acknowledgedTDD = (contents.acknowledgedTDD ?? []).union([key])
                 } else {
                     contents.pumpEvents[key]?.acknowledged = true
                 }
@@ -238,6 +248,8 @@ final class WatchLoanRecordStore {
             contents.glucose.removeAll { contents.acknowledgedGlucose.contains($0.id) && $0.dateString <= cutoff }
             contents.carbs.removeAll { contents.acknowledgedCarbs.contains($0.id ?? "") && $0.createdAt <= cutoff }
             contents.tddHistory.removeAll { ($0.date ?? .distantPast) <= cutoff }
+            let keptTDD = Set(contents.tddHistory.map(Self.tddKey))
+            contents.acknowledgedTDD = contents.acknowledgedTDD?.intersection(keptTDD)
         }
     }
 }

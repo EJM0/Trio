@@ -286,6 +286,8 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             try await glucoseStorage.storeGlucose(glucose)
         }
 
+        try await storeTDDRows(batch.tddRows ?? [])
+
         await applyAdjustmentChanges(batch.adjustmentChanges ?? [])
     }
 
@@ -367,6 +369,39 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             return try context.fetch(request).compactMap(\.date)
         }
         return glucose.filter { reading in !stored.contains { abs($0.timeIntervalSince(reading.dateString)) < window } }
+    }
+
+    /// The watch's loops stored a TDD row each, as the phone's own loops do; without them the phone's history has a
+    /// hole for every loan, and Dynamic ISF switches off once the last 7 days hold too few rows.
+    private func storeTDDRows(_ rows: [OrefInputs.TDDRow]) async throws {
+        let dated = rows.compactMap { row -> (date: Date, total: Decimal)? in
+            guard let date = row.date, let total = row.total else { return nil }
+            return (date, total)
+        }
+        guard let first = dated.map(\.date).min(), let last = dated.map(\.date).max() else { return }
+        let context = makeContext()
+        try await context.perform {
+            let request = TDDStored.fetchRequest() as NSFetchRequest<TDDStored>
+            request.predicate = NSPredicate(
+                format: "date >= %@ AND date <= %@",
+                first.addingTimeInterval(-1) as NSDate,
+                last.addingTimeInterval(1) as NSDate
+            )
+            var known = try context.fetch(request).compactMap(\.date)
+            for row in dated where !known.contains(where: { abs($0.timeIntervalSince(row.date)) < 1 }) {
+                let stored = TDDStored(context: context)
+                stored.id = UUID()
+                stored.date = row.date
+                stored.total = NSDecimalNumber(decimal: row.total)
+                // the watch sends the total its loop used; the parts and the average aren't known here
+                stored.bolus = nil
+                stored.tempBasal = nil
+                stored.scheduledBasal = nil
+                stored.weightedAverage = nil
+                known.append(row.date)
+            }
+            if context.hasChanges { try context.save() }
+        }
     }
 
     // MARK: Audit

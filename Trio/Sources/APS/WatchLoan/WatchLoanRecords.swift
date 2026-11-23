@@ -48,6 +48,9 @@ struct WatchLoanRecordBatch: Codable {
     var lastLoopAt: Date?
     /// The watch's latest override and temp target change, sent in every batch until the loan ends.
     var adjustmentChanges: [WatchLoanAdjustmentChange]? = nil
+    /// The TDD rows the watch's loops stored, so the phone's TDD history has no hole for the loan. Nil from a watch
+    /// build that doesn't send them.
+    var tddRows: [OrefInputs.TDDRow]? = nil
 
     /// Mutable doses would be purged by the phone driver's next pending report, and a dose without
     /// a sync identifier can't be merged twice safely.
