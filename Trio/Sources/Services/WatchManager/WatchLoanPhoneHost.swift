@@ -299,18 +299,31 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         var applied = UserDefaults.standard.stringArray(forKey: Self.appliedAdjustmentChangesKey) ?? []
         for change in changes.sorted(by: { $0.at < $1.at }) where !applied.contains(change.id.uuidString) {
             do {
+                // at the time the watch made it: a batch can arrive long after
                 switch (change.kind, change.presetID) {
                 case (.override, nil):
-                    try await adjustmentManager.cancelOverride(source: .watch)
+                    try await adjustmentManager.cancelOverride(source: .watch, waitForUpload: false, at: change.at)
                 case (.tempTarget, nil):
-                    try await adjustmentManager.cancelTempTarget(source: .watch)
+                    try await adjustmentManager.cancelTempTarget(source: .watch, waitForUpload: false, at: change.at)
                 case let (.override, presetID?):
-                    try await adjustmentManager.activateOverride(.presetID(presetID), source: .watch)
+                    try await adjustmentManager.activateOverride(
+                        .presetID(presetID),
+                        source: .watch,
+                        waitForUpload: false,
+                        at: change.at
+                    )
                 case let (.tempTarget, presetID?):
-                    try await adjustmentManager.activateTempTarget(.presetID(presetID), source: .watch)
+                    try await adjustmentManager.activateTempTarget(
+                        .presetID(presetID),
+                        source: .watch,
+                        waitForUpload: false,
+                        at: change.at
+                    )
                 }
             } catch AdjustmentError.nothingActive {
-                // already stopped here
+                debug(.watch, "Apple Watch \(change.kind.rawValue) stop: nothing was running here")
+                applied.append(change.id.uuidString)
+                continue
             } catch {
                 warning(.watch, "Applying an Apple Watch \(change.kind.rawValue) change failed", error: error)
                 continue
