@@ -259,6 +259,8 @@ extension WatchLoanHost {
                 .connectivity,
                 "End: the phone didn't answer within \(Int(env.phoneAnswerTimeout)) s, try \(tries), reachable \(env.transport.isReachable)"
             )
+            // a send refused at once (session not yet active) would otherwise retry without a pause
+            if clock.now - asked < .seconds(1) { try? await Task.sleep(nanoseconds: 1_000_000_000) }
         }
         WatchLogger.shared.warning(
             .connectivity,
