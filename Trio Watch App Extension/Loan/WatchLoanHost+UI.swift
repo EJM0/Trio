@@ -339,7 +339,19 @@ extension WatchLoanHost {
     }
 
     /// End is tried, not pre-blocked on a reachability flag (G-15): the phone must answer a live query first.
+    /// Asks again until the phone answers or `phoneAnswerWindow` runs out: a phone iOS closed starts Trio in the
+    /// background on the first ask, and a locked one only answers once unlocked.
     func phoneAnswers() async -> Bool {
+        let end = env.now().addingTimeInterval(env.phoneAnswerWindow)
+        repeat {
+            if await askPhoneOnce() { return true }
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+        } while env.now() < end
+        WatchLogger.shared.warning(.connectivity, "The phone didn't answer for \(Int(env.phoneAnswerWindow)) s; End not started")
+        return false
+    }
+
+    private func askPhoneOnce() async -> Bool {
         let envelope = WatchLoanEnvelope(
             protocolVersion: WatchLoanEnvelope.currentProtocolVersion,
             messageID: UUID(),

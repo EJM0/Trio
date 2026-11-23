@@ -107,12 +107,26 @@ enum HandOffStage: Equatable {
     case succeeded(String)
     case failed(String)
 
-    static func stage(_ kind: HandOffKind, status: TrioOnWatchStatus, phoneSilent: Bool = false) -> HandOffStage {
+    static func stage(
+        _ kind: HandOffKind,
+        status: TrioOnWatchStatus,
+        askingPhone: Bool = false,
+        phoneSilent: Bool = false
+    ) -> HandOffStage {
         if phoneSilent {
             return .failed(String(
-                localized: "Your iPhone didn't answer. Bring it close to end. Your watch stays in control until then.",
+                localized: "Your iPhone didn't answer. Unlock it or open Trio, then try again. Your watch stays in control until then.",
                 comment: "Watch End refused: the phone didn't answer"
             ))
+        }
+        if askingPhone {
+            return .working(
+                title: String(localized: "Waking your iPhone…", comment: "Watch End: waiting for the phone to answer"),
+                detail: String(
+                    localized: "Keep your iPhone close. If it's locked, unlock it.",
+                    comment: "Watch End: waiting for the phone to answer"
+                )
+            )
         }
         if let alert = status.lastAlert, let text = TrioOnWatchStatus.outcomeText(alert) {
             return .failed(text)
@@ -167,6 +181,7 @@ struct TrioOnWatchStatusView: View {
     @State private var showingDeactivatePod = false
     @State private var handOff: HandOffKind?
     @State private var endPhoneSilent = false
+    @State private var endAskingPhone = false
     @State private var result: ActionResult?
 
     var body: some View {
@@ -292,7 +307,7 @@ struct TrioOnWatchStatusView: View {
             get: { handOff.map(HandOffItem.init) },
             set: { handOff = $0?.kind }
         )) { item in
-            HandOffView(kind: item.kind, phoneSilent: endPhoneSilent) {
+            HandOffView(kind: item.kind, askingPhone: endAskingPhone, phoneSilent: endPhoneSilent) {
                 handOff = nil
                 actions.clearNotice()
             }
@@ -352,8 +367,11 @@ struct TrioOnWatchStatusView: View {
                 endPhoneSilent = false
                 actions.clearNotice()
                 handOff = .end
+                endAskingPhone = true
                 Task {
-                    if await actions.phoneAnswers() {
+                    let answered = await actions.phoneAnswers()
+                    endAskingPhone = false
+                    if answered {
                         await actions.end()
                     } else {
                         endPhoneSilent = true
@@ -528,11 +546,17 @@ struct StartTrioOnWatchView: View {
 /// W4: a hand-off in progress, then its result. Success closes after 2 s; a failure stays until OK (G-4).
 struct HandOffView: View {
     let kind: HandOffKind
+    var askingPhone = false
     var phoneSilent = false
     let onClose: () -> Void
 
     var body: some View {
-        let stage = HandOffStage.stage(kind, status: TrioOnWatchSource.status ?? TrioOnWatchStatus(), phoneSilent: phoneSilent)
+        let stage = HandOffStage.stage(
+            kind,
+            status: TrioOnWatchSource.status ?? TrioOnWatchStatus(),
+            askingPhone: askingPhone,
+            phoneSilent: phoneSilent
+        )
         ScrollView {
             VStack(spacing: 8) {
                 switch stage {

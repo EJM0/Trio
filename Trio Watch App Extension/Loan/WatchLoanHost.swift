@@ -57,6 +57,7 @@ struct WatchLoanEnvironment {
     var requestTimeout: TimeInterval = WatchLoan.watchRequestTimeout
     var handBackResendInterval: TimeInterval = 60
     var phoneAnswerTimeout: TimeInterval = 5
+    var phoneAnswerWindow: TimeInterval = 20
 }
 
 /// Background time held for one cycle or message.

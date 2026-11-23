@@ -190,6 +190,7 @@ import Testing
 
         // End is tried: a silent phone is a refusal that stays (G-15)
         #expect(HandOffStage.stage(.end, status: status(.inControl), phoneSilent: true).isFailed)
+        #expect(HandOffStage.stage(.end, status: status(.inControl), askingPhone: true).isWorking)
         #expect(status(.waitingForReading).footer().contains(TrioOnWatchStatus.notGivingInsulinYet))
 
         var ending = status(.ending)
