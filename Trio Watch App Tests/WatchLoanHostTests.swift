@@ -1031,6 +1031,32 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.violations.isEmpty)
     }
 
+    @Test("A cycle during a bolus sends nothing; the watch loops again once its bolus is delivered") func cycleDuringBolus(
+    ) async throws {
+        let world = LoanFixture()
+        try await world.startLoan(glucose: 160)
+        await world.reading(160)
+        let pump = try #require(world.pump)
+        pump.bolusDuration = 1
+        let cycles = world.host.cycleInfo.summary.cycles
+
+        let bolus = Task { await world.host.requestBolus(units: 0.5) }
+        while pump.bolusState == .noBolus {
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        let commands = pump.commands
+        await world.reading(160)
+        #expect(pump.commands == commands, "nothing sent while the bolus runs")
+        #expect(world.host.cycleInfo.lastResult == TrioOnWatchStatus.CycleResult.bolusRunning)
+        #expect(world.host.cycleInfo.summary.cycles == cycles + 1)
+
+        await bolus.value
+        #expect(world.host.bolus == .done)
+        #expect(world.host.cycleInfo.summary.cycles == cycles + 2, "looped after the bolus")
+        #expect(world.host.cycleInfo.lastResult != TrioOnWatchStatus.CycleResult.bolusRunning)
+        #expect(world.violations.isEmpty)
+    }
+
     @Test("Suspend and resume, cancel the override and the temp target") func watchControls() async throws {
         let world = LoanFixture()
         try await world.startLoan()

@@ -6,6 +6,7 @@ extension WatchLoanHost {
         case reading
         case phoneReading = "phone reading"
         case user
+        case bolusFinished = "bolus finished"
     }
 
     /// How long a phone reading waits for the watch's own: the two get the same reading seconds apart.
@@ -166,6 +167,14 @@ extension WatchLoanHost {
             await process(.foreignPodSession)
             return
         }
+        // as on the phone: the pump refuses a temp basal while it delivers a bolus
+        if pump.status.bolusState != .noBolus {
+            WatchLogger.shared.info(.loop, "Cycle skipped: a bolus is running")
+            cycleSkippedForBolus = true
+            finish(start: start, confirmed: false, result: TrioOnWatchStatus.CycleResult.bolusRunning)
+            return
+        }
+        cycleSkippedForBolus = false
 
         if !intents.isEmpty {
             await resolveIntents()

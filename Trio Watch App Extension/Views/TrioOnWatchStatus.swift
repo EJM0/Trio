@@ -957,6 +957,8 @@ extension TrioOnWatchStatus {
 
         static let algorithmFailed = String(localized: "Stopped: the algorithm failed.", comment: "Watch loop result")
 
+        static let bolusRunning = String(localized: "Skipped: a bolus was running.", comment: "Watch loop result")
+
         static func enacted(_ plan: WatchDosingGate.Plan, tempConfirmed: Bool?, bolusConfirmed: Bool?) -> String {
             var lines: [String] = []
             if let temp = plan.tempBasal {

@@ -107,6 +107,8 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     var loop = LoopStatus()
     var bolus: BolusProgress = .idle
     var isCycleRunning = false
+    /// A cycle came during a bolus and sent nothing: loop again once the watch's bolus is delivered.
+    var cycleSkippedForBolus = false
     /// After the adopt, until the watch's own first CGM reading: the first G7 bond needs Trio in front, so the
     /// watch doesn't report itself in control before then.
     var awaitingFirstReading = false

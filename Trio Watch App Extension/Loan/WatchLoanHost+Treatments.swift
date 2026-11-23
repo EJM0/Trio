@@ -50,6 +50,9 @@ extension WatchLoanHost {
         await serially { accepted = await self.bolusNow(units: units, carbs: carbs) }
         if let accepted {
             await followDelivery(accepted)
+            if cycleSkippedForBolus, accepted.status.bolusState == .noBolus {
+                await runCycle(trigger: .bolusFinished)
+            }
         }
     }
 
