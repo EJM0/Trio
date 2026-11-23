@@ -187,10 +187,12 @@ import Testing
         let phone: [(date: Date, glucose: Double, color: Color)] = [(ago(60), 102, .green), (ago(55), 240, .orange), (ago(10), 101, .green)]
         #expect(watch.chartValues(phone: phone).count == 3)
 
-        watch.chartReadings = [.init(date: ago(10), mgdl: 101), .init(date: ago(5), mgdl: 250)]
+        watch.chartReadings = [.init(date: ago(10), mgdl: 101), .init(date: ago(5), mgdl: 235), .init(date: ago(0), mgdl: 55)]
         let values = watch.chartValues(phone: phone)
-        #expect(values.map(\.date) == [ago(60), ago(55), ago(10), ago(5)])
-        #expect(values.last?.glucose == 250 && values.last?.color == .orange)
+        #expect(values.map(\.date) == [ago(60), ago(55), ago(10), ago(5), ago(0)])
+        #expect(values[3].glucose == 235 && values[3].color == .orange)
+        // below anything the phone showed: no colour claims it is in range
+        #expect(values[4].glucose == 55 && values[4].color == .primary)
 
         #expect(watch.chartForecast(cone: true).start == nil)
         watch.forecast = .init(start: now, lines: ["iob": [100, 110], "zt": [90]])

@@ -282,9 +282,7 @@ final class LiveActivityData: ObservableObject {
             } else {
                 let content = ActivityContent(
                     state: state,
-                    staleDate: state.watchMode != nil
-                        ? Date.now.addingTimeInterval(8 * 60 * 60)
-                        : min(state.date ?? Date.now, Date.now).addingTimeInterval(360)
+                    staleDate: min(state.date ?? Date.now, Date.now).addingTimeInterval(360)
                 )
                 // Before the update, check if currentActivity is still valid
                 if let stillCurrent = self.currentActivity, stillCurrent.activity.id == currentActivity.activity.id {
