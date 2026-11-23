@@ -302,7 +302,7 @@ extension WatchLoanHost {
     }
 
     /// Read the pod in a background wake that sent nothing, so the next temp change needs no status read first.
-    /// Long wakes count toward the watchOS limit that cuts the app's Bluetooth links. From kristinkand/Trio.
+    /// Long wakes count toward the watchOS limit that cuts the app's Bluetooth links.
     private func readPodAheadOfNextWake(_ pump: LoanPump) async {
         guard !env.isForeground(), activity?.isExpired != true, case .holding = state,
               !pump.refusesSessions, pump.foreignSessionDetectedAt == nil
