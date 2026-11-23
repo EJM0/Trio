@@ -36,6 +36,8 @@ struct TrioOnWatchPhoneStatus: Equatable {
     var podRefusesSessions = false
     /// The phone's pump is a Medtrum patch: the texts say "patch", not "pod".
     var pumpIsPatch = false
+    /// The pump is released while this iPhone is home, with no other device seen: it waits for the user to take it.
+    var podReleasedAtHome = false
     /// A paired watch with Trio installed: the glucose can be dragged onto it to start.
     var watchAppInstalled = false
 
@@ -218,8 +220,13 @@ struct TrioOnWatchPhoneStatus: Equatable {
         case .podRefused:
             return Banner(
                 symbol: "exclamationmark.triangle.fill",
-                title: pumpIsPatch ? String(localized: "Another Device Used Your Patch", comment: "Home banner title") :
-                    String(localized: "Another Device Used Your Pod", comment: "Home banner title"),
+                title: podReleasedAtHome
+                    ? (pumpIsPatch
+                        ? String(localized: "Your Patch Is Released", comment: "Home banner title for a patch released at home")
+                        : String(localized: "Your Pod Is Released", comment: "Home banner title for a pod released at home"))
+                    : (pumpIsPatch
+                        ? String(localized: "Another Device Used Your Patch", comment: "Home banner title")
+                        : String(localized: "Another Device Used Your Pod", comment: "Home banner title")),
                 subtitle: pumpIsPatch ? String(
                     localized: "Tap to use the patch on this iPhone.",
                     comment: "Home banner subtitle"
@@ -418,6 +425,7 @@ struct TrioOnWatchPhoneStatus: Equatable {
         )
         var withPump = updated
         withPump.pumpIsPatch = pump?.pluginIdentifier == "Medtrum"
+        withPump.podReleasedAtHome = releasedAtHome && pump?.refusesSessions != true
         withPump.watchAppInstalled = session?.isPaired == true && session?.isWatchAppInstalled == true
         if withPump != status { status = withPump }
     }

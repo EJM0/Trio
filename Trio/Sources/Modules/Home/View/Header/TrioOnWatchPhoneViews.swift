@@ -218,13 +218,7 @@ struct TrioOnWatchSheet: View {
                             ))
                         }
                     } footer: {
-                        Text(status.pumpIsPatch ? String(
-                            localized: "Another device used your patch, so this iPhone stopped sending it commands.",
-                            comment: "Trio on Watch sheet footer for a refused patch"
-                        ) : String(
-                            localized: "Another device used your pod, so this iPhone stopped sending it commands.",
-                            comment: "Trio on Watch sheet footer for a refused pod"
-                        ))
+                        Text(status.refusedFooter)
                     }
                 }
             }
@@ -660,6 +654,34 @@ struct TrioOnWatchFaceCard: View {
             Image(systemName: "xmark")
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(Color.loopRed)
+        }
+    }
+}
+
+extension TrioOnWatchPhoneStatus {
+    /// Why this iPhone sends the pump nothing while it is home.
+    var refusedFooter: String {
+        switch (podReleasedAtHome, pumpIsPatch) {
+        case (true, true):
+            return String(
+                localized: "Your patch was handed off and not taken back, so this iPhone isn't sending it commands.",
+                comment: "Trio on Watch sheet footer for a patch released at home"
+            )
+        case (true, false):
+            return String(
+                localized: "Your pod was handed off and not taken back, so this iPhone isn't sending it commands.",
+                comment: "Trio on Watch sheet footer for a pod released at home"
+            )
+        case (false, true):
+            return String(
+                localized: "Another device used your patch, so this iPhone stopped sending it commands.",
+                comment: "Trio on Watch sheet footer for a refused patch"
+            )
+        case (false, false):
+            return String(
+                localized: "Another device used your pod, so this iPhone stopped sending it commands.",
+                comment: "Trio on Watch sheet footer for a refused pod"
+            )
         }
     }
 }
