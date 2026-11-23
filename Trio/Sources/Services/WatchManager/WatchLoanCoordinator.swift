@@ -603,7 +603,7 @@ actor WatchLoanCoordinator {
                 [WatchLoanWireKey.message: messageData, WatchLoanWireKey.snapshot: snapshotData],
                 failed: partFailed
             ) == true
-            else { return reject(.phoneUnreachable) }
+            else { return resendLater(message) }
             info(.watch, "Grant sent to Apple Watch, \(size) bytes")
         } else {
             let pieces = WatchLoanSnapshot.split(snapshotData, requestID: requestID, epoch: epoch)
@@ -620,7 +620,7 @@ actor WatchLoanCoordinator {
                     WatchLoanWireKey.snapshotPart: piece.bytes
                 ]
                 if offset == pieces.count - 1 { payload[WatchLoanWireKey.message] = messageData }
-                guard host.transport?.sendLive(payload, failed: partFailed) == true else { return reject(.phoneUnreachable) }
+                guard host.transport?.sendLive(payload, failed: partFailed) == true else { return resendLater(message) }
             }
             info(.watch, "Grant sent to Apple Watch, \(size) bytes in \(pieces.count) parts")
             if let parts { info(.watch, "Grant parts, compressed: \(parts)") }
@@ -645,10 +645,17 @@ actor WatchLoanCoordinator {
     /// The pump is released, so a grant the watch never got leaves nothing in control: send it again once the watch
     /// is reachable, or take the pump back once the grant has expired.
     private func grantPartFailed(_ message: WatchLoanMessage) {
+        resendLater(message, "Part of the grant didn't reach Apple Watch; sending it again")
+    }
+
+    private func resendLater(
+        _ message: WatchLoanMessage,
+        _ why: String = "Apple Watch isn't reachable for the grant; sending it once it is"
+    ) {
         guard case let .grant(requestID, _) = message.kind, case let .lending(_, current) = state, current == requestID,
               grantResend == nil
         else { return }
-        warning(.watch, "Part of the grant didn't reach Apple Watch; sending it again")
+        warning(.watch, why)
         grantResend = Task { [weak self] in await self?.resendGrant(message) }
     }
 

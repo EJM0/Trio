@@ -388,17 +388,30 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(await rig.coordinator.state == .home(epoch: 2, lastLoan: LoanRecord(epoch: 1)))
     }
 
-    @Test("Start: a grant that can't go live is never queued; the phone takes the pump straight back") func grantNotLive() async throws {
+    @Test("Start: a watch not reachable for the grant gets it once it is") func grantWaitsForWatch() async throws {
         let rig = try Rig()
         rig.transport.isReachable = false
         try await rig.receive(F.message(0, .request(requestID: F.requestA)))
-        #expect(await rig.coordinator.state == .home(epoch: 2, lastLoan: LoanRecord(epoch: 1)))
+        #expect(await rig.coordinator.state == .lending(epoch: 1, requestID: F.requestA))
         #expect(rig.transport.live.isEmpty)
-        #expect(!rig.transport.messages.contains { if case .grant = $0.kind { return true } else { return false } })
+        rig.transport.isReachable = true
+        #expect(await Self.eventually { Self.grants(rig.transport) == 1 })
+        #expect(await rig.coordinator.state == .lending(epoch: 1, requestID: F.requestA))
+    }
+
+    @Test("Start: a grant never live before it expires is never queued; the phone takes the pump back") func grantNotLive(
+    ) async throws {
+        let rig = try Rig()
+        rig.transport.isReachable = false
+        try await rig.receive(F.message(0, .request(requestID: F.requestA)))
+        rig.clock.advance(WatchLoan.grantLifetime + 1)
+        #expect(await Self.eventually { await rig.coordinator.state == .home(epoch: 2, lastLoan: LoanRecord(epoch: 1)) })
+        #expect(rig.transport.live.isEmpty)
+        #expect(Self.grants(rig.transport) == 0)
         #expect(rig.transport.stops == [WatchLoanStop(kind: .revoke, epoch: 2)])
         #expect(rig.double.commands.suffix(3) == ["takeControl", "tempBasal(0.0)", "refreshDeliveredUnits"])
         #expect(!rig.double.isControlReleased)
-        #expect(rig.transport.messages.contains(F.message(1, .refused(requestID: F.requestA, reason: .phoneUnreachable))))
+        #expect(rig.transport.messages.contains(F.message(1, .refused(requestID: F.requestA, reason: .grantExpired))))
     }
 
     @Test(
