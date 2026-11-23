@@ -127,8 +127,9 @@ enum LoanFixture {
         )
         let takingBack = PhoneLoanState.takingBack(epoch: 5, loan: LoanRecord(epoch: 4))
         #expect(state == takingBack)
-        #expect(effects == takeBackEffects(takingBack, from: lending))
-        #expect(effects.last == .takeControl(supersedingUntil: nil))
+        let refused = PhoneLoanEffect.send(F.message(4, .refused(requestID: F.requestA, reason: .grantExpired)))
+        #expect(effects == takeBackEffects(takingBack, from: lending) + [refused])
+        #expect(effects.dropLast().last == .takeControl(supersedingUntil: nil))
     }
 
     @Test("P12 lending + grantRejected for another request: ignored") func p12() {

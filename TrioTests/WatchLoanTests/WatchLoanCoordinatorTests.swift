@@ -46,7 +46,10 @@ final class FakeLoanTransport: WatchLoanTransport {
         if isReachable { live.append(payload) } else { queued.append(payload) }
     }
 
-    func cancelOutstandingLoanTransfers() { cancelled += 1 }
+    func cancelOutstandingLoanTransfers() {
+        cancelled += 1
+        queued.removeAll()
+    }
 
     private var all: [[String: Any]] { live + queued }
 
@@ -399,8 +402,10 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(await rig.coordinator.state == .lending(epoch: 1, requestID: F.requestA))
     }
 
-    @Test("Start: a grant never live before it expires is never queued; the phone takes the pump back") func grantNotLive(
-    ) async throws {
+    // 2026-11-23 10:11: the revoke cancelled the queued refusal, and the watch kept asking
+    @Test(
+        "Start: a grant never live before it expires is never queued; the phone takes the pump back and the watch hears"
+    ) func grantNotLive() async throws {
         let rig = try Rig()
         rig.transport.isReachable = false
         try await rig.receive(F.message(0, .request(requestID: F.requestA)))
@@ -411,6 +416,7 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(rig.transport.stops == [WatchLoanStop(kind: .revoke, epoch: 2)])
         #expect(rig.double.commands.suffix(3) == ["takeControl", "tempBasal(0.0)", "refreshDeliveredUnits"])
         #expect(!rig.double.isControlReleased)
+        #expect(rig.transport.cancelled > 0)
         #expect(rig.transport.messages.contains(F.message(1, .refused(requestID: F.requestA, reason: .grantExpired))))
     }
 

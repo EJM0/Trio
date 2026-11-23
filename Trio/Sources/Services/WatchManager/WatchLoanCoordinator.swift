@@ -635,8 +635,6 @@ actor WatchLoanCoordinator {
 
     private func rejectGrant(epoch: Int64, requestID: UUID, reason: LoanRefusal) {
         warning(.watch, "Grant not sent to Apple Watch: \(reason.rawValue)")
-        // otherwise the watch waits until its request times out
-        send(WatchLoanMessage(epoch: epoch, kind: .refused(requestID: requestID, reason: reason)))
         enqueue(.received(WatchLoanMessage(epoch: epoch, kind: .grantRejected(requestID: requestID, reason: reason))))
     }
 
