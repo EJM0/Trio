@@ -171,6 +171,14 @@ struct TrioOnWatchStatusView: View {
                     }
                 }
 
+                if status.showsTiles {
+                    Section {
+                        TrioOnWatchTiles(status: status, now: now)
+                            .listRowBackground(Color.clear)
+                            .listRowInsets(EdgeInsets())
+                    }
+                }
+
                 ForEach(status.rows(now: now)) { row in
                     VStack(alignment: .leading, spacing: 2) {
                         Label(row.title, systemImage: row.symbol)
@@ -458,10 +466,11 @@ struct ActionResultView: View {
     }
 }
 
-// MARK: - Loop page
+// MARK: - Tiles
 
-/// Watch mode only: what the watch's loop works with, for reading. Tapping the loop row shows its reasoning.
-struct TrioOnWatchLoopPage: View {
+/// Watch mode only, on top of the status page: what the watch's loop works with. Tapping the loop tile shows its
+/// reasoning.
+struct TrioOnWatchTiles: View {
     let status: TrioOnWatchStatus
     let now: Date
     @State private var showingResult = false
@@ -469,53 +478,54 @@ struct TrioOnWatchLoopPage: View {
     private var latest: TrioOnWatchStatus.Reading? { status.readings.first }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 6) {
-                Grid(horizontalSpacing: 6, verticalSpacing: 6) {
-                    GridRow {
-                        Button { showingResult = true } label: { loopTile }
-                            .buttonStyle(.plain)
-                            .disabled(status.lastCycleResult == nil && status.reason == nil)
-                        sensorTile
-                    }
-                    GridRow {
-                        Tile(
-                            symbol: "drop.fill",
-                            title: String(localized: "Pump", comment: "Watch loop page tile: reservoir and last contact"),
-                            value: reservoirText,
-                            detail: pumpContactDetail,
-                            tint: reservoirTint
-                        )
-                        Tile(
-                            symbol: "waveform.path.ecg",
-                            title: String(localized: "Temp basal", comment: "Watch loop page tile"),
-                            value: tempBasalValue,
-                            detail: tempBasalDetail,
-                            tint: status.insulinSuspended ? .orange : .secondary
-                        )
-                    }
+        VStack(spacing: 6) {
+            Grid(horizontalSpacing: 6, verticalSpacing: 6) {
+                GridRow {
+                    Button { showingResult = true } label: { loopTile }
+                        .buttonStyle(.plain)
+                        .disabled(status.lastCycleResult == nil && status.reason == nil)
+                    sensorTile
                 }
-
-                if let override = status.override {
-                    AdjustmentLine(
-                        symbol: "clock.arrow.2.circlepath",
-                        text: adjustmentText(override, fallback: String(localized: "Override", comment: "Fallback override name")),
-                        tint: .purple
+                GridRow {
+                    Tile(
+                        symbol: "drop.fill",
+                        title: String(localized: "Pump", comment: "Watch loop page tile: reservoir and last contact"),
+                        value: status.reservoirText,
+                        detail: pumpContactDetail,
+                        tint: reservoirTint
                     )
-                }
-                if let tempTarget = status.tempTarget {
-                    AdjustmentLine(
-                        symbol: "target",
-                        text: adjustmentText(
-                            tempTarget,
-                            fallback: String(localized: "Temp target", comment: "Fallback temp target name")
-                        ),
-                        tint: .green
+                    Tile(
+                        symbol: "waveform.path.ecg",
+                        title: String(localized: "Temp basal", comment: "Watch loop page tile"),
+                        value: tempBasalValue,
+                        detail: tempBasalDetail,
+                        tint: status.insulinSuspended ? .orange : .secondary
                     )
                 }
             }
-            .padding(.horizontal, 2)
+
+            if let override = status.override {
+                AdjustmentLine(
+                    symbol: "clock.arrow.2.circlepath",
+                    text: adjustmentText(
+                        override,
+                        fallback: String(localized: "Override", comment: "Fallback override name")
+                    ),
+                    tint: .purple
+                )
+            }
+            if let tempTarget = status.tempTarget {
+                AdjustmentLine(
+                    symbol: "target",
+                    text: adjustmentText(
+                        tempTarget,
+                        fallback: String(localized: "Temp target", comment: "Fallback temp target name")
+                    ),
+                    tint: .green
+                )
+            }
         }
+        .padding(.horizontal, 2)
         .sheet(isPresented: $showingResult) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
@@ -602,11 +612,6 @@ struct TrioOnWatchLoopPage: View {
             String(localized: "Last contact \($0.formattedTimeAgo()) ago", comment: "Watch status: pump contact age")
         } ?? String(localized: "No pump contact yet", comment: "Watch status: no pump contact yet")
         return .init(text: text, spoken: text)
-    }
-
-    private var reservoirText: String {
-        if status.reservoirAboveReadingLimit { return "50+ " + String(localized: "U", comment: "Insulin unit") }
-        return status.reservoir.map { TrioOnWatchRules.insulin(Decimal($0)) } ?? "--"
     }
 
     private var reservoirTint: Color {

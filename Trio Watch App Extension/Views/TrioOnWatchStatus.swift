@@ -493,15 +493,22 @@ extension TrioOnWatchStatus {
         }
     }
 
+    /// The tiles on top of the status page show loop, sensor, pump and temp basal: from watch mode's start to its end.
+    var showsTiles: Bool { phase != .phone && phase != .starting }
+
+    /// The pump tile's reservoir. An Omnipod above the 50 U it reports exactly shows 50+, as on the phone.
+    var reservoirText: String {
+        if reservoirAboveReadingLimit { return "50+ " + String(localized: "U", comment: "Insulin unit") }
+        return reservoir.map { TrioOnWatchRules.insulin(Decimal($0)) } ?? "--"
+    }
+
+    /// What the tiles don't show: warnings, and when the pump and sensor end. A row without lines is left out.
     func rows(now: Date) -> [Row] {
-        guard phase != .phone, phase != .starting else { return [] }
+        guard showsTiles else { return [] }
         var rows: [Row] = []
 
         let tier = TrioOnWatchRules.loopTier(lastLoopAt: lastLoopAt, now: now)
-        let loopLine = lastLoopAt.map {
-            String(localized: "Last loop \($0.formattedTimeAgo()) ago", comment: "Watch status: loop age")
-        } ?? String(localized: "No loop on this watch yet", comment: "Watch status: no loop yet")
-        var loopLines = [loopLine]
+        var loopLines: [String] = []
         if let lastCycleAt, lastCycleAt > (lastLoopAt ?? .distantPast) {
             loopLines.append(String(
                 localized: "Loop at \(lastCycleAt.formatted(date: .omitted, time: .shortened)) couldn't reach the pump.",
@@ -518,9 +525,7 @@ extension TrioOnWatchStatus {
                 .joined(separator: ", ")
         ))
 
-        var sensorLines = [readings.first.map {
-            String(localized: "Last reading \($0.date.formattedTimeAgo()) ago", comment: "Watch status: sensor reading age")
-        } ?? String(localized: "No reading on this watch yet", comment: "Watch status: no sensor reading yet")]
+        var sensorLines: [String] = []
         var sensorTint = Color.secondary
         if sensorNeedsPairing {
             sensorLines.append(String(
@@ -567,25 +572,6 @@ extension TrioOnWatchStatus {
             ))
             if pumpTint == .secondary { pumpTint = .orange }
         }
-        if insulinSuspended {
-            pumpLines.append(String(localized: "Insulin suspended", comment: "Watch status: pump suspended"))
-            if pumpTint == .secondary { pumpTint = .orange }
-        }
-        pumpLines.append(pumpLastContact.map {
-            String(localized: "Last contact \($0.formattedTimeAgo()) ago", comment: "Watch status: pump contact age")
-        } ?? String(localized: "No pump contact yet", comment: "Watch status: no pump contact yet"))
-        if reservoirAboveReadingLimit {
-            pumpLines.append(String(
-                localized: "Reservoir 50+ \(String(localized: "U", comment: "Insulin unit"))",
-                comment: "Watch status: Omnipod reservoir above the 50 U it reports exactly"
-            ))
-        } else if let reservoir {
-            pumpLines.append(String(
-                localized: "Reservoir \(TrioOnWatchRules.insulin(Decimal(reservoir)))",
-                comment: "Watch status: reservoir with unit"
-            ))
-            if reservoir <= 10 { pumpTint = .loopRed } else if reservoir <= 30, pumpTint == .secondary { pumpTint = .orange }
-        }
         if let podEndsAt {
             pumpLines.append(String(
                 localized: "Pod ends in \(TrioOnWatchRules.timeLeft(until: podEndsAt, now: now))",
@@ -617,7 +603,7 @@ extension TrioOnWatchStatus {
                 accessibilityLabel: line
             ))
         }
-        return rows
+        return rows.filter { !$0.lines.isEmpty }
     }
 }
 
@@ -938,7 +924,7 @@ extension TrioOnWatchStatus {
         return (done, max(done, Int(now.timeIntervalSince(since) / (5 * 60))))
     }
 
-    /// What a cycle did, in the words of the loop page.
+    /// What a cycle did, in the words of the status page.
     enum CycleResult {
         static func noPumpStatus(patch: Bool) -> String {
             patch

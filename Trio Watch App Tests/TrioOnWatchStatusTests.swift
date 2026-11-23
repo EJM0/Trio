@@ -97,11 +97,17 @@ import Testing
         #expect(stale.iob == "--")
     }
 
-    @Test("Status page: rows by state, each one VoiceOver element") func rows() {
+    @Test("Status page: tiles in watch mode, rows only for what they don't show, each one VoiceOver element") func rows() {
+        #expect(!status(.phone).showsTiles && !status(.starting).showsTiles)
+        #expect(status(.inControl).showsTiles && status(.stopped(.superseded)).showsTiles)
         #expect(status(.phone).rows(now: now).isEmpty)
         #expect(status(.starting).rows(now: now).isEmpty)
         let rows = status(.inControl).rows(now: now)
-        #expect(rows.map(\.id) == ["loop", "sensor", "pump"])
+        #expect(rows.map(\.id) == ["sensor", "pump"], "the end times; ages and reservoir are in the tiles")
+        var quiet = status(.inControl)
+        quiet.podEndsAt = nil
+        quiet.sensorEndsAt = nil
+        #expect(quiet.rows(now: now).isEmpty)
         for phase in Self.phases {
             for row in status(phase).rows(now: now) {
                 #expect(!row.accessibilityLabel.isEmpty)
@@ -122,20 +128,22 @@ import Testing
         watch.podUnreachable = true
         watch.insulinPaused = true
         watch.insulinSuspended = true
-        #expect(pumpLines(watch).count == plain + 3)
+        #expect(pumpLines(watch).count == plain + 2, "suspended shows in the temp basal tile")
         #expect(watch.rows(now: now).first { $0.id == "pump" }?.tint == .loopRed)
 
+        #expect(!watch.rows(now: now).contains { $0.id == "loop" })
         watch.lastCycleAt = now
-        #expect((watch.rows(now: now).first { $0.id == "loop" }?.lines.count ?? 0) == 2)
+        #expect((watch.rows(now: now).first { $0.id == "loop" }?.lines.count ?? 0) == 1)
     }
 
     @Test("An Omnipod reservoir above 50 U shows as 50+, as on the phone") func reservoirAboveLimit() {
         var watch = status(.inControl)
         watch.reservoir = 51.15
         watch.reservoirAboveReadingLimit = true
-        let lines = watch.rows(now: now).first { $0.id == "pump" }?.lines ?? []
-        #expect(lines.contains { $0.contains("50+") })
-        #expect(!lines.contains { $0.contains("51") })
+        #expect(watch.reservoirText.contains("50+"))
+        #expect(!watch.reservoirText.contains("51"))
+        watch.reservoirAboveReadingLimit = false
+        #expect(watch.reservoirText.contains("51"))
     }
 
     @Test("While the watch still has to pair with the sensor, the sensor row asks to keep Trio open") func sensorPairing() {

@@ -100,7 +100,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         var forecast: TrioOnWatchStatus.Forecast?
     }
 
-    /// Loops and readings closer together than this count once on the loop page.
+    /// Loops and readings closer together than this count once on the status page.
     static let countedSpacing: TimeInterval = 4 * 60
 
     private(set) var state: WatchLoanState
