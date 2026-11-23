@@ -108,9 +108,10 @@ struct WatchLoanSnapshot: Codable {
     func podEndsSoon(now: Date) -> Bool { Self.endsSoon(podEndsAt, now: now) }
     func sensorEndsSoon(now: Date) -> Bool { Self.endsSoon(sensorEndsAt, now: now) }
 
-    /// "1.0.2 (27)", the same on phone and watch.
+    /// "1.0.2.76 (1)", the same on phone and watch. The dev version tells dev builds apart, which share a build number.
     static func appBuild(_ info: [String: Any]?) -> String {
-        "\(info?["CFBundleShortVersionString"] as? String ?? "") (\(info?["CFBundleVersion"] as? String ?? ""))"
+        let version = info?["AppDevVersion"] as? String ?? info?["CFBundleShortVersionString"] as? String ?? ""
+        return "\(version) (\(info?["CFBundleVersion"] as? String ?? ""))"
     }
 
     static func endsSoon(_ date: Date?, now: Date) -> Bool {

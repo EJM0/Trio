@@ -148,6 +148,14 @@ import Testing
     }
 
     /// A worst-case day: a reading every 5 min, an SMB and a new temp every cycle, 10 days of TDD rows.
+    @Test("The version check tells dev builds apart, which share a build number") func appBuild() {
+        let dev76: [String: Any] = ["CFBundleShortVersionString": "1.0.2", "CFBundleVersion": "1", "AppDevVersion": "1.0.2.76"]
+        let dev61: [String: Any] = ["CFBundleShortVersionString": "1.0.2", "CFBundleVersion": "1", "AppDevVersion": "1.0.2.61"]
+        #expect(WatchLoanSnapshot.appBuild(dev76) == "1.0.2.76 (1)")
+        #expect(WatchLoanSnapshot.appBuild(dev76) != WatchLoanSnapshot.appBuild(dev61))
+        #expect(WatchLoanSnapshot.appBuild(["CFBundleShortVersionString": "1.0.2", "CFBundleVersion": "27"]) == "1.0.2 (27)")
+    }
+
     @Test("A full day fits one live message") func size() throws {
         let clock = OrefCharacterizationScenarios.makeClock()
         var inputs = try OrefRunCharacterizationTests.inputs(

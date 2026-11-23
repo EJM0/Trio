@@ -624,15 +624,21 @@ struct TrioOnWatchTiles: View {
 
     private var tempBasalValue: String {
         if status.insulinSuspended { return String(localized: "Suspended", comment: "Watch loop page: insulin suspended") }
-        guard let rate = status.tempBasalRate else {
+        guard let rate = runningTempBasalRate else {
             return String(localized: "Scheduled", comment: "Watch loop page: no temp basal, scheduled basal runs")
         }
         return (Formatter.decimalFormatterWithTwoFractionDigits.string(from: rate as NSNumber) ?? "\(rate)") + " " +
             String(localized: "U/h", comment: "Insulin rate unit")
     }
 
+    /// A temp basal past its end no longer runs: the pump is back on its scheduled rate.
+    private var runningTempBasalRate: Decimal? {
+        guard let rate = status.tempBasalRate, (status.tempBasalEndsAt ?? .distantFuture) > Date() else { return nil }
+        return rate
+    }
+
     private var tempBasalDetail: Tile.Detail? {
-        guard !status.insulinSuspended, status.tempBasalRate != nil, let endsAt = status.tempBasalEndsAt else { return nil }
+        guard !status.insulinSuspended, runningTempBasalRate != nil, let endsAt = status.tempBasalEndsAt else { return nil }
         let text = String(
             localized: "until \(endsAt.formatted(date: .omitted, time: .shortened))",
             comment: "Watch loop page: when the temp basal ends"
