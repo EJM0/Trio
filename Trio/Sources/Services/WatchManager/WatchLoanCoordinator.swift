@@ -240,6 +240,8 @@ actor WatchLoanCoordinator {
                 self.pendingStatus = nil
                 pendingStatus.resume(returning: watchState)
             } else if WatchLoanInbox.passes(envelope.message, phoneEpoch: state.epoch) {
+                // a batch that came in before this message is merged first, so a hand-back finds the watch's doses
+                await recordsChain?.value
                 await handle(.received(envelope.message))
             } else {
                 debug(.watch, "Watch loan message from an older loan dropped")

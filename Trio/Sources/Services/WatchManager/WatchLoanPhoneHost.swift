@@ -640,7 +640,8 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         let since = Date().addingTimeInterval(-20 * 60)
         do {
             return try await glucoseStorage.getGlucoseForAlgorithm(shouldSmoothGlucose: false, fetchHours: 1)
-                .filter { $0.dateString >= since }
+                // sensor readings only: a manual BG isn't a reading the watch loops on
+                .filter { $0.dateString >= since && $0.sgv != nil }
         } catch {
             warning(.watch, "Reading the phone's glucose for the watch failed", error: error)
             return []
