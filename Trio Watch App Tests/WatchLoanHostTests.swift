@@ -1048,11 +1048,12 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         await world.reading(160)
         #expect(pump.commands == commands, "nothing sent while the bolus runs")
         #expect(world.host.cycleInfo.lastResult == TrioOnWatchStatus.CycleResult.bolusRunning)
-        #expect(world.host.cycleInfo.summary.cycles == cycles + 1)
+        #expect(world.host.cycleInfo.summary.cycles == cycles, "a skip isn't a failed cycle")
+        #expect(world.host.uiStatus().lastCycleAt == world.host.uiStatus().lastLoopAt, "no couldn't-reach line")
 
         await bolus.value
         #expect(world.host.bolus == .done)
-        #expect(world.host.cycleInfo.summary.cycles == cycles + 2, "looped after the bolus")
+        #expect(world.host.cycleInfo.summary.cycles == cycles + 1, "looped after the bolus")
         #expect(world.host.cycleInfo.lastResult != TrioOnWatchStatus.CycleResult.bolusRunning)
         #expect(world.violations.isEmpty)
     }

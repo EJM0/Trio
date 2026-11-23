@@ -167,11 +167,12 @@ extension WatchLoanHost {
             await process(.foreignPodSession)
             return
         }
-        // as on the phone: the pump refuses a temp basal while it delivers a bolus
+        // as on the phone: the pump refuses a temp basal while it delivers a bolus. Not a failed cycle: the pump answered.
         if pump.status.bolusState != .noBolus {
             WatchLogger.shared.info(.loop, "Cycle skipped: a bolus is running")
             cycleSkippedForBolus = true
-            finish(start: start, confirmed: false, result: TrioOnWatchStatus.CycleResult.bolusRunning)
+            cycleInfo.lastResult = TrioOnWatchStatus.CycleResult.bolusRunning
+            saveCycleInfo()
             return
         }
         cycleSkippedForBolus = false
