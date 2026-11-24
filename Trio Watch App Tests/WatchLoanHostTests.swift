@@ -78,6 +78,8 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
     let transport = FakeTransport()
     let notifier = FakeNotifier()
     var foreground = false
+    /// SMB always on in the grant's preferences. Off by default, so a cycle's SMB doesn't run into later steps.
+    var smb = false
     var clock = Date(timeIntervalSince1970: 1_800_000_000)
     var battery: Float = 1
     var model = "Watch7,1"
@@ -171,7 +173,6 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
     nonisolated static func orefInputs(now: Date, glucose: Int, count: Int = 36) throws -> OrefInputs {
         var preferences = Preferences()
         preferences.maxIOB = 6
-        preferences.enableSMBAlways = true
         preferences.enableUAM = true
         return try OrefInputs(
             pumpSettings: JSONBridge.from(string: #"{"insulin_action_curve": 10, "maxBolus": 10, "maxBasal": 3}"#),
@@ -237,6 +238,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         )
         var oref = try Self.orefInputs(now: now, glucose: glucose, count: count)
         oref.dosingMode = dosingMode
+        oref.preferences?.enableSMBAlways = smb
         var snapshot = WatchLoanSnapshot(
             versions: .init(schema: 1, protocolVersion: 1, appBuild: "1", pumpManager: "Double", cgmManager: "G7"),
             requestID: requestID,
@@ -346,7 +348,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(!world.host.awaitingFirstReading && world.host.isInControl)
         let commands = try #require(world.pump?.commands)
         #expect(commands.contains { $0.hasPrefix("temp") })
-        #expect(!commands.contains { $0.contains("SMB") }, "a background wake runs oref without micro boluses")
+        #expect(!commands.contains { $0.contains("SMB") }, "SMB off in the preferences")
         #expect(world.host.intents.isEmpty)
         #expect(world.host.loop.lastConfirmedCycleAt != nil)
         #expect(world.transport.batches.last?.epoch == 1)
@@ -363,9 +365,11 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.violations.isEmpty, "\(world.violations)")
     }
 
-    @Test("Micro boluses only in the foreground") func microBolusForeground() async throws {
+    @Test("Micro boluses in the foreground and in background wakes", arguments: [true, false])
+    func microBolus(foreground: Bool) async throws {
         let world = LoanFixture()
-        world.foreground = true
+        world.smb = true
+        world.foreground = foreground
         try await world.startLoan(glucose: 180)
         await world.reading(185)
         let commands = try #require(world.pump?.commands)
@@ -619,6 +623,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
     ) func cycleDosingMode() async throws {
         for mode in [DosingMode.open, .lowGlucoseSuspend, .basalTesting] {
             let world = LoanFixture()
+            world.smb = true
             world.foreground = true
             try await world.startLoan(glucose: 180)
             // the grant refuses these modes, so the saved snapshot is the only way in
