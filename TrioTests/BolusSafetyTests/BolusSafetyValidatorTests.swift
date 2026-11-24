@@ -1,4 +1,5 @@
 import Foundation
+import Swinject
 import Testing
 
 @testable import Trio
