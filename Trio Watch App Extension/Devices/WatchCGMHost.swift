@@ -87,15 +87,35 @@ import WatchKit
         }
     }
 
-    /// Lets go of the sensor for Trio on Watch, which reads it while the watch holds the pump. Returns this watch's
-    /// key for the sensor, so the loan needs no new pairing.
-    func lendSensor() async -> [String: Any]? {
+    /// Lets go of the sensor for Trio on Watch, which reads it while the watch holds the pump. A manager for the
+    /// grant's sensor is lent itself, with its connection: a second manager's central beside it never powers on.
+    /// Otherwise this watch's key for the sensor, so the loan needs no new pairing.
+    func lendSensor(for configuration: SharedDeviceConfiguration) async
+        -> (manager: (any WatchReadableCGM)?, localState: [String: Any]?)
+    {
         while let swap { await swap.value }
         UserDefaults.standard.set(true, forKey: Self.lentKey)
         if let local = cgmManager?.localState { keepLocalState(local) }
-        await remove()
-        WatchLogger.shared.info(.data, "The sensor is lent to Trio on Watch")
-        return UserDefaults.standard.dictionary(forKey: Self.localStateKey)
+        var lent: (any WatchReadableCGM)?
+        if let cgmManager, let builtFrom, cgmManager.pluginIdentifier == configuration.managerIdentifier,
+           type(of: cgmManager).sameSensor(builtFrom, configuration.state)
+        {
+            lent = detach()
+        } else {
+            await remove()
+        }
+        WatchLogger.shared.info(.data, "The sensor is lent to Trio on Watch\(lent != nil ? ", with its connection" : "")")
+        return (lent, UserDefaults.standard.dictionary(forKey: Self.localStateKey))
+    }
+
+    /// Trio on Watch hands its manager back with the connection. False when this host can't keep it; the caller
+    /// then deletes it.
+    func takeBack(_ manager: any WatchReadableCGM, builtFrom: [String: Any]) -> Bool {
+        guard isLent, cgmManager == nil else { return false }
+        self.builtFrom = builtFrom
+        install(manager)
+        save(manager)
+        return true
     }
 
     /// Trio on Watch let go of the sensor: the phone's next state builds the manager again, with the loan's key.
@@ -144,7 +164,12 @@ import WatchKit
 
     /// Returns once the manager has let go of the sensor.
     private func remove() async {
-        guard let previous = cgmManager else { return }
+        await detach()?.delete()
+    }
+
+    /// Drops the manager, which keeps its connection.
+    private func detach() -> (any WatchReadableCGM)? {
+        guard let previous = cgmManager else { return nil }
         previous.cgmManagerDelegate = nil
         statusObserver.map(NotificationCenter.default.removeObserver)
         statusObserver = nil
@@ -154,7 +179,7 @@ import WatchKit
         isTalkingToSensor = false
         UserDefaults.standard.removeObject(forKey: Self.storageKey)
         updateStatus()
-        await previous.delete()
+        return previous
     }
 
     private func save(_ manager: any WatchReadableCGM) {

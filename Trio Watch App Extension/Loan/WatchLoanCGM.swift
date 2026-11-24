@@ -8,6 +8,9 @@ import WatchKit
 @MainActor final class WatchLoanCGM: NSObject, LoanCGMSource {
     private let files: WatchLoanFiles
     private var manager: G7CGMManager?
+    /// The phone's export the manager reads: the watch's own reading takes the manager back for it. In memory only, so
+    /// after a relaunch the manager is deleted at End.
+    private var builtFrom: [String: Any]?
     private let delegateQueue = DispatchQueue(label: "org.nightscout.Trio.watch.cgm")
     private nonisolated let linkEvents = LinkEventClock()
     /// shortcut: in memory only, so a relaunch forgets timed sensor alerts it may need to retract at End; persist if
@@ -53,12 +56,23 @@ import WatchKit
         }
         // the old managers go first: a new central beside one with the same restore identifier never powers on
         await retire()
-        let lentKey = await WatchCGMHost.shared.lendSensor()
+        let lent = await WatchCGMHost.shared.lendSensor(for: configuration)
+        builtFrom = configuration.state
+        let files = files
+        if let shared = lent.manager {
+            if let shared = shared as? G7CGMManager {
+                install(shared)
+                let rawState = shared.rawState
+                WatchLoanFiles.later("the CGM state") { try files.savePlist(rawState, to: .cgmState) }
+                WatchLogger.shared.info(.cgm, "CGM manager taken over from the watch's own reading, with its connection")
+                return
+            }
+            await shared.delete()
+        }
         // the watch's own key for this sensor, from its own reading or an earlier loan: without it every loan pairs
         // again, and that pairing needs the system prompt answered with Trio in front
-        let files = files
         let savedKey = try? await WatchLoanFiles.io { try files.loadPlist(from: .cgmLocalState) }
-        let localState = lentKey ?? savedKey
+        let localState = lent.localState ?? savedKey
         guard let adopted = G7CGMManager(adopting: configuration, localState: localState) else {
             WatchLogger.shared.error(.cgm, "The grant's CGM configuration can't be read on the watch")
             return
@@ -95,13 +109,21 @@ import WatchKit
         guard let previous = manager else { return }
         previous.cgmManagerDelegate = nil
         manager = nil
+        let returnedTo = builtFrom
+        builtFrom = nil
         let files = files
         if let local = previous.localState {
             try? await WatchLoanFiles.io { try files.savePlist(local, to: .cgmLocalState) }
         }
         try? await WatchLoanFiles.io { try files.remove(.cgmState) }
-        await previous.delete()
-        WatchLogger.shared.info(.cgm, "CGM manager let go")
+        // handed back with its connection, as it was lent: deleted, its central would keep the next one off
+        previous.pairingAllowed = true
+        if let returnedTo, WatchCGMHost.shared.takeBack(previous, builtFrom: returnedTo) {
+            WatchLogger.shared.info(.cgm, "CGM manager handed back to the watch's own reading")
+        } else {
+            await previous.delete()
+            WatchLogger.shared.info(.cgm, "CGM manager let go")
+        }
         WatchCGMHost.shared.sensorReturned(localState: previous.localState)
     }
 
