@@ -8,6 +8,8 @@ extension MealManager {
     struct MealSearchBar: View {
         @ObservedObject var state: StateModel
         var isFocused: FocusState<Bool>.Binding
+        /// The field's fill; Treatments sets its cards' colour, the sheet keeps the light tint.
+        var background: Color = .secondary.opacity(0.1)
 
         var body: some View {
             HStack(spacing: 8) {
@@ -37,7 +39,7 @@ extension MealManager {
                 }
             }
             .padding(10)
-            .background(Color.secondary.opacity(0.1))
+            .background(background)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             // A `.keyboard` toolbar is installed for the whole keyboard session, not just this
             // field, so declaring one here fought with the toolbars TextFieldWithToolBar puts up

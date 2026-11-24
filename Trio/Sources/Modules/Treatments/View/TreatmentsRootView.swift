@@ -15,6 +15,11 @@ extension Treatments {
         }
 
         @FocusState private var focusedField: FocusedField?
+        /// While the note is being written it takes the whole input card.
+        @FocusState private var isNoteFocused: Bool
+        /// Follows `isNoteFocused` inside an animation: a focus change alone would snap the list row's height.
+        @State private var noteExpanded = false
+        @State private var showTimeWheel = false
 
         let resolver: Resolver
         /// Set by the `.treatmentWithScanner` route (the Siri shortcut). Which tab opens is
@@ -27,7 +32,6 @@ extension Treatments {
         @State private var watchHasPump = false
         @State private var autofocus: Bool = true
         @State private var calculatorDetent = PresentationDetent.large
-        @State private var pushed: Bool = false
         @State private var debounce: DispatchWorkItem?
         @State private var showFatProteinOrderBanner = false
 
@@ -87,12 +91,10 @@ extension Treatments {
             }
         }
 
-        private let scannedDeltaOverlayWidth: CGFloat = 52
-
-        @ViewBuilder private func scannedNutrientDeltaText(value: Decimal) -> some View {
+        @ViewBuilder private func scannedNutrientDeltaText(value: Decimal, onTint: Bool = false) -> some View {
             Text("+ \(Double(truncating: value as NSNumber), specifier: "%.1f")g")
                 .font(.caption)
-                .foregroundStyle(.blue)
+                .foregroundStyle(onTint ? Color.white : Color.blue)
                 .monospacedDigit()
                 .lineLimit(1)
         }
@@ -116,71 +118,57 @@ extension Treatments {
             }
         }
 
-        @ViewBuilder private func proteinAndFat() -> some View {
-            HStack {
-                VStack {
-                    HStack {
-                        Text("Fat")
-                        TextFieldWithToolBar(
-                            text: $state.fat,
-                            placeholder: "0",
-                            keyboardType: .numberPad,
-                            numberFormatter: mealFormatter,
-                            showArrows: true,
-                            previousTextField: { focusedField = previousField(from: .fat) },
-                            nextTextField: { focusedField = nextField(from: .fat) },
-                            unitsText: String(localized: "g", comment: "Units for carbs")
-                        )
-                        .focused($focusedField, equals: .fat)
-                        .onChange(of: state.fat) {
-                            handleDebouncedInput()
-                        }
-                        .padding(
-                            .trailing,
-                            state.effectiveScannedFat > 0 ? scannedDeltaOverlayWidth : 0
-                        )
-                        .overlay(alignment: .trailing) {
-                            if state.effectiveScannedFat > 0 {
-                                scannedNutrientDeltaText(value: state.effectiveScannedFat)
-                                    .allowsHitTesting(false)
-                            }
-                        }
-                    }
+        /// Macro colours clear of the chart's: insulin and IOB are blue, the ZT forecast purple. Carbs keep COB's orange.
+        private static let carbsColor = Color.orange
+        private static let fatColor = Color(red: 0.86, green: 0.62, blue: 0.10) // amber
+        private static let proteinColor = Color(red: 0.86, green: 0.33, blue: 0.45) // rose
+
+        /// A carb, fat or protein tile: title, entered amount, and the amount the scanned items add. Focused, it fills
+        /// with the macro's colour, as a picked amount does in the quick-pick menu; holding an amount, it keeps a rim
+        /// in that colour.
+        @ViewBuilder private func macroTile(
+            _ title: LocalizedStringKey,
+            text: Binding<Decimal>,
+            field: FocusedField,
+            scanned: Decimal,
+            color: Color
+        ) -> some View {
+            let active = focusedField == field
+            let hasAmount = text.wrappedValue > 0 || scanned > 0
+            let secondary = active ? Color.white.opacity(0.85) : Color.secondary
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 2) {
+                    Text(title).lineLimit(1).allowsTightening(true).minimumScaleFactor(0.85)
+                    Spacer(minLength: 0)
+                    if scanned > 0 { scannedNutrientDeltaText(value: scanned, onTint: active) }
                 }
-
-                Divider().foregroundStyle(.primary).fontWeight(.bold).frame(width: 10)
-
-                VStack {
-                    HStack {
-                        Text("Protein")
-                            .fixedSize(horizontal: true, vertical: false)
-                        TextFieldWithToolBar(
-                            text: $state.protein,
-                            placeholder: "0",
-                            keyboardType: .numberPad,
-                            numberFormatter: mealFormatter,
-                            showArrows: true,
-                            previousTextField: { focusedField = previousField(from: .protein) },
-                            nextTextField: { focusedField = nextField(from: .protein) },
-                            unitsText: String(localized: "g", comment: "Units for carbs")
-                        )
-                        .focused($focusedField, equals: .protein)
-                        .onChange(of: state.protein) {
-                            handleDebouncedInput()
-                        }
-                        .padding(
-                            .trailing,
-                            state.effectiveScannedProtein > 0 ? scannedDeltaOverlayWidth : 0
-                        )
-                        .overlay(alignment: .trailing) {
-                            if state.effectiveScannedProtein > 0 {
-                                scannedNutrientDeltaText(value: state.effectiveScannedProtein)
-                                    .allowsHitTesting(false)
-                            }
-                        }
-                    }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(secondary)
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    TextFieldWithToolBar(
+                        text: text,
+                        placeholder: "0",
+                        textColor: active ? .white : .primary,
+                        textAlignment: .leading,
+                        keyboardType: .numberPad,
+                        numberFormatter: mealFormatter,
+                        showArrows: true,
+                        previousTextField: { focusedField = previousField(from: field) },
+                        nextTextField: { focusedField = nextField(from: field) }
+                    )
+                    .font(.title2.weight(.semibold))
+                    .focused($focusedField, equals: field)
+                    .onChange(of: text.wrappedValue) { handleDebouncedInput() }
+                    Text(String(localized: "g", comment: "Units for carbs")).font(.footnote.weight(.semibold))
+                        .foregroundStyle(secondary)
                 }
             }
+            // the selected tile's rim is a lighter shade of its fill, so the selection stands out
+            .treatmentTile(tint: active ? color : nil, rim: active || hasAmount ? color : nil, lightRim: active)
+            .animation(.easeInOut(duration: 0.15), value: active)
+            .animation(.easeInOut(duration: 0.15), value: hasAmount)
+            .contentShape(Rectangle())
+            .onTapGesture { focusedField = field }
         }
 
         /// Meal search: saved presets, plus OpenFoodFacts when the barcode scanner is enabled.
@@ -189,78 +177,52 @@ extension Treatments {
         /// `mealManagerScannerEnabled` governs the barcode scanner and OpenFoodFacts, so either
         /// one on is enough to show this section, and turning the scanner off no longer takes
         /// offline preset search down with it.
+        private var showsFoodSearch: Bool { mealManager.displayPresets || mealManager.isScannerEnabled }
+
         @ViewBuilder var foodSearch: some View {
-            if mealManager.displayPresets || mealManager.isScannerEnabled {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 8) {
-                        if mealManager.isScannerEnabled {
-                            Button {
-                                openMealManager(at: .scanner)
-                            } label: {
-                                Image(systemName: "barcode.viewfinder")
-                                    .font(.title2)
-                                    .foregroundStyle(.blue)
-                            }
-                            .buttonStyle(.plain)
-                        }
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    MealManager.MealSearchBar(state: mealManager, isFocused: $isSearchFocused, background: Color.chart)
 
-                        MealManager.MealSearchBar(state: mealManager, isFocused: $isSearchFocused)
-
+                    if mealManager.isScannerEnabled {
                         Button {
-                            openMealManager(at: .scanned)
+                            openMealManager(at: .scanner)
                         } label: {
-                            ZStack(alignment: .topTrailing) {
-                                Image(systemName: "list.bullet")
-                                    .font(.title2)
-                                    .foregroundStyle(.blue)
-
-                                if !mealManager.scannedProducts.isEmpty {
-                                    Text("\(mealManager.scannedProducts.count)")
-                                        .font(.caption2.weight(.bold))
-                                        .foregroundStyle(.white)
-                                        .padding(4)
-                                        .background(Circle().fill(Color.red))
-                                        .offset(x: 8, y: -8)
-                                }
-                            }
+                            Image(systemName: "barcode.viewfinder")
+                                .font(.title3)
+                                .foregroundStyle(.blue)
+                                .frame(width: 40, height: 40)
+                                .background(Color.chart, in: RoundedRectangle(cornerRadius: 10))
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(Text("Open Barcode Scanner"))
                     }
+                }
 
-                    if !mealManager.searchQuery.isEmpty {
-                        MealManager.SearchResults(state: mealManager, layout: .stack) { item in
-                            addSearchResultToMeal(item)
-                        }
+                if !mealManager.searchQuery.isEmpty {
+                    MealManager.SearchResults(state: mealManager, layout: .stack) { item in
+                        addSearchResultToMeal(item)
                     }
                 }
             }
         }
 
-        @ViewBuilder private func carbsTextField() -> some View {
-            HStack {
-                Text("Carbs")
-                Spacer()
-                TextFieldWithToolBar(
-                    text: $state.carbs,
-                    placeholder: "0",
-                    keyboardType: .numberPad,
-                    numberFormatter: mealFormatter,
-                    showArrows: true,
-                    previousTextField: { focusedField = previousField(from: .carbs) },
-                    nextTextField: { focusedField = nextField(from: .carbs) },
-                    unitsText: String(localized: "g", comment: "Units for carbs")
-                )
-                .focused($focusedField, equals: .carbs)
-                .onChange(of: state.carbs) {
-                    handleDebouncedInput()
-                }
-                .padding(.trailing, state.scannedCarbs > 0 ? scannedDeltaOverlayWidth : 0)
-                .overlay(alignment: .trailing) {
-                    if state.scannedCarbs > 0 {
-                        scannedNutrientDeltaText(value: state.scannedCarbs)
-                            .allowsHitTesting(false)
+        /// The meal list (scanned items and presets), with the number of items in the meal.
+        private var mealListButton: some View {
+            Button {
+                openMealManager(at: .scanned)
+            } label: {
+                Image(systemName: "list.bullet")
+                    .overlay(alignment: .topTrailing) {
+                        if !mealManager.scannedProducts.isEmpty {
+                            Text("\(mealManager.scannedProducts.count)")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.white)
+                                .padding(4)
+                                .background(Circle().fill(Color.red))
+                                .offset(x: 10, y: -10)
+                        }
                     }
-                }
             }
         }
 
@@ -298,16 +260,31 @@ extension Treatments {
         }
 
         @ViewBuilder var inputsView: some View {
-            VStack {
-                Spacer()
-                carbsTextField()
+            VStack(spacing: 8) {
+                // while the note is written, the other tiles step aside and the note takes the card
+                if !noteExpanded {
+                    HStack(spacing: 8) {
+                        macroTile("Carbs", text: $state.carbs, field: .carbs, scanned: state.scannedCarbs, color: Self.carbsColor)
+                        if state.useFPUconversion {
+                            macroTile(
+                                "Fat",
+                                text: $state.fat,
+                                field: .fat,
+                                scanned: state.effectiveScannedFat,
+                                color: Self.fatColor
+                            )
+                            macroTile(
+                                "Protein",
+                                text: $state.protein,
+                                field: .protein,
+                                scanned: state.effectiveScannedProtein,
+                                color: Self.proteinColor
+                            )
+                        }
+                    }
+                    .transition(.opacity)
 
-                Divider()
-
-                if state.useFPUconversion {
-                    proteinAndFat()
-
-                    if showFatProteinOrderBanner {
+                    if state.useFPUconversion, showFatProteinOrderBanner {
                         HStack {
                             Image(systemName: "arrow.left.arrow.right")
                             Text("The order of Fat and Protein inputs has changed.").font(.callout)
@@ -321,224 +298,263 @@ extension Treatments {
                             .buttonStyle(.plain)
                             .accessibilityLabel(Text("Dismiss"))
                         }
-                        .listRowBackground(Color.orange.opacity(0.75))
+                        .padding(10)
+                        .background(Color.orange.opacity(0.75), in: RoundedRectangle(cornerRadius: 12))
                         .transition(.opacity)
                     }
-
-                    Divider()
                 }
 
-                // Time
-                HStack {
-                    Image(systemName: "clock")
-
-                    Spacer()
-                    if !pushed {
-                        Button {
-                            pushed = true
-                        } label: {
-                            Text("Now")
-                        }.buttonStyle(.borderless).foregroundColor(.secondary)
-                            .padding(.trailing, 5)
-                    } else {
-                        Button {
-                            pushed = false
-                            state.date = Date()
-                        } label: {
-                            Text("Reset")
-                        }.buttonStyle(.borderless).foregroundColor(.secondary)
-                            .padding(.trailing, 5)
-                        Button {
-                            state.date = state.date.addingTimeInterval(-15.minutes.timeInterval)
-                        } label: {
-                            Image(systemName: "minus.circle")
-                        }.tint(.blue).buttonStyle(.borderless)
-                            .accessibilityLabel(Text("15 minutes earlier"))
-
-                        DatePicker(
-                            "Time",
-                            selection: $state.date,
-                            displayedComponents: [.hourAndMinute]
-                        ).controlSize(.mini)
-                            .labelsHidden()
-                            .onChange(of: state.date) { _, _ in
-                                // Trigger simulation when date changes to update forecasts for backdated carbs.
-                                // `updateForecasts()` updates the `simulatedDetermination` of type `Determination?`
-                                // on the main thread, so its cob value feeds the bolus calc manager.
-                                state.refreshInsulinRecommendation(updatingForecasts: true)
-                            }
-                        Button {
-                            state.date = state.date.addingTimeInterval(15.minutes.timeInterval)
-                        } label: {
-                            Image(systemName: "plus.circle")
-                        }.tint(.blue).buttonStyle(.borderless)
-                            .accessibilityLabel(Text("15 minutes later"))
-                    }
+                HStack(spacing: 8) {
+                    if !noteExpanded { timeTile.transition(.opacity) }
+                    noteTile
                 }
-
-                Divider()
-
-                // Notes
-                HStack {
-                    Image(systemName: "square.and.pencil")
-                    TextFieldWithToolBarString(
-                        text: $state.note,
-                        placeholder: String(localized: "Note..."),
-                        maxLength: 25
-                    )
-                }
-                Spacer()
             }
-            .background(Rectangle().fill(Color.chart))
+            .padding(.vertical, 4)
+            .onChange(of: isNoteFocused) { _, focused in
+                withAnimation(Self.resize) { noteExpanded = focused }
+            }
+        }
+
+        private static let resize = Animation.spring(response: 0.35, dampingFraction: 0.85)
+
+        /// A time other than the screen's opening time, as the forecast and the popup tell a backdated entry.
+        private var isCustomTime: Bool { abs(state.date.timeIntervalSince(state.defaultDate)) > 1.0 }
+
+        /// "Now" or the set time; a tap opens the system time wheel in a small popover. A set time can go back to now.
+        private var timeTile: some View {
+            HStack(spacing: 6) {
+                Image(systemName: "clock").foregroundStyle(.secondary)
+                // its own popover rather than the compact picker's: a tap outside then only closes the wheel (the time
+                // is set as it turns) and doesn't fall through to the note
+                Button {
+                    showTimeWheel = true
+                } label: {
+                    Group {
+                        if isCustomTime {
+                            Text(state.date, style: .time).foregroundStyle(.blue)
+                        } else {
+                            Text("Now")
+                        }
+                    }
+                    .frame(height: Self.rowTileHeight)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("Time"))
+                .popover(isPresented: $showTimeWheel) {
+                    DatePicker("Time", selection: $state.date, displayedComponents: [.hourAndMinute])
+                        .datePickerStyle(.wheel)
+                        .labelsHidden()
+                        .padding(.horizontal, 12)
+                        .presentationCompactAdaptation(.popover)
+                }
+                if isCustomTime {
+                    Button {
+                        state.date = state.defaultDate
+                    } label: {
+                        Image(systemName: "arrow.uturn.backward.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("Now"))
+                    .transition(.opacity.combined(with: .scale))
+                }
+            }
+            .font(.subheadline.weight(.semibold))
+            .frame(minHeight: Self.rowTileHeight)
+            .treatmentTile(fills: false)
+            // Trigger simulation when date changes to update forecasts for backdated carbs.
+            // `updateForecasts()` updates the `simulatedDetermination` of type `Determination?`
+            // on the main thread, so its cob value feeds the bolus calc manager.
+            .onChange(of: state.date) { _, _ in
+                state.refreshInsulinRecommendation(updatingForecasts: true)
+            }
+            .animation(.snappy, value: isCustomTime)
+        }
+
+        private static let noteMaxLength = 25
+
+        /// Content height of the time and note tiles, so the two line up.
+        private static let rowTileHeight: CGFloat = 28
+
+        private var noteTile: some View {
+            HStack(alignment: noteExpanded ? .firstTextBaseline : .center) {
+                Image(systemName: "pencil").foregroundStyle(.secondary)
+                TextField(String(localized: "Note..."), text: $state.note, axis: .vertical)
+                    .lineLimit(noteExpanded ? 8 : 1)
+                    .focused($isNoteFocused)
+                    .onChange(of: state.note) { _, note in
+                        if note.count > Self.noteMaxLength { state.note = String(note.prefix(Self.noteMaxLength)) }
+                    }
+                    .toolbar {
+                        if isNoteFocused {
+                            ToolbarItemGroup(placement: .keyboard) {
+                                Button { state.note = "" } label: { Image(systemName: "trash") }
+                                    .accessibilityLabel(Text("Clear"))
+                                Spacer()
+                                Button { isNoteFocused = false } label: { Image(systemName: "keyboard.chevron.compact.down") }
+                                    .accessibilityLabel(Text("Dismiss keyboard"))
+                            }
+                        }
+                    }
+            }
+            .font(.subheadline)
+            .frame(
+                minHeight: noteExpanded ? 180 : Self.rowTileHeight,
+                alignment: noteExpanded ? .topLeading : .leading
+            )
+            .treatmentTile()
+            .contentShape(Rectangle())
+            .onTapGesture { isNoteFocused = true }
+        }
+
+        private enum BolusVariant: Hashable {
+            case normal
+            case reduced
+            case superBolus
+        }
+
+        /// Reduced and super bolus exclude each other; every change recalculates the recommendation.
+        private var bolusVariant: Binding<BolusVariant> {
+            Binding(
+                get: { state.useSuperBolus ? .superBolus : state.useFattyMealCorrectionFactor ? .reduced : .normal },
+                set: { variant in
+                    state.useFattyMealCorrectionFactor = variant == .reduced
+                    state.useSuperBolus = variant == .superBolus
+                    state.refreshInsulinRecommendation()
+                }
+            )
+        }
+
+        private var hasBolusVariants: Bool { state.fattyMeals || state.sweetMeals }
+
+        private var recommendationInfoButton: some View {
+            Button {
+                state.showInfo.toggle()
+            } label: {
+                Image(systemName: "info.circle")
+            }
+            .foregroundStyle(.blue)
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("About the recommendation"))
+        }
+
+        private var formattedRecommendation: String {
+            formatter.string(from: Double(state.insulinCalculated) as NSNumber) ?? ""
         }
 
         @ViewBuilder var optionsView: some View {
-            VStack {
-                if state.fattyMeals || state.sweetMeals {
-                    Spacer()
-                    HStack(spacing: 10) {
-                        if state.fattyMeals {
-                            Toggle(isOn: $state.useFattyMealCorrectionFactor) {
-                                Text("Reduced Bolus")
-                            }
-                            .toggleStyle(RadioButtonToggleStyle())
-                            .font(.footnote)
-                            .onChange(of: state.useFattyMealCorrectionFactor) {
-                                // Clear the mutually exclusive option first so the recalculation
-                                // below sees a consistent pair of flags. Deselecting recalculates
-                                // as well — the option no longer applying changes the result too.
-                                if state.useFattyMealCorrectionFactor {
-                                    state.useSuperBolus = false
-                                }
-                                state.refreshInsulinRecommendation()
-                            }
+            VStack(spacing: 10) {
+                if hasBolusVariants {
+                    HStack(spacing: 8) {
+                        recommendationInfoButton.font(.title3)
+                        Picker("", selection: bolusVariant) {
+                            Text("Normal").tag(BolusVariant.normal)
+                            if state.fattyMeals { Text("Reduced").tag(BolusVariant.reduced) }
+                            if state.sweetMeals { Text("Super Bolus").tag(BolusVariant.superBolus) }
                         }
-                        if state.sweetMeals {
-                            Toggle(isOn: $state.useSuperBolus) {
-                                Text("Super Bolus")
-                            }
-                            .toggleStyle(RadioButtonToggleStyle())
-                            .font(.footnote)
-                            .onChange(of: state.useSuperBolus) {
-                                if state.useSuperBolus {
-                                    state.useFattyMealCorrectionFactor = false
-                                }
-                                state.refreshInsulinRecommendation()
-                            }
-                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
                     }
-                    Divider()
                 }
 
-                Spacer()
+                HStack(spacing: 8) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 4) {
+                            Text("Recommendation")
+                            // without the bolus variants there is no selector row to sit in
+                            if !hasBolusVariants { recommendationInfoButton }
+                        }
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
 
-                HStack {
-                    HStack {
-                        Text("Recommendation")
-                        Button(
-                            action: {
-                                state.showInfo.toggle()
-                            },
-                            label: {
-                                Image(systemName: "info.circle")
+                        Button {
+                            state.amount = state.insulinCalculated
+                        } label: {
+                            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                                Text(formattedRecommendation).font(.title2.weight(.semibold)).foregroundStyle(.primary)
+                                    // a long amount shrinks to stay on one line next to "use"
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.5)
+                                    .contentTransition(.numericText())
+                                    .animation(.snappy, value: state.insulinCalculated)
+                                Text(String(localized: "U", comment: "Units for bolus amount"))
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                Spacer(minLength: 6)
+                                Text(String(localized: "use", comment: "Copies the recommended bolus into the bolus field"))
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.blue)
+                                    .lineLimit(1)
+                                    .fixedSize()
                             }
-                        )
-                        .foregroundStyle(.blue)
-                        .buttonStyle(PlainButtonStyle())
-                        .accessibilityLabel(Text("About the recommendation"))
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(state.insulinCalculated == 0 || state.amount == state.insulinCalculated)
+                        .accessibilityLabel(Text(
+                            "Use recommended bolus, " + formattedRecommendation
+                                + " " + String(localized: "units", comment: "Insulin units, spoken")
+                        ))
+                        .accessibilityHint(Text("Copies the recommended amount into the bolus field"))
                     }
-                    Spacer()
-                    Button {
-                        state.amount = state.insulinCalculated
-                    } label: {
-                        HStack {
-                            Text(
-                                formatter
-                                    .string(from: Double(state.insulinCalculated) as NSNumber) ?? ""
+                    .treatmentTile(dashed: true)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Bolus").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                        HStack(alignment: .firstTextBaseline, spacing: 2) {
+                            TextFieldWithToolBar(
+                                text: $state.amount,
+                                placeholder: "0",
+                                textColor: colorScheme == .dark ? .white : .blue,
+                                textAlignment: .leading,
+                                maxLength: 5,
+                                numberFormatter: formatter,
+                                showArrows: true,
+                                previousTextField: { focusedField = previousField(from: .bolus) },
+                                nextTextField: { focusedField = nextField(from: .bolus) }
                             )
-
-                            Text(
-                                String(
-                                    localized:
-                                    " U",
-                                    comment: "Unit in number of units delivered (keep the space character!)"
-                                )
-                            ).foregroundColor(.secondary)
+                            .font(.title2.weight(.semibold))
+                            .focused($focusedField, equals: .bolus)
+                            .onChange(of: state.amount) {
+                                // Redraws the forecast for the entered dose. Debounced and cancellable so
+                                // typing a bolus doesn't queue up an oref simulation per keystroke.
+                                handleDebouncedInput(followingAcceptedRecommendation: false)
+                            }
+                            Text(String(localized: "U", comment: "Units for bolus amount")).font(.footnote.weight(.semibold))
+                                .foregroundStyle(.secondary)
                         }
                     }
-                    .disabled(state.insulinCalculated == 0 || state.amount == state.insulinCalculated)
-                    .buttonStyle(.bordered).padding(.trailing, -10)
-                    .accessibilityLabel(Text(
-                        "Use recommended bolus, "
-                            + (formatter.string(from: Double(state.insulinCalculated) as NSNumber) ?? "")
-                            + " " + String(localized: "units", comment: "Insulin units, spoken")
-                    ))
-                    .accessibilityHint(Text("Copies the recommended amount into the bolus field"))
+                    .treatmentTile()
+                    .contentShape(Rectangle())
+                    .onTapGesture { focusedField = .bolus }
                 }
 
-                Divider()
-                Spacer()
-
-                HStack {
-                    Text("Bolus")
-                    Spacer()
-                    TextFieldWithToolBar(
-                        text: $state.amount,
-                        placeholder: "0",
-                        textColor: colorScheme == .dark ? .white : .blue,
-                        maxLength: 5,
-                        numberFormatter: formatter,
-                        showArrows: true,
-                        previousTextField: { focusedField = previousField(from: .bolus) },
-                        nextTextField: { focusedField = nextField(from: .bolus) },
-                        unitsText: String(localized: "U", comment: "Units for bolus amount")
-                    ).focused($focusedField, equals: .bolus)
-                        .onChange(of: state.amount) {
-                            // Redraws the forecast for the entered dose. Debounced and cancellable so
-                            // typing a bolus doesn't queue up an oref simulation per keystroke.
-                            handleDebouncedInput(followingAcceptedRecommendation: false)
-                        }
-                }
-
-                Divider()
-                Spacer()
-
-                HStack {
-                    Text("External Insulin")
-                    Spacer()
-                    Toggle("", isOn: $state.externalInsulin).toggleStyle(CheckboxToggleStyle())
-                }
-
-                Spacer()
+                Toggle("External Insulin", isOn: $state.externalInsulin)
             }
+            .padding(.vertical, 4)
         }
 
+        /// The screen's cards. A scroll view rather than a `List`: a list snaps a row's height when it changes with
+        /// the keyboard (the note opening), where a stack animates it.
         @ViewBuilder func listView() -> some View {
-            List {
-                // the phone's forecast and recommendation are stale while the watch doses (G-M9)
-                if watchHasPump {
-                    Section { TrioOnWatchBlockedNote(message: TrioOnWatchBlockedNote.treatments) }
-                } else {
-                    Section {
-                        foodSearch
-                    }.listRowBackground(Color.chart)
-
-                    Section {
-                        ForecastChart(state: state)
-                    }.listRowBackground(Color.chart)
-
-                    Section {
-                        inputsView
-                    }.listRowBackground(Color.chart)
-
-                    Section {
-                        optionsView
-                    }.listRowBackground(Color.chart)
+            ScrollView {
+                VStack(spacing: sectionSpacing) {
+                    // the phone's forecast and recommendation are stale while the watch doses (G-M9)
+                    if watchHasPump {
+                        // the screen's only content, so it sits in the middle like an empty state
+                        TrioOnWatchBlockedNote(message: TrioOnWatchBlockedNote.treatments)
+                            .containerRelativeFrame(.vertical)
+                    } else {
+                        // no card of its own: the field is already a box
+                        if showsFoodSearch { foodSearch }
+                        ForecastChart(state: state).treatmentCard()
+                        inputsView.treatmentCard()
+                        optionsView.treatmentCard()
+                    }
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
             }
-            .listStyle(.insetGrouped)
-            .listSectionSpacing(sectionSpacing)
-            .contentMargins(.top, 0, for: .scrollContent)
+            .scrollDismissesKeyboard(.interactively)
         }
 
         var body: some View {
@@ -549,7 +565,8 @@ extension Treatments {
                 if state.isAwaitingDeterminationResult {
                     CustomProgressView(text: progressText.displayName)
                 }
-                if !isKeyboardVisible {
+                // nothing to send while the watch has the pump: no dead button under the note
+                if !isKeyboardVisible, !watchHasPump {
                     treatmentButton
                         .padding(.horizontal, 16)
                         .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { height in
@@ -557,6 +574,13 @@ extension Treatments {
                         }
                         .frame(maxHeight: .infinity, alignment: .bottom)
                         .ignoresSafeArea(.keyboard)
+                }
+                // while the time wheel is open a tap anywhere only closes it: no field starts editing, no button acts
+                if showTimeWheel {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .ignoresSafeArea()
+                        .onTapGesture { showTimeWheel = false }
                 }
             }
             .scrollContentBackground(.hidden).background(appState.trioBackgroundColor(for: colorScheme).ignoresSafeArea())
@@ -569,6 +593,9 @@ extension Treatments {
                     } label: {
                         Text("Close")
                     }
+                }
+                if showsFoodSearch, !watchHasPump {
+                    ToolbarItem(placement: .topBarTrailing) { mealListButton }
                 }
             })
             .onReceive(Foundation.NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
@@ -1004,6 +1031,59 @@ extension Treatments {
                 .foregroundColor(.gray.opacity(0.65))
                 .padding(.vertical)
         }
+    }
+}
+
+/// The rounded tile the treatment inputs sit in; a dashed outline marks a value to take over.
+private struct TreatmentTile: ViewModifier {
+    var dashed: Bool
+    /// False sizes the tile to its content instead of sharing the row's width.
+    var fills: Bool
+    /// Fills the tile with this colour instead of the neutral one.
+    var tint: Color?
+    /// Outlines the tile in this colour.
+    var rim: Color?
+    /// Lightens the rim (white over it: `Color.mix` needs iOS 18).
+    var lightRim: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .padding(10)
+            .frame(maxWidth: fills ? .infinity : nil, alignment: .leading)
+            .background {
+                if !dashed { RoundedRectangle(cornerRadius: 12).fill(tint ?? Color.secondary.opacity(0.12)) }
+            }
+            .overlay {
+                if dashed {
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Color.secondary.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                } else if let rim {
+                    RoundedRectangle(cornerRadius: 12).strokeBorder(rim, lineWidth: lightRim ? 2.5 : 2)
+                    if lightRim {
+                        RoundedRectangle(cornerRadius: 12).strokeBorder(Color.white.opacity(0.5), lineWidth: 2.5)
+                    }
+                }
+            }
+    }
+}
+
+private extension View {
+    /// One of the screen's cards, in the colour the list's sections had.
+    func treatmentCard() -> some View {
+        padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(Color.chart, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+    }
+
+    func treatmentTile(
+        dashed: Bool = false,
+        fills: Bool = true,
+        tint: Color? = nil,
+        rim: Color? = nil,
+        lightRim: Bool = false
+    ) -> some View {
+        modifier(TreatmentTile(dashed: dashed, fills: fills, tint: tint, rim: rim, lightRim: lightRim))
     }
 }
 

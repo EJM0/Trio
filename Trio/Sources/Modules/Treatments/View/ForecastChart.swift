@@ -27,11 +27,9 @@ struct ForecastChart: View {
     }
 
     var body: some View {
-        VStack {
+        VStack(spacing: 8) {
             forecastChartLabels
-                .padding(.bottom, 8)
-
-            forecastChart
+            forecastChart.frame(height: 120)
         }
     }
 
@@ -46,73 +44,57 @@ struct ForecastChart: View {
         let totalCarbs = displayedCarbs + Decimal(state.cob)
         let totalInsulin = state.amount + state.iob
 
-        return HStack {
-            HStack {
-                Image(systemName: "syringe.fill")
+        return HStack(spacing: 6) {
+            badge(color: .blue) {
+                Text("IOB").font(.caption2.weight(.semibold)).opacity(0.8)
                 Text(
-                    "\(Formatter.bolusFormatter.string(from: totalInsulin as NSNumber) ?? totalInsulin.description) "
-                ) + Text(String(localized: "U", comment: "Insulin unit"))
-            }
-            .font(.footnote)
-            .foregroundStyle(.blue)
-            .padding(8)
-            .background {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.blue.opacity(0.2))
+                    (Formatter.bolusFormatter.string(from: totalInsulin as NSNumber) ?? totalInsulin.description) + " "
+                        + String(localized: "U", comment: "Insulin unit").trimmingCharacters(in: .whitespaces)
+                )
             }
 
-            Spacer()
-
-            HStack {
-                Image(systemName: "fork.knife")
+            badge(color: .orange) {
+                Text("COB").font(.caption2.weight(.semibold)).opacity(0.8)
                 Text("\(Double(truncating: totalCarbs as NSNumber), specifier: "%.1f") g")
             }
-            .font(.footnote)
-            .foregroundStyle(.orange)
-            .padding(8)
-            .background {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.orange.opacity(0.2))
-            }
 
-            Spacer()
-
-            HStack {
-                Image(systemName: "arrow.right.circle")
-
+            badge(color: .primary) {
+                Image(systemName: "arrow.right").font(.caption2.weight(.semibold))
                 if let simulatedDetermination = state.simulatedDetermination, let eventualBG = simulatedDetermination.eventualBG {
                     eventualGlucoseBadge(for: eventualBG)
                 } else if let lastDetermination = state.determination.first, let eventualBG = lastDetermination.eventualBG {
                     eventualGlucoseBadge(for: Int(truncating: eventualBG))
                 } else {
                     Text("---")
-                        .font(.footnote)
-                        .foregroundStyle(.primary)
-                    Text("\(state.units.rawValue)")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    Text("\(state.units.rawValue)").font(.caption2).foregroundStyle(.secondary)
                 }
             }
-            .font(.footnote)
-            .foregroundStyle(.primary)
-            .padding(8)
-            .background {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.primary.opacity(0.2))
-            }
         }
+        // values roll to their new number as a treatment is typed
+        .contentTransition(.numericText())
+        .animation(.snappy, value: totalInsulin)
+        .animation(.snappy, value: totalCarbs)
+        .animation(.snappy, value: state.simulatedDetermination?.eventualBG)
+    }
+
+    /// One of the three values above the chart, as a tinted pill sharing the row equally.
+    private func badge<Content: View>(color: Color, @ViewBuilder content: () -> Content) -> some View {
+        HStack(spacing: 4) { content() }
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(color)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 5)
+            .background(RoundedRectangle(cornerRadius: 8).fill(color.opacity(0.2)))
     }
 
     @ViewBuilder private func eventualGlucoseBadge(for eventualBG: Int) -> some View {
-        HStack {
-            Text(eventualBG.formatted(for: state.units))
-                .font(.footnote)
-                .foregroundStyle(.primary)
-            Text("\(state.units.rawValue)")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        }
+        Text(eventualBG.formatted(for: state.units))
+        Text("\(state.units.rawValue)").font(.caption2).foregroundStyle(.secondary)
     }
+
+    private static let forecastMorph = Animation.easeInOut(duration: 0.4)
 
     private var maxGlucoseMgDl: Decimal {
         let maxGlucose = state.glucoseFromPersistence.map({ Decimal($0.glucose) }).max() ?? 300
@@ -170,28 +152,13 @@ struct ForecastChart: View {
         .chartXScale(domain: startMarker ... endMarker)
         .chartYAxis { forecastChartYAxis }
         .chartYScale(domain: state.units == .mgdL ? 0 ... maxGlucoseMgDl : 0.asMmolL ... maxGlucoseMgDl.asMmolL)
-        .chartLegend {
-            if state.forecastDisplayType == ForecastDisplayType.lines {
-                HStack(spacing: 10) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "circle.fill").foregroundStyle(Color.insulin)
-                        Text(String(localized: "IOB")).foregroundStyle(Color.secondary)
-                    }
-                    HStack(spacing: 4) {
-                        Image(systemName: "circle.fill").foregroundStyle(Color.uam)
-                        Text(String(localized: "UAM")).foregroundStyle(Color.secondary)
-                    }
-                    HStack(spacing: 4) {
-                        Image(systemName: "circle.fill").foregroundStyle(Color.zt)
-                        Text(String(localized: "ZT")).foregroundStyle(Color.secondary)
-                    }
-                    HStack(spacing: 4) {
-                        Image(systemName: "circle.fill").foregroundStyle(Color.orange)
-                        Text(String(localized: "COB")).foregroundStyle(Color.secondary)
-                    }
-                }.font(.caption2)
-            }
-        }
+        .chartLegend(.hidden)
+        // readings older than the window would otherwise draw past the plot's left edge, over the card
+        .chartPlotStyle { $0.clipped() }
+        // a new simulated forecast (carbs or a bolus typed) morphs the lines and the cone into place
+        .animation(Self.forecastMorph, value: state.predictionsForChart)
+        .animation(Self.forecastMorph, value: state.minForecast)
+        .animation(Self.forecastMorph, value: state.maxForecast)
         .chartForegroundStyleScale([
             "iob": Color.insulin,
             "uam": Color.uam,
