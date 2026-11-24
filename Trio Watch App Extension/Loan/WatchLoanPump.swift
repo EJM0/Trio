@@ -8,6 +8,10 @@ protocol LoanPump: PumpManager, ExclusiveDeviceControl, PumpDeliveryOdometer {
     /// After another controller used the pod, the kit runs no session at all.
     var refusesSessions: Bool { get }
     var foreignSessionDetectedAt: Date? { get }
+    /// Dials the pod ahead of the cycle's first session.
+    func preconnect()
+    /// Drops the link now instead of after the kit's idle delay.
+    func releaseLink()
 }
 
 extension OmniPumpManager: LoanPump {}

@@ -43,6 +43,10 @@ import LoopKit
         Task { [weak self] in await self?.host?.receiveReadings(readings) }
     }
 
+    func sensorLinkUp() {
+        host?.sensorLinkUp()
+    }
+
     func failed(_ error: Error) {
         host?.deviceError(error)
     }

@@ -352,6 +352,24 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(!world.host.awaitingFirstReading && world.host.isInControl)
     }
 
+    @Test(
+        "Background: the pod is dialed at the sensor's link-up and let go after the cycle; in front neither"
+    ) func podLinkTiming() async throws {
+        let world = LoanFixture()
+        try await world.startLoan()
+        world.host.sensorLinkUp()
+        await world.reading(160)
+        #expect(world.pump?.preconnectCalls == 1)
+        #expect(world.pump?.releaseLinkCalls ?? 0 >= 1)
+
+        world.foreground = true
+        let released = world.pump?.releaseLinkCalls
+        world.host.sensorLinkUp()
+        await world.reading(165)
+        #expect(world.pump?.preconnectCalls == 1)
+        #expect(world.pump?.releaseLinkCalls == released)
+    }
+
     @Test("Micro boluses only in the foreground") func microBolusForeground() async throws {
         let world = LoanFixture()
         world.foreground = true

@@ -122,6 +122,13 @@ final class LoanPumpDouble: LoanPump {
         holdsPod
     }
 
+    // MARK: Link
+
+    private(set) var preconnectCalls = 0
+    private(set) var releaseLinkCalls = 0
+    func preconnect() { preconnectCalls += 1 }
+    func releaseLink() { releaseLinkCalls += 1 }
+
     // MARK: PumpManager
 
     static var onboardingMaximumBasalScheduleEntryCount: Int { 24 }

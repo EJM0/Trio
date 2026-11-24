@@ -39,6 +39,27 @@ enum WatchLoopPolicy {
     static func notLoopingDates(after lastConfirmedCycle: Date) -> [Date] {
         notLoopingMinutes.map { lastConfirmedCycle.addingTimeInterval(TimeInterval($0 * 60)) }
     }
+
+    /// Pod messages later than ~10 s after the sensor's link-up in a background wake raise the watchOS count that cuts
+    /// all of Trio's links near 200. A temp at the rate already running, with at least `resendMinutesLeft` left, isn't
+    /// sent again when it wouldn't end by `resendEndsBy`: oref re-sets a running zero temp every 5–10 minutes as its
+    /// planned length changes (157 of 344 temps, 18–23 November), and the next wake can still extend it.
+    static let resendMinutesLeft = 15
+    static let resendEndsBy: TimeInterval = 9
+    /// Median from sending a temp to its confirmation on the watch, connect included (18–23 November).
+    static let tempCommandSeconds: TimeInterval = 5
+
+    static func skipsTempResend(
+        rate: Decimal,
+        running: (unitsPerHour: Double, minutesLeft: Int)?,
+        sinceLinkUp: TimeInterval?,
+        inForeground: Bool
+    ) -> Bool {
+        guard !inForeground, let sinceLinkUp, let running, running.minutesLeft >= resendMinutesLeft,
+              abs(running.unitsPerHour - rate.nearestDouble) < 0.001
+        else { return false }
+        return sinceLinkUp + tempCommandSeconds > resendEndsBy
+    }
 }
 
 /// A pump command the watch wrote down before sending it. One at a time; cleared when its outcome is known.

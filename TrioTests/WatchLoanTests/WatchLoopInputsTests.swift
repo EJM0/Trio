@@ -450,6 +450,26 @@ import Testing
         #expect(WatchLoopPolicy.microBolusAllowed(inForeground: true))
     }
 
+    @Test("A running temp isn't re-set late in a background wake") func tempResend() {
+        let zero = (unitsPerHour: 0.0, minutesLeft: 20)
+        func skips(
+            _ rate: Decimal,
+            _ running: (unitsPerHour: Double, minutesLeft: Int)?,
+            _ sinceLinkUp: TimeInterval?,
+            front: Bool = false
+        ) -> Bool {
+            WatchLoopPolicy.skipsTempResend(rate: rate, running: running, sinceLinkUp: sinceLinkUp, inForeground: front)
+        }
+        #expect(skips(0, zero, 4.5))
+        #expect(!skips(0, zero, 3.5), "ends by 9 s: sent")
+        #expect(!skips(0, zero, 6, front: true), "in front: sent")
+        #expect(!skips(0, zero, nil), "unknown link-up: sent")
+        #expect(!skips(0, (0.0, 14), 6), "under 15 min left: sent")
+        #expect(!skips(0.5, zero, 6), "another rate: sent")
+        #expect(!skips(0, nil, 6), "no temp running: sent")
+        #expect(skips(1.35, (1.35, 25), 6))
+    }
+
     @Test("Not-looping series at 20 to 120 minutes after the last confirmed cycle") func notLooping() {
         #expect(
             WatchLoopPolicy.notLoopingDates(after: now).map { $0.timeIntervalSince(now) / 60 }

@@ -66,6 +66,9 @@ extension WatchLoanHost {
         await serially {
             self.activity = held
             await self.cycle(trigger: trigger)
+            // nothing more goes to the pod this wake: the kit's 4 s idle hold ran past the ~10 s of free Bluetooth
+            // (198 of the 206 late seconds before the cut on 22 November)
+            if !self.env.isForeground() { self.pump?.releaseLink() }
             self.activity = nil
         }
         held.end()
@@ -191,7 +194,18 @@ extension WatchLoanHost {
         if !plan.heldBack.isEmpty {
             WatchLogger.shared.warning(.loop, "Held back: \(plan.heldBack.map { "\($0)" }.joined(separator: ", "))")
         }
-        if let temp = plan.tempBasal {
+        let sinceLinkUp = WatchCGMHost.shared.linkUpAt.map { env.now().timeIntervalSince($0) }
+        if let temp = plan.tempBasal, WatchLoopPolicy.skipsTempResend(
+            rate: temp.unitsPerHour,
+            running: runningTemp(pump.status.basalDeliveryState, now: env.now()),
+            sinceLinkUp: sinceLinkUp,
+            inForeground: env.isForeground()
+        ) {
+            WatchLogger.shared.info(
+                .loop,
+                "Temp basal \(temp.unitsPerHour) U/h already running, not sent again \(String(format: "%.1f s", sinceLinkUp ?? 0)) into the wake"
+            )
+        } else if let temp = plan.tempBasal {
             WatchLogger.shared.info(.loop, "Command starts \(Self.seconds(since: start, now: env.now())) s after the wake")
             confirmed = await command(.tempBasal(unitsPerHour: temp.unitsPerHour, minutes: temp.minutes)) == .confirmed &&
                 confirmed
@@ -247,6 +261,24 @@ extension WatchLoanHost {
             .loop,
             "Quiet wake: pod status \(read ? "read" : "not read") \(String(format: "%.1f s", sinceLinkUp)) into the wake"
         )
+    }
+
+    /// The pump's own running temp: its rate and whole minutes left.
+    private func runningTemp(
+        _ state: PumpManagerStatus.BasalDeliveryState?,
+        now: Date
+    ) -> (unitsPerHour: Double, minutesLeft: Int)? {
+        guard case let .tempBasal(dose) = state else { return nil }
+        return (dose.unitsPerHour, Int(dose.endDate.timeIntervalSince(now) / 60))
+    }
+
+    /// The sensor's link came up: a background wake has ~10 s of Bluetooth from now. The pod is dialed at once, so its
+    /// connect and login (2.5 s median) overlap the reading and oref instead of following them.
+    func sensorLinkUp() {
+        guard case .holding = state, let pump, !env.isForeground(), !pump.refusesSessions,
+              cycleInfo.podDeactivatedAt == nil
+        else { return }
+        pump.preconnect()
     }
 
     /// The latest point in a wake, from the sensor's link-up, at which a quiet wake still reads the pod: about 2 s of

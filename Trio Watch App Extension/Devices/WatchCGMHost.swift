@@ -288,7 +288,10 @@ extension WatchCGMHost: CGMManagerDelegate {
 
     private func noteLink(afterLog message: String, at: Date) {
         guard let cgmManager, let linkIsUp = type(of: cgmManager).watchLinkIsUp(afterLog: message) else { return }
-        if linkIsUp, !isTalkingToSensor { linkUpAt = at }
+        if linkIsUp, !isTalkingToSensor {
+            linkUpAt = at
+            loan?.sensorLinkUp()
+        }
         isTalkingToSensor = linkIsUp
     }
 
