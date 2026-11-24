@@ -408,6 +408,34 @@ import Testing
             #expect(TrioOnWatchFixture.named(name, now: now) != nil, "\(name)")
         }
     }
+
+    @Test(
+        "Watch mode shows the sensor's value, as the phone's glucose bubble does, not the smoothed one"
+    )  func displayedReadingsAreRaw() {
+        let id = UUID()
+        let rounding = NSDecimalNumberHandler(
+            roundingMode: .plain, scale: 0, raiseOnExactness: false, raiseOnOverflow: false,
+            raiseOnUnderflow: false, raiseOnDivideByZero: false
+        )
+        // a grant reading as the phone's oref glucose carries it with smoothing on, and the watch's own raw one
+        let smoothed = OrefInputs.bloodGlucose(
+            id: id, date: ago(5), glucose: 150, smoothedGlucose: 141, isManual: false, direction: nil,
+            shouldSmoothGlucose: true, roundingBehavior: rounding
+        )
+        let own = OrefInputs.bloodGlucose(
+            id: nil, date: ago(0), glucose: 155, smoothedGlucose: nil, isManual: false, direction: nil,
+            shouldSmoothGlucose: false, roundingBehavior: rounding
+        )
+        #expect(smoothed.sgv == 141)
+
+        let shown = WatchLoanHost.displayedReadings(
+            [smoothed, own],
+            raw: [.init(id: id, date: ago(5), glucose: 150)]
+        )
+        #expect(shown.map(\.mgdl) == [150, 155])
+        // without the raw value, the value the grant carries
+        #expect(WatchLoanHost.displayedReadings([smoothed], raw: []).map(\.mgdl) == [141])
+    }
 }
 
 private extension HandOffStage {
