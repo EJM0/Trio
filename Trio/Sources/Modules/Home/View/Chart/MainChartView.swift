@@ -1776,16 +1776,19 @@ extension MainChartCanvas {
                 .lineStyle(.init(lineWidth: 8))
             }
 
-            ForecastView(
-                preprocessedData: state.preprocessedData,
-                minForecast: state.minForecast,
-                maxForecast: state.maxForecast,
-                units: state.units,
-                maxValue: state.maxYAxisValue,
-                forecastDisplayType: state.forecastDisplayType,
-                lastDeterminationDate: state.determinationsFromPersistence.first?.deliverAt ?? .distantPast,
-                chartEndDate: state.endMarker
-            )
+            // the phone's last forecast stopped at the hand-off while Apple Watch has the pump
+            if !state.watchHoldsPump {
+                ForecastView(
+                    preprocessedData: state.preprocessedData,
+                    minForecast: state.minForecast,
+                    maxForecast: state.maxForecast,
+                    units: state.units,
+                    maxValue: state.maxYAxisValue,
+                    forecastDisplayType: state.forecastDisplayType,
+                    lastDeterminationDate: state.determinationsFromPersistence.first?.deliverAt ?? .distantPast,
+                    chartEndDate: state.endMarker
+                )
+            }
         }
         .frame(width: canvasWidth, height: mainHeight)
         .chartXScale(domain: windowStart ... windowEnd)

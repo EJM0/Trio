@@ -94,18 +94,20 @@
 		DD17A0292E3FE0BD008E1BF0 /* SwiftJWT in Frameworks */ = {isa = PBXBuildFile; productRef = DD17A0282E3FE0BD008E1BF0 /* SwiftJWT */; };
 		E0CC2C5C275B9F0F00A7BC71 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E0CC2C5B275B9DAE00A7BC71 /* HealthKit.framework */; };
 		09FC6D0B2FEEBC3600CE99A2 /* CodeScanner in Frameworks */ = {isa = PBXBuildFile; productRef = 09FC6D0A2FEEBC3600CE99A2 /* CodeScanner */; };
-		BFA859242C92697B98857594 /* RileyLinkKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA7682D8DBD690069D5B8 /* RileyLinkKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		2155984DEDAC32B32AA56735 /* RileyLinkBLEKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA7672D8DBD690069D5B8 /* RileyLinkBLEKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		C16B93ECB64B99EFDABFF513 /* G7SensorKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA75E2D8DBD690069D5B8 /* G7SensorKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		515F844F2C1CF3DD756F6FE8 /* OmnipodKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = B6E925122EB3932A0076D719 /* OmnipodKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		D93BDC53F4D23A9D8D518667 /* LoopKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3818AA4C274C26A300843DB3 /* LoopKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		3F03E3774458DE09574EE426 /* RileyLinkKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA7682D8DBD690069D5B8 /* RileyLinkKit.framework */; };
-		2C5E43301C03A878EBC89CAC /* RileyLinkBLEKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA7672D8DBD690069D5B8 /* RileyLinkBLEKit.framework */; };
-		A7A50E000000000000000002 /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = A7A50E000000000000000001 /* CryptoSwift */; };
-		26937DF68F0C56FA30D84DC5 /* G7SensorKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA75E2D8DBD690069D5B8 /* G7SensorKit.framework */; };
-		52AC9AB5C97BD54C3DE93E19 /* OmnipodKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6E925122EB3932A0076D719 /* OmnipodKit.framework */; };
 		1B4891C64D540B23CCE6FF09 /* LoopKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3818AA4C274C26A300843DB3 /* LoopKit.framework */; };
+		D93BDC53F4D23A9D8D518667 /* LoopKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3818AA4C274C26A300843DB3 /* LoopKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		52AC9AB5C97BD54C3DE93E19 /* OmnipodKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6E925122EB3932A0076D719 /* OmnipodKit.framework */; };
+		515F844F2C1CF3DD756F6FE8 /* OmnipodKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = B6E925122EB3932A0076D719 /* OmnipodKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A1B2C3D4E5F6A7B8C9D0E101 /* MedtrumKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3E54EF2B2E476DA40006F54D /* MedtrumKit.framework */; };
+		A1B2C3D4E5F6A7B8C9D0E102 /* MedtrumKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3E54EF2B2E476DA40006F54D /* MedtrumKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		26937DF68F0C56FA30D84DC5 /* G7SensorKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA75E2D8DBD690069D5B8 /* G7SensorKit.framework */; };
+		C16B93ECB64B99EFDABFF513 /* G7SensorKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA75E2D8DBD690069D5B8 /* G7SensorKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		AB96B883849863E79111D198 /* LoopKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3818AA4C274C26A300843DB3 /* LoopKit.framework */; };
+		A7A50E000000000000000002 /* CryptoSwift in Frameworks */ = {isa = PBXBuildFile; productRef = A7A50E000000000000000001 /* CryptoSwift */; };
+		2C5E43301C03A878EBC89CAC /* RileyLinkBLEKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA7672D8DBD690069D5B8 /* RileyLinkBLEKit.framework */; };
+		2155984DEDAC32B32AA56735 /* RileyLinkBLEKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA7672D8DBD690069D5B8 /* RileyLinkBLEKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		3F03E3774458DE09574EE426 /* RileyLinkKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA7682D8DBD690069D5B8 /* RileyLinkKit.framework */; };
+		BFA859242C92697B98857594 /* RileyLinkKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA7682D8DBD690069D5B8 /* RileyLinkKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -230,6 +232,7 @@
 				2155984DEDAC32B32AA56735 /* RileyLinkBLEKit.framework in Embed Frameworks */,
 				C16B93ECB64B99EFDABFF513 /* G7SensorKit.framework in Embed Frameworks */,
 				515F844F2C1CF3DD756F6FE8 /* OmnipodKit.framework in Embed Frameworks */,
+				A1B2C3D4E5F6A7B8C9D0E102 /* MedtrumKit.framework in Embed Frameworks */,
 				D93BDC53F4D23A9D8D518667 /* LoopKit.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
@@ -308,9 +311,11 @@
 		3E1D5E0630B38478009336E6 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				"GlucoseAlarmGoldens/glucose-alarms.json",
 				Info.plist,
-				QuickPickTreatmentsTests.swift,
 				OpenAPSCharacterization/goldens,
+				"OpenAPSCharacterization/js/determine-basal-jsc.js",
+				QuickPickTreatmentsTests.swift,
 				OpenAPSCharacterization/js,
 				BolusCalculatorTests/goldens,
 				GlucoseAlarmGoldens,
@@ -344,13 +349,6 @@
 		3E1D6D4630B38579009336E6 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Sources/Localizations/Main/Localizable.xcstrings,
-				Sources/Logger/Watch/WatchLogEntry.swift,
-				Sources/Logger/Watch/WatchLogRing.swift,
-				Sources/Models/NotificationIdentifiers.swift,
-				Sources/Models/OverridePresetWatch.swift,
-				Sources/Models/TempTargetPresetWatch.swift,
-				Sources/Models/WatchMessageKeys.swift,
 				Sources/APS/Extensions/DecimalExtensions.swift,
 				Sources/APS/OpenAPSSwift/AlgorithmLoggingShim.swift,
 				Sources/APS/OpenAPSSwift/Autosens/AutosensError.swift,
@@ -426,6 +424,9 @@
 				Sources/Helpers/TempTargetCalculations.swift,
 				Sources/Helpers/TherapySettingsUtil.swift,
 				"Sources/Helpers/TimeInterval+Convenience.swift",
+				Sources/Localizations/Main/Localizable.xcstrings,
+				Sources/Logger/Watch/WatchLogEntry.swift,
+				Sources/Logger/Watch/WatchLogRing.swift,
 				Sources/Models/Autosens.swift,
 				Sources/Models/BGTargets.swift,
 				Sources/Models/BasalProfileEntry.swift,
@@ -437,14 +438,15 @@
 				Sources/Models/GlucoseAlerts/AlarmSoundCatalog.swift,
 				Sources/Models/GlucoseAlerts/DayNightOptions.swift,
 				Sources/Models/GlucoseAlerts/DeviceAlertSeverity.swift,
-				Sources/Models/GlucoseAlerts/DeviceAlertSeverityConfig.swift,
 				Sources/Models/GlucoseAlerts/GlucoseAlert.swift,
 				Sources/Models/GlucoseAlerts/GlucoseAlertConfiguration.swift,
 				Sources/Models/GlucoseAlerts/GlucoseAlertType.swift,
 				Sources/Models/GlucoseColorScheme.swift,
 				Sources/Models/IOBEntry.swift,
 				Sources/Models/InsulinSensitivities.swift,
+				Sources/Models/NotificationIdentifiers.swift,
 				Sources/Models/Override.swift,
+				Sources/Models/OverridePresetWatch.swift,
 				"Sources/Models/Preferences+DosingMode.swift",
 				Sources/Models/Preferences.swift,
 				Sources/Models/PumpHistoryEvent.swift,
@@ -452,8 +454,11 @@
 				Sources/Models/TDD.swift,
 				Sources/Models/TempBasal.swift,
 				Sources/Models/TempTarget.swift,
+				Sources/Models/TempTargetPresetWatch.swift,
 				Sources/Models/TrioCustomOrefVariables.swift,
 				Sources/Models/WatchComplicationValue.swift,
+				Sources/Models/WatchMessageKeys.swift,
+				Sources/Models/GlucoseAlerts/DeviceAlertSeverityConfig.swift,
 				Sources/Services/Alerts/ForecastedGlucoseEvaluator.swift,
 				Sources/Services/Alerts/GlucoseAlarmEvaluation.swift,
 				Sources/Services/BolusCalculator/BolusCalculator.swift,
@@ -501,11 +506,10 @@
 			);
 			target = 388E595725AD948C0019842D /* Trio */;
 		};
-		F133ED5BCEAA6F2375F58279 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		3E1D7A0130B38579009336E6 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				"TrioOnWatch-Info.plist",
 				TrioOnWatch.entitlements,
 				TrioWatchApp.entitlements,
 			);
@@ -514,10 +518,10 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		3E1D5D7530B38477009336E6 /* TrioTests */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (3E1D5E0630B38478009336E6 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (OpenAPSSwiftTests/Parity/goldens, ); path = TrioTests; sourceTree = "<group>"; };
+		3E1D5D7530B38477009336E6 /* TrioTests */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (3E1D5E0630B38478009336E6 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (OpenAPSCharacterization/goldens, OpenAPSSwiftTests/Parity/goldens, ); path = TrioTests; sourceTree = "<group>"; };
 		3E1D5E0A30B3847B009336E6 /* Trio Watch Complication */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (3E1D5E0E30B3847C009336E6 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = "Trio Watch Complication"; sourceTree = "<group>"; };
 		3E1D5E1030B3847E009336E6 /* Trio Watch App Tests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "Trio Watch App Tests"; sourceTree = "<group>"; };
-		3E1D5E2C30B38482009336E6 /* Trio Watch App Extension */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (F133ED5BCEAA6F2375F58279 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ED8BA241C1938971D42AF69C /* PBXFileSystemSynchronizedBuildFileExceptionSet */, FF66477E03BBD33A879B15C6 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = "Trio Watch App Extension"; sourceTree = "<group>"; };
+		3E1D5E2C30B38482009336E6 /* Trio Watch App Extension */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (3E1D7A0130B38579009336E6 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ED8BA241C1938971D42AF69C /* PBXFileSystemSynchronizedBuildFileExceptionSet */, FF66477E03BBD33A879B15C6 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = "Trio Watch App Extension"; sourceTree = "<group>"; };
 		3E1D5E4830B38484009336E6 /* Trio Watch App */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "Trio Watch App"; sourceTree = "<group>"; };
 		3E1D6A0A30B38579009336E6 /* Trio */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (3E1D6D4430B38579009336E6 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 3E1D6D4530B38579009336E6 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 3E1D6D4630B38579009336E6 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 3E1D6D4730B38579009336E6 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (Resources/json, ); path = Trio; sourceTree = "<group>"; };
 		3E1D6D9530B385F1009336E6 /* Model */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (3E1D6DDE30B385F2009336E6 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Model; sourceTree = "<group>"; };
@@ -610,6 +614,7 @@
 				A7A50E000000000000000002 /* CryptoSwift in Frameworks */,
 				26937DF68F0C56FA30D84DC5 /* G7SensorKit.framework in Frameworks */,
 				52AC9AB5C97BD54C3DE93E19 /* OmnipodKit.framework in Frameworks */,
+				A1B2C3D4E5F6A7B8C9D0E101 /* MedtrumKit.framework in Frameworks */,
 				1B4891C64D540B23CCE6FF09 /* LoopKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -618,7 +623,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AB96B883849863E79111D198 /* LoopKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1552,14 +1556,16 @@
 		BD8207D02D2B42E80023339D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APP_GROUP_ID = "$(TRIO_APP_GROUP_ID)";
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CODE_SIGN_ENTITLEMENTS = "Trio Watch Complication/TrioWatchComplication.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = "$(APP_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = R38MGGHZ58;
+				DEVELOPMENT_TEAM = "$(DEVELOPER_TEAM)";
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1583,8 +1589,6 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				WATCHOS_DEPLOYMENT_TARGET = 10.6;
-				APP_GROUP_ID = "$(TRIO_APP_GROUP_ID)";
-				CODE_SIGN_ENTITLEMENTS = "Trio Watch Complication/TrioWatchComplication.entitlements";
 				INFOPLIST_KEY_AppGroupID = "$(APP_GROUP_ID)";
 			};
 			name = Debug;
@@ -1592,14 +1596,16 @@
 		BD8207D12D2B42E80023339D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APP_GROUP_ID = "$(TRIO_APP_GROUP_ID)";
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CODE_SIGN_ENTITLEMENTS = "Trio Watch Complication/TrioWatchComplication.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = "$(APP_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = R38MGGHZ58;
+				DEVELOPMENT_TEAM = "$(DEVELOPER_TEAM)";
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1622,8 +1628,6 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				WATCHOS_DEPLOYMENT_TARGET = 10.6;
-				APP_GROUP_ID = "$(TRIO_APP_GROUP_ID)";
-				CODE_SIGN_ENTITLEMENTS = "Trio Watch Complication/TrioWatchComplication.entitlements";
 				INFOPLIST_KEY_AppGroupID = "$(APP_GROUP_ID)";
 			};
 			name = Release;
@@ -1631,19 +1635,22 @@
 		BDFF79A12D25AA890016C40C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APP_GROUP_ID = "$(TRIO_APP_GROUP_ID)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = "$(APP_BUILD_NUMBER)";
 				DEVELOPMENT_ASSET_PATHS = "\"Trio Watch App Extension/Preview Content\"";
 				DEVELOPMENT_TEAM = R38MGGHZ58;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Trio Watch App Extension/Info.plist";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Trio uses Bluetooth to connect to your insulin pump and glucose sensor.";
 				INFOPLIST_KEY_CFBundleDisplayName = "$(APP_DISPLAY_NAME)";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "$(BUNDLE_IDENTIFIER)";
@@ -1661,34 +1668,35 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 10.6;
-				APP_GROUP_ID = "$(TRIO_APP_GROUP_ID)";
-				CODE_SIGN_ENTITLEMENTS = "$(TRIO_ON_WATCH_ENTITLEMENTS_$(TRIO_ON_WATCH))";
-				INFOPLIST_FILE = "Trio Watch App Extension/Info.plist";
-				INFOPLIST_KEY_AppGroupID = "$(APP_GROUP_ID)";
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Trio uses Bluetooth to connect to your insulin pump and glucose sensor.";
-				PRODUCT_MODULE_NAME = Trio;
 				TRIO_ON_WATCH_ENTITLEMENTS_NO = "Trio Watch App Extension/TrioWatchApp.entitlements";
 				TRIO_ON_WATCH_ENTITLEMENTS_YES = "Trio Watch App Extension/TrioOnWatch.entitlements";
+				WATCHOS_DEPLOYMENT_TARGET = 10.6;
+				CODE_SIGN_ENTITLEMENTS = "$(TRIO_ON_WATCH_ENTITLEMENTS_$(TRIO_ON_WATCH))";
+				INFOPLIST_KEY_AppGroupID = "$(APP_GROUP_ID)";
+				PRODUCT_MODULE_NAME = Trio;
+
 			};
 			name = Debug;
 		};
 		BDFF79A22D25AA890016C40C /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APP_GROUP_ID = "$(TRIO_APP_GROUP_ID)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = "$(APP_BUILD_NUMBER)";
 				DEVELOPMENT_ASSET_PATHS = "\"Trio Watch App Extension/Preview Content\"";
 				DEVELOPMENT_TEAM = R38MGGHZ58;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Trio Watch App Extension/Info.plist";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Trio uses Bluetooth to connect to your insulin pump and glucose sensor.";
 				INFOPLIST_KEY_CFBundleDisplayName = "$(APP_DISPLAY_NAME)";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "$(BUNDLE_IDENTIFIER)";
@@ -1705,15 +1713,13 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 10.6;
-				APP_GROUP_ID = "$(TRIO_APP_GROUP_ID)";
-				CODE_SIGN_ENTITLEMENTS = "$(TRIO_ON_WATCH_ENTITLEMENTS_$(TRIO_ON_WATCH))";
-				INFOPLIST_FILE = "Trio Watch App Extension/Info.plist";
-				INFOPLIST_KEY_AppGroupID = "$(APP_GROUP_ID)";
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Trio uses Bluetooth to connect to your insulin pump and glucose sensor.";
-				PRODUCT_MODULE_NAME = Trio;
 				TRIO_ON_WATCH_ENTITLEMENTS_NO = "Trio Watch App Extension/TrioWatchApp.entitlements";
 				TRIO_ON_WATCH_ENTITLEMENTS_YES = "Trio Watch App Extension/TrioOnWatch.entitlements";
+				WATCHOS_DEPLOYMENT_TARGET = 10.6;
+				CODE_SIGN_ENTITLEMENTS = "$(TRIO_ON_WATCH_ENTITLEMENTS_$(TRIO_ON_WATCH))";
+				INFOPLIST_KEY_AppGroupID = "$(APP_GROUP_ID)";
+				PRODUCT_MODULE_NAME = Trio;
+
 			};
 			name = Release;
 		};

@@ -1,5 +1,6 @@
 import Foundation
 import LoopKit
+import MedtrumKit
 import OmnipodKit
 
 /// The pump the watch borrows: LoopKit's pump, hand-off and odometer APIs, and the kit's report of another
@@ -12,18 +13,51 @@ protocol LoanPump: PumpManager, ExclusiveDeviceControl, PumpDeliveryOdometer {
     func preconnect()
     /// Drops the link now instead of after the kit's idle delay.
     func releaseLink()
+    /// Reads the pod's status once its data is older than `age` (below `ensureCurrentPumpData`'s 6 minutes).
+    func readStatusIfOlder(than age: TimeInterval, completion: @escaping (Date?) -> Void)
 }
 
 extension OmniPumpManager: LoanPump {}
+extension MedtrumPumpManager: LoanPump {
+    // ponytail: the Bluetooth tactics are Omnipod-only; the patch connects per session. Add if Medtrum hits the watchOS limit.
+    func preconnect() {}
+    func releaseLink() {}
+}
 
 /// Builds the one pump manager the watch keeps: once from the grant, afterwards only from its own saved state.
 struct LoanPumpFactory {
     var adopt: (SharedDeviceConfiguration, [String: Any]?) -> LoanPump?
     var restore: ([String: Any]) -> LoanPump?
 
-    static let omnipod = LoanPumpFactory(
-        adopt: { OmniPumpManager(adopting: $0, localState: $1) },
-        restore: { OmniPumpManager(rawState: $0) }
+    /// Saved with the kit's state so a relaunch rebuilds the same kit. States saved without it are Omnipod's.
+    static let pluginKey = "trioLoanPlugin"
+
+    /// An open Medtrum link wakes the watch app every few seconds until watchOS cuts its Bluetooth links.
+    private static func onDemand(_ manager: MedtrumPumpManager?) -> MedtrumPumpManager? {
+        manager?.setConnectsOnDemand(true)
+        return manager
+    }
+
+    static func savedState(of pump: PumpManager) -> [String: Any] {
+        var raw = pump.rawState
+        raw[pluginKey] = pump.pluginIdentifier
+        return raw
+    }
+
+    static let kits = LoanPumpFactory(
+        adopt: { configuration, localState in
+            switch configuration.managerIdentifier {
+            case "Medtrum": return onDemand(MedtrumPumpManager(adopting: configuration, localState: localState))
+            case "Omni": return OmniPumpManager(adopting: configuration, localState: localState)
+            default: return nil
+            }
+        },
+        restore: { raw in
+            switch raw[pluginKey] as? String {
+            case "Medtrum": return onDemand(MedtrumPumpManager(rawState: raw))
+            default: return OmniPumpManager(rawState: raw)
+            }
+        }
     )
 }
 
@@ -43,7 +77,7 @@ final class WatchLoanPumpDelegate: PumpManagerDelegate {
 
     func pumpManagerDidUpdateState(_ pumpManager: PumpManager) {
         do {
-            try files.savePlist(pumpManager.rawState, to: .pumpState)
+            try files.savePlist(LoanPumpFactory.savedState(of: pumpManager), to: .pumpState)
         } catch {
             WatchLogger.shared.error(.pump, "Saving the pump state failed", error: error)
             Task { @MainActor [weak host] in host?.pumpStateNotSaved() }
@@ -69,8 +103,10 @@ final class WatchLoanPumpDelegate: PumpManagerDelegate {
         }
     }
 
-    func deviceManagerControlDidBecomeReady(_: DeviceManager) {
+    func deviceManagerControlDidBecomeReady(_ manager: DeviceManager) {
         WatchLogger.shared.info(.pump, "Pump answered: control ready")
+        guard let pump = manager as? LoanPump else { return }
+        Task { @MainActor [weak host] in host?.pumpControlBecameReady(pump) }
     }
 
     func pumpManager(_: PumpManager, didError error: PumpManagerError) {
@@ -91,15 +127,20 @@ final class WatchLoanPumpDelegate: PumpManagerDelegate {
     func pumpManager(_: PumpManager, didUpdatePumpRecordsBasalProfileStartEvents _: Bool) {}
     func pumpManager(
         _: PumpManager,
-        didReadReservoirValue _: Double,
-        at _: Date,
+        didReadReservoirValue units: Double,
+        at date: Date,
         completion: @escaping (Result<
             (newValue: ReservoirValue, lastValue: ReservoirValue?, areStoredValuesContinuous: Bool),
             Error
         >)
             -> Void
     ) {
-        completion(.failure(WatchLoanHostError.notStored))
+        // the kit keeps the level in its own status; like the phone, the watch keeps no reservoir history
+        completion(.success((
+            newValue: LoanReservoirValue(startDate: date, unitVolume: units),
+            lastValue: nil,
+            areStoredValuesContinuous: true
+        )))
     }
 
     func pumpManager(_: PumpManager, didAdjustPumpClockBy adjustment: TimeInterval) {
@@ -147,4 +188,9 @@ final class WatchLoanPumpDelegate: PumpManagerDelegate {
     func lookupAllUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }
     func lookupAllUnacknowledgedUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }
     func recordRetractedAlert(_: Alert, at _: Date) async throws {}
+}
+
+private struct LoanReservoirValue: ReservoirValue {
+    let startDate: Date
+    let unitVolume: Double
 }

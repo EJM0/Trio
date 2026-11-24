@@ -25,6 +25,9 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
     @Injected() private var tddStorage: TDDStorage!
     @Injected() private var trioAlertManager: TrioAlertManager!
     @Injected() private var notLoopingMonitor: NotLoopingMonitor!
+    @Injected() private var adjustmentManager: AdjustmentManager!
+    @Injected() private var tempTargetStorage: TempTargetsStorage!
+    @Injected() private var overrideStorage: OverrideStorage!
 
     private let resolver: Resolver
     private let makeContext: () -> NSManagedObjectContext
@@ -144,9 +147,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             shouldSmoothGlucose: settings.smoothGlucose
         )
         let adjustments = try await activeAdjustments()
-        let presets = try await presetAdjustments()
-        let info = Bundle.main.infoDictionary
-        let appBuild = "\(info?["CFBundleShortVersionString"] as? String ?? "") (\(info?["CFBundleVersion"] as? String ?? ""))"
+        let appBuild = WatchLoanSnapshot.appBuild(Bundle.main.infoDictionary)
 
         return WatchLoanSnapshot(
             versions: WatchLoanSnapshot.Versions(
@@ -166,8 +167,6 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             oref: oref,
             overrideAtGrant: adjustments.override,
             tempTargetAtGrant: adjustments.tempTarget,
-            overridePresets: presets.overrides,
-            tempTargetPresets: presets.tempTargets,
             bolusCalculator: WatchLoanSnapshot.BolusCalculatorSettings(
                 units: settings.units,
                 fraction: settings.overrideFactor,
@@ -190,8 +189,46 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             podEndsAt: pump.endsAt,
             sensorEndsAt: (cgm as? G7CGMManager)?.sensorEndsAt,
             smoothGlucose: settings.smoothGlucose,
-            smoothingWindow: settings.smoothGlucose ? try await fetchGlucoseManager.smoothingWindow() : []
+            smoothingWindow: settings.smoothGlucose ? try await fetchGlucoseManager.smoothingWindow() : [],
+            tempTargetPresets: try await tempTargetPresets(),
+            overridePresets: try await overridePresets()
         )
+    }
+
+    private func overridePresets() async throws -> [WatchLoanSnapshot.OverridePreset] {
+        let ids = try await overrideStorage.fetchForOverridePresets()
+        let context = makeContext()
+        return try await context.perform {
+            try ids.compactMap { try context.existingObject(with: $0) as? OverrideStored }.compactMap { preset in
+                guard let id = preset.id, let name = preset.name else { return nil }
+                return WatchLoanSnapshot.OverridePreset(
+                    id: id,
+                    name: name,
+                    state: OrefInputs.OverrideState(preset),
+                    indefinite: preset.indefinite,
+                    duration: preset.duration?.decimalValue
+                )
+            }
+        }
+    }
+
+    private func tempTargetPresets() async throws -> [WatchLoanSnapshot.TempTargetPreset] {
+        let ids = try await tempTargetStorage.fetchForTempTargetPresets()
+        let context = makeContext()
+        return try await context.perform {
+            try ids.compactMap { try context.existingObject(with: $0) as? TempTargetStored }.compactMap { preset in
+                guard let id = preset.id?.uuidString, let name = preset.name, let target = preset.target?.decimalValue else {
+                    return nil
+                }
+                return WatchLoanSnapshot.TempTargetPreset(
+                    id: id,
+                    name: name,
+                    target: target,
+                    duration: preset.duration?.decimalValue ?? 0,
+                    halfBasalTarget: preset.halfBasalTarget?.decimalValue
+                )
+            }
+        }
     }
 
     func startFacts() async -> WatchLoanStartFacts {
@@ -200,7 +237,8 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             override: adjustments?.override,
             tempTarget: adjustments?.tempTarget,
             podEndsAt: pump?.endsAt,
-            sensorEndsAt: (sharedCGM as? G7CGMManager)?.sensorEndsAt
+            sensorEndsAt: (sharedCGM as? G7CGMManager)?.sensorEndsAt,
+            pumpIsPatch: pumpIsPatch
         )
     }
 
@@ -231,67 +269,6 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
                 }
             }
             return (override, tempTarget)
-        }
-    }
-
-    /// The phone's override and temp target presets as full models, so the watch can start one during a loan. Reads
-    /// the same Core Data preset rows the tethered presets come from (`AppleWatchManager`), but carries every
-    /// dosing-relevant field. The `halfBasalTarget` fallback matches `AdjustmentManager.orefTempTarget`.
-    private func presetAdjustments() async throws -> (overrides: [Override], tempTargets: [TempTarget]) {
-        let context = makeContext()
-        context.name = "watchLoanPresets"
-        let halfBasalDefault = settingsManager.preferences.halfBasalExerciseTarget
-        return try await context.perform {
-            let overrideRequest = OverrideStored.fetchRequest() as NSFetchRequest<OverrideStored>
-            overrideRequest.predicate = NSPredicate.allOverridePresets
-            overrideRequest.sortDescriptors = [NSSortDescriptor(key: "orderPosition", ascending: true)]
-            let overrides = try context.fetch(overrideRequest).map { stored in
-                Override(
-                    name: stored.name ?? "",
-                    enabled: stored.enabled,
-                    date: stored.date ?? Date(),
-                    duration: stored.duration?.decimalValue ?? 0,
-                    indefinite: stored.indefinite,
-                    percentage: stored.percentage,
-                    smbIsOff: stored.smbIsOff,
-                    isPreset: true,
-                    id: stored.id ?? UUID().uuidString,
-                    // OverrideStored has no `overrideTarget` flag: a stored target of 0/nil means "don't override
-                    // the target", as the phone treats it (OrefRun reads activeOverride?.target ?? 0).
-                    overrideTarget: (stored.target?.decimalValue ?? 0) != 0,
-                    // target as stored: the real value when the preset overrides the target, else 0
-                    target: stored.target?.decimalValue ?? 0,
-                    advancedSettings: stored.advancedSettings,
-                    isfAndCr: stored.isfAndCr,
-                    isf: stored.isf,
-                    cr: stored.cr,
-                    smbIsScheduledOff: stored.smbIsScheduledOff,
-                    start: stored.start?.decimalValue ?? 0,
-                    end: stored.end?.decimalValue ?? 0,
-                    smbMinutes: stored.smbMinutes?.decimalValue ?? 0,
-                    uamMinutes: stored.uamMinutes?.decimalValue ?? 0
-                )
-            }
-
-            let tempTargetRequest = TempTargetStored.fetchRequest() as NSFetchRequest<TempTargetStored>
-            tempTargetRequest.predicate = NSPredicate.allTempTargetPresets
-            tempTargetRequest.sortDescriptors = [NSSortDescriptor(key: "orderPosition", ascending: true)]
-            let tempTargets = try context.fetch(tempTargetRequest).map { stored in
-                TempTarget(
-                    id: stored.id?.uuidString ?? UUID().uuidString,
-                    name: stored.name,
-                    createdAt: stored.date ?? Date(),
-                    targetTop: stored.target?.decimalValue,
-                    targetBottom: stored.target?.decimalValue,
-                    duration: stored.duration?.decimalValue ?? 0,
-                    enteredBy: TempTarget.local,
-                    reason: TempTarget.custom,
-                    isPreset: stored.isPreset,
-                    enabled: false,
-                    halfBasalTarget: stored.halfBasalTarget?.decimalValue ?? halfBasalDefault
-                )
-            }
-            return (overrides, tempTargets)
         }
     }
 
@@ -342,38 +319,16 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             }
         }
 
-        let glucose = try await glucoseNotStored(batch.glucose)
+        let glucose = try await glucoseNotStored(Self.storable(batch.glucose))
         if !glucose.isEmpty {
             try await glucoseStorage.storeGlucose(glucose)
         }
         try await deleteGlucose(at: batch.deletedGlucoseDates ?? [])
 
         try await storeDeterminations(batch.determinations ?? [])
-        try await storeTDD(batch.tdd ?? [])
+        try await storeTDDRows(batch.tddRows ?? [])
 
-        await applyWatchAdjustments(batch)
-    }
-
-    /// The watch loop's TDD rows, skipping those already stored (same date), so the phone's Dynamic ISF counts the loan.
-    private func storeTDD(_ rows: [OrefInputs.TDDRow]) async throws {
-        let dated = rows.compactMap { row in row.date.map { ($0, row.total ?? 0) } }
-        guard let first = dated.map(\.0).min(), let last = dated.map(\.0).max() else { return }
-        let context = makeContext()
-        let count = try await context.perform {
-            let request = TDDStored.fetchRequest() as NSFetchRequest<TDDStored>
-            request.predicate = NSPredicate(format: "date >= %@ AND date <= %@", first as NSDate, last as NSDate)
-            let stored = Set(try context.fetch(request).compactMap(\.date))
-            let new = dated.filter { !stored.contains($0.0) }
-            for (date, total) in new {
-                let row = TDDStored(context: context)
-                row.id = UUID()
-                row.date = date
-                row.total = NSDecimalNumber(decimal: total)
-            }
-            if context.hasChanges { try context.save() }
-            return new.count
-        }
-        if count > 0 { info(.watch, "\(count) watch TDD row(s) stored") }
+        await applyAdjustmentChanges(batch.adjustmentChanges ?? [])
     }
 
     /// The watch loop's determinations, stored as the phone stores its own and marked enacted as it marks its own.
@@ -404,104 +359,46 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         info(.watch, "\(new.count) watch determination(s) stored")
     }
 
-    /// The phone's key for the newest watch-started adjustment it has already activated, so a repeat in a later
-    /// batch is a no-op. Keyed by the start time, which is unique per start.
-    private static let appliedOverrideKey = "watchLoan.appliedOverrideStartedAt"
-    private static let appliedTempTargetKey = "watchLoan.appliedTempTargetStartedAt"
-    /// The newest watch stop the phone has applied, by the stop time.
-    private static let appliedOverrideCancelKey = "watchLoan.appliedOverrideCancelledAt"
-    private static let appliedTempTargetCancelKey = "watchLoan.appliedTempTargetCancelledAt"
-    /// When the phone activated the watch's start, so a stop arriving later still ends that one.
-    private static let overrideActivatedKey = "watchLoan.overrideActivatedAt"
-    private static let tempTargetActivatedKey = "watchLoan.tempTargetActivatedAt"
+    private static let appliedAdjustmentChangesKey = "WatchLoan.appliedAdjustmentChanges"
 
-    /// Applies an override or temp target the watch started or stopped during the loan, through the same path the
-    /// phone uses for any preset (`AdjustmentManager`), so the phone's own store, Nightscout and the determination all
-    /// reflect it. Idempotent: each start and stop time is applied once, though it rides along every batch.
-    private func applyWatchAdjustments(_ batch: WatchLoanRecordBatch) async {
-        guard let adjustmentManager = resolver.resolve(AdjustmentManager.self) else {
-            if batch.startedOverrideAt != nil || batch.startedTempTargetAt != nil || batch.overrideCancelledAt != nil
-                || batch.tempTargetCancelledAt != nil
-            {
-                warning(.watch, "No AdjustmentManager to apply a watch-started or -stopped override or temp target")
-            }
-            return
-        }
-        await applyWatchAdjustment(
-            kind: "override",
-            entity: "OverrideStored",
-            started: batch.startedOverride.map(\.name),
-            startedAt: batch.startedOverrideAt,
-            cancelledAt: batch.overrideCancelledAt,
-            keys: (Self.appliedOverrideKey, Self.overrideActivatedKey, Self.appliedOverrideCancelKey),
-            activate: { _ = try await adjustmentManager.activateOverride(.presetName($0), source: .watch) },
-            cancel: { _ = try await adjustmentManager.cancelOverride(source: .watch) }
-        )
-        await applyWatchAdjustment(
-            kind: "temp target",
-            entity: "TempTargetStored",
-            started: batch.startedTempTarget?.name,
-            startedAt: batch.startedTempTargetAt,
-            cancelledAt: batch.tempTargetCancelledAt,
-            keys: (Self.appliedTempTargetKey, Self.tempTargetActivatedKey, Self.appliedTempTargetCancelKey),
-            activate: { _ = try await adjustmentManager.activateTempTarget(.presetName($0), source: .watch) },
-            cancel: { _ = try await adjustmentManager.cancelTempTarget(source: .watch) }
-        )
-    }
-
-    private func applyWatchAdjustment(
-        kind: String,
-        entity: String,
-        started name: String?,
-        startedAt: Date?,
-        cancelledAt: Date?,
-        keys: (started: String, activated: String, cancelled: String),
-        activate: (String) async throws -> Void,
-        cancel: () async throws -> Void
-    ) async {
-        let defaults = UserDefaults.standard
-        func applied(_ key: String, _ date: Date) -> Bool { defaults.double(forKey: key) == date.timeIntervalSinceReferenceDate }
-
-        if let name, let startedAt, !applied(keys.started, startedAt) {
-            // a start always clears the watch's stop, so a stop beside it came later: nothing to start here
-            if cancelledAt == nil {
-                do {
-                    try await activate(name)
-                    defaults.set(Date().timeIntervalSinceReferenceDate, forKey: keys.activated)
-                    info(.watch, "Activated watch-started \(kind) \"\(name)\" on the iPhone")
-                } catch {
-                    warning(.watch, "Activating the watch-started \(kind) failed", error: error)
-                    return
+    /// The watch's override and temp target changes, each applied once. Every batch carries the latest ones.
+    private func applyAdjustmentChanges(_ changes: [WatchLoanAdjustmentChange]) async {
+        var applied = UserDefaults.standard.stringArray(forKey: Self.appliedAdjustmentChangesKey) ?? []
+        for change in changes.sorted(by: { $0.at < $1.at }) where !applied.contains(change.id.uuidString) {
+            do {
+                // at the time the watch made it: a batch can arrive long after
+                switch (change.kind, change.presetID) {
+                case (.override, nil):
+                    try await adjustmentManager.cancelOverride(source: .watch, waitForUpload: false, at: change.at)
+                case (.tempTarget, nil):
+                    try await adjustmentManager.cancelTempTarget(source: .watch, waitForUpload: false, at: change.at)
+                case let (.override, presetID?):
+                    try await adjustmentManager.activateOverride(
+                        .presetID(presetID),
+                        source: .watch,
+                        waitForUpload: false,
+                        at: change.at
+                    )
+                case let (.tempTarget, presetID?):
+                    try await adjustmentManager.activateTempTarget(
+                        .presetID(presetID),
+                        source: .watch,
+                        waitForUpload: false,
+                        at: change.at
+                    )
                 }
+            } catch AdjustmentError.nothingActive {
+                debug(.watch, "Apple Watch \(change.kind.rawValue) stop: nothing was running here")
+                applied.append(change.id.uuidString)
+                continue
+            } catch {
+                warning(.watch, "Applying an Apple Watch \(change.kind.rawValue) change failed", error: error)
+                continue
             }
-            defaults.set(startedAt.timeIntervalSinceReferenceDate, forKey: keys.started)
+            info(.watch, "Apple Watch \(change.kind.rawValue) change applied: \(change.presetName ?? "stop")")
+            applied.append(change.id.uuidString)
         }
-
-        guard let cancelledAt, !applied(keys.cancelled, cancelledAt) else { return }
-        // ends what ran when the watch stopped it, or what this phone activated from the watch; never one the user
-        // started on the phone after the loan
-        let activatedAt = Date(timeIntervalSinceReferenceDate: defaults.double(forKey: keys.activated))
-        do {
-            if try await runs(entity, startedBefore: max(cancelledAt, activatedAt.addingTimeInterval(1))) {
-                try await cancel()
-                info(.watch, "Stopped the \(kind) on the iPhone, as on Apple Watch")
-            }
-            defaults.set(cancelledAt.timeIntervalSinceReferenceDate, forKey: keys.cancelled)
-        } catch AdjustmentError.nothingActive {
-            defaults.set(cancelledAt.timeIntervalSinceReferenceDate, forKey: keys.cancelled)
-        } catch {
-            warning(.watch, "Stopping the \(kind) the watch stopped failed", error: error)
-        }
-    }
-
-    /// Whether an enabled override or temp target started before `date`.
-    private func runs(_ entity: String, startedBefore date: Date) async throws -> Bool {
-        let context = makeContext()
-        return try await context.perform {
-            let request = NSFetchRequest<NSFetchRequestResult>(entityName: entity)
-            request.predicate = NSPredicate(format: "enabled == YES AND date < %@", date as NSDate)
-            return try context.count(for: request) > 0
-        }
+        UserDefaults.standard.set(Array(applied.suffix(50)), forKey: Self.appliedAdjustmentChangesKey)
     }
 
     private func carbsNotStored(_ carbs: [CarbsEntry]) async throws -> [CarbsEntry] {
@@ -554,6 +451,17 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         }
     }
 
+    /// The watch sends CGM readings with only `sgv` set, but the glucose store reads `glucose` and stores a missing
+    /// value as 0.
+    static func storable(_ glucose: [BloodGlucose]) -> [BloodGlucose] {
+        glucose.compactMap { reading in
+            guard let value = reading.glucose ?? reading.sgv, value > 0 else { return nil }
+            var reading = reading
+            reading.glucose = value
+            return reading
+        }
+    }
+
     /// The phone reads the same sensor: keep only readings it has nothing for within the glucose filter time.
     private func glucoseNotStored(_ glucose: [BloodGlucose]) async throws -> [BloodGlucose] {
         // A glucose of 0 is physiologically impossible: it marks a gap or sensor error, never a real reading.
@@ -573,6 +481,39 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             return try context.fetch(request).compactMap(\.date)
         }
         return valid.filter { reading in !stored.contains { abs($0.timeIntervalSince(reading.dateString)) < window } }
+    }
+
+    /// The watch's loops stored a TDD row each, as the phone's own loops do; without them the phone's history has a
+    /// hole for every loan, and Dynamic ISF switches off once the last 7 days hold too few rows.
+    private func storeTDDRows(_ rows: [OrefInputs.TDDRow]) async throws {
+        let dated = rows.compactMap { row -> (date: Date, total: Decimal)? in
+            guard let date = row.date, let total = row.total else { return nil }
+            return (date, total)
+        }
+        guard let first = dated.map(\.date).min(), let last = dated.map(\.date).max() else { return }
+        let context = makeContext()
+        try await context.perform {
+            let request = TDDStored.fetchRequest() as NSFetchRequest<TDDStored>
+            request.predicate = NSPredicate(
+                format: "date >= %@ AND date <= %@",
+                first.addingTimeInterval(-1) as NSDate,
+                last.addingTimeInterval(1) as NSDate
+            )
+            var known = try context.fetch(request).compactMap(\.date)
+            for row in dated where !known.contains(where: { abs($0.timeIntervalSince(row.date)) < 1 }) {
+                let stored = TDDStored(context: context)
+                stored.id = UUID()
+                stored.date = row.date
+                stored.total = NSDecimalNumber(decimal: row.total)
+                // the watch sends the total its loop used; the parts and the average aren't known here
+                stored.bolus = nil
+                stored.tempBasal = nil
+                stored.scheduledBasal = nil
+                stored.weightedAverage = nil
+                known.append(row.date)
+            }
+            if context.hasChanges { try context.save() }
+        }
     }
 
     // MARK: Audit
@@ -639,7 +580,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
     }
 
     func alert(_ alert: LoanAlert) {
-        guard let (title, body) = Self.content(for: alert) else { return }
+        guard let (title, body) = Self.content(for: alert, patch: pumpIsPatch) else { return }
         issue(alertIdentifier: "\(alert)", title: title, body: body)
     }
 
@@ -650,7 +591,9 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             issue(
                 alertIdentifier: "auditShortfall",
                 title: String(localized: "Check Your Insulin History"),
-                body: String(
+                body: pumpIsPatch ? String(
+                    localized: "Trio on Watch recorded \(amount) more insulin than your patch reports delivering. Insulin on board may read high for a while."
+                ) : String(
                     localized: "Trio on Watch recorded \(amount) more insulin than your pod reports delivering. Insulin on board may read high for a while."
                 )
             )
@@ -658,7 +601,9 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             issue(
                 alertIdentifier: "auditExcess",
                 title: String(localized: "Insulin Added to History"),
-                body: String(
+                body: pumpIsPatch ? String(
+                    localized: "Your patch delivered \(amount) that Trio on Watch didn't record. Trio counts it as insulin on board, so insulin on board may read high for a while."
+                ) : String(
                     localized: "Your pod delivered \(amount) that Trio on Watch didn't record. Trio counts it as insulin on board, so insulin on board may read high for a while."
                 )
             )
@@ -682,7 +627,10 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         )
 
     /// Phone alerts only; the watch's are its own.
-    static func content(for alert: LoanAlert) -> (title: String, body: String)? {
+    /// The phone's pump is a Medtrum patch: the texts say "patch", not "pod".
+    private var pumpIsPatch: Bool { deviceDataManager.pumpManager?.pluginIdentifier == "Medtrum" }
+
+    static func content(for alert: LoanAlert, patch: Bool = false) -> (title: String, body: String)? {
         switch alert {
         case .watchDidNotConfirm:
             return (
@@ -697,7 +645,10 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         case .takeBackPodUnreachable:
             return (
                 String(localized: "Can't Reach Your Pump"),
-                String(localized: "Keep your iPhone close to your pod. Nothing is giving insulin automatically.") + " " +
+                (
+                    patch ? String(localized: "Keep your iPhone close to your patch. Nothing is giving insulin automatically.") :
+                        String(localized: "Keep your iPhone close to your pod. Nothing is giving insulin automatically.")
+                ) + " " +
                     pumpFailSafe
             )
         case .takeBackUseEnd:
@@ -713,16 +664,25 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             )
         case .watchContactedPodAfterTakeBack:
             return (
-                String(localized: "Apple Watch Contacted Your Pod"),
-                String(
+                patch ? String(localized: "Apple Watch Contacted Your Patch") :
+                    String(localized: "Apple Watch Contacted Your Pod"),
+                patch ? String(
+                    localized: "Apple Watch contacted your patch after you took it back. Trio counts any insulin it gave. Open Trio on your watch to stop it."
+                ) : String(
                     localized: "Apple Watch contacted your pod after you took it back. Trio counts any insulin it gave. Open Trio on your watch to stop it."
                 )
             )
         case .unexpectedPodSession:
             return (
-                String(localized: "Another Device Used Your Pod"),
-                String(localized: "iPhone stopped sending commands to your pod.") + " " + pumpFailSafe + " " +
-                    String(localized: "Open Trio to use the pod on this iPhone.")
+                patch ? String(localized: "Another Device Used Your Patch") : String(localized: "Another Device Used Your Pod"),
+                (
+                    patch ? String(localized: "iPhone stopped sending commands to your patch.") :
+                        String(localized: "iPhone stopped sending commands to your pod.")
+                ) + " " + pumpFailSafe + " " +
+                    (
+                        patch ? String(localized: "Open Trio to use the patch on this iPhone.") :
+                            String(localized: "Open Trio to use the pod on this iPhone.")
+                    )
             )
         case .watchStartedWithoutPhone:
             return (
@@ -733,8 +693,10 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             )
         case .podTakenOnThisPhone:
             return (
-                String(localized: "Pod in Use on This iPhone"),
-                String(localized: "If another device still runs this pod, it stops when it next reaches your pod.")
+                patch ? String(localized: "Patch in Use on This iPhone") : String(localized: "Pod in Use on This iPhone"),
+                patch ?
+                    String(localized: "If another device still runs this patch, stop Trio there: it may not notice right away.") :
+                    String(localized: "If another device still runs this pod, it stops when it next reaches your pod.")
             )
         case .loanStateUnreadable:
             return (
@@ -745,8 +707,10 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             )
         case .podTotalUnreliable:
             return (
-                String(localized: "Pod Total Not Checked"),
-                String(
+                patch ? String(localized: "Patch Total Not Checked") : String(localized: "Pod Total Not Checked"),
+                patch ? String(
+                    localized: "Trio couldn't check your patch's delivered insulin against your history, so it added nothing. Insulin on board may read too low. Check your insulin history."
+                ) : String(
                     localized: "Trio couldn't check your pod's delivered insulin against your history, so it added nothing. Insulin on board may read too low. Check your insulin history."
                 )
             )
@@ -761,6 +725,9 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
 
     func didReturnHome() {
         deviceDataManager.resyncPumpAfterTakeBack()
+        // loop now instead of at the next reading, so the loop age doesn't count the time the watch had the pump
+        info(.loop, "Loop requested after taking the pump back from Apple Watch")
+        deviceDataManager.recommendsLoop.send()
     }
 
     func onForeignPodSession(_ action: @escaping () -> Void) {
@@ -771,6 +738,24 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
 
     func noteWatchLoop(at date: Date) {
         apsManager.noteWatchLoop(at: date)
+    }
+
+    func onGlucoseStored(_ action: @escaping () -> Void) {
+        glucoseStorage.updatePublisher
+            .sink { _ in action() }
+            .store(in: &subscriptions)
+    }
+
+    func recentGlucose() async -> [BloodGlucose] {
+        let since = Date().addingTimeInterval(-20 * 60)
+        do {
+            return try await glucoseStorage.getGlucoseForAlgorithm(shouldSmoothGlucose: false, fetchHours: 1)
+                // sensor readings only: a manual BG isn't a reading the watch loops on
+                .filter { $0.dateString >= since && $0.sgv != nil }
+        } catch {
+            warning(.watch, "Reading the phone's glucose for the watch failed", error: error)
+            return []
+        }
     }
 }
 

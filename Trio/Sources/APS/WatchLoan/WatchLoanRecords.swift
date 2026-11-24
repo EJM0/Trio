@@ -1,6 +1,21 @@
 import Foundation
 import LoopKit
 
+/// An override or temp target the watch started or stopped. The phone applies each one once, by `id`.
+struct WatchLoanAdjustmentChange: Codable, Equatable {
+    enum Kind: String, Codable {
+        case override
+        case tempTarget
+    }
+
+    var id: UUID
+    var kind: Kind
+    /// The preset started; nil stops the running one.
+    var presetID: String?
+    var presetName: String?
+    var at: Date
+}
+
 /// Records the watch sends while it holds the pump, and after. Merged by sync identifier.
 struct WatchLoanRecordBatch: Codable {
     static let currentVersion = 1
@@ -40,20 +55,13 @@ struct WatchLoanRecordBatch: Codable {
     var deletedGlucoseDates: [Date]? = nil
     /// The watch's last confirmed loop. Nil from a watch build that doesn't send it.
     var lastLoopAt: Date?
-    /// An override started on the watch during the loan (from a grant preset), with its start time, so the phone can
-    /// activate it in its own store once the loan ends. Nil from a watch build that doesn't send it.
-    var startedOverride: Override? = nil
-    var startedOverrideAt: Date? = nil
-    var startedTempTarget: TempTarget? = nil
-    var startedTempTargetAt: Date? = nil
-    /// The override or temp target running on the watch was stopped there: the phone ends the one it runs, unless the
-    /// user started it on the phone after this time.
-    var overrideCancelledAt: Date? = nil
-    var tempTargetCancelledAt: Date? = nil
+    /// The watch's latest override and temp target change, sent in every batch until the loan ends.
+    var adjustmentChanges: [WatchLoanAdjustmentChange]? = nil
+    /// The TDD rows the watch's loops stored, so the phone's TDD history has no hole for the loan. Nil from a watch
+    /// build that doesn't send them.
+    var tddRows: [OrefInputs.TDDRow]? = nil
     /// The watch loop's determinations, for the phone's chart, loop status and Nightscout.
     var determinations: [DeterminationRecord]? = nil
-    /// The watch loop's TDD rows, stored by the phone as its own so its 7-day Dynamic ISF check counts the loan.
-    var tdd: [OrefInputs.TDDRow]? = nil
     /// The watch deactivated the faulted pod: the phone forgets it, as the controller that ended it booked its end.
     var podDeactivatedAt: Date? = nil
 
@@ -106,6 +114,23 @@ struct WatchLoanPhoneChanges: Codable, Equatable {
     }
 }
 
+/// The phone's latest readings while the watch holds the pump. The phone's G7 connection stays up as a second display,
+/// so it often has a reading the watch missed.
+struct WatchLoanPhoneReadings: Codable, Equatable {
+    var epoch: Int64
+    var readings: [BloodGlucose]
+
+    func encoded() throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .customISO8601
+        return try encoder.encode(self)
+    }
+
+    static func decode(_ data: Data) throws -> WatchLoanPhoneReadings {
+        try JSONCoding.decoder.decode(WatchLoanPhoneReadings.self, from: data)
+    }
+}
+
 /// The phone's answer once a batch is persisted.
 struct WatchLoanRecordAck: Codable, Equatable {
     var epoch: Int64
@@ -118,6 +143,9 @@ enum WatchLoanWireKey {
     static let message = "watchLoan"
     /// Compressed `WatchLoanSnapshot`, only next to a grant.
     static let snapshot = "watchLoanSnapshot"
+    /// A snapshot too large for one message goes in pieces; the last one comes with the grant.
+    static let snapshotPartHeader = "watchLoanSnapshotPartHeader"
+    static let snapshotPart = "watchLoanSnapshotPart"
     static let records = "watchLoanRecords"
     static let recordsAck = "watchLoanRecordsAck"
     /// `WatchLoanPhoneChanges` data, phone to watch.
@@ -125,15 +153,12 @@ enum WatchLoanWireKey {
     /// Compressed `WatchLoanSnapshot` the phone leaves after each of its loops, for a start without it. Queued,
     /// newest only.
     static let standingCopy = "watchLoanStandingCopy"
-    /// One slice of a compressed `WatchLoanSnapshot` too large for a single live message. The grant that follows
-    /// carries the slice count; the watch reassembles the slices in index order before it adopts.
-    static let snapshotChunk = "watchLoanSnapshotChunk"
-    static let snapshotChunkIndex = "watchLoanSnapshotChunkIndex"
-    static let snapshotChunkCount = "watchLoanSnapshotChunkCount"
-    /// The loan epoch a chunk belongs to, so a stale slice from an earlier grant is dropped.
-    static let snapshotChunkEpoch = "watchLoanSnapshotChunkEpoch"
+    /// `WatchLoanPhoneReadings`: the phone's own sensor readings, for the ones the watch misses.
+    static let phoneReadings = "watchLoanPhoneReadings"
 
-    static let all = [message, snapshot, records, recordsAck, phoneChanges, standingCopy, snapshotChunk]
+    static let all = [
+        message, snapshot, snapshotPartHeader, snapshotPart, records, recordsAck, phoneReadings, phoneChanges, standingCopy
+    ]
 
     /// Loan payloads go to the loan coordinator; every other watch message keeps its existing path.
     static func isLoanPayload(_ payload: [String: Any]) -> Bool {
@@ -142,6 +167,12 @@ enum WatchLoanWireKey {
 
     /// In the phone's reply to the watch's status query: the phone's loan epoch.
     static let phoneEpoch = "watchLoanPhoneEpoch"
+
+    /// The phone's drag-to-watch Start: asks the watch to start as if Start was tapped on it. Live only, with a reply.
+    static let startAsk = "watchLoanStartAsk"
+    /// In the watch's reply: `startRequested`, or the `LoanRefusal` raw value that kept it from asking.
+    static let startAnswer = "watchLoanStartAnswer"
+    static let startRequested = "requested"
 
     static func isStatusQuery(_ payload: [String: Any]) -> Bool {
         guard let data = payload[message] as? Data, case let .message(envelope) = WatchLoanWire.decode(data) else { return false }
@@ -172,8 +203,10 @@ struct WatchLoanInbox: Codable, Equatable {
              .records,
              .request:
             return true
+        case .grantRejected:
+            // a watch that never got the grant doesn't know its epoch; the phone acts only on its own request ID
+            return true
         case .grant,
-             .grantRejected,
              .handBackAck,
              .holding,
              .refused,

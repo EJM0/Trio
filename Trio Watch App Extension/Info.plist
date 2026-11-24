@@ -15,9 +15,13 @@
 			</array>
 		</dict>
 	</array>
+	<key>AppDevVersion</key>
+	<string>$(APP_DEV_VERSION)</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>bluetooth-central</string>
 	</array>
+	<key>AppGroupID</key>
+	<string>$(APP_GROUP_ID)</string>
 </dict>
 </plist>

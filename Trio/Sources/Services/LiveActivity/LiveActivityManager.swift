@@ -40,6 +40,8 @@ final class LiveActivityData: ObservableObject {
     @Published var tempTarget: TempTargetData?
     /// The widget items displayed within the live activity.
     @Published var widgetItems: [LiveActivityAttributes.LiveActivityItem]?
+    /// Set while Trio on Watch controls the pump.
+    @Published var watchMode: LiveActivityAttributes.WatchMode?
 }
 
 /// A service managing live activity updates and state management.
@@ -75,11 +77,13 @@ final class LiveActivityData: ObservableObject {
     private let queue = DispatchQueue(label: "LiveActivityBridge.queue", qos: .userInitiated)
     private var coreDataPublisher: AnyPublisher<Set<NSManagedObjectID>, Never>?
     private var subscriptions = Set<AnyCancellable>()
+    private let resolver: Resolver
 
     /// Initializes a new instance of `LiveActivityBridge` and sets up observers, subscribers, and notifications.
     ///
     /// - Parameter resolver: The dependency injection resolver.
     init(resolver: Resolver) {
+        self.resolver = resolver
         coreDataPublisher =
             CoreDataStack.shared.entityChangePublisher
                 .receive(on: queue)
@@ -122,6 +126,10 @@ final class LiveActivityData: ObservableObject {
             name: .liveActivityOrderDidChange,
             object: nil
         )
+        notificationCenter.addObserver(forName: .trioOnWatchModeDidChange, object: nil, queue: .main) { [weak self] note in
+            let mode = note.userInfo?["mode"] as? LiveActivityAttributes.WatchMode
+            if self?.data.watchMode != mode { self?.data.watchMode = mode }
+        }
     }
 
     /// Called when the app settings change.
@@ -212,6 +220,10 @@ final class LiveActivityData: ObservableObject {
             await self.loadTempTarget()
             await self.loadDetermination()
             self.loadWidgetItems()
+            if let coordinator = self.resolver.resolve(WatchLoanCoordinator.self) {
+                let mode = await coordinator.watchMode
+                await MainActor.run { self.data.watchMode = mode }
+            }
         }
     }
 
@@ -402,19 +414,27 @@ final class LiveActivityData: ObservableObject {
         }
         let prevGlucose = data.glucoseFromPersistence?.dropFirst().first
 
-        let content = LiveActivityAttributes.ContentState(
-            new: bg,
-            prev: prevGlucose,
-            units: settings.units,
-            chart: glucose,
-            settings: settings,
-            // none in the last 30 min (a watch loop whose batches are late): the phone's own readings still show
-            determination: data.determination,
-            iob: data.iob,
-            override: data.override,
-            tempTarget: data.tempTarget,
-            widgetItems: data.widgetItems
-        )
+        let content = LiveActivityAttributes.ContentState.fitting { spacing in
+            var content = LiveActivityAttributes.ContentState(
+                new: bg,
+                prev: prevGlucose,
+                units: settings.units,
+                chart: glucose,
+                settings: settings,
+                // none in the last 30 min (a watch loop whose batches are late): the phone's own readings still show
+                determination: data.determination,
+                iob: data.iob,
+                override: data.override,
+                tempTarget: data.tempTarget,
+                widgetItems: data.widgetItems,
+                chartSpacing: spacing
+            )
+            content.watchMode = data.watchMode
+            return content
+        }
+        if !content.fitsUpdateLimit {
+            warning(.liveActivity, "Live Activity update is larger than iOS accepts, \(content.encodedSize) bytes")
+        }
 
         await pushUpdate(content)
     }

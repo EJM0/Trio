@@ -47,6 +47,9 @@ extension Home {
         @State var showReleaseNotes: Bool = false
         @State var trioOnWatch = TrioOnWatchPhoneModel()
         @State var showTrioOnWatch = false
+        @State var watchStartDrag = TrioOnWatchStartDrag()
+        /// True while a touch holds the glucose; resets on its own when the system cancels the touch.
+        @GestureState var glucoseTouched = false
         @ObservedObject var releaseNotesService = ReleaseNotesService.shared
         // Pull-down-to-force-loop (see HomeRootView+Refresh.swift)
         @State var pullOffset: CGFloat = 0
@@ -284,6 +287,9 @@ extension Home {
                     if state.watchLoopSpans != trioOnWatch.spans { state.watchLoopSpans = trioOnWatch.spans }
                     try? await Task.sleep(nanoseconds: 5_000_000_000)
                 }
+            }
+            .onChange(of: trioOnWatch.status.replacesLoopRing, initial: true) { _, watchHasPump in
+                state.watchHoldsPump = watchHasPump
             }
             .sheet(isPresented: $showTrioOnWatch) {
                 #if DEBUG
@@ -617,6 +623,16 @@ extension Home {
                 if state.waitForSuggestion {
                     CustomProgressView(text: String(localized: "Updating IOB...", comment: "Progress text when updating IOB"))
                 }
+
+                if watchStartDrag.isActive {
+                    TrioOnWatchStartOverlay(
+                        drag: watchStartDrag,
+                        model: trioOnWatch,
+                        reading: watchCardReading,
+                        ring: { glucoseRing },
+                        onEnd: { showTrioOnWatch = true }
+                    )
+                }
             }
             // Landscape exists for the Home chart alone; every other tab is portrait-only
             // (see `OrientationGate`).
@@ -636,6 +652,19 @@ extension Home {
                     },
                     isPresented: $showQuickPickTreatmentsPicker
                 )
+            }
+            .alert(
+                String(localized: "Start Trio on Watch?", comment: "Drag-to-watch Start confirmation title"),
+                isPresented: $watchStartDrag.isConfirming
+            ) {
+                Button(String(localized: "Start", comment: "Drag-to-watch Start confirmation button")) {
+                    Task { await watchStartDrag.handOff(model: trioOnWatch) }
+                }
+                Button(String(localized: "Cancel"), role: .cancel) {
+                    withAnimation(.spring(duration: 0.3)) { watchStartDrag.reset() }
+                }
+            } message: {
+                Text(TrioOnWatchStartDrag.confirmationText(patch: trioOnWatch.status.pumpIsPatch))
             }
             .alert(
                 String(

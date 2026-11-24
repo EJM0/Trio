@@ -22,6 +22,8 @@ struct ComplicationMarker: Codable, Equatable {
 struct ComplicationSlotSettings {
     var cornerValue = WatchComplicationDefaults.cornerValue
     var secondaryValue = WatchComplicationDefaults.secondaryValue
+    var staleMinutes = WatchComplicationDefaults.staleMinutes
+    var colorMode = WatchComplicationDefaults.colorMode
 }
 
 struct ComplicationState: Codable, Equatable {
@@ -36,12 +38,15 @@ struct ComplicationState: Codable, Equatable {
 
     var cornerValue: WatchComplicationValue
     var secondaryValue: WatchComplicationValue
+    var staleMinutes: Int
+    var colorMode: WatchComplicationColorMode?
 
     var units: String
     var glucoseValue: Double?
     var history: [ComplicationPoint]
     var loopDate: Date?
     var limits: ClosedRange<Double>?
+    var ringStops: [ComplicationRingStop]?
     /// Why the watch's own sensor gives no reading (a sensor issue, warmup): shown in the delta's place.
     var sensorState: String? = nil
     /// Boluses, SMBs and carbs within the chart's window.
@@ -54,7 +59,6 @@ struct ComplicationState: Codable, Equatable {
     static let missingValue = "--"
     static let defaultUnits = "mg/dL"
 
-    private static let mgPerDlPerMmol = 18.0182
     private static let sampleReadingSpacing: TimeInterval = 5 * 60
     private static let maxLoopAgeMinutes = 1440
     private static let sampleMmolCurve: [Double] = [
@@ -74,16 +78,19 @@ struct ComplicationState: Codable, Equatable {
         lastLoopTime: missingValue,
         cornerValue: WatchComplicationDefaults.cornerValue,
         secondaryValue: WatchComplicationDefaults.secondaryValue,
+        staleMinutes: WatchComplicationDefaults.staleMinutes,
         units: defaultUnits,
         glucoseValue: nil,
         history: [],
         loopDate: nil,
-        limits: nil
+        limits: nil,
+        ringStops: nil
     )
 
     static func sample(
         units: String,
         settings: ComplicationSlotSettings = ComplicationSlotSettings(),
+        ringStops: [ComplicationRingStop]? = nil,
         date: Date = Date()
     ) -> ComplicationState {
         let mmol = Self.isMmol(units)
@@ -99,16 +106,19 @@ struct ComplicationState: Codable, Equatable {
             lastLoopTime: "2 min",
             cornerValue: settings.cornerValue,
             secondaryValue: settings.secondaryValue,
+            staleMinutes: settings.staleMinutes,
+            colorMode: settings.colorMode,
             units: units,
             glucoseValue: history.last?.glucose,
             history: history,
             loopDate: date.addingTimeInterval(-2 * 60),
-            limits: typicalBand(isMmol: mmol)
+            limits: typicalBand(isMmol: mmol),
+            ringStops: ringStops
         )
     }
 
     private static func sampleHistory(isMmol: Bool, endingAt date: Date) -> [ComplicationPoint] {
-        let curve = isMmol ? sampleMmolCurve : sampleMmolCurve.map { ($0 * mgPerDlPerMmol).rounded() }
+        let curve = isMmol ? sampleMmolCurve : sampleMmolCurve.map { ($0 * WatchComplicationDefaults.mgdlPerMmol).rounded() }
         let start = date.timeIntervalSince1970 - TimeInterval(curve.count - 1) * sampleReadingSpacing
         return curve.enumerated().map { index, glucose in
             ComplicationPoint(timestamp: start + TimeInterval(index) * sampleReadingSpacing, glucose: glucose)
@@ -128,13 +138,12 @@ struct ComplicationState: Codable, Equatable {
 
     var isMmol: Bool { Self.isMmol(units) }
 
-    /// Past this the delta's place shows the reading's time.
-    static let agingAfter: TimeInterval = 5 * 60
-    /// Past this the reading greys, and IOB and COB show `--` once the loop is this old.
-    static let staleAfter: TimeInterval = 10 * 60
+    var staleAfter: TimeInterval { TimeInterval(staleMinutes) * 60 }
+
+    var isMonochrome: Bool { colorMode == .monochrome }
 
     var gaugeRange: ClosedRange<Double> {
-        isMmol ? 2.5 ... 16.0 : 45 ... 290
+        isMmol ? WatchComplicationDefaults.gaugeRangeMmol : WatchComplicationDefaults.gaugeRangeMgdl
     }
 
     var inRangeBand: ClosedRange<Double> {
@@ -165,17 +174,25 @@ struct ComplicationState: Codable, Equatable {
         }
     }
 
-    func isAging(at reference: Date) -> Bool {
-        reference.timeIntervalSince(date) > Self.agingAfter
+    static func presentOrMissing(_ value: String?) -> String {
+        guard let value = value, !value.isEmpty else { return missingValue }
+        return value
     }
 
     func isStale(at reference: Date) -> Bool {
-        reference.timeIntervalSince(date) > Self.staleAfter
+        reference.timeIntervalSince(date) > staleAfter
     }
 
     func isLoopStale(at reference: Date) -> Bool {
         guard let loopDate = loopDate else { return false }
-        return reference.timeIntervalSince(loopDate) > Self.staleAfter
+        return reference.timeIntervalSince(loopDate) > staleAfter
+    }
+
+    func staleTransitionDates(after now: Date, within span: TimeInterval) -> [Date] {
+        let end = now.addingTimeInterval(span)
+        return [date, loopDate]
+            .compactMap { $0?.addingTimeInterval(staleAfter + 1) }
+            .filter { $0 > now && $0 < end }
     }
 
     func loopAgeText(at reference: Date) -> String {
@@ -188,32 +205,54 @@ struct ComplicationState: Codable, Equatable {
         max(0, Int(reference.timeIntervalSince(date) / 60))
     }
 
-    func labelledText(for value: WatchComplicationValue) -> String {
+    func labelledText(for value: WatchComplicationValue, withArrow: Bool = true) -> String {
         switch value {
         case .nothing: return ""
         case .iob: return "IOB \(iob)"
         case .cob: return "COB \(cob)"
-        case .delta: return deltaText
+        case .delta: return deltaText(withArrow: withArrow)
         case .loopAge: return "Loop \(lastLoopTime)"
         }
     }
 
-    func plainText(for value: WatchComplicationValue) -> String {
+    func plainText(for value: WatchComplicationValue, withArrow: Bool = true) -> String {
         switch value {
         case .nothing: return ""
         case .iob: return iob
         case .cob: return cob
-        case .delta: return deltaText
+        case .delta: return deltaText(withArrow: withArrow)
         case .loopAge: return lastLoopTime
         }
     }
 
-    private var deltaText: String {
-        "\(trendArrow) \(delta)".trimmingCharacters(in: .whitespaces)
+    private func deltaText(withArrow: Bool) -> String {
+        guard withArrow else { return delta }
+        return "\(trendArrow) \(delta)".trimmingCharacters(in: .whitespaces)
     }
 
     var glucoseColor: Color {
         Color(complicationHex: glucoseColorHex) ?? .white
+    }
+}
+
+final class ComplicationReloader {
+    typealias InstalledKindsFetch = (@escaping ([String]) -> Void) -> Void
+
+    private(set) var isReloading = false
+    private let fetchInstalledKinds: InstalledKindsFetch
+    private let reloadTimelines: (String) -> Void
+
+    init(fetchInstalledKinds: @escaping InstalledKindsFetch, reloadTimelines: @escaping (String) -> Void) {
+        self.fetchInstalledKinds = fetchInstalledKinds
+        self.reloadTimelines = reloadTimelines
+    }
+
+    func reload(_ kinds: Set<String>) {
+        isReloading = true
+        fetchInstalledKinds { [self] installedKinds in
+            Set(installedKinds).intersection(kinds).forEach(reloadTimelines)
+            isReloading = false
+        }
     }
 }
 
@@ -224,19 +263,20 @@ enum ComplicationStoreError: Error {
 enum ComplicationStore {
     static let key = "ComplicationState.latest"
 
-    private static let watchBundleMarker = ".watchkitapp"
     private static let logger = os.Logger(subsystem: "org.nightscout.trio", category: "ComplicationStore")
 
     static var appGroupID: String? {
-        if let fromPlist = Bundle.main.object(forInfoDictionaryKey: "AppGroupID") as? String,
-           !fromPlist.isEmpty, !fromPlist.hasPrefix("$(")
-        {
-            return fromPlist
+        appGroupID(from: Bundle.main.object(forInfoDictionaryKey: "AppGroupID"))
+    }
+
+    static func appGroupID(from plistValue: Any?) -> String? {
+        guard let fromPlist = plistValue as? String,
+              !fromPlist.isEmpty, !fromPlist.hasPrefix("$(")
+        else {
+            logger.error("AppGroupID missing from Info.plist")
+            return nil
         }
-        guard let bundleID = Bundle.main.bundleIdentifier,
-              let range = bundleID.range(of: watchBundleMarker)
-        else { return nil }
-        return "group.\(bundleID[..<range.lowerBound]).trio-app-group"
+        return fromPlist
     }
 
     static let defaults: UserDefaults? = appGroupID.flatMap { UserDefaults(suiteName: $0) }

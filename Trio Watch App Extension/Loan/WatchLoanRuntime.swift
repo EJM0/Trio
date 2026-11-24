@@ -12,13 +12,13 @@ import WatchKit
         #if TRIO_ON_WATCH
             guard host == nil else { return }
             let files = WatchLoanFiles.standard
-            let cgm = WatchLoanCGM()
+            let cgm = WatchLoanCGM(files: files)
             WKInterfaceDevice.current().isBatteryMonitoringEnabled = true
             let created = WatchLoanHost(env: WatchLoanEnvironment(
                 files: files,
                 transport: WCSessionLoanTransport(),
                 notifier: UserNotificationLoanNotifier(),
-                pumpFactory: .omnipod,
+                pumpFactory: .kits,
                 cgm: cgm,
                 isForeground: { WKApplication.shared().applicationState == .active },
                 batteryLevel: {
@@ -30,17 +30,26 @@ import WatchKit
                     return settings.authorizationStatus == .authorized && settings.timeSensitiveSetting == .enabled
                 },
                 modelIdentifier: { WatchLoanRuntime.modelIdentifier },
-                appBuild: WatchLoanRuntime.appBuild,
+                appBuild: WatchLoanSnapshot.appBuild(Bundle.main.infoDictionary),
                 beginActivity: { ExpiringActivity(reason: $0) }
             ))
             cgm.host = created
-            created.onCycleFinished = { WatchBackgroundTasks.shared.cycleFinished() }
+            created.onCycleFinished = {
+                WatchState.shared.refreshComplication()
+                WatchBackgroundTasks.shared.cycleFinished()
+            }
             host = created
             WatchLogger.shared.info(
                 .lifecycle,
                 "Trio on Watch host started \(WKApplication.shared().applicationState == .background ? "in the background (system relaunch)" : "in front"), model \(modelIdentifier ?? "unknown"), watchOS \(WKInterfaceDevice.current().systemVersion), battery \(Int(max(0, WKInterfaceDevice.current().batteryLevel) * 100)) %"
             )
-            Task { await created.relaunch() }
+            Task {
+                await created.relaunch()
+                // a loan that ended while the app was gone left the sensor lent
+                if !cgm.isActive { WatchCGMHost.shared.sensorReturned(localState: nil) }
+            }
+        #else
+            WatchCGMHost.shared.sensorReturned(localState: nil)
         #endif
     }
 
@@ -54,11 +63,9 @@ import WatchKit
         return String(cString: buffer)
     }
 
-    /// The build string the phone compares the grant against. Must match `WatchLoanPhoneHost`'s exactly:
-    /// `"<CFBundleShortVersionString> (<CFBundleVersion>)"`.
-    nonisolated static var appBuild: String {
-        let info = Bundle.main.infoDictionary
-        return "\(info?["CFBundleShortVersionString"] as? String ?? "") (\(info?["CFBundleVersion"] as? String ?? ""))"
+    /// Trio on Watch reads the sensor itself: from a grant until the loan ends.
+    static var ownsSensor: Bool {
+        host?.env.cgm?.isActive ?? false
     }
 
     /// A WatchConnectivity payload; true when it was a loan payload.
@@ -287,14 +294,3 @@ final class UserNotificationLoanNotifier: WatchLoanNotifier {
         }
     }
 }
-
-#if TRIO_ON_WATCH
-    final class WatchAppDelegate: NSObject, WKApplicationDelegate {
-        func handle(_ backgroundTasks: Set<WKRefreshBackgroundTask>) {
-            // a Bluetooth task can arrive off main
-            DispatchQueue.main.async {
-                WatchBackgroundTasks.shared.handle(backgroundTasks)
-            }
-        }
-    }
-#endif

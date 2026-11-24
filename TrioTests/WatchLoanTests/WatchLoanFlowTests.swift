@@ -148,7 +148,8 @@ import Testing
 
     @Test("Start, doc rows: lost grant ends home; lost holding ends lent through the record batch") func startDocRows() {
         let grantLost = run(LoanWorld(), steps: StartStep.allCases, faultAt: .s4WatchAdopts, .lose, perform: start)
-        #expect(grantLost.phone == .home(epoch: 2, lastLoan: F.superseding(1)))
+        // the watch gives up on its request and says so, so the phone takes back as after a rejected grant
+        #expect(grantLost.phone == .home(epoch: 2, lastLoan: LoanRecord(epoch: 1)))
         #expect(grantLost.watch == .idle(epoch: 2))
 
         let holdingLost = run(LoanWorld(), steps: StartStep.allCases, faultAt: .s6PhoneLent, .lose, perform: start)

@@ -4,7 +4,68 @@ import LoopKit
 extension WatchLoanHost {
     enum CycleTrigger: String {
         case reading
+        case phoneReading = "phone reading"
         case user
+        case bolusFinished = "bolus finished"
+    }
+
+    /// How long a phone reading waits for the watch's own: the two get the same reading seconds apart.
+    static let phoneReadingWait: TimeInterval = 60
+
+    /// The phone's readings. One the watch's sensor also delivered is dropped; one it missed is used after
+    /// `phoneReadingWait`, counted and logged, and loops like the watch's own.
+    func receivePhoneReadings(_ readings: [BloodGlucose]) async {
+        await loaded.value
+        let known = Set(pendingPhoneReadings.map(\.dateString))
+        pendingPhoneReadings += readings.filter { !known.contains($0.dateString) }
+        await usePhoneReadings()
+    }
+
+    func usePhoneReadings() async {
+        phoneReadingTimer?.cancel()
+        guard let snapshot, readsGlucose else {
+            pendingPhoneReadings = []
+            return
+        }
+        let now = env.now()
+        let newest = (snapshot.oref.glucose + records.snapshot.glucose).map(\.dateString).max() ?? .distantPast
+        // the watch's own reading, or a newer one, already covers these
+        pendingPhoneReadings.removeAll { $0.dateString.addingTimeInterval(-WatchLoopPolicy.glucoseFilterTime) <= newest }
+        let due = pendingPhoneReadings.filter { now.timeIntervalSince($0.dateString) >= Self.phoneReadingWait }
+        pendingPhoneReadings.removeAll { reading in due.contains { $0.dateString == reading.dateString } }
+
+        if !due.isEmpty {
+            let kept: [BloodGlucose]
+            do {
+                let records = records
+                kept = try await WatchLoanFiles.io { try records.storeGlucose(due, newestKnown: newest) }
+            } catch {
+                WatchLogger.shared.error(.loop, "Storing the phone's glucose failed", error: error)
+                return
+            }
+            if let latest = kept.max(by: { $0.dateString < $1.dateString }) {
+                cycleInfo.phoneReadings = (cycleInfo.phoneReadings ?? 0) + kept.count
+                saveCycleInfo()
+                let times = kept.map { $0.dateString.formatted(date: .omitted, time: .shortened) }.joined(separator: ", ")
+                WatchLogger.shared.warning(
+                    .loop,
+                    "The watch's sensor missed the reading at \(times): used the phone's (\(cycleInfo.phoneReadings ?? 0) in this loan)"
+                )
+                evaluateGlucoseAlarms(latest: latest, now: now)
+                // an old one only fills the gap: the glucose check would stop a cycle on it
+                if now.timeIntervalSince(latest.dateString) < 6 * 60 {
+                    await runCycle(trigger: .phoneReading)
+                }
+            }
+        }
+
+        guard let next = pendingPhoneReadings.map(\.dateString).min() else { return }
+        let wait = max(1, next.addingTimeInterval(Self.phoneReadingWait).timeIntervalSince(now))
+        phoneReadingTimer = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            await self?.usePhoneReadings()
+        }
     }
 
     /// The CGM manager's new readings: store, check glucose alarms, then loop once.
@@ -106,13 +167,26 @@ extension WatchLoanHost {
         guard let lastSync, statusRead.timeIntervalSince(lastSync) <= WatchLoopPolicy.pumpStatusMaxAge else {
             WatchLogger.shared.warning(.loop, "Cycle stopped: no fresh pump status")
             noPodContact(now: statusRead)
-            finish(start: start, confirmed: false)
+            finish(
+                start: start,
+                confirmed: false,
+                result: TrioOnWatchStatus.CycleResult.noPumpStatus(patch: Self.isPatch(snapshot))
+            )
             return
         }
         if pump.refusesSessions {
             await process(.foreignPodSession)
             return
         }
+        // as on the phone: the pump refuses a temp basal while it delivers a bolus. Not a failed cycle: the pump answered.
+        if pump.status.bolusState != .noBolus {
+            WatchLogger.shared.info(.loop, "Cycle skipped: a bolus is running")
+            cycleSkippedForBolus = true
+            cycleInfo.lastResult = TrioOnWatchStatus.CycleResult.bolusRunning
+            saveCycleInfo()
+            return
+        }
+        cycleSkippedForBolus = false
 
         if !intents.isEmpty {
             await resolveIntents()
@@ -123,7 +197,7 @@ extension WatchLoanHost {
            await !checkCopyAgainstPump(pump, copy: snapshot)
         {
             WatchLogger.shared.warning(.loop, "Cycle stopped: the pod's total isn't checked against the copy yet")
-            finish(start: start, confirmed: false)
+            finish(start: start, confirmed: false, result: TrioOnWatchStatus.CycleResult.copyUnchecked)
             return
         }
 
@@ -133,7 +207,7 @@ extension WatchLoanHost {
             now: statusRead
         ) {
             WatchLogger.shared.warning(.loop, "Cycle stopped: glucose check failed (\(failure))")
-            finish(start: start, confirmed: false)
+            finish(start: start, confirmed: false, result: TrioOnWatchStatus.CycleResult.glucose(failure))
             return
         }
 
@@ -164,12 +238,12 @@ extension WatchLoanHost {
             outputs = try await Self.runOref(inputs)
         } catch {
             WatchLogger.shared.error(.loop, "Cycle stopped: oref failed", error: error)
-            finish(start: start, confirmed: false)
+            finish(start: start, confirmed: false, result: TrioOnWatchStatus.CycleResult.algorithmFailed)
             return
         }
         guard let determination = outputs.determination else {
             WatchLogger.shared.error(.loop, "Cycle stopped: no determination")
-            finish(start: start, confirmed: false)
+            finish(start: start, confirmed: false, result: TrioOnWatchStatus.CycleResult.algorithmFailed)
             return
         }
         lastOutputs = outputs
@@ -194,6 +268,8 @@ extension WatchLoanHost {
         if !plan.heldBack.isEmpty {
             WatchLogger.shared.warning(.loop, "Held back: \(plan.heldBack.map { "\($0)" }.joined(separator: ", "))")
         }
+        var tempOutcome: CommandOutcome?
+        var bolusOutcome: CommandOutcome?
         let sinceLinkUp = WatchCGMHost.shared.linkUpAt.map { env.now().timeIntervalSince($0) }
         if let temp = plan.tempBasal, WatchLoopPolicy.skipsTempResend(
             rate: temp.unitsPerHour,
@@ -207,18 +283,23 @@ extension WatchLoanHost {
             )
         } else if let temp = plan.tempBasal {
             WatchLogger.shared.info(.loop, "Command starts \(Self.seconds(since: start, now: env.now())) s after the wake")
-            confirmed = await command(.tempBasal(unitsPerHour: temp.unitsPerHour, minutes: temp.minutes)) == .confirmed &&
-                confirmed
+            tempOutcome = await command(.tempBasal(unitsPerHour: temp.unitsPerHour, minutes: temp.minutes))
+            confirmed = tempOutcome == .confirmed && confirmed
         }
         if let units = plan.bolus {
-            confirmed = await command(.bolus(units: units, automatic: true)) == .confirmed && confirmed
+            bolusOutcome = await command(.bolus(units: units, automatic: true))
+            confirmed = bolusOutcome == .confirmed && confirmed
         }
         if plan.tempBasal == nil, plan.bolus == nil {
-            await readPodAheadOfNextWake(pump, lastSync: lastSync)
+            await readPodAheadOfNextWake(pump)
         }
 
         updateLoopStatus(outputs, pump: pump)
-        finish(start: start, confirmed: confirmed)
+        finish(start: start, confirmed: confirmed, result: TrioOnWatchStatus.CycleResult.enacted(
+            plan,
+            tempConfirmed: tempOutcome.map { $0 == .confirmed },
+            bolusConfirmed: bolusOutcome.map { $0 == .confirmed }
+        ))
         checkBattery()
         do {
             let records = records
@@ -238,29 +319,6 @@ extension WatchLoanHost {
                 WatchLogger.shared.info(.loop, "Autosens updated after enactment, ratio \(computed.ratio)")
             }
         }
-    }
-
-    /// kristinkand (20 November): a background wake that sends the pod nothing skips the pod read (its data is under 6
-    /// minutes old), so the next wake's is 10 minutes old; when that wake changes the temp basal it needs a read, a
-    /// cancel and the new temp, 6 pod messages, and each such wake added 14 or 15 to the watchOS count that cuts all of
-    /// Trio's links near 200. Wakes of 2 or 4 messages added nothing. The quiet wake reads instead, and only early in
-    /// the wake: messages past ~10 s from the sensor's link-up count toward the limit, and a late read can be cut off
-    /// half-way. Without a known link-up it isn't known how late it is: no read. The read also raises pod alerts.
-    private func readPodAheadOfNextWake(_ pump: LoanPump, lastSync: Date) async {
-        guard !env.isForeground(), env.now().timeIntervalSince(lastSync) > Self.quietWakeReadAfter else { return }
-        let sinceLinkUp = WatchCGMHost.shared.linkUpAt.map { env.now().timeIntervalSince($0) }
-        guard let sinceLinkUp, sinceLinkUp < Self.quietWakeReadWithin else {
-            WatchLogger.shared.info(
-                .loop,
-                "Quiet wake: no pod read ahead of the next wake, \(sinceLinkUp.map { String(format: "%.1f s", $0) } ?? "unknown") into the wake"
-            )
-            return
-        }
-        let read = await pump.refreshDeliveredUnits()
-        WatchLogger.shared.info(
-            .loop,
-            "Quiet wake: pod status \(read ? "read" : "not read") \(String(format: "%.1f s", sinceLinkUp)) into the wake"
-        )
     }
 
     /// The pump's own running temp: its rate and whole minutes left.
@@ -284,8 +342,6 @@ extension WatchLoanHost {
     /// The latest point in a wake, from the sensor's link-up, at which a quiet wake still reads the pod: about 2 s of
     /// the ~10 s watchOS gives before pod messages count toward its limit.
     static let quietWakeReadWithin: TimeInterval = 8
-    /// Pod data younger than this needs no read ahead of the next wake.
-    static let quietWakeReadAfter: TimeInterval = 2 * 60
 
     /// The phone's current-temp rule (`APSManager.fetchCurrentTempBasal`) on the pump's own state; between states,
     /// the newest temp basal in the history.
@@ -304,13 +360,43 @@ extension WatchLoanHost {
         }
     }
 
-    private func finish(start: Date, confirmed: Bool) {
+    /// Read the pod in a background wake that sent nothing, so the next temp change needs no status read first.
+    /// Long wakes count toward the watchOS limit that cuts the app's Bluetooth links: pod messages past ~10 s from the
+    /// sensor's link-up count, and a late read can be cut off half-way, so only early in the wake. Without a known
+    /// link-up it isn't known how late it is: no read.
+    private func readPodAheadOfNextWake(_ pump: LoanPump) async {
+        guard !env.isForeground(), activity?.isExpired != true, case .holding = state,
+              !pump.refusesSessions, pump.foreignSessionDetectedAt == nil
+        else { return }
+        let sinceLinkUp = WatchCGMHost.shared.linkUpAt.map { env.now().timeIntervalSince($0) }
+        guard let sinceLinkUp, sinceLinkUp < Self.quietWakeReadWithin else {
+            WatchLogger.shared.info(
+                .loop,
+                "Quiet wake: no pod read ahead of the next wake, \(sinceLinkUp.map { String(format: "%.1f s", $0) } ?? "unknown") into the wake"
+            )
+            return
+        }
+        let before = pump.lastSync
+        let synced = await withCheckedContinuation { (continuation: CheckedContinuation<Date?, Never>) in
+            pump.readStatusIfOlder(than: WatchLoopPolicy.quietWakeStatusAge) { continuation.resume(returning: $0) }
+        }
+        if synced != before {
+            WatchLogger.shared.info(.loop, "Quiet wake: pod status read ahead of the next wake")
+        }
+    }
+
+    private func finish(start: Date, confirmed: Bool, result: String) {
         noteSummary { summary in
             summary.cycles += 1
             if confirmed { summary.confirmed += 1 }
         }
         let now = env.now()
         cycleInfo.lastCycleAt = now
+        cycleInfo.lastResult = result
+        if confirmed, now.timeIntervalSince(cycleInfo.lastCountedLoopAt ?? .distantPast) >= Self.countedSpacing {
+            cycleInfo.confirmedLoops = (cycleInfo.confirmedLoops ?? 0) + 1
+            cycleInfo.lastCountedLoopAt = now
+        }
         if confirmed {
             cycleInfo.lastConfirmedCycleAt = now
             cycleInfo.podContactFailures = 0
@@ -398,10 +484,21 @@ extension WatchLoanHost {
         loop.iob = outputs.iob.first?.iob
         loop.cob = outputs.meal?.mealCOB
         loop.eventualGlucose = outputs.determination?.eventualBG
+        loop.reason = outputs.determination?.reason
+        loop.forecast = outputs.determination?.predictions.map { predictions in
+            TrioOnWatchStatus.Forecast(
+                start: outputs.determination?.deliverAt ?? env.now(),
+                lines: ["iob": predictions.iob, "zt": predictions.zt, "cob": predictions.cob, "uam": predictions.uam]
+                    .compactMapValues { $0.map { Array($0.prefix(24)) } }
+                    .filter { !$0.value.isEmpty }
+            )
+        }
         if case let .tempBasal(dose) = pump.status.basalDeliveryState {
             loop.tempBasalRate = Decimal(dose.unitsPerHour)
+            loop.tempBasalEndsAt = dose.endDate
         } else {
             loop.tempBasalRate = nil
+            loop.tempBasalEndsAt = nil
         }
         loop.pumpSuspended = pump.status.basalDeliveryState?.isSuspended ?? false
         if !loop.pumpSuspended { cancelSuspendReminders() }

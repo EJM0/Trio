@@ -148,6 +148,14 @@ import Testing
     }
 
     /// A worst-case day: a reading every 5 min, an SMB and a new temp every cycle, 10 days of TDD rows.
+    @Test("The version check tells dev builds apart, which share a build number") func appBuild() {
+        let dev76: [String: Any] = ["CFBundleShortVersionString": "1.0.2", "CFBundleVersion": "1", "AppDevVersion": "1.0.2.76"]
+        let dev61: [String: Any] = ["CFBundleShortVersionString": "1.0.2", "CFBundleVersion": "1", "AppDevVersion": "1.0.2.61"]
+        #expect(WatchLoanSnapshot.appBuild(dev76) == "1.0.2.76 (1)")
+        #expect(WatchLoanSnapshot.appBuild(dev76) != WatchLoanSnapshot.appBuild(dev61))
+        #expect(WatchLoanSnapshot.appBuild(["CFBundleShortVersionString": "1.0.2", "CFBundleVersion": "27"]) == "1.0.2 (27)")
+    }
+
     @Test("A full day fits one live message") func size() throws {
         let clock = OrefCharacterizationScenarios.makeClock()
         var inputs = try OrefRunCharacterizationTests.inputs(
@@ -205,6 +213,11 @@ import Testing
         print("Watch loan grant size: snapshot JSON \(json.count) B, compressed \(wire.count) B, envelope \(envelope.count) B")
         #expect(wire.count + envelope.count <= WatchLoanSnapshot.grantBudgetBytes)
         #expect(try WatchLoanSnapshot.decode(wire).oref.tddHistory.count == 2880)
+
+        let parts = snapshot.partSizes()
+        print("Watch loan grant parts: \(parts.map { "\($0.part) \($0.bytes) B (\($0.count))" }.joined(separator: ", "))")
+        #expect(parts.allSatisfy { $0.bytes > 0 })
+        #expect(parts.first { $0.part == "TDD history" }?.count == 2880)
     }
 
     // MARK: The phone's gathered inputs
@@ -324,55 +337,55 @@ import Testing
         }
         #expect(phone.count == 6)
     }
+}
 
-    // MARK: - Chunking
+@Suite("Watch loan: snapshot in pieces") struct WatchLoanSnapshotPartsTests {
+    static let requestID = UUID(uuidString: "00000000-0000-0000-0000-0000000000BB")!
 
-    @Test("Small snapshot data stays one chunk") func chunkSingle() {
-        let data = Data(repeating: 7, count: WatchLoanSnapshot.chunkBytes)
-        #expect(WatchLoanSnapshot.chunk(data).count == 1)
+    static func data(_ count: Int) -> Data {
+        var generator = SystemRandomNumberGenerator()
+        return Data((0 ..< count).map { _ in UInt8.random(in: 0 ... 255, using: &generator) })
     }
 
-    @Test("Large data splits into budget-sized chunks that rejoin exactly") func chunkMany() {
-        let data = Data((0 ..< (WatchLoanSnapshot.chunkBytes * 3 + 123)).map { UInt8($0 & 0xFF) })
-        let chunks = WatchLoanSnapshot.chunk(data)
-        #expect(chunks.count == 4)
-        #expect(chunks.dropLast().allSatisfy { $0.count == WatchLoanSnapshot.chunkBytes })
-        #expect(chunks.allSatisfy { $0.count <= WatchLoanSnapshot.chunkBytes })
-        #expect(chunks.reduce(into: Data()) { $0.append($1) } == data)
+    @Test("Split and reassembled in any order gives the same bytes; one piece when it fits") func roundTrip() {
+        let data = Self.data(WatchLoanSnapshot.partBytes * 2 + 123)
+        let pieces = WatchLoanSnapshot.split(data, requestID: Self.requestID, epoch: 3)
+        #expect(pieces.count == 3)
+        #expect(pieces.allSatisfy { $0.bytes.count <= WatchLoanSnapshot.partBytes })
+        var assembler = WatchLoanSnapshotAssembler()
+        for piece in pieces.reversed() { assembler.add(piece.header, piece.bytes) }
+        #expect(assembler.assembled(requestID: Self.requestID, epoch: 3) == data)
+        #expect(WatchLoanSnapshot.split(Self.data(10), requestID: Self.requestID, epoch: 3).count == 1)
     }
 
-    @Test("The assembler joins slices arriving out of order") func assemblerOutOfOrder() {
-        let data = Data((0 ..< (WatchLoanSnapshot.chunkBytes * 2 + 50)).map { UInt8($0 & 0xFF) })
-        let chunks = WatchLoanSnapshot.chunk(data)
-        var assembler = WatchLoanSnapshot.ChunkAssembler()
-        // add in reverse
-        for i in stride(from: chunks.count - 1, through: 0, by: -1) {
-            assembler.add(chunks[i], index: i, count: chunks.count, epoch: 5)
-        }
-        #expect(assembler.joined(expectedCount: chunks.count, epoch: 5) == data)
-    }
+    @Test("A missing or altered piece, or another request or epoch, assembles nothing") func refusals() {
+        let data = Self.data(WatchLoanSnapshot.partBytes + 500)
+        let pieces = WatchLoanSnapshot.split(data, requestID: Self.requestID, epoch: 3)
 
-    @Test("The assembler is not complete until every slice is in") func assemblerIncomplete() {
-        let data = Data((0 ..< (WatchLoanSnapshot.chunkBytes * 2)).map { UInt8($0 & 0xFF) })
-        let chunks = WatchLoanSnapshot.chunk(data)
-        var assembler = WatchLoanSnapshot.ChunkAssembler()
-        assembler.add(chunks[0], index: 0, count: chunks.count, epoch: 5)
-        #expect(assembler.joined(expectedCount: chunks.count, epoch: 5) == nil)
-        assembler.add(chunks[1], index: 1, count: chunks.count, epoch: 5)
-        #expect(assembler.joined(expectedCount: chunks.count, epoch: 5) == data)
-    }
+        var missing = WatchLoanSnapshotAssembler()
+        missing.add(pieces[1].header, pieces[1].bytes)
+        #expect(missing.missing(requestID: Self.requestID, epoch: 3) == 1)
+        #expect(missing.assembled(requestID: Self.requestID, epoch: 3) == nil)
 
-    @Test("A slice from a newer epoch starts the collection over") func assemblerEpochResets() {
-        let old = Data((0 ..< (WatchLoanSnapshot.chunkBytes * 2)).map { _ in UInt8(1) })
-        let new = Data((0 ..< (WatchLoanSnapshot.chunkBytes * 2)).map { _ in UInt8(2) })
-        let oldChunks = WatchLoanSnapshot.chunk(old)
-        let newChunks = WatchLoanSnapshot.chunk(new)
-        var assembler = WatchLoanSnapshot.ChunkAssembler()
-        assembler.add(oldChunks[0], index: 0, count: oldChunks.count, epoch: 5)
-        // a slice for epoch 6 arrives: the epoch-5 slice must be forgotten
-        assembler.add(newChunks[0], index: 0, count: newChunks.count, epoch: 6)
-        assembler.add(newChunks[1], index: 1, count: newChunks.count, epoch: 6)
-        #expect(assembler.joined(expectedCount: oldChunks.count, epoch: 5) == nil)
-        #expect(assembler.joined(expectedCount: newChunks.count, epoch: 6) == new)
+        var altered = WatchLoanSnapshotAssembler()
+        var bytes = pieces[0].bytes
+        bytes[bytes.startIndex] ^= 0xFF
+        altered.add(pieces[0].header, bytes)
+        altered.add(pieces[1].header, pieces[1].bytes)
+        #expect(altered.missing(requestID: Self.requestID, epoch: 3) == 0)
+        #expect(altered.assembled(requestID: Self.requestID, epoch: 3) == nil)
+
+        var other = WatchLoanSnapshotAssembler()
+        for piece in pieces { other.add(piece.header, piece.bytes) }
+        #expect(other.assembled(requestID: UUID(), epoch: 3) == nil)
+        #expect(other.assembled(requestID: Self.requestID, epoch: 4) == nil)
+
+        // a piece of a newer grant drops the older grant's pieces
+        var replaced = WatchLoanSnapshotAssembler()
+        replaced.add(pieces[0].header, pieces[0].bytes)
+        let newer = WatchLoanSnapshot.split(Self.data(WatchLoanSnapshot.partBytes + 10), requestID: Self.requestID, epoch: 4)
+        replaced.add(newer[1].header, newer[1].bytes)
+        #expect(replaced.missing(requestID: Self.requestID, epoch: 4) == 1)
+        #expect(replaced.missing(requestID: Self.requestID, epoch: 3) == nil)
     }
 }

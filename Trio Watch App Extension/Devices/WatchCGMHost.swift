@@ -9,6 +9,8 @@ import WatchKit
     static let shared = WatchCGMHost()
 
     private static let storageKey = "WatchCGMManager"
+    private static let lentKey = "WatchCGMHostLent"
+    private static let localStateKey = "WatchCGMHostLocalState"
 
     @ObservationIgnored private(set) var cgmManager: (any WatchReadableCGM)?
     @ObservationIgnored private var statusObserver: NSObjectProtocol?
@@ -18,15 +20,14 @@ import WatchKit
     @ObservationIgnored private var swap: Task<Void, Never>?
     /// A pairing's Bluetooth bond never finished (the app was in the background); the kit retracts it on a reading.
     @ObservationIgnored private var pairingUnfinished = false
-    /// While Trio on Watch holds the pump, its loan also gets this manager's readings, errors and alerts.
-    @ObservationIgnored private weak var loan: WatchLoanCGM?
 
     /// For the glucose bubble.
     private(set) var isReadingDirectly = false
     /// The watch's link to the sensor is up: the radio waves of the left indicator.
     private(set) var isTalkingToSensor = false
-    /// When the sensor's link last came up: a background wake has about 10 s of Bluetooth from then; pod messages
-    /// after that count toward a watchOS limit that cuts all of Trio's links (kristinkand, 19 November).
+    /// When the sensor's link last came up, from this host's manager or the one lent to Trio on Watch: a background
+    /// wake has about 10 s of Bluetooth from then; pod messages after that count toward a watchOS limit that cuts all
+    /// of Trio's links (kristinkand, 19 November).
     @ObservationIgnored private(set) var linkUpAt: Date?
     private(set) var sensorStateText: String?
     /// After the reading's age while the loop is on time: a state that needs nothing done.
@@ -35,8 +36,6 @@ import WatchKit
     private(set) var warmupEndsAt: Date?
     /// The sensor needs a look; set by its lifecycle and by a reading the sensor marks unreliable.
     private(set) var hasSensorProblem = false
-    /// The sensor gives no more readings (failed, expired).
-    private(set) var sensorHasEnded = false
 
     /// The watch holds a CGM that is set up and paired (connected to the sensor). Whether the sensor currently has a
     /// problem or a stale reading does not matter here: once the sensor is set up with the watch, an adopt need not
@@ -45,13 +44,20 @@ import WatchKit
     var hasReadySensorLink: Bool {
         isReadingDirectly && !pairingUnfinished
     }
+    /// The sensor gives no more readings (failed, expired).
+    private(set) var sensorHasEnded = false
 
     /// A background refresh this long after each reading re-checks acquisition, in case watchOS froze the app before
     /// it lodged the next connect. Past the G7's 35 s tail clearance, so a connect never lands in its advertising tail.
     static let acquisitionBackstopDelay: TimeInterval = 60
 
+    /// Trio on Watch reads the sensor while it holds the pump; this host builds nothing until the sensor is back.
+    private var isLent: Bool { UserDefaults.standard.bool(forKey: Self.lentKey) }
+
     private init() {
-        if let raw = UserDefaults.standard.dictionary(forKey: Self.storageKey), let manager = watchCGMManager(rawValue: raw) {
+        if !UserDefaults.standard.bool(forKey: Self.lentKey),
+           let raw = UserDefaults.standard.dictionary(forKey: Self.storageKey), let manager = watchCGMManager(rawValue: raw)
+        {
             builtFrom = raw["builtFrom"] as? [String: Any]
             install(manager)
         }
@@ -61,13 +67,12 @@ import WatchKit
     /// the sensor when the phone stopped sharing, and otherwise treats it as a wake.
     func update(from state: WatchState) {
         // a state arriving mid-swap is dropped; the phone sends the next within minutes
-        guard swap == nil else { return }
+        guard swap == nil, !isLent else { return }
         guard state.watchReadsSensor, let data = state.sensorConfiguration,
               let raw = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
               let configuration = SharedDeviceConfiguration(rawValue: raw)
         else {
-            // a running loan keeps the sensor, shared or not; the next state after it ends lets go
-            if cgmManager != nil, loan == nil {
+            if cgmManager != nil {
                 WatchLogger.shared.info(.data, "The phone stopped sharing its CGM; letting go of the sensor")
                 swap = Task {
                     await remove()
@@ -94,8 +99,53 @@ import WatchKit
         }
     }
 
+    /// Lets go of the sensor for Trio on Watch, which reads it while the watch holds the pump. A manager for the
+    /// grant's sensor is lent itself, with its connection: a second manager's central beside it never powers on.
+    /// Otherwise this watch's key for the sensor, so the loan needs no new pairing.
+    func lendSensor(for configuration: SharedDeviceConfiguration) async
+        -> (manager: (any WatchReadableCGM)?, localState: [String: Any]?)
+    {
+        while let swap { await swap.value }
+        UserDefaults.standard.set(true, forKey: Self.lentKey)
+        if let local = cgmManager?.localState { keepLocalState(local) }
+        var lent: (any WatchReadableCGM)?
+        if let cgmManager, let builtFrom, cgmManager.pluginIdentifier == configuration.managerIdentifier,
+           type(of: cgmManager).sameSensor(builtFrom, configuration.state)
+        {
+            lent = detach()
+        } else {
+            await remove()
+        }
+        WatchLogger.shared.info(.data, "The sensor is lent to Trio on Watch\(lent != nil ? ", with its connection" : "")")
+        return (lent, UserDefaults.standard.dictionary(forKey: Self.localStateKey))
+    }
+
+    /// Trio on Watch hands its manager back with the connection. False when this host can't keep it; the caller
+    /// then deletes it.
+    func takeBack(_ manager: any WatchReadableCGM, builtFrom: [String: Any]) -> Bool {
+        guard isLent, cgmManager == nil else { return false }
+        self.builtFrom = builtFrom
+        install(manager)
+        save(manager)
+        return true
+    }
+
+    /// Trio on Watch let go of the sensor: the phone's next state builds the manager again, with the loan's key.
+    func sensorReturned(localState: [String: Any]?) {
+        if let localState { keepLocalState(localState) }
+        guard isLent else { return }
+        UserDefaults.standard.removeObject(forKey: Self.lentKey)
+        WatchLogger.shared.info(.data, "The sensor is back from Trio on Watch")
+    }
+
+    /// The kit matches it to the sensor: a key for another sensor is ignored.
+    private func keepLocalState(_ localState: [String: Any]) {
+        UserDefaults.standard.set(localState, forKey: Self.localStateKey)
+    }
+
     private func build(from configuration: SharedDeviceConfiguration) {
-        guard let manager = watchCGMManager(adopting: configuration, localState: nil) else {
+        let localState = UserDefaults.standard.dictionary(forKey: Self.localStateKey)
+        guard let manager = watchCGMManager(adopting: configuration, localState: localState) else {
             WatchLogger.shared.warning(.data, "The phone's CGM (\(configuration.managerIdentifier)) can't be read from the watch")
             return
         }
@@ -103,19 +153,6 @@ import WatchKit
         builtFrom = configuration.state
         install(manager)
         save(manager)
-    }
-
-    /// A loan starts or relaunches. Without a manager of its own (the phone doesn't share its CGM), the grant's
-    /// configuration builds one.
-    func lend(to loan: WatchLoanCGM, configuration: SharedDeviceConfiguration?) {
-        self.loan = loan
-        guard cgmManager == nil, swap == nil, let configuration else { return }
-        WatchLogger.shared.info(.data, "Building the watch's CGM manager from the loan's grant")
-        build(from: configuration)
-    }
-
-    func endLoan(_ loan: WatchLoanCGM) {
-        if self.loan === loan { self.loan = nil }
     }
 
     /// Any wake that is not the sensor's own.
@@ -139,7 +176,12 @@ import WatchKit
 
     /// Returns once the manager has let go of the sensor.
     private func remove() async {
-        guard let previous = cgmManager else { return }
+        await detach()?.delete()
+    }
+
+    /// Drops the manager, which keeps its connection.
+    private func detach() -> (any WatchReadableCGM)? {
+        guard let previous = cgmManager else { return nil }
         previous.cgmManagerDelegate = nil
         statusObserver.map(NotificationCenter.default.removeObserver)
         statusObserver = nil
@@ -149,7 +191,7 @@ import WatchKit
         isTalkingToSensor = false
         UserDefaults.standard.removeObject(forKey: Self.storageKey)
         updateStatus()
-        await previous.delete()
+        return previous
     }
 
     private func save(_ manager: any WatchReadableCGM) {
@@ -223,20 +265,17 @@ extension WatchCGMHost: CGMManagerDelegate {
         MainActor.assumeIsolated {
             switch readingResult {
             case let .newData(samples):
-                loan?.received(samples)
                 let readings = Self.readings(from: samples)
                 guard !readings.isEmpty else { return }
                 WatchLogger.shared.info(.data, "Direct reading: \(readings.count) sample(s)")
                 updateStatus()
                 WatchState.shared.applyOwnReadings(readings)
                 WatchAlarms.shared.check(own: readings)
-                WatchLoanRuntime.host?.ownReadingsArrived(readings, sensorProblem: hasSensorProblem)
                 scheduleAcquisitionBackstop()
             case .unreliableData:
                 noteSensorProblem(true)
             case let .error(error):
                 WatchLogger.shared.warning(.data, "CGM reading failed", error: error)
-                loan?.failed(error)
                 // a reading the sensor withholds arrives as an error
                 updateStatus()
             case .noData:
@@ -279,34 +318,37 @@ extension WatchCGMHost: CGMManagerDelegate {
         WatchLogger.shared.debug(.data, "CGM \(type): \(message)")
         completion?(nil)
         guard type == .connection else { return }
-        let at = Date()
         // in order with the manager's other news, which comes on main
         DispatchQueue.main.async {
-            MainActor.assumeIsolated { self.noteLink(afterLog: message, at: at) }
+            MainActor.assumeIsolated { self.noteLink(afterLog: message) }
         }
     }
 
-    private func noteLink(afterLog message: String, at: Date) {
+    private func noteLink(afterLog message: String) {
         guard let cgmManager, let linkIsUp = type(of: cgmManager).watchLinkIsUp(afterLog: message) else { return }
-        if linkIsUp, !isTalkingToSensor {
-            linkUpAt = at
-            loan?.sensorLinkUp()
-        }
+        if linkIsUp, !isTalkingToSensor { linkUpAt = Date() }
         isTalkingToSensor = linkIsUp
+    }
+
+    /// The manager lent to Trio on Watch logs to the loan, not here: its link-up still starts the wake's Bluetooth
+    /// window. True at a new link-up.
+    @discardableResult func noteLoanLink(linkIsUp: Bool) -> Bool {
+        defer { isTalkingToSensor = linkIsUp }
+        guard linkIsUp, !isTalkingToSensor else { return false }
+        linkUpAt = Date()
+        return true
     }
 
     nonisolated func deviceManager(_: DeviceManager, recordAnalyticsEvent _: String, properties _: [AnyHashable: Any]?) {}
 
-    // The phone issues the sensor's alerts; the watch only logs them, unless a loan decides to show them.
+    // The phone issues the sensor's alerts; the watch only logs them.
     nonisolated func issueAlert(_ alert: Alert) async {
-        WatchLogger.shared.info(.data, "Alert from the watch's CGM: \(alert.identifier.value)")
+        WatchLogger.shared.info(.data, "Alert from the watch's CGM, not shown: \(alert.identifier.value)")
         await setPairingUnfinished(alert.identifier, true)
-        await loan?.issueAlert(alert)
     }
 
     nonisolated func retractAlert(identifier: Alert.Identifier) async {
         await setPairingUnfinished(identifier, false)
-        await loan?.retractAlert(identifier: identifier)
     }
 
     /// The one alert the watch keeps as a note: a pairing it must finish with the app open.

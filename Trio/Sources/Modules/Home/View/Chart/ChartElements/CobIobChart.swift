@@ -7,8 +7,11 @@ extension MainChartCanvas {
         Chart {
             drawCurrentTimeMarker()
             drawCOBIOBChart()
-            drawIobProjection()
-            drawCobProjection()
+            // the projection is the phone's last own one; the watch doses now
+            if !state.watchHoldsPump {
+                drawIobProjection()
+                drawCobProjection()
+            }
         }
         .chartLegend(.hidden)
         // Full pane height: the time labels are no longer reserved out of this pane at

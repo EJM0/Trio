@@ -14,6 +14,7 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var iob: String?
     var cob: String?
     var lastLoopTime: String?
+    /// The watch ages it itself; `lastLoopTime` is only right when sent.
     var lastLoopDate: Date?
     var lowGlucoseLimit: Double?
     var highGlucoseLimit: Double?
@@ -36,6 +37,9 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
 
     var complicationCornerValue: WatchComplicationValue = WatchComplicationDefaults.cornerValue
     var complicationSecondaryValue: WatchComplicationValue = WatchComplicationDefaults.secondaryValue
+    var complicationStaleMinutes: Int = WatchComplicationDefaults.staleMinutes
+    var complicationColorMode: WatchComplicationColorMode = WatchComplicationDefaults.colorMode
+    var complicationRingStops: [ComplicationRingStop] = []
 
     // Forecast options
     var showForecast: Bool = false
@@ -109,6 +113,9 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
             lhs.confirmBolusFaster == rhs.confirmBolusFaster &&
             lhs.complicationCornerValue == rhs.complicationCornerValue &&
             lhs.complicationSecondaryValue == rhs.complicationSecondaryValue &&
+            lhs.complicationStaleMinutes == rhs.complicationStaleMinutes &&
+            lhs.complicationColorMode == rhs.complicationColorMode &&
+            lhs.complicationRingStops == rhs.complicationRingStops &&
             lhs.showForecast == rhs.showForecast &&
             lhs.isForecastCone == rhs.isForecastCone &&
             lhs.forecastStartDate == rhs.forecastStartDate &&
@@ -153,6 +160,9 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(confirmBolusFaster)
         hasher.combine(complicationCornerValue)
         hasher.combine(complicationSecondaryValue)
+        hasher.combine(complicationStaleMinutes)
+        hasher.combine(complicationColorMode)
+        hasher.combine(complicationRingStops)
         hasher.combine(showForecast)
         hasher.combine(isForecastCone)
         hasher.combine(watchSensorConfiguration)

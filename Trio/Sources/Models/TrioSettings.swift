@@ -75,6 +75,8 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var trioOnWatchFallback: Bool = false
     var watchComplicationCornerValue: WatchComplicationValue = WatchComplicationDefaults.cornerValue
     var watchComplicationSecondaryValue: WatchComplicationValue = WatchComplicationDefaults.secondaryValue
+    var watchComplicationStaleMinutes: Int = WatchComplicationDefaults.staleMinutes
+    var watchComplicationColorMode: WatchComplicationColorMode = WatchComplicationDefaults.colorMode
     var overrideFactor: Decimal = 0.8
     var fattyMeals: Bool = false
     var fattyMealFactor: Decimal = 0.7
@@ -463,6 +465,14 @@ extension TrioSettings: Decodable {
 
         if let value = try? container.decode(WatchComplicationValue.self, forKey: .watchComplicationSecondaryValue) {
             settings.watchComplicationSecondaryValue = value
+        }
+
+        if let value = try? container.decode(Int.self, forKey: .watchComplicationStaleMinutes) {
+            settings.watchComplicationStaleMinutes = WatchComplicationDefaults.clampedStaleMinutes(value)
+        }
+
+        if let value = try? container.decode(WatchComplicationColorMode.self, forKey: .watchComplicationColorMode) {
+            settings.watchComplicationColorMode = value
         }
 
         if let displayPresets = try? container.decode(Bool.self, forKey: .displayPresets) {

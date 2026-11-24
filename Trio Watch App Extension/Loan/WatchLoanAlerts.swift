@@ -13,6 +13,8 @@ final class WatchLoanAlerts {
     static let acknowledgeAction = "trio.loan.podAlert.acknowledge"
 
     private let notifier: WatchLoanNotifier
+    /// The borrowed pump is a Medtrum patch: the texts say "patch", not "pod".
+    var pumpIsPatch = false
 
     init(notifier: WatchLoanNotifier) {
         self.notifier = notifier
@@ -90,13 +92,27 @@ final class WatchLoanAlerts {
                 localized: "Trio on Watch stopped",
                 comment: "Watch alert title when the watch stopped controlling the pump"
             )
-            body = Self.text(for: reason)
+            body = Self.text(for: reason, patch: pumpIsPatch)
         case .podUnreachable:
-            title = String(localized: "Can't reach your pod", comment: "Watch alert title when the watch can't reach the pod")
-            body = String(
+            title =
+                (
+                    pumpIsPatch ?
+                        String(
+                            localized: "Can't reach your patch",
+                            comment: "Watch alert title when the watch can't reach the patch"
+                        ) :
+                        String(
+                            localized: "Can't reach your pod",
+                            comment: "Watch alert title when the watch can't reach the pod"
+                        )
+                )
+            body = (pumpIsPatch ? String(
+                localized: "Keep your watch close to the patch. Trio keeps trying.",
+                comment: "Watch alert body when the patch can't be reached"
+            ) : String(
                 localized: "Keep your watch close to the pod. Trio keeps trying.",
                 comment: "Watch alert body when the pod can't be reached"
-            )
+            ))
         case .loanStateUnreadable,
              .podTakenOnThisPhone,
              .podTotalUnreliable,
@@ -120,7 +136,7 @@ final class WatchLoanAlerts {
         )
     }
 
-    static func text(for reason: WatchStopReason) -> String {
+    static func text(for reason: WatchStopReason, patch: Bool = false) -> String {
         switch reason {
         case .superseded:
             return String(
@@ -128,10 +144,13 @@ final class WatchLoanAlerts {
                 comment: "Watch stop reason: the phone took the pump back"
             )
         case .foreignSession:
-            return String(
+            return (patch ? String(
+                localized: "Another device used your patch. This watch sends no more pump commands. Check Trio on your iPhone.",
+                comment: "Watch stop reason: another device used the patch"
+            ) : String(
                 localized: "Another device used your pod. This watch sends no more pump commands. Check Trio on your iPhone.",
                 comment: "Watch stop reason: another device used the pod"
-            )
+            ))
         case .resumeWindowPassed:
             return String(
                 localized: "Trio on Watch was off for too long. Take the pump back on your iPhone.",
@@ -233,7 +252,10 @@ final class WatchLoanAlerts {
     func postPodUnreachable(phoneReachable: Bool) {
         notifier.post(
             id: "trio.loan.podLink",
-            title: String(localized: "Can't reach your pod", comment: "Watch alert title when the pod didn't answer for a while"),
+            title: pumpIsPatch ? String(
+                localized: "Can't reach your patch",
+                comment: "Watch alert title when the patch didn't answer for a while"
+            ) : String(localized: "Can't reach your pod", comment: "Watch alert title when the pod didn't answer for a while"),
             body: phoneReachable
                 ? String(
                     localized: "Open Trio on your watch, or End to let your iPhone loop.",
@@ -311,11 +333,14 @@ final class WatchLoanAlerts {
     }
 
     // the kit's own fix (replace or deactivate the pod, pair a new sensor) runs on the phone (G-10)
-    static var podNeedsPhone: String {
-        String(
+    static func podNeedsPhone(patch: Bool) -> String {
+        (patch ? String(
+            localized: "Replacing your patch needs your iPhone. Bring it close and end Trio on Watch, or take back your pump on your iPhone.",
+            comment: "Watch line under a pump alert while Trio on Watch runs"
+        ) : String(
             localized: "Replacing your pod needs your iPhone. Bring it close and end Trio on Watch, or take back your pump on your iPhone.",
             comment: "Watch line under a pump alert while Trio on Watch runs"
-        )
+        ))
     }
 
     static var sensorNeedsPhone: String {

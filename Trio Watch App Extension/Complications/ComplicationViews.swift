@@ -40,7 +40,7 @@ enum ComplicationKind: String, CaseIterable, Identifiable {
             )
         case .iob:
             return String(
-                localized: "Insulin on board first, with COB and glucose alongside. Fixed layout.",
+                localized: "Insulin on board first, with COB and glucose alongside. Fixed layout; only Mark Stale After applies.",
                 comment: "Description of the insulin on board watch complication"
             )
         case .chart:
@@ -75,7 +75,9 @@ struct ComplicationRendering {
 }
 
 struct ComplicationModel {
-    private static let highWarningSpan = 0.15
+    static let neutralRing = Gradient(colors: [.white, .white])
+    static let dimText = Color(white: 0.8)
+    static let staleText = Color(white: 0.65)
 
     let kind: ComplicationKind
     let displayedState: ComplicationState
@@ -96,9 +98,6 @@ struct ComplicationModel {
         isLoopUnknown = !isPlaceholder && state.loopDate == nil
         var shown = state
         shown.lastLoopTime = state.loopAgeText(at: referenceDate)
-        if !isPlaceholder, state.isAging(at: referenceDate) {
-            shown.delta = state.date.formatted(date: .omitted, time: .shortened)
-        }
         if !isPlaceholder, let sensorState = state.sensorState {
             shown.delta = sensorState
         }
@@ -110,22 +109,32 @@ struct ComplicationModel {
     }
 
     var glucoseColor: Color {
-        if isStale { return .gray }
+        if isStale { return Self.staleText }
         return fullColor ? displayedState.glucoseColor : .primary
     }
 
-    var valueColor: Color { isStale || isLoopStale || isLoopUnknown ? .gray : .primary }
+    var glucoseTextColor: Color {
+        if isStale { return Self.staleText }
+        return fullColor && !displayedState.isMonochrome ? displayedState.glucoseColor : .primary
+    }
+
+    var valueColor: Color { isStale || isLoopStale || isLoopUnknown ? Self.staleText : .primary }
+
+    var loopLineColor: Color { isLoopStale || isLoopUnknown ? Self.staleText : Self.dimText }
 
     var statusLine: String {
+        if isStale { return ageText }
         if isLoopStale { return "loop \(displayedState.lastLoopTime)" }
         return "COB \(displayedState.cob)"
     }
 
-    var dimColor: Color { isStale ? .gray : .secondary }
+    var dimColor: Color { isStale ? Self.staleText : Self.dimText }
 
-    var trendArrow: String { displayedState.trendArrow }
+    var trendArrow: String { isStale ? "" : displayedState.trendArrow }
 
-    var glucoseText: String { displayedState.glucose }
+    var glucoseText: String {
+        isStale ? ComplicationState.missingValue : displayedState.glucose
+    }
 
     var glucoseWithArrow: String {
         trendArrow.isEmpty ? glucoseText : "\(glucoseText)\(trendArrow)"
@@ -148,9 +157,17 @@ struct ComplicationModel {
     var iobText: String { displayedState.iob == ComplicationState.missingValue ? displayedState.iob : "\(displayedState.iob) U" }
     var cobText: String { displayedState.cob == ComplicationState.missingValue ? displayedState.cob : "\(displayedState.cob) g" }
 
-    var secondaryText: String { displayedState.plainText(for: displayedState.secondaryValue) }
+    var secondaryText: String {
+        isStale ? ageText : displayedState.plainText(for: displayedState.secondaryValue)
+    }
 
-    var cornerText: String { displayedState.labelledText(for: displayedState.cornerValue) }
+    var secondaryTextBesideArrow: String {
+        isStale ? ageText : displayedState.plainText(for: displayedState.secondaryValue, withArrow: trendArrow.isEmpty)
+    }
+
+    var cornerText: String {
+        isStale ? ageText : displayedState.labelledText(for: displayedState.cornerValue, withArrow: trendArrow.isEmpty)
+    }
 
     var gaugeValue: Double {
         displayedState.gaugeValue ?? (displayedState.gaugeRange.lowerBound + displayedState.gaugeRange.upperBound) / 2
@@ -158,26 +175,13 @@ struct ComplicationModel {
 
     var gaugeGradient: Gradient {
         if isStale || !fullColor || displayedState.gaugeValue == nil {
-            return Gradient(colors: [.gray, .gray])
+            return Gradient(colors: [Self.staleText, Self.staleText])
         }
-        return Gradient(stops: ringStops)
-    }
-
-    private var ringStops: [Gradient.Stop] {
-        let range = displayedState.gaugeRange
-        let span = range.upperBound - range.lowerBound
-        let fraction: (Double) -> Double = { value in
-            min(max((value - range.lowerBound) / span, 0), 1)
+        let stops = (displayedState.ringStops ?? []).compactMap { stop in
+            Color(complicationHex: stop.colorHex).map { Gradient.Stop(color: $0, location: stop.location) }
         }
-        let low = fraction(displayedState.inRangeBand.lowerBound)
-        let high = fraction(displayedState.inRangeBand.upperBound)
-        return [
-            .init(color: .red, location: 0),
-            .init(color: .green, location: low),
-            .init(color: .green, location: high),
-            .init(color: .orange, location: min(high + Self.highWarningSpan, 1)),
-            .init(color: .red, location: 1)
-        ]
+        guard !stops.isEmpty else { return Self.neutralRing }
+        return Gradient(stops: stops)
     }
 }
 
@@ -192,7 +196,7 @@ private struct GlucoseRingGauge: View {
             Text(model.glucoseText)
                 .font(.system(size: fontSize, weight: .bold))
                 .minimumScaleFactor(0.5)
-                .foregroundStyle(model.glucoseColor)
+                .foregroundStyle(model.glucoseTextColor)
         }
         .gaugeStyle(.accessoryCircular)
         .tint(model.gaugeGradient)
@@ -241,7 +245,7 @@ struct ComplicationCircularContent: View {
         VStack(spacing: -2) {
             Text(model.glucoseText)
                 .font(.system(size: 22, weight: .bold))
-                .foregroundStyle(model.glucoseColor)
+                .foregroundStyle(model.glucoseTextColor)
             Text(model.secondaryText)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(model.dimColor)
@@ -273,7 +277,7 @@ struct ComplicationCornerMain: View {
             .font(.system(size: 20, weight: .bold, design: .rounded))
             .minimumScaleFactor(0.6)
             .lineLimit(1)
-            .foregroundStyle(model.kind == .iob ? model.valueColor : model.glucoseColor)
+            .foregroundStyle(model.kind == .iob ? model.valueColor : model.glucoseTextColor)
     }
 }
 
@@ -295,7 +299,7 @@ struct ComplicationCornerLabel: View {
             .tint(model.gaugeGradient)
         case .iob:
             Text(
-                model.isLoopStale
+                model.isStale || model.isLoopStale
                     ? model.statusLine
                     : "COB \(model.cobText) · \(model.glucoseText)"
             )
@@ -332,20 +336,22 @@ struct ComplicationRectangularContent: View {
         HStack(alignment: .firstTextBaseline, spacing: 4) {
             Text(model.glucoseText)
                 .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(model.glucoseColor)
-            Text(model.displayedState.trendArrow)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(model.glucoseColor)
-            Text(model.displayedState.delta)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(model.glucoseTextColor)
+            if !model.isStale {
+                Text(model.displayedState.trendArrow)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(model.glucoseTextColor)
+                Text(model.displayedState.delta)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(model.dimColor)
+            }
         }
     }
 
     private var ageLine: some View {
         Text("\(model.ageText) ago · loop \(model.displayedState.lastLoopTime)")
             .font(.system(size: 11))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(model.dimColor)
     }
 
     private var glucose: some View {
@@ -386,10 +392,14 @@ struct ComplicationRectangularContent: View {
             HStack(spacing: 4) {
                 Text(model.glucoseWithArrow)
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(model.glucoseColor)
-                Text("\(model.displayedState.delta) · loop \(model.displayedState.lastLoopTime)")
-                    .font(.system(size: 11))
-                    .foregroundStyle(model.isLoopStale || model.isLoopUnknown ? Color.gray : Color.secondary)
+                    .foregroundStyle(model.glucoseTextColor)
+                Text(
+                    model.isStale
+                        ? "\(model.ageText) ago"
+                        : "\(model.displayedState.delta) · loop \(model.displayedState.lastLoopTime)"
+                )
+                .font(.system(size: 11))
+                .foregroundStyle(model.loopLineColor)
             }
         }
     }
@@ -399,8 +409,8 @@ struct ComplicationRectangularContent: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text(model.glucoseWithArrow)
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(model.glucoseColor)
-                Text(model.secondaryText)
+                    .foregroundStyle(model.glucoseTextColor)
+                Text(model.secondaryTextBesideArrow)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(model.dimColor)
                 Text(
@@ -429,11 +439,15 @@ struct ComplicationInlineContent: View {
     private var text: String {
         switch model.kind {
         case .iob:
-            return "IOB \(model.iobText) · COB \(model.cobText) · \(model.glucoseWithArrow)"
+            return model.isStale
+                ? "IOB \(model.iobText) · \(model.ageText) ago"
+                : "IOB \(model.iobText) · COB \(model.cobText) · \(model.glucoseWithArrow)"
         case .chart,
              .gauge,
              .glucose:
-            return "\(model.glucoseWithArrow) \(model.displayedState.delta) · IOB \(model.displayedState.iob)"
+            return model.isStale
+                ? "\(model.glucoseText) · \(model.ageText) ago"
+                : "\(model.glucoseWithArrow) \(model.displayedState.delta) · IOB \(model.displayedState.iob)"
         }
     }
 }
@@ -494,7 +508,7 @@ struct ComplicationSparkline: View {
             } else {
                 Text("no data")
                     .font(.system(size: 10, design: .rounded))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(ComplicationModel.dimText)
                     .frame(width: geometry.size.width, height: geometry.size.height)
             }
         }
@@ -574,26 +588,31 @@ struct ComplicationPreview: View {
     let slot: ComplicationSlot
     let state: ComplicationState
 
+    private static let watchBackground = Color(white: 0.12)
+
     private var model: ComplicationModel {
         ComplicationModel(kind: kind, state: state, rendering: ComplicationRendering(referenceDate: state.date))
     }
 
     var body: some View {
-        switch slot {
-        case .circular:
-            circular
-        case .rectangular:
-            rectangular
-        case .corner:
-            corner
-        case .inline:
-            EmptyView()
+        Group {
+            switch slot {
+            case .circular:
+                circular
+            case .rectangular:
+                rectangular
+            case .corner:
+                corner
+            case .inline:
+                EmptyView()
+            }
         }
+        .environment(\.colorScheme, .dark)
     }
 
     private var circular: some View {
         ZStack {
-            Circle().fill(Color.white.opacity(0.14))
+            Circle().fill(Self.watchBackground)
             ComplicationCircularContent(model: model)
                 .padding(4)
         }
@@ -605,7 +624,7 @@ struct ComplicationPreview: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
             .frame(width: 172, height: 66)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.14)))
+            .background(RoundedRectangle(cornerRadius: 12).fill(Self.watchBackground))
     }
 
     private var corner: some View {
@@ -615,7 +634,7 @@ struct ComplicationPreview: View {
         }
         .padding(6)
         .frame(width: 80, height: 66)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.14)))
+        .background(RoundedRectangle(cornerRadius: 12).fill(Self.watchBackground))
     }
 
     @ViewBuilder private var cornerLabel: some View {

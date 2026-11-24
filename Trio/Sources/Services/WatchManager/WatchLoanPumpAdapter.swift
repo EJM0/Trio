@@ -1,9 +1,10 @@
 import Foundation
 import LoopKit
 import LoopKitUI
+import MedtrumKit
 import OmnipodKit
 
-/// A pump that can be lent to Apple Watch and taken back (OmnipodKit's controller hand-off).
+/// A pump that can be lent to Apple Watch and taken back (the OmnipodKit and MedtrumKit controller hand-off).
 protocol SupersedingDeviceControl: ExclusiveDeviceControl {
     var refusesSessions: Bool { get }
     var foreignSessionDetectedAt: Date? { get }
@@ -23,6 +24,8 @@ extension OmniPumpManager: SupersedingDeviceControl {
     var deliveryStartedAt: Date? { state.podState?.activatedAt }
     var deliveryEndsAt: Date? { state.podState?.expiresAt }
 }
+
+extension MedtrumPumpManager: SupersedingDeviceControl {}
 
 /// Every kit call of a hand-off goes through here, so a kit API change touches this file only.
 /// Calls that wait out a pod session run off the main thread.

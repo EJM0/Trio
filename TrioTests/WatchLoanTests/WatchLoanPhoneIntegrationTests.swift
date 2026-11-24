@@ -16,21 +16,33 @@ import Testing
         let gate: WatchLoanGate
         let alertManager: TrioAlertManager?
         let notLoopingMonitor: NotLoopingMonitor?
+        /// As in the app: each store call on a context of its own, so two calls run side by side.
+        let freshContexts: (() -> NSManagedObjectContext)?
 
         init(
             context: NSManagedObjectContext,
             gate: WatchLoanGate,
             alertManager: TrioAlertManager?,
-            notLoopingMonitor: NotLoopingMonitor?
+            notLoopingMonitor: NotLoopingMonitor?,
+            freshContexts: (() -> NSManagedObjectContext)? = nil
         ) {
             self.context = context
             self.gate = gate
             self.alertManager = alertManager
             self.notLoopingMonitor = notLoopingMonitor
+            self.freshContexts = freshContexts
         }
 
         func assemble(container: Container) {
             container.register(WatchLoanGate.self) { _ in self.gate }
+            if let freshContexts {
+                container.register(GlucoseStorage.self) { r in
+                    BaseGlucoseStorage(resolver: r, contextProvider: freshContexts)
+                }.inObjectScope(.container)
+                container.register(CarbsStorage.self) { r in
+                    BaseCarbsStorage(resolver: r, contextProvider: freshContexts)
+                }.inObjectScope(.container)
+            }
             if let alertManager {
                 container.register(TrioAlertManager.self) { _ in alertManager }
             }
@@ -70,24 +82,30 @@ import Testing
 
     private static func makeRig(
         alertManager: TrioAlertManager? = nil,
-        notLoopingMonitor: NotLoopingMonitor? = nil
+        notLoopingMonitor: NotLoopingMonitor? = nil,
+        freshContexts: Bool = false
     ) async throws -> Rig {
         let stack = try await CoreDataStack.createForTests()
         let context = stack.newTaskContext()
+        let fresh: (() -> NSManagedObjectContext)? = freshContexts ? { stack.newTaskContext() } : nil
         let gateStore: WatchLoanStore<PhoneLoanState> = WatchLoanStoreTests.temporaryStore()
         let gate = WatchLoanGate(store: gateStore)
         let resolver = Assembler([
             StorageAssembly(), ServiceAssembly(), APSAssembly(), NetworkAssembly(), UIAssembly(), SecurityAssembly(),
             TestAssembly(testContext: context),
-            LoanTestAssembly(context: context, gate: gate, alertManager: alertManager, notLoopingMonitor: notLoopingMonitor)
+            LoanTestAssembly(
+                context: context,
+                gate: gate,
+                alertManager: alertManager,
+                notLoopingMonitor: notLoopingMonitor,
+                freshContexts: fresh
+            )
         ]).resolver
         return Rig(
             resolver: resolver,
             context: context,
             gateStore: gateStore,
-            host: BaseWatchLoanPhoneHost(resolver: resolver, contextProvider: {
-                context
-            })
+            host: BaseWatchLoanPhoneHost(resolver: resolver, contextProvider: fresh ?? { context })
         )
     }
 
@@ -245,6 +263,93 @@ import Testing
             PumpEventStored.self,
             NSPredicate(format: "syncIdentifier == %@", kit.newPumpEvent.dose!.syncIdentifier!)
         ) == 1)
+    }
+
+    @Test("The watch's TDD rows fill the phone's TDD history once, so Dynamic ISF keeps its 7 days") func tddRows() async throws {
+        let rig = try await Self.makeRig()
+        let now = Date()
+        // a week of watch loops, a row every 5 minutes
+        let rows = (0 ..< 7 * 288).map {
+            OrefInputs.TDDRow(date: now.addingTimeInterval(-Double($0) * 300 - 30), total: Decimal(30 + $0 % 7))
+        }
+        func batch(_ rows: [OrefInputs.TDDRow]) -> WatchLoanRecordBatch {
+            var batch = WatchLoanRecordBatch(
+                version: WatchLoanRecordBatch.currentVersion, batchID: UUID(), epoch: 1, sentAt: now, pumpEvents: [],
+                runningTemp: nil, carbs: [], deletedCarbIDs: [], glucose: []
+            )
+            batch.tddRows = rows
+            return batch
+        }
+        #expect(try await !BaseTDDStorage.hasSufficientTDD(context: rig.context, now: now))
+
+        // through the wire format, as the watch sends it
+        let sent = try WatchLoanRecordBatch.decode(batch(rows).encoded())
+        try await rig.host.merge(sent)
+        // a resend of rows the phone already has, as before an acknowledgement, adds nothing
+        try await rig.host.merge(sent)
+        #expect(try await rig.count(TDDStored.self) == rows.count)
+        #expect(try await BaseTDDStorage.hasSufficientTDD(context: rig.context, now: now))
+
+        let newest = try await rig.context.perform {
+            let request = TDDStored.fetchRequest() as NSFetchRequest<TDDStored>
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \TDDStored.date, ascending: false)]
+            request.fetchLimit = 1
+            return try rig.context.fetch(request).first.map { ($0.date, $0.total?.decimalValue) }
+        }
+        #expect(abs((newest?.0 ?? .distantPast).timeIntervalSince(rows[0].date!)) < 1)
+        #expect(newest?.1 == rows[0].total)
+
+        // read back as the phone's loop does, then through oref's TDD values
+        let loaded = try await rig.context.perform {
+            let request = TDDStored.fetchRequest() as NSFetchRequest<TDDStored>
+            request.predicate = NSPredicate(format: "date > %@ AND total > 0", OrefInputs.tddHistoryStart(now: now) as NSDate)
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \TDDStored.date, ascending: true)]
+            return try rig.context.fetch(request).map { OrefInputs.TDDRow(date: $0.date, total: $0.total?.decimalValue) }
+        }
+        let values = OrefRun.trioCustomOrefVariables(
+            preferences: nil,
+            tddHistory: OrefInputs.tddHistory(loaded, now: now),
+            activeOverride: nil,
+            now: now
+        )
+        let mean = rows.compactMap(\.total).reduce(0, +) / Decimal(rows.count)
+        #expect(values.currentTDD == rows[0].total)
+        #expect(values.average_total_data == mean)
+    }
+
+    @Test("Batches that arrive together, each repeating the last, store every reading and carb entry once") func burstOfBatches(
+    ) async throws {
+        let rig = try await Self.makeRig(freshContexts: true)
+        let store: WatchLoanStore<PhoneLoanState> = WatchLoanStoreTests.temporaryStore()
+        try store.save(.lent(epoch: 1))
+        let coordinator = WatchLoanCoordinator(
+            host: rig.host,
+            store: store,
+            ledgerStore: WatchLoanStoreTests.temporaryStore(WatchLoanLedger.self)
+        )
+        let start = Date().addingTimeInterval(-3600)
+        let readings = (0 ..< 10).map { Self.reading(start.addingTimeInterval(Double($0) * 300), 100 + $0) }
+        let carbs = CarbsEntry(
+            id: UUID().uuidString, createdAt: start, actualDate: start, carbs: 20, fat: 0, protein: 0, note: nil,
+            enteredBy: "Trio", isFPU: false, fpuID: nil
+        )
+        // the watch resends what the phone hasn't acknowledged, so each batch holds the readings of the ones before
+        let payloads = try (1 ... readings.count).map { count in
+            let batch = WatchLoanRecordBatch(
+                version: WatchLoanRecordBatch.currentVersion, batchID: UUID(), epoch: 1, sentAt: Date(), pumpEvents: [],
+                runningTemp: nil, carbs: [carbs], deletedCarbIDs: [], glucose: Array(readings.prefix(count))
+            )
+            return [WatchLoanWireKey.records: try batch.encoded()] as [String: Any]
+        }
+        await withTaskGroup(of: Void.self) { group in
+            for payload in payloads {
+                group.addTask { await coordinator.receive(payload) }
+            }
+        }
+        let storedReadings = try await rig.count(GlucoseStored.self)
+        let storedCarbs = try await rig.count(CarbEntryStored.self, NSPredicate(format: "isFPU == NO"))
+        #expect(storedReadings == readings.count)
+        #expect(storedCarbs == 1)
     }
 
     @Test("The status query's reply-handler delegate method is visible to WatchConnectivity") func replyHandlerSelector() {
@@ -524,5 +629,29 @@ import Testing
         let disarmed = spy.issuedAlerts.count
         await MainActor.run { rig.host.snoozeDidChange(Date().addingTimeInterval(1800)) }
         #expect(spy.issuedAlerts.count == disarmed)
+    }
+}
+
+@Suite("Watch loan: glucose from the watch") struct WatchLoanWatchGlucoseTests {
+    static func reading(_ value: Int16) -> BloodGlucose {
+        OrefInputs.bloodGlucose(
+            id: nil, date: Date(), glucose: value, smoothedGlucose: nil, isManual: false, direction: "Flat",
+            shouldSmoothGlucose: false, roundingBehavior: NSDecimalNumberHandler(
+                roundingMode: .plain, scale: 0, raiseOnExactness: false, raiseOnOverflow: false,
+                raiseOnUnderflow: false, raiseOnDivideByZero: false
+            )
+        )
+    }
+
+    @Test("A watch reading is stored with its value, not as 0") func storedWithValue() {
+        let reading = Self.reading(169)
+        #expect(reading.glucose == nil && reading.sgv == 169)
+        #expect(BaseWatchLoanPhoneHost.storable([reading]).map(\.glucose) == [169])
+    }
+
+    @Test("A reading without a value is dropped") func withoutValue() {
+        var reading = Self.reading(169)
+        reading.sgv = nil
+        #expect(BaseWatchLoanPhoneHost.storable([reading]).isEmpty)
     }
 }

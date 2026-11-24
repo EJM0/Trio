@@ -20,9 +20,39 @@ struct GlucoseTrendView: View {
         return loan.mainValues(now: now)
     }
 
-    /// While a loan runs, its control line replaces the status line under the bubble.
+    private var loanTrend: String? {
+        guard loanValues != nil else { return nil }
+        return loan?.trend(now: now)
+    }
+
+    private var arrowDegrees: Double {
+        loanValues != nil ? Self.degrees(for: loanTrend) : rotationDegrees
+    }
+
+    /// The arrow's angle for a trend: up is -90, flat 0, down 90.
+    static func degrees(for trend: String?) -> Double {
+        switch trend {
+        case "DoubleUp",
+             "SingleUp":
+            return -90
+        case "FortyFiveUp":
+            return -45
+        case "FortyFiveDown":
+            return 45
+        case "DoubleDown",
+             "SingleDown":
+            return 90
+        default:
+            return 0
+        }
+    }
+
+    /// Trio on Watch's line under the bubble: while the watch holds the pump, and otherwise unless the watch reads the
+    /// sensor itself, whose line says more about the sensor.
     private var controlLine: TrioOnWatchStatus.ControlLine? {
-        guard let loan, loan.isLoanActive else { return nil }
+        guard let loan else { return nil }
+        if loan.isLoanActive { return loan.controlLine(now: now, phoneLoopText: state.lastLoopTime) }
+        guard !isReadingDirectly, !isWatchStateDated else { return nil }
         return loan.controlLine(now: now, phoneLoopText: state.lastLoopTime)
     }
 
@@ -145,13 +175,12 @@ struct GlucoseTrendView: View {
                     .shadow(color: ringColor, radius: shadowRadius)
 
                 TrendShape(
-                    // during a loan only the watch's own fresh reading's trend describes what the bubble shows
-                    // during a loan the arrow comes from the same two readings as the delta shown
-                    isWatchStateDated: loanValues.map { $0.trendRotation == nil } ?? isWatchStateDated,
-                    rotationDegrees: loanValues?.trendRotation ?? rotationDegrees,
+                    // in watch mode, the trend of the watch's own reading, not the phone's
+                    isWatchStateDated: loanValues != nil ? loanTrend == nil : isWatchStateDated,
+                    rotationDegrees: arrowDegrees,
                     deviceType: state.deviceType
                 )
-                .animation(.spring(response: 0.5, dampingFraction: 0.6), value: loanValues?.trendRotation ?? rotationDegrees)
+                .animation(.spring(response: 0.5, dampingFraction: 0.6), value: arrowDegrees)
                 .shadow(color: Color.black.opacity(0.5), radius: 5)
 
                 if let loanValues {
@@ -164,7 +193,9 @@ struct GlucoseTrendView: View {
                             .fontWeight(.semibold)
                             .font(.system(.caption))
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                             .minimumScaleFactor(0.7)
+                            .frame(maxWidth: circleSize * 0.75)
                     }
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(Text(loanValues.accessibilityLabel))
@@ -201,24 +232,17 @@ struct GlucoseTrendView: View {
                 } else {
                     ControlLineView(line: controlLine, action: onControlLineTap)
                 }
+            } else if isReadingDirectly {
+                directReadingStatus
             } else {
-                Group {
-                    if isReadingDirectly {
-                        directReadingStatus
-                    } else {
-                        Text(
-                            isWatchStateDated ?
-                                String(
-                                    localized: "STALE DATA",
-                                    comment: "Information displayed when watch app data outdated or stale."
-                                ) :
-                                state
-                                .lastLoopTime ?? "--"
-                        )
-                        .font(.system(size: minutesAgoFontSize))
-                        .fontWidth(isWatchStateDated ? .expanded : .standard)
-                    }
-                }
+                Text(
+                    isWatchStateDated ?
+                        String(localized: "STALE DATA", comment: "Information displayed when watch app data outdated or stale.") :
+                        state
+                        .lastLoopTime ?? "--"
+                )
+                .font(.system(size: minutesAgoFontSize))
+                .fontWidth(isWatchStateDated ? .expanded : .standard)
                 // with Trio on Watch built in, the line opens its status, as its control line does during a loan
                 .onTapGesture { if loan != nil { onControlLineTap() } }
             }

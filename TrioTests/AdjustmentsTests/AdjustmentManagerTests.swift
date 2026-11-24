@@ -232,6 +232,78 @@ import Testing
         #expect(runs.isEmpty, "A rejected command writes no run entry")
     }
 
+    // MARK: - Changes made earlier
+
+    @Test("A temp target started earlier runs from then") func testTempTargetStartedEarlier() async throws {
+        let startedAt = Date().addingTimeInterval(-20 * 60)
+        await makeTempTarget(
+            name: "Eating Soon",
+            enabled: false,
+            date: Date().addingTimeInterval(-86400),
+            duration: 60,
+            target: 80
+        )
+
+        let outcome = try await manager.activateTempTarget(
+            .presetName("Eating Soon"),
+            source: .watch,
+            waitForUpload: false,
+            at: startedAt
+        )
+
+        #expect(outcome.started?.startDate == startedAt)
+        let row = try await tempTargets().first(where: { $0.name == "Eating Soon" })
+        #expect(row?.enabled == true)
+        #expect(row?.date == startedAt, "It ends 60 minutes after the watch started it, not after it arrived")
+    }
+
+    @Test("A temp target started earlier and already over is only recorded") func testTempTargetAlreadyOver() async throws {
+        let startedAt = Date().addingTimeInterval(-90 * 60)
+        await makeTempTarget(
+            name: "Eating Soon",
+            enabled: false,
+            date: Date().addingTimeInterval(-86400),
+            duration: 60,
+            target: 80
+        )
+
+        let outcome = try await manager.activateTempTarget(
+            .presetName("Eating Soon"),
+            source: .watch,
+            waitForUpload: false,
+            at: startedAt
+        )
+
+        #expect(outcome.started == nil)
+        let runs = try await tempTargetRuns()
+        #expect(runs.count == 1)
+        #expect(runs.first?.startDate == startedAt)
+        #expect(runs.first?.endDate == startedAt.addingTimeInterval(60 * 60))
+        #expect(try await tempTargets().first(where: { $0.name == "Eating Soon" })?.enabled == false)
+    }
+
+    @Test("An override stopped earlier ends then") func testOverrideStoppedEarlier() async throws {
+        let start = Date().addingTimeInterval(-60 * 60)
+        let stoppedAt = Date().addingTimeInterval(-40 * 60)
+        await makeOverride(name: "Tempbasal", enabled: true, date: start)
+
+        try await manager.cancelOverride(source: .watch, waitForUpload: false, at: stoppedAt)
+
+        let runs = try await overrideRuns()
+        #expect(runs.first?.startDate == start)
+        #expect(runs.first?.endDate == stoppedAt)
+    }
+
+    @Test("A stop dated before the running override started ends it where it started") func testStopBeforeStart() async throws {
+        let start = Date().addingTimeInterval(-10 * 60)
+        await makeOverride(name: "Tempbasal", enabled: true, date: start)
+
+        try await manager.cancelOverride(source: .watch, waitForUpload: false, at: start.addingTimeInterval(-30 * 60))
+
+        let runs = try await overrideRuns()
+        #expect(runs.first?.endDate == start)
+    }
+
     // MARK: - Fixtures
 
     @discardableResult private func makeOverride(

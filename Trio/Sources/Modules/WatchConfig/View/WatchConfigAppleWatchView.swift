@@ -2,6 +2,19 @@ import SwiftUI
 import Swinject
 
 struct WatchConfigAppleWatchView: BaseView {
+    static let cornerLabelHint = String(
+        localized: "Corner Label is the curved text on Trio Glucose corner slots."
+    )
+    static let smallLineHint = String(
+        localized: "Small Line is the text under the glucose on Trio Glucose circular slots, beside the ring on Trio Gauge rectangular slots, and the second line of Trio Chart. Trio IOB has a fixed layout."
+    )
+    static let markStaleAfterHint = String(
+        localized: "Mark Stale After applies to every complication: once the reading is older than this, the glucose shows -- with the reading's age, and IOB and COB show -- when the loop has not run within that time.\n\nComplications can fall behind the phone, sometimes by a lot: with the watch app closed, watchOS limits how often they refresh. The Contact Image updates with every reading, so use it if you want every reading on your watch face."
+    )
+    static let colorModeHint = String(
+        localized: "Color shows the glucose and trend arrow in the colors the phone uses for them. Monochrome shows them in white, which is easier to read in the dark. The gauge ring and the chart line keep their colors either way."
+    )
+
     let resolver: Resolver
     @ObservedObject var state: WatchConfig.StateModel
 
@@ -25,13 +38,35 @@ struct WatchConfigAppleWatchView: BaseView {
             units: state.units.rawValue,
             settings: ComplicationSlotSettings(
                 cornerValue: state.complicationCornerValue,
-                secondaryValue: state.complicationSecondaryValue
-            )
+                secondaryValue: state.complicationSecondaryValue,
+                staleMinutes: state.complicationStaleMinutes,
+                colorMode: state.complicationColorMode
+            ),
+            ringStops: state.complicationRingStops
         )
     }
 
-    private func previewSlots(for kind: ComplicationKind) -> [ComplicationSlot] {
-        kind.slots.filter { $0 != .inline }
+    private func hintRow(miniHint: String, label: String, hint: String) -> some View {
+        HStack(alignment: .center) {
+            Text(miniHint)
+                .font(.footnote)
+                .foregroundColor(.secondary)
+                .lineLimit(nil)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer()
+            Button(
+                action: {
+                    hintLabel = label
+                    selectedVerboseHint = AnyView(Text(hint))
+                    shouldDisplayHint.toggle()
+                },
+                label: {
+                    Image(systemName: "questionmark.circle").accessibilityLabel(Text("More information"))
+                }
+            ).buttonStyle(BorderlessButtonStyle())
+        }
+        .padding(.vertical, 4)
     }
 
     var body: some View {
@@ -74,8 +109,7 @@ struct WatchConfigAppleWatchView: BaseView {
                 miniHint: String(localized: "Shows forecast on the Apple Watch"),
                 verboseHint: Text(
                     "Enable this feature to show the forecast on the Apple Watch"
-                ),
-                headerText: String(localized: "Apple Watch Configuration")
+                )
             )
 
             SettingInputSection(
@@ -194,52 +228,84 @@ struct WatchConfigAppleWatchView: BaseView {
 
             Section(
                 header: Text("Complication Settings"),
-                footer: Text(
-                    "A reading older than 5 minutes shows its time in place of the delta, and greys after 10 minutes; IOB and COB show -- when the loop has not run for 10 minutes. Corner Label is the curved text on Trio Glucose corner slots. Small Line is the text under the glucose on Trio Glucose circular slots, beside the ring on Trio Gauge rectangular slots, and the second line of Trio Chart. Trio IOB has a fixed layout."
-                ),
                 content: {
-                    Picker("Corner Label", selection: $state.complicationCornerValue) {
-                        ForEach(WatchComplicationValue.allCases) { value in
-                            Text(value.displayName).tag(value)
-                        }
+                    VStack {
+                        Picker("Corner Label", selection: $state.complicationCornerValue) {
+                            ForEach(WatchComplicationValue.allCases) { value in
+                                Text(value.displayName).tag(value)
+                            }
+                        }.padding(.top)
+                        hintRow(
+                            miniHint: String(localized: "Curved text on Trio Glucose corner slots."),
+                            label: String(localized: "Corner Label"),
+                            hint: Self.cornerLabelHint
+                        )
                     }
+                }
+            ).listRowBackground(Color.chart)
+
+            Section {
+                VStack {
                     Picker("Small Line", selection: $state.complicationSecondaryValue) {
                         ForEach(WatchComplicationValue.allCases) { value in
                             Text(value.displayName).tag(value)
                         }
-                    }
+                    }.padding(.top)
+                    hintRow(
+                        miniHint: String(localized: "Second line on Trio Glucose, Trio Gauge and Trio Chart."),
+                        label: String(localized: "Small Line"),
+                        hint: Self.smallLineHint
+                    )
                 }
-            ).listRowBackground(Color.chart)
+            }.listRowBackground(Color.chart)
 
-            Section(
-                header: Text("Available Complications"),
-                footer: Text(
-                    "Previews use sample data in your units and follow the settings above. Add them from the watch face editor under Trio. Corner slots curve the label round the face."
-                ),
-                content: {
-                    let preview = previewState
-                    ForEach(ComplicationKind.allCases) { kind in
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(kind.displayName).font(.headline)
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 10) {
-                                    ForEach(previewSlots(for: kind), id: \.self) { slot in
-                                        ComplicationPreview(kind: kind, slot: slot, state: preview)
-                                    }
-                                }
-                                .padding(.vertical, 2)
-                            }
-                            Text(kind.summary)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
+            Section {
+                VStack {
+                    Stepper(
+                        value: $state.complicationStaleMinutes,
+                        in: WatchComplicationDefaults.staleMinutesRange,
+                        step: WatchComplicationDefaults.staleMinutesStep
+                    ) {
+                        HStack {
+                            Text("Mark Stale After")
+                            Spacer()
+                            Text("\(state.complicationStaleMinutes) min").foregroundStyle(.secondary)
                         }
-                        .padding(.vertical, 4)
-                    }
+                    }.padding(.top)
+                    hintRow(
+                        miniHint: String(localized: "Show -- once data is older than this. Complications can lag."),
+                        label: String(localized: "Mark Stale After"),
+                        hint: Self.markStaleAfterHint
+                    )
                 }
-            ).listRowBackground(Color.chart)
+            }.listRowBackground(Color.chart)
+
+            Section {
+                VStack {
+                    Picker("Color Mode", selection: $state.complicationColorMode) {
+                        ForEach(WatchComplicationColorMode.allCases) { mode in
+                            Text(mode.displayName).tag(mode)
+                        }
+                    }.padding(.top)
+                    hintRow(
+                        miniHint: String(localized: "Glucose text in color or in white."),
+                        label: String(localized: "Color Mode"),
+                        hint: Self.colorModeHint
+                    )
+                }
+            }.listRowBackground(Color.chart)
+
+            Section {
+                NavigationLink("Complication Previews") {
+                    WatchComplicationPreviewsView(preview: previewState)
+                }.foregroundStyle(Color.accentColor)
+            }.listRowBackground(Color.chart)
 
             Section(
                 header: Text("Contact Image"),
+                footer: Text(
+                    "Trio draws your glucose into the photo of a contact on your iPhone. Put that contact on a watch face with the Contacts complication: it updates with every reading, also when the Trio complications lag."
+                ),
                 content: {
                     VStack {
                         HStack {
@@ -266,6 +332,46 @@ struct WatchConfigAppleWatchView: BaseView {
         .navigationTitle("Apple Watch")
         .navigationBarTitleDisplayMode(.automatic)
         .settingsHighlightScroll()
+        .scrollContentBackground(.hidden)
+        .background(appState.trioBackgroundColor(for: colorScheme))
+    }
+}
+
+private struct WatchComplicationPreviewsView: View {
+    let preview: ComplicationState
+
+    @Environment(\.colorScheme) var colorScheme
+    @Environment(AppState.self) var appState
+
+    var body: some View {
+        List {
+            Section(
+                footer: Text(
+                    "Previews use sample data in your units and follow your complication settings. Add them from the watch face editor under Trio. Corner slots curve the label round the face."
+                ),
+                content: {
+                    ForEach(ComplicationKind.allCases) { kind in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(kind.displayName).font(.headline)
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 10) {
+                                    ForEach(kind.slots.filter { $0 != .inline }, id: \.self) { slot in
+                                        ComplicationPreview(kind: kind, slot: slot, state: preview)
+                                    }
+                                }
+                                .padding(.vertical, 2)
+                            }
+                            Text(kind.summary)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            ).listRowBackground(Color.chart)
+        }
+        .navigationTitle("Complication Previews")
+        .navigationBarTitleDisplayMode(.inline)
         .scrollContentBackground(.hidden)
         .background(appState.trioBackgroundColor(for: colorScheme))
     }

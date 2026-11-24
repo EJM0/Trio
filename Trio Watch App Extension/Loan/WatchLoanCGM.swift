@@ -1,64 +1,145 @@
 import Foundation
+import G7SensorKit
 import LoopKit
+import WatchKit
 
-/// The loan's view of the watch's one G7 link, `WatchCGMHost`: the loan builds no manager of its own, so the sensor
-/// is never held by two centrals. The host passes this object its readings, errors and alerts while a loan runs.
-@MainActor final class WatchLoanCGM: LoanCGMSource {
+/// The G7 manager the watch keeps while it holds the pump: built once from the phone's configuration (the sensor is
+/// shared, the phone keeps reading it), then only from its own saved state. Only the kit's public API is used here.
+@MainActor final class WatchLoanCGM: NSObject, LoanCGMSource {
+    private let files: WatchLoanFiles
+    private var manager: G7CGMManager?
+    /// The phone's export the manager reads: the watch's own reading takes the manager back for it. In memory only, so
+    /// after a relaunch the manager is deleted at End.
+    private var builtFrom: [String: Any]?
+    private let delegateQueue = DispatchQueue(label: "org.nightscout.Trio.watch.cgm")
+    private nonisolated let linkEvents = LinkEventClock()
     /// shortcut: in memory only, so a relaunch forgets timed sensor alerts it may need to retract at End; persist if
     /// a stale sensor notice after a loan is reported.
     private var issued: Set<Alert.Identifier> = []
     weak var host: WatchLoanHost?
 
-    /// The grant's configuration builds the host's manager only when the phone isn't already sharing its CGM.
-    func adopt(export: Data) async {
-        let configuration = WatchLoanSnapshot.configuration(from: export).flatMap(SharedDeviceConfiguration.init(rawValue:))
-        if configuration == nil {
-            WatchLogger.shared.error(.cgm, "No CGM configuration in the grant")
-        }
-        WatchCGMHost.shared.lend(to: self, configuration: configuration)
+    init(files: WatchLoanFiles) {
+        self.files = files
+        super.init()
+        // a new pairing can end in the system's Bluetooth pairing request, which shows only with Trio in front
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(appBecameActive), name: WKApplication.didBecomeActiveNotification, object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(appWillResignActive), name: WKApplication.willResignActiveNotification, object: nil
+        )
     }
 
-    /// The host restored its own manager at launch.
+    var isActive: Bool { manager != nil }
+
+    /// The watch has no key for this sensor yet, so its next connection pairs.
+    var needsPairing: Bool {
+        manager.map { $0.localState == nil } ?? false
+    }
+
+    @objc private func appBecameActive() {
+        guard let manager else { return }
+        manager.pairingAllowed = true
+        if needsPairing { manager.recheckAcquisition() }
+    }
+
+    @objc private func appWillResignActive() {
+        manager?.pairingAllowed = false
+    }
+
+    func adopt(export: Data) async {
+        guard let raw = WatchLoanSnapshot.configuration(from: export),
+              let configuration = SharedDeviceConfiguration(rawValue: raw)
+        else {
+            WatchLogger.shared.error(.cgm, "No CGM configuration in the grant")
+            return
+        }
+        // the old managers go first: a new central beside one with the same restore identifier never powers on
+        await retire()
+        let lent = await WatchCGMHost.shared.lendSensor(for: configuration)
+        builtFrom = configuration.state
+        let files = files
+        if let shared = lent.manager {
+            if let shared = shared as? G7CGMManager {
+                install(shared)
+                let rawState = shared.rawState
+                WatchLoanFiles.later("the CGM state") { try files.savePlist(rawState, to: .cgmState) }
+                WatchLogger.shared.info(.cgm, "CGM manager taken over from the watch's own reading, with its connection")
+                return
+            }
+            await shared.delete()
+        }
+        // the watch's own key for this sensor, from its own reading or an earlier loan: without it every loan pairs
+        // again, and that pairing needs the system prompt answered with Trio in front
+        let savedKey = try? await WatchLoanFiles.io { try files.loadPlist(from: .cgmLocalState) }
+        let localState = lent.localState ?? savedKey
+        guard let adopted = G7CGMManager(adopting: configuration, localState: localState) else {
+            WatchLogger.shared.error(.cgm, "The grant's CGM configuration can't be read on the watch")
+            return
+        }
+        install(adopted)
+        let rawState = adopted.rawState
+        WatchLoanFiles.later("the CGM state") { try files.savePlist(rawState, to: .cgmState) }
+        WatchLogger.shared.info(
+            .cgm,
+            "CGM manager built from the grant\(adopted.localState != nil ? ", with this watch's key from an earlier loan" : "")"
+        )
+    }
+
     func restore() {
-        WatchCGMHost.shared.lend(to: self, configuration: nil)
+        guard manager == nil else { return }
+        do {
+            guard let raw = try files.loadPlist(from: .cgmState), let restored = G7CGMManager(rawState: raw) else { return }
+            install(restored)
+            WatchLogger.shared.info(.cgm, "CGM manager restored from its saved state")
+        } catch {
+            WatchLogger.shared.error(.cgm, "The saved CGM state can't be read", error: error)
+        }
     }
 
     /// Any wake the sensor didn't cause.
     func recheckAcquisition() {
-        WatchCGMHost.shared.recheckAcquisition()
+        manager?.recheckAcquisition()
     }
 
     func retire() async {
-        // the phone keeps the sensor's alerts after the loan
+        // the kit's own retractions in delete() come after its delegate is gone; the phone keeps the sensor's alerts
         for identifier in issued { await host?.retractKitAlert(identifier) }
         issued = []
-        WatchCGMHost.shared.endLoan(self)
+        guard let previous = manager else { return }
+        previous.cgmManagerDelegate = nil
+        manager = nil
+        let returnedTo = builtFrom
+        builtFrom = nil
+        let files = files
+        if let local = previous.localState {
+            try? await WatchLoanFiles.io { try files.savePlist(local, to: .cgmLocalState) }
+        }
+        try? await WatchLoanFiles.io { try files.remove(.cgmState) }
+        // handed back with its connection, as it was lent: deleted, its central would keep the next one off
+        previous.pairingAllowed = true
+        if let returnedTo, WatchCGMHost.shared.takeBack(previous, builtFrom: returnedTo) {
+            WatchLogger.shared.info(.cgm, "CGM manager handed back to the watch's own reading")
+        } else {
+            await previous.delete()
+            WatchLogger.shared.info(.cgm, "CGM manager let go")
+        }
+        WatchCGMHost.shared.sensorReturned(localState: previous.localState)
     }
 
-    // MARK: - From WatchCGMHost
-
-    func received(_ samples: [NewGlucoseSample]) {
-        let readings = Self.readings(from: samples)
-        guard !readings.isEmpty else { return }
-        Task { [weak self] in await self?.host?.receiveReadings(readings) }
+    private func install(_ manager: G7CGMManager) {
+        manager.pairingAllowed = WKApplication.shared().applicationState == .active
+        manager.delegateQueue = delegateQueue
+        manager.cgmManagerDelegate = self
+        self.manager = manager
     }
 
-    func sensorLinkUp() {
-        host?.sensorLinkUp()
-    }
-
-    func failed(_ error: Error) {
-        host?.deviceError(error)
-    }
-
-    func issueAlert(_ alert: Alert) async {
-        issued.insert(alert.identifier)
-        await host?.issueSensorAlert(alert)
-    }
-
-    func retractAlert(identifier: Alert.Identifier) async {
-        issued.remove(identifier)
-        await host?.retractKitAlert(identifier)
+    private nonisolated func save(_ manager: CGMManager) {
+        do {
+            try files.savePlist(manager.rawState, to: .cgmState)
+        } catch {
+            WatchLogger.shared.error(.cgm, "Saving the CGM state failed", error: error)
+        }
     }
 
     nonisolated static func readings(from samples: [NewGlucoseSample]) -> [BloodGlucose] {
@@ -91,4 +172,74 @@ import LoopKit
         case nil: return nil
         }
     }
+}
+
+extension WatchLoanCGM: CGMManagerDelegate {
+    nonisolated func startDateToFilterNewData(for _: CGMManager) -> Date? { nil }
+
+    nonisolated func cgmManager(_: CGMManager, hasNew readingResult: CGMReadingResult) {
+        switch readingResult {
+        case let .newData(samples):
+            let readings = Self.readings(from: samples)
+            guard !readings.isEmpty else { return }
+            Task { @MainActor [weak self] in await self?.host?.receiveReadings(readings) }
+        case let .error(error):
+            WatchLogger.shared.warning(.cgm, "CGM reading failed", error: error)
+            Task { @MainActor [weak self] in self?.host?.deviceError(error) }
+        case .noData,
+             .unreliableData:
+            break
+        }
+    }
+
+    nonisolated func cgmManager(_: CGMManager, hasNew _: [PersistedCgmEvent]) {}
+    nonisolated func cgmManagerWantsDeletion(_: CGMManager) async {}
+
+    nonisolated func cgmManagerDidUpdateState(_ manager: CGMManager) {
+        save(manager)
+    }
+
+    nonisolated func credentialStoragePrefix(for _: CGMManager) -> String { "org.nightscout.Trio.WatchLoan" }
+    nonisolated func cgmManager(_: CGMManager, didUpdate _: CGMManagerStatus) {}
+
+    nonisolated func deviceManager(
+        _: DeviceManager,
+        logEventForDeviceIdentifier _: String?,
+        type: DeviceLogEntryType,
+        message: String,
+        completion: ((Error?) -> Void)?
+    ) {
+        WatchLogger.shared.debug(.cgm, "CGM \(type): \(message)")
+        if type == .connection {
+            linkEvents.note("CGM", category: .cgm)
+            // the wake's Bluetooth window starts at the link-up: the loan dials the pod then (Bluetooth tactics)
+            if let linkIsUp = G7CGMManager.watchLinkIsUp(afterLog: message) {
+                DispatchQueue.main.async {
+                    MainActor.assumeIsolated {
+                        if WatchCGMHost.shared.noteLoanLink(linkIsUp: linkIsUp) { self.host?.sensorLinkUp() }
+                    }
+                }
+            }
+        }
+        if message.hasPrefix("RESTORED by the system") {
+            // the kit's willRestoreState: the system relaunched Trio for the sensor's Bluetooth link
+            WatchLogger.shared.info(.cgm, "CGM Bluetooth state restored by the system, app \(WatchAppState.current)")
+        }
+        completion?(nil)
+    }
+
+    func issueAlert(_ alert: Alert) async {
+        issued.insert(alert.identifier)
+        await host?.issueSensorAlert(alert)
+    }
+
+    func retractAlert(identifier: Alert.Identifier) async {
+        issued.remove(identifier)
+        await host?.retractKitAlert(identifier)
+    }
+
+    nonisolated func doesIssuedAlertExist(identifier _: Alert.Identifier) async throws -> Bool { false }
+    nonisolated func lookupAllUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }
+    nonisolated func lookupAllUnacknowledgedUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }
+    nonisolated func recordRetractedAlert(_: Alert, at _: Date) async throws {}
 }

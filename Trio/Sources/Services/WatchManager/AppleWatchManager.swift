@@ -11,10 +11,27 @@ protocol WatchManager {
     func setupWatchState() async -> WatchState?
 }
 
+protocol WatchStateTransport: AnyObject {
+    var isPaired: Bool { get }
+    var isWatchAppInstalled: Bool { get }
+    var isReachable: Bool { get }
+    var isComplicationEnabled: Bool { get }
+    var activationState: WCSessionActivationState { get }
+    var remainingComplicationUserInfoTransfers: Int { get }
+    var outstandingUserInfoTransfers: [WCSessionUserInfoTransfer] { get }
+    func activate()
+    func sendMessage(_ message: [String: Any], replyHandler: (([String: Any]) -> Void)?, errorHandler: ((Error) -> Void)?)
+    func updateApplicationContext(_ applicationContext: [String: Any]) throws
+    @discardableResult func transferUserInfo(_ userInfo: [String: Any]) -> WCSessionUserInfoTransfer
+    @discardableResult func transferCurrentComplicationUserInfo(_ userInfo: [String: Any]) -> WCSessionUserInfoTransfer
+}
+
+extension WCSession: WatchStateTransport {}
+
 /// Main implementation of the Watch communication manager
 /// Handles bidirectional communication between iPhone and Apple Watch
 final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchManager {
-    private(set) var session: WCSession?
+    var session: WatchStateTransport?
 
     @Injected() var broadcaster: Broadcaster!
     @Injected() private var apsManager: APSManager!
@@ -26,10 +43,11 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     @Injected() private var tempTargetStorage: TempTargetsStorage!
     @Injected() private var adjustmentManager: AdjustmentManager!
     @Injected() private var bolusCalculationManager: BolusCalculationManager!
+    @Injected() private var bolusSafetyValidator: BolusSafetyValidator!
     @Injected() private var iobService: IOBService!
     @Injected() private var notificationsManager: UserNotificationsManager!
-    @Injected() private var fetchGlucoseManager: FetchGlucoseManager!
     @Injected() var watchLoanCoordinator: WatchLoanCoordinator!
+    @Injected() private var fetchGlucoseManager: FetchGlucoseManager!
 
     private var units: GlucoseUnits = .mgdL
     private var glucoseColorScheme: GlucoseColorScheme = .staticColor
@@ -52,7 +70,10 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
     let viewContext = CoreDataStack.shared.persistentContainer.viewContext
 
-    init(resolver: Resolver) {
+    init(
+        resolver: Resolver,
+        entityChanges: AnyPublisher<Set<NSManagedObjectID>, Never> = CoreDataStack.shared.contentChangePublisher
+    ) {
         super.init()
         injectServices(resolver)
         setupWatchSession()
@@ -67,7 +88,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
         // Observer for OrefDetermination and adjustments
         coreDataPublisher =
-            CoreDataStack.shared.contentChangePublisher
+            entityChanges
                 .receive(on: queue)
                 .share()
                 .eraseToAnyPublisher()
@@ -193,7 +214,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     }
 
     /// Prepares the current state data to be sent to the Watch
-    /// - Returns: WatchState containing current glucose readings and trends and determination infos for displaying cob and iob in the view
+    /// - Returns: WatchState containing current glucose readings and trends and determination infos for displaying cob and iob in the view, or nil when there is nothing to send
     func setupWatchState() async -> WatchState? {
         // Unreachable watches still get the context.
         guard let session = session, session.isPaired, session.isWatchAppInstalled else {
@@ -256,7 +277,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 } else {
                     watchState.lastLoopTime = "\(lastLoopMinutes) min"
                 }
-                watchState.lastLoopDate = self.apsManager.lastLoopDate
 
                 watchState.lowGlucoseLimit = self.units == .mgdL
                     ? Double(truncating: self.lowGlucose as NSNumber)
@@ -307,6 +327,13 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
                 let currentGlucoseColor = Trio.getDynamicGlucoseColor(
                     glucoseValue: Decimal(latestGlucose.glucose),
+                    highGlucoseColorValue: highGlucoseColorValue,
+                    lowGlucoseColorValue: lowGlucoseColorValue,
+                    targetGlucose: targetGlucose,
+                    glucoseColorScheme: self.glucoseColorScheme
+                )
+
+                watchState.complicationRingStops = Trio.complicationRingStops(
                     highGlucoseColorValue: highGlucoseColorValue,
                     lowGlucoseColorValue: lowGlucoseColorValue,
                     targetGlucose: targetGlucose,
@@ -400,7 +427,10 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
                 watchState.complicationCornerValue = self.settingsManager.settings.watchComplicationCornerValue
                 watchState.complicationSecondaryValue = self.settingsManager.settings.watchComplicationSecondaryValue
+                watchState.complicationStaleMinutes = self.settingsManager.settings.watchComplicationStaleMinutes
+                watchState.complicationColorMode = self.settingsManager.settings.watchComplicationColorMode
 
+                watchState.useCriticalAlertsWatch = self.settingsManager.settings.useCriticalAlertsWatch
                 watchState.showForecast = self.settingsManager.settings.showForecastWatch
                 watchState.isForecastCone = self.settingsManager.settings.forecastDisplayType == .cone
                 watchState.useCriticalAlertsWatch = self.settingsManager.settings.useCriticalAlertsWatch
@@ -695,6 +725,9 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             WatchMessageKeys.confirmBolusFaster: state.confirmBolusFaster,
             WatchMessageKeys.complicationCornerValue: state.complicationCornerValue.rawValue,
             WatchMessageKeys.complicationSecondaryValue: state.complicationSecondaryValue.rawValue,
+            WatchMessageKeys.complicationStaleMinutes: state.complicationStaleMinutes,
+            WatchMessageKeys.complicationColorMode: state.complicationColorMode.rawValue,
+            WatchMessageKeys.complicationRingStops: state.complicationRingStops.map(\.payload),
             WatchMessageKeys.units: state.units.rawValue,
             WatchMessageKeys.showForecastWatch: state.showForecast,
             WatchMessageKeys.isForecastCone: state.isForecastCone,
@@ -764,7 +797,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
         // Reachable means foreground: also send a message.
         guard session.isReachable else {
-            if contextSent { wakeComplication(session, payload: payload) }
+            if contextSent { transferComplicationIfDue(session, payload: payload) }
             return
         }
 
@@ -815,31 +848,37 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         }
     }
 
-    /// The context reaches the watch app only when it runs; a complication on the watch face is woken by its own
-    /// transfer, within the system's daily budget.
-    @MainActor private func wakeComplication(_ session: WCSession, payload: [String: Any]) {
-        let date = (payload[WatchMessageKeys.date] as? TimeInterval).map(Date.init(timeIntervalSince1970:)) ?? Date()
+    @MainActor private func transferComplicationIfDue(_ session: WatchStateTransport, payload: [String: Any]) {
+        let now = Date()
         guard session.isComplicationEnabled, ComplicationTransferBudget.isTransferDue(
-            at: date,
+            at: now,
             lastTransfer: lastComplicationTransferDate,
             remainingTransfers: session.remainingComplicationUserInfoTransfers
         ) else { return }
+        session.outstandingUserInfoTransfers
+            .filter { $0.isCurrentComplicationInfo }
+            .forEach { $0.cancel() }
         session.transferCurrentComplicationUserInfo([WatchMessageKeys.watchState: payload])
-        lastComplicationTransferDate = date
-        info(.watch, "📤 Transferred new WatchState snapshot for the complication")
+        lastComplicationTransferDate = now
+        info(.watch, "Transferred new WatchState snapshot for the complication")
     }
 
-    func sendAcknowledgment(toWatch success: Bool, message: String = "", ackCode: AcknowledgmentCode) {
+    func sendAcknowledgment(
+        toWatch success: Bool,
+        message: String = "",
+        ackCode: AcknowledgmentCode,
+        details: [String: Any] = [:]
+    ) {
         guard let session = session, session.isReachable else {
             debug(.watch, "Watch not reachable, acknowledgment not sent")
             return
         }
 
-        let ackMessage: [String: Any] = [
+        let ackMessage: [String: Any] = details.merging([
             WatchMessageKeys.acknowledged: success,
             WatchMessageKeys.message: message,
             WatchMessageKeys.ackCode: ackCode.rawValue
-        ]
+        ]) { _, ack in ack }
 
         session.sendMessage(ackMessage, replyHandler: nil) { error in
             warning(.watch, "Sending acknowledgment to watch failed", error: error)
@@ -940,7 +979,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                       message[WatchMessageKeys.date] == nil
             {
                 info(.watch, "Watch requested bolus of \(bolusAmount) U")
-                self.handleBolusRequest(Decimal(bolusAmount))
+                self.handleBolusRequest(Decimal(bolusAmount), overriding: self.overriddenBolusChecks(in: message))
             } else if let carbsAmount = message[WatchMessageKeys.carbs] as? Int,
                       let timestamp = message[WatchMessageKeys.date] as? TimeInterval,
                       message[WatchMessageKeys.bolus] == nil
@@ -954,7 +993,12 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             {
                 let date = Date(timeIntervalSince1970: timestamp)
                 info(.watch, "Watch requested bolus of \(bolusAmount) U with \(carbsAmount) g carbs at \(date)")
-                self.handleCombinedRequest(bolusAmount: Decimal(bolusAmount), carbsAmount: Decimal(carbsAmount), date: date)
+                self.handleCombinedRequest(
+                    bolusAmount: Decimal(bolusAmount),
+                    carbsAmount: Decimal(carbsAmount),
+                    date: date,
+                    overriding: self.overriddenBolusChecks(in: message)
+                )
             } else if message[WatchMessageKeys.cancelOverride] == nil,
                       message[WatchMessageKeys.activateOverride] == nil,
                       message[WatchMessageKeys.cancelTempTarget] == nil,
@@ -1046,7 +1090,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
                     if let session = self.session, session.isReachable {
                         debug(.watch, "Sending recommended bolus \(result.insulinCalculated) U to watch")
-                        session.sendMessage(recommendationMessage, replyHandler: nil)
+                        session.sendMessage(recommendationMessage, replyHandler: nil, errorHandler: nil)
                     }
                 }
                 return
@@ -1097,9 +1141,13 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     }
 
     /// Processes bolus requests received from the Watch
-    /// - Parameter amount: The requested bolus amount in units
-    private func handleBolusRequest(_ amount: Decimal) {
+    /// - Parameters:
+    ///   - amount: The requested bolus amount in units
+    ///   - overriding: Safety checks the user has confirmed on the Watch to bolus through
+    private func handleBolusRequest(_ amount: Decimal, overriding: Set<BolusSafetyCheck>) {
         Task {
+            guard await passesBolusSafetyChecks(amount, overriding: overriding) else { return }
+
             await apsManager.enactBolus(amount: Double(amount), isSMB: false) { success, message in
                 // Acknowledge success or error of bolus
                 self.sendAcknowledgment(
@@ -1110,6 +1158,79 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             }
             debug(.bolus, "Watch bolus of \(amount) U handed to APS manager")
         }
+    }
+
+    /// Runs the shared bolus safety checks (max bolus, max IOB, recent boluses) on a bolus requested from the Watch,
+    /// and tells the Watch when one fails.
+    ///
+    /// A failed check the user may bolus through, like on the main bolus screen, is sent as `.bolusNeedsOverride`
+    /// with the checks to send back if they confirm. Max bolus, and checks that cannot run, block the bolus.
+    /// - Parameters:
+    ///   - amount: The requested bolus amount in units
+    ///   - overriding: Safety checks the user has already confirmed on the Watch to bolus through
+    /// - Returns: `true` if the bolus may be enacted
+    private func passesBolusSafetyChecks(_ amount: Decimal, overriding: Set<BolusSafetyCheck>) async -> Bool {
+        let result: BolusSafetyResult
+        do {
+            result = try await bolusSafetyValidator.validate(bolusAmount: amount, lookbackStart: nil, overriding: overriding)
+        } catch {
+            warning(.bolus, "Watch bolus blocked, the safety checks could not run", error: error)
+            sendAcknowledgment(
+                toWatch: false,
+                message: String(
+                    localized: "Bolus blocked: the safety checks could not be completed.",
+                    comment: "Error message sent to watch when the bolus safety checks fail to run"
+                ),
+                ackCode: .genericFailure
+            )
+            return false
+        }
+
+        guard case let .rejected(reason) = result else {
+            if !overriding.isEmpty {
+                info(
+                    .bolus,
+                    "Watch bolus of \(amount) U confirmed past the \(overriding.map(\.rawValue).sorted().joined(separator: ", ")) check"
+                )
+            }
+            return true
+        }
+
+        let message = reason.localizedMessage(requestedAmount: amount)
+        guard reason.check.canBeOverridden else {
+            info(.bolus, "Watch bolus of \(amount) U blocked by the \(reason.check.rawValue) check")
+            sendAcknowledgment(toWatch: false, message: message, ackCode: .genericFailure)
+            return false
+        }
+
+        info(.bolus, "Watch bolus of \(amount) U needs confirmation past the \(reason.check.rawValue) check")
+        sendAcknowledgment(
+            toWatch: false,
+            message: message,
+            ackCode: .bolusNeedsOverride,
+            details: [
+                WatchMessageKeys.bolus: NSDecimalNumber(decimal: amount),
+                WatchMessageKeys.overriddenBolusChecks: overriding.union([reason.check]).map(\.rawValue).sorted(),
+                WatchMessageKeys.bolusOverrideIssuedAt: Date().timeIntervalSince1970
+            ]
+        )
+        return false
+    }
+
+    /// Reads the safety checks a Watch bolus request says the user confirmed to bolus through. An expired
+    /// confirmation is dropped, so every check runs again on current data and the Watch asks again if one still fails.
+    private func overriddenBolusChecks(in message: [String: Any]) -> Set<BolusSafetyCheck> {
+        let rawValues = message[WatchMessageKeys.overriddenBolusChecks] as? [String] ?? []
+        guard !rawValues.isEmpty else { return [] }
+
+        let overriding = BolusSafetyCheck.overridden(
+            rawValues,
+            issuedAt: message[WatchMessageKeys.bolusOverrideIssuedAt] as? TimeInterval
+        )
+        if overriding.isEmpty {
+            info(.bolus, "Watch bolus confirmation expired, running every check again")
+        }
+        return overriding
     }
 
     /// Handles carbs entry requests received from the Watch
@@ -1178,7 +1299,13 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     ///   - bolusAmount: The bolus amount in units
     ///   - carbsAmount: The carbs amount in grams
     ///   - date: Timestamp for the carbs entry
-    private func handleCombinedRequest(bolusAmount: Decimal, carbsAmount: Decimal, date: Date) {
+    ///   - overriding: Safety checks the user has confirmed on the Watch to bolus through
+    private func handleCombinedRequest(
+        bolusAmount: Decimal,
+        carbsAmount: Decimal,
+        date: Date,
+        overriding: Set<BolusSafetyCheck>
+    ) {
         Task {
             let context = CoreDataStack.shared.newTaskContext()
 
@@ -1217,6 +1344,9 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                     try context.save()
                     debug(.treatments, "Saved \(carbsAmount) g carbs from watch")
                 }
+
+                // The carbs stay logged if the bolus is blocked or needs the user to confirm it
+                guard await passesBolusSafetyChecks(bolusAmount, overriding: overriding) else { return }
 
                 // Notify Watch: "Enacting bolus..."
                 sendAcknowledgment(
@@ -1464,6 +1594,8 @@ extension BaseWatchManager {
         case tempTargetStopped = "temp_target_stopped"
         case genericSuccess = "success"
         case genericFailure = "failure"
+        /// A bolus failed a safety check the user may confirm on the Watch to bolus through.
+        case bolusNeedsOverride = "bolus_needs_override"
     }
 }
 

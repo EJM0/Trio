@@ -1715,3 +1715,71 @@ Checked Jeremy Barnum's public work since 2026-11-15 (OmnipodKit #177 branch, Lo
 - `otherControllerDetectedAt` (LoopKit#702). It's additive, and Trio reads `foreignSessionDetectedAt`.
 - His watch address-hold workaround (Loop 424135e2). He marks it testing-only; it needs a hardware check first.
 - G7SensorKit upstream #124/#125: a separate look later; StartDelay is broken on watchOS.
+
+## #1648 merge and the watch App ID (2026-11-19)
+
+**#1648 (Watch bolus safety checks, open upstream)** is merged as `0fdbdc882`. It brings only its own 4 commits. It replaces the side fix U-2 (`fix/watch-bolus-guards`, never committed): U-2 only blocked a manual bolus over max bolus, and #1648 checks that and more for watch boluses.
+
+**Conflicts resolved:**
+
+- **"No answer" timeout.** Dev now times out a missing answer in `WatchState` (15 s, then a banner), so #1648's 5 s timer in the view is dropped. A stale timeout can't close the confirmation: `handleMissingAcknowledgment` does nothing once `showCommsAnimation` is false, and #1648 clears it when the confirmation appears.
+- **After the crown confirm.** #1648's jump back to the start screen when the iPhone is unreachable is removed. It would have hidden dev's "iPhone not reachable. Nothing was sent." banner, and the banner already returns to the start screen when it closes.
+- **Shared checks.** `BolusSafetyCheck`, `BolusSafetyRejection.check`, `localizedMessage(requestedAmount:)` and the `overriding:` parameter now live in the shared `BolusSafetyEvaluator.swift`, which the watch also compiles. The watch-holds-pump bolus path calls `evaluate` without overrides, so it still blocks outright.
+- **Logging.** #1648's `.watchManager` category no longer exists on dev. Its lines now use the `.bolus` category, give units and have no emoji; a failure to run the checks logs a warning.
+- **String catalog.** Merged on its own; nothing was hand-merged.
+
+**Watch App ID:** `d3f49d443` adds `USERNOTIFICATIONS_TIMESENSITIVE` to the watch App ID in the Fastfile. CI pins fastlane 2.240.1, which has it. Browser builders re-run "Add Identifiers", then "Create Certificates". On dev, the iPhone app also has the time-sensitive entitlement without it in the Fastfile; that isn't checked.
+
+| # | Step | Result |
+|---|---|---|
+| P1 | iOS app, flag off and on | 0, 0 |
+| P2 | Watch app, flag off and on | 0, 0 |
+| P3 | Full `Trio Tests` | 0; 1267 passed (+8: #1648's validator tests), 1 known issue |
+| P4 | `Trio Watch AppTests`, flag off and on | 70 / 70, 70 / 70 |
+
+**Not verified:** the confirmation screen and the watch handlers on a paired watch; #1648 has no automated test for them. See #1648's manual list.
+
+## Dev sync, dnzxy/Trio#2 and #3, and their review (2026-11-23)
+
+**Dev sync** (`c6373896a`, 51 commits). Dev #1805 moved the project to folder-synchronized groups, so our project changes were re-applied on dev's file rather than merged hunk by hunk:
+
+- The watch app compiles 110 files from `Trio/` through the membership exceptions on the `Trio` root group. `WatchAlgorithmMembershipTests` now reads those exceptions as well as the Sources phase.
+- The watch target keeps its kit frameworks, the embed check, `PRODUCT_MODULE_NAME = Trio`, watchOS 10.6 and the `TRIO_ON_WATCH` entitlements and Info.plist (both excluded from the watch folder's membership).
+- The algorithm characterization goldens are read from disk, so they are an explicit folder kept out of the test bundle; dev's `InMemoryFileStorage` replaces ours.
+- `APSManager`: the watch-loan gate still runs first in the loop, then dev's scheduled profile switch. A switch due during a loan runs once the phone takes the pump back. Dev's new remote profile commands are paused during a loan like every other remote command.
+
+**Magnus's PRs:** #2 (44 commits) is merged as `dba3e0aab` and #3 (Medtrum, 11 commits) as `39ab879cc`. A four-part review found these, each fixed in its own commit on top:
+
+| Fix | What went wrong |
+|---|---|
+| Late grant copy | A copy of a split grant that gave up waiting cleared the snapshot after another copy was adopted: holding, no loop, no alarms |
+| Grant resend | A failure reported for an earlier send started a second send |
+| Watch adjustments | The phone started watch overrides and temp targets when the batch arrived, not when they were made; an ended one ran again |
+| Record order, sensor readings | A hand-back could be handled before an earlier batch merged; manual BG was sent to the watch as a sensor reading |
+| Drag-to-watch Start | Skipped the consent (W3): the phone now confirms with the alarm and Nightscout caveats; a cancelled touch resets; a lost answer follows the loan state |
+| Live Activity, graph | Watch mode never went stale; a new low could be drawn green |
+| Version check, temp tile | Dev builds share build number 1; an ended temp basal showed as running |
+| Released pod at home | Said "Another Device Used Your Pod" |
+| End retries | Could spin with no pause |
+
+**MedtrumKit** `f4266f2`: five fixes on top of loopandlearn/MedtrumKit#7 (`80002aa`), on local branch `feat/trio-on-watch`:
+
+1. A new patch starts its record count afresh. Before, every basal the new patch reported was dropped as stale, phone-only users included.
+2. An unanswered temp basal or bolus makes delivery uncertain until the next status read, and holds a release. Phone-only users also see this.
+3. The on-demand idle drop doesn't cut a write that waits for its answer.
+4. The control mark runs only while the other controller may be active (borrowed, or within a superseding take), never cancels a running temp basal, and isn't held after a superseding take's cancel.
+5. An adopt made from a release checks its first connection from the release on (bounded adopt).
+
+The phone's patch texts no longer promise that another controller stops at its next contact.
+
+**Kit pins, not pushed:** OmnipodKit `baeb036` (#2's `readStatusIfOlder`) and G7SensorKit `738267b` exist only on Magnus's forks. MedtrumKit `f4266f2` is local only. A fresh clone can't fetch them until they're mirrored to the dnzxy forks and `.gitmodules` points there.
+
+| # | Step | Result |
+|---|---|---|
+| S1 | iOS app, flag off and on | 0, 0 |
+| S2 | Watch app, flag off and on | 0, 0 |
+| S3 | Full `Trio Tests` | 1426 run; 1 failure (shared-source imports, fixed and rerun), 1 known issue |
+| S4 | `Trio Watch AppTests`, flag off and on | 96 / 96, 96 / 96 |
+| S5 | `MedtrumKitTests` | 87 / 87 (4 new) |
+
+**Not verified:** anything on hardware. Medtrum detection still has blind windows a pod session counter wouldn't: a start within the clock slack, and cancels or suspends, which aren't evidence. The drag confirmation and the gesture reset need a device. Review nits not taken: log wording, the `"Medtrum"` literal, a phone-side test for applying watch adjustments in a batch.

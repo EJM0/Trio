@@ -22,6 +22,10 @@ protocol WatchLoanNotifier: AnyObject {
 
 /// The one CGM manager the watch keeps while it holds the pump.
 @MainActor protocol LoanCGMSource: AnyObject {
+    /// No key for the sensor yet: the next connection pairs, which needs Trio in front.
+    var needsPairing: Bool { get }
+    /// Holds a manager for the sensor.
+    var isActive: Bool { get }
     func adopt(export: Data) async
     func restore()
     func recheckAcquisition()
@@ -57,7 +61,11 @@ struct WatchLoanEnvironment {
     var requestTimeout: TimeInterval = WatchLoan.watchRequestTimeout
     var handBackResendInterval: TimeInterval = 60
     var phoneAnswerTimeout: TimeInterval = 5
-    var phoneAnswerWindow: TimeInterval = 20
+    /// How long End keeps asking the phone before it says the phone didn't answer.
+    var phoneAnswerWindow: TimeInterval = 25
+    var grantPartsWait: TimeInterval = 5
+    /// Sends the watch's log to the phone once a loan ends, so an export after End has all of it.
+    var shipLogs: () -> Void = { WatchLogger.shared.shipAfterLoan() }
 }
 
 /// Background time held for one cycle or message.
@@ -94,8 +102,15 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         var cob: Decimal?
         var eventualGlucose: Int?
         var tempBasalRate: Decimal?
+        var tempBasalEndsAt: Date?
         var pumpSuspended = false
+        /// The last determination's reasoning.
+        var reason: String?
+        var forecast: TrioOnWatchStatus.Forecast?
     }
+
+    /// Loops and readings closer together than this count once on the status page.
+    static let countedSpacing: TimeInterval = 4 * 60
 
     private(set) var state: WatchLoanState {
         // the chart's own markers only while the watch holds the pump; the phone's after
@@ -105,6 +120,8 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     var loop = LoopStatus()
     var bolus: BolusProgress = .idle
     var isCycleRunning = false
+    /// A cycle came during a bolus and sent nothing: loop again once the watch's bolus is delivered.
+    var cycleSkippedForBolus = false
     /// After the adopt, until the watch's own first CGM reading: the first G7 bond needs Trio in front, so the
     /// watch doesn't report itself in control before then.
     var awaitingFirstReading = false
@@ -117,7 +134,15 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     @ObservationIgnored let alerts: WatchLoanAlerts
     @ObservationIgnored private(set) var pump: LoanPump?
     @ObservationIgnored private var pumpDelegate: WatchLoanPumpDelegate
-    @ObservationIgnored private(set) var snapshot: WatchLoanSnapshot?
+    @ObservationIgnored private(set) var snapshot: WatchLoanSnapshot? {
+        didSet { alerts.pumpIsPatch = Self.isPatch(snapshot) }
+    }
+
+    /// A Medtrum patch, as the grant names the pump.
+    static func isPatch(_ snapshot: WatchLoanSnapshot?) -> Bool {
+        snapshot?.versions.pumpManager == "Medtrum"
+    }
+
     /// The phone's newest copy for a start without it (Allow Without iPhone).
     private(set) var standingCopy: WatchLoanSnapshot?
     /// The watch's own readings that arrived live, for the Fallback Loop.
@@ -142,9 +167,11 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     /// Commands written down before they were sent, until each outcome is known. Never overwritten: each command adds one.
     @ObservationIgnored var intents: [WatchDoseIntent] = []
     @ObservationIgnored var cycleInfo = WatchLoanCycleInfo()
+    /// The phone's readings, kept until the watch's own sensor had its chance (`phoneReadingWait`).
+    @ObservationIgnored var pendingPhoneReadings: [BloodGlucose] = []
+    @ObservationIgnored var phoneReadingTimer: Task<Void, Never>?
     @ObservationIgnored private var inbox = WatchLoanInbox()
-    /// Snapshot slices for the grant being delivered, joined once every slice of its epoch has arrived.
-    @ObservationIgnored private var snapshotChunks = WatchLoanSnapshot.ChunkAssembler()
+    @ObservationIgnored private var snapshotParts = WatchLoanSnapshotAssembler()
     @ObservationIgnored private var tail: Task<Void, Never>?
     @ObservationIgnored private var followUps: [WatchSideLoanEvent] = []
     @ObservationIgnored private var lastReportedForeignSession = false
@@ -154,6 +181,9 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     /// The background time of the cycle or message in progress.
     @ObservationIgnored var activity: LoanBackgroundActivity?
     @ObservationIgnored var adoptedAt: Date?
+    /// The kit reported the pump ready since the adopt. A DASH pod drops an idle link within seconds, so a later
+    /// `isControlReady` alone says nothing about whether it answered.
+    @ObservationIgnored var pumpAnsweredSinceAdopt = false
     @ObservationIgnored private var requestTimer: Task<Void, Never>?
     @ObservationIgnored private var handBackTimer: Task<Void, Never>?
     /// The saved files, read on the file queue; every entry point waits for it.
@@ -215,6 +245,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         inbox = saved.inbox ?? WatchLoanInbox()
         snapshot = saved.snapshot.map(records.pruned)
         standingCopy = saved.standingCopy
+        alerts.pumpIsPatch = Self.isPatch(saved.snapshot)
         loop.lastCycleAt = cycleInfo.lastCycleAt
         loop.lastConfirmedCycleAt = cycleInfo.lastConfirmedCycleAt
     }
@@ -431,9 +462,11 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     }
 
     private func persist(_ next: WatchLoanState) async -> Bool {
+        var startsLoan = false
         do {
             if case let .holding(epoch) = next, state.epoch != epoch || !state.mayCommandPump {
                 try await startLoanRecords(epoch: epoch)
+                startsLoan = true
             }
             let files = env.files
             try await WatchLoanFiles.io { try files.save(next, to: .state) }
@@ -443,14 +476,30 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             return false
         }
         let previous = state
+        // until the first reading the watch isn't in control, also before the adopt has run
+        if startsLoan { awaitingFirstReading = true }
         state = next
         // the watch no longer sees the pump, so it can't tell when insulin resumes
         if previous.mayCommandPump, !next.mayCommandPump { cancelSuspendReminders() }
         if case .idle = next, previous != next {
             Task { await self.retireDevices() }
         }
+        if Self.loanEnds(from: previous, to: next) {
+            WatchLogger.shared.info(.connectivity, "Watch mode ended; sending the log to the phone")
+            env.shipLogs()
+        }
         updateRequestTimeout(from: previous, to: next)
         return true
+    }
+
+    static func loanEnds(from previous: WatchLoanState, to next: WatchLoanState) -> Bool {
+        switch (previous, next) {
+        case (.holding, .idle),
+             (.holding, .stopped),
+             (.returning, .idle),
+             (.returning, .stopped): return true
+        default: return false
+        }
     }
 
     /// Until the phone acknowledges, the hand-back goes again while the phone is reachable (W17); an unreachable phone
@@ -495,6 +544,8 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         let (records, pulse) = (records, snapshot?.deliveryPulseUnits ?? 0.05)
         try await WatchLoanFiles.io { try records.reset(epoch: epoch, pulseUnits: pulse) }
         cycleInfo = WatchLoanCycleInfo(holdingSince: env.now(), autosens: snapshot?.oref.autosens)
+        // the previous loan's loop time and values would show while this one waits for its first reading
+        loop = LoopStatus()
         let (files, info) = (env.files, cycleInfo)
         try await WatchLoanFiles.io { try files.save(info, to: .cycle) }
     }
@@ -534,7 +585,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             return
         }
         do {
-            let rawState = manager.rawState
+            let rawState = LoanPumpFactory.savedState(of: manager)
             try await WatchLoanFiles.io { try files.savePlist(rawState, to: .pumpState) }
         } catch {
             // without its saved state a relaunch can't know the kit adopted: don't let it reach the pod
@@ -545,6 +596,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         }
         install(manager)
         adoptedAt = env.now()
+        pumpAnsweredSinceAdopt = false
         // If the watch is already reading its own sensor (fresh within 5 min), it is in control at once. Only an
         // adopt that must still bring up the G7 link waits for that first reading, keeping Trio in front for the bond.
         awaitingFirstReading = !env.hasFreshOwnReading()
@@ -564,7 +616,8 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         let timeout = env.adoptTimeout
         Task { [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-            guard let self, self.pump === manager, !manager.refusesSessions, !manager.isControlReady,
+            guard let self, self.pump === manager, !manager.refusesSessions, !self.pumpAnsweredSinceAdopt,
+                  !manager.isControlReady,
                   case .holding = self.state
             else { return }
             await self.handle(.takeControlResult(succeeded: false))
@@ -666,6 +719,11 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         Task { await self.handle(.foreignPodSession) }
     }
 
+    func pumpControlBecameReady(_ manager: LoanPump) {
+        guard pump === manager else { return }
+        pumpAnsweredSinceAdopt = true
+    }
+
     func pumpStateNotSaved() {
         alerts.postNotSaved()
     }
@@ -715,7 +773,7 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         let now = env.now()
         // a pod fault takes no acknowledgement: it alarms until the status page's Deactivate Pod
         let isFault = alert.identifier.managerIdentifier.hasSuffix(LoopNotificationCategory.pumpFault.rawValue)
-        alerts.postKitAlert(alert, line: WatchLoanAlerts.podNeedsPhone, now: now, acknowledgeable: !isFault)
+        alerts.postKitAlert(alert, line: WatchLoanAlerts.podNeedsPhone(patch: alerts.pumpIsPatch), now: now, acknowledgeable: !isFault)
         let firesAt: Date
         switch alert.trigger {
         case .immediate: firesAt = now
@@ -776,6 +834,12 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     }
 
     private func receiveHeld(_ payload: [String: Any]) async -> Bool {
+        if let data = payload[WatchLoanWireKey.phoneReadings] as? Data {
+            if let sent = try? WatchLoanPhoneReadings.decode(data), sent.epoch == state.epoch {
+                await receivePhoneReadings(sent.readings)
+            }
+            return true
+        }
         if let data = payload[WatchLoanWireKey.recordsAck] as? Data {
             if let ack = try? JSONDecoder().decode(WatchLoanRecordAck.self, from: data) {
                 let (records, now) = (records, env.now())
@@ -795,17 +859,8 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             }
             return true
         }
-        // A snapshot slice: collect it and wait for the grant that follows. Reassembly happens when the grant lands.
-        if let slice = payload[WatchLoanWireKey.snapshotChunk] as? Data,
-           let index = payload[WatchLoanWireKey.snapshotChunkIndex] as? Int,
-           let count = payload[WatchLoanWireKey.snapshotChunkCount] as? Int,
-           let chunkEpoch = (payload[WatchLoanWireKey.snapshotChunkEpoch] as? NSNumber)?.int64Value
-        {
-            snapshotChunks.add(slice, index: index, count: count, epoch: chunkEpoch)
-            WatchLogger.shared.debug(.connectivity, "Received grant snapshot chunk \(index + 1)/\(count), epoch \(chunkEpoch)")
-            return true
-        }
-        guard let data = payload[WatchLoanWireKey.message] as? Data else { return false }
+        let part = receivePart(payload)
+        guard let data = payload[WatchLoanWireKey.message] as? Data else { return part != nil }
         switch WatchLoanWire.decode(data) {
         case let .stop(stop):
             WatchLogger.shared.info(.connectivity, "Received \(stop.kind.rawValue), epoch \(stop.epoch)")
@@ -817,11 +872,19 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
             }
             let (files, inbox) = (env.files, inbox)
             WatchLoanFiles.later("the loan inbox") { try files.save(inbox, to: .inbox) }
-            if case .grant = envelope.message.kind, case .requesting = state {
-                await acceptSnapshot(
-                    grantSnapshotData(from: payload, epoch: envelope.message.epoch),
-                    epoch: envelope.message.epoch
-                )
+            if case let .grant(requestID, expiresAt) = envelope.message.kind, case .requesting = state {
+                if let whole = payload[WatchLoanWireKey.snapshot] as? Data {
+                    await acceptSnapshot(whole, epoch: envelope.message.epoch, requestID: requestID)
+                } else if part != nil {
+                    let assembled = await assembleSnapshot(
+                        requestID: requestID,
+                        epoch: envelope.message.epoch,
+                        until: min(expiresAt, env.now().addingTimeInterval(env.grantPartsWait))
+                    )
+                    await acceptSnapshot(assembled, epoch: envelope.message.epoch, requestID: requestID)
+                } else {
+                    await acceptSnapshot(nil, epoch: envelope.message.epoch, requestID: requestID)
+                }
             }
             WatchLogger.shared.info(
                 .connectivity,
@@ -836,21 +899,53 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
         return true
     }
 
-    /// The grant's snapshot data: the single `snapshot` key when present (a one-message grant from an older phone),
-    /// otherwise the slices collected for this epoch, joined. Nil when a slice is missing. Clears the collector.
-    private func grantSnapshotData(from payload: [String: Any], epoch: Int64) -> Data? {
-        defer { snapshotChunks.reset() }
-        if let single = payload[WatchLoanWireKey.snapshot] as? Data { return single }
-        guard let count = payload[WatchLoanWireKey.snapshotChunkCount] as? Int else { return nil }
-        guard let joined = snapshotChunks.joined(expectedCount: count, epoch: epoch) else {
-            WatchLogger.shared.warning(.loop, "Grant arrived before all \(count) snapshot chunks for epoch \(epoch)")
+    private func receivePart(_ payload: [String: Any]) -> WatchLoanSnapshotPart? {
+        guard let headerData = payload[WatchLoanWireKey.snapshotPartHeader] as? Data,
+              let bytes = payload[WatchLoanWireKey.snapshotPart] as? Data,
+              let header = try? JSONDecoder().decode(WatchLoanSnapshotPart.self, from: headerData)
+        else { return nil }
+        guard case let .requesting(_, requestID) = state, header.requestID == requestID else {
+            WatchLogger.shared.debug(
+                .connectivity,
+                "Grant part \(header.index + 1) of \(header.count) dropped: not requesting it"
+            )
+            return header
+        }
+        snapshotParts.add(header, bytes)
+        WatchLogger.shared.debug(.connectivity, "Grant part \(header.index + 1) of \(header.count) received")
+        return header
+    }
+
+    /// Waits for missing pieces until `deadline`. Nil when incomplete or the digest doesn't match.
+    private func assembleSnapshot(requestID: UUID, epoch: Int64, until deadline: Date) async -> Data? {
+        defer { snapshotParts.reset() }
+        var polls = Int(max(0, deadline.timeIntervalSince(env.now())) / 0.1)
+        while (snapshotParts.missing(requestID: requestID, epoch: epoch) ?? 1) > 0, polls > 0 {
+            polls -= 1
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        let missing = snapshotParts.missing(requestID: requestID, epoch: epoch)
+        guard let data = snapshotParts.assembled(requestID: requestID, epoch: epoch) else {
+            let reason: String
+            switch missing {
+            case nil: reason = "no parts for this grant"
+            case 0?: reason = "the parts don't match their digest"
+            case let count?: reason = "\(count) part(s) missing"
+            }
+            WatchLogger.shared.warning(.connectivity, "Grant snapshot incomplete: \(reason)")
             return nil
         }
-        return joined
+        WatchLogger.shared.info(.connectivity, "Grant snapshot assembled, \(data.count) bytes")
+        return data
     }
 
     /// Saved before the grant is decided, so an adopt after a crash still has it.
-    private func acceptSnapshot(_ data: Data?, epoch: Int64) async {
+    private func acceptSnapshot(_ data: Data?, epoch: Int64, requestID: UUID) async {
+        // a copy that finished assembling after another copy was adopted must not touch the held snapshot
+        guard case let .requesting(_, requesting) = state, requesting == requestID else {
+            WatchLogger.shared.debug(.connectivity, "Grant snapshot dropped: no longer requesting it")
+            return
+        }
         guard let data else {
             snapshot = nil
             return
@@ -998,6 +1093,22 @@ final class NoBackgroundActivity: LoanBackgroundActivity {
     // MARK: - User
 
     func startTapped() async { await handle(.startTapped) }
+
+    /// The phone's drag-to-watch Start: the watch's own checks and request, as when Start is tapped here. The user
+    /// confirmed on the phone, so there is no Start sheet. Nil once the request is on its way.
+    func startAskedByPhone() async -> LoanRefusal? {
+        await loaded.value
+        guard case .idle = state else { return .busy }
+        if let refusal = await startRefusal(needsPhone: true) {
+            WatchLogger.shared.info(.loop, "Start asked by the iPhone, refused: \(refusal.rawValue)")
+            return refusal
+        }
+        WatchLogger.shared.info(.loop, "Start asked by the iPhone")
+        await startTapped()
+        if case .requesting = state { return nil }
+        return .busy
+    }
+
     func endTapped() async { await handle(.endTapped) }
     func stopAcknowledged() async { await handle(.stopAcknowledged) }
 

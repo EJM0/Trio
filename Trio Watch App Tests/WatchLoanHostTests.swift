@@ -78,6 +78,8 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
     let transport = FakeTransport()
     let notifier = FakeNotifier()
     var foreground = false
+    /// SMB always on in the grant's preferences. Off by default, so a cycle's SMB doesn't run into later steps.
+    var smb = false
     var clock = Date(timeIntervalSince1970: 1_800_000_000)
     var battery: Float = 1
     var model = "Watch7,1"
@@ -87,6 +89,10 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
     var activity = FakeActivity()
     var requestTimeout = WatchLoan.watchRequestTimeout
     var handBackResend: TimeInterval = 60
+    var adoptTimeout: TimeInterval = 60
+    private(set) var logShipments = 0
+    var tempTargetPresets: [WatchLoanSnapshot.TempTargetPreset] = []
+    var overridePresets: [WatchLoanSnapshot.OverridePreset] = []
     private(set) var adopted = 0
     private(set) var restored = 0
     private(set) var doubles: [LoanPumpDouble] = []
@@ -131,9 +137,13 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
             appBuild: "1",
             hasFreshOwnReading: { [weak self] in self?.freshOwnReading ?? false },
             beginActivity: { [weak self] _ in self?.activity ?? FakeActivity() },
+            adoptTimeout: adoptTimeout,
             requestTimeout: requestTimeout,
             handBackResendInterval: handBackResend,
-            phoneAnswerTimeout: 0.2
+            phoneAnswerTimeout: 0.2,
+            phoneAnswerWindow: 1.5,
+            grantPartsWait: 0.3,
+            shipLogs: { [weak self] in self?.logShipments += 1 }
         ))
         return created
     }
@@ -166,7 +176,6 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
     nonisolated static func orefInputs(now: Date, glucose: Int, count: Int = 36) throws -> OrefInputs {
         var preferences = Preferences()
         preferences.maxIOB = 6
-        preferences.enableSMBAlways = true
         preferences.enableUAM = true
         return try OrefInputs(
             pumpSettings: JSONBridge.from(string: #"{"insulin_action_curve": 10, "maxBolus": 10, "maxBasal": 3}"#),
@@ -232,7 +241,8 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         )
         var oref = try Self.orefInputs(now: now, glucose: glucose, count: count)
         oref.dosingMode = dosingMode
-        return WatchLoanSnapshot(
+        oref.preferences?.enableSMBAlways = smb
+        var snapshot = WatchLoanSnapshot(
             versions: .init(schema: 1, protocolVersion: 1, appBuild: "1", pumpManager: "Double", cgmManager: "G7"),
             requestID: requestID,
             epoch: epoch,
@@ -257,6 +267,9 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
             deliveryPulseUnits: 0.05,
             releaseReading: .init(units: 10, at: now)
         )
+        snapshot.tempTargetPresets = tempTargetPresets
+        snapshot.overridePresets = overridePresets
+        return snapshot
     }
 
     func payload(_ message: WatchLoanMessage, snapshot: WatchLoanSnapshot? = nil) throws -> [String: Any] {
@@ -264,6 +277,22 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         var payload: [String: Any] = [WatchLoanWireKey.message: try WatchLoanWire.encode(envelope)]
         if let snapshot { payload[WatchLoanWireKey.snapshot] = try snapshot.encoded() }
         return payload
+    }
+
+    func partPayloads(_ message: WatchLoanMessage, snapshot data: Data, requestID: UUID, epoch: Int64) throws
+        -> [[String: Any]]
+    {
+        let envelope = WatchLoanEnvelope(protocolVersion: 1, messageID: UUID(), sentAt: clock, message: message)
+        let messageData = try WatchLoanWire.encode(envelope)
+        let pieces = WatchLoanSnapshot.split(data, requestID: requestID, epoch: epoch)
+        return try pieces.enumerated().map { offset, piece in
+            var payload: [String: Any] = [
+                WatchLoanWireKey.snapshotPartHeader: try JSONEncoder().encode(piece.header),
+                WatchLoanWireKey.snapshotPart: piece.bytes
+            ]
+            if offset == pieces.count - 1 { payload[WatchLoanWireKey.message] = messageData }
+            return payload
+        }
     }
 
     /// Start, then the phone's grant for epoch 1: the watch holds the pump.
@@ -322,7 +351,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(!world.host.awaitingFirstReading && world.host.isInControl)
         let commands = try #require(world.pump?.commands)
         #expect(commands.contains { $0.hasPrefix("temp") })
-        #expect(!commands.contains { $0.contains("SMB") }, "a background wake runs oref without micro boluses")
+        #expect(!commands.contains { $0.contains("SMB") }, "SMB off in the preferences")
         #expect(world.host.intents.isEmpty)
         #expect(world.host.loop.lastConfirmedCycleAt != nil)
         #expect(world.transport.batches.last?.epoch == 1)
@@ -370,14 +399,198 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.pump?.releaseLinkCalls == released)
     }
 
-    @Test("Micro boluses only in the foreground") func microBolusForeground() async throws {
+    @Test("Micro boluses in the foreground and in background wakes", arguments: [
+        true,
+        false
+    ]) func microBolus(foreground: Bool) async throws {
         let world = LoanFixture()
-        world.foreground = true
+        world.smb = true
+        world.foreground = foreground
         try await world.startLoan(glucose: 180)
         await world.reading(185)
         let commands = try #require(world.pump?.commands)
         #expect(commands.contains { $0.contains("SMB") }, "\(commands)")
         #expect(world.violations.isEmpty)
+    }
+
+    private func splitGrant(_ world: LoanFixture) async throws
+        -> (grant: WatchLoanMessage, payloads: [[String: Any]], snapshot: WatchLoanSnapshot)?
+    {
+        await world.host.startTapped()
+        guard case let .request(requestID) = world.transport.messages.last?.kind else {
+            Issue.record("no request sent")
+            return nil
+        }
+        world.pod.holder = .nobody
+        let now = world.clock
+        var snapshot = try world.snapshot(requestID: requestID, epoch: 1, now: now, glucose: 160, alarms: [])
+        // random ids don't compress, so the snapshot needs more than one piece
+        snapshot.smoothingWindow = (0 ..< 5000).map { index in
+            WatchLoanSnapshot.RawReading(id: UUID(), date: now.addingTimeInterval(-Double(index) * 17), glucose: 100)
+        }
+        let data = try snapshot.encoded()
+        #expect(data.count > WatchLoanSnapshot.partBytes)
+        let grant = WatchLoanMessage(epoch: 1, kind: .grant(requestID: requestID, expiresAt: now.addingTimeInterval(30)))
+        let payloads = try world.partPayloads(grant, snapshot: data, requestID: requestID, epoch: 1)
+        #expect(payloads.count >= 2)
+        return (grant, payloads, snapshot)
+    }
+
+    @Test("Each loop's TDD row goes to the phone until it is acknowledged") func tddRowsToPhone() async throws {
+        let world = LoanFixture()
+        try await world.startLoan()
+        await world.reading(160)
+        let first = try #require(world.transport.batches.last)
+        let firstRows = try #require(first.tddRows)
+        #expect(firstRows.count == 1 && firstRows[0].date != nil && firstRows[0].total != nil)
+
+        let ack = try JSONEncoder().encode(WatchLoanRecordAck(epoch: first.epoch, batchID: first.batchID))
+        await world.host.receive([WatchLoanWireKey.recordsAck: ack])
+        await world.reading(150)
+        let next = try #require(world.transport.batches.last?.tddRows)
+        #expect(next.count == 1)
+        #expect(next.first?.date != firstRows.first?.date)
+    }
+
+    @Test("The phone's drag-to-watch Start: the watch's own checks, then its request") func startAskedByPhone() async throws {
+        let world = LoanFixture()
+        world.battery = 0.1
+        #expect(await world.host.startAskedByPhone() == .watchBatteryLow)
+        guard case .idle = world.host.state else {
+            Issue.record("not idle")
+            return
+        }
+        #expect(world.transport.messages.isEmpty)
+
+        world.battery = 1
+        #expect(await world.host.startAskedByPhone() == nil)
+        guard case .requesting = world.host.state else {
+            Issue.record("not requesting")
+            return
+        }
+        guard case .request = world.transport.messages.last?.kind else {
+            Issue.record("no request sent")
+            return
+        }
+        #expect(await world.host.startAskedByPhone() == .busy)
+    }
+
+    @Test("The log goes to the phone when watch mode ends, by End or a stop, and not before") func logsAfterLoan() async throws {
+        let world = LoanFixture()
+        try await world.startLoan()
+        await world.reading(160)
+        await world.host.endTapped()
+        #expect(world.host.state == .returning(epoch: 1))
+        #expect(world.logShipments == 0)
+        await world.host.receive(try world.payload(WatchLoanMessage(epoch: 1, kind: .handBackAck)))
+        #expect(world.host.state == .idle(epoch: 1))
+        #expect(world.logShipments == 1)
+
+        #expect(WatchLoanHost.loanEnds(from: .holding(epoch: 1), to: .returning(epoch: 1)) == false)
+        #expect(WatchLoanHost.loanEnds(from: .returning(epoch: 1), to: .idle(epoch: 1)))
+        #expect(WatchLoanHost.loanEnds(from: .holding(epoch: 1), to: .stopped(epoch: 1, reason: .foreignSession)))
+        #expect(WatchLoanHost.loanEnds(from: .idle(epoch: 1), to: .idle(epoch: 2)) == false)
+        #expect(WatchLoanHost.loanEnds(from: .requesting(epoch: 1, requestID: UUID()), to: .idle(epoch: 1)) == false)
+    }
+
+    @Test(
+        "Start doesn't show the watch in control before its first reading, also while the adopt runs"
+    ) func startNotInControlEarly(
+    ) async throws {
+        let world = LoanFixture()
+        var phaseDuringAdopt: TrioOnWatchStatus.Phase?
+        world.configure = { _ in phaseDuringAdopt = world.host.uiStatus().phase }
+        try await world.startLoan()
+        #expect(phaseDuringAdopt == .waitingForReading)
+        #expect(world.host.uiStatus().phase == .waitingForReading && world.host.uiStatus().pumpAdopted)
+        await world.reading(160)
+        #expect(world.host.uiStatus().phase == .inControl)
+    }
+
+    @Test("A grant in pieces is adopted once every piece arrived, also when the grant comes first") func grantInParts(
+    ) async throws {
+        for grantFirst in [false, true] {
+            let world = LoanFixture()
+            let (_, payloads, _) = try #require(try await splitGrant(world))
+            if grantFirst {
+                let last = try #require(payloads.last)
+                let grantDone = Task { @MainActor in await world.host.receive(last) }
+                try await Task.sleep(nanoseconds: 50_000_000)
+                for payload in payloads.dropLast() { await world.host.receive(payload) }
+                _ = await grantDone.value
+            } else {
+                for payload in payloads { await world.host.receive(payload) }
+            }
+            #expect(world.host.state == .holding(epoch: 1), "grant first: \(grantFirst)")
+            #expect(world.adopted == 1)
+            #expect(world.host.snapshot?.smoothingWindow.count == 5000)
+        }
+    }
+
+    @Test("A copy of a grant that gives up waiting for its pieces leaves the adopted snapshot alone") func lateGrantCopy(
+    ) async throws {
+        let world = LoanFixture()
+        let (grant, payloads, snapshot) = try #require(try await splitGrant(world))
+        // the first copy's grant arrives without its other pieces and waits for them
+        let first = try #require(payloads.last)
+        let firstDone = Task { @MainActor in await world.host.receive(first) }
+        try await Task.sleep(nanoseconds: 50_000_000)
+        // the resent copy arrives whole and is adopted while the first still waits
+        await world.host.receive(try world.payload(grant, snapshot: snapshot))
+        #expect(world.host.state == .holding(epoch: 1))
+        _ = await firstDone.value
+        #expect(world.host.state == .holding(epoch: 1))
+        #expect(world.host.snapshot?.smoothingWindow.count == 5000)
+    }
+
+    @Test(
+        "A grant missing a piece, or with a corrupted one, is rejected as incomplete; nothing is adopted"
+    ) func grantInPartsIncomplete() async throws {
+        for corrupt in [false, true] {
+            let world = LoanFixture()
+            let (_, payloads, _) = try #require(try await splitGrant(world))
+            if corrupt {
+                var first = payloads[0]
+                var bytes = try #require(first[WatchLoanWireKey.snapshotPart] as? Data)
+                bytes[bytes.startIndex] ^= 0xFF
+                first[WatchLoanWireKey.snapshotPart] = bytes
+                await world.host.receive(first)
+                for payload in payloads.dropFirst() { await world.host.receive(payload) }
+            } else {
+                for payload in payloads.dropFirst() { await world.host.receive(payload) }
+            }
+            #expect(world.host.state == .idle(epoch: 0), "corrupt: \(corrupt)")
+            #expect(world.adopted == 0)
+            guard case let .grantRejected(_, reason) = world.transport.messages.last?.kind else {
+                Issue.record("no rejection sent, corrupt: \(corrupt)")
+                continue
+            }
+            #expect(reason == .snapshotIncomplete)
+        }
+    }
+
+    @Test("A new loan doesn't show the previous loan's last loop or values") func newLoanStartsBlank() async throws {
+        let world = LoanFixture()
+        world.host.loop.lastConfirmedCycleAt = world.clock.addingTimeInterval(-3 * 3600)
+        world.host.loop.lastCycleAt = world.clock.addingTimeInterval(-3 * 3600)
+        world.host.loop.iob = 2
+        try await world.startLoan()
+        #expect(world.host.loop == WatchLoanHost.LoopStatus())
+        #expect(world.host.uiStatus().lastLoopAt == nil)
+    }
+
+    @Test("A pump that answered and then dropped its idle link is not reported unreachable") func idleLinkAfterAnswer() async throws {
+        for answered in [true, false] {
+            let world = LoanFixture()
+            world.adoptTimeout = 0.2
+            world.host = world.makeHost()
+            try await world.startLoan()
+            let pump = try #require(world.pump)
+            if answered { world.host.pumpControlBecameReady(pump) }
+            pump.linkUp = false
+            try await Task.sleep(nanoseconds: 500_000_000)
+            #expect((world.host.lastAlert == .podUnreachable) == !answered, "answered: \(answered)")
+        }
     }
 
     @Test("A grant that isn't Closed Loop is rejected: no adopt, nothing reaches the pump") func grantNotClosedLoop() async throws {
@@ -446,6 +659,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
     ) func cycleDosingMode() async throws {
         for mode in [DosingMode.open, .lowGlucoseSuspend, .basalTesting] {
             let world = LoanFixture()
+            world.smb = true
             world.foreground = true
             try await world.startLoan(glucose: 180)
             // the grant refuses these modes, so the saved snapshot is the only way in
@@ -735,7 +949,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.notifier.bodies[failedID] == "Kit text.\n" + WatchLoanAlerts.sensorNeedsPhone)
         #expect(world.notifier.pending[expiringID]?.date == world.clock.addingTimeInterval(3600))
         #expect(world.notifier.pending[podID]?.date == world.clock.addingTimeInterval(600))
-        #expect(world.notifier.bodies[podID] == "Kit text.\n" + WatchLoanAlerts.podNeedsPhone)
+        #expect(world.notifier.bodies[podID] == "Kit text.\n" + WatchLoanAlerts.podNeedsPhone(patch: false))
 
         await cgm.retractAlert(identifier: failed.identifier)
         #expect(world.notifier.pending[failedID] == nil)
@@ -878,6 +1092,33 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.violations.isEmpty)
     }
 
+    @Test("A cycle during a bolus sends nothing; the watch loops again once its bolus is delivered") func cycleDuringBolus(
+    ) async throws {
+        let world = LoanFixture()
+        try await world.startLoan(glucose: 160)
+        await world.reading(160)
+        let pump = try #require(world.pump)
+        pump.bolusDuration = 1
+        let cycles = world.host.cycleInfo.summary.cycles
+
+        let bolus = Task { await world.host.requestBolus(units: 0.5) }
+        while pump.bolusState == .noBolus {
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        let commands = pump.commands
+        await world.reading(160)
+        #expect(pump.commands == commands, "nothing sent while the bolus runs")
+        #expect(world.host.cycleInfo.lastResult == TrioOnWatchStatus.CycleResult.bolusRunning)
+        #expect(world.host.cycleInfo.summary.cycles == cycles, "a skip isn't a failed cycle")
+        #expect(world.host.uiStatus().lastCycleAt == world.host.uiStatus().lastLoopAt, "no couldn't-reach line")
+
+        await bolus.value
+        #expect(world.host.bolus == .done)
+        #expect(world.host.cycleInfo.summary.cycles == cycles + 1, "looped after the bolus")
+        #expect(world.host.cycleInfo.lastResult != TrioOnWatchStatus.CycleResult.bolusRunning)
+        #expect(world.violations.isEmpty)
+    }
+
     @Test("Suspend and resume, cancel the override and the temp target") func watchControls() async throws {
         let world = LoanFixture()
         try await world.startLoan()
@@ -887,9 +1128,58 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.pump?.commands.contains("resume") == true)
         await world.host.cancelOverride()
         await world.host.cancelTempTarget()
-        #expect(world.host.records.snapshot.overrideCancelledAt != nil)
-        #expect(world.host.records.snapshot.tempTargetCancelledAt != nil)
+        #expect(world.host.records.snapshot.overrideChange?.presetID == nil)
+        #expect(world.host.records.snapshot.overrideChange != nil)
+        #expect(world.host.records.snapshot.tempTargetChange != nil)
+        #expect(world.transport.batches.last?.adjustmentChanges?.count == 2, "the phone hears about both stops")
         #expect(world.violations.isEmpty)
+    }
+
+    @Test("A temp target preset started on the watch runs there and goes to the phone") func startTempTargetPreset() async throws {
+        let world = LoanFixture()
+        let preset = WatchLoanSnapshot.TempTargetPreset(id: UUID().uuidString, name: "Activity", target: 150, duration: 60)
+        world.tempTargetPresets = [preset]
+        try await world.startLoan()
+        #expect(world.host.uiStatus().tempTargetPresets.map(\.name) == ["Activity"])
+
+        #expect(await world.host.startAdjustmentConfirmed(.tempTarget, presetID: preset.id))
+        #expect(world.host.uiStatus().tempTarget?.name == "Activity")
+        let change = try #require(world.transport.batches.last?.adjustmentChanges?.first { $0.kind == .tempTarget })
+        #expect(change.presetID == preset.id)
+        #expect(await world.host.startAdjustmentConfirmed(.tempTarget, presetID: "unknown") == false)
+    }
+
+    @Test("An override preset started on the watch shows as running and goes to the phone") func startOverridePreset() async throws {
+        let world = LoanFixture()
+        world.overridePresets = [.init(
+            id: "gym",
+            name: "Gym",
+            state: OrefInputs.OverrideState(
+                enabled: false, percentage: 80, indefinite: true, smbIsOff: false, target: nil, duration: nil,
+                advancedSettings: false, isfAndCr: true, isf: true, cr: true, smbIsScheduledOff: false,
+                start: nil, end: nil, smbMinutes: nil, uamMinutes: nil
+            ),
+            indefinite: true,
+            duration: nil
+        )]
+        try await world.startLoan()
+
+        #expect(await world.host.startAdjustmentConfirmed(.override, presetID: "gym"))
+        let running = try #require(world.host.uiStatus().override)
+        #expect(running.name == "Gym" && running.endsAt == nil)
+        #expect(
+            world.transport.batches.last?.adjustmentChanges?
+                .contains { $0.kind == .override && $0.presetID == "gym" } == true
+        )
+    }
+
+    @Test("The loop page gets the loop's reasoning and eventual glucose after a cycle") func loopPageValues() async throws {
+        let world = LoanFixture()
+        try await world.startLoan(glucose: 180)
+        await world.reading(185)
+        let status = world.host.uiStatus()
+        #expect(status.reason?.isEmpty == false)
+        #expect(status.eventualGlucose != nil)
     }
 
     @Test("An unacknowledged hand-back goes again while the phone is reachable, and stops at the ack (W17)") func handBackResend(
@@ -1006,6 +1296,51 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(summary.readings == 0 && summary.wakes == ["WKApplicationRefreshBackgroundTask": 1])
     }
 
+    @Test("A phone reading fills in only a reading the watch's sensor missed, and loops on it") func phoneReadings() async throws {
+        let world = LoanFixture()
+        try await world.startLoan()
+        await world.reading(160)
+        let cycles = world.host.cycleInfo.summary.cycles
+
+        // the watch's own reading arrives too: the phone's copy is dropped
+        world.clock = world.clock.addingTimeInterval(5 * 60)
+        let same = LoanFixture.readings(now: world.clock, count: 1, value: 150, newestAgo: 5)
+        await world.host.receivePhoneReadings(same)
+        await world.host.receiveReadings(LoanFixture.readings(now: world.clock, count: 1, value: 151, newestAgo: 3))
+        world.clock = world.clock.addingTimeInterval(70)
+        await world.host.usePhoneReadings()
+        #expect(world.host.cycleInfo.phoneReadings == nil)
+        #expect(world.host.pendingPhoneReadings.isEmpty)
+
+        // the watch misses the next one: after the wait the phone's is stored, counted and looped on
+        world.clock = world.clock.addingTimeInterval(4 * 60)
+        await world.host.receivePhoneReadings(LoanFixture.readings(now: world.clock, count: 1, value: 140, newestAgo: 10))
+        #expect(world.host.cycleInfo.phoneReadings == nil)
+        world.clock = world.clock.addingTimeInterval(60)
+        await world.host.usePhoneReadings()
+        #expect(world.host.cycleInfo.phoneReadings == 1)
+        #expect(world.host.cycleInfo.summary.cycles == cycles + 2)
+        #expect(world.host.uiStatus().phoneReadings == 1)
+    }
+
+    @Test("End keeps asking the phone: it waits for reach and retries a silent one, within the window") func endAsksPhone(
+    ) async throws {
+        let world = LoanFixture()
+        try await world.startLoan()
+
+        world.transport.phoneEpoch = nil
+        #expect(await world.host.phoneAnswers() == false)
+        #expect(world.transport.messages.filter { $0.kind == .statusQuery }.count > 1)
+
+        world.transport.isReachable = false
+        world.transport.phoneEpoch = 1
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            world.transport.isReachable = true
+        }
+        #expect(await world.host.phoneAnswers())
+    }
+
     @Test("Duplicate messages are dropped by their persisted id, across a relaunch") func dedupe() async throws {
         let world = LoanFixture()
         let query = try world.payload(WatchLoanMessage(epoch: 0, kind: .statusQuery))
@@ -1049,7 +1384,9 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
             "readings",
             "cycles",
             "confirmed",
-            "budgetErrors"
+            "budgetErrors",
+            "confirmedLoops",
+            "phoneReadings"
         ]
         let samples: [Any] = [
             WatchLoanCycleInfo(),
@@ -1067,5 +1404,19 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
                 #expect(child.value is Int64)
             }
         }
+    }
+}
+
+@Suite("Watch loan pump kits") struct WatchLoanPumpKitTests {
+    @Test("The saved pump state names its kit, so a relaunch rebuilds the same one") func savedStateNamesKit() {
+        let pump = LoanPumpDouble(pod: PodModel())
+        let saved = LoanPumpFactory.savedState(of: pump)
+        #expect(saved[LoanPumpFactory.pluginKey] as? String == "LoanPumpDouble")
+        #expect(saved["double"] as? Bool == true)
+    }
+
+    @Test("A grant for a kit the watch doesn't have is refused") func unknownKit() {
+        let export = SharedDeviceConfiguration(managerIdentifier: "Unknown", asOf: Date(), state: [:])
+        #expect(LoanPumpFactory.kits.adopt(export, nil) == nil)
     }
 }

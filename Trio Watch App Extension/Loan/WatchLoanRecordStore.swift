@@ -13,16 +13,10 @@ final class WatchLoanRecordStore {
         var acknowledgedGlucose: Set<String> = []
         var acknowledgedCarbs: Set<String> = []
         var tddHistory: [OrefInputs.TDDRow] = []
-        /// The newest TDD row the phone has acknowledged.
-        var tddAcknowledgedUntil: Date?
-        var overrideCancelledAt: Date?
-        var tempTargetCancelledAt: Date?
-        /// An override started on the watch during the loan (from a grant preset), with its start time. The started
-        /// value takes precedence over `overrideAtGrant`; a later `overrideCancelledAt` cancels it in turn.
-        var startedOverride: Override?
-        var startedOverrideAt: Date?
-        var startedTempTarget: TempTarget?
-        var startedTempTargetAt: Date?
+        /// `tddKey` of the rows the phone has; optional so records saved before it still load.
+        var acknowledgedTDD: Set<String>? = nil
+        var overrideChange: WatchLoanAdjustmentChange?
+        var tempTargetChange: WatchLoanAdjustmentChange?
         /// Meals (ids and fpuIDs) and readings removed during the loan, on either side: hidden from the grant's
         /// snapshot too, and sent to the phone with every batch.
         var deletedCarbIDs: [String]?
@@ -229,32 +223,26 @@ final class WatchLoanRecordStore {
         try mutate { $0.tddHistory.append(row) }
     }
 
+    static func tddKey(_ row: OrefInputs.TDDRow) -> String {
+        "tdd:\(row.date.map { Int64(($0.timeIntervalSince1970 * 1000).rounded()) } ?? 0)"
+    }
+
     func cancelOverride(at date: Date) throws {
-        try mutate { $0.overrideCancelledAt = date }
+        try mutate { $0.overrideChange = WatchLoanAdjustmentChange(id: UUID(), kind: .override, at: date) }
+    }
+
+    func startAdjustment(_ kind: WatchLoanAdjustmentChange.Kind, presetID: String, name: String, at date: Date) throws {
+        let change = WatchLoanAdjustmentChange(id: UUID(), kind: kind, presetID: presetID, presetName: name, at: date)
+        try mutate { contents in
+            switch kind {
+            case .override: contents.overrideChange = change
+            case .tempTarget: contents.tempTargetChange = change
+            }
+        }
     }
 
     func cancelTempTarget(at date: Date) throws {
-        try mutate { $0.tempTargetCancelledAt = date }
-    }
-
-    /// Records an override started on the watch from a grant preset. Clears any earlier cancel so the newly
-    /// started override is active; `cancelOverride(at:)` afterwards cancels it again.
-    func startOverride(_ override: Override, at date: Date) throws {
-        try mutate {
-            $0.startedOverride = override
-            $0.startedOverrideAt = date
-            $0.overrideCancelledAt = nil
-        }
-    }
-
-    /// Records a temp target started on the watch from a grant preset. Clears any earlier cancel so the newly
-    /// started temp target is active; `cancelTempTarget(at:)` afterwards cancels it again.
-    func startTempTarget(_ tempTarget: TempTarget, at date: Date) throws {
-        try mutate {
-            $0.startedTempTarget = tempTarget
-            $0.startedTempTargetAt = date
-            $0.tempTargetCancelledAt = nil
-        }
+        try mutate { $0.tempTargetChange = WatchLoanAdjustmentChange(id: UUID(), kind: .tempTarget, at: date) }
     }
 
     // MARK: - For oref
@@ -270,12 +258,8 @@ final class WatchLoanRecordStore {
         records.glucose = contents.glucose
         records.carbs = contents.carbs
         records.tddHistory = contents.tddHistory
-        records.overrideCancelledAt = contents.overrideCancelledAt
-        records.tempTargetCancelledAt = contents.tempTargetCancelledAt
-        records.startedOverride = contents.startedOverride
-        records.startedOverrideAt = contents.startedOverrideAt
-        records.startedTempTarget = contents.startedTempTarget
-        records.startedTempTargetAt = contents.startedTempTargetAt
+        records.overrideChange = contents.overrideChange
+        records.tempTargetChange = contents.tempTargetChange
         return records
     }
 
@@ -295,25 +279,18 @@ final class WatchLoanRecordStore {
                     .first { $0.isMutable && $0.type == .tempBasal && $0.endDate > now },
                 carbs: contents.carbs.filter { !contents.acknowledgedCarbs.contains($0.id ?? "") },
                 deletedCarbIDs: contents.deletedCarbIDs ?? [],
-                glucose: contents.glucose.filter { !contents.acknowledgedGlucose.contains($0.id) }
+                glucose: contents.glucose.filter { !contents.acknowledgedGlucose.contains($0.id) },
+                adjustmentChanges: [contents.overrideChange, contents.tempTargetChange].compactMap { $0 },
+                tddRows: contents.tddHistory.filter { !(contents.acknowledgedTDD ?? []).contains(Self.tddKey($0)) }
             )
             batch.deletedGlucoseDates = contents.deletedGlucoseDates
-            // the watch-started override/temp target ride along every batch; the phone applies the newest and
-            // treats a repeat as a no-op (idempotent by the preset's own start time)
-            batch.startedOverride = contents.startedOverride
-            batch.startedOverrideAt = contents.startedOverrideAt
-            batch.startedTempTarget = contents.startedTempTarget
-            batch.startedTempTargetAt = contents.startedTempTargetAt
-            batch.overrideCancelledAt = contents.overrideCancelledAt
-            batch.tempTargetCancelledAt = contents.tempTargetCancelledAt
             batch.determinations = contents.determinations
-            batch.tdd = contents.tddHistory.filter { ($0.date ?? .distantPast) > (contents.tddAcknowledgedUntil ?? .distantPast) }
             contents.pendingBatch = batch.batchID
             contents.pendingKeys = Array(events.keys)
                 + batch.carbs.map { "carbs:\($0.id ?? "")" }
                 + batch.glucose.map { "glucose:\($0.id)" }
                 + (batch.determinations ?? []).compactMap(\.determination.id).map { "determination:\($0.uuidString)" }
-                + ((batch.tdd ?? []).compactMap(\.date).max().map { ["tdd:\($0.timeIntervalSince1970)"] } ?? [])
+                + (batch.tddRows ?? []).map(Self.tddKey)
             return batch
         }
     }
@@ -327,7 +304,7 @@ final class WatchLoanRecordStore {
                 } else if key.hasPrefix("glucose:") {
                     contents.acknowledgedGlucose.insert(String(key.dropFirst(8)))
                 } else if key.hasPrefix("tdd:") {
-                    contents.tddAcknowledgedUntil = Double(key.dropFirst(4)).map(Date.init(timeIntervalSince1970:))
+                    contents.acknowledgedTDD = (contents.acknowledgedTDD ?? []).union([key])
                 } else if key.hasPrefix("determination:") {
                     let id = UUID(uuidString: String(key.dropFirst(14)))
                     contents.determinations?.removeAll { $0.determination.id == id }
@@ -343,6 +320,8 @@ final class WatchLoanRecordStore {
             contents.glucose.removeAll { contents.acknowledgedGlucose.contains($0.id) && $0.dateString <= cutoff }
             contents.carbs.removeAll { contents.acknowledgedCarbs.contains($0.id ?? "") && $0.createdAt <= cutoff }
             contents.tddHistory.removeAll { ($0.date ?? .distantPast) <= cutoff }
+            let keptTDD = Set(contents.tddHistory.map(Self.tddKey))
+            contents.acknowledgedTDD = contents.acknowledgedTDD?.intersection(keptTDD)
         }
     }
 }

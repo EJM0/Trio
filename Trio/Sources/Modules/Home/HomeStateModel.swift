@@ -110,6 +110,8 @@ extension Home {
         /// Committed pinch-zoom window in hours, fed back by the chart shell so the
         /// peak picker granularity follows the zoom (successor of the time buttons).
         var chartVisibleHours: Double = MainChartHelper.Config.defaultVisibleSeconds / 3600
+        /// Apple Watch has the pump: the phone's last forecast and IOB/COB projection stopped at the hand-off.
+        var watchHoldsPump = false
         var glucoseFromPersistence: [GlucoseStored] = []
         /// The same readings, resolved for drawing — display-unit value, dynamic colour and
         /// smoothed value all pre-computed. Rebuilt only when the readings or one of the

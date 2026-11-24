@@ -22,6 +22,9 @@ extension WatchConfig {
         @Published var watchReadsSensor = false
         @Published var complicationCornerValue: WatchComplicationValue = WatchComplicationDefaults.cornerValue
         @Published var complicationSecondaryValue: WatchComplicationValue = WatchComplicationDefaults.secondaryValue
+        @Published var complicationStaleMinutes: Int = WatchComplicationDefaults.staleMinutes
+        @Published var complicationColorMode: WatchComplicationColorMode = WatchComplicationDefaults.colorMode
+        @Published var complicationRingStops: [ComplicationRingStop] = []
 
         /// Garmin watch settings containing all watch-related configuration
         @Published var garminSettings = GarminWatchSettings()
@@ -44,6 +47,9 @@ extension WatchConfig {
             subscribeSetting(\.watchComplicationSecondaryValue, on: $complicationSecondaryValue) {
                 complicationSecondaryValue = $0
             }
+            subscribeSetting(\.watchComplicationStaleMinutes, on: $complicationStaleMinutes) { complicationStaleMinutes = $0 }
+            subscribeSetting(\.watchComplicationColorMode, on: $complicationColorMode) { complicationColorMode = $0 }
+            complicationRingStops = Self.previewRingStops(for: settingsManager.settings)
 
             devices = garmin.devices
             refreshWatchSensor()
@@ -55,6 +61,16 @@ extension WatchConfig {
             cgmSharesWithWatch = cgm is DeviceConfigurationSharing
             cgmName = cgm?.localizedTitle ?? ""
             watchReadsSensor = (cgm as? DeviceConfigurationSharing)?.isConfigurationSharingEnabled ?? false
+        }
+
+        static func previewRingStops(for settings: TrioSettings) -> [ComplicationRingStop] {
+            let isDynamic = settings.glucoseColorScheme == .dynamicColor
+            return Trio.complicationRingStops(
+                highGlucoseColorValue: isDynamic ? Decimal(220) : settings.high,
+                lowGlucoseColorValue: isDynamic ? Decimal(55) : settings.low,
+                targetGlucose: Decimal(100),
+                glucoseColorScheme: settings.glucoseColorScheme
+            )
         }
 
         /// Prompts the user to select Garmin devices and updates the device list
@@ -84,7 +100,8 @@ extension WatchConfig {
 }
 
 extension WatchConfig.StateModel: SettingsObserver {
-    func settingsDidChange(_: TrioSettings) {
-        units = settingsManager.settings.units
+    func settingsDidChange(_ settings: TrioSettings) {
+        units = settings.units
+        complicationRingStops = Self.previewRingStops(for: settings)
     }
 }

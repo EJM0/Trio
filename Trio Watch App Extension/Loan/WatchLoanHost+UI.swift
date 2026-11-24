@@ -1,5 +1,6 @@
 import Foundation
 import LoopKit
+import MedtrumKit
 import OmnipodKit
 
 /// Read-only values and the one query the Trio on Watch screens need. Nothing here commands the pump.
@@ -22,10 +23,21 @@ extension WatchLoanHost {
             status.phase = .stopped(reason)
         }
         status.phoneReachable = env.transport.isReachable
+        status.pumpIsPatch = Self.isPatch(snapshot)
+        status.pumpAdopted = pump != nil
         status.lastLoopAt = loop.lastConfirmedCycleAt
         status.lastCycleAt = loop.lastCycleAt
         status.iob = loop.iob
         status.cob = loop.cob
+        status.tempBasalRate = loop.tempBasalRate
+        status.tempBasalEndsAt = loop.tempBasalEndsAt
+        status.eventualGlucose = loop.eventualGlucose
+        status.reason = loop.reason
+        status.forecast = loop.forecast
+        status.lastCycleResult = cycleInfo.lastResult
+        status.watchModeSince = cycleInfo.holdingSince
+        status.confirmedLoops = cycleInfo.confirmedLoops ?? 0
+        status.phoneReadings = cycleInfo.phoneReadings ?? 0
         status.insulinSuspended = loop.pumpSuspended
         status.bolus = bolus
         status.bolusInProgress = bolusWindow()
@@ -45,91 +57,80 @@ extension WatchLoanHost {
             status.units = snapshot.bolusCalculator.units
             status.readings = (snapshot.oref.glucose + records.snapshot.glucose)
                 .compactMap { reading in
-                    (reading.glucose ?? reading.sgv)
-                        .map { .init(date: reading.dateString, mgdl: $0, direction: reading.direction) }
+                    (reading.glucose ?? reading.sgv).map {
+                        .init(date: reading.dateString, mgdl: $0, direction: reading.direction?.rawValue)
+                    }
                 }
                 .sorted { $0.date > $1.date }
                 .prefix(2)
                 .map { $0 }
+            var byDate: [Date: TrioOnWatchStatus.Reading] = [:]
+            for reading in snapshot.oref.glucose + records.snapshot.glucose {
+                guard let mgdl = reading.glucose ?? reading.sgv else { continue }
+                byDate[reading.dateString] = .init(date: reading.dateString, mgdl: mgdl, direction: reading.direction?.rawValue)
+            }
+            status.chartReadings = byDate.values.sorted { $0.date < $1.date }
+            if let since = cycleInfo.holdingSince {
+                var counted: Date?
+                status.watchReadings = records.snapshot.glucose.map(\.dateString).filter { $0 >= since }.sorted()
+                    .reduce(0) { count, date in
+                        guard date.timeIntervalSince(counted ?? .distantPast) >= Self.countedSpacing else { return count }
+                        counted = date
+                        return count + 1
+                    }
+            }
             status.sensorEndsAt = snapshot.sensorEndsAt
+            status.sensorNeedsPairing = env.cgm?.needsPairing ?? false
             status.podEndsAt = snapshot.podEndsAt
             let now = env.now()
             let records = records.snapshot
-            status.override = Self.runningOverride(
-                grant: snapshot.overrideAtGrant,
-                started: records.startedOverride,
-                startedAt: records.startedOverrideAt,
-                cancelledAt: records.overrideCancelledAt,
-                now: now
-            )
-            status.tempTarget = Self.runningTempTarget(
-                grant: snapshot.tempTargetAtGrant,
-                started: records.startedTempTarget,
-                startedAt: records.startedTempTargetAt,
-                cancelledAt: records.tempTargetCancelledAt,
-                now: now
-            )
-            status.overridePresets = snapshot.overridePresets
-                .map { .init(name: $0.name, isRunning: $0.name == status.override?.name) }
-            status.tempTargetPresets = snapshot.tempTargetPresets
-                .map { .init(name: $0.name ?? "", isRunning: $0.name == status.tempTarget?.name) }
+            status.override = Self.runningOverride(snapshot: snapshot, change: records.overrideChange, now: now)
+            status.overridePresets = snapshot.overridePresets.map { .init(id: $0.id, name: $0.name) }
+            status.tempTarget = Self.runningTempTarget(snapshot: snapshot, change: records.tempTargetChange, now: now)
+            status.tempTargetPresets = snapshot.tempTargetPresets.map { .init(id: $0.id, name: $0.name) }
             status.recentDoses = recentBoluses(snapshot: snapshot, now: now)
         }
         if let omnipod = pump as? OmniPumpManager {
             status.pumpLastContact = omnipod.lastSync
-            status.reservoir = omnipod.state.podState?.lastInsulinMeasurements?.reservoirLevel
+            // above 50 U the pod reports a placeholder (51.15), as the phone's DeviceDataManager handles it
+            let reservoir = omnipod.state.podState?.lastInsulinMeasurements?.reservoirLevel
+            status.reservoir = reservoir
+            status.reservoirAboveReadingLimit = reservoir.map { $0 > 50 } ?? false
             status.podEndsAt = omnipod.state.podState?.expiresAt ?? status.podEndsAt
             status.podFaulted = omnipod.deliveredUnitsAreFinal
             status.canDeactivatePod = omnipod.failedDeviceDeactivationTitle != nil
+        } else if let medtrum = pump as? MedtrumPumpManager {
+            status.pumpLastContact = medtrum.lastSync
+            status.reservoir = medtrum.state.reservoir
+            status.podEndsAt = medtrum.deliveryEndsAt ?? status.podEndsAt
+            status.podFaulted = medtrum.deliveredUnitsAreFinal
         }
         status.podDeactivated = cycleInfo.podDeactivatedAt != nil
         return status
     }
 
-    /// The override to show: once one has been started on the watch it replaces the grant's for the rest of the loan,
-    /// mirroring the oref logic.
     private static func runningOverride(
-        grant: WatchLoanSnapshot.Adjustment?,
-        started: Override?,
-        startedAt: Date?,
-        cancelledAt: Date?,
+        snapshot: WatchLoanSnapshot,
+        change: WatchLoanAdjustmentChange?,
         now: Date
     ) -> TrioOnWatchStatus.Adjustment? {
-        if let started {
-            guard WatchLoopInputs.isActive(
-                startedAt: startedAt,
-                duration: started.indefinite ? nil : started.duration,
-                cancelledAt: cancelledAt,
-                now: now
-            ) else { return nil }
-            let endsAt = started.indefinite ? nil
-                : startedAt?.addingTimeInterval(Double(truncating: started.duration as NSNumber) * 60)
-            return .init(name: started.name, endsAt: endsAt)
+        if let preset = WatchLoopInputs.startedOverride(snapshot: snapshot, change: change), let change {
+            let endsAt = WatchLoopInputs.endDate(of: preset, startedAt: change.at)
+            return endsAt.map { $0 > now } ?? true ? .init(name: preset.name, endsAt: endsAt) : nil
         }
-        return running(grant, cancelledAt: cancelledAt, now: now)
+        return running(snapshot.overrideAtGrant, cancelledAt: change?.at, now: now)
     }
 
-    /// The temp target to show: once one has been started on the watch it replaces the grant's for the rest of the loan.
     private static func runningTempTarget(
-        grant: WatchLoanSnapshot.Adjustment?,
-        started: TempTarget?,
-        startedAt: Date?,
-        cancelledAt: Date?,
+        snapshot: WatchLoanSnapshot,
+        change: WatchLoanAdjustmentChange?,
         now: Date
     ) -> TrioOnWatchStatus.Adjustment? {
-        if let started, let startedAt {
-            guard WatchLoopInputs.isActive(
-                startedAt: startedAt,
-                duration: started.duration,
-                cancelledAt: cancelledAt,
-                now: now
-            ) else { return nil }
-            let endsAt = started.duration > 0
-                ? startedAt.addingTimeInterval(Double(truncating: started.duration as NSNumber) * 60)
-                : nil
-            return .init(name: started.name, endsAt: endsAt)
+        if let preset = WatchLoopInputs.startedTempTarget(snapshot: snapshot, change: change), let change {
+            let endsAt = WatchLoopInputs.endDate(of: preset, startedAt: change.at)
+            return endsAt > now ? .init(name: preset.name, endsAt: endsAt) : nil
         }
-        return running(grant, cancelledAt: cancelledAt, now: now)
+        return running(snapshot.tempTargetAtGrant, cancelledAt: change?.at, now: now)
     }
 
     private static func running(
@@ -334,20 +335,46 @@ extension WatchLoanHost {
     func stopAdjustmentConfirmed(override: Bool) async -> Bool {
         let since = env.now()
         if override { await cancelOverride() } else { await cancelTempTarget() }
-        let cancelledAt = override ? records.snapshot.overrideCancelledAt : records.snapshot.tempTargetCancelledAt
+        let cancelledAt = override ? records.snapshot.overrideChange?.at : records.snapshot.tempTargetChange?.at
         return (cancelledAt ?? .distantPast) >= since
     }
 
     /// End is tried, not pre-blocked on a reachability flag (G-15): the phone must answer a live query first.
-    /// Asks again until the phone answers or `phoneAnswerWindow` runs out: a phone iOS closed starts Trio in the
-    /// background on the first ask, and a locked one only answers once unlocked.
+    /// End asks until the phone answers or `phoneAnswerWindow` has passed: one unanswered try, or a moment the
+    /// phone isn't reachable, isn't enough to refuse. Each try is logged.
     func phoneAnswers() async -> Bool {
-        let end = env.now().addingTimeInterval(env.phoneAnswerWindow)
-        repeat {
-            if await askPhoneOnce() { return true }
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
-        } while env.now() < end
-        WatchLogger.shared.warning(.connectivity, "The phone didn't answer for \(Int(env.phoneAnswerWindow)) s; End not started")
+        let clock = ContinuousClock()
+        let start = clock.now
+        let window = Duration.seconds(env.phoneAnswerWindow)
+        var tries = 0
+        var waitedForReach = false
+        while clock.now - start < window {
+            guard env.transport.isReachable else {
+                if !waitedForReach {
+                    WatchLogger.shared.info(.connectivity, "End: the phone isn't reachable, waiting for it")
+                    waitedForReach = true
+                }
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                continue
+            }
+            tries += 1
+            let asked = clock.now
+            if await askPhoneOnce() {
+                let seconds = (clock.now - asked).components.seconds
+                WatchLogger.shared.info(.connectivity, "End: the phone answered in \(seconds) s, try \(tries)")
+                return true
+            }
+            WatchLogger.shared.warning(
+                .connectivity,
+                "End: the phone didn't answer within \(Int(env.phoneAnswerTimeout)) s, try \(tries), reachable \(env.transport.isReachable)"
+            )
+            // a send refused at once (session not yet active) would otherwise retry without a pause
+            if clock.now - asked < .seconds(1) { try? await Task.sleep(nanoseconds: 1_000_000_000) }
+        }
+        WatchLogger.shared.warning(
+            .connectivity,
+            "End not started: no answer from the phone in \(Int(env.phoneAnswerWindow)) s, \(tries) tries"
+        )
         return false
     }
 

@@ -68,7 +68,8 @@ extension View {
 // MARK: - Zone B: header (pump panel / glucose bobble / loop status)
 
 extension Home.RootView {
-    var glucoseView: some View {
+    /// The glucose bobble alone; also what is lifted when it is dragged onto the watch.
+    var glucoseRing: some View {
         CurrentGlucoseView(
             timerDate: state.timerDate,
             units: state.units,
@@ -84,28 +85,93 @@ extension Home.RootView {
             cgmSensorExpiresAt: state.cgmSensorExpiresAt,
             cgmWarmupEndsAt: state.cgmWarmupEndsAt
         )
-        .onTapGesture {
-            if !state.cgmAvailable {
-                showCGMSelection.toggle()
-            } else {
-                state.shouldDisplayCGMSetupSheet.toggle()
+    }
+
+    var glucoseView: some View {
+        glucoseRing
+            .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { watchStartDrag.ringFrame = $0 }
+            .onTapGesture {
+                if !state.cgmAvailable {
+                    showCGMSelection.toggle()
+                } else {
+                    state.shouldDisplayCGMSetupSheet.toggle()
+                }
             }
-        }
-        .onLongPressGesture {
-            let impactHeavy = UIImpactFeedbackGenerator(style: .heavy)
-            impactHeavy.impactOccurred()
-            showSnoozeSheet = true
-        }
-        .accessibilityAction {
-            if !state.cgmAvailable {
-                showCGMSelection.toggle()
-            } else {
-                state.shouldDisplayCGMSetupSheet.toggle()
+            .gesture(glucoseHoldGesture)
+            .onChange(of: glucoseTouched) { _, touched in
+                guard !touched else { return }
+                // after the gesture's own end has run: a hold still marked started was cancelled, not ended
+                DispatchQueue.main.async {
+                    guard watchStartDrag.holdStarted else { return }
+                    watchStartDrag.holdStarted = false
+                    if watchStartDrag.step == .dragging, !watchStartDrag.isConfirming {
+                        withAnimation(.spring(duration: 0.3)) { watchStartDrag.reset() }
+                    }
+                }
             }
-        }
-        .accessibilityAction(named: Text("Snooze alerts")) {
-            showSnoozeSheet = true
-        }
+            .accessibilityAction {
+                if !state.cgmAvailable {
+                    showCGMSelection.toggle()
+                } else {
+                    state.shouldDisplayCGMSetupSheet.toggle()
+                }
+            }
+            .accessibilityAction(named: Text("Snooze alerts")) {
+                showSnoozeSheet = true
+            }
+            .accessibilityAction(named: Text(String(
+                localized: "Start Trio on Watch",
+                comment: "Accessibility action on the glucose: the drag-to-watch Start without dragging"
+            ))) {
+                guard trioOnWatch.status.offersDragToStart else { return }
+                watchStartDrag.isConfirming = true
+            }
+    }
+
+    /// Hold the glucose: let go in place to snooze alerts, as always, or drag it onto the watch to start Trio on Watch.
+    var glucoseHoldGesture: some Gesture {
+        LongPressGesture(minimumDuration: 0.5)
+            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .global))
+            .updating($glucoseTouched) { _, touched, _ in touched = true }
+            .onChanged { value in
+                guard case let .second(true, drag) = value else { return }
+                if !watchStartDrag.holdStarted {
+                    watchStartDrag.holdStarted = true
+                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                    guard trioOnWatch.status.offersDragToStart, !watchStartDrag.isActive else {
+                        // no watch to start on: the long press stays the snooze it was
+                        showSnoozeSheet = true
+                        return
+                    }
+                    withAnimation(.easeOut(duration: 0.2)) { watchStartDrag.step = .dragging }
+                }
+                guard watchStartDrag.step == .dragging, let drag else { return }
+                let wasOver = watchStartDrag.isOverTarget
+                watchStartDrag.translation = drag.translation
+                if watchStartDrag.isOverTarget != wasOver { UISelectionFeedbackGenerator().selectionChanged() }
+            }
+            .onEnded { _ in
+                watchStartDrag.holdStarted = false
+                guard watchStartDrag.step == .dragging else { return }
+                if watchStartDrag.isOverTarget, trioOnWatch.status.watchReachable {
+                    watchStartDrag.isConfirming = true
+                } else if watchStartDrag.isNearStart {
+                    watchStartDrag.reset()
+                    showSnoozeSheet = true
+                } else {
+                    withAnimation(.spring(duration: 0.3)) { watchStartDrag.reset() }
+                }
+            }
+    }
+
+    /// The reading on the watch card of the drag-to-watch Start.
+    var watchCardReading: TrioOnWatchFaceCard.Reading? {
+        guard let latest = state.latestTwoGlucoseValues.first else { return nil }
+        let value = Int(latest.glucose)
+        let delta = state.latestTwoGlucoseValues.dropFirst().first.map {
+            Decimal(value - Int($0.glucose)).formattedDelta(for: state.units)
+        } ?? ""
+        return TrioOnWatchFaceCard.Reading(value: value.formatted(for: state.units), delta: delta, date: latest.date)
     }
 
     var pumpView: some View {

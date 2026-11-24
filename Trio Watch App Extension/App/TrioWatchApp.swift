@@ -48,6 +48,7 @@ import WatchKit
     private static let settlePoll: TimeInterval = 0.25
 
     static func schedule() {
+        guard !WatchCGMHost.shared.isReadingDirectly else { return }
         WKApplication.shared().scheduleBackgroundRefresh(
             withPreferredDate: Date(timeIntervalSinceNow: interval),
             userInfo: nil

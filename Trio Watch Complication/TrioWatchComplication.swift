@@ -51,13 +51,8 @@ struct TrioGlucoseProvider: TimelineProvider {
             return
         }
 
-        var dates = stride(from: 0, through: Self.timelineSpan, by: Self.timelineStep).map { now.addingTimeInterval($0) }
-        for threshold in [ComplicationState.agingAfter, ComplicationState.staleAfter] {
-            let flipsAt = current.content.state.date.addingTimeInterval(threshold + 1)
-            if flipsAt > now, flipsAt < now.addingTimeInterval(Self.timelineSpan) {
-                dates.append(flipsAt)
-            }
-        }
+        let gridDates = stride(from: 0, through: Self.timelineSpan, by: Self.timelineStep).map { now.addingTimeInterval($0) }
+        let dates = gridDates + current.content.state.staleTransitionDates(after: now, within: Self.timelineSpan)
         let entries = dates.sorted().map { TrioGlucoseEntry(date: $0, content: current.content) }
         completion(Timeline(entries: entries, policy: .atEnd))
     }

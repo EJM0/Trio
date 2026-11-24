@@ -2,13 +2,17 @@ import Foundation
 
 protocol WatchLoanTransport: AnyObject {
     var isReachable: Bool { get }
-    /// A live message only. False when the watch isn't reachable.
-    func sendLive(_ payload: [String: Any]) -> Bool
+    /// A live message only. False when the watch isn't reachable; `failed` when it didn't get there after all.
+    func sendLive(_ payload: [String: Any], failed: ((Error) -> Void)?) -> Bool
     /// Live when reachable, otherwise queued for delivery.
     func send(_ payload: [String: Any])
     /// Queued, replacing any queued payload under the same key.
     func sendNewest(_ payload: [String: Any], key: String)
     func cancelOutstandingLoanTransfers()
+}
+
+extension WatchLoanTransport {
+    func sendLive(_ payload: [String: Any]) -> Bool { sendLive(payload, failed: nil) }
 }
 
 /// What the coordinator needs from the rest of the app.
@@ -41,10 +45,16 @@ protocol WatchLoanPhoneHost: AnyObject {
     func onForeignPodSession(_ action: @escaping () -> Void)
     /// What the watch's Start screen shows before the user confirms.
     func startFacts() async -> WatchLoanStartFacts
+    /// Called after the phone stores glucose, its own sensor's or the watch's.
+    func onGlucoseStored(_ action: @escaping () -> Void)
+    /// The phone's readings of the last 20 minutes, unsmoothed.
+    func recentGlucose() async -> [BloodGlucose]
 }
 
 extension WatchLoanPhoneHost {
     func startFacts() async -> WatchLoanStartFacts { WatchLoanStartFacts() }
+    func onGlucoseStored(_: @escaping () -> Void) {}
+    func recentGlucose() async -> [BloodGlucose] { [] }
 }
 
 /// What the phone keeps besides its loan state: release readings and audits, seen message ids, the last record batch.
@@ -134,9 +144,20 @@ actor WatchLoanCoordinator {
     /// The loan whose pod the watch deactivated. Noted before the batch's merge, during which the hand-back can run.
     private var podDeactivatedInLoan: Int64?
     private var grantTimer: Task<Void, Never>?
+    /// A grant part that didn't reach the watch: the grant goes again while it is valid, then the pump comes back.
+    private var grantResend: Task<Void, Never>?
+    /// Counts grant sends, so a failure reported for an earlier send doesn't start another.
+    private var grantSends = 0
     /// Audits run one at a time: each reads its ledger entry, awaits the stores and writes the entry back.
     private var auditChain: Task<Void, Never>?
     private var isCheckingForeignSession = false
+    /// The newest reading sent to the watch, so each goes once.
+    private var lastForwardedReading: Date?
+    /// Record batches are merged one at a time: each checks what is stored before storing, so batches that arrive
+    /// together would otherwise each store the readings and carbs the others are about to store.
+    private var recordsChain: Task<Void, Never>?
+    /// When the watch-silence alarm was last armed; a burst of queued batches arms it once.
+    private var silenceArmedAt: Date?
 
     init(
         host: WatchLoanPhoneHost,
@@ -165,6 +186,9 @@ actor WatchLoanCoordinator {
     func start() async {
         host.onForeignPodSession { [weak self] in
             Task { await self?.checkForeignSession() }
+        }
+        host.onGlucoseStored { [weak self] in
+            Task { await self?.forwardReadings() }
         }
         await handle(.relaunched)
         await checkForeignSession()
@@ -227,10 +251,17 @@ actor WatchLoanCoordinator {
                 debug(.watch, "Duplicate watch loan message dropped")
                 return
             }
+            let kind = String(describing: envelope.message.kind).prefix { $0 != "(" }
+            info(
+                .watch,
+                "Watch loan message received: \(kind), epoch \(envelope.message.epoch), phone at epoch \(state.epoch.map(String.init) ?? "none")"
+            )
             if case let .status(watchState) = envelope.message.kind, let pendingStatus {
                 self.pendingStatus = nil
                 pendingStatus.resume(returning: watchState)
             } else if WatchLoanInbox.passes(envelope.message, phoneEpoch: state.epoch) {
+                // a batch that came in before this message is merged first, so a hand-back finds the watch's doses
+                await recordsChain?.value
                 await handle(.received(envelope.message))
             } else {
                 debug(.watch, "Watch loan message from an older loan dropped")
@@ -246,6 +277,16 @@ actor WatchLoanCoordinator {
     }
 
     private func receiveRecords(_ data: Data) async {
+        let previous = recordsChain
+        let next = Task {
+            await previous?.value
+            await self.mergeRecords(data)
+        }
+        recordsChain = next
+        await next.value
+    }
+
+    private func mergeRecords(_ data: Data) async {
         guard var batch = try? WatchLoanRecordBatch.decode(data), batch.version == WatchLoanRecordBatch.currentVersion else {
             warning(.watch, "Watch record batch can't be read; not acknowledged")
             return
@@ -274,12 +315,15 @@ actor WatchLoanCoordinator {
         }
         if case let .lent(epoch) = state, epoch == batch.epoch {
             ledger.lastBatchAt = now()
-            host.setAlarm(.phoneNoWatchUpdates, armed: true, anchor: ledger.lastBatchAt ?? now())
+            if silenceArmedAt.map({ now().timeIntervalSince($0) >= Self.silenceRearmInterval }) ?? true {
+                setAlarm(.phoneNoWatchUpdates, armed: true, anchor: now())
+            }
         }
         if let at = batch.lastLoopAt, ledger.watchLoop.map({ ($0.epoch, $0.at) < (batch.epoch, at) }) ?? true {
             ledger.watchLoop = WatchLoanLedger.WatchLoop(epoch: batch.epoch, at: at)
             // the phone doesn't loop while the watch holds the pump, so its loop timer follows the watch's loop
             host.noteWatchLoop(at: at)
+            announceWatchMode()
         }
         saveLedger()
         acknowledge(batch)
@@ -329,6 +373,54 @@ actor WatchLoanCoordinator {
         }
     }
 
+    // MARK: - Readings for the watch
+
+    /// Sends the watch the phone's readings it hasn't sent yet. The watch uses one only when its own sensor missed it.
+    func forwardReadings() async {
+        guard case let .lent(epoch) = state else {
+            lastForwardedReading = nil
+            return
+        }
+        let readings = await host.recentGlucose()
+            .filter { $0.dateString > lastForwardedReading ?? .distantPast }
+        guard let newest = readings.map(\.dateString).max(),
+              let data = try? WatchLoanPhoneReadings(epoch: epoch, readings: readings).encoded()
+        else { return }
+        lastForwardedReading = newest
+        host.transport?.send([WatchLoanWireKey.phoneReadings: data])
+        debug(.watch, "Sent the watch \(readings.count) phone readings, newest \(newest)")
+    }
+
+    /// Batches closer together than this re-arm the watch-silence alarm once: its first warning is 30 min out.
+    static let silenceRearmInterval: TimeInterval = 60
+
+    private func setAlarm(_ alarm: LoanAlarm, armed: Bool, anchor: Date) {
+        if alarm == .phoneNoWatchUpdates { silenceArmedAt = armed ? now() : nil }
+        host.setAlarm(alarm, armed: armed, anchor: anchor)
+    }
+
+    // MARK: - Live Activity
+
+    /// Watch mode as the Live Activity shows it: from asking the watch to start until the phone has the pump back.
+    var watchMode: LiveActivityAttributes.WatchMode? {
+        guard state.isLent, let epoch = state.epoch else { return nil }
+        return LiveActivityAttributes.WatchMode(
+            since: ledger.audits.last { $0.epoch == epoch }?.start ?? now(),
+            lastLoop: ledger.watchLoop.flatMap { $0.epoch == epoch ? $0.at : nil }
+        )
+    }
+
+    private func announceWatchMode() {
+        let mode = watchMode
+        Task { @MainActor in
+            Foundation.NotificationCenter.default.post(
+                name: .trioOnWatchModeDidChange,
+                object: nil,
+                userInfo: ["mode": mode as Any]
+            )
+        }
+    }
+
     // MARK: - Effects
 
     /// False stops the rest of the list.
@@ -362,6 +454,7 @@ actor WatchLoanCoordinator {
             if case .takingBack = previous, case .home = next {
                 host.didReturnHome()
             }
+            if previous.isLent != next.isLent { announceWatchMode() }
 
         case .awaitPumpIdle:
             guard await finishes(within: pumpIdleTimeout, { [host] in await host.awaitPumpIdle() }) else {
@@ -484,10 +577,10 @@ actor WatchLoanCoordinator {
                     saveLedger()
                 }
             }
-            host.setAlarm(alarm, armed: true, anchor: anchor)
+            setAlarm(alarm, armed: true, anchor: anchor)
 
         case let .disarm(alarm):
-            host.setAlarm(alarm, armed: false, anchor: now())
+            setAlarm(alarm, armed: false, anchor: now())
 
         case let .alert(alert):
             host.alert(alert)
@@ -535,14 +628,19 @@ actor WatchLoanCoordinator {
     private func sendGrant(_ message: WatchLoanMessage) async {
         guard case let .grant(requestID, expiresAt) = message.kind, case let .lending(epoch, _) = state else { return }
         func reject(_ reason: LoanRefusal) {
-            warning(.watch, "Grant not sent to Apple Watch: \(reason.rawValue)")
-            enqueue(.received(WatchLoanMessage(epoch: epoch, kind: .grantRejected(requestID: requestID, reason: reason))))
+            rejectGrant(epoch: epoch, requestID: requestID, reason: reason)
+        }
+        grantSends += 1
+        let send = grantSends
+        let partFailed: (Error) -> Void = { [weak self] _ in
+            Task { await self?.grantPartFailed(message, send: send) }
         }
         guard let pump = host.pump, pump.isReleased,
               let audit = ledger.audits.last(where: { $0.epoch == epoch })
         else { return reject(.releaseRefused) }
 
         let snapshotData: Data
+        var builtSnapshot: WatchLoanSnapshot?
         do {
             let snapshot = try await host.snapshot(
                 requestID: requestID,
@@ -557,6 +655,7 @@ actor WatchLoanCoordinator {
                 return reject(.snapshotIncomplete)
             }
             snapshotData = try snapshot.encoded()
+            builtSnapshot = snapshot
         } catch {
             warning(.watch, "Building the grant snapshot failed", error: error)
             return reject(.snapshotIncomplete)
@@ -569,36 +668,34 @@ actor WatchLoanCoordinator {
             message: message
         )
         guard let messageData = try? WatchLoanWire.encode(envelope) else { return reject(.snapshotIncomplete) }
-
-        // Split the compressed snapshot into live-message-sized slices. One slice for a small grant, as before.
-        let chunks = WatchLoanSnapshot.chunk(snapshotData)
-        guard messageData.count <= WatchLoanSnapshot.grantBudgetBytes else {
-            warning(.watch, "Grant too large for a live message: \(messageData.count) bytes")
-            return reject(.snapshotIncomplete)
-        }
-
-        // Send every slice live first. A slice that can't go live fails the whole grant, so the watch never adopts
-        // from a partial snapshot; the phone takes the pod back exactly as for any other unsent grant.
-        for (index, slice) in chunks.enumerated() {
-            let payload: [String: Any] = [
-                WatchLoanWireKey.snapshotChunk: slice,
-                WatchLoanWireKey.snapshotChunkIndex: index,
-                WatchLoanWireKey.snapshotChunkCount: chunks.count,
-                WatchLoanWireKey.snapshotChunkEpoch: NSNumber(value: epoch)
-            ]
-            guard host.transport?.sendLive(payload) == true else { return reject(.phoneUnreachable) }
-        }
-
-        // The grant arrives last and names the slice count, so the watch reassembles only once every slice is in.
-        let grantPayload: [String: Any] = [
-            WatchLoanWireKey.message: messageData,
-            WatchLoanWireKey.snapshotChunkCount: chunks.count,
-            WatchLoanWireKey.snapshotChunkEpoch: NSNumber(value: epoch)
-        ]
-        guard host.transport?.sendLive(grantPayload) == true else { return reject(.phoneUnreachable) }
-
         let size = messageData.count + snapshotData.count
-        info(.watch, "Grant sent to Apple Watch, \(size) bytes in \(chunks.count) chunk(s)")
+        if size <= WatchLoanSnapshot.grantBudgetBytes {
+            guard host.transport?.sendLive(
+                [WatchLoanWireKey.message: messageData, WatchLoanWireKey.snapshot: snapshotData],
+                failed: partFailed
+            ) == true
+            else { return resendLater(message) }
+            info(.watch, "Grant sent to Apple Watch, \(size) bytes")
+        } else {
+            let pieces = WatchLoanSnapshot.split(snapshotData, requestID: requestID, epoch: epoch)
+            let parts = builtSnapshot?.partSizes().map { "\($0.part) \($0.bytes) B (\($0.count))" }.joined(separator: ", ")
+            guard pieces.count <= WatchLoanSnapshot.maxParts else {
+                warning(.watch, "Grant too large even in \(WatchLoanSnapshot.maxParts) parts: \(size) bytes; \(parts ?? "")")
+                return reject(.snapshotIncomplete)
+            }
+            let encoder = JSONEncoder()
+            for (offset, piece) in pieces.enumerated() {
+                guard let header = try? encoder.encode(piece.header) else { return reject(.snapshotIncomplete) }
+                var payload: [String: Any] = [
+                    WatchLoanWireKey.snapshotPartHeader: header,
+                    WatchLoanWireKey.snapshotPart: piece.bytes
+                ]
+                if offset == pieces.count - 1 { payload[WatchLoanWireKey.message] = messageData }
+                guard host.transport?.sendLive(payload, failed: partFailed) == true else { return resendLater(message) }
+            }
+            info(.watch, "Grant sent to Apple Watch, \(size) bytes in \(pieces.count) parts")
+            if let parts { info(.watch, "Grant parts, compressed: \(parts)") }
+        }
         grantTimer?.cancel()
         grantTimer = Task { [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(WatchLoan.grantConfirmTimeout * 1_000_000_000))
@@ -637,6 +734,51 @@ actor WatchLoanCoordinator {
         } catch {
             warning(.watch, "Copy for Apple Watch not built", error: error)
         }
+    }
+
+    private func rejectGrant(epoch: Int64, requestID: UUID, reason: LoanRefusal) {
+        warning(.watch, "Grant not sent to Apple Watch: \(reason.rawValue)")
+        enqueue(.received(WatchLoanMessage(epoch: epoch, kind: .grantRejected(requestID: requestID, reason: reason))))
+    }
+
+    static let grantResendPoll: UInt64 = 500_000_000
+
+    /// The pump is released, so a grant the watch never got leaves nothing in control: send it again once the watch
+    /// is reachable, or take the pump back once the grant has expired.
+    private func grantPartFailed(_ message: WatchLoanMessage, send: Int) {
+        guard send == grantSends else { return }
+        resendLater(message, "Part of the grant didn't reach Apple Watch; sending it again")
+    }
+
+    private func resendLater(
+        _ message: WatchLoanMessage,
+        _ why: String = "Apple Watch isn't reachable for the grant; sending it once it is"
+    ) {
+        guard case let .grant(requestID, _) = message.kind, case let .lending(_, current) = state, current == requestID,
+              grantResend == nil
+        else { return }
+        warning(.watch, why)
+        grantResend = Task { [weak self] in await self?.resendGrant(message) }
+    }
+
+    private func resendGrant(_ message: WatchLoanMessage) async {
+        guard case let .grant(requestID, expiresAt) = message.kind else { return }
+        while !Task.isCancelled {
+            guard case let .lending(epoch, current) = state, current == requestID else { break }
+            if now() >= expiresAt {
+                grantResend = nil
+                warning(.watch, "The grant didn't reach Apple Watch before it expired; taking the pump back")
+                rejectGrant(epoch: epoch, requestID: requestID, reason: .grantExpired)
+                return
+            }
+            if host.transport?.isReachable == true {
+                grantResend = nil
+                await sendGrant(message)
+                return
+            }
+            try? await Task.sleep(nanoseconds: Self.grantResendPoll)
+        }
+        grantResend = nil
     }
 
     // MARK: - Audit
@@ -847,6 +989,24 @@ extension PhoneLoanState {
         case let .lent(epoch): return "lent (epoch \(epoch))"
         case let .takingBack(epoch, _): return "taking back (epoch \(epoch))"
         case .unreadable: return "unreadable"
+        }
+    }
+}
+
+extension Notification.Name {
+    /// `userInfo["mode"]` is the `LiveActivityAttributes.WatchMode?` now shown.
+    static let trioOnWatchModeDidChange = Notification.Name("trioOnWatchModeDidChange")
+}
+
+extension PhoneLoanState {
+    /// The watch has the pump, or is being given it or giving it back.
+    var isLent: Bool {
+        switch self {
+        case .lending,
+             .lent,
+             .takingBack: return true
+        case .home,
+             .unreadable: return false
         }
     }
 }

@@ -9,8 +9,17 @@ extension BaseWatchManager: WatchLoanTransport {
 
     /// The watch asks after a relaunch whether the loan it holds still stands.
     func answerLoanStatusQuery(_ replyHandler: @escaping ([String: Any]) -> Void) {
-        guard let coordinator = watchLoanCoordinator else { return replyHandler([:]) }
-        Task { replyHandler(await coordinator.statusAnswer()) }
+        guard let coordinator = watchLoanCoordinator else {
+            warning(.watch, "Watch loan status query answered empty: no coordinator")
+            return replyHandler([:])
+        }
+        let asked = Date()
+        Task {
+            let answer = await coordinator.statusAnswer()
+            replyHandler(answer)
+            let epoch = (answer[WatchLoanWireKey.phoneEpoch] as? NSNumber).map { "\($0.int64Value)" } ?? "none"
+            info(.watch, "Watch loan status query answered in \(Int(Date().timeIntervalSince(asked) * 1000)) ms, epoch \(epoch)")
+        }
     }
 
     /// The watch's Start screen asks for the pod, sensor and override facts before the user confirms.
@@ -25,10 +34,11 @@ extension BaseWatchManager: WatchLoanTransport {
 
     var isReachable: Bool { session?.isReachable ?? false }
 
-    func sendLive(_ payload: [String: Any]) -> Bool {
+    func sendLive(_ payload: [String: Any], failed: ((Error) -> Void)?) -> Bool {
         guard let session, session.activationState == .activated, session.isReachable else { return false }
         session.sendMessage(payload, replyHandler: nil) { error in
             warning(.watch, "Sending a watch loan message failed", error: error)
+            failed?(error)
         }
         return true
     }

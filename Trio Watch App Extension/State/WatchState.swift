@@ -67,10 +67,12 @@ import WidgetKit
     /// Chosen for the next bolus recommendation; mutually exclusive, as on the phone.
     var useReducedBolus: Bool = false
     var useSuperBolus: Bool = false
+    var lastLoopDate: Date?
     var complicationCornerValue: WatchComplicationValue = WatchComplicationDefaults.cornerValue
     var complicationSecondaryValue: WatchComplicationValue = WatchComplicationDefaults.secondaryValue
-    var glucoseUnits: String = ComplicationState.defaultUnits
-    var lastLoopDate: Date?
+    var complicationStaleMinutes: Int = WatchComplicationDefaults.staleMinutes
+    var complicationColorMode: WatchComplicationColorMode = WatchComplicationDefaults.colorMode
+    var complicationRingStops: [ComplicationRingStop] = []
     var lowGlucoseLimit: Double?
     var highGlucoseLimit: Double?
 
@@ -102,6 +104,8 @@ import WidgetKit
     var acknowledgementStatus: AcknowledgementStatus = .pending
     var acknowledgmentMessage: String = ""
     var shouldNavigateToRoot: Bool = true
+    var pendingBolusOverride: PendingBolusOverride?
+
     @ObservationIgnored private var acknowledgmentTimeoutWorkItem: DispatchWorkItem?
 
     /// Long enough for a pump to accept a bolus, short enough that the user isn't left guessing
@@ -156,7 +160,15 @@ import WidgetKit
 
     /// Work item to schedule finalizing the pending data.
     private var finalizeWorkItem: DispatchWorkItem?
-    private var isReloadingComplications = false
+    private let complicationReloader = ComplicationReloader(
+        fetchInstalledKinds: { completion in
+            WidgetCenter.shared.getCurrentConfigurations { result in
+                let installedKinds = (try? result.get())?.map(\.kind) ?? []
+                DispatchQueue.main.async { completion(installedKinds) }
+            }
+        },
+        reloadTimelines: { WidgetCenter.shared.reloadTimelines(ofKind: $0) }
+    )
 
     /// Debounce only in the foreground.
     private var isAppActive = false
@@ -246,6 +258,7 @@ import WidgetKit
 
     override init() {
         super.init()
+        restoreComplicationSettings()
         setupSession()
     }
 
@@ -257,7 +270,7 @@ import WidgetKit
     var isAwaitingDelivery: Bool {
         guard let session else { return false }
         return session.activationState != .activated || session.hasContentPending || !pendingData.isEmpty ||
-            isReloadingComplications
+            complicationReloader.isReloading
     }
 
     /// Configures the WatchConnectivity session if supported on the device
@@ -413,6 +426,26 @@ import WidgetKit
         DispatchQueue.main.async {
             guard let session = self.session, session.activationState == .activated else { return }
             self.forceConditionalWatchStateUpdate()
+        }
+    }
+
+    /// Messages that wait for an answer: only the phone's drag-to-watch Start asks for one
+    func session(
+        _ session: WCSession,
+        didReceiveMessage message: [String: Any],
+        replyHandler: @escaping ([String: Any]) -> Void
+    ) {
+        guard message[WatchLoanWireKey.startAsk] != nil else {
+            self.session(session, didReceiveMessage: message)
+            replyHandler([:])
+            return
+        }
+        Task { @MainActor in
+            guard let host = WatchLoanRuntime.host else {
+                return replyHandler([WatchLoanWireKey.startAnswer: LoanRefusal.featureOff.rawValue])
+            }
+            let refusal = await host.startAskedByPhone()
+            replyHandler([WatchLoanWireKey.startAnswer: refusal?.rawValue ?? WatchLoanWireKey.startRequested])
         }
     }
 
@@ -652,6 +685,22 @@ import WidgetKit
                 case .comboComplete:
                     self.isMealBolusCombo = false
                     self.handleAcknowledgment(success: acknowledged, message: ackMessage, isFinal: true)
+                case .bolusNeedsOverride:
+                    self.isMealBolusCombo = false
+                    if let amount = message[WatchMessageKeys.bolus] as? NSNumber,
+                       let overriddenChecks = message[WatchMessageKeys.overriddenBolusChecks] as? [String],
+                       let issuedAt = message[WatchMessageKeys.bolusOverrideIssuedAt] as? TimeInterval
+                    {
+                        self.showCommsAnimation = false
+                        self.pendingBolusOverride = PendingBolusOverride(
+                            amount: amount.decimalValue,
+                            reason: ackMessage,
+                            overriddenChecks: overriddenChecks,
+                            issuedAt: issuedAt
+                        )
+                    } else {
+                        self.handleAcknowledgment(success: false, message: ackMessage, isFinal: true)
+                    }
                 default:
                     self.isMealBolusCombo = false
                     self.handleAcknowledgment(success: acknowledged, message: ackMessage, isFinal: true)
@@ -858,8 +907,16 @@ import WidgetKit
             complicationSecondaryValue = WatchComplicationValue(rawValue: raw) ?? WatchComplicationDefaults.secondaryValue
         }
 
-        if let units = message[WatchMessageKeys.units] as? String {
-            glucoseUnits = units
+        if let minutes = (message[WatchMessageKeys.complicationStaleMinutes] as? NSNumber)?.intValue {
+            complicationStaleMinutes = WatchComplicationDefaults.clampedStaleMinutes(minutes)
+        }
+
+        if let raw = message[WatchMessageKeys.complicationColorMode] as? String {
+            complicationColorMode = WatchComplicationColorMode(rawValue: raw) ?? WatchComplicationDefaults.colorMode
+        }
+
+        if let stops = message[WatchMessageKeys.complicationRingStops] as? [[String: Any]] {
+            complicationRingStops = stops.compactMap(ComplicationRingStop.init(payload:))
         }
 
         if !ownLoopIsNewer, let loopTimestamp = (message[WatchMessageKeys.lastLoopDate] as? NSNumber)?.doubleValue {
@@ -971,45 +1028,6 @@ import WidgetKit
         applyOwnOverlay()
     }
 
-    private func saveComplicationSnapshot() {
-        guard let latestReading = glucoseValues.last else { return }
-        let snapshot = complicationSnapshot(readingDate: latestReading.date, glucoseValue: latestReading.glucose)
-        guard snapshot != lastSavedComplicationState else { return }
-        do {
-            try ComplicationStore.save(snapshot)
-            lastSavedComplicationState = snapshot
-            reloadInstalledComplications()
-            let readingAge = Int(Date().timeIntervalSince(latestReading.date) / 60)
-            WatchLogger.shared.info(.data, "Complication snapshot saved, reading \(readingAge) min old")
-        } catch {
-            WatchLogger.shared.warning(.data, "Complication snapshot not saved", error: error)
-        }
-    }
-
-    private func complicationSnapshot(readingDate: Date, glucoseValue: Double) -> ComplicationState {
-        ComplicationState(
-            date: readingDate,
-            glucose: currentGlucose,
-            glucoseColorHex: currentGlucoseColorString,
-            trend: trend ?? "",
-            delta: delta ?? ComplicationState.missingValue,
-            iob: iob ?? ComplicationState.missingValue,
-            cob: cob ?? ComplicationState.missingValue,
-            lastLoopTime: lastLoopTime ?? ComplicationState.missingValue,
-            cornerValue: complicationCornerValue,
-            secondaryValue: complicationSecondaryValue,
-            units: glucoseUnits,
-            glucoseValue: glucoseValue,
-            history: complicationHistory(until: readingDate),
-            loopDate: lastLoopDate,
-            limits: complicationLimits,
-            sensorState: sensorStateText,
-            markers: complicationMarkers(until: readingDate),
-            forecastStart: forecastStartDate,
-            forecast: complicationForecast
-        )
-    }
-
     private func complicationMarkers(until end: Date) -> [ComplicationMarker] {
         let shown = end.addingTimeInterval(-ComplicationState.chartWindow) ...
             end.addingTimeInterval(ComplicationState.forecastWindow)
@@ -1038,32 +1056,6 @@ import WidgetKit
         guard text != sensorStateText else { return }
         sensorStateText = text
         saveComplicationSnapshot()
-    }
-
-    private var complicationLimits: ClosedRange<Double>? {
-        guard let low = lowGlucoseLimit, let high = highGlucoseLimit, low < high else { return nil }
-        return low ... high
-    }
-
-    private func reloadInstalledComplications() {
-        let dataKinds = Set(ComplicationKind.allCases.map(\.widgetKind))
-        isReloadingComplications = true
-        WidgetCenter.shared.getCurrentConfigurations { result in
-            DispatchQueue.main.async { self.isReloadingComplications = false }
-            guard case let .success(installed) = result else { return }
-            for kind in Set(installed.map(\.kind)).intersection(dataKinds) {
-                WidgetCenter.shared.reloadTimelines(ofKind: kind)
-            }
-        }
-    }
-
-    private func complicationHistory(until end: Date) -> [ComplicationPoint] {
-        let from = end.addingTimeInterval(-ComplicationState.chartWindow)
-        let recent = glucoseValues.filter { $0.date >= from }
-        let step = max(1, Int((Double(recent.count) / Self.maxComplicationHistoryPoints).rounded(.up)))
-        return recent.enumerated()
-            .filter { $0.offset % step == 0 || $0.offset == recent.count - 1 }
-            .map { ComplicationPoint(timestamp: $0.element.date.timeIntervalSince1970, glucose: $0.element.glucose) }
     }
 
     // MARK: - The watch's own sensor readings
@@ -1289,5 +1281,144 @@ struct WatchGlucoseRange: Codable, Equatable {
             targetGlucose: target,
             glucoseColorScheme: scheme
         )
+    }
+}
+
+extension WatchState {
+    /// The phone's complication settings outlast a relaunch that only the watch's own readings follow.
+    private func restoreComplicationSettings() {
+        guard let saved = ComplicationStore.load() else { return }
+        complicationCornerValue = saved.cornerValue
+        complicationSecondaryValue = saved.secondaryValue
+        complicationStaleMinutes = saved.staleMinutes
+        complicationColorMode = saved.colorMode ?? WatchComplicationDefaults.colorMode
+        complicationRingStops = saved.ringStops ?? []
+        lowGlucoseLimit = saved.limits?.lowerBound
+        highGlucoseLimit = saved.limits?.upperBound
+        lastSavedComplicationState = saved
+    }
+
+    /// The reading the glucose bubble shows, whichever source it is from.
+    private var shownReading: (date: Date, glucose: Double)? {
+        if newestReadingIsOwn, let own = ownReadings.last, let value = own.glucose ?? own.sgv {
+            return (own.dateString, glucoseRange.display(value))
+        }
+        return glucoseValues.last.map { ($0.date, $0.glucose) }
+    }
+
+    /// After each of Trio on Watch's cycles: while the watch holds the pump, its own values replace the phone's.
+    func refreshComplication() {
+        saveComplicationSnapshot()
+    }
+
+    private func saveComplicationSnapshot() {
+        let snapshot: ComplicationState
+        if let loanSnapshot = loanComplicationSnapshot() {
+            snapshot = loanSnapshot
+        } else {
+            guard let latestReading = shownReading else { return }
+            snapshot = complicationSnapshot(readingDate: latestReading.date, glucoseValue: latestReading.glucose)
+        }
+        guard snapshot != lastSavedComplicationState else { return }
+        do {
+            try ComplicationStore.save(snapshot)
+            lastSavedComplicationState = snapshot
+            reloadInstalledComplications()
+            let readingAge = Int(Date().timeIntervalSince(snapshot.date) / 60)
+            WatchLogger.shared.info(.data, "Complication snapshot saved, reading \(readingAge) min old")
+        } catch {
+            WatchLogger.shared.warning(.data, "Complication snapshot not saved", error: error)
+        }
+    }
+
+    private func complicationSnapshot(readingDate: Date, glucoseValue: Double) -> ComplicationState {
+        ComplicationState(
+            date: readingDate,
+            glucose: currentGlucose,
+            glucoseColorHex: currentGlucoseColorString,
+            trend: trend ?? "",
+            delta: ComplicationState.presentOrMissing(delta),
+            iob: ComplicationState.presentOrMissing(iob),
+            cob: ComplicationState.presentOrMissing(cob),
+            lastLoopTime: ComplicationState.presentOrMissing(lastLoopTime),
+            cornerValue: complicationCornerValue,
+            secondaryValue: complicationSecondaryValue,
+            staleMinutes: complicationStaleMinutes,
+            colorMode: complicationColorMode,
+            units: glucoseRange.isMmol ? GlucoseUnits.mmolL.rawValue : GlucoseUnits.mgdL.rawValue,
+            glucoseValue: glucoseValue,
+            history: complicationHistory(until: readingDate),
+            loopDate: lastLoopDate,
+            limits: complicationLimits,
+            ringStops: complicationRingStops.isEmpty ? nil : complicationRingStops,
+            sensorState: sensorStateText,
+            markers: complicationMarkers(until: readingDate),
+            forecastStart: forecastStartDate,
+            forecast: complicationForecast
+        )
+    }
+
+    /// While the watch holds the pump, the phone's state stops with the loan: the complication shows the watch's own
+    /// reading, insulin on board and loop instead.
+    private func loanComplicationSnapshot() -> ComplicationState? {
+        let loan = Thread.isMainThread ? MainActor.assumeIsolated { TrioOnWatchSource.status } : nil
+        guard let loan, loan.isLoanActive, let latest = loan.readings.first else { return nil }
+        let range = glucoseRange
+        let units: GlucoseUnits = range.isMmol ? .mmolL : .mgdL
+        let inRange = Decimal(latest.mgdl) > range.low && Decimal(latest.mgdl) < range.high
+        let previous = loan.readings.dropFirst().first.flatMap { latest.date.timeIntervalSince($0.date) <= 15 * 60 ? $0 : nil }
+        let from = latest.date.addingTimeInterval(-ComplicationState.chartWindow)
+        let watchHistory = loan.chartReadings.filter { $0.date >= from && $0.date <= latest.date }
+        let firstWatchReading = watchHistory.first?.date ?? latest.date
+        let phoneHistory = complicationHistory(until: latest.date)
+            .filter { $0.timestamp < firstWatchReading.timeIntervalSince1970 }
+        return ComplicationState(
+            date: latest.date,
+            glucose: Decimal(latest.mgdl).formatted(for: units),
+            glucoseColorHex: inRange ? "#ffffff" : range.color(latest.mgdl).toHexString(),
+            trend: latest.direction ?? "",
+            delta: previous.map { Decimal(latest.mgdl - $0.mgdl).formattedDelta(for: units) } ?? ComplicationState.missingValue,
+            iob: loan.iob.flatMap { Formatter.decimalFormatterWithTwoFractionDigits.string(from: $0 as NSNumber) } ??
+                ComplicationState.missingValue,
+            cob: loan.cob.map { "\(Int(truncating: $0 as NSNumber))" } ?? ComplicationState.missingValue,
+            lastLoopTime: loan.lastLoopAt.map { $0.formattedTimeAgo() } ?? ComplicationState.missingValue,
+            cornerValue: complicationCornerValue,
+            secondaryValue: complicationSecondaryValue,
+            staleMinutes: complicationStaleMinutes,
+            colorMode: complicationColorMode,
+            units: units.rawValue,
+            glucoseValue: range.display(latest.mgdl),
+            history: phoneHistory + watchHistory.map {
+                ComplicationPoint(timestamp: $0.date.timeIntervalSince1970, glucose: range.display($0.mgdl))
+            },
+            loopDate: loan.lastLoopAt,
+            limits: complicationLimits,
+            ringStops: complicationRingStops.isEmpty ? nil : complicationRingStops,
+            sensorState: sensorStateText,
+            markers: complicationMarkers(until: latest.date),
+            forecastStart: forecastStartDate,
+            forecast: complicationForecast
+        )
+    }
+
+    private var complicationLimits: ClosedRange<Double>? {
+        if let low = lowGlucoseLimit, let high = highGlucoseLimit, low < high { return low ... high }
+        let range = glucoseRange
+        let low = NSDecimalNumber(decimal: range.isMmol ? range.low.asMmolL : range.low).doubleValue
+        let high = NSDecimalNumber(decimal: range.isMmol ? range.high.asMmolL : range.high).doubleValue
+        return low < high ? low ... high : nil
+    }
+
+    private func reloadInstalledComplications() {
+        complicationReloader.reload(Set(ComplicationKind.allCases.map(\.widgetKind)))
+    }
+
+    private func complicationHistory(until end: Date) -> [ComplicationPoint] {
+        let from = end.addingTimeInterval(-ComplicationState.chartWindow)
+        let recent = glucoseValues.filter { $0.date >= from }
+        let step = max(1, Int((Double(recent.count) / Self.maxComplicationHistoryPoints).rounded(.up)))
+        return recent.enumerated()
+            .filter { $0.offset % step == 0 || $0.offset == recent.count - 1 }
+            .map { ComplicationPoint(timestamp: $0.element.date.timeIntervalSince1970, glucose: $0.element.glucose) }
     }
 }

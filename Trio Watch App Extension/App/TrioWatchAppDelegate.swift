@@ -19,6 +19,11 @@ final class TrioWatchAppDelegate: NSObject, WKApplicationDelegate {
             DispatchQueue.main.async { self.handle(backgroundTasks) }
             return
         }
+        // while Trio on Watch reads the sensor, its wakes are held until the loop cycle they start has finished
+        if WatchLoanRuntime.ownsSensor {
+            WatchBackgroundTasks.shared.handle(backgroundTasks)
+            return
+        }
         for task in backgroundTasks {
             if let host = WatchLoanRuntime.host {
                 let name = String(describing: type(of: task))

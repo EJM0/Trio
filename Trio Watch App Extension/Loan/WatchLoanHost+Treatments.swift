@@ -2,7 +2,7 @@ import Foundation
 import LoopKit
 
 /// Treatments on the watch while it holds the pump: bolus and carbs, suspend and resume, and cancelling the
-/// override or temp target the loan started with. Creating or editing those stays on the phone.
+/// override or temp target the loan started with, and start one of the phone's presets.
 extension WatchLoanHost {
     /// The calculator's recommendation from a determination run now on the records as they are, so carbs entered
     /// since the last cycle count even when that cycle didn't reach the pump; the last cycle's when that run fails.
@@ -62,6 +62,9 @@ extension WatchLoanHost {
         await serially { accepted = await self.bolusNow(units: units, carbs: carbs) }
         if let accepted {
             await followDelivery(accepted)
+            if cycleSkippedForBolus, accepted.status.bolusState == .noBolus {
+                await runCycle(trigger: .bolusFinished)
+            }
         }
     }
 
@@ -213,6 +216,31 @@ extension WatchLoanHost {
         await runCycle(trigger: .user)
     }
 
+    /// Starts one of the phone's presets in place of whatever runs; false when it couldn't be saved.
+    func startAdjustmentConfirmed(_ kind: WatchLoanAdjustmentChange.Kind, presetID: String) async -> Bool {
+        var saved = false
+        await serially {
+            guard case .holding = self.state, let snapshot = self.snapshot else { return }
+            let name: String?
+            switch kind {
+            case .tempTarget: name = snapshot.tempTargetPresets.first { $0.id == presetID }?.name
+            case .override: name = snapshot.overridePresets.first { $0.id == presetID }?.name
+            }
+            guard let name else { return }
+            let (records, now) = (self.records, self.env.now())
+            do {
+                try await WatchLoanFiles.io { try records.startAdjustment(kind, presetID: presetID, name: name, at: now) }
+                saved = true
+                WatchLogger.shared.info(.treatments, "\(kind.rawValue) \(name) started on the watch")
+            } catch {
+                WatchLogger.shared.error(.treatments, "Starting the \(kind.rawValue) failed", error: error)
+                self.alerts.postNotSaved()
+            }
+        }
+        if saved { await runCycle(trigger: .user) }
+        return saved
+    }
+
     func cancelTempTarget() async {
         await serially {
             guard case .holding = self.state else { return }
@@ -223,56 +251,6 @@ extension WatchLoanHost {
                 return
             }
             WatchLogger.shared.info(.treatments, "Temp target cancelled on the watch")
-        }
-        await runCycle(trigger: .user)
-    }
-
-    /// The override presets the loan can start, from the grant. Empty from a grant built before they were sent.
-    var overridePresets: [Override] { snapshot?.overridePresets ?? [] }
-    /// The temp target presets the loan can start, from the grant.
-    var tempTargetPresets: [TempTarget] { snapshot?.tempTargetPresets ?? [] }
-
-    /// Starts an override from a grant preset while the watch holds the pump. Writes it to the record store
-    /// (which both feeds oref and syncs it to the phone) and runs a cycle, like the cancel path.
-    func startOverride(presetName: String) async {
-        await serially {
-            guard case .holding = self.state,
-                  let preset = self.snapshot?.overridePresets.first(where: { $0.name == presetName })
-            else {
-                WatchLogger.shared.warning(.treatments, "Override preset \"\(presetName)\" not found in the grant")
-                return
-            }
-            let now = self.env.now()
-            let started = preset.started(at: now)
-            let records = self.records
-            do { try await WatchLoanFiles.io { try records.startOverride(started, at: now) } } catch {
-                WatchLogger.shared.error(.treatments, "Starting the override failed", error: error)
-                self.alerts.postNotSaved()
-                return
-            }
-            WatchLogger.shared.info(.treatments, "Override \"\(presetName)\" started on the watch")
-        }
-        await runCycle(trigger: .user)
-    }
-
-    /// Starts a temp target from a grant preset while the watch holds the pump.
-    func startTempTarget(presetName: String) async {
-        await serially {
-            guard case .holding = self.state,
-                  let preset = self.snapshot?.tempTargetPresets.first(where: { $0.name == presetName })
-            else {
-                WatchLogger.shared.warning(.treatments, "Temp target preset \"\(presetName)\" not found in the grant")
-                return
-            }
-            let now = self.env.now()
-            let started = preset.started(at: now)
-            let records = self.records
-            do { try await WatchLoanFiles.io { try records.startTempTarget(started, at: now) } } catch {
-                WatchLogger.shared.error(.treatments, "Starting the temp target failed", error: error)
-                self.alerts.postNotSaved()
-                return
-            }
-            WatchLogger.shared.info(.treatments, "Temp target \"\(presetName)\" started on the watch")
         }
         await runCycle(trigger: .user)
     }

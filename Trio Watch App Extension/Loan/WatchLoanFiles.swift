@@ -17,6 +17,7 @@ struct WatchLoanFiles {
         case pumpState = "pump-state.plist"
         case pumpLocalState = "pump-local-state.plist"
         case cgmState = "cgm-state.plist"
+        case cgmLocalState = "cgm-local-state.plist"
         case intent = "dose-intent.json"
         case records = "loan-records.json"
         case inbox = "loan-inbox.json"
@@ -105,6 +106,13 @@ struct WatchLoanCycleInfo: Codable {
     /// The faulted pod was deactivated on the watch: no more cycles, and the phone forgets the pod from the next batch.
     var podDeactivatedAt: Date?
     var summary = DailySummary()
+    /// Confirmed cycles in this loan, at most one per 4 minutes, for the status page's loop tile.
+    var confirmedLoops: Int?
+    var lastCountedLoopAt: Date?
+    /// What the last cycle did, as the status page shows it.
+    var lastResult: String?
+    /// Readings in this loan that came from the phone because the watch's sensor missed them.
+    var phoneReadings: Int?
 
     /// Counts for one log line a day, so a hardware run shows its wakes, readings and cycles.
     struct DailySummary: Codable {
