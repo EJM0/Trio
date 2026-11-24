@@ -165,8 +165,7 @@ struct ChartSelectionRow: View {
             // instead. Letting them come and go would resize the row under the finger, which
             // is the one thing the reserved boxes exist to prevent.
             let iobUnit = Text(String(localized: " U", comment: "Insulin unit")).fontWeight(.regular)
-            let iobString = determination?.iob
-                .flatMap { Formatter.decimalFormatterWithTwoFractionDigits.string(from: $0) }
+            let iobString = determination?.iob?.decimalValue.formattedIOB()
             item(
                 icon: "syringe.fill",
                 tint: Color.insulin,
