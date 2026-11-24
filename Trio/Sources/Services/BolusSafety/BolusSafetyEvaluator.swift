@@ -67,7 +67,7 @@ extension BolusSafetyRejection {
         case let .exceedsMaxIOB(currentIOB, maxIOB):
             return String(
                 localized:
-                "Bolus blocked: a \(requestedAmount.formatted()) U bolus would exceed max IOB (\(maxIOB.formatted()) U). Current IOB: \(currentIOB.formatted()) U."
+                "Bolus blocked: a \(requestedAmount.formatted()) U bolus would exceed max IOB (\(maxIOB.formatted()) U). Current IOB: \(currentIOB.formattedIOB()) U."
             )
         case .recentBolusWithinWindow:
             return String(

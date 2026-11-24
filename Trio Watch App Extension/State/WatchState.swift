@@ -1335,7 +1335,8 @@ extension WatchState {
         ComplicationState(
             date: readingDate,
             glucose: currentGlucose,
-            glucoseColorHex: currentGlucoseColorString,
+            // the bubble's color is white in range; the complication colors every reading
+            glucoseColorHex: glucoseValues.last?.color.toHexString() ?? currentGlucoseColorString,
             trend: trend ?? "",
             delta: ComplicationState.presentOrMissing(delta),
             iob: ComplicationState.presentOrMissing(iob),
@@ -1365,7 +1366,6 @@ extension WatchState {
         guard let loan, loan.isLoanActive, let latest = loan.readings.first else { return nil }
         let range = glucoseRange
         let units: GlucoseUnits = range.isMmol ? .mmolL : .mgdL
-        let inRange = Decimal(latest.mgdl) > range.low && Decimal(latest.mgdl) < range.high
         let previous = loan.readings.dropFirst().first.flatMap { latest.date.timeIntervalSince($0.date) <= 15 * 60 ? $0 : nil }
         let from = latest.date.addingTimeInterval(-ComplicationState.chartWindow)
         let watchHistory = loan.chartReadings.filter { $0.date >= from && $0.date <= latest.date }
@@ -1375,7 +1375,8 @@ extension WatchState {
         return ComplicationState(
             date: latest.date,
             glucose: Decimal(latest.mgdl).formatted(for: units),
-            glucoseColorHex: inRange ? "#ffffff" : range.color(latest.mgdl).toHexString(),
+            // as the phone-fed snapshot: the complication colors every reading
+            glucoseColorHex: range.color(latest.mgdl).toHexString(),
             trend: latest.direction ?? "",
             delta: previous.map { Decimal(latest.mgdl - $0.mgdl).formattedDelta(for: units) } ?? ComplicationState.missingValue,
             iob: loan.iob.flatMap { Formatter.decimalFormatterWithTwoFractionDigits.string(from: $0 as NSNumber) } ??
