@@ -1089,123 +1089,6 @@
         }
       }
     },
-    "Color shows the glucose and trend arrow in the colors the phone uses for them. Monochrome shows them in white, which is easier to read in the dark. The gauge ring and the chart line keep their colors either way." : {
-
-    },
-    "Complication Previews" : {
-
-    },
-    "Corner Label is the curved text on Trio Glucose corner slots." : {
-
-    },
-    "Curved text on Trio Glucose corner slots." : {
-
-    },
-    "Glucose text in color or in white." : {
-
-    },
-    "Insulin on board first, with COB and glucose alongside. Fixed layout; only Mark Stale After applies." : {
-      "comment" : "Description of the insulin on board watch complication"
-    },
-    "Mark Stale After" : {
-
-    },
-    "Mark Stale After applies to every complication: once the reading is older than this, the glucose shows -- with the reading's age, and IOB and COB show -- when the loop has not run within that time.\n\nComplications can fall behind the phone, sometimes by a lot: with the watch app closed, watchOS limits how often they refresh. The Contact Image updates with every reading, so use it if you want every reading on your watch face." : {
-
-    },
-    "Previews use sample data in your units and follow your complication settings. Add them from the watch face editor under Trio. Corner slots curve the label round the face." : {
-
-    },
-    "Second line on Trio Glucose, Trio Gauge and Trio Chart." : {
-
-    },
-    "Show -- once data is older than this. Complications can lag." : {
-
-    },
-    "Small Line is the text under the glucose on Trio Glucose circular slots, beside the ring on Trio Gauge rectangular slots, and the second line of Trio Chart. Trio IOB has a fixed layout." : {
-
-    },
-    "%@ · loop %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ · loop %2$@"
-          }
-        }
-      }
-    },
-    "%@ ago · loop %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ ago · loop %2$@"
-          }
-        }
-      }
-    },
-    "BG" : {
-
-    },
-    "COB %@" : {
-
-    },
-    "Complication Settings" : {
-
-    },
-    "Corner Label" : {
-
-    },
-    "Glucose and trend. Small Line sits under the glucose on circular slots, Corner Label on corners." : {
-      "comment" : "Description of the glucose watch complication"
-    },
-    "Glucose inside a ring that fills from low to high. Rectangular slots add Small Line, IOB and COB." : {
-      "comment" : "Description of the glucose ring watch complication"
-    },
-    "Glucose, the Small Line and IOB next to the last three hours of readings. Rectangular slots only." : {
-      "comment" : "Description of the glucose chart watch complication"
-    },
-    "IOB %@" : {
-
-    },
-    "IOB %@ · COB %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "IOB %1$@ · COB %2$@"
-          }
-        }
-      }
-    },
-    "Loop Age" : {
-      "comment" : "Minutes since the last loop"
-    },
-    "no data" : {
-
-    },
-    "Nothing" : {
-      "comment" : "Complication slot shows nothing"
-    },
-    "Small Line" : {
-
-    },
-    "Trio Chart" : {
-      "comment" : "Name of the glucose chart watch complication"
-    },
-    "Trio draws your glucose into the photo of a contact on your iPhone. Put that contact on a watch face with the Contacts complication: it updates with every reading, also when the Trio complications lag." : {
-
-    },
-    "Trio Gauge" : {
-      "comment" : "Name of the glucose ring watch complication"
-    },
-    "Trio Glucose" : {
-      "comment" : "Name of the glucose watch complication"
-    },
-    "Trio IOB" : {
-      "comment" : "Name of the insulin on board watch complication"
-    },
     " " : {
       "localizations" : {
         "bg" : {
@@ -8672,6 +8555,16 @@
         }
       }
     },
+    "%@ · loop %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · loop %2$@"
+          }
+        }
+      }
+    },
     "%@ (%@-%@)" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -9373,6 +9266,16 @@
     },
     "%@ ago" : {
       "comment" : "Accessibility: elapsed time; %@ is a duration like \"1 hour, 59 minutes\". Word it so %@ stays unchanged (German: \"%@ her\").\nWatch loop page: age"
+    },
+    "%@ ago · loop %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ ago · loop %2$@"
+          }
+        }
+      }
     },
     "%@ already starts %@." : {
       "localizations" : {
@@ -13992,6 +13895,7 @@
       }
     },
     "%lld min" : {
+      "comment" : "Watch: age of the shown glucose reading",
       "localizations" : {
         "bg" : {
           "stringUnit" : {
@@ -62770,6 +62674,9 @@
         }
       }
     },
+    "BG" : {
+
+    },
     "BGI" : {
       "localizations" : {
         "bg" : {
@@ -78039,6 +77946,9 @@
         }
       }
     },
+    "Change in the %@ Settings" : {
+
+    },
     "Change ISF" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -83743,6 +83653,9 @@
         }
       }
     },
+    "COB %@" : {
+
+    },
     "COBpredBG" : {
       "localizations" : {
         "bg" : {
@@ -84266,6 +84179,9 @@
         }
       }
     },
+    "Color shows the glucose and trend arrow in the colors the phone uses for them. Monochrome shows them in white, which is easier to read in the dark. The gauge ring and the chart line keep their colors either way." : {
+
+    },
     "Combined score" : {
       "comment" : "Sum of the weighted GRI components before applying the cap."
     },
@@ -84664,6 +84580,12 @@
           }
         }
       }
+    },
+    "Complication Previews" : {
+
+    },
+    "Complication Settings" : {
+
     },
     "Cone" : {
       "localizations" : {
@@ -90744,6 +90666,12 @@
         }
       }
     },
+    "Corner Label" : {
+
+    },
+    "Corner Label is the curved text on Trio Glucose corner slots." : {
+
+    },
     "Could not access documents directory" : {
       "localizations" : {
         "bg" : {
@@ -92207,6 +92135,9 @@
           }
         }
       }
+    },
+    "Critical Alerts on Watch" : {
+
     },
     "Crying" : {
       "comment" : "Name of a sound file that plays a crying sound.",
@@ -93798,6 +93729,9 @@
           }
         }
       }
+    },
+    "Curved text on Trio Glucose corner slots." : {
+
     },
     "Custom" : {
       "comment" : "Custom temp target",
@@ -151126,6 +151060,9 @@
         }
       }
     },
+    "Glucose and trend. Small Line sits under the glucose on circular slots, Corner Label on corners." : {
+      "comment" : "Description of the glucose watch complication"
+    },
     "Glucose App Badge" : {
       "localizations" : {
         "bg" : {
@@ -153621,6 +153558,9 @@
         }
       }
     },
+    "Glucose inside a ring that fills from low to high. Rectangular slots add Small Line, IOB and COB." : {
+      "comment" : "Description of the glucose ring watch complication"
+    },
     "Glucose is stale for calibration" : {
       "localizations" : {
         "bg" : {
@@ -154147,6 +154087,9 @@
           }
         }
       }
+    },
+    "Glucose on the Watch" : {
+
     },
     "Glucose out of range: %@." : {
       "localizations" : {
@@ -155600,6 +155543,9 @@
     "Glucose Targets: each entry needs a start time, a low and a high value." : {
 
     },
+    "Glucose text in color or in white." : {
+
+    },
     "Glucose trace WILL NOT be affected by any insulin or carb entries." : {
       "localizations" : {
         "bg" : {
@@ -156525,6 +156471,9 @@
         }
       }
     },
+    "Glucose, the Small Line and IOB next to the last three hours of readings. Rectangular slots only." : {
+      "comment" : "Description of the glucose chart watch complication"
+    },
     "Glucose, Trend, Delta" : {
       "comment" : "Live Activity widget icon label for Glucose, Trend, Delta",
       "localizations" : {
@@ -157071,6 +157020,10 @@
           }
         }
       }
+    },
+    "Grace period" : {
+      "comment" : "Text displayed in a notification when a sensor is in the grace period.",
+      "isCommentAutoGenerated" : true
     },
     "Gradient Purple = As readings approach and exceed above target, they become more purple." : {
       "localizations" : {
@@ -173697,6 +173650,9 @@
     "Insulin on board can't be worked out right now." : {
       "comment" : "Watch bolus refusal"
     },
+    "Insulin on board first, with COB and glucose alongside. Fixed layout; only Mark Stale After applies." : {
+      "comment" : "Description of the insulin on board watch complication"
+    },
     "Insulin on board, %@" : {
       "comment" : "Watch accessibility: insulin on board with unit"
     },
@@ -176910,6 +176866,19 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "IOB（體內胰島素）"
+          }
+        }
+      }
+    },
+    "IOB %@" : {
+
+    },
+    "IOB %@ · COB %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "IOB %1$@ · COB %2$@"
           }
         }
       }
@@ -188211,6 +188180,15 @@
     "Loop" : {
       "comment" : "Watch loop page tile\nWatch loop page: last cycle sheet title\nWatch status row title"
     },
+    "Loop –" : {
+      "comment" : "Watch: the phone's last loop is not known"
+    },
+    "Loop %lld min" : {
+      "comment" : "Watch: minutes since the phone's last loop"
+    },
+    "Loop Age" : {
+      "comment" : "Minutes since the last loop"
+    },
     "Loop at %@ couldn't reach the pump." : {
       "comment" : "Watch status: last cycle didn't confirm the pump"
     },
@@ -195077,6 +195055,12 @@
           }
         }
       }
+    },
+    "Mark Stale After" : {
+
+    },
+    "Mark Stale After applies to every complication: once the reading is older than this, the glucose shows -- with the reading's age, and IOB and COB show -- when the loop has not run within that time.\n\nComplications can fall behind the phone, sometimes by a lot: with the watch app closed, watchOS limits how often they refresh. The Contact Image updates with every reading, so use it if you want every reading on your watch face." : {
+
     },
     "Marks when a short-term temporary glucose target is or was active, (potentially) altering when or how much insulin is delivered." : {
       "localizations" : {
@@ -212395,6 +212379,9 @@
         }
       }
     },
+    "no data" : {
+
+    },
     "No data." : {
       "localizations" : {
         "bg" : {
@@ -221547,6 +221534,9 @@
     },
     "Notes carry the state name the CGM itself uses, such as sensorFailed or warmup. Each state is noted once, and a state that returns after usable readings resume is noted again." : {
 
+    },
+    "Nothing" : {
+      "comment" : "Complication slot shows nothing"
     },
     "Nothing is currently running." : {
       "comment" : "No active adjustment to cancel",
@@ -233507,6 +233497,13 @@
         }
       }
     },
+    "Pairing: keep Trio open at the next reading" : {
+      "comment" : "Text displayed when the watch is waiting for the sensor to be paired.",
+      "isCommentAutoGenerated" : true
+    },
+    "Pairing: keep Trio open, accept the request" : {
+
+    },
     "Pairinginfo" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -240596,6 +240593,9 @@
           }
         }
       }
+    },
+    "Previews use sample data in your units and follow your complication settings. Add them from the watch face editor under Trio. Corner slots curve the label round the face." : {
+
     },
     "Previous field" : {
       "localizations" : {
@@ -249172,6 +249172,9 @@
           }
         }
       }
+    },
+    "Read on Apple Watch" : {
+
     },
     "Read the full release notes" : {
       "comment" : "Link to the complete release notes on GitHub",
@@ -261568,6 +261571,9 @@
         }
       }
     },
+    "Second line on Trio Glucose, Trio Gauge and Trio Chart." : {
+
+    },
     "Secondary Font Size" : {
       "localizations" : {
         "bg" : {
@@ -265266,6 +265272,10 @@
         }
       }
     },
+    "Sensor code needed" : {
+      "comment" : "Text displayed in a watch when the CGM's sensor needs a code to be paired.",
+      "isCommentAutoGenerated" : true
+    },
     "Sensor Ending Soon" : {
       "comment" : "Sensor Ending Soon",
       "extractionState" : "manual",
@@ -265547,6 +265557,10 @@
         }
       }
     },
+    "Sensor expired" : {
+      "comment" : "Text displayed in a notification when a sensor has expired.",
+      "isCommentAutoGenerated" : true
+    },
     "Sensor expires soon" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -265683,6 +265697,10 @@
           }
         }
       }
+    },
+    "Sensor failed" : {
+      "comment" : "Text displayed in a notification when a CGM sensor has failed.",
+      "isCommentAutoGenerated" : true
     },
     "Sensor Footer checksum" : {
       "extractionState" : "manual",
@@ -265957,6 +265975,10 @@
           }
         }
       }
+    },
+    "Sensor issue" : {
+      "comment" : "Text displayed in a notification when a sensor has a temporary issue.",
+      "isCommentAutoGenerated" : true
     },
     "Sensor Lifecycle Scenario" : {
       "localizations" : {
@@ -266773,6 +266795,10 @@
           }
         }
       }
+    },
+    "Sensor warmup" : {
+      "comment" : "Text displayed in a notification when a CGM sensor is warming up.",
+      "isCommentAutoGenerated" : true
     },
     "Sent Reports" : {
 
@@ -270614,6 +270640,9 @@
           }
         }
       }
+    },
+    "Show -- once data is older than this. Complications can lag." : {
+
     },
     "Show All" : {
       "comment" : "Name of the bolus display threshold option that shows all bolus amounts.",
@@ -275743,6 +275772,12 @@
     },
     "Small" : {
       "comment" : "Live Activity glucose reading font size"
+    },
+    "Small Line" : {
+
+    },
+    "Small Line is the text under the glucose on Trio Glucose circular slots, beside the ring on Trio Gauge rectangular slots, and the second line of Trio Chart. Trio IOB has a fixed layout." : {
+
     },
     "Smaller iPhone Screens" : {
       "comment" : "UI/UX option",
@@ -301922,6 +301957,12 @@
         }
       }
     },
+    "The watch reads the %@ itself while “Read on Apple Watch” is on in its settings. It shows the iPhone’s readings while they come, and its own, with a watch symbol in the glucose bubble, once they stop." : {
+
+    },
+    "The watch’s urgent low alarm sounds through Silent Mode" : {
+
+    },
     "The weekday of a scheduled switch must be 1 to 7." : {
 
     },
@@ -321502,6 +321543,9 @@
     "Trio can't tell which device controls your pump. Tap to take it back." : {
       "comment" : "Home banner subtitle"
     },
+    "Trio Chart" : {
+      "comment" : "Name of the glucose chart watch complication"
+    },
     "Trio checks your glucose every five minutes and changes your insulin for you. You need a working CGM and a connected pump." : {
       "localizations" : {
         "bg" : {
@@ -322699,6 +322743,9 @@
         }
       }
     },
+    "Trio draws your glucose into the photo of a contact on your iPhone. Put that contact on a watch face with the Contacts complication: it updates with every reading, also when the Trio complications lag." : {
+
+    },
     "Trio Features" : {
       "localizations" : {
         "bg" : {
@@ -322828,6 +322875,12 @@
           }
         }
       }
+    },
+    "Trio Gauge" : {
+      "comment" : "Name of the glucose ring watch complication"
+    },
+    "Trio Glucose" : {
+      "comment" : "Name of the glucose watch complication"
     },
     "Trio has not been able to switch to %@ as scheduled at %@: %@ Open Trio." : {
       "localizations" : {
@@ -323501,6 +323554,9 @@
           }
         }
       }
+    },
+    "Trio IOB" : {
+      "comment" : "Name of the insulin on board watch complication"
     },
     "Trio is a powerful app that helps you manage your diabetes. Let's get started by setting up a few important parameters that will help Trio work effectively for you." : {
       "localizations" : {
@@ -340252,6 +340308,9 @@
         }
       }
     },
+    "Warmup %lld min" : {
+      "comment" : "Watch: minutes left of the sensor's warmup"
+    },
     "Warning when bolusing with a very low or forecasted very low glucose." : {
       "localizations" : {
         "bg" : {
@@ -347090,6 +347149,9 @@
           }
         }
       }
+    },
+    "When this is on, the urgent low alarm the watch raises for its own readings sounds even in Silent Mode. The watch asks for permission the first time." : {
+
     },
     "When true, raises BG target when autosens detects sensitivity" : {
       "comment" : "”Sensitivity Raises Target\"",
