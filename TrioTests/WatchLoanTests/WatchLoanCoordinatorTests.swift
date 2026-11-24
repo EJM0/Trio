@@ -27,9 +27,18 @@ final class FakeLoanTransport: WatchLoanTransport {
     private(set) var queued: [[String: Any]] = []
     private(set) var cancelled = 0
 
-    func sendLive(_ payload: [String: Any]) -> Bool {
+    /// Live sends that go out but don't arrive, as when the watch drops away right after.
+    var undeliveredLiveSends = 0
+    var unreachableAfterFailure = false
+
+    func sendLive(_ payload: [String: Any], failed: ((Error) -> Void)?) -> Bool {
         guard isReachable else { return false }
         live.append(payload)
+        if undeliveredLiveSends > 0 {
+            undeliveredLiveSends -= 1
+            if unreachableAfterFailure { isReachable = false }
+            failed?(NSError(domain: "WCErrorDomain", code: 7007))
+        }
         return true
     }
 
@@ -37,7 +46,10 @@ final class FakeLoanTransport: WatchLoanTransport {
         if isReachable { live.append(payload) } else { queued.append(payload) }
     }
 
-    func cancelOutstandingLoanTransfers() { cancelled += 1 }
+    func cancelOutstandingLoanTransfers() {
+        cancelled += 1
+        queued.removeAll()
+    }
 
     private var all: [[String: Any]] { live + queued }
 
@@ -73,6 +85,8 @@ final class FakeLoanHost: WatchLoanPhoneHost {
     var refusal: LoanRefusal?
     var idle: () async -> Void = {}
     var snapshotFails = false
+    var snapshotPadding = 0
+    var phoneGlucose: [BloodGlucose] = []
     /// Scheduled basal 0, so the audit numbers are only boluses and temps.
     var profile = [BasalProfileEntry(start: "00:00", minutes: 0, rate: 0)]
 
@@ -93,6 +107,8 @@ final class FakeLoanHost: WatchLoanPhoneHost {
     var pump: WatchLoanPumpAdapter? { WatchLoanPumpAdapter(double) }
     var transport: WatchLoanTransport? { fakeTransport }
 
+    func recentGlucose() async -> [BloodGlucose] { phoneGlucose }
+
     func startRefusal() async -> LoanRefusal? { refusal }
     func awaitPumpIdle() async { await idle() }
 
@@ -109,6 +125,12 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         snapshot.expiresAt = expiresAt
         snapshot.releaseReading = release
         snapshot.pumpExport = try pump.exportedConfiguration()
+        if snapshotPadding > 0 {
+            let now = clock.now
+            snapshot.smoothingWindow = (0 ..< snapshotPadding).map { index in
+                WatchLoanSnapshot.RawReading(id: UUID(), date: now.addingTimeInterval(-Double(index) * 17), glucose: 100)
+            }
+        }
         snapshots.append(snapshot)
         return snapshot
     }
@@ -274,6 +296,32 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(await rig.coordinator.state == .lent(epoch: 1))
     }
 
+    @Test("Live Activity: watch mode from the start until the phone has the pump back") func liveActivityWatchMode() async throws {
+        let rig = try Rig()
+        #expect(await rig.coordinator.watchMode == nil)
+        try await rig.lend()
+        let mode = try #require(await rig.coordinator.watchMode)
+        #expect(mode.since == rig.clock.now && mode.lastLoop == nil)
+        #expect(!PhoneLoanState.home(epoch: 1, lastLoan: nil).isLent && !PhoneLoanState.unreadable.isLent)
+        #expect(PhoneLoanState.takingBack(epoch: 1, loan: LoanRecord(epoch: 1)).isLent)
+    }
+
+    @Test("Phone readings go to the watch only while it holds the pump, each once") func forwardReadings() async throws {
+        let rig = try Rig()
+        let reading = WatchLoanPhoneIntegrationTests.reading(rig.clock.now, 120)
+        rig.host.phoneGlucose = [reading]
+        await rig.coordinator.forwardReadings()
+        #expect(rig.transport.live.allSatisfy { $0[WatchLoanWireKey.phoneReadings] == nil })
+
+        try await rig.lend()
+        await rig.coordinator.forwardReadings()
+        await rig.coordinator.forwardReadings()
+        let sent = rig.transport.live.compactMap { $0[WatchLoanWireKey.phoneReadings] as? Data }
+        #expect(sent.count == 1)
+        let decoded = try WatchLoanPhoneReadings.decode(try #require(sent.first))
+        #expect(decoded.epoch == 1 && decoded.readings.map(\.dateString) == [reading.dateString])
+    }
+
     @Test("Status query: the phone answers the watch with its epoch") func statusAnswer() async throws {
         let rig = try Rig()
         #expect(WatchLoanWireKey.isStatusQuery(try Rig.message(F.message(0, .statusQuery))))
@@ -301,16 +349,105 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(rig.transport.messages == [F.message(0, .refused(requestID: F.requestA, reason: .pumpScreenOpen))])
     }
 
-    @Test("Start: a grant that can't go live is never queued; the phone takes the pump straight back") func grantNotLive() async throws {
+    private static func eventually(_ timeout: TimeInterval = 3, _ condition: () async -> Bool) async -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if await condition() { return true }
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+        return await condition()
+    }
+
+    private static func grants(_ transport: FakeLoanTransport) -> Int {
+        transport.messages.filter { if case .grant = $0.kind { return true } else { return false } }.count
+    }
+
+    @Test("Start: a grant that went out but didn't arrive goes again once the watch is reachable") func grantResent() async throws {
+        let rig = try Rig()
+        rig.transport.undeliveredLiveSends = 1
+        try await rig.receive(F.message(0, .request(requestID: F.requestA)))
+        #expect(await Self.eventually { Self.grants(rig.transport) == 2 })
+        #expect(await rig.coordinator.state == .lending(epoch: 1, requestID: F.requestA))
+    }
+
+    @Test("Start: a grant still not delivered when it expires: the phone takes the pump back by itself") func grantLostExpired(
+    ) async throws {
+        let rig = try Rig()
+        rig.transport.undeliveredLiveSends = 1
+        rig.transport.unreachableAfterFailure = true
+        try await rig.receive(F.message(0, .request(requestID: F.requestA)))
+        #expect(await rig.coordinator.state == .lending(epoch: 1, requestID: F.requestA))
+        rig.clock.advance(WatchLoan.grantLifetime + 1)
+        #expect(await Self.eventually { await rig.coordinator.state == .home(epoch: 2, lastLoan: LoanRecord(epoch: 1)) })
+        #expect(Self.grants(rig.transport) == 1)
+        #expect(rig.transport.messages.contains(F.message(1, .refused(requestID: F.requestA, reason: .grantExpired))))
+    }
+
+    @Test("Start: a watch that gave up on its request takes the pump back on the phone, from its older epoch") func watchGaveUp(
+    ) async throws {
+        let rig = try Rig()
+        try await rig.receive(F.message(0, .request(requestID: F.requestA)))
+        try await rig.receive(F.message(0, .grantRejected(requestID: F.requestA, reason: .grantExpired)))
+        #expect(await rig.coordinator.state == .home(epoch: 2, lastLoan: LoanRecord(epoch: 1)))
+    }
+
+    @Test("Start: a watch not reachable for the grant gets it once it is") func grantWaitsForWatch() async throws {
         let rig = try Rig()
         rig.transport.isReachable = false
         try await rig.receive(F.message(0, .request(requestID: F.requestA)))
-        #expect(await rig.coordinator.state == .home(epoch: 2, lastLoan: LoanRecord(epoch: 1)))
+        #expect(await rig.coordinator.state == .lending(epoch: 1, requestID: F.requestA))
         #expect(rig.transport.live.isEmpty)
-        #expect(!rig.transport.messages.contains { if case .grant = $0.kind { return true } else { return false } })
+        rig.transport.isReachable = true
+        #expect(await Self.eventually { Self.grants(rig.transport) == 1 })
+        #expect(await rig.coordinator.state == .lending(epoch: 1, requestID: F.requestA))
+    }
+
+    // 2026-11-23 10:11: the revoke cancelled the queued refusal, and the watch kept asking
+    @Test(
+        "Start: a grant never live before it expires is never queued; the phone takes the pump back and the watch hears"
+    ) func grantNotLive() async throws {
+        let rig = try Rig()
+        rig.transport.isReachable = false
+        try await rig.receive(F.message(0, .request(requestID: F.requestA)))
+        rig.clock.advance(WatchLoan.grantLifetime + 1)
+        #expect(await Self.eventually { await rig.coordinator.state == .home(epoch: 2, lastLoan: LoanRecord(epoch: 1)) })
+        #expect(rig.transport.live.isEmpty)
+        #expect(Self.grants(rig.transport) == 0)
         #expect(rig.transport.stops == [WatchLoanStop(kind: .revoke, epoch: 2)])
         #expect(rig.double.commands.suffix(3) == ["takeControl", "tempBasal(0.0)", "refreshDeliveredUnits"])
         #expect(!rig.double.isControlReleased)
+        #expect(rig.transport.cancelled > 0)
+        #expect(rig.transport.messages.contains(F.message(1, .refused(requestID: F.requestA, reason: .grantExpired))))
+    }
+
+    @Test(
+        "Start: a grant over one message goes in pieces, the last with the grant, and the pieces make the snapshot"
+    ) func grantInParts() async throws {
+        let rig = try Rig()
+        rig.host.snapshotPadding = 4000
+        try await rig.receive(F.message(0, .request(requestID: F.requestA)))
+        #expect(await rig.coordinator.state == .lending(epoch: 1, requestID: F.requestA))
+        let live = rig.transport.live
+        #expect(live.count >= 2)
+        var assembler = WatchLoanSnapshotAssembler()
+        for (offset, payload) in live.enumerated() {
+            let header = try JSONDecoder().decode(
+                WatchLoanSnapshotPart.self,
+                from: try #require(payload[WatchLoanWireKey.snapshotPartHeader] as? Data)
+            )
+            #expect(header.index == offset && header.count == live.count)
+            #expect(header.requestID == F.requestA && header.epoch == 1)
+            #expect((payload[WatchLoanWireKey.message] != nil) == (offset == live.count - 1))
+            #expect(payload[WatchLoanWireKey.snapshot] == nil)
+            let bytes = try #require(payload[WatchLoanWireKey.snapshotPart] as? Data)
+            #expect(bytes.count <= WatchLoanSnapshot.partBytes)
+            assembler.add(header, bytes)
+        }
+        let data = try #require(assembler.assembled(requestID: F.requestA, epoch: 1))
+        #expect(try WatchLoanSnapshot.decode(data).smoothingWindow.count == 4000)
+        #expect(rig.transport.queued.isEmpty)
+        try await rig.receive(F.message(1, .holding))
+        #expect(await rig.coordinator.state == .lent(epoch: 1))
     }
 
     @Test("Start: a snapshot that can't be built retakes the same way") func snapshotFails() async throws {
@@ -319,6 +456,7 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         try await rig.receive(F.message(0, .request(requestID: F.requestA)))
         #expect(await rig.coordinator.state == .home(epoch: 2, lastLoan: LoanRecord(epoch: 1)))
         #expect(rig.transport.live.allSatisfy { $0[WatchLoanWireKey.snapshot] == nil })
+        #expect(rig.transport.messages.contains(F.message(1, .refused(requestID: F.requestA, reason: .snapshotIncomplete))))
     }
 
     // MARK: Take Back (R-1, R-2, M3C-10)
@@ -577,6 +715,61 @@ final class FakeLoanHost: WatchLoanPhoneHost {
 
     // MARK: Alarms (V2-12, V2-14)
 
+    @Test("Queued batches that arrive together arm the watch-silence alarm once") func silenceAlarmBurst() async throws {
+        let rig = try Rig()
+        try await rig.lend()
+        rig.clock.advance(1800)
+        func silenceArms() -> Int { rig.host.alarms.filter { $0.alarm == .phoneNoWatchUpdates && $0.armed }.count }
+        let before = silenceArms()
+        for _ in 0 ..< 5 {
+            await rig.coordinator.receive(try rig.batch(epoch: 1, doses: []))
+            rig.clock.advance(1)
+        }
+        #expect(silenceArms() == before + 1)
+        #expect(rig.host.alarms.last { $0.alarm == .phoneNoWatchUpdates }?.anchor == rig.clock.now.addingTimeInterval(-5))
+
+        rig.clock.advance(WatchLoanCoordinator.silenceRearmInterval)
+        await rig.coordinator.receive(try rig.batch(epoch: 1, doses: []))
+        #expect(silenceArms() == before + 2)
+    }
+
+    @Test("Live Activity: one chart reading per interval, whole seconds, and an update that fits in 4 KB") func liveActivitySize(
+    ) {
+        let now = Date()
+        // a sensor read by the phone and the watch: a reading every 2.5 min for 6 hours
+        let doubled = (0 ..< 144).map {
+            GlucoseData(glucose: 100 + $0 % 40, date: now.addingTimeInterval(-Double($0) * 150 - 0.37), direction: .flat)
+        }
+        let thinned = LiveActivityAttributes.ContentState.thinned(doubled, spacing: 240)
+        #expect(thinned.count == 72)
+        #expect(thinned.first?.date == doubled.first?.date)
+
+        func state(_ chart: [GlucoseData]) -> LiveActivityAttributes.ContentState {
+            .fitting { spacing in
+                LiveActivityAttributes.ContentState(
+                    new: chart[0], prev: chart[1], units: .mgdL, chart: chart, settings: TrioSettings(), determination: nil,
+                    iob: 1, override: nil, tempTarget: nil, widgetItems: LiveActivityAttributes.LiveActivityItem.defaultItems,
+                    chartSpacing: spacing
+                )
+            }
+        }
+        let fromDoubled = state(doubled)
+        #expect(fromDoubled.fitsUpdateLimit)
+        #expect(fromDoubled.detailedViewState.chart.count == 72)
+        #expect(fromDoubled.detailedViewState.chart.allSatisfy {
+            $0.date.timeIntervalSinceReferenceDate == $0.date.timeIntervalSinceReferenceDate.rounded()
+        })
+
+        // a reading a minute: thinner still until it fits
+        let everyMinute = (0 ..< 360).map {
+            GlucoseData(glucose: 100 + $0 % 40, date: now.addingTimeInterval(-Double($0) * 60), direction: .flat)
+        }
+        let fromEveryMinute = state(everyMinute)
+        #expect(fromEveryMinute.fitsUpdateLimit)
+        // the delta still comes from the two newest readings
+        #expect(fromEveryMinute.change == LiveActivityAttributes.ContentState.calculateChange(chart: everyMinute, units: .mgdL))
+    }
+
     @Test("Lent: not-looping off, watch silence armed from the last batch, kept across a relaunch") func silenceAlarm() async throws {
         let rig = try Rig()
         try await rig.receive(F.message(0, .request(requestID: F.requestA)))
@@ -618,10 +811,13 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         #expect(rig.transport.messages.count == 2)
     }
 
-    @Test("Below the phone's epoch only request, hand-back and records pass") func epochFilter() {
-        let passing: [WatchLoanMessage.Kind] = [.request(requestID: F.requestA), .handBack, .records]
+    @Test("Below the phone's epoch only request, grant rejected, hand-back and records pass") func epochFilter() {
+        // a watch that never got the grant rejects it from its older epoch
+        let passing: [WatchLoanMessage.Kind] = [
+            .request(requestID: F.requestA), .grantRejected(requestID: F.requestA, reason: .grantExpired), .handBack, .records
+        ]
         let dropped: [WatchLoanMessage.Kind] = [
-            .holding, .grantRejected(requestID: F.requestA, reason: .grantExpired), .status(.idle(epoch: 1)),
+            .holding, .status(.idle(epoch: 1)),
             .handBackAck, .statusQuery, .refused(requestID: F.requestA, reason: .busy),
             .grant(requestID: F.requestA, expiresAt: F.now)
         ]

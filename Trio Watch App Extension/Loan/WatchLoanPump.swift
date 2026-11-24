@@ -8,6 +8,8 @@ protocol LoanPump: PumpManager, ExclusiveDeviceControl, PumpDeliveryOdometer {
     /// After another controller used the pod, the kit runs no session at all.
     var refusesSessions: Bool { get }
     var foreignSessionDetectedAt: Date? { get }
+    /// Reads the pod's status once its data is older than `age` (below `ensureCurrentPumpData`'s 6 minutes).
+    func readStatusIfOlder(than age: TimeInterval, completion: @escaping (Date?) -> Void)
 }
 
 extension OmniPumpManager: LoanPump {}
@@ -65,8 +67,10 @@ final class WatchLoanPumpDelegate: PumpManagerDelegate {
         }
     }
 
-    func deviceManagerControlDidBecomeReady(_: DeviceManager) {
+    func deviceManagerControlDidBecomeReady(_ manager: DeviceManager) {
         WatchLogger.shared.info(.pump, "Pump answered: control ready")
+        guard let pump = manager as? LoanPump else { return }
+        Task { @MainActor [weak host] in host?.pumpControlBecameReady(pump) }
     }
 
     func pumpManager(_: PumpManager, didError error: PumpManagerError) {
@@ -87,15 +91,20 @@ final class WatchLoanPumpDelegate: PumpManagerDelegate {
     func pumpManager(_: PumpManager, didUpdatePumpRecordsBasalProfileStartEvents _: Bool) {}
     func pumpManager(
         _: PumpManager,
-        didReadReservoirValue _: Double,
-        at _: Date,
+        didReadReservoirValue units: Double,
+        at date: Date,
         completion: @escaping (Result<
             (newValue: ReservoirValue, lastValue: ReservoirValue?, areStoredValuesContinuous: Bool),
             Error
         >)
             -> Void
     ) {
-        completion(.failure(WatchLoanHostError.notStored))
+        // the kit keeps the level in its own status; like the phone, the watch keeps no reservoir history
+        completion(.success((
+            newValue: LoanReservoirValue(startDate: date, unitVolume: units),
+            lastValue: nil,
+            areStoredValuesContinuous: true
+        )))
     }
 
     func pumpManager(_: PumpManager, didAdjustPumpClockBy adjustment: TimeInterval) {
@@ -143,4 +152,9 @@ final class WatchLoanPumpDelegate: PumpManagerDelegate {
     func lookupAllUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }
     func lookupAllUnacknowledgedUnretracted(managerIdentifier _: String) async throws -> [PersistedAlert] { [] }
     func recordRetractedAlert(_: Alert, at _: Date) async throws {}
+}
+
+private struct LoanReservoirValue: ReservoirValue {
+    let startDate: Date
+    let unitVolume: Double
 }

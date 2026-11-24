@@ -110,7 +110,9 @@ final class LoanPumpDouble: LoanPump {
         isControlReleased = false
     }
 
-    var isControlReady: Bool { holdsPod }
+    /// False: the link dropped, as a DASH pod's does when idle.
+    var linkUp = true
+    var isControlReady: Bool { holdsPod && linkUp }
 
     // MARK: Odometer
 
@@ -181,6 +183,19 @@ final class LoanPumpDouble: LoanPump {
             reportLater(dose)
         }
         completion?(lastSync)
+    }
+
+    private(set) var aheadReads = 0
+
+    func readStatusIfOlder(than age: TimeInterval, completion: @escaping (Date?) -> Void) {
+        guard !refusesSessions, holdsPod, now().timeIntervalSince(lastSync ?? .distantPast) > age else {
+            completion(lastSync)
+            return
+        }
+        aheadReads += 1
+        commands.append("readStatusIfOlder")
+        if statusIsFresh { lastSync = now() }
+        completion(lastSync)
     }
 
     private(set) var heartbeatRequests: [PumpHeartbeatRequest?] = []

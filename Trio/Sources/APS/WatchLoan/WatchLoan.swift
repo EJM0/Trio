@@ -328,10 +328,12 @@ enum WatchLoan {
                 ))])
             }
 
-        case let .grantRejected(requestID, _):
+        case let .grantRejected(requestID, reason):
             guard case let .lending(epoch, current) = state, current == requestID else { return (state, []) }
             // The watch never adopted this grant, so the phone takes the pod back without a tap
-            return startTakeBack(from: state, loan: LoanRecord(epoch: epoch), newEpoch: epoch + 1)
+            let (next, effects) = startTakeBack(from: state, loan: LoanRecord(epoch: epoch), newEpoch: epoch + 1)
+            // after the transfers are cancelled, or a watch still asking never hears
+            return (next, effects + [.send(WatchLoanMessage(epoch: epoch, kind: .refused(requestID: requestID, reason: reason)))])
 
         case .holding,
              .records:
@@ -404,9 +406,11 @@ enum WatchLoan {
             )
 
         case .requestTimedOut:
-            guard case let .requesting(epoch, _) = state else { return (state, []) }
+            guard case let .requesting(epoch, requestID) = state else { return (state, []) }
             let next = WatchLoanState.idle(epoch: epoch)
-            return (next, [.persist(next), .alert(.phoneDidNotAnswer)])
+            // the phone may have released the pump and lost the grant on the way: it takes the pump back at once
+            let giveUp = WatchLoanMessage(epoch: epoch, kind: .grantRejected(requestID: requestID, reason: .grantExpired))
+            return (next, [.persist(next), .send(giveUp), .alert(.phoneDidNotAnswer)])
 
         case let .received(message):
             return watchReceived(state, message, context)

@@ -190,4 +190,54 @@ import Testing
             #expect(TrioOnWatchPhoneFixture.named(name, now: now) != nil, "\(name)")
         }
     }
+
+    @Test("Drag-to-watch Start: the watch's answer, then the loan state, decide the hand-off card") func dragToStart() {
+        typealias Start = TrioOnWatchPhoneStart
+        #expect(Start.stage(answer: nil, phase: .home, elapsed: 0, patch: true) == .handingOver)
+        #expect(Start.stage(answer: .requested, phase: .home, elapsed: 5, patch: true) == .handingOver)
+        #expect(Start.stage(answer: .requested, phase: .starting, elapsed: 8, patch: true) == .handingOver)
+        // the check comes once the watch has the patch, not with its first loop
+        #expect(Start.stage(answer: .requested, phase: .inControl, elapsed: 12, patch: true) == .done)
+        #expect(Start.stage(answer: .requested, phase: .startUnconfirmed, elapsed: 70, patch: true) == .stillWaiting)
+        #expect(Start.stage(answer: .requested, phase: .home, elapsed: 31, patch: true).isFailed)
+        #expect(Start.stage(answer: .requested, phase: .takingBack, elapsed: 20, patch: true).isFailed)
+        #expect(Start.stage(answer: .watchAsleep, phase: .home, elapsed: 0, patch: false).isFailed)
+        #expect(Start.stage(answer: .noAnswer, phase: .home, elapsed: 10, patch: false).isFailed)
+        #expect(
+            Start.stage(answer: .refused(.watchBatteryLow), phase: .home, elapsed: 1, patch: false)
+                == .failed(Start.refusalText(.watchBatteryLow, patch: false))
+        )
+
+        #expect(Start.answer(from: [WatchLoanWireKey.startAnswer: WatchLoanWireKey.startRequested]) == .requested)
+        #expect(Start.answer(from: [WatchLoanWireKey.startAnswer: "notificationsOff"]) == .refused(.notificationsOff))
+        #expect(Start.answer(from: [:]) == .noAnswer)
+        #expect(Start.answer(from: [WatchLoanWireKey.startAnswer: "something new"]) == .noAnswer)
+    }
+
+    @Test("Drag-to-watch Start: the glucose drops on the watch, and lets go in place to snooze") @MainActor func dragGeometry() {
+        let drag = TrioOnWatchStartDrag()
+        drag.ringFrame = CGRect(x: 130, y: 100, width: 130, height: 130)
+        #expect(drag.isNearStart && !drag.isOverTarget)
+        drag.translation = CGSize(width: 4, height: TrioOnWatchStartDrag.targetDistance + 60)
+        #expect(drag.isOverTarget && !drag.isNearStart)
+        drag.translation = CGSize(width: 120, height: 40)
+        #expect(!drag.isOverTarget && !drag.isNearStart)
+    }
+
+    @Test("Drag-to-watch Start: only from home, with Trio on the watch") func dragOffered() {
+        var status = make(.home(epoch: 0, lastLoan: nil))
+        #expect(!status.offersDragToStart)
+        status.watchAppInstalled = true
+        #if TRIO_ON_WATCH
+            #expect(status.offersDragToStart)
+        #endif
+        #expect(!make(.lent(epoch: 1)).offersDragToStart)
+    }
+}
+
+extension TrioOnWatchPhoneStart.Stage {
+    var isFailed: Bool {
+        if case .failed = self { return true }
+        return false
+    }
 }

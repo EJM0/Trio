@@ -7,8 +7,9 @@ struct WatchLoopRecords: Codable {
     var glucose: [BloodGlucose] = []
     var carbs: [CarbsEntry] = []
     var tddHistory: [OrefInputs.TDDRow] = []
-    var overrideCancelledAt: Date?
-    var tempTargetCancelledAt: Date?
+    /// The watch's latest override and temp target change; each ends the adjustment the loan started with.
+    var overrideChange: WatchLoanAdjustmentChange?
+    var tempTargetChange: WatchLoanAdjustmentChange?
 }
 
 /// The watch's oref inputs: the grant's snapshot plus what the watch recorded since, selected with the phone's windows,
@@ -47,14 +48,42 @@ enum WatchLoopInputs {
         // the phone counts its stored rows each cycle; the 10-day history holds every row the 7-day rule counts
         inputs.hasSufficientTDD = OrefInputs.hasSufficientTDD(inputs.tddHistory, now: now)
 
-        if !isActive(snapshot.overrideAtGrant, cancelledAt: records.overrideCancelledAt, now: now) {
+        if !isActive(snapshot.overrideAtGrant, cancelledAt: records.overrideChange?.at, now: now) {
             inputs.activeOverride = nil
         }
-        if !isActive(snapshot.tempTargetAtGrant, cancelledAt: records.tempTargetCancelledAt, now: now) {
+        if let change = records.overrideChange, let preset = startedOverride(snapshot: snapshot, change: change),
+           endDate(of: preset, startedAt: change.at).map({ now < $0 }) ?? true
+        {
+            // the phone starts a preset by enabling its row
+            var state = preset.state
+            state.enabled = true
+            inputs.activeOverride = state
+        }
+        if !isActive(snapshot.tempTargetAtGrant, cancelledAt: records.tempTargetChange?.at, now: now) {
             inputs.activeTempTarget = nil
         }
-        if let cancelledAt = records.tempTargetCancelledAt {
-            inputs.tempTargets.append(.cancel(at: cancelledAt))
+        if let change = records.tempTargetChange {
+            if change.presetID == nil {
+                inputs.tempTargets.append(.cancel(at: change.at))
+            } else if let preset = startedTempTarget(snapshot: snapshot, change: change) {
+                // as the phone's adjustment manager starts a preset: the file entry and the active row
+                let halfBasalFallback = snapshot.oref.preferences?.halfBasalExerciseTarget ?? Preferences().halfBasalExerciseTarget
+                inputs.tempTargets.append(TempTarget(
+                    name: preset.name,
+                    createdAt: change.at,
+                    targetTop: preset.target,
+                    targetBottom: preset.target,
+                    duration: preset.duration,
+                    enteredBy: TempTarget.local,
+                    reason: TempTarget.custom,
+                    isPreset: true,
+                    enabled: true,
+                    halfBasalTarget: preset.halfBasalTarget ?? halfBasalFallback
+                ))
+                if now < endDate(of: preset, startedAt: change.at) {
+                    inputs.activeTempTarget = OrefInputs.TempTargetState(target: preset.target, halfBasalTarget: preset.halfBasalTarget)
+                }
+            }
         }
         return inputs
     }
@@ -111,6 +140,28 @@ enum WatchLoopInputs {
 
     /// The phone's smoothing fetch limit.
     static let smoothingWindowLimit = 350
+
+    /// The temp target preset a watch change started.
+    static func startedTempTarget(snapshot: WatchLoanSnapshot, change: WatchLoanAdjustmentChange?) -> WatchLoanSnapshot.TempTargetPreset? {
+        guard let change, change.kind == .tempTarget, let id = change.presetID else { return nil }
+        return snapshot.tempTargetPresets.first { $0.id == id }
+    }
+
+    /// The override preset a watch change started.
+    static func startedOverride(snapshot: WatchLoanSnapshot, change: WatchLoanAdjustmentChange?) -> WatchLoanSnapshot.OverridePreset? {
+        guard let change, change.kind == .override, let id = change.presetID else { return nil }
+        return snapshot.overridePresets.first { $0.id == id }
+    }
+
+    /// Nil: runs until stopped.
+    static func endDate(of preset: WatchLoanSnapshot.OverridePreset, startedAt: Date) -> Date? {
+        guard !preset.indefinite, let duration = preset.duration else { return nil }
+        return startedAt.addingTimeInterval(Double(truncating: duration as NSNumber) * 60)
+    }
+
+    static func endDate(of preset: WatchLoanSnapshot.TempTargetPreset, startedAt: Date) -> Date {
+        startedAt.addingTimeInterval(Double(truncating: preset.duration as NSNumber) * 60)
+    }
 
     static func isActive(_ adjustment: WatchLoanSnapshot.Adjustment?, cancelledAt: Date?, now: Date) -> Bool {
         if cancelledAt != nil { return false }

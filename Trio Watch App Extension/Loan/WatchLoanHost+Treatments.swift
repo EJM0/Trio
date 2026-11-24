@@ -2,7 +2,7 @@ import Foundation
 import LoopKit
 
 /// Treatments on the watch while it holds the pump: bolus and carbs, suspend and resume, and cancelling the
-/// override or temp target the loan started with. Creating or editing those stays on the phone.
+/// override or temp target the loan started with, and start one of the phone's presets.
 extension WatchLoanHost {
     /// The calculator's recommendation from the last determination; nil before the first cycle.
     func recommendBolus(carbs: Decimal) -> CalculationResult? {
@@ -50,6 +50,9 @@ extension WatchLoanHost {
         await serially { accepted = await self.bolusNow(units: units, carbs: carbs) }
         if let accepted {
             await followDelivery(accepted)
+            if cycleSkippedForBolus, accepted.status.bolusState == .noBolus {
+                await runCycle(trigger: .bolusFinished)
+            }
         }
     }
 
@@ -204,6 +207,31 @@ extension WatchLoanHost {
             WatchLogger.shared.info(.treatments, "Override cancelled on the watch")
         }
         await runCycle(trigger: .user)
+    }
+
+    /// Starts one of the phone's presets in place of whatever runs; false when it couldn't be saved.
+    func startAdjustmentConfirmed(_ kind: WatchLoanAdjustmentChange.Kind, presetID: String) async -> Bool {
+        var saved = false
+        await serially {
+            guard case .holding = self.state, let snapshot = self.snapshot else { return }
+            let name: String?
+            switch kind {
+            case .tempTarget: name = snapshot.tempTargetPresets.first { $0.id == presetID }?.name
+            case .override: name = snapshot.overridePresets.first { $0.id == presetID }?.name
+            }
+            guard let name else { return }
+            let (records, now) = (self.records, self.env.now())
+            do {
+                try await WatchLoanFiles.io { try records.startAdjustment(kind, presetID: presetID, name: name, at: now) }
+                saved = true
+                WatchLogger.shared.info(.treatments, "\(kind.rawValue) \(name) started on the watch")
+            } catch {
+                WatchLogger.shared.error(.treatments, "Starting the \(kind.rawValue) failed", error: error)
+                self.alerts.postNotSaved()
+            }
+        }
+        if saved { await runCycle(trigger: .user) }
+        return saved
     }
 
     func cancelTempTarget() async {

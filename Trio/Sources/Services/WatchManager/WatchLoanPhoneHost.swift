@@ -25,6 +25,9 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
     @Injected() private var tddStorage: TDDStorage!
     @Injected() private var trioAlertManager: TrioAlertManager!
     @Injected() private var notLoopingMonitor: NotLoopingMonitor!
+    @Injected() private var adjustmentManager: AdjustmentManager!
+    @Injected() private var tempTargetStorage: TempTargetsStorage!
+    @Injected() private var overrideStorage: OverrideStorage!
 
     private let resolver: Resolver
     private let makeContext: () -> NSManagedObjectContext
@@ -120,8 +123,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             shouldSmoothGlucose: settings.smoothGlucose
         )
         let adjustments = try await activeAdjustments()
-        let info = Bundle.main.infoDictionary
-        let appBuild = "\(info?["CFBundleShortVersionString"] as? String ?? "") (\(info?["CFBundleVersion"] as? String ?? ""))"
+        let appBuild = WatchLoanSnapshot.appBuild(Bundle.main.infoDictionary)
 
         return WatchLoanSnapshot(
             versions: WatchLoanSnapshot.Versions(
@@ -163,8 +165,46 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             podEndsAt: pump.endsAt,
             sensorEndsAt: (cgm as? G7CGMManager)?.sensorEndsAt,
             smoothGlucose: settings.smoothGlucose,
-            smoothingWindow: settings.smoothGlucose ? try await fetchGlucoseManager.smoothingWindow() : []
+            smoothingWindow: settings.smoothGlucose ? try await fetchGlucoseManager.smoothingWindow() : [],
+            tempTargetPresets: try await tempTargetPresets(),
+            overridePresets: try await overridePresets()
         )
+    }
+
+    private func overridePresets() async throws -> [WatchLoanSnapshot.OverridePreset] {
+        let ids = try await overrideStorage.fetchForOverridePresets()
+        let context = makeContext()
+        return try await context.perform {
+            try ids.compactMap { try context.existingObject(with: $0) as? OverrideStored }.compactMap { preset in
+                guard let id = preset.id, let name = preset.name else { return nil }
+                return WatchLoanSnapshot.OverridePreset(
+                    id: id,
+                    name: name,
+                    state: OrefInputs.OverrideState(preset),
+                    indefinite: preset.indefinite,
+                    duration: preset.duration?.decimalValue
+                )
+            }
+        }
+    }
+
+    private func tempTargetPresets() async throws -> [WatchLoanSnapshot.TempTargetPreset] {
+        let ids = try await tempTargetStorage.fetchForTempTargetPresets()
+        let context = makeContext()
+        return try await context.perform {
+            try ids.compactMap { try context.existingObject(with: $0) as? TempTargetStored }.compactMap { preset in
+                guard let id = preset.id?.uuidString, let name = preset.name, let target = preset.target?.decimalValue else {
+                    return nil
+                }
+                return WatchLoanSnapshot.TempTargetPreset(
+                    id: id,
+                    name: name,
+                    target: target,
+                    duration: preset.duration?.decimalValue ?? 0,
+                    halfBasalTarget: preset.halfBasalTarget?.decimalValue
+                )
+            }
+        }
     }
 
     func startFacts() async -> WatchLoanStartFacts {
@@ -241,10 +281,43 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             }
         }
 
-        let glucose = try await glucoseNotStored(batch.glucose)
+        let glucose = try await glucoseNotStored(Self.storable(batch.glucose))
         if !glucose.isEmpty {
             try await glucoseStorage.storeGlucose(glucose)
         }
+
+        try await storeTDDRows(batch.tddRows ?? [])
+
+        await applyAdjustmentChanges(batch.adjustmentChanges ?? [])
+    }
+
+    private static let appliedAdjustmentChangesKey = "WatchLoan.appliedAdjustmentChanges"
+
+    /// The watch's override and temp target changes, each applied once. Every batch carries the latest ones.
+    private func applyAdjustmentChanges(_ changes: [WatchLoanAdjustmentChange]) async {
+        var applied = UserDefaults.standard.stringArray(forKey: Self.appliedAdjustmentChangesKey) ?? []
+        for change in changes.sorted(by: { $0.at < $1.at }) where !applied.contains(change.id.uuidString) {
+            do {
+                switch (change.kind, change.presetID) {
+                case (.override, nil):
+                    try await adjustmentManager.cancelOverride(source: .watch)
+                case (.tempTarget, nil):
+                    try await adjustmentManager.cancelTempTarget(source: .watch)
+                case let (.override, presetID?):
+                    try await adjustmentManager.activateOverride(.presetID(presetID), source: .watch)
+                case let (.tempTarget, presetID?):
+                    try await adjustmentManager.activateTempTarget(.presetID(presetID), source: .watch)
+                }
+            } catch AdjustmentError.nothingActive {
+                // already stopped here
+            } catch {
+                warning(.watch, "Applying an Apple Watch \(change.kind.rawValue) change failed", error: error)
+                continue
+            }
+            info(.watch, "Apple Watch \(change.kind.rawValue) change applied: \(change.presetName ?? "stop")")
+            applied.append(change.id.uuidString)
+        }
+        UserDefaults.standard.set(Array(applied.suffix(50)), forKey: Self.appliedAdjustmentChangesKey)
     }
 
     private func carbsNotStored(_ carbs: [CarbsEntry]) async throws -> [CarbsEntry] {
@@ -269,6 +342,17 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         }
     }
 
+    /// The watch sends CGM readings with only `sgv` set, but the glucose store reads `glucose` and stores a missing
+    /// value as 0.
+    static func storable(_ glucose: [BloodGlucose]) -> [BloodGlucose] {
+        glucose.compactMap { reading in
+            guard let value = reading.glucose ?? reading.sgv, value > 0 else { return nil }
+            var reading = reading
+            reading.glucose = value
+            return reading
+        }
+    }
+
     /// The phone reads the same sensor: keep only readings it has nothing for within the glucose filter time.
     private func glucoseNotStored(_ glucose: [BloodGlucose]) async throws -> [BloodGlucose] {
         let dates = glucose.map(\.dateString)
@@ -285,6 +369,39 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             return try context.fetch(request).compactMap(\.date)
         }
         return glucose.filter { reading in !stored.contains { abs($0.timeIntervalSince(reading.dateString)) < window } }
+    }
+
+    /// The watch's loops stored a TDD row each, as the phone's own loops do; without them the phone's history has a
+    /// hole for every loan, and Dynamic ISF switches off once the last 7 days hold too few rows.
+    private func storeTDDRows(_ rows: [OrefInputs.TDDRow]) async throws {
+        let dated = rows.compactMap { row -> (date: Date, total: Decimal)? in
+            guard let date = row.date, let total = row.total else { return nil }
+            return (date, total)
+        }
+        guard let first = dated.map(\.date).min(), let last = dated.map(\.date).max() else { return }
+        let context = makeContext()
+        try await context.perform {
+            let request = TDDStored.fetchRequest() as NSFetchRequest<TDDStored>
+            request.predicate = NSPredicate(
+                format: "date >= %@ AND date <= %@",
+                first.addingTimeInterval(-1) as NSDate,
+                last.addingTimeInterval(1) as NSDate
+            )
+            var known = try context.fetch(request).compactMap(\.date)
+            for row in dated where !known.contains(where: { abs($0.timeIntervalSince(row.date)) < 1 }) {
+                let stored = TDDStored(context: context)
+                stored.id = UUID()
+                stored.date = row.date
+                stored.total = NSDecimalNumber(decimal: row.total)
+                // the watch sends the total its loop used; the parts and the average aren't known here
+                stored.bolus = nil
+                stored.tempBasal = nil
+                stored.scheduledBasal = nil
+                stored.weightedAverage = nil
+                known.append(row.date)
+            }
+            if context.hasChanges { try context.save() }
+        }
     }
 
     // MARK: Audit
@@ -466,12 +583,32 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
 
     func didReturnHome() {
         deviceDataManager.resyncPumpAfterTakeBack()
+        // loop now instead of at the next reading, so the loop age doesn't count the time the watch had the pump
+        info(.loop, "Loop requested after taking the pump back from Apple Watch")
+        deviceDataManager.recommendsLoop.send()
     }
 
     func onForeignPodSession(_ action: @escaping () -> Void) {
         deviceDataManager.foreignPodSession
             .sink { _ in action() }
             .store(in: &subscriptions)
+    }
+
+    func onGlucoseStored(_ action: @escaping () -> Void) {
+        glucoseStorage.updatePublisher
+            .sink { _ in action() }
+            .store(in: &subscriptions)
+    }
+
+    func recentGlucose() async -> [BloodGlucose] {
+        let since = Date().addingTimeInterval(-20 * 60)
+        do {
+            return try await glucoseStorage.getGlucoseForAlgorithm(shouldSmoothGlucose: false, fetchHours: 1)
+                .filter { $0.dateString >= since }
+        } catch {
+            warning(.watch, "Reading the phone's glucose for the watch failed", error: error)
+            return []
+        }
     }
 }
 

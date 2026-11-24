@@ -22,10 +22,20 @@ extension WatchLoanHost {
             status.phase = .stopped(reason)
         }
         status.phoneReachable = env.transport.isReachable
+        status.pumpAdopted = pump != nil
         status.lastLoopAt = loop.lastConfirmedCycleAt
         status.lastCycleAt = loop.lastCycleAt
         status.iob = loop.iob
         status.cob = loop.cob
+        status.tempBasalRate = loop.tempBasalRate
+        status.tempBasalEndsAt = loop.tempBasalEndsAt
+        status.eventualGlucose = loop.eventualGlucose
+        status.reason = loop.reason
+        status.forecast = loop.forecast
+        status.lastCycleResult = cycleInfo.lastResult
+        status.watchModeSince = cycleInfo.holdingSince
+        status.confirmedLoops = cycleInfo.confirmedLoops ?? 0
+        status.phoneReadings = cycleInfo.phoneReadings ?? 0
         status.insulinSuspended = loop.pumpSuspended
         status.bolus = bolus
         status.lastAlert = lastAlert
@@ -35,25 +45,74 @@ extension WatchLoanHost {
         if let snapshot {
             status.units = snapshot.bolusCalculator.units
             status.readings = (snapshot.oref.glucose + records.snapshot.glucose)
-                .compactMap { reading in (reading.glucose ?? reading.sgv).map { .init(date: reading.dateString, mgdl: $0) } }
+                .compactMap { reading in
+                    (reading.glucose ?? reading.sgv).map {
+                        .init(date: reading.dateString, mgdl: $0, direction: reading.direction?.rawValue)
+                    }
+                }
                 .sorted { $0.date > $1.date }
                 .prefix(2)
                 .map { $0 }
+            var byDate: [Date: TrioOnWatchStatus.Reading] = [:]
+            for reading in snapshot.oref.glucose + records.snapshot.glucose {
+                guard let mgdl = reading.glucose ?? reading.sgv else { continue }
+                byDate[reading.dateString] = .init(date: reading.dateString, mgdl: mgdl, direction: reading.direction?.rawValue)
+            }
+            status.chartReadings = byDate.values.sorted { $0.date < $1.date }
+            if let since = cycleInfo.holdingSince {
+                var counted: Date?
+                status.watchReadings = records.snapshot.glucose.map(\.dateString).filter { $0 >= since }.sorted()
+                    .reduce(0) { count, date in
+                        guard date.timeIntervalSince(counted ?? .distantPast) >= Self.countedSpacing else { return count }
+                        counted = date
+                        return count + 1
+                    }
+            }
             status.sensorEndsAt = snapshot.sensorEndsAt
+            status.sensorNeedsPairing = env.cgm?.needsPairing ?? false
             status.podEndsAt = snapshot.podEndsAt
             let now = env.now()
             let records = records.snapshot
-            status.override = Self.running(snapshot.overrideAtGrant, cancelledAt: records.overrideCancelledAt, now: now)
-            status.tempTarget = Self.running(snapshot.tempTargetAtGrant, cancelledAt: records.tempTargetCancelledAt, now: now)
+            status.override = Self.runningOverride(snapshot: snapshot, change: records.overrideChange, now: now)
+            status.overridePresets = snapshot.overridePresets.map { .init(id: $0.id, name: $0.name) }
+            status.tempTarget = Self.runningTempTarget(snapshot: snapshot, change: records.tempTargetChange, now: now)
+            status.tempTargetPresets = snapshot.tempTargetPresets.map { .init(id: $0.id, name: $0.name) }
             status.recentDoses = recentBoluses(snapshot: snapshot, now: now)
         }
         if let omnipod = pump as? OmniPumpManager {
             status.pumpLastContact = omnipod.lastSync
-            status.reservoir = omnipod.state.podState?.lastInsulinMeasurements?.reservoirLevel
+            // above 50 U the pod reports a placeholder (51.15), as the phone's DeviceDataManager handles it
+            let reservoir = omnipod.state.podState?.lastInsulinMeasurements?.reservoirLevel
+            status.reservoir = reservoir
+            status.reservoirAboveReadingLimit = reservoir.map { $0 > 50 } ?? false
             status.podEndsAt = omnipod.state.podState?.expiresAt ?? status.podEndsAt
             status.podFaulted = omnipod.deliveredUnitsAreFinal
         }
         return status
+    }
+
+    private static func runningOverride(
+        snapshot: WatchLoanSnapshot,
+        change: WatchLoanAdjustmentChange?,
+        now: Date
+    ) -> TrioOnWatchStatus.Adjustment? {
+        if let preset = WatchLoopInputs.startedOverride(snapshot: snapshot, change: change), let change {
+            let endsAt = WatchLoopInputs.endDate(of: preset, startedAt: change.at)
+            return endsAt.map { $0 > now } ?? true ? .init(name: preset.name, endsAt: endsAt) : nil
+        }
+        return running(snapshot.overrideAtGrant, cancelledAt: change?.at, now: now)
+    }
+
+    private static func runningTempTarget(
+        snapshot: WatchLoanSnapshot,
+        change: WatchLoanAdjustmentChange?,
+        now: Date
+    ) -> TrioOnWatchStatus.Adjustment? {
+        if let preset = WatchLoopInputs.startedTempTarget(snapshot: snapshot, change: change), let change {
+            let endsAt = WatchLoopInputs.endDate(of: preset, startedAt: change.at)
+            return endsAt > now ? .init(name: preset.name, endsAt: endsAt) : nil
+        }
+        return running(snapshot.tempTargetAtGrant, cancelledAt: change?.at, now: now)
     }
 
     private static func running(
@@ -160,12 +219,48 @@ extension WatchLoanHost {
     func stopAdjustmentConfirmed(override: Bool) async -> Bool {
         let since = env.now()
         if override { await cancelOverride() } else { await cancelTempTarget() }
-        let cancelledAt = override ? records.snapshot.overrideCancelledAt : records.snapshot.tempTargetCancelledAt
+        let cancelledAt = override ? records.snapshot.overrideChange?.at : records.snapshot.tempTargetChange?.at
         return (cancelledAt ?? .distantPast) >= since
     }
 
     /// End is tried, not pre-blocked on a reachability flag (G-15): the phone must answer a live query first.
+    /// End asks until the phone answers or `phoneAnswerWindow` has passed: one unanswered try, or a moment the
+    /// phone isn't reachable, isn't enough to refuse. Each try is logged.
     func phoneAnswers() async -> Bool {
+        let clock = ContinuousClock()
+        let start = clock.now
+        let window = Duration.seconds(env.phoneAnswerWindow)
+        var tries = 0
+        var waitedForReach = false
+        while clock.now - start < window {
+            guard env.transport.isReachable else {
+                if !waitedForReach {
+                    WatchLogger.shared.info(.connectivity, "End: the phone isn't reachable, waiting for it")
+                    waitedForReach = true
+                }
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                continue
+            }
+            tries += 1
+            let asked = clock.now
+            if await askPhoneOnce() {
+                let seconds = (clock.now - asked).components.seconds
+                WatchLogger.shared.info(.connectivity, "End: the phone answered in \(seconds) s, try \(tries)")
+                return true
+            }
+            WatchLogger.shared.warning(
+                .connectivity,
+                "End: the phone didn't answer within \(Int(env.phoneAnswerTimeout)) s, try \(tries), reachable \(env.transport.isReachable)"
+            )
+        }
+        WatchLogger.shared.warning(
+            .connectivity,
+            "End not started: no answer from the phone in \(Int(env.phoneAnswerWindow)) s, \(tries) tries"
+        )
+        return false
+    }
+
+    private func askPhoneOnce() async -> Bool {
         let envelope = WatchLoanEnvelope(
             protocolVersion: WatchLoanEnvelope.currentProtocolVersion,
             messageID: UUID(),

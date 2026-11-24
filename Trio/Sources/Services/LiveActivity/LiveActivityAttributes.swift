@@ -44,6 +44,14 @@ struct LiveActivityAttributes: ActivityAttributes {
 
         /// true for the first state that is set on the activity
         let isInitialState: Bool
+        /// Set while Trio on Watch controls the pump: the phone doesn't loop, so its IOB, COB and forecast are old.
+        var watchMode: WatchMode? = nil
+    }
+
+    struct WatchMode: Codable, Hashable {
+        let since: Date
+        /// The watch's last loop, as its last record batch reported it.
+        let lastLoop: Date?
     }
 
     struct ContentAdditionalState: Codable, Hashable {

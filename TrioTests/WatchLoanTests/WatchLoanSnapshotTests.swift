@@ -205,6 +205,11 @@ import Testing
         print("Watch loan grant size: snapshot JSON \(json.count) B, compressed \(wire.count) B, envelope \(envelope.count) B")
         #expect(wire.count + envelope.count <= WatchLoanSnapshot.grantBudgetBytes)
         #expect(try WatchLoanSnapshot.decode(wire).oref.tddHistory.count == 2880)
+
+        let parts = snapshot.partSizes()
+        print("Watch loan grant parts: \(parts.map { "\($0.part) \($0.bytes) B (\($0.count))" }.joined(separator: ", "))")
+        #expect(parts.allSatisfy { $0.bytes > 0 })
+        #expect(parts.first { $0.part == "TDD history" }?.count == 2880)
     }
 
     // MARK: The phone's gathered inputs
@@ -323,5 +328,56 @@ import Testing
             )
         }
         #expect(phone.count == 6)
+    }
+}
+
+@Suite("Watch loan: snapshot in pieces") struct WatchLoanSnapshotPartsTests {
+    static let requestID = UUID(uuidString: "00000000-0000-0000-0000-0000000000BB")!
+
+    static func data(_ count: Int) -> Data {
+        var generator = SystemRandomNumberGenerator()
+        return Data((0 ..< count).map { _ in UInt8.random(in: 0 ... 255, using: &generator) })
+    }
+
+    @Test("Split and reassembled in any order gives the same bytes; one piece when it fits") func roundTrip() {
+        let data = Self.data(WatchLoanSnapshot.partBytes * 2 + 123)
+        let pieces = WatchLoanSnapshot.split(data, requestID: Self.requestID, epoch: 3)
+        #expect(pieces.count == 3)
+        #expect(pieces.allSatisfy { $0.bytes.count <= WatchLoanSnapshot.partBytes })
+        var assembler = WatchLoanSnapshotAssembler()
+        for piece in pieces.reversed() { assembler.add(piece.header, piece.bytes) }
+        #expect(assembler.assembled(requestID: Self.requestID, epoch: 3) == data)
+        #expect(WatchLoanSnapshot.split(Self.data(10), requestID: Self.requestID, epoch: 3).count == 1)
+    }
+
+    @Test("A missing or altered piece, or another request or epoch, assembles nothing") func refusals() {
+        let data = Self.data(WatchLoanSnapshot.partBytes + 500)
+        let pieces = WatchLoanSnapshot.split(data, requestID: Self.requestID, epoch: 3)
+
+        var missing = WatchLoanSnapshotAssembler()
+        missing.add(pieces[1].header, pieces[1].bytes)
+        #expect(missing.missing(requestID: Self.requestID, epoch: 3) == 1)
+        #expect(missing.assembled(requestID: Self.requestID, epoch: 3) == nil)
+
+        var altered = WatchLoanSnapshotAssembler()
+        var bytes = pieces[0].bytes
+        bytes[bytes.startIndex] ^= 0xFF
+        altered.add(pieces[0].header, bytes)
+        altered.add(pieces[1].header, pieces[1].bytes)
+        #expect(altered.missing(requestID: Self.requestID, epoch: 3) == 0)
+        #expect(altered.assembled(requestID: Self.requestID, epoch: 3) == nil)
+
+        var other = WatchLoanSnapshotAssembler()
+        for piece in pieces { other.add(piece.header, piece.bytes) }
+        #expect(other.assembled(requestID: UUID(), epoch: 3) == nil)
+        #expect(other.assembled(requestID: Self.requestID, epoch: 4) == nil)
+
+        // a piece of a newer grant drops the older grant's pieces
+        var replaced = WatchLoanSnapshotAssembler()
+        replaced.add(pieces[0].header, pieces[0].bytes)
+        let newer = WatchLoanSnapshot.split(Self.data(WatchLoanSnapshot.partBytes + 10), requestID: Self.requestID, epoch: 4)
+        replaced.add(newer[1].header, newer[1].bytes)
+        #expect(replaced.missing(requestID: Self.requestID, epoch: 4) == 1)
+        #expect(replaced.missing(requestID: Self.requestID, epoch: 3) == nil)
     }
 }

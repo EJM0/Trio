@@ -15,6 +15,33 @@ struct GlucoseTrendView: View {
         return loan.mainValues(now: now)
     }
 
+    private var loanTrend: String? {
+        guard loanValues != nil else { return nil }
+        return loan?.trend(now: now)
+    }
+
+    private var arrowDegrees: Double {
+        loanValues != nil ? Self.degrees(for: loanTrend) : rotationDegrees
+    }
+
+    /// The arrow's angle for a trend: up is -90, flat 0, down 90.
+    static func degrees(for trend: String?) -> Double {
+        switch trend {
+        case "DoubleUp",
+             "SingleUp":
+            return -90
+        case "FortyFiveUp":
+            return -45
+        case "FortyFiveDown":
+            return 45
+        case "DoubleDown",
+             "SingleDown":
+            return 90
+        default:
+            return 0
+        }
+    }
+
     private var controlLine: TrioOnWatchStatus.ControlLine? {
         guard let loan, loan.isLoanActive || !isWatchStateDated else { return nil }
         return loan.controlLine(now: now, phoneLoopText: state.lastLoopTime)
@@ -144,12 +171,12 @@ struct GlucoseTrendView: View {
                     .shadow(color: ringColor, radius: shadowRadius)
 
                 TrendShape(
-                    // the phone's trend arrow doesn't describe the watch's readings
-                    isWatchStateDated: loanValues != nil || isWatchStateDated,
-                    rotationDegrees: rotationDegrees,
+                    // in watch mode, the trend of the watch's own reading, not the phone's
+                    isWatchStateDated: loanValues != nil ? loanTrend == nil : isWatchStateDated,
+                    rotationDegrees: arrowDegrees,
                     deviceType: state.deviceType
                 )
-                .animation(.spring(response: 0.5, dampingFraction: 0.6), value: rotationDegrees)
+                .animation(.spring(response: 0.5, dampingFraction: 0.6), value: arrowDegrees)
                 .shadow(color: Color.black.opacity(0.5), radius: 5)
 
                 if let loanValues {
@@ -162,7 +189,9 @@ struct GlucoseTrendView: View {
                             .fontWeight(.semibold)
                             .font(.system(.caption))
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                             .minimumScaleFactor(0.7)
+                            .frame(maxWidth: circleSize * 0.75)
                     }
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(Text(loanValues.accessibilityLabel))

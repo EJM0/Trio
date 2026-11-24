@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 /// What the watch needs to loop with the phone's exact inputs. Travels with the grant.
@@ -77,11 +78,40 @@ struct WatchLoanSnapshot: Codable {
     /// The phone's glucose smoothing setting, and its smoothing window (24 h of CGM readings, raw) when it is on.
     var smoothGlucose = false
     var smoothingWindow: [RawReading] = []
+    /// The phone's temp target presets, for the watch to start one.
+    var tempTargetPresets: [TempTargetPreset] = []
+    /// The phone's override presets, for the watch to start one.
+    var overridePresets: [OverridePreset] = []
+
+    /// An override preset as the phone stores it; started, oref reads `state` with `enabled` set.
+    struct OverridePreset: Codable {
+        var id: String
+        var name: String
+        var state: OrefInputs.OverrideState
+        var indefinite: Bool
+        /// Minutes.
+        var duration: Decimal?
+    }
+
+    /// A temp target preset as the phone stores it.
+    struct TempTargetPreset: Codable, Equatable {
+        var id: String
+        var name: String
+        var target: Decimal
+        /// Minutes.
+        var duration: Decimal
+        var halfBasalTarget: Decimal?
+    }
 
     var timeZone: TimeZone? { TimeZone(identifier: timeZoneIdentifier) }
 
     func podEndsSoon(now: Date) -> Bool { Self.endsSoon(podEndsAt, now: now) }
     func sensorEndsSoon(now: Date) -> Bool { Self.endsSoon(sensorEndsAt, now: now) }
+
+    /// "1.0.2 (27)", the same on phone and watch.
+    static func appBuild(_ info: [String: Any]?) -> String {
+        "\(info?["CFBundleShortVersionString"] as? String ?? "") (\(info?["CFBundleVersion"] as? String ?? ""))"
+    }
 
     static func endsSoon(_ date: Date?, now: Date) -> Bool {
         guard let date else { return false }
@@ -155,8 +185,120 @@ extension WatchLoanSnapshot {
         return try (encoder.encode(self) as NSData).compressed(using: .lzfse) as Data
     }
 
+    /// Compressed size of each large part, for the log.
+    func partSizes() -> [(part: String, count: Int, bytes: Int)] {
+        func size(_ value: some Encodable) -> Int {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .customISO8601
+            guard let json = try? encoder.encode(value),
+                  let compressed = try? (json as NSData).compressed(using: .lzfse)
+            else { return -1 }
+            return compressed.length
+        }
+        var rest = self
+        rest.oref.tddHistory = []
+        rest.oref.glucose = []
+        rest.oref.pumpHistory = []
+        rest.oref.carbs = []
+        rest.smoothingWindow = []
+        rest.glucoseAlarms = []
+        rest.pumpExport = Data()
+        rest.cgmExport = Data()
+        return [
+            ("TDD history", oref.tddHistory.count, size(oref.tddHistory)),
+            ("glucose", oref.glucose.count, size(oref.glucose)),
+            ("pump history", oref.pumpHistory.count, size(oref.pumpHistory)),
+            ("carbs", oref.carbs.count, size(oref.carbs)),
+            ("smoothing window", smoothingWindow.count, size(smoothingWindow)),
+            ("glucose alarms", glucoseAlarms.count, size(glucoseAlarms)),
+            ("pump export", pumpExport.count, size(pumpExport)),
+            ("CGM export", cgmExport.count, size(cgmExport)),
+            ("everything else", 1, size(rest))
+        ]
+    }
+
     static func decode(_ data: Data) throws -> WatchLoanSnapshot {
         let json = try (data as NSData).decompressed(using: .lzfse) as Data
         return try JSONCoding.decoder.decode(WatchLoanSnapshot.self, from: json)
+    }
+}
+
+// MARK: - Parts
+
+/// One piece of a compressed snapshot that is too large for one message.
+struct WatchLoanSnapshotPart: Codable, Equatable {
+    var requestID: UUID
+    var epoch: Int64
+    var index: Int
+    var count: Int
+    var byteCount: Int
+    /// SHA-256 of the whole snapshot.
+    var digest: Data
+}
+
+extension WatchLoanSnapshot {
+    static let partBytes = 40000
+    static let maxParts = 4
+
+    static func digest(_ data: Data) -> Data {
+        Data(SHA256.hash(data: data))
+    }
+
+    static func split(_ data: Data, requestID: UUID, epoch: Int64) -> [(header: WatchLoanSnapshotPart, bytes: Data)] {
+        let count = max(1, (data.count + partBytes - 1) / partBytes)
+        let digest = digest(data)
+        return (0 ..< count).map { index in
+            let start = data.startIndex + index * partBytes
+            let end = min(start + partBytes, data.endIndex)
+            let header = WatchLoanSnapshotPart(
+                requestID: requestID,
+                epoch: epoch,
+                index: index,
+                count: count,
+                byteCount: data.count,
+                digest: digest
+            )
+            return (header, Data(data[start ..< end]))
+        }
+    }
+}
+
+/// Collects the pieces of one grant. A piece from another request or epoch starts over.
+struct WatchLoanSnapshotAssembler {
+    private(set) var header: WatchLoanSnapshotPart?
+    private var pieces: [Int: Data] = [:]
+
+    mutating func add(_ part: WatchLoanSnapshotPart, _ bytes: Data) {
+        guard part.count >= 1, part.count <= WatchLoanSnapshot.maxParts, (0 ..< part.count).contains(part.index) else {
+            return
+        }
+        if let header, header.requestID != part.requestID || header.epoch != part.epoch || header.count != part.count ||
+            header.byteCount != part.byteCount || header.digest != part.digest
+        {
+            pieces = [:]
+        }
+        header = part
+        pieces[part.index] = bytes
+    }
+
+    func missing(requestID: UUID, epoch: Int64) -> Int? {
+        guard let header, header.requestID == requestID, header.epoch == epoch else { return nil }
+        return header.count - pieces.count
+    }
+
+    func assembled(requestID: UUID, epoch: Int64) -> Data? {
+        guard let header, missing(requestID: requestID, epoch: epoch) == 0 else { return nil }
+        var data = Data()
+        for index in 0 ..< header.count {
+            guard let piece = pieces[index] else { return nil }
+            data.append(piece)
+        }
+        guard data.count == header.byteCount, WatchLoanSnapshot.digest(data) == header.digest else { return nil }
+        return data
+    }
+
+    mutating func reset() {
+        header = nil
+        pieces = [:]
     }
 }

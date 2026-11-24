@@ -15,6 +15,19 @@ struct TrioOnWatchStatus: Equatable {
     struct Reading: Equatable {
         var date: Date
         var mgdl: Int
+        /// The sensor's trend, as a `BloodGlucose.Direction` raw value.
+        var direction: String? = nil
+    }
+
+    struct Forecast: Equatable {
+        var start: Date
+        /// "iob", "zt", "cob" and "uam", as the phone names them.
+        var lines: [String: [Int]]
+    }
+
+    struct Preset: Equatable, Identifiable {
+        var id: String
+        var name: String
     }
 
     struct Adjustment: Equatable {
@@ -31,15 +44,36 @@ struct TrioOnWatchStatus: Equatable {
 
     var phase: Phase = .phone
     var phoneReachable = true
+    /// The watch has adopted the pump from the grant: control has moved, even before the first reading.
+    var pumpAdopted = false
     /// The last cycle that confirmed the pump's state.
     var lastLoopAt: Date?
     var lastCycleAt: Date?
     var readings: [Reading] = []
+    /// The grant's and the watch's readings for the graph, oldest first.
+    var chartReadings: [Reading] = []
+    /// The watch's last forecast, in mg/dL, one value every 5 minutes from `start`.
+    var forecast: Forecast?
     var units: GlucoseUnits = .mgdL
     var iob: Decimal?
     var cob: Decimal?
+    var tempBasalRate: Decimal?
+    var tempBasalEndsAt: Date?
+    var eventualGlucose: Int?
+    /// The last determination's reasoning.
+    var reason: String?
+    /// What the last cycle did.
+    var lastCycleResult: String?
+    var watchModeSince: Date?
+    /// Confirmed loops and the watch's own readings since `watchModeSince`, at most one per 4 minutes.
+    var confirmedLoops = 0
+    var watchReadings = 0
+    /// Of `watchReadings`, the ones that came from the phone because the watch's sensor missed them.
+    var phoneReadings = 0
     var pumpLastContact: Date?
     var reservoir: Double?
+    /// An Omnipod reports its reservoir only below 50 U; above that it is shown as 50+, as on the phone.
+    var reservoirAboveReadingLimit = false
     var podEndsAt: Date?
     var podFaulted = false
     var podUnreachable = false
@@ -47,12 +81,25 @@ struct TrioOnWatchStatus: Equatable {
     /// A command the pump hasn't confirmed: boluses, SMBs and high temps wait, and End is refused.
     var insulinPaused = false
     var sensorEndsAt: Date?
+    /// The watch has no key for the sensor yet and pairs at the next connection.
+    var sensorNeedsPairing = false
     var battery: Float?
     var override: Adjustment?
     var tempTarget: Adjustment?
+    /// The phone's presets the watch can start.
+    var overridePresets: [Preset] = []
+    var tempTargetPresets: [Preset] = []
     var recentDoses: [Dose] = []
     var bolus: WatchLoanHost.BolusProgress = .idle
     var lastAlert: LoanAlert?
+
+    /// The trend of the watch's latest reading while it is fresh; nil hides the arrow.
+    func trend(now: Date) -> String? {
+        guard let latest = readings.first, now.timeIntervalSince(latest.date) <= TrioOnWatchRules.readingMaxAge else {
+            return nil
+        }
+        return latest.direction
+    }
 
     /// The watch gives insulin; the treatment buttons talk to the watch, not the phone.
     var isInControl: Bool { phase == .inControl }
@@ -89,6 +136,14 @@ enum TrioOnWatchRules {
             case .warning: return .orange
             }
         }
+    }
+
+    /// Reading age: green to 6 min, yellow to 12, red beyond.
+    static func readingTier(lastReadingAt: Date?, now: Date) -> Tier {
+        guard let lastReadingAt else { return .unknown }
+        let age = now.timeIntervalSince(lastReadingAt)
+        if age <= 6 * 60 { return .fresh }
+        return age <= readingMaxAge ? .aging : .stale
     }
 
     /// Loop age as iOS colours its ring: green to 5 min, yellow to 10, red beyond, after a 30 s grace.
@@ -284,7 +339,8 @@ extension TrioOnWatchStatus {
     func mainValues(now: Date) -> MainValues {
         let latest = readings.first
         let isStale = latest.map { now.timeIntervalSince($0.date) > TrioOnWatchRules.readingMaxAge } ?? true
-        let iobText = iob.map { TrioOnWatchRules.insulin($0) } ?? "--"
+        // as the phone-controlled main screen: at most two decimals, no unit
+        let iobText = iob.flatMap { Formatter.decimalFormatterWithTwoFractionDigits.string(from: $0 as NSNumber) } ?? "--"
         let cobText = cob
             .map { String(localized: "\(Int(truncating: $0 as NSNumber)) g", comment: "Carbs on board in grams") } ?? "--"
         guard let latest, !isStale else {
@@ -304,7 +360,8 @@ extension TrioOnWatchStatus {
         let age = latest.date.formattedTimeAgo()
         return MainValues(
             glucose: glucose,
-            detail: delta.map { "\($0) · \(age)" } ?? age,
+            // the delta alone, as the phone-controlled screen; "-0,3 · 1 min" doesn't fit in the ring
+            detail: delta ?? age,
             isStale: false,
             iob: iobText,
             cob: cobText,
@@ -436,15 +493,22 @@ extension TrioOnWatchStatus {
         }
     }
 
+    /// The tiles on top of the status page show loop, sensor, pump and temp basal: from watch mode's start to its end.
+    var showsTiles: Bool { phase != .phone && phase != .starting }
+
+    /// The pump tile's reservoir. An Omnipod above the 50 U it reports exactly shows 50+, as on the phone.
+    var reservoirText: String {
+        if reservoirAboveReadingLimit { return "50+ " + String(localized: "U", comment: "Insulin unit") }
+        return reservoir.map { TrioOnWatchRules.insulin(Decimal($0)) } ?? "--"
+    }
+
+    /// What the tiles don't show: warnings, and when the pump and sensor end. A row without lines is left out.
     func rows(now: Date) -> [Row] {
-        guard phase != .phone, phase != .starting else { return [] }
+        guard showsTiles else { return [] }
         var rows: [Row] = []
 
         let tier = TrioOnWatchRules.loopTier(lastLoopAt: lastLoopAt, now: now)
-        let loopLine = lastLoopAt.map {
-            String(localized: "Last loop \($0.formattedTimeAgo()) ago", comment: "Watch status: loop age")
-        } ?? String(localized: "No loop on this watch yet", comment: "Watch status: no loop yet")
-        var loopLines = [loopLine]
+        var loopLines: [String] = []
         if let lastCycleAt, lastCycleAt > (lastLoopAt ?? .distantPast) {
             loopLines.append(String(
                 localized: "Loop at \(lastCycleAt.formatted(date: .omitted, time: .shortened)) couldn't reach the pump.",
@@ -461,10 +525,15 @@ extension TrioOnWatchStatus {
                 .joined(separator: ", ")
         ))
 
-        var sensorLines = [readings.first.map {
-            String(localized: "Last reading \($0.date.formattedTimeAgo()) ago", comment: "Watch status: sensor reading age")
-        } ?? String(localized: "No reading on this watch yet", comment: "Watch status: no sensor reading yet")]
+        var sensorLines: [String] = []
         var sensorTint = Color.secondary
+        if sensorNeedsPairing {
+            sensorLines.append(String(
+                localized: "Keep Trio open on your watch to pair with the sensor.",
+                comment: "Watch status: the watch pairs with the G7 at its next connection"
+            ))
+            sensorTint = .orange
+        }
         if let sensorEndsAt {
             sensorLines.append(String(
                 localized: "Sensor ends in \(TrioOnWatchRules.timeLeft(until: sensorEndsAt, now: now))",
@@ -503,20 +572,6 @@ extension TrioOnWatchStatus {
             ))
             if pumpTint == .secondary { pumpTint = .orange }
         }
-        if insulinSuspended {
-            pumpLines.append(String(localized: "Insulin suspended", comment: "Watch status: pump suspended"))
-            if pumpTint == .secondary { pumpTint = .orange }
-        }
-        pumpLines.append(pumpLastContact.map {
-            String(localized: "Last contact \($0.formattedTimeAgo()) ago", comment: "Watch status: pump contact age")
-        } ?? String(localized: "No pump contact yet", comment: "Watch status: no pump contact yet"))
-        if let reservoir {
-            pumpLines.append(String(
-                localized: "Reservoir \(TrioOnWatchRules.insulin(Decimal(reservoir)))",
-                comment: "Watch status: reservoir with unit"
-            ))
-            if reservoir <= 10 { pumpTint = .loopRed } else if reservoir <= 30, pumpTint == .secondary { pumpTint = .orange }
-        }
         if let podEndsAt {
             pumpLines.append(String(
                 localized: "Pod ends in \(TrioOnWatchRules.timeLeft(until: podEndsAt, now: now))",
@@ -548,7 +603,7 @@ extension TrioOnWatchStatus {
                 accessibilityLabel: line
             ))
         }
-        return rows
+        return rows.filter { !$0.lines.isEmpty }
     }
 }
 
@@ -858,6 +913,80 @@ extension TrioOnWatchStatus {
                 showsCancel: false,
                 showsRecentDoses: true
             )
+        }
+    }
+}
+
+extension TrioOnWatchStatus {
+    /// Done out of possible since watch mode started, one possible every 5 minutes.
+    func count(_ done: Int, now: Date) -> (done: Int, possible: Int)? {
+        guard let since = watchModeSince else { return nil }
+        return (done, max(done, Int(now.timeIntervalSince(since) / (5 * 60))))
+    }
+
+    /// What a cycle did, in the words of the status page.
+    enum CycleResult {
+        static func noPumpStatus(patch: Bool) -> String {
+            patch
+                ? String(localized: "Stopped: couldn't read the patch.", comment: "Watch loop result")
+                : String(localized: "Stopped: couldn't read the pod.", comment: "Watch loop result")
+        }
+
+        static func glucose(_ failure: LoopGlucoseGuard.Failure) -> String {
+            switch failure {
+            case .notEnoughReadings:
+                return String(localized: "Stopped: not enough glucose readings in the last hour.", comment: "Watch loop result")
+            case .stale:
+                return String(localized: "Stopped: no recent glucose reading.", comment: "Watch loop result")
+            }
+        }
+
+        static let algorithmFailed = String(localized: "Stopped: the algorithm failed.", comment: "Watch loop result")
+
+        static let bolusRunning = String(localized: "Skipped: a bolus was running.", comment: "Watch loop result")
+
+        static func enacted(_ plan: WatchDosingGate.Plan, tempConfirmed: Bool?, bolusConfirmed: Bool?) -> String {
+            var lines: [String] = []
+            if let temp = plan.tempBasal {
+                let rate = (Formatter.decimalFormatterWithTwoFractionDigits.string(from: temp.unitsPerHour as NSNumber) ??
+                    "\(temp.unitsPerHour)") + " " + String(localized: "U/h", comment: "Insulin rate unit")
+                lines.append(
+                    temp.minutes == 0
+                        ? String(localized: "Temp basal cancelled.", comment: "Watch loop result")
+                        : String(localized: "Temp basal \(rate) for \(temp.minutes) min.", comment: "Watch loop result")
+                )
+                if tempConfirmed == false {
+                    lines.append(String(localized: "The pump didn't confirm the temp basal.", comment: "Watch loop result"))
+                }
+            }
+            if let units = plan.bolus {
+                lines.append(String(localized: "SMB \(TrioOnWatchRules.insulin(units)).", comment: "Watch loop result"))
+                if bolusConfirmed == false {
+                    lines.append(String(localized: "The pump didn't confirm the SMB.", comment: "Watch loop result"))
+                }
+            }
+            for held in plan.heldBack {
+                switch held {
+                case .automationOff:
+                    lines.append(String(localized: "Automatic dosing is off: nothing sent.", comment: "Watch loop result"))
+                case .pumpSuspended:
+                    lines.append(String(localized: "Insulin is suspended: nothing sent.", comment: "Watch loop result"))
+                case .tempAddsInsulin:
+                    lines.append(String(
+                        localized: "Higher temp basal held back until the last command is confirmed.",
+                        comment: "Watch loop result"
+                    ))
+                case .bolus:
+                    lines.append(String(
+                        localized: "SMB held back until the last command is confirmed.",
+                        comment: "Watch loop result"
+                    ))
+                }
+            }
+            if lines.isEmpty {
+                lines.append(String(localized: "No change needed.", comment: "Watch loop result"))
+            }
+            return lines.joined(separator: "\n")
         }
     }
 }

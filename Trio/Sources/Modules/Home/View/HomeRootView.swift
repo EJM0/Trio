@@ -37,6 +37,7 @@ extension Home {
         @State var showReleaseNotes: Bool = false
         @State var trioOnWatch = TrioOnWatchPhoneModel()
         @State var showTrioOnWatch = false
+        @State var watchStartDrag = TrioOnWatchStartDrag()
         @ObservedObject var releaseNotesService = ReleaseNotesService.shared
         // Pull-down-to-force-loop (see HomeRootView+Refresh.swift)
         @State var pullOffset: CGFloat = 0
@@ -309,6 +310,9 @@ extension Home {
                     await trioOnWatch.refresh()
                     try? await Task.sleep(nanoseconds: 5_000_000_000)
                 }
+            }
+            .onChange(of: trioOnWatch.status.replacesLoopRing, initial: true) { _, watchHasPump in
+                state.watchHoldsPump = watchHasPump
             }
             .sheet(isPresented: $showTrioOnWatch) {
                 #if DEBUG
@@ -633,6 +637,16 @@ extension Home {
 
                 if state.waitForSuggestion {
                     CustomProgressView(text: String(localized: "Updating IOB...", comment: "Progress text when updating IOB"))
+                }
+
+                if watchStartDrag.isActive {
+                    TrioOnWatchStartOverlay(
+                        drag: watchStartDrag,
+                        model: trioOnWatch,
+                        reading: watchCardReading,
+                        ring: { glucoseRing },
+                        onEnd: { showTrioOnWatch = true }
+                    )
                 }
             }
             .sheet(isPresented: $showQuickPickTreatmentsPicker) {

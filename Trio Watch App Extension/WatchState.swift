@@ -287,6 +287,26 @@ import WatchConnectivity
         }
     }
 
+    /// Messages that wait for an answer: only the phone's drag-to-watch Start asks for one
+    func session(
+        _ session: WCSession,
+        didReceiveMessage message: [String: Any],
+        replyHandler: @escaping ([String: Any]) -> Void
+    ) {
+        guard message[WatchLoanWireKey.startAsk] != nil else {
+            self.session(session, didReceiveMessage: message)
+            replyHandler([:])
+            return
+        }
+        Task { @MainActor in
+            guard let host = WatchLoanRuntime.host else {
+                return replyHandler([WatchLoanWireKey.startAnswer: LoanRefusal.featureOff.rawValue])
+            }
+            let refusal = await host.startAskedByPhone()
+            replyHandler([WatchLoanWireKey.startAnswer: refusal?.rawValue ?? WatchLoanWireKey.startRequested])
+        }
+    }
+
     /// Handles incoming messages from the paired iPhone when Phone is in the foreground
     func session(_: WCSession, didReceiveMessage message: [String: Any]) {
         if WatchLogger.shared.handlePhoneMessage(message) { return }

@@ -129,9 +129,11 @@ struct TrioMainWatchView: View {
                 }.tag(0)
 
                 // Page 2: Glucose chart
+                // in watch mode the phone sends no new readings: the graph shows the watch's
                 GlucoseChartView(
                     state: state,
-                    glucoseValues: state.glucoseValues
+                    glucoseValues: loanActive ? loan?.chartValues(phone: state.glucoseValues) ?? [] : state.glucoseValues,
+                    forecast: loanActive ? loan?.chartForecast(cone: state.isForecastCone) : nil
                 )
                 .tag(1)
 
@@ -174,7 +176,7 @@ struct TrioMainWatchView: View {
                 }
             }
             .toolbar {
-                // the status page has its own actions; the main page's bar would cover them
+                // the status page has its own actions
                 if currentPage != 3 {
                     ToolbarItem(placement: .topBarLeading) {
                         VStack {
@@ -270,7 +272,13 @@ struct TrioMainWatchView: View {
             }
             .sheet(isPresented: $showingOverrideSheet) {
                 if let loan, loanActive {
-                    LoanAdjustmentSheet(kind: .override, adjustment: loan.override, stop: loanActions.stopOverride)
+                    LoanAdjustmentSheet(
+                        kind: .override,
+                        adjustment: loan.override,
+                        stop: loanActions.stopOverride,
+                        presets: loan.isInControl ? loan.overridePresets : [],
+                        start: loanActions.startOverride
+                    )
                 } else {
                     OverridePresetsView(
                         state: state,
@@ -283,7 +291,13 @@ struct TrioMainWatchView: View {
             }
             .sheet(isPresented: $showingTempTargetSheet) {
                 if let loan, loanActive {
-                    LoanAdjustmentSheet(kind: .tempTarget, adjustment: loan.tempTarget, stop: loanActions.stopTempTarget)
+                    LoanAdjustmentSheet(
+                        kind: .tempTarget,
+                        adjustment: loan.tempTarget,
+                        stop: loanActions.stopTempTarget,
+                        presets: loan.isInControl ? loan.tempTargetPresets : [],
+                        start: loanActions.startTempTarget
+                    )
                 } else {
                     TempTargetPresetsView(
                         state: state,
@@ -387,22 +401,7 @@ struct TrioMainWatchView: View {
     #endif
 
     private func updateRotation(for trend: String?) {
-        switch trend {
-        case "DoubleUp",
-             "SingleUp":
-            rotationDegrees = -90
-        case "FortyFiveUp":
-            rotationDegrees = -45
-        case "Flat":
-            rotationDegrees = 0
-        case "FortyFiveDown":
-            rotationDegrees = 45
-        case "DoubleDown",
-             "SingleDown":
-            rotationDegrees = 90
-        default:
-            rotationDegrees = 0
-        }
+        rotationDegrees = GlucoseTrendView.degrees(for: trend)
     }
 
     private func handleTreatmentSelection() {
