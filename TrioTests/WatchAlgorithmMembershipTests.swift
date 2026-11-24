@@ -31,7 +31,9 @@ import Testing
         "Trio/Sources/Models/GlucoseAlerts/DeviceAlertSeverity.swift"
     ]
 
-    @Test("Watch app compiles the loop's shared sources, Foundation and LoopKit only") func testWatchCompilesLoopSources() throws {
+    @Test(
+        "Watch app compiles the loop's shared sources, Foundation, CryptoKit and LoopKit only"
+    ) func testWatchCompilesLoopSources() throws {
         let loanDirectory = Self.repoRoot.appendingPathComponent("Trio/Sources/APS/WatchLoan")
         let loanFiles = try FileManager.default.contentsOfDirectory(atPath: loanDirectory.path)
             .filter { $0.hasSuffix(".swift") }
@@ -42,7 +44,7 @@ import Testing
         let missing = expected.subtracting(try Self.watchAppSources())
         #expect(missing.isEmpty, "Missing from the Trio Watch App target: \(missing.sorted())")
 
-        let allowedImports: Set<String> = ["Foundation", "LoopKit"]
+        let allowedImports: Set<String> = ["CryptoKit", "Foundation", "LoopKit"]
         for file in expected.sorted() {
             let source = try String(contentsOf: Self.repoRoot.appendingPathComponent(file), encoding: .utf8)
             let imports = source.matches(of: try Regex(#"(?m)^import (\w+)"#)).compactMap { $0[1].substring.map(String.init) }
