@@ -31,25 +31,6 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
     var bolusIncrement: Decimal = 0.05
     var confirmBolusFaster: Bool = false
 
-    // Peripherals (pump + CGM device info)
-    var peripheralsUpdatedAt: Date? = nil
-    var pumpName: String? = nil
-    /// Raw reservoir units. The `0xDEAD_BEEF` "50+ U" sentinel is preserved
-    /// end-to-end and interpreted by the watch view, as `PumpView` does.
-    var pumpReservoir: Decimal? = nil
-    /// Only populated for pumps that actually report a battery — patch pumps
-    /// (Omnipod, Medtrum) return `nil` and get a pod-life countdown instead.
-    var pumpBatteryPercent: Int? = nil
-    var pumpExpiresAt: Date? = nil
-    var pumpActivatedAt: Date? = nil
-    var pumpStatusMessage: String? = nil
-    var cgmName: String? = nil
-    var cgmSensorExpiresAt: Date? = nil
-    var cgmProgressPercent: Double? = nil
-    /// `DeviceLifecycleProgressState` raw value; drives the sensor ring color.
-    var cgmProgressState: String? = nil
-    var cgmStatusMessage: String? = nil
-
     // Forecast options
     var showForecast: Bool = false
     var isForecastCone: Bool = false
@@ -95,21 +76,7 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
             lhs.forecastLines == rhs.forecastLines &&
             lhs.snoozeUntilDate == rhs.snoozeUntilDate
 
-        let pumpIsEqual = lhs.pumpName == rhs.pumpName &&
-            lhs.pumpReservoir == rhs.pumpReservoir &&
-            lhs.pumpBatteryPercent == rhs.pumpBatteryPercent &&
-            lhs.pumpExpiresAt == rhs.pumpExpiresAt &&
-            lhs.pumpActivatedAt == rhs.pumpActivatedAt &&
-            lhs.pumpStatusMessage == rhs.pumpStatusMessage
-
-        let cgmIsEqual = lhs.cgmName == rhs.cgmName &&
-            lhs.cgmSensorExpiresAt == rhs.cgmSensorExpiresAt &&
-            lhs.cgmProgressPercent == rhs.cgmProgressPercent &&
-            lhs.cgmProgressState == rhs.cgmProgressState &&
-            lhs.cgmStatusMessage == rhs.cgmStatusMessage
-
-        return glucoseIsEqual && treatmentsAreEqual && limitsAreEqual && forecastIsEqual && pumpIsEqual &&
-            cgmIsEqual
+        return glucoseIsEqual && treatmentsAreEqual && limitsAreEqual && forecastIsEqual
     }
 
     func hash(into hasher: inout Hasher) {
@@ -139,19 +106,5 @@ struct WatchState: Hashable, Equatable, Sendable, Encodable, Decodable {
         hasher.combine(forecastConeMax)
         hasher.combine(forecastLines)
         hasher.combine(snoozeUntilDate)
-        // `peripheralsUpdatedAt` is deliberately excluded from both `==` and
-        // `hash(into:)`: it is a send stamp, not content, and including it
-        // would make every snapshot compare unequal.
-        hasher.combine(pumpName)
-        hasher.combine(pumpReservoir)
-        hasher.combine(pumpBatteryPercent)
-        hasher.combine(pumpExpiresAt)
-        hasher.combine(pumpActivatedAt)
-        hasher.combine(pumpStatusMessage)
-        hasher.combine(cgmName)
-        hasher.combine(cgmSensorExpiresAt)
-        hasher.combine(cgmProgressPercent)
-        hasher.combine(cgmProgressState)
-        hasher.combine(cgmStatusMessage)
     }
 }

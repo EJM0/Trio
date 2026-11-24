@@ -1,7 +1,6 @@
 import Combine
 import CoreData
 import Foundation
-import OmnipodKit
 import Swinject
 import UIKit
 import WatchConnectivity
@@ -28,7 +27,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
     @Injected() private var bolusCalculationManager: BolusCalculationManager!
     @Injected() private var iobService: IOBService!
     @Injected() private var notificationsManager: UserNotificationsManager!
-    @Injected() private var fetchGlucoseManager: FetchGlucoseManager!
 
     private var units: GlucoseUnits = .mgdL
     private var glucoseColorScheme: GlucoseColorScheme = .staticColor
@@ -87,37 +85,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             }
             .store(in: &subscriptions)
 
-        registerPeripheralHandlers()
         registerHandlers()
-    }
-
-    /// Push-on-change for pump expiry and CGM lifecycle, so the watch's Devices
-    /// page reflects new peripheral data as soon as the phone learns of it.
-    /// `removeDuplicates` keeps a republished but unchanged value off the radio.
-    private func registerPeripheralHandlers() {
-        apsManager.pumpExpiresAtDate
-            .removeDuplicates()
-            .receive(on: DispatchQueue.global(qos: .background))
-            .sink { [weak self] _ in
-                self?.pushPeripheralUpdate()
-            }
-            .store(in: &subscriptions)
-
-        fetchGlucoseManager.cgmProgressHighlight
-            .map { $0?.percentComplete }
-            .removeDuplicates()
-            .receive(on: DispatchQueue.global(qos: .background))
-            .sink { [weak self] _ in
-                self?.pushPeripheralUpdate()
-            }
-            .store(in: &subscriptions)
-    }
-
-    /// Sends a fresh watch state whenever peripheral data changed. Cheap enough
-    /// to do unconditionally: the sinks that call it are all deduplicated, and
-    /// an app-less watch is filtered out before anything is sent.
-    private func pushPeripheralUpdate() {
-        scheduleWatchStatePush()
     }
 
     /// Bundles triggers that land together.
@@ -240,7 +208,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
             let tempTargetPresetObjects: [TempTargetStored] = try await CoreDataStack.shared
                 .getNSManagedObject(with: tempTargetPresetIds, context: context)
 
-            var watchState: WatchState = await context.perform {
+            let watchState: WatchState = await context.perform {
                 var watchState = WatchState(date: Date())
                 watchState.snoozeUntilDate = UserDefaults.standard
                     .object(forKey: "UserNotificationsManager.snoozeUntilDate") as? Date ?? .distantPast
@@ -458,11 +426,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 return watchState
             }
 
-            // Peripheral (pump + CGM) data is gathered outside `context.perform`:
-            // it reads Combine subjects and the live CGM manager, neither of
-            // which belongs on a Core Data queue.
-            await gatherPeripherals(into: &watchState)
-
             return watchState
         } catch {
             warning(.watch, "Building watch state failed", error: error)
@@ -530,160 +493,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         }
     }
 
-    // MARK: - Peripherals (pump + CGM device info)
-
-    /// Fills in every pump and CGM lifecycle field the watch's Devices page needs.
-    ///
-    /// Deliberately leaves fields `nil` when the hardware can't report them:
-    /// patch pumps have no battery, and several CGM sources (Eversense,
-    /// Nightscout, xDrip) surface no sensor expiry at all. The watch renders
-    /// nothing for a `nil` rather than a placeholder.
-    private func gatherPeripherals(into state: inout WatchState) async {
-        state.peripheralsUpdatedAt = Date()
-
-        // Pump identity and patch lifetime
-        let pumpName = apsManager.pumpName.value
-        state.pumpName = pumpName.isEmpty ? nil : pumpName
-        state.pumpExpiresAt = apsManager.pumpExpiresAtDate.value
-        state.pumpActivatedAt = apsManager.pumpActivatedAtDate.value
-        state.pumpStatusMessage = apsManager.pumpManager?.pumpStatusHighlight?.localizedMessage
-
-        // Reservoir — the same pump-state reading the home header uses. The `0xDEAD_BEEF`
-        // "50+ U" sentinel is passed through; the watch view interprets it
-        // exactly as `PumpView` does. Omnipod swaps in its fill-based
-        // estimate here, display only, like the home header.
-        let reservoir = apsManager.pumpManager?.currentReservoir
-        if reservoir == 0xDEAD_BEEF,
-           let estimate = (apsManager.pumpManager as? OmniPumpManager)?.state.estimatedReservoirLevel
-        {
-            state.pumpReservoir = Decimal(estimate)
-        } else {
-            state.pumpReservoir = reservoir
-        }
-
-        state.pumpBatteryPercent = await fetchPumpBatteryPercent()
-
-        // CGM sensor lifecycle
-        let cgmManager = fetchGlucoseManager.cgmManager
-        let glucoseSource = fetchGlucoseManager.glucoseSource
-        let progress = fetchGlucoseManager.cgmProgressHighlight.value
-
-        state.cgmName = cgmManager?.localizedTitle
-        state.cgmSensorExpiresAt = CGMSensorLifecycle.resolveSensorExpiresAt(
-            manager: cgmManager,
-            glucoseSource: glucoseSource
-        )
-        state.cgmProgressPercent = progress?.percentComplete
-        state.cgmProgressState = progress?.progressState.rawValue
-        state.cgmStatusMessage = fetchGlucoseManager.cgmDisplayState.value?.localizedMessage
-    }
-
-    /// Most recent pump battery reading, or `nil` when the pump doesn't have one.
-    ///
-    /// `display == false` is how `APSManager` encodes "this pump reports no
-    /// battery" — Omnipod and Medtrum both return `pumpBatteryChargeRemaining
-    /// == nil`, so patch pumps never produce a battery row on the watch.
-    private func fetchPumpBatteryPercent() async -> Int? {
-        do {
-            let context = CoreDataStack.shared.newTaskContext()
-            context.name = "fetchPumpBattery"
-            let results = try await CoreDataStack.shared.fetchEntitiesAsync(
-                ofType: OpenAPS_Battery.self,
-                onContext: context,
-                predicate: NSPredicate.predicateFor30MinAgo,
-                key: "date",
-                ascending: false,
-                fetchLimit: 1
-            )
-
-            return await context.perform { () -> Int? in
-                guard let battery = (results as? [OpenAPS_Battery])?.first, battery.display else { return nil }
-                return Int(battery.percent)
-            }
-        } catch {
-            debug(
-                .watch,
-                "\(DebuggingIdentifiers.failed) Error fetching pump battery for watch: \(error)"
-            )
-            return nil
-        }
-    }
-
-    /// Serializes the peripheral fields into the wire sub-dictionary.
-    ///
-    /// Nil values are omitted rather than encoded, which lets the watch's
-    /// `if let … as? T { … } else { nil }` parse clear a removed pod or sensor
-    /// without needing a separate "absent" marker.
-    private func peripheralsToDictionary(from state: WatchState) -> [String: Any] {
-        var dictionary: [String: Any] = [:]
-
-        if let updatedAt = state.peripheralsUpdatedAt {
-            dictionary[WatchMessageKeys.peripheralsUpdatedAt] = updatedAt.timeIntervalSince1970
-        }
-        if let pumpName = state.pumpName {
-            dictionary[WatchMessageKeys.pumpName] = pumpName
-        }
-        if let reservoir = state.pumpReservoir {
-            dictionary[WatchMessageKeys.pumpReservoir] = reservoir
-        }
-        if let batteryPercent = state.pumpBatteryPercent {
-            dictionary[WatchMessageKeys.pumpBatteryPercent] = batteryPercent
-        }
-        if let expiresAt = state.pumpExpiresAt {
-            dictionary[WatchMessageKeys.pumpExpiresAt] = expiresAt.timeIntervalSince1970
-        }
-        if let activatedAt = state.pumpActivatedAt {
-            dictionary[WatchMessageKeys.pumpActivatedAt] = activatedAt.timeIntervalSince1970
-        }
-        if let statusMessage = state.pumpStatusMessage {
-            dictionary[WatchMessageKeys.pumpStatusMessage] = statusMessage
-        }
-        if let cgmName = state.cgmName {
-            dictionary[WatchMessageKeys.cgmName] = cgmName
-        }
-        if let sensorExpiresAt = state.cgmSensorExpiresAt {
-            dictionary[WatchMessageKeys.cgmSensorExpiresAt] = sensorExpiresAt.timeIntervalSince1970
-        }
-        if let progressPercent = state.cgmProgressPercent {
-            dictionary[WatchMessageKeys.cgmProgressPercent] = progressPercent
-        }
-        if let progressState = state.cgmProgressState {
-            dictionary[WatchMessageKeys.cgmProgressState] = progressState
-        }
-        if let cgmStatusMessage = state.cgmStatusMessage {
-            dictionary[WatchMessageKeys.cgmStatusMessage] = cgmStatusMessage
-        }
-
-        return dictionary
-    }
-
-    /// Sends peripheral data on its own, without a surrounding watch state.
-    ///
-    /// Used for changes the watch must not miss even while it is out of range —
-    /// a removed pump above all — so it falls back to `transferUserInfo` when
-    /// the session isn't reachable, which the routine push cannot do.
-    @MainActor func sendPeripheralUpdate() async {
-        guard let session = session, session.isPaired, session.isWatchAppInstalled else { return }
-
-        guard session.activationState == .activated else {
-            debug(.watch, "⌚️ Watch session not activated for peripheral update. Reactivating...")
-            session.activate()
-            return
-        }
-
-        var state = WatchState(date: Date())
-        await gatherPeripherals(into: &state)
-        let payload = peripheralsToDictionary(from: state)
-
-        if session.isReachable {
-            session.sendMessage([WatchMessageKeys.peripheralData: payload], replyHandler: nil) { error in
-                debug(.watch, "❌ Error sending peripheral data: \(error)")
-            }
-        } else {
-            session.transferUserInfo([WatchMessageKeys.peripheralData: payload])
-        }
-    }
-
     // MARK: - Send to Watch
 
     func watchStateToDictionary(from state: WatchState) -> [String: Any] {
@@ -724,7 +533,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
 
         // Assigned rather than inlined above: this literal is already at the
         // edge of the type checker's budget for a single expression.
-        dictionary[WatchMessageKeys.peripheralData] = peripheralsToDictionary(from: state)
         dictionary[WatchMessageKeys.isReducedBolusAvailable] = state.isReducedBolusAvailable
         dictionary[WatchMessageKeys.isSuperBolusAvailable] = state.isSuperBolusAvailable
 
@@ -1336,28 +1144,6 @@ extension BaseWatchManager: SettingsObserver, PumpSettingsObserver {
         lowGlucose = settingsManager.settings.low
         highGlucose = settingsManager.settings.high
 
-        scheduleWatchStatePush()
-    }
-}
-
-extension BaseWatchManager: PumpReservoirObserver, PumpDeactivatedObserver {
-    func pumpReservoirDidChange(_: Decimal?) {
-        pushPeripheralUpdate()
-    }
-
-    /// The pump was removed, so the watch has to clear its Pump card instead of
-    /// showing a reservoir and pod countdown for hardware that is no longer
-    /// attached. Goes out via the standalone path, which reaches a watch that
-    /// is currently out of range.
-    func pumpDeactivatedDidChange() {
-        // No reachability check: an unreachable watch is exactly the case the
-        // `transferUserInfo` fallback in `sendPeripheralUpdate` exists for.
-        guard let session = session, session.isPaired, session.isWatchAppInstalled else { return }
-        Task { @MainActor in
-            await self.sendPeripheralUpdate()
-        }
-        // Also refresh the application context, so a relaunched watch app does
-        // not show the removed pump from an older snapshot.
         scheduleWatchStatePush()
     }
 }
