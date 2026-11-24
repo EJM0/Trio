@@ -310,7 +310,10 @@
 		3E1D5E0630B38478009336E6 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				GlucoseAlarmGoldens,
 				Info.plist,
+				OpenAPSCharacterization/goldens,
+				OpenAPSCharacterization/js,
 				QuickPickTreatmentsTests.swift,
 			);
 			target = 38FCF3EC25E9028E0078B0D1 /* TrioTests */;

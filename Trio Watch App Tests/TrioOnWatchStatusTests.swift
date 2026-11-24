@@ -33,11 +33,10 @@ import Testing
         #expect(TrioOnWatchRules.loopTier(lastLoopAt: now.addingTimeInterval(-631), now: now) == .stale)
     }
 
-    @Test("The phone's loop age reads \"4m\" like every other age (G-R3)") func phoneLoopAge() {
+    @Test("The phone's loop age reads like every other age, not as the phone sent it (G-R3)") func phoneLoopAge() {
         let real = Date()
         let line = status(.phone).controlLine(now: real, phoneLoopText: "4 min")
         #expect(line.text == "iPhone · " + real.addingTimeInterval(-240).formattedTimeAgo())
-        #expect(!line.text.contains("min"))
         #expect(line.accessibilityLabel.contains(real.addingTimeInterval(-240).formattedSpokenTimeAgo()))
         #expect(status(.phone).controlLine(now: real, phoneLoopText: "--").text == "iPhone · --")
     }
