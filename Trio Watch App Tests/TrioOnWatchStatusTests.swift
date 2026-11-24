@@ -332,7 +332,8 @@ import Testing
     @Test("Every refusal has plain words, no reason code") func refusals() {
         let all: [LoanRefusal] = [
             .featureOff, .bolusRunning, .unconfirmedCommand, .deliveryUncertain, .pumpStatusStale, .versionMismatch,
-            .watchBatteryLow, .notificationsOff, .unsupportedWatch, .phoneUnreachable, .unsupportedDevice, .pumpScreenOpen,
+            .watchBatteryLow, .notificationsOff, .unsupportedWatch, .phoneUnreachable, .unsupportedDevice, .cgmNotShared,
+            .pumpScreenOpen,
             .indefiniteOverride, .notClosedLoop, .busy, .releaseRefused, .unknownRequest, .staleEpoch, .grantExpired,
             .snapshotIncomplete,
             .clockOffset, .timeZoneMismatch

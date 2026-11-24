@@ -60,6 +60,18 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         return cgm
     }
 
+    /// Whether the watch can read the phone's CGM: shared, or able to be once the user turns sharing on.
+    enum CGMSharing {
+        case shared
+        case sharingOff
+        case unsupported
+    }
+
+    private var cgmSharing: CGMSharing {
+        guard let cgm = fetchGlucoseManager.cgmManager as? DeviceConfigurationSharing else { return .unsupported }
+        return cgm.isConfigurationSharingEnabled ? .shared : .sharingOff
+    }
+
     // MARK: Start
 
     func startRefusal() async -> LoanRefusal? {
@@ -68,7 +80,7 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
             return Self.preconditionRefusal(
                 dosingMode: settingsManager.settings.dosingMode,
                 pump: pump,
-                cgmShared: sharedCGM != nil,
+                cgm: cgmSharing,
                 kitScreenOpen: PumpConfig.isKitScreenOpen,
                 indefiniteOverride: override.map { $0.endsAt == nil } ?? false,
                 now: Date()
@@ -82,13 +94,14 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
     static func preconditionRefusal(
         dosingMode: DosingMode,
         pump: WatchLoanPumpAdapter?,
-        cgmShared: Bool,
+        cgm: CGMSharing,
         kitScreenOpen: Bool,
         indefiniteOverride: Bool,
         now: Date
     ) -> LoanRefusal? {
         guard dosingMode == .closed else { return .notClosedLoop }
-        guard let pump, cgmShared else { return .unsupportedDevice }
+        guard let pump, cgm != .unsupported else { return .unsupportedDevice }
+        guard cgm == .shared else { return .cgmNotShared }
         if kitScreenOpen { return .pumpScreenOpen }
         if pump.status.bolusState != .noBolus { return .bolusRunning }
         if pump.status.deliveryIsUncertain { return .deliveryUncertain }
