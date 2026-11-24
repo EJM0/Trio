@@ -59,8 +59,6 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         highGlucose = settingsManager.settings.high
         broadcaster.register(SettingsObserver.self, observer: self)
         broadcaster.register(PumpSettingsObserver.self, observer: self)
-        broadcaster.register(PumpReservoirObserver.self, observer: self)
-        broadcaster.register(PumpDeactivatedObserver.self, observer: self)
         broadcaster.register(SnoozeObserver.self, observer: self)
 
         // Observer for OrefDetermination and adjustments. Upload flags change nothing the watch shows.
