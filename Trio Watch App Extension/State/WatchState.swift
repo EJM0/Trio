@@ -1156,7 +1156,8 @@ extension WatchState {
         let from = latest.date.addingTimeInterval(-ComplicationState.chartWindow)
         let watchHistory = loan.chartReadings.filter { $0.date >= from && $0.date <= latest.date }
         let firstWatchReading = watchHistory.first?.date ?? latest.date
-        let phoneHistory = complicationHistory(until: latest.date).filter { $0.timestamp < firstWatchReading.timeIntervalSince1970 }
+        let phoneHistory = complicationHistory(until: latest.date)
+            .filter { $0.timestamp < firstWatchReading.timeIntervalSince1970 }
         return ComplicationState(
             date: latest.date,
             glucose: Decimal(latest.mgdl).formatted(for: units),
