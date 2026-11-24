@@ -411,7 +411,7 @@ import Testing
 
     @Test(
         "Watch mode shows the sensor's value, as the phone's glucose bubble does, not the smoothed one"
-    )  func displayedReadingsAreRaw() {
+    ) func displayedReadingsAreRaw() {
         let id = UUID()
         let rounding = NSDecimalNumberHandler(
             roundingMode: .plain, scale: 0, raiseOnExactness: false, raiseOnOverflow: false,
