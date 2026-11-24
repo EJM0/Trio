@@ -99,7 +99,7 @@ extension UserInterfaceSettings {
                         self.averageSMBBolus = average
                     }
                 } catch {
-                    debug(.default, "\(DebuggingIdentifiers.failed) Error fetching average SMB bolus: \(error)")
+                    debug(.ui, "\(DebuggingIdentifiers.failed) Error fetching average SMB bolus: \(error)")
                 }
             }
         }

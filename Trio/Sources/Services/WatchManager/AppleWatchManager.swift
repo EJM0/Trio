@@ -548,11 +548,11 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
         state.pumpActivatedAt = apsManager.pumpActivatedAtDate.value
         state.pumpStatusMessage = apsManager.pumpManager?.pumpStatusHighlight?.localizedMessage
 
-        // Reservoir — same file the home header reads. The `0xDEAD_BEEF`
+        // Reservoir — the same pump-state reading the home header uses. The `0xDEAD_BEEF`
         // "50+ U" sentinel is passed through; the watch view interprets it
         // exactly as `PumpView` does. Omnipod swaps in its fill-based
         // estimate here, display only, like the home header.
-        let reservoir = await fileStorage.retrieveAsync(OpenAPS.Monitor.reservoir, as: Decimal.self)
+        let reservoir = apsManager.pumpManager?.currentReservoir
         if reservoir == 0xDEAD_BEEF,
            let estimate = (apsManager.pumpManager as? OmniPumpManager)?.state.estimatedReservoirLevel
         {
@@ -1341,7 +1341,7 @@ extension BaseWatchManager: SettingsObserver, PumpSettingsObserver {
 }
 
 extension BaseWatchManager: PumpReservoirObserver, PumpDeactivatedObserver {
-    func pumpReservoirDidChange(_: Decimal) {
+    func pumpReservoirDidChange(_: Decimal?) {
         pushPeripheralUpdate()
     }
 

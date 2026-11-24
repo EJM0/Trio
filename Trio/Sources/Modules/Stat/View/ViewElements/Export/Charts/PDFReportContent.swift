@@ -72,7 +72,8 @@ struct LoopingPerformancePDFContent: View {
         LoopBarChartView(
             loopStatRecords: loopStatRecords,
             selectedInterval: selectedInterval,
-            statsData: loopStats
+            statsData: loopStats,
+            spansMultipleDays: selectedInterval != .day
         )
 
         Divider()

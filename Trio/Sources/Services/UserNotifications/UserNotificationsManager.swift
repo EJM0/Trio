@@ -83,13 +83,13 @@ final class BaseUserNotificationsManager: NSObject, UserNotificationsManager, In
     private func requestAuthorizationPreferringCriticalAlerts(completion: @escaping (Bool) -> Void) {
         notificationCenter.requestAuthorization(options: [.badge, .sound, .alert, .criticalAlert]) { [weak self] granted, error in
             guard !granted, let self else { return completion(granted) }
-            warning(.service, "Critical alerts authorization failed; retrying without", error: error)
+            warning(.alerts, "Critical alerts authorization failed; retrying without", error: error)
             self.notificationCenter.getNotificationSettings { settings in
                 // Anything but `.notDetermined` means the user was asked and
                 // said no — re-prompting is pointless and iOS wouldn't show it.
                 guard settings.authorizationStatus == .notDetermined else { return completion(false) }
                 self.notificationCenter.requestAuthorization(options: [.badge, .sound, .alert]) { granted, error in
-                    if !granted { warning(.service, "requestNotificationPermissions failed", error: error) }
+                    if !granted { warning(.alerts, "requestNotificationPermissions failed", error: error) }
                     completion(granted)
                 }
             }

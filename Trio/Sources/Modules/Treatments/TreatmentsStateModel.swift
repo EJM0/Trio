@@ -813,7 +813,7 @@ extension Treatments {
         func addScannedAmounts(carbs: Decimal, fat: Decimal, protein: Decimal, note: String) {
             Task { @MainActor in
                 debug(
-                    .bolusState,
+                    .bolus,
                     "addScannedAmounts called with carbs=\(carbs) fat=\(fat) protein=\(protein) note=\(note)"
                 )
                 self.carbs += carbs
@@ -825,7 +825,7 @@ extension Treatments {
                 scannedProtein += protein
 
                 debug(
-                    .bolusState,
+                    .bolus,
                     "new totals: carbs=\(self.carbs) scannedCarbs=\(scannedCarbs) fat=\(self.fat) protein=\(self.protein)"
                 )
 
@@ -1011,7 +1011,7 @@ extension Treatments.StateModel {
     async
     {
         guard isActive || force else {
-            debug(.bolusState, "updateForecasts not fired")
+            debug(.bolus, "updateForecasts not fired")
             return
         }
 
@@ -1024,7 +1024,7 @@ extension Treatments.StateModel {
             let enteredBolus = amount
 
             let chartSimulation = Task { [self] in
-                debug(.bolusState, "calling simulateDetermineBasal to get forecast data")
+                debug(.bolus, "calling simulateDetermineBasal to get forecast data")
                 return await apsManager.simulateDetermineBasal(
                     simulatedCarbsAmount: simulatedCarbs,
                     simulatedBolusAmount: enteredBolus,

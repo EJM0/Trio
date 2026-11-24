@@ -269,7 +269,7 @@ struct MealPresetListView: View {
             showEditor = false
             editingPreset = nil
         } catch {
-            debug(.coreData, "\(DebuggingIdentifiers.failed) Failed to save meal preset: \(error)")
+            debug(.storage, "\(DebuggingIdentifiers.failed) Failed to save meal preset: \(error)")
         }
     }
 
@@ -279,7 +279,7 @@ struct MealPresetListView: View {
             do {
                 try moc.save()
             } catch {
-                debug(.coreData, "\(DebuggingIdentifiers.failed) Failed to delete meal preset: \(error)")
+                debug(.storage, "\(DebuggingIdentifiers.failed) Failed to delete meal preset: \(error)")
             }
         }
     }

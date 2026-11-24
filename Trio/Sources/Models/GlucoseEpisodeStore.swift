@@ -54,7 +54,7 @@ actor GlucoseEpisodeStore {
             do {
                 stored = try context.fetch(request)
             } catch {
-                debug(.coreData, "\(DebuggingIdentifiers.failed) Failed to fetch glucose episodes: \(error)")
+                debug(.storage, "\(DebuggingIdentifiers.failed) Failed to fetch glucose episodes: \(error)")
                 return []
             }
 
@@ -117,7 +117,7 @@ actor GlucoseEpisodeStore {
                 do {
                     try context.save()
                 } catch {
-                    debug(.coreData, "\(DebuggingIdentifiers.failed) Failed to save glucose episodes: \(error)")
+                    debug(.storage, "\(DebuggingIdentifiers.failed) Failed to save glucose episodes: \(error)")
                 }
             }
 

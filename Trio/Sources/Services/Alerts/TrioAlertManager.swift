@@ -283,7 +283,7 @@ final class BaseTrioAlertManager: TrioAlertManager, Injectable {
             var resolved = config
             if DeviceAlertsStore.shared.isSilenced(entry.concept) {
                 resolved.playsSound = false
-                debug(.service, "TrioAlertManager silenced tone for \(alert.identifier.value): concept opted out")
+                debug(.alerts, "TrioAlertManager silenced tone for \(alert.identifier.value): concept opted out")
             }
             effective = Self.applyDeviceSeverityConfig(resolved, entry: entry, to: alert)
         } else {
