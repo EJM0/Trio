@@ -5,13 +5,13 @@ import SwiftUI
 
 extension Home.RootView {
     /// Rate pill: what the pump delivers, and whether the temp is the user's own.
-    var currentBasalReadout: (label: String, accessibilityLabel: String, isManual: Bool, isScheduled: Bool)? {
+    var currentBasalReadout: (label: String, accessibilityLabel: String, isManual: Bool)? {
         switch state.activeBasalDelivery {
         case .none:
             return nil
         case .suspended:
             let label = String(localized: "Suspended", comment: "Basal delivery suspended on the pump")
-            return (label, label, false, false)
+            return (label, label, false)
         case let .temp(rate):
             let manual = state.manualTempBasal
             let label = basalRateLabel(rate)
@@ -21,9 +21,9 @@ extension Home.RootView {
                     comment: "Accessibility: manual temp basal rate the user set on the pump"
                 )
                 : basalRateAccessibilityLabel(rate)
-            return (label, spoken, manual, false)
+            return (label, spoken, manual)
         case let .scheduled(rate):
-            return (basalRateLabel(rate), basalRateAccessibilityLabel(rate), false, true)
+            return (basalRateLabel(rate), basalRateAccessibilityLabel(rate), false)
         }
     }
 
@@ -156,44 +156,29 @@ extension Home.RootView {
     }
 
     private var iobText: String {
-        let iob: NSNumber
+        let iob: Decimal
         if trioOnWatch.status.replacesLoopRing {
             guard let watchIOB = watchDetermination?.iob else { return "--" }
-            iob = watchIOB
+            iob = watchIOB.decimalValue
         } else {
-            iob = state.currentIOB as NSNumber
+            iob = state.currentIOB
         }
-        return (Formatter.decimalFormatterWithTwoFractionDigits.string(from: iob) ?? "0")
-            + String(localized: " U", comment: "Insulin unit")
+        return iob.formattedIOB() + String(localized: " U", comment: "Insulin unit")
     }
 
     @ViewBuilder private var liveMealPanel: some View {
-        HStack {
-            HStack {
-                Image(systemName: "syringe.fill")
-                    .font(.callout)
-                    .foregroundColor(Color.insulin)
-                Text(
-                    iobText
-                )
-                .font(.callout).fontWeight(.bold).fontDesign(.rounded)
-            }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text("Insulin on board"))
-            .accessibilityValue(Text(
-                iobText
-            ))
-
-            Spacer()
-
-            HStack {
+        ZStack {
+            // the carb value itself sits on the panel's midline; the icon hangs off it
+            Text(
+                cobText
+            )
+            .font(.callout).fontWeight(.bold).fontDesign(.rounded)
+            .overlay(alignment: .leading) {
                 Image(systemName: "fork.knife")
                     .font(.callout)
                     .foregroundColor(.loopYellow)
-                Text(
-                    cobText
-                )
-                .font(.callout).fontWeight(.bold).fontDesign(.rounded)
+                    .alignmentGuide(.leading) { $0.width + 5 }
+                    .accessibilityHidden(true)
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text("Carbs on board"))
@@ -201,43 +186,75 @@ extension Home.RootView {
                 cobText
             ))
 
-            Spacer()
+            HStack {
+                HStack {
+                    Image(systemName: "syringe.fill")
+                        .font(.callout)
+                        .foregroundColor(Color.insulin)
+                    Text(iobText)
+                        .font(.callout).fontWeight(.bold).fontDesign(.rounded)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text("Insulin on board"))
+                .accessibilityValue(Text(iobText))
 
-            deliveryRate
+                Spacer()
+
+                alarmsPill
+            }
         }.padding(.horizontal)
     }
 
-    /// Insulin delivery rate, back in the meal row alongside IOB and COB.
-    @ViewBuilder var deliveryRate: some View {
-        if state.maxIOB == 0.0 {
-            HStack {
-                Image(systemName: "exclamationmark.circle.fill")
-                Text("MaxIOB: 0 U")
-            }.bold()
-                .foregroundStyle(Color.red)
-                .font(.callout)
-        } else if let basal = currentBasalReadout {
-            // during a loan from the watch's synced pump records
-            HStack {
-                Image(systemName: basal.isManual ? "hand.raised.fill" : "drop.circle")
-                    .font(.callout)
-                    .foregroundColor(basal.isManual ? Color.loopManualTemp : Color.insulin)
+    /// Bell pill matching the header pills; countdown replaces the label while snoozed.
+    @ViewBuilder var alarmsPill: some View {
+        // timerDate keeps the countdown ticking
+        // measure from now, so calculation is not based off stale tick date
+        // cf. https://github.com/nightscout/Trio/issues/1381
+        let isSnoozed = state.alarmsSnoozeUntil > state.timerDate
+        let remainingMinutes = max(Int(ceil(state.alarmsSnoozeUntil.timeIntervalSince(max(state.timerDate, Date())) / 60)), 0)
 
-                Text(basal.label)
-                    .font(.callout).fontWeight(.bold).fontDesign(.rounded)
-                    .foregroundStyle(basal.isManual ? Color.loopManualTemp : .primary)
-                    .opacity(basal.isScheduled ? 0.6 : 1.0)
-            }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text(basal.accessibilityLabel))
-        } else if !state.pumpName.isEmpty {
-            HStack {
-                Image(systemName: "drop.circle")
-                    .font(.callout)
-                    .foregroundColor(Color.insulin)
-                Text("No Data")
-                    .font(.callout).fontWeight(.bold).fontDesign(.rounded)
+        Button {
+            showSnoozeSheet = true
+        } label: {
+            Group {
+                if isSnoozed {
+                    HStack(spacing: 5) {
+                        Image(systemName: "bell.slash.fill")
+                            .font(.callout)
+                        Text("\(remainingMinutes) m")
+                            .font(.callout).fontWeight(.bold).fontDesign(.rounded)
+                    }
+                    .padding(.vertical, 5)
+                    .padding(.horizontal, 10)
+                    .foregroundStyle(.secondary)
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.primary.opacity(0.4), lineWidth: 2)
+                    )
+                } else {
+                    Image(systemName: "bell.fill")
+                        .font(.callout)
+                        .foregroundStyle(.primary)
+                        .frame(width: 32, height: 32)
+                        .overlay(
+                            Circle()
+                                .stroke(Color.primary.opacity(0.4), lineWidth: 2)
+                        )
+                }
             }
         }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("Alarms"))
+        .accessibilityValue(Text(
+            isSnoozed
+                ? String(
+                    format: String(localized: "snoozed, %d minutes remaining", comment: "Accessibility: alarm snooze"),
+                    remainingMinutes
+                )
+                : String(localized: "active", comment: "Accessibility: alarms active")
+        ))
+        .accessibilityHint(Text(String(localized: "Opens snooze options", comment: "Accessibility hint")))
+        .accessibilityAddTraits(.isButton)
     }
 }

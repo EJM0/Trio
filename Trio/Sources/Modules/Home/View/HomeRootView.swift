@@ -147,6 +147,29 @@ extension Home {
                     .accessibilityLabel(Text("Active profile \(profileName)"))
                 }
             }
+            .overlay(alignment: .topTrailing) {
+                // borderless capsule (not a control); centered in the basal
+                // pane band so it clears the y-axis labels on every device size
+                if let basal = currentBasalReadout {
+                    HStack(spacing: 3) {
+                        if basal.isManual {
+                            Image(systemName: "hand.raised.fill")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        Text(basal.label)
+                            .font(.system(size: 14, weight: .semibold))
+                            .fontDesign(.rounded)
+                    }
+                    .foregroundStyle(basal.isManual ? Color.loopManualTemp : Color.insulin)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .glassMaterialFill(Capsule())
+                    .frame(height: chartHeight * 0.10)
+                    .padding(.trailing, 16)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Text(basal.accessibilityLabel))
+                }
+            }
         }
 
         @ViewBuilder private var chartInfoButton: some View {

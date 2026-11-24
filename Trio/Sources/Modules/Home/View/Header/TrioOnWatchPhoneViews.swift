@@ -374,8 +374,6 @@ enum TrioOnWatchPhoneFixtureDialog {
     }
 
     var isOverTarget: Bool { targetFrame.contains(ringCenter) }
-    /// Let go about where it was picked up: the long press it always was, snooze.
-    var isNearStart: Bool { hypot(translation.width, translation.height) < Self.snoozeRadius }
 
     /// The watch while the glucose is held: two thirds of Home's width.
     static func watchScale(width: CGFloat) -> CGFloat {
@@ -387,7 +385,6 @@ enum TrioOnWatchPhoneFixtureDialog {
         CGPoint(x: frame.midX, y: frame.maxY - TrioOnWatchStyle.caseHeight * watchScale(width: frame.width) / 2)
     }
 
-    static let snoozeRadius: CGFloat = 24
     static let pollInterval: UInt64 = 500_000_000
 
     func reset() {
@@ -533,13 +530,6 @@ struct TrioOnWatchStartOverlay<Ring: View>: View {
     @ViewBuilder private func dragging(size: CGSize, origin: CGPoint) -> some View {
         let ringAt = CGPoint(x: drag.ringCenter.x - origin.x, y: drag.ringCenter.y - origin.y)
         let watchTop = watchCenter(size).y - TrioOnWatchStyle.watchHeight * watchScale(size) / 2
-
-        if drag.isNearStart {
-            Text(String(localized: "Let go to snooze alerts", comment: "Hint while the glucose is held on Home"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .position(x: drag.ringFrame.midX - origin.x, y: drag.ringFrame.minY - origin.y - 14)
-        }
 
         Text(targetText(over: isOver))
             .font(.callout.weight(.semibold))

@@ -220,16 +220,16 @@ import Testing
     }
 
     @Test(
-        "Drag-to-watch Start: the glucose drops on the watch's screen at Home's bottom edge, and lets go in place to snooze"
+        "Drag-to-watch Start: the glucose drops on the watch's screen at Home's bottom edge"
     ) @MainActor func dragGeometry() {
         let drag = TrioOnWatchStartDrag()
         drag.ringFrame = CGRect(x: 130, y: 100, width: 130, height: 130)
         #expect(!drag.isOverTarget, "no target before the overlay knows Home's frame")
         drag.screenFrame = CGRect(x: 0, y: 0, width: 393, height: 852)
-        #expect(!drag.isOverTarget && drag.isNearStart, "let go in place: snooze")
+        #expect(!drag.isOverTarget)
         // the ring's centre starts at (195, 165); the watch's screen spans about x 63-330, y 540-852
         drag.translation = CGSize(width: 4, height: 400)
-        #expect(drag.isOverTarget && !drag.isNearStart)
+        #expect(drag.isOverTarget)
         drag.translation = CGSize(width: 130, height: 600)
         #expect(drag.isOverTarget, "the screen's lower right")
         drag.translation = CGSize(width: 0, height: 350)
