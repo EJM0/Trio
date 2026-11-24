@@ -24,6 +24,8 @@ protocol WatchLoanNotifier: AnyObject {
 @MainActor protocol LoanCGMSource: AnyObject {
     /// No key for the sensor yet: the next connection pairs, which needs Trio in front.
     var needsPairing: Bool { get }
+    /// Holds a manager for the sensor.
+    var isActive: Bool { get }
     func adopt(export: Data) async
     func restore()
     func recheckAcquisition()

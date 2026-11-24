@@ -27,6 +27,8 @@ import WatchKit
         )
     }
 
+    var isActive: Bool { manager != nil }
+
     /// The watch has no key for this sensor yet, so its next connection pairs.
     var needsPairing: Bool {
         manager.map { $0.localState == nil } ?? false
@@ -49,12 +51,14 @@ import WatchKit
             WatchLogger.shared.error(.cgm, "No CGM configuration in the grant")
             return
         }
-        // the old manager goes first: a new central beside it with the same restore identifier never powers on
+        // the old managers go first: a new central beside one with the same restore identifier never powers on
         await retire()
-        // the watch's own key for this sensor from an earlier loan: without it every loan pairs again, and that
-        // pairing needs the system prompt answered with Trio in front
+        let lentKey = await WatchCGMHost.shared.lendSensor()
+        // the watch's own key for this sensor, from its own reading or an earlier loan: without it every loan pairs
+        // again, and that pairing needs the system prompt answered with Trio in front
         let files = files
-        let localState = try? await WatchLoanFiles.io { try files.loadPlist(from: .cgmLocalState) }
+        let savedKey = try? await WatchLoanFiles.io { try files.loadPlist(from: .cgmLocalState) }
+        let localState = lentKey ?? savedKey
         guard let adopted = G7CGMManager(adopting: configuration, localState: localState) else {
             WatchLogger.shared.error(.cgm, "The grant's CGM configuration can't be read on the watch")
             return
@@ -98,6 +102,7 @@ import WatchKit
         try? await WatchLoanFiles.io { try files.remove(.cgmState) }
         await previous.delete()
         WatchLogger.shared.info(.cgm, "CGM manager let go")
+        WatchCGMHost.shared.sensorReturned(localState: previous.localState)
     }
 
     private func install(_ manager: G7CGMManager) {

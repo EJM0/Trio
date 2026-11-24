@@ -40,7 +40,13 @@ import WatchKit
                 .lifecycle,
                 "Trio on Watch host started \(WKApplication.shared().applicationState == .background ? "in the background (system relaunch)" : "in front"), model \(modelIdentifier ?? "unknown"), watchOS \(WKInterfaceDevice.current().systemVersion), battery \(Int(max(0, WKInterfaceDevice.current().batteryLevel) * 100)) %"
             )
-            Task { await created.relaunch() }
+            Task {
+                await created.relaunch()
+                // a loan that ended while the app was gone left the sensor lent
+                if !cgm.isActive { WatchCGMHost.shared.sensorReturned(localState: nil) }
+            }
+        #else
+            WatchCGMHost.shared.sensorReturned(localState: nil)
         #endif
     }
 
@@ -52,6 +58,11 @@ import WatchKit
         var buffer = [CChar](repeating: 0, count: size)
         guard sysctlbyname("hw.machine", &buffer, &size, nil, 0) == 0 else { return nil }
         return String(cString: buffer)
+    }
+
+    /// Trio on Watch reads the sensor itself: from a grant until the loan ends.
+    static var ownsSensor: Bool {
+        host?.env.cgm?.isActive ?? false
     }
 
     /// A WatchConnectivity payload; true when it was a loan payload.
@@ -267,14 +278,3 @@ final class UserNotificationLoanNotifier: WatchLoanNotifier {
         }
     }
 }
-
-#if TRIO_ON_WATCH
-    final class WatchAppDelegate: NSObject, WKApplicationDelegate {
-        func handle(_ backgroundTasks: Set<WKRefreshBackgroundTask>) {
-            // a Bluetooth task can arrive off main
-            DispatchQueue.main.async {
-                WatchBackgroundTasks.shared.handle(backgroundTasks)
-            }
-        }
-    }
-#endif
