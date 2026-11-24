@@ -97,6 +97,8 @@
 		D93BDC53F4D23A9D8D518667 /* LoopKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3818AA4C274C26A300843DB3 /* LoopKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		52AC9AB5C97BD54C3DE93E19 /* OmnipodKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B6E925122EB3932A0076D719 /* OmnipodKit.framework */; };
 		515F844F2C1CF3DD756F6FE8 /* OmnipodKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = B6E925122EB3932A0076D719 /* OmnipodKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A1B2C3D4E5F6A7B8C9D0E101 /* MedtrumKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3E54EF2B2E476DA40006F54D /* MedtrumKit.framework */; };
+		A1B2C3D4E5F6A7B8C9D0E102 /* MedtrumKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3E54EF2B2E476DA40006F54D /* MedtrumKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		26937DF68F0C56FA30D84DC5 /* G7SensorKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA75E2D8DBD690069D5B8 /* G7SensorKit.framework */; };
 		C16B93ECB64B99EFDABFF513 /* G7SensorKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3B4BA75E2D8DBD690069D5B8 /* G7SensorKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		AB96B883849863E79111D198 /* LoopKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3818AA4C274C26A300843DB3 /* LoopKit.framework */; };
@@ -229,6 +231,7 @@
 				2155984DEDAC32B32AA56735 /* RileyLinkBLEKit.framework in Embed Frameworks */,
 				C16B93ECB64B99EFDABFF513 /* G7SensorKit.framework in Embed Frameworks */,
 				515F844F2C1CF3DD756F6FE8 /* OmnipodKit.framework in Embed Frameworks */,
+				A1B2C3D4E5F6A7B8C9D0E102 /* MedtrumKit.framework in Embed Frameworks */,
 				D93BDC53F4D23A9D8D518667 /* LoopKit.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
@@ -579,6 +582,7 @@
 				A7A50E000000000000000002 /* CryptoSwift in Frameworks */,
 				26937DF68F0C56FA30D84DC5 /* G7SensorKit.framework in Frameworks */,
 				52AC9AB5C97BD54C3DE93E19 /* OmnipodKit.framework in Frameworks */,
+				A1B2C3D4E5F6A7B8C9D0E101 /* MedtrumKit.framework in Frameworks */,
 				1B4891C64D540B23CCE6FF09 /* LoopKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

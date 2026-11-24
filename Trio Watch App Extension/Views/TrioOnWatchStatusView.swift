@@ -94,18 +94,21 @@ enum HandOffStage: Equatable {
                 comment: "Watch End refused: the phone didn't answer"
             ))
         }
-        if let alert = status.lastAlert, let text = TrioOnWatchStatus.outcomeText(alert) {
+        if let alert = status.lastAlert, let text = TrioOnWatchStatus.outcomeText(alert, patch: status.pumpIsPatch) {
             return .failed(text)
         }
         if case let .stopped(reason) = status.phase {
-            return .failed(TrioOnWatchStatus.stopReason(reason))
+            return .failed(TrioOnWatchStatus.stopReason(reason, patch: status.pumpIsPatch))
         }
         switch (kind, status.phase) {
         case (.start, .inControl):
             return .succeeded(String(localized: "Your watch is in control.", comment: "Watch Start succeeded"))
         case (.start, .waitingForReading) where status.pumpAdopted:
             // control has moved, as the phone's Start card says; the first loop comes with the next reading
-            return .succeeded(String(
+            return .succeeded(status.pumpIsPatch ? String(
+                localized: "Your watch has your patch. It starts looping with its next sensor reading.",
+                comment: "Watch Start succeeded, before the first reading"
+            ) : String(
                 localized: "Your watch has your pod. It starts looping with its next sensor reading.",
                 comment: "Watch Start succeeded, before the first reading"
             ))

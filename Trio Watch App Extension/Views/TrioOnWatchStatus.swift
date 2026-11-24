@@ -44,6 +44,8 @@ struct TrioOnWatchStatus: Equatable {
 
     var phase: Phase = .phone
     var phoneReachable = true
+    /// The borrowed pump is a Medtrum patch: the texts say "patch", not "pod".
+    var pumpIsPatch = false
     /// The watch has adopted the pump from the grant: control has moved, even before the first reading.
     var pumpAdopted = false
     /// The last cycle that confirmed the pump's state.
@@ -281,8 +283,12 @@ extension TrioOnWatchStatus {
     var pumpCondition: PumpCondition? {
         if podFaulted {
             return PumpCondition(
-                text: String(localized: "Pod stopped", comment: "Watch control line: pod fault"),
-                spoken: String(localized: "Your pod has stopped. It is not giving insulin.", comment: "Watch status: pod fault"),
+                text: pumpIsPatch ? String(localized: "Patch stopped", comment: "Watch control line: patch fault") :
+                    String(localized: "Pod stopped", comment: "Watch control line: pod fault"),
+                spoken: pumpIsPatch ? String(
+                    localized: "Your patch has stopped. It is not giving insulin.",
+                    comment: "Watch status: patch fault"
+                ) : String(localized: "Your pod has stopped. It is not giving insulin.", comment: "Watch status: pod fault"),
                 tier: .stale
             )
         }
@@ -298,8 +304,15 @@ extension TrioOnWatchStatus {
         }
         if podUnreachable {
             return PumpCondition(
-                text: String(localized: "Can't reach pod", comment: "Watch control line: pod not answering"),
-                spoken: String(
+                text: pumpIsPatch ? String(localized: "Can't reach patch", comment: "Watch control line: patch not answering") :
+                    String(
+                        localized: "Can't reach pod",
+                        comment: "Watch control line: pod not answering"
+                    ),
+                spoken: pumpIsPatch ? String(
+                    localized: "Can't reach your patch. Keep your watch close to it.",
+                    comment: "Watch status: patch not answering (V3-4)"
+                ) : String(
                     localized: "Can't reach your pod. Keep your watch close to it.",
                     comment: "Watch status: pod not answering (V3-4)"
                 ),
@@ -447,17 +460,20 @@ extension TrioOnWatchStatus {
             )
         case .inControl:
             return phoneReachable
-                ? String(
+                ? (pumpIsPatch ? String(
+                    localized: "Ending moves your pump and history back to your iPhone. To change your patch or sensor, end Trio on Watch first.",
+                    comment: "Watch status footer in control, phone near"
+                ) : String(
                     localized: "Ending moves your pump and history back to your iPhone. To change your pod or sensor, end Trio on Watch first.",
                     comment: "Watch status footer in control, phone near"
-                )
+                ))
                 : String(
                     localized: "Bring your iPhone close to end. Your watch stays in control until then.",
                     comment: "Watch status footer in control, phone away"
                 )
         case let .stopped(reason):
             return [
-                Self.stopReason(reason),
+                Self.stopReason(reason, patch: pumpIsPatch),
                 Self.pumpFailSafe,
                 String(localized: "Open Trio on your iPhone to take back your pump.", comment: "Watch stopped footer"),
                 String(
@@ -480,12 +496,15 @@ extension TrioOnWatchStatus {
         )
     }
 
-    static func stopReason(_ reason: WatchStopReason) -> String {
+    static func stopReason(_ reason: WatchStopReason, patch: Bool = false) -> String {
         switch reason {
         case .superseded:
             return String(localized: "Your iPhone took back your pump.", comment: "Watch stop reason")
         case .foreignSession:
-            return String(localized: "Another device used your pod.", comment: "Watch stop reason")
+            return (
+                patch ? String(localized: "Another device used your patch.", comment: "Watch stop reason") :
+                    String(localized: "Another device used your pod.", comment: "Watch stop reason")
+            )
         case .resumeWindowPassed:
             return String(localized: "Your watch couldn't loop for over 6 hours.", comment: "Watch stop reason")
         case .unconfirmed:
@@ -555,11 +574,24 @@ extension TrioOnWatchStatus {
         var pumpTint = Color.secondary
         if podFaulted {
             pumpLines
-                .append(String(localized: "Your pod has stopped. It is not giving insulin.", comment: "Watch status: pod fault"))
+                .append(
+                    pumpIsPatch ?
+                        String(
+                            localized: "Your patch has stopped. It is not giving insulin.",
+                            comment: "Watch status: patch fault"
+                        ) :
+                        String(
+                            localized: "Your pod has stopped. It is not giving insulin.",
+                            comment: "Watch status: pod fault"
+                        )
+                )
             pumpTint = .loopRed
         }
         if podUnreachable {
-            pumpLines.append(String(
+            pumpLines.append(pumpIsPatch ? String(
+                localized: "Can't reach your patch. Keep your watch close to it.",
+                comment: "Watch status: patch not answering (V3-4)"
+            ) : String(
                 localized: "Can't reach your pod. Keep your watch close to it.",
                 comment: "Watch status: pod not answering (V3-4)"
             ))
@@ -573,7 +605,10 @@ extension TrioOnWatchStatus {
             if pumpTint == .secondary { pumpTint = .orange }
         }
         if let podEndsAt {
-            pumpLines.append(String(
+            pumpLines.append(pumpIsPatch ? String(
+                localized: "Patch ends in \(TrioOnWatchRules.timeLeft(until: podEndsAt, now: now))",
+                comment: "Watch status: patch time left"
+            ) : String(
                 localized: "Pod ends in \(TrioOnWatchRules.timeLeft(until: podEndsAt, now: now))",
                 comment: "Watch status: pod time left"
             ))
@@ -618,12 +653,16 @@ extension TrioOnWatchStatus {
 
     /// The facts that apply, then the two fixed lines (G-12). Nil facts: the phone didn't answer.
     static func startFacts(_ facts: WatchLoanStartFacts?, now: Date) -> [Fact] {
+        let patch = facts?.pumpIsPatch ?? false
         var result: [Fact] = []
         if let facts {
             if let podEndsAt = facts.podEndsAt {
                 result.append(Fact(
                     id: "pod",
-                    text: String(
+                    text: patch ? String(
+                        localized: "Patch ends in \(TrioOnWatchRules.timeLeft(until: podEndsAt, now: now)).",
+                        comment: "Watch Start fact"
+                    ) : String(
                         localized: "Pod ends in \(TrioOnWatchRules.timeLeft(until: podEndsAt, now: now)).",
                         comment: "Watch Start fact"
                     ),
@@ -670,7 +709,10 @@ extension TrioOnWatchStatus {
         } else {
             result.append(Fact(
                 id: "unknown",
-                text: String(
+                text: patch ? String(
+                    localized: "Patch, sensor and override details: unknown. Your iPhone didn't send them.",
+                    comment: "Watch Start fact when the phone didn't answer the facts query"
+                ) : String(
                     localized: "Pod, sensor and override details: unknown. Your iPhone didn't send them.",
                     comment: "Watch Start fact when the phone didn't answer the facts query"
                 ),
@@ -701,7 +743,7 @@ extension TrioOnWatchStatus {
 
 extension TrioOnWatchStatus {
     /// The text for a refusal or failure the host reported; kept on screen until dismissed (G-4).
-    static func outcomeText(_ alert: LoanAlert) -> String? {
+    static func outcomeText(_ alert: LoanAlert, patch: Bool = false) -> String? {
         switch alert {
         case .phoneDidNotAnswer:
             return String(
@@ -712,12 +754,15 @@ extension TrioOnWatchStatus {
              let .startRefused(reason):
             return refusalText(reason)
         case .podUnreachable:
-            return String(
+            return (patch ? String(
+                localized: "Your watch couldn't reach your patch. Keep it close to your patch.",
+                comment: "Watch outcome when the first patch contact failed"
+            ) : String(
                 localized: "Your watch couldn't reach your pod. Keep it close to your pod.",
                 comment: "Watch outcome when the first pod contact failed"
-            )
+            ))
         case let .stopped(reason):
-            return stopReason(reason)
+            return stopReason(reason, patch: patch)
         default:
             return nil
         }
@@ -759,7 +804,7 @@ extension TrioOnWatchStatus {
             return String(localized: "Bring your iPhone close and try again.", comment: "Watch refusal")
         case .unsupportedDevice:
             return String(
-                localized: "Trio on Watch works with an Omnipod DASH pod and a Dexcom G7 shared with your watch.",
+                localized: "Trio on Watch works with an Omnipod DASH pod or a Medtrum Nano patch, and a Dexcom G7 shared with your watch.",
                 comment: "Watch refusal"
             )
         case .pumpScreenOpen:

@@ -888,7 +888,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.notifier.bodies[failedID] == "Kit text.\n" + WatchLoanAlerts.sensorNeedsPhone)
         #expect(world.notifier.pending[expiringID]?.date == world.clock.addingTimeInterval(3600))
         #expect(world.notifier.pending[podID]?.date == world.clock.addingTimeInterval(600))
-        #expect(world.notifier.bodies[podID] == "Kit text.\n" + WatchLoanAlerts.podNeedsPhone)
+        #expect(world.notifier.bodies[podID] == "Kit text.\n" + WatchLoanAlerts.podNeedsPhone(patch: false))
 
         await cgm.retractAlert(identifier: failed.identifier)
         #expect(world.notifier.pending[failedID] == nil)
@@ -1085,7 +1085,7 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.host.uiStatus().tempTarget?.name == "Activity")
         let change = try #require(world.transport.batches.last?.adjustmentChanges?.first { $0.kind == .tempTarget })
         #expect(change.presetID == preset.id)
-        #expect(!(await world.host.startAdjustmentConfirmed(.tempTarget, presetID: "unknown")))
+        #expect(await world.host.startAdjustmentConfirmed(.tempTarget, presetID: "unknown") == false)
     }
 
     @Test("An override preset started on the watch shows as running and goes to the phone") func startOverridePreset() async throws {
@@ -1106,7 +1106,10 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(await world.host.startAdjustmentConfirmed(.override, presetID: "gym"))
         let running = try #require(world.host.uiStatus().override)
         #expect(running.name == "Gym" && running.endsAt == nil)
-        #expect(world.transport.batches.last?.adjustmentChanges?.contains { $0.kind == .override && $0.presetID == "gym" } == true)
+        #expect(
+            world.transport.batches.last?.adjustmentChanges?
+                .contains { $0.kind == .override && $0.presetID == "gym" } == true
+        )
     }
 
     @Test("The loop page gets the loop's reasoning and eventual glucose after a cycle") func loopPageValues() async throws {
@@ -1340,5 +1343,19 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
                 #expect(child.value is Int64)
             }
         }
+    }
+}
+
+@Suite("Watch loan pump kits") struct WatchLoanPumpKitTests {
+    @Test("The saved pump state names its kit, so a relaunch rebuilds the same one") func savedStateNamesKit() {
+        let pump = LoanPumpDouble(pod: PodModel())
+        let saved = LoanPumpFactory.savedState(of: pump)
+        #expect(saved[LoanPumpFactory.pluginKey] as? String == "LoanPumpDouble")
+        #expect(saved["double"] as? Bool == true)
+    }
+
+    @Test("A grant for a kit the watch doesn't have is refused") func unknownKit() {
+        let export = SharedDeviceConfiguration(managerIdentifier: "Unknown", asOf: Date(), state: [:])
+        #expect(LoanPumpFactory.kits.adopt(export, nil) == nil)
     }
 }

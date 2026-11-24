@@ -96,8 +96,9 @@ import Testing
         #expect(status.takeBackContext == .startUnconfirmed)
 
         let contexts: [TrioOnWatchPhoneStatus.TakeBackContext] = [.watchReachable, .watchUnreachable, .startUnconfirmed]
-        let messages = Set(contexts.map(TrioOnWatchPhoneStatus.takeBackMessage))
+        let messages = Set(contexts.map { TrioOnWatchPhoneStatus.takeBackMessage($0) })
         #expect(messages.count == 3)
+        #expect(TrioOnWatchPhoneStatus.takeBackMessage(.watchUnreachable, patch: true).contains("patch"))
         #expect(TrioOnWatchPhoneStatus.takeBackButton(.watchReachable) == "Take Back Anyway")
         #expect(TrioOnWatchPhoneStatus.takeBackButton(.watchUnreachable) == "Take Back Pump")
     }
