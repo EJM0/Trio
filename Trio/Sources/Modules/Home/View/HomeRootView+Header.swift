@@ -128,7 +128,7 @@ extension Home.RootView {
             }
     }
 
-    /// Hold the glucose: let go in place to snooze alerts, as always, or drag it onto the watch to start Trio on Watch.
+    /// Hold the glucose and drag it onto the watch to start Trio on Watch. Alerts are snoozed from the bell.
     var glucoseHoldGesture: some Gesture {
         LongPressGesture(minimumDuration: 0.5)
             .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .global))
@@ -137,12 +137,8 @@ extension Home.RootView {
                 guard case let .second(true, drag) = value else { return }
                 if !watchStartDrag.holdStarted {
                     watchStartDrag.holdStarted = true
+                    guard trioOnWatch.status.offersDragToStart, !watchStartDrag.isActive else { return }
                     UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-                    guard trioOnWatch.status.offersDragToStart, !watchStartDrag.isActive else {
-                        // no watch to start on: the long press stays the snooze it was
-                        showSnoozeSheet = true
-                        return
-                    }
                     withAnimation(.easeOut(duration: 0.2)) { watchStartDrag.step = .dragging }
                 }
                 guard watchStartDrag.step == .dragging, let drag else { return }
@@ -155,9 +151,6 @@ extension Home.RootView {
                 guard watchStartDrag.step == .dragging else { return }
                 if watchStartDrag.isOverTarget, trioOnWatch.status.watchReachable {
                     watchStartDrag.isConfirming = true
-                } else if watchStartDrag.isNearStart {
-                    watchStartDrag.reset()
-                    showSnoozeSheet = true
                 } else {
                     withAnimation(.spring(duration: 0.3)) { watchStartDrag.reset() }
                 }

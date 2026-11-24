@@ -333,17 +333,29 @@ enum TrioOnWatchPhoneFixtureDialog {
     /// Dropped on the watch: the user confirms, with what changes, before the watch is asked.
     var isConfirming = false
 
+    /// Home, in global coordinates; the overlay sets it.
+    var screenFrame: CGRect = .zero
+
     var isActive: Bool { step != .idle }
     var ringCenter: CGPoint { CGPoint(x: ringFrame.midX + translation.width, y: ringFrame.midY + translation.height) }
-    /// The watch to drop on: under the glucose, a thumb's drag away.
-    var targetCenter: CGPoint { CGPoint(x: ringFrame.midX, y: ringFrame.maxY + Self.targetDistance) }
-    var isOverTarget: Bool { hypot(ringCenter.x - targetCenter.x, ringCenter.y - targetCenter.y) < Self.dropRadius }
-    /// Let go about where it was picked up: the long press it always was, snooze.
-    var isNearStart: Bool { hypot(translation.width, translation.height) < Self.snoozeRadius }
+    /// The watch to drop on: the lower half of Home, large enough to hit without aiming.
+    var targetFrame: CGRect {
+        guard !screenFrame.isEmpty else { return .zero }
+        let top = max(screenFrame.midY, ringFrame.maxY + Self.targetGap)
+        return CGRect(
+            x: screenFrame.minX + Self.targetInset,
+            y: top,
+            width: screenFrame.width - 2 * Self.targetInset,
+            height: max(0, screenFrame.maxY - Self.targetBottomInset - top)
+        )
+    }
 
-    static let targetDistance: CGFloat = 190
-    static let dropRadius: CGFloat = 60
-    static let snoozeRadius: CGFloat = 24
+    var isOverTarget: Bool { targetFrame.contains(ringCenter) }
+
+    static let targetInset: CGFloat = 16
+    /// Clear of the home indicator.
+    static let targetBottomInset: CGFloat = 40
+    static let targetGap: CGFloat = 40
     static let pollInterval: UInt64 = 500_000_000
 
     func reset() {
@@ -434,6 +446,8 @@ struct TrioOnWatchStartOverlay<Ring: View>: View {
                     EmptyView()
                 }
             }
+            .onAppear { drag.screenFrame = geo.frame(in: .global) }
+            .onChange(of: geo.size) { drag.screenFrame = geo.frame(in: .global) }
         }
         .ignoresSafeArea()
         .transition(.opacity)
@@ -450,36 +464,36 @@ struct TrioOnWatchStartOverlay<Ring: View>: View {
 
     @ViewBuilder private func dragging(origin: CGPoint) -> some View {
         let over = drag.isOverTarget && watchReachable
-        let target = CGPoint(x: drag.targetCenter.x - origin.x, y: drag.targetCenter.y - origin.y)
+        let zone = drag.targetFrame.offsetBy(dx: -origin.x, dy: -origin.y)
         let ringAt = CGPoint(x: drag.ringCenter.x - origin.x, y: drag.ringCenter.y - origin.y)
 
-        if drag.isNearStart {
-            Text(String(localized: "Let go to snooze alerts", comment: "Hint while the glucose is held on Home"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .position(x: drag.ringFrame.midX - origin.x, y: drag.ringFrame.minY - origin.y - 14)
-        }
-
         ZStack {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.white.opacity(over ? 0.18 : 0.08))
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(TrioOnWatchFaceCard.gradient, lineWidth: over ? 3 : 1.5)
-            Image(systemName: "applewatch")
-                .font(.system(size: 30, weight: .medium))
+            Group {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(Color.white.opacity(over ? 0.18 : 0.06))
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .strokeBorder(
+                        TrioOnWatchFaceCard.gradient,
+                        style: StrokeStyle(lineWidth: over ? 3 : 1.5, dash: over ? [] : [8, 6])
+                    )
+            }
+            .shadow(color: TrioOnWatchFaceCard.glow.opacity(over ? 0.9 : 0.3), radius: over ? 22 : 8)
+            .opacity(watchReachable ? 1 : 0.4)
+            VStack(spacing: 12) {
+                Image(systemName: "applewatch")
+                    .font(.system(size: 44, weight: .medium))
+                    .scaleEffect(over ? 1.2 : 1)
+                    .opacity(watchReachable ? 1 : 0.4)
+                    .accessibilityHidden(true)
+                Text(targetText(over: over))
+                    .font(.callout.weight(.semibold))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 260)
+            }
         }
-        .frame(width: 68, height: 68)
-        .scaleEffect(over ? 1.25 : 1)
-        .shadow(color: TrioOnWatchFaceCard.glow.opacity(over ? 0.9 : 0.3), radius: over ? 22 : 8)
-        .opacity(watchReachable ? 1 : 0.4)
-        .position(target)
-        .accessibilityHidden(true)
-
-        Text(targetText(over: over))
-            .font(.callout.weight(.semibold))
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: 260)
-            .position(x: target.x, y: target.y + 66)
+        .frame(width: zone.width, height: zone.height)
+        .position(x: zone.midX, y: zone.midY)
+        .animation(.easeOut(duration: 0.15), value: over)
 
         ring()
             .scaleEffect(over ? 0.8 : 1.05)
