@@ -191,14 +191,15 @@ import Testing
             (ago(55), 240, .orange),
             (ago(10), 101, .green)
         ]
-        #expect(watch.chartValues(phone: phone).count == 3)
+        let limits = { (mgdl: Int) -> Color in mgdl < 70 ? .red : mgdl > 180 ? .orange : .green }
+        #expect(watch.chartValues(phone: phone, color: limits).count == 3)
 
         watch.chartReadings = [.init(date: ago(10), mgdl: 101), .init(date: ago(5), mgdl: 235), .init(date: ago(0), mgdl: 55)]
-        let values = watch.chartValues(phone: phone)
+        let values = watch.chartValues(phone: phone, color: limits)
         #expect(values.map(\.date) == [ago(60), ago(55), ago(10), ago(5), ago(0)])
         #expect(values[3].glucose == 235 && values[3].color == .orange)
-        // below anything the phone showed: no colour claims it is in range
-        #expect(values[4].glucose == 55 && values[4].color == .primary)
+        // a low the phone never showed is coloured by the phone's limits
+        #expect(values[4].glucose == 55 && values[4].color == .red)
 
         #expect(watch.chartForecast(cone: true).start == nil)
         watch.forecast = .init(start: now, lines: ["iob": [100, 110], "zt": [90]])

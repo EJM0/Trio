@@ -1096,15 +1096,25 @@ extension WatchState {
         return glucoseValues.last.map { ($0.date, $0.glucose) }
     }
 
+    /// After each of Trio on Watch's cycles: while the watch holds the pump, its own values replace the phone's.
+    func refreshComplication() {
+        saveComplicationSnapshot()
+    }
+
     private func saveComplicationSnapshot() {
-        guard let latestReading = shownReading else { return }
-        let snapshot = complicationSnapshot(readingDate: latestReading.date, glucoseValue: latestReading.glucose)
+        let snapshot: ComplicationState
+        if let loanSnapshot = loanComplicationSnapshot() {
+            snapshot = loanSnapshot
+        } else {
+            guard let latestReading = shownReading else { return }
+            snapshot = complicationSnapshot(readingDate: latestReading.date, glucoseValue: latestReading.glucose)
+        }
         guard snapshot != lastSavedComplicationState else { return }
         do {
             try ComplicationStore.save(snapshot)
             lastSavedComplicationState = snapshot
             reloadInstalledComplications()
-            let readingAge = Int(Date().timeIntervalSince(latestReading.date) / 60)
+            let readingAge = Int(Date().timeIntervalSince(snapshot.date) / 60)
             WatchLogger.shared.info(.data, "Complication snapshot saved, reading \(readingAge) min old")
         } catch {
             WatchLogger.shared.warning(.data, "Complication snapshot not saved", error: error)
@@ -1129,6 +1139,44 @@ extension WatchState {
             glucoseValue: glucoseValue,
             history: complicationHistory(until: readingDate),
             loopDate: lastLoopDate,
+            limits: complicationLimits,
+            ringStops: complicationRingStops.isEmpty ? nil : complicationRingStops
+        )
+    }
+
+    /// While the watch holds the pump, the phone's state stops with the loan: the complication shows the watch's own
+    /// reading, insulin on board and loop instead.
+    private func loanComplicationSnapshot() -> ComplicationState? {
+        let loan = Thread.isMainThread ? MainActor.assumeIsolated { TrioOnWatchSource.status } : nil
+        guard let loan, loan.isLoanActive, let latest = loan.readings.first else { return nil }
+        let range = glucoseRange
+        let units: GlucoseUnits = range.isMmol ? .mmolL : .mgdL
+        let inRange = Decimal(latest.mgdl) > range.low && Decimal(latest.mgdl) < range.high
+        let previous = loan.readings.dropFirst().first.flatMap { latest.date.timeIntervalSince($0.date) <= 15 * 60 ? $0 : nil }
+        let from = latest.date.addingTimeInterval(-ComplicationState.chartWindow)
+        let watchHistory = loan.chartReadings.filter { $0.date >= from && $0.date <= latest.date }
+        let firstWatchReading = watchHistory.first?.date ?? latest.date
+        let phoneHistory = complicationHistory(until: latest.date).filter { $0.timestamp < firstWatchReading.timeIntervalSince1970 }
+        return ComplicationState(
+            date: latest.date,
+            glucose: Decimal(latest.mgdl).formatted(for: units),
+            glucoseColorHex: inRange ? "#ffffff" : range.color(latest.mgdl).toHexString(),
+            trend: latest.direction ?? "",
+            delta: previous.map { Decimal(latest.mgdl - $0.mgdl).formattedDelta(for: units) } ?? ComplicationState.missingValue,
+            iob: loan.iob.flatMap { Formatter.decimalFormatterWithTwoFractionDigits.string(from: $0 as NSNumber) } ??
+                ComplicationState.missingValue,
+            cob: loan.cob.map { "\(Int(truncating: $0 as NSNumber))" } ?? ComplicationState.missingValue,
+            lastLoopTime: loan.lastLoopAt.map { $0.formattedTimeAgo() } ?? ComplicationState.missingValue,
+            cornerValue: complicationCornerValue,
+            secondaryValue: complicationSecondaryValue,
+            staleMinutes: complicationStaleMinutes,
+            colorMode: complicationColorMode,
+            units: units.rawValue,
+            glucoseValue: range.display(latest.mgdl),
+            history: phoneHistory + watchHistory.map {
+                ComplicationPoint(timestamp: $0.date.timeIntervalSince1970, glucose: range.display($0.mgdl))
+            },
+            loopDate: loan.lastLoopAt,
             limits: complicationLimits,
             ringStops: complicationRingStops.isEmpty ? nil : complicationRingStops
         )

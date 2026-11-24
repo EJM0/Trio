@@ -34,7 +34,10 @@ import WatchKit
                 beginActivity: { ExpiringActivity(reason: $0) }
             ))
             cgm.host = created
-            created.onCycleFinished = { WatchBackgroundTasks.shared.cycleFinished() }
+            created.onCycleFinished = {
+                WatchState.shared.refreshComplication()
+                WatchBackgroundTasks.shared.cycleFinished()
+            }
             host = created
             WatchLogger.shared.info(
                 .lifecycle,

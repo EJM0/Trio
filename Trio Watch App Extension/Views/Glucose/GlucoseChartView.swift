@@ -254,19 +254,15 @@ struct GlucoseChartView: View {
 }
 
 extension TrioOnWatchStatus {
-    /// The graph's readings in watch mode: the phone's from before the grant's first reading, then the watch's. Each
-    /// watch reading takes the phone's colour for it, or else the colour of the phone reading closest in value, as
-    /// the grant doesn't carry the colour settings. Outside the phone's range nothing tells low from in range, so
-    /// such a reading is drawn neutral.
-    func chartValues(phone: [(date: Date, glucose: Double, color: Color)]) -> [(date: Date, glucose: Double, color: Color)] {
+    /// The graph's readings in watch mode: the phone's from before the grant's first reading, then the watch's,
+    /// coloured by the phone's glucose limits and colour scheme (`color`).
+    func chartValues(
+        phone: [(date: Date, glucose: Double, color: Color)],
+        color: (Int) -> Color
+    ) -> [(date: Date, glucose: Double, color: Color)] {
         guard let first = chartReadings.first?.date else { return phone }
-        let colorByDate = Dictionary(phone.map { ($0.date, $0.color) }, uniquingKeysWith: { first, _ in first })
-        let values = phone.map(\.glucose)
-        let range = (values.min() ?? 0) ... (values.max() ?? 0)
         return phone.filter { $0.date < first } + chartReadings.map { reading in
-            let value = display(reading.mgdl)
-            let closest = range.contains(value) ? phone.min { abs($0.glucose - value) < abs($1.glucose - value) }?.color : nil
-            return (reading.date, value, colorByDate[reading.date] ?? closest ?? .primary)
+            (reading.date, display(reading.mgdl), color(reading.mgdl))
         }
     }
 
