@@ -360,7 +360,7 @@ struct TrioOnWatchPhoneStatus: Equatable {
             )
         case .watchUnreachable:
             return (patch ? String(
-                localized: "Take back your pump from Apple Watch? Do this if your watch is off, lost or out of battery. If your watch is still running, it stops when it next reaches your patch.",
+                localized: "Take back your pump from Apple Watch? Do this if your watch is off, lost or out of battery. If your watch is still running, end Trio on Watch there as soon as you can: with a patch, your watch may not notice right away that it no longer has the pump.",
                 comment: "Take Back confirmation while the watch isn't reachable"
             ) : String(
                 localized: "Take back your pump from Apple Watch? Do this if your watch is off, lost or out of battery. If your watch is still running, it stops when it next reaches your pod.",

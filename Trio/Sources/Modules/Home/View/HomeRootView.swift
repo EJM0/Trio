@@ -672,7 +672,7 @@ extension Home {
                     withAnimation(.spring(duration: 0.3)) { watchStartDrag.reset() }
                 }
             } message: {
-                Text(TrioOnWatchStartDrag.confirmationText)
+                Text(TrioOnWatchStartDrag.confirmationText(patch: trioOnWatch.status.pumpIsPatch))
             }
             .alert(
                 String(

@@ -210,7 +210,7 @@ struct TrioOnWatchSheet: View {
                             Button(String(localized: "Cancel"), role: .cancel) {}
                         } message: {
                             Text(status.pumpIsPatch ? String(
-                                localized: "Only do this if no other device should control this patch. If another device still runs it, it stops when it next reaches your patch.",
+                                localized: "Only do this if no other device should control this patch. If another device still runs it, stop Trio there first: with a patch, that device may not notice right away.",
                                 comment: "Use the patch on this iPhone confirmation message"
                             ) : String(
                                 localized: "Only do this if no other device should control this pod. If another device still runs it, it stops when it next reaches your pod.",
@@ -353,9 +353,12 @@ enum TrioOnWatchPhoneFixtureDialog {
     }
 
     /// What the watch's own Start screen discloses; this Start doesn't show it.
-    static var confirmationText: String {
+    static func confirmationText(patch: Bool) -> String {
         [
-            String(
+            patch ? String(
+                localized: "Check that your patch and sensor don't end soon.",
+                comment: "Drag-to-watch Start confirmation"
+            ) : String(
                 localized: "Check that your pod and sensor don't end soon.",
                 comment: "Drag-to-watch Start confirmation"
             ),
