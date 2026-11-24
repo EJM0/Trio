@@ -277,6 +277,7 @@ final class BaseWatchManager: NSObject, WCSessionDelegate, Injectable, WatchMana
                 } else {
                     watchState.lastLoopTime = "\(lastLoopMinutes) min"
                 }
+                watchState.lastLoopDate = self.apsManager.lastLoopDate
 
                 watchState.lowGlucoseLimit = self.units == .mgdL
                     ? Double(truncating: self.lowGlucose as NSNumber)
