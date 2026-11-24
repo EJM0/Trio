@@ -159,6 +159,15 @@ struct ChartLegendView: View {
                             )
 
                             DefinitionRow(
+                                term: String(localized: "Trio on Watch"),
+                                definition: Text(
+                                    "A blue band at your glucose target marks when Apple Watch had your pump and looped instead of this iPhone. It is brighter while Apple Watch is still in control."
+                                ),
+                                color: Color.insulin.opacity(0.4),
+                                iconString: "button.horizontal.fill"
+                            )
+
+                            DefinitionRow(
                                 term: String(localized: "Past Insulin-on-Board (IOB)"),
                                 definition: Text(
                                     "Shows the IOB value calculated by the algorithm at a specific time in the past. These values are snapshots and won’t change if insulin is added or removed after the fact."

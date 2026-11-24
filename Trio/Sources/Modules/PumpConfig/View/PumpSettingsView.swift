@@ -66,6 +66,6 @@ extension PumpConfig {
     /// Returns nil when the phone may command the pump.
     static func handedOverViewController(gate: WatchLoanGate) -> UIViewController? {
         guard let refusal = gate.refusal("Pump screen", userInitiated: true) else { return nil }
-        return UIHostingController(rootView: Text(refusal).padding())
+        return UIHostingController(rootView: TrioOnWatchBlockedNote.pumpScreen(refusal))
     }
 }

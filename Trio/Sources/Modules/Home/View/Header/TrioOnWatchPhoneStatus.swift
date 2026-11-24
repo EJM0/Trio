@@ -93,18 +93,10 @@ struct TrioOnWatchPhoneStatus: Equatable {
         var text: String
         var tint: Color
         var accessibilityLabel: String
-        /// For large text: the age alone where there is one.
-        var compactText: String = ""
     }
 
+    /// Like the loop pill: the symbol says who loops, the text is the age of the watch's last loop.
     func pill(now: Date) -> Pill {
-        var pill = fullPill(now: now)
-        let age = lastLoop?.formattedTimeAgo() ?? "--"
-        pill.compactText = phase == .inControl || phase == .noUpdates ? age : pill.text
-        return pill
-    }
-
-    private func fullPill(now: Date) -> Pill {
         let age = lastLoop?.formattedTimeAgo() ?? "--"
         let spokenAge = lastLoop.map {
             String(
@@ -137,10 +129,7 @@ struct TrioOnWatchPhoneStatus: Equatable {
             let old = now.timeIntervalSince(lastLoop ?? .distantPast) > Self.loopAging
             return Pill(
                 symbol: "applewatch",
-                text: String(
-                    localized: "Watch · \(age)",
-                    comment: "Home pill: Apple Watch in control, then the age of its last loop"
-                ),
+                text: age,
                 tint: old ? .orange : .loopGreen,
                 accessibilityLabel: String(
                     localized: "Apple Watch is in control, \(spokenAge)",
@@ -150,10 +139,7 @@ struct TrioOnWatchPhoneStatus: Equatable {
         case .noUpdates:
             return Pill(
                 symbol: "exclamationmark.triangle.fill",
-                text: String(
-                    localized: "Watch · \(age)",
-                    comment: "Home pill: Apple Watch in control, then the age of its last loop"
-                ),
+                text: age,
                 tint: .loopRed,
                 accessibilityLabel: String(
                     localized: "No updates from Apple Watch, \(spokenAge)",

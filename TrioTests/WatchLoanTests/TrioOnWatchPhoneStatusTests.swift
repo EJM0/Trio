@@ -73,12 +73,12 @@ import Testing
         // a fresh batch doesn't make an old loop look fresh (G-2)
         status.lastLoop = now.addingTimeInterval(-11 * 60)
         #expect(status.pill(now: now).tint == .orange)
-        #expect(status.pill(now: now).text.hasSuffix(status.lastLoop!.formattedTimeAgo()))
+        // the watch icon says who loops; the text is only the age of its last loop, as on the loop pill
+        #expect(status.pill(now: now).symbol == "applewatch")
+        #expect(status.pill(now: now).text == status.lastLoop!.formattedTimeAgo())
         #expect(status.pill(now: now).accessibilityLabel.contains(status.lastLoop!.formattedSpokenTimeAgo()))
-        // at large text only the age remains, never cut (G-M11)
-        #expect(status.pill(now: now).compactText == status.lastLoop?.formattedTimeAgo())
         status.lastLoop = nil
-        #expect(status.pill(now: now).compactText == "--")
+        #expect(status.pill(now: now).text == "--")
         status.phase = .noUpdates
         #expect(status.pill(now: now).tint == .loopRed)
         #expect(status.banner(now: now).isCritical)

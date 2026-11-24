@@ -3,24 +3,24 @@ import SwiftUI
 /// P1: replaces the loop ring while the phone isn't in control. Symbol, word and age; colour only adds to them.
 struct TrioOnWatchPill: View {
     let pill: TrioOnWatchPhoneStatus.Pill
+    /// `LoopView`'s ring size, so the symbol sits where the ring does.
+    @ScaledMetric(relativeTo: .callout) private var symbolSize: CGFloat = 18
 
     var body: some View {
-        // at large text the glyph carries "Watch"; the age must not be cut (G-M11)
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 4) {
-                Image(systemName: pill.symbol)
-                Text(pill.text).lineLimit(1)
-            }
-            HStack(spacing: 4) {
-                Image(systemName: pill.symbol)
-                Text(pill.compactText).lineLimit(1).minimumScaleFactor(0.6)
-            }
+        // the age must not be cut at large text (G-M11)
+        HStack(alignment: .center) {
+            Image(systemName: pill.symbol)
+                .resizable()
+                .scaledToFit()
+                .frame(width: symbolSize, height: symbolSize)
+            Text(pill.text).lineLimit(1).minimumScaleFactor(0.6)
         }
-        .font(.callout.weight(.semibold))
-        .foregroundStyle(pill.tint)
+        // the loop pill's look: same type, insets and capsule
+        .font(.callout).fontWeight(.bold).fontDesign(.rounded)
+        .foregroundColor(pill.tint)
+        .padding(.vertical, 5)
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(Capsule().strokeBorder(pill.tint, lineWidth: 1.5))
+        .capsuleSpinner(isActive: false, color: pill.tint)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(pill.accessibilityLabel))
         .accessibilityAddTraits(.isButton)
@@ -45,23 +45,48 @@ struct TrioOnWatchPumpPlaceholder: View {
     }
 }
 
-/// P4: why an action is off while Apple Watch is in control.
+/// P4: why an action is off while Apple Watch is in control, in the look of the Home banners: tinted glass panel,
+/// symbol badge, title and detail.
 struct TrioOnWatchBlockedNote: View {
+    var title = String(localized: "Apple Watch Is in Control", comment: "Home banner title")
     let message: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 6) {
+        HStack(spacing: 12) {
             Image(systemName: "applewatch")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Color.insulin)
+                .frame(width: 30, height: 30)
+                .background(Circle().fill(Color.insulin.opacity(0.18)))
                 .accessibilityHidden(true)
-            Text(String(
-                localized: "Apple Watch is in control. \(message)",
-                comment: "Note on a phone screen whose actions are off during Trio on Watch; the value says which"
-            ))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.subheadline).fontWeight(.semibold)
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
         }
-        .font(.footnote)
-        .foregroundColor(.secondary)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .glassPanel(tint: .insulin)
         .accessibilityElement(children: .combine)
+        // in a list it is its own panel, not a row on the list's background
+        .listRowBackground(Color.clear)
+        .listRowInsets(EdgeInsets())
+    }
+
+    /// The pump's own screens while it is handed over: the gate's reason, centred.
+    static func pumpScreen(_ refusal: String) -> some View {
+        TrioOnWatchBlockedNote(
+            title: String(localized: "Pump Settings Unavailable", comment: "Pump screen while the pump is on Apple Watch"),
+            message: refusal
+        )
+        .padding()
+        .frame(maxHeight: .infinity)
     }
 
     static var treatments: String {
