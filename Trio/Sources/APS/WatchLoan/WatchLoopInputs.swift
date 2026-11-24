@@ -67,7 +67,8 @@ enum WatchLoopInputs {
                 inputs.tempTargets.append(.cancel(at: change.at))
             } else if let preset = startedTempTarget(snapshot: snapshot, change: change) {
                 // as the phone's adjustment manager starts a preset: the file entry and the active row
-                let halfBasalFallback = snapshot.oref.preferences?.halfBasalExerciseTarget ?? Preferences().halfBasalExerciseTarget
+                let halfBasalFallback = snapshot.oref.preferences?.halfBasalExerciseTarget ?? Preferences()
+                    .halfBasalExerciseTarget
                 inputs.tempTargets.append(TempTarget(
                     name: preset.name,
                     createdAt: change.at,
@@ -81,7 +82,10 @@ enum WatchLoopInputs {
                     halfBasalTarget: preset.halfBasalTarget ?? halfBasalFallback
                 ))
                 if now < endDate(of: preset, startedAt: change.at) {
-                    inputs.activeTempTarget = OrefInputs.TempTargetState(target: preset.target, halfBasalTarget: preset.halfBasalTarget)
+                    inputs.activeTempTarget = OrefInputs.TempTargetState(
+                        target: preset.target,
+                        halfBasalTarget: preset.halfBasalTarget
+                    )
                 }
             }
         }
@@ -142,13 +146,17 @@ enum WatchLoopInputs {
     static let smoothingWindowLimit = 350
 
     /// The temp target preset a watch change started.
-    static func startedTempTarget(snapshot: WatchLoanSnapshot, change: WatchLoanAdjustmentChange?) -> WatchLoanSnapshot.TempTargetPreset? {
+    static func startedTempTarget(snapshot: WatchLoanSnapshot, change: WatchLoanAdjustmentChange?) -> WatchLoanSnapshot
+        .TempTargetPreset?
+    {
         guard let change, change.kind == .tempTarget, let id = change.presetID else { return nil }
         return snapshot.tempTargetPresets.first { $0.id == id }
     }
 
     /// The override preset a watch change started.
-    static func startedOverride(snapshot: WatchLoanSnapshot, change: WatchLoanAdjustmentChange?) -> WatchLoanSnapshot.OverridePreset? {
+    static func startedOverride(snapshot: WatchLoanSnapshot, change: WatchLoanAdjustmentChange?) -> WatchLoanSnapshot
+        .OverridePreset?
+    {
         guard let change, change.kind == .override, let id = change.presetID else { return nil }
         return snapshot.overridePresets.first { $0.id == id }
     }

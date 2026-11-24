@@ -160,7 +160,11 @@ extension WatchLoanHost {
         guard let lastSync, statusRead.timeIntervalSince(lastSync) <= WatchLoopPolicy.pumpStatusMaxAge else {
             WatchLogger.shared.warning(.loop, "Cycle stopped: no fresh pump status")
             noPodContact(now: statusRead)
-            finish(start: start, confirmed: false, result: TrioOnWatchStatus.CycleResult.noPumpStatus(patch: Self.isPatch(snapshot)))
+            finish(
+                start: start,
+                confirmed: false,
+                result: TrioOnWatchStatus.CycleResult.noPumpStatus(patch: Self.isPatch(snapshot))
+            )
             return
         }
         if pump.refusesSessions {

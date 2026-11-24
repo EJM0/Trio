@@ -993,8 +993,10 @@ extension TrioOnWatchStatus {
         static func enacted(_ plan: WatchDosingGate.Plan, tempConfirmed: Bool?, bolusConfirmed: Bool?) -> String {
             var lines: [String] = []
             if let temp = plan.tempBasal {
-                let rate = (Formatter.decimalFormatterWithTwoFractionDigits.string(from: temp.unitsPerHour as NSNumber) ??
-                    "\(temp.unitsPerHour)") + " " + String(localized: "U/h", comment: "Insulin rate unit")
+                let rate = (
+                    Formatter.decimalFormatterWithTwoFractionDigits.string(from: temp.unitsPerHour as NSNumber) ??
+                        "\(temp.unitsPerHour)"
+                ) + " " + String(localized: "U/h", comment: "Insulin rate unit")
                 lines.append(
                     temp.minutes == 0
                         ? String(localized: "Temp basal cancelled.", comment: "Watch loop result")

@@ -221,12 +221,19 @@ struct TrioOnWatchPhoneStatus: Equatable {
             return Banner(
                 symbol: "exclamationmark.triangle.fill",
                 title: podReleasedAtHome
-                    ? (pumpIsPatch
-                        ? String(localized: "Your Patch Is Released", comment: "Home banner title for a patch released at home")
-                        : String(localized: "Your Pod Is Released", comment: "Home banner title for a pod released at home"))
-                    : (pumpIsPatch
-                        ? String(localized: "Another Device Used Your Patch", comment: "Home banner title")
-                        : String(localized: "Another Device Used Your Pod", comment: "Home banner title")),
+                    ? (
+                        pumpIsPatch
+                            ? String(
+                                localized: "Your Patch Is Released",
+                                comment: "Home banner title for a patch released at home"
+                            )
+                            : String(localized: "Your Pod Is Released", comment: "Home banner title for a pod released at home")
+                    )
+                    : (
+                        pumpIsPatch
+                            ? String(localized: "Another Device Used Your Patch", comment: "Home banner title")
+                            : String(localized: "Another Device Used Your Pod", comment: "Home banner title")
+                    ),
                 subtitle: pumpIsPatch ? String(
                     localized: "Tap to use the patch on this iPhone.",
                     comment: "Home banner subtitle"

@@ -236,7 +236,13 @@ import Testing
 
     @Test("A temp target started earlier runs from then") func testTempTargetStartedEarlier() async throws {
         let startedAt = Date().addingTimeInterval(-20 * 60)
-        await makeTempTarget(name: "Eating Soon", enabled: false, date: Date().addingTimeInterval(-86400), duration: 60, target: 80)
+        await makeTempTarget(
+            name: "Eating Soon",
+            enabled: false,
+            date: Date().addingTimeInterval(-86400),
+            duration: 60,
+            target: 80
+        )
 
         let outcome = try await manager.activateTempTarget(
             .presetName("Eating Soon"),
@@ -253,7 +259,13 @@ import Testing
 
     @Test("A temp target started earlier and already over is only recorded") func testTempTargetAlreadyOver() async throws {
         let startedAt = Date().addingTimeInterval(-90 * 60)
-        await makeTempTarget(name: "Eating Soon", enabled: false, date: Date().addingTimeInterval(-86400), duration: 60, target: 80)
+        await makeTempTarget(
+            name: "Eating Soon",
+            enabled: false,
+            date: Date().addingTimeInterval(-86400),
+            duration: 60,
+            target: 80
+        )
 
         let outcome = try await manager.activateTempTarget(
             .presetName("Eating Soon"),

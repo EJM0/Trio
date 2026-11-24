@@ -453,7 +453,9 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(WatchLoanHost.loanEnds(from: .requesting(epoch: 1, requestID: UUID()), to: .idle(epoch: 1)) == false)
     }
 
-    @Test("Start doesn't show the watch in control before its first reading, also while the adopt runs") func startNotInControlEarly(
+    @Test(
+        "Start doesn't show the watch in control before its first reading, also while the adopt runs"
+    ) func startNotInControlEarly(
     ) async throws {
         let world = LoanFixture()
         var phaseDuringAdopt: TrioOnWatchStatus.Phase?

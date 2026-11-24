@@ -86,7 +86,10 @@ import Testing
 
         var withIOB = status(.inControl)
         withIOB.iob = Decimal(string: "7.995")
-        #expect(withIOB.mainValues(now: now).iob == Formatter.decimalFormatterWithTwoFractionDigits.string(from: 7.995 as NSNumber))
+        #expect(
+            withIOB.mainValues(now: now).iob == Formatter.decimalFormatterWithTwoFractionDigits
+                .string(from: 7.995 as NSNumber)
+        )
 
         var old = status(.inControl)
         old.readings = [.init(date: ago(13), mgdl: 112)]
@@ -183,7 +186,11 @@ import Testing
 
     @Test("In watch mode the graph shows the watch's readings and forecast") func watchModeGraph() {
         var watch = status(.inControl)
-        let phone: [(date: Date, glucose: Double, color: Color)] = [(ago(60), 102, .green), (ago(55), 240, .orange), (ago(10), 101, .green)]
+        let phone: [(date: Date, glucose: Double, color: Color)] = [
+            (ago(60), 102, .green),
+            (ago(55), 240, .orange),
+            (ago(10), 101, .green)
+        ]
         #expect(watch.chartValues(phone: phone).count == 3)
 
         watch.chartReadings = [.init(date: ago(10), mgdl: 101), .init(date: ago(5), mgdl: 235), .init(date: ago(0), mgdl: 55)]
@@ -220,7 +227,11 @@ import Testing
     @Test("Loop page: what the last cycle did") func cycleResult() {
         typealias Result = TrioOnWatchStatus.CycleResult
         #expect(Result.enacted(.init(), tempConfirmed: nil, bolusConfirmed: nil) == "No change needed.")
-        let temp = Result.enacted(.init(tempBasal: .init(unitsPerHour: 1.2, minutes: 30)), tempConfirmed: true, bolusConfirmed: nil)
+        let temp = Result.enacted(
+            .init(tempBasal: .init(unitsPerHour: 1.2, minutes: 30)),
+            tempConfirmed: true,
+            bolusConfirmed: nil
+        )
         #expect(temp.contains("30 min") && !temp.contains("confirm"))
         let unconfirmed = Result.enacted(.init(bolus: 0.3), tempConfirmed: nil, bolusConfirmed: false)
         #expect(unconfirmed.contains("SMB") && unconfirmed.contains("didn't confirm"))

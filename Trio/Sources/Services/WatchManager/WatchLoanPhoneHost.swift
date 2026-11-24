@@ -589,7 +589,8 @@ final class BaseWatchLoanPhoneHost: WatchLoanPhoneHost, Injectable {
         case .podTakenOnThisPhone:
             return (
                 patch ? String(localized: "Patch in Use on This iPhone") : String(localized: "Pod in Use on This iPhone"),
-                patch ? String(localized: "If another device still runs this patch, stop Trio there: it may not notice right away.") :
+                patch ?
+                    String(localized: "If another device still runs this patch, stop Trio there: it may not notice right away.") :
                     String(localized: "If another device still runs this pod, it stops when it next reaches your pod.")
             )
         case .loanStateUnreadable:
