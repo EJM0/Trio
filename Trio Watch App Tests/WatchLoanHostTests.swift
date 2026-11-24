@@ -365,8 +365,10 @@ func onMain<T>(_ read: @MainActor() -> T) -> T {
         #expect(world.violations.isEmpty, "\(world.violations)")
     }
 
-    @Test("Micro boluses in the foreground and in background wakes", arguments: [true, false])
-    func microBolus(foreground: Bool) async throws {
+    @Test("Micro boluses in the foreground and in background wakes", arguments: [
+        true,
+        false
+    ])  func microBolus(foreground: Bool) async throws {
         let world = LoanFixture()
         world.smb = true
         world.foreground = foreground
