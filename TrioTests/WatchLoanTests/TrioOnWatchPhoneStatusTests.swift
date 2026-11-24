@@ -219,21 +219,23 @@ import Testing
         #expect(Start.answer(from: [WatchLoanWireKey.startAnswer: "something new"]) == .noAnswer)
     }
 
-    @Test("Drag-to-watch Start: the glucose drops anywhere in Home's lower half") @MainActor func dragGeometry() {
+    @Test(
+        "Drag-to-watch Start: the glucose drops on the watch's screen at Home's bottom edge, and lets go in place to snooze"
+    ) @MainActor func dragGeometry() {
         let drag = TrioOnWatchStartDrag()
         drag.ringFrame = CGRect(x: 130, y: 100, width: 130, height: 130)
         #expect(!drag.isOverTarget, "no target before the overlay knows Home's frame")
         drag.screenFrame = CGRect(x: 0, y: 0, width: 393, height: 852)
-        #expect(!drag.isOverTarget)
-        // the ring's centre starts at (195, 165)
-        drag.translation = CGSize(width: 4, height: 300)
-        #expect(drag.isOverTarget)
-        drag.translation = CGSize(width: -150, height: 600)
-        #expect(drag.isOverTarget, "a corner of the lower half")
-        drag.translation = CGSize(width: 120, height: 40)
-        #expect(!drag.isOverTarget)
-        drag.translation = CGSize(width: 0, height: 680)
-        #expect(!drag.isOverTarget, "the home indicator's strip is outside")
+        #expect(!drag.isOverTarget && drag.isNearStart, "let go in place: snooze")
+        // the ring's centre starts at (195, 165); the watch's screen spans about x 63-330, y 540-852
+        drag.translation = CGSize(width: 4, height: 400)
+        #expect(drag.isOverTarget && !drag.isNearStart)
+        drag.translation = CGSize(width: 130, height: 600)
+        #expect(drag.isOverTarget, "the screen's lower right")
+        drag.translation = CGSize(width: 0, height: 350)
+        #expect(!drag.isOverTarget, "on the band above the screen")
+        drag.translation = CGSize(width: -150, height: 500)
+        #expect(!drag.isOverTarget, "beside the screen")
     }
 
     @Test("Drag-to-watch Start: only from home, with Trio on the watch") func dragOffered() {

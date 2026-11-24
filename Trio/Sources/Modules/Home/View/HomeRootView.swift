@@ -628,7 +628,6 @@ extension Home {
                     TrioOnWatchStartOverlay(
                         drag: watchStartDrag,
                         model: trioOnWatch,
-                        reading: watchCardReading,
                         ring: { glucoseRing },
                         onEnd: { showTrioOnWatch = true }
                     )

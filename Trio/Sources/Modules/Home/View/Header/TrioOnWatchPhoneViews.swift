@@ -363,24 +363,31 @@ enum TrioOnWatchPhoneFixtureDialog {
 
     var isActive: Bool { step != .idle }
     var ringCenter: CGPoint { CGPoint(x: ringFrame.midX + translation.width, y: ringFrame.midY + translation.height) }
-    /// The watch to drop on: the lower half of Home, large enough to hit without aiming.
+    /// The watch's screen to drop on, as the overlay draws it: its case, resting on Home's bottom edge.
     var targetFrame: CGRect {
         guard !screenFrame.isEmpty else { return .zero }
-        let top = max(screenFrame.midY, ringFrame.maxY + Self.targetGap)
-        return CGRect(
-            x: screenFrame.minX + Self.targetInset,
-            y: top,
-            width: screenFrame.width - 2 * Self.targetInset,
-            height: max(0, screenFrame.maxY - Self.targetBottomInset - top)
-        )
+        let scale = Self.watchScale(width: screenFrame.width)
+        let center = Self.watchCenter(in: screenFrame)
+        let width = TrioOnWatchStyle.caseWidth * scale
+        let height = TrioOnWatchStyle.caseHeight * scale
+        return CGRect(x: center.x - width / 2, y: center.y - height / 2, width: width, height: height)
     }
 
     var isOverTarget: Bool { targetFrame.contains(ringCenter) }
+    /// Let go about where it was picked up: the long press it always was, snooze.
+    var isNearStart: Bool { hypot(translation.width, translation.height) < Self.snoozeRadius }
 
-    static let targetInset: CGFloat = 16
-    /// Clear of the home indicator.
-    static let targetBottomInset: CGFloat = 40
-    static let targetGap: CGFloat = 40
+    /// The watch while the glucose is held: two thirds of Home's width.
+    static func watchScale(width: CGFloat) -> CGFloat {
+        min(width * 0.68 / TrioOnWatchStyle.caseWidth, 1.8)
+    }
+
+    /// The watch while the glucose is held: its case resting on Home's bottom edge, the lower band below it.
+    static func watchCenter(in frame: CGRect) -> CGPoint {
+        CGPoint(x: frame.midX, y: frame.maxY - TrioOnWatchStyle.caseHeight * watchScale(width: frame.width) / 2)
+    }
+
+    static let snoozeRadius: CGFloat = 24
     static let pollInterval: UInt64 = 500_000_000
 
     func reset() {
@@ -444,11 +451,11 @@ enum TrioOnWatchPhoneFixtureDialog {
     }
 }
 
-/// Over all of Home while the glucose is held: the lifted glucose and the watch to drop it on, then the hand-off card.
+/// Over all of Home while the glucose is held: the lifted glucose and a large watch peeking up from the screen's bottom
+/// edge to drop it on; once dropped, that watch shrinks to its normal size in the middle while the hand-off goes on.
 struct TrioOnWatchStartOverlay<Ring: View>: View {
     @Bindable var drag: TrioOnWatchStartDrag
     let model: TrioOnWatchPhoneModel
-    let reading: TrioOnWatchFaceCard.Reading?
     @ViewBuilder let ring: () -> Ring
     /// Opens the Trio on Watch screen, where control is taken back.
     let onEnd: () -> Void
@@ -456,17 +463,29 @@ struct TrioOnWatchStartOverlay<Ring: View>: View {
     var body: some View {
         GeometryReader { geo in
             let origin = geo.frame(in: .global).origin
+            let size = geo.size
             ZStack {
                 Rectangle()
                     .fill(.ultraThinMaterial)
                     .overlay(Color.black.opacity(0.3))
+                // one watch through both steps, so the drop animates it from the edge to the middle
+                if drag.isActive {
+                    TrioOnWatchWatch(highlighted: isOver) { watchFace }
+                        .scaleEffect(watchScale(size))
+                        .opacity(isDragging && !watchReachable ? 0.4 : 1)
+                        .position(watchCenter(size))
+                        .animation(.easeOut(duration: 0.15), value: isOver)
+                }
                 switch drag.step {
                 case .dragging:
-                    dragging(origin: origin)
+                    dragging(size: size, origin: origin)
                 case let .handOff(stage):
                     handOff(stage)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .transition(.scale(scale: 0.4).combined(with: .opacity))
+                        .padding(.horizontal, 32)
+                        .frame(maxWidth: 380)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .padding(.top, handOffWatchY(size) + TrioOnWatchStyle.watchHeight / 2 + 18)
+                        .transition(.opacity)
                 case .idle:
                     EmptyView()
                 }
@@ -486,43 +505,51 @@ struct TrioOnWatchStartOverlay<Ring: View>: View {
     }
 
     private var watchReachable: Bool { model.status.watchReachable }
+    private var isDragging: Bool { drag.step == .dragging }
+    private var isOver: Bool { isDragging && drag.isOverTarget && watchReachable }
 
-    @ViewBuilder private func dragging(origin: CGPoint) -> some View {
-        let over = drag.isOverTarget && watchReachable
-        let zone = drag.targetFrame.offsetBy(dx: -origin.x, dy: -origin.y)
-        let ringAt = CGPoint(x: drag.ringCenter.x - origin.x, y: drag.ringCenter.y - origin.y)
+    /// While dragging, large (the drop target); after the drop, its normal size.
+    private func watchScale(_ size: CGSize) -> CGFloat {
+        guard isDragging else { return 1 }
+        let large = TrioOnWatchStartDrag.watchScale(width: size.width)
+        return isOver ? large * 1.04 : large
+    }
 
-        ZStack {
-            Group {
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(Color.white.opacity(over ? 0.18 : 0.06))
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .strokeBorder(
-                        TrioOnWatchFaceCard.gradient,
-                        style: StrokeStyle(lineWidth: over ? 3 : 1.5, dash: over ? [] : [8, 6])
-                    )
-            }
-            .shadow(color: TrioOnWatchFaceCard.glow.opacity(over ? 0.9 : 0.3), radius: over ? 22 : 8)
-            .opacity(watchReachable ? 1 : 0.4)
-            VStack(spacing: 12) {
-                Image(systemName: "applewatch")
-                    .font(.system(size: 44, weight: .medium))
-                    .scaleEffect(over ? 1.2 : 1)
-                    .opacity(watchReachable ? 1 : 0.4)
-                    .accessibilityHidden(true)
-                Text(targetText(over: over))
-                    .font(.callout.weight(.semibold))
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 260)
-            }
+    /// While dragging, on the bottom edge; after the drop, in the middle.
+    private func watchCenter(_ size: CGSize) -> CGPoint {
+        guard isDragging else { return CGPoint(x: size.width / 2, y: handOffWatchY(size)) }
+        return TrioOnWatchStartDrag.watchCenter(in: CGRect(origin: .zero, size: size))
+    }
+
+    private func handOffWatchY(_ size: CGSize) -> CGFloat { size.height * 0.36 }
+
+    @ViewBuilder private var watchFace: some View {
+        if case let .handOff(stage) = drag.step {
+            face(stage)
         }
-        .frame(width: zone.width, height: zone.height)
-        .position(x: zone.midX, y: zone.midY)
-        .animation(.easeOut(duration: 0.15), value: over)
+    }
+
+    /// The hint above the watch and the lifted glucose.
+    @ViewBuilder private func dragging(size: CGSize, origin: CGPoint) -> some View {
+        let ringAt = CGPoint(x: drag.ringCenter.x - origin.x, y: drag.ringCenter.y - origin.y)
+        let watchTop = watchCenter(size).y - TrioOnWatchStyle.watchHeight * watchScale(size) / 2
+
+        if drag.isNearStart {
+            Text(String(localized: "Let go to snooze alerts", comment: "Hint while the glucose is held on Home"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .position(x: drag.ringFrame.midX - origin.x, y: drag.ringFrame.minY - origin.y - 14)
+        }
+
+        Text(targetText(over: isOver))
+            .font(.callout.weight(.semibold))
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: 260)
+            .position(x: size.width / 2, y: watchTop - 32)
 
         ring()
-            .scaleEffect(over ? 0.8 : 1.05)
-            .shadow(color: TrioOnWatchFaceCard.glow.opacity(over ? 0.9 : 0.5), radius: over ? 26 : 16)
+            .scaleEffect(isOver ? 0.8 : 1.05)
+            .shadow(color: TrioOnWatchStyle.glow.opacity(isOver ? 0.9 : 0.5), radius: isOver ? 26 : 16)
             .position(ringAt)
             .animation(.interactiveSpring(duration: 0.2), value: drag.translation)
             .allowsHitTesting(false)
@@ -541,9 +568,9 @@ struct TrioOnWatchStartOverlay<Ring: View>: View {
             : String(localized: "Drag onto the watch", comment: "Drag-to-watch Start: the hint under the watch")
     }
 
+    /// Under the watch during the hand-off: how it goes, and what can be done.
     @ViewBuilder private func handOff(_ stage: TrioOnWatchPhoneStart.Stage) -> some View {
         VStack(spacing: 18) {
-            TrioOnWatchFaceCard(reading: reading, stage: stage)
             VStack(spacing: 8) {
                 Text(title(stage))
                     .font(.title3.weight(.semibold))
@@ -579,8 +606,26 @@ struct TrioOnWatchStartOverlay<Ring: View>: View {
                 .font(.subheadline)
             }
         }
-        .padding(32)
-        .frame(maxWidth: 380)
+    }
+
+    /// The watch's face during the hand-off: a spinner, then the glucose once the watch has the pump.
+    @ViewBuilder private func face(_ stage: TrioOnWatchPhoneStart.Stage) -> some View {
+        switch stage {
+        case .handingOver,
+             .stillWaiting:
+            ProgressView()
+                .controlSize(.large)
+                .tint(.white)
+        case .done:
+            ring()
+                .scaleEffect(0.8)
+                .allowsHitTesting(false)
+                .transition(.scale(scale: 0.5).combined(with: .opacity))
+        case .failed:
+            Image(systemName: "xmark")
+                .font(.largeTitle.weight(.semibold))
+                .foregroundStyle(Color.loopRed)
+        }
     }
 
     private func close() {
@@ -624,79 +669,44 @@ struct TrioOnWatchStartOverlay<Ring: View>: View {
     }
 }
 
-/// The watch the glucose was dropped on: the reading, then how the hand-off is going.
-struct TrioOnWatchFaceCard: View {
-    struct Reading: Equatable {
-        var value: String
-        var delta: String
-        var date: Date?
-    }
-
-    let reading: Reading?
-    let stage: TrioOnWatchPhoneStart.Stage
-
+enum TrioOnWatchStyle {
     static let glow = Color(red: 0.62, green: 0.42, blue: 0.98)
     static let gradient = LinearGradient(
         colors: [Color(red: 0.72, green: 0.34, blue: 1), Color(red: 0.26, green: 0.73, blue: 0.91)],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
+    /// The watch from band end to band end.
+    static let watchHeight: CGFloat = 270
+    static let caseWidth: CGFloat = 168
+    static let caseHeight: CGFloat = 196
+}
+
+/// A watch drawn on Home: the band, and the case showing `face`.
+struct TrioOnWatchWatch<Face: View>: View {
+    var highlighted = false
+    @ViewBuilder let face: () -> Face
 
     var body: some View {
         ZStack {
             // the band
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Color.gray.opacity(0.22))
-                .frame(width: 112, height: 270)
-            VStack(spacing: 4) {
-                if let date = reading?.date {
-                    Text(date, style: .time)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                Text(reading?.value ?? "--")
-                    .font(.system(size: 46, weight: .bold, design: .rounded))
-                    .minimumScaleFactor(0.6)
-                    .lineLimit(1)
-                if let delta = reading?.delta, !delta.isEmpty {
-                    Text(delta)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                badge
-                    .padding(.top, 6)
-            }
-            .foregroundStyle(.white)
-            .padding(14)
-            .frame(width: 168, height: 196)
-            .background(RoundedRectangle(cornerRadius: 42, style: .continuous).fill(Color.black))
-            .overlay(RoundedRectangle(cornerRadius: 42, style: .continuous).strokeBorder(Self.gradient, lineWidth: 4))
-            .shadow(color: Self.glow.opacity(0.55), radius: 22)
+                .frame(width: 112, height: TrioOnWatchStyle.watchHeight)
+            // the case is its own shape: modifiers on an empty face would draw nothing
+            RoundedRectangle(cornerRadius: 42, style: .continuous)
+                .fill(Color.black)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 42, style: .continuous)
+                        .strokeBorder(TrioOnWatchStyle.gradient, lineWidth: highlighted ? 6 : 4)
+                )
+                .overlay { face().foregroundStyle(.white) }
+                .frame(width: TrioOnWatchStyle.caseWidth, height: TrioOnWatchStyle.caseHeight)
+                .shadow(color: TrioOnWatchStyle.glow.opacity(highlighted ? 0.9 : 0.55), radius: highlighted ? 30 : 22)
         }
+        // one layer, so a faded watch doesn't show its band through the case
+        .compositingGroup()
         .accessibilityHidden(true)
-    }
-
-    @ViewBuilder private var badge: some View {
-        switch stage {
-        case .handingOver,
-             .stillWaiting:
-            ProgressView()
-                .tint(.white)
-        case .done:
-            Label(
-                String(localized: "Trio on Watch", comment: "Badge on the watch card once the watch took over"),
-                systemImage: "checkmark"
-            )
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(Color.loopGreen)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(Capsule().fill(Color.loopGreen.opacity(0.2)))
-        case .failed:
-            Image(systemName: "xmark")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(Color.loopRed)
-        }
     }
 }
 
