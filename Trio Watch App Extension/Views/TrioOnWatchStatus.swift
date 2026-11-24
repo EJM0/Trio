@@ -843,8 +843,13 @@ extension TrioOnWatchStatus {
             return String(localized: "Bring your iPhone close and try again.", comment: "Watch refusal")
         case .unsupportedDevice:
             return String(
-                localized: "Trio on Watch works with an Omnipod DASH pod or a Medtrum Nano patch, and a Dexcom G7 shared with your watch.",
+                localized: "Trio on Watch works with an Omnipod DASH pod or a Medtrum Nano patch, and a Dexcom G7.",
                 comment: "Watch refusal"
+            )
+        case .cgmNotShared:
+            return String(
+                localized: "Turn on Read on Apple Watch in your CGM's settings in Trio on your iPhone, then try again.",
+                comment: "Watch refusal: the CGM's Read on Apple Watch setting is off"
             )
         case .pumpScreenOpen:
             return String(localized: "Close the pump screen in Trio on your iPhone and try again.", comment: "Watch refusal")

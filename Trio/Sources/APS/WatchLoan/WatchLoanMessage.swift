@@ -13,6 +13,8 @@ enum LoanRefusal: String, Codable, Equatable, Hashable {
     case unsupportedWatch
     case phoneUnreachable
     case unsupportedDevice
+    /// The CGM can be read on the watch, but its Read on Apple Watch setting is off.
+    case cgmNotShared
     case pumpScreenOpen
     case indefiniteOverride
     case notClosedLoop

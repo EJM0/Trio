@@ -981,26 +981,27 @@ final class FakeLoanHost: WatchLoanPhoneHost {
         let now = F.now
         func refusal(
             mode: DosingMode = .closed,
-            cgm: Bool = true,
+            cgm: BaseWatchLoanPhoneHost.CGMSharing = .shared,
             screen: Bool = false,
             override: Bool = false
         ) -> LoanRefusal? {
             BaseWatchLoanPhoneHost.preconditionRefusal(
                 dosingMode: mode,
                 pump: WatchLoanPumpAdapter(double),
-                cgmShared: cgm,
+                cgm: cgm,
                 kitScreenOpen: screen,
                 indefiniteOverride: override,
                 now: now
             )
         }
         #expect(BaseWatchLoanPhoneHost.preconditionRefusal(
-            dosingMode: .closed, pump: nil, cgmShared: true, kitScreenOpen: false, indefiniteOverride: false, now: now
+            dosingMode: .closed, pump: nil, cgm: .shared, kitScreenOpen: false, indefiniteOverride: false, now: now
         ) == .unsupportedDevice)
         for mode in [DosingMode.open, .lowGlucoseSuspend, .basalTesting] {
-            #expect(refusal(mode: mode, cgm: false, screen: true) == .notClosedLoop, "\(mode)")
+            #expect(refusal(mode: mode, cgm: .unsupported, screen: true) == .notClosedLoop, "\(mode)")
         }
-        #expect(refusal(cgm: false) == .unsupportedDevice)
+        #expect(refusal(cgm: .unsupported) == .unsupportedDevice)
+        #expect(refusal(cgm: .sharingOff) == .cgmNotShared, "a CGM the watch can read, with Read on Apple Watch off")
         #expect(refusal(screen: true) == .pumpScreenOpen)
         double.deliveredUnits = (10, now.addingTimeInterval(-60))
         #expect(refusal() == nil)

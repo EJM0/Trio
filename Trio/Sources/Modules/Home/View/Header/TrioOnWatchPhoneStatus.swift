@@ -559,8 +559,13 @@ enum TrioOnWatchPhoneStart {
             return String(localized: "Turn on Closed Loop to start Trio on Watch.", comment: "Drag-to-watch Start refusal")
         case .unsupportedDevice:
             return String(
-                localized: "Trio on Watch works with an Omnipod DASH pod or a Medtrum Nano patch, and a Dexcom G7 shared with your watch.",
+                localized: "Trio on Watch works with an Omnipod DASH pod or a Medtrum Nano patch, and a Dexcom G7.",
                 comment: "Drag-to-watch Start refusal"
+            )
+        case .cgmNotShared:
+            return String(
+                localized: "Turn on Read on Apple Watch in your CGM's settings, then try again.",
+                comment: "Drag-to-watch Start refusal: the CGM's Read on Apple Watch setting is off"
             )
         case .pumpScreenOpen:
             return String(localized: "Close the pump screen and try again.", comment: "Drag-to-watch Start refusal")

@@ -7,6 +7,20 @@ import OmnipodKit
 extension WatchLoanHost {
     var phoneIsReachable: Bool { env.transport.isReachable }
 
+    /// What the phone shows for each reading: the sensor's value, not the smoothed one the grant's oref glucose
+    /// carries while smoothing is on (its raw values come in `raw`, the smoothing window).
+    nonisolated static func displayedReadings(
+        _ glucose: [BloodGlucose],
+        raw: [WatchLoanSnapshot.RawReading]
+    ) -> [TrioOnWatchStatus.Reading] {
+        let rawByID = Dictionary(raw.map { ($0.id.uuidString, Int($0.glucose)) }, uniquingKeysWith: { first, _ in first })
+        return glucose.compactMap { reading in
+            (reading.glucose ?? rawByID[reading.id] ?? reading.sgv).map {
+                .init(date: reading.dateString, mgdl: $0, direction: reading.direction?.rawValue)
+            }
+        }
+    }
+
     /// The screens' view of the loan, read once per render.
     func uiStatus() -> TrioOnWatchStatus {
         var status = TrioOnWatchStatus()
@@ -55,20 +69,10 @@ extension WatchLoanHost {
         status.insulinPaused = !intents.isEmpty || pump?.status.deliveryIsUncertain == true
         if let snapshot {
             status.units = snapshot.bolusCalculator.units
-            status.readings = (snapshot.oref.glucose + records.snapshot.glucose)
-                .compactMap { reading in
-                    (reading.glucose ?? reading.sgv).map {
-                        .init(date: reading.dateString, mgdl: $0, direction: reading.direction?.rawValue)
-                    }
-                }
-                .sorted { $0.date > $1.date }
-                .prefix(2)
-                .map { $0 }
+            let shown = Self.displayedReadings(snapshot.oref.glucose + records.snapshot.glucose, raw: snapshot.smoothingWindow)
+            status.readings = shown.sorted { $0.date > $1.date }.prefix(2).map { $0 }
             var byDate: [Date: TrioOnWatchStatus.Reading] = [:]
-            for reading in snapshot.oref.glucose + records.snapshot.glucose {
-                guard let mgdl = reading.glucose ?? reading.sgv else { continue }
-                byDate[reading.dateString] = .init(date: reading.dateString, mgdl: mgdl, direction: reading.direction?.rawValue)
-            }
+            for reading in shown { byDate[reading.date] = reading }
             status.chartReadings = byDate.values.sorted { $0.date < $1.date }
             if let since = cycleInfo.holdingSince {
                 var counted: Date?
