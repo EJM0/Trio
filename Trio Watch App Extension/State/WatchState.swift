@@ -1398,7 +1398,8 @@ extension WatchState {
             sensorState: sensorStateText,
             markers: complicationMarkers(until: latest.date),
             forecastStart: forecastStartDate,
-            forecast: complicationForecast
+            forecast: complicationForecast,
+            loopsOnWatch: true
         )
     }
 

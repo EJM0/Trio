@@ -179,7 +179,10 @@ struct ComplicationModel {
     }
 
     /// The slash tells red from green without color.
-    var loopSymbol: String { loopFreshness == .overdue ? "iphone.slash" : "iphone" }
+    var loopSymbol: String {
+        let device = displayedState.loopsOnWatch == true ? "applewatch" : "iphone"
+        return loopFreshness == .overdue ? device + ".slash" : device
+    }
 
     var loopTimeText: String {
         guard !isPlaceholder, let time = displayedState.loopTime(at: referenceDate) else { return ComplicationState.missingValue }

@@ -20,7 +20,7 @@ struct WatchConfigAppleWatchView: BaseView {
 
     static func readOnWatchHint(cgmName: String) -> String {
         String(
-            localized: "Your watch can get readings straight from your \(cgmName). This helps when your iPhone is out of reach.\n\nYour watch shows the readings from your iPhone first. If they stop coming, your watch reads the sensor itself. You then see a small watch symbol in the glucose bubble.\n\nTo turn this on or off, open your \(cgmName) settings and use “Read on Apple Watch”."
+            localized: "Your watch can get readings straight from your \(cgmName). This helps when your iPhone is out of reach.\n\nYour watch shows the readings from your iPhone first. If they stop coming, your watch reads the sensor itself. You then see a small watch symbol in the glucose bubble.\n\nTrio on Watch needs this. Turn it on before you start Trio on Watch.\n\nTo turn this on or off, open your \(cgmName) settings and use “Read on Apple Watch”."
         )
     }
 
@@ -214,7 +214,7 @@ struct WatchConfigAppleWatchView: BaseView {
                     header: Text("Glucose on the Watch"),
                     footer: hintRow(
                         miniHint: String(
-                            localized: "Your watch can read your \(state.cgmName) by itself when your iPhone is out of reach."
+                            localized: "Your watch can read your \(state.cgmName) by itself when your iPhone is out of reach. Trio on Watch needs this."
                         ),
                         label: String(localized: "Read on Apple Watch"),
                         hint: Self.readOnWatchHint(cgmName: state.cgmName)

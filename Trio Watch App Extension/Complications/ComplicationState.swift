@@ -55,6 +55,8 @@ struct ComplicationState: Codable, Equatable {
     /// "min" and "max" for the cone.
     var forecastStart: Date? = nil
     var forecast: [String: [Double]]? = nil
+    /// The watch runs the loop (Trio on Watch): Trio Loop shows the watch instead of the phone.
+    var loopsOnWatch: Bool? = nil
 
     static let missingValue = "--"
     static let defaultUnits = "mg/dL"
