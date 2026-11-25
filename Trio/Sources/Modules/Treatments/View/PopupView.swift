@@ -326,7 +326,7 @@ struct PopupView: View {
 
         // Determine COB and carbs to display based on backdating status
         let displayedCOB = isBackdated ? (state.simulatedDetermination?.cob ?? Decimal(state.cob)) : Decimal(state.cob)
-        let displayedCarbs = isBackdated ? 0 : state.carbs
+        let displayedCarbs = isBackdated ? 0 : state.totalCarbs
 
         let hasExceededMaxCOB: Bool = displayedCOB + displayedCarbs > state.maxCOB
         return Group {
@@ -395,7 +395,7 @@ struct PopupView: View {
             .multilineTextAlignment(.center)
 
             if isBackdated {
-                Text("Backdated carbs (\(Int(state.carbs)) g) included in COB calculation")
+                Text("Backdated carbs (\(Int(state.totalCarbs)) g) included in COB calculation")
                     .font(.caption)
                     .foregroundStyle(.orange)
                     .padding(.top, 4)

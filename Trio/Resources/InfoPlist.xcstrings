@@ -860,7 +860,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Camera is used to scan the code on your Dexcom sensor packaging."
+            "value" : "Camera is used to scan the code on your Dexcom sensor packaging and to take photos for your meal presets."
           }
         }
       }

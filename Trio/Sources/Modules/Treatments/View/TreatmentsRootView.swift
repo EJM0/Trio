@@ -19,7 +19,8 @@ extension Treatments {
 
         @State var state = StateModel()
 
-        @State private var showPresetSheet = false
+        @State private var showsMealSheet = false
+        @FocusState private var isSearchFocused: Bool
         @State private var autofocus: Bool = true
         @State private var calculatorDetent = PresentationDetent.large
         @State private var pushed: Bool = false
@@ -217,6 +218,74 @@ extension Treatments {
             }
         }
 
+        /// Meal preset search; tapping a result adds it to the meal.
+        @ViewBuilder private var mealSearchSection: some View {
+            Section {
+                MealSearchBar(query: Bindable(state.meal).searchQuery, isFocused: $isSearchFocused)
+                MealSearchResults(query: state.meal.searchQuery) { item in
+                    state.meal.items.append(item)
+                    state.meal.searchQuery = ""
+                    isSearchFocused = false
+                }
+            }.listRowBackground(Color.chart)
+        }
+
+        /// What the meal adds on top of the typed macros; tapping it opens the meal.
+        private var mealSummaryRow: some View {
+            Button {
+                openMealSheet()
+            } label: {
+                HStack {
+                    Image(systemName: "fork.knife")
+                    Text("^[\(state.meal.items.count) item](inflect: true)")
+                    Spacer()
+                    Text(mealSummary)
+                        .foregroundStyle(.secondary)
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+
+        private var mealSummary: String {
+            let format: (Decimal) -> String = { $0.formatted(.number.precision(.fractionLength(0 ... 1))) }
+            var parts = ["+\(format(state.meal.carbs)) " + String(localized: "g carbs")]
+            if state.useFPUconversion, state.meal.fat > 0 || state.meal.protein > 0 {
+                parts.append("+\(format(state.meal.fat)) " + String(localized: "g fat"))
+                parts.append("+\(format(state.meal.protein)) " + String(localized: "g protein"))
+            }
+            return parts.joined(separator: " · ")
+        }
+
+        /// Opens the meal sheet; its badge counts the items in the meal.
+        private var mealListButton: some View {
+            Button {
+                openMealSheet()
+            } label: {
+                Image(systemName: "list.bullet")
+                    .overlay(alignment: .topTrailing) {
+                        if !state.meal.items.isEmpty {
+                            Text("\(state.meal.items.count)")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.white)
+                                .padding(4)
+                                .background(Circle().fill(Color.red))
+                                .offset(x: 10, y: -10)
+                        }
+                    }
+            }
+            .accessibilityLabel(Text("Meal"))
+            .accessibilityValue(Text("^[\(state.meal.items.count) item](inflect: true)"))
+        }
+
+        private func openMealSheet() {
+            state.meal.tab = .meal
+            showsMealSheet = true
+        }
+
         /// Own view for Reduced Bolus / Super Bolus toggles, the recommendation readout and the Bolus field
         @ViewBuilder private var bolusSection: some View {
             if state.fattyMeals || state.sweetMeals {
@@ -334,9 +403,17 @@ extension Treatments {
                                     .padding(.vertical)
                             }.listRowBackground(Color.chart)
 
+                            if state.displayPresets {
+                                mealSearchSection
+                            }
+
                             Section {
                                 carbsTextField()
                                     .id(FocusedField.carbs)
+
+                                if !state.meal.items.isEmpty {
+                                    mealSummaryRow
+                                }
 
                                 if state.useFPUconversion {
                                     proteinAndFat()
@@ -463,16 +540,7 @@ extension Treatments {
                     }
                 }
                 if state.displayPresets {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(action: {
-                            showPresetSheet = true
-                        }, label: {
-                            HStack {
-                                Text("Presets")
-                                Image(systemName: "plus")
-                            }
-                        })
-                    }
+                    ToolbarItem(placement: .topBarTrailing) { mealListButton }
                 }
             })
             .onAppear {
@@ -497,10 +565,11 @@ extension Treatments {
             .sheet(isPresented: $state.showInfo) {
                 PopupView(state: state)
             }
-            .sheet(isPresented: $showPresetSheet, onDismiss: {
-                showPresetSheet = false
-            }) {
-                MealPresetView(state: state)
+            .sheet(isPresented: $showsMealSheet) {
+                MealSheet(meal: state.meal, showsFatAndProtein: state.useFPUconversion)
+            }
+            .onChange(of: state.meal.items) {
+                handleDebouncedInput()
             }
             .alert("Error while processing Treatment", isPresented: $state.showDeterminationFailureAlert) {
                 Button("OK", role: .cancel) {
@@ -512,7 +581,7 @@ extension Treatments {
         }
 
         var progressText: ProgressText {
-            switch (state.amount > 0, state.carbs > 0) {
+            switch (state.amount > 0, state.totalCarbs > 0) {
             case (true, true):
                 return .updatingIOBandCOB
             case (false, true):
@@ -696,8 +765,8 @@ extension Treatments {
             }
 
             let hasInsulin = state.amount > 0
-            let hasCarbs = state.carbs > 0
-            let hasFatOrProtein = state.fat > 0 || state.protein > 0
+            let hasCarbs = state.totalCarbs > 0
+            let hasFatOrProtein = state.totalFat > 0 || state.totalProtein > 0
             let bolusString = state.externalInsulin ? String(localized: "External Insulin") : String(localized: "Enact Bolus")
 
             // Note: when a pump bolus is in progress, the row is rendered by `bolusInProgressView`
@@ -732,15 +801,15 @@ extension Treatments {
         }
 
         private var carbLimitExceeded: Bool {
-            state.carbs > state.maxCarbs
+            state.totalCarbs > state.maxCarbs
         }
 
         private var fatLimitExceeded: Bool {
-            state.fat > state.maxFat
+            state.totalFat > state.maxFat
         }
 
         private var proteinLimitExceeded: Bool {
-            state.protein > state.maxProtein
+            state.totalProtein > state.maxProtein
         }
 
         private var limitExceeded: Bool {

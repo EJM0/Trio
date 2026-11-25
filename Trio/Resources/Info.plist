@@ -82,7 +82,7 @@
 	<key>NSCalendarsUsageDescription</key>
 	<string>Calendar is used to create new glucose events.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Camera is used to scan the code on your Dexcom sensor packaging.</string>
+	<string>Camera is used to scan the code on your Dexcom sensor packaging and to take photos for your meal presets.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>Contact is used to create a Apple Watch complication</string>
 	<key>NSFaceIDUsageDescription</key>

@@ -97,14 +97,17 @@ extension Treatments {
         var protein: Decimal = 0
         var note: String = ""
 
+        /// Foods added from meal presets. Their macros count on top of what is typed above.
+        let meal = MealModel()
+        var totalCarbs: Decimal { carbs + meal.carbs }
+        var totalFat: Decimal { fat + meal.fat }
+        var totalProtein: Decimal { protein + meal.protein }
+
         var date = Date()
         let defaultDate = Date()
 
         var carbsRequired: Decimal?
         var useFPUconversion: Bool = false
-        var dish: String = ""
-        var selection: MealPresetStored?
-        var summation: [String] = []
         var maxCarbs: Decimal = 0
         var maxFat: Decimal = 0
         var maxProtein: Decimal = 0
@@ -455,7 +458,7 @@ extension Treatments {
             let isBackdated = abs(date.timeIntervalSince(defaultDate)) > 1.0
 
             let result = await bolusCalculationManager.handleBolusCalculation(
-                carbs: carbs,
+                carbs: totalCarbs,
                 useFattyMealCorrection: useFattyMealCorrectionFactor,
                 useSuperBolus: useSuperBolus,
                 lastLoopDate: apsManager.lastLoopDate,
@@ -491,9 +494,9 @@ extension Treatments {
                     self.addButtonPressed = true
                 }
                 let isInsulinGiven = amount > 0
-                let isCarbsPresent = carbs > 0
-                let isFatPresent = fat > 0
-                let isProteinPresent = protein > 0
+                let isCarbsPresent = totalCarbs > 0
+                let isFatPresent = totalFat > 0
+                let isProteinPresent = totalProtein > 0
 
                 if isCarbsPresent || isFatPresent || isProteinPresent {
                     await saveMeal()
@@ -686,12 +689,12 @@ extension Treatments {
 
         func saveMeal() async {
             do {
+                let carbs = min(totalCarbs, maxCarbs)
+                let fat = min(totalFat, maxFat)
+                let protein = min(totalProtein, maxProtein)
                 guard carbs > 0 || fat > 0 || protein > 0 else { return }
 
                 await MainActor.run {
-                    self.carbs = min(self.carbs, self.maxCarbs)
-                    self.fat = min(self.fat, self.maxFat)
-                    self.protein = min(self.protein, self.maxProtein)
                     self.id_ = UUID().uuidString
                 }
 
@@ -720,46 +723,6 @@ extension Treatments {
             } catch {
                 warning(.treatments, "Saving meal failed", error: error)
             }
-        }
-
-        // MARK: - Presets
-
-        func deletePreset() {
-            if selection != nil {
-                viewContext.delete(selection!)
-
-                do {
-                    guard viewContext.hasChanges else { return }
-                    try viewContext.save()
-                } catch {
-                    warning(.treatments, "Deleting meal preset failed", error: error)
-                }
-                carbs = 0
-                fat = 0
-                protein = 0
-            }
-            selection = nil
-        }
-
-        func removePresetFromNewMeal() {
-            let a = summation.firstIndex(where: { $0 == selection?.dish! })
-            if a != nil, summation[a ?? 0] != "" {
-                summation.remove(at: a!)
-            }
-        }
-
-        func addPresetToNewMeal() {
-            if let selection = selection, let dish = selection.dish {
-                summation.append(dish)
-            }
-        }
-
-        func addNewPresetToWaitersNotepad(_ dish: String) {
-            summation.append(dish)
-        }
-
-        func addToSummation() {
-            summation.append(selection?.dish ?? "")
         }
     }
 }
@@ -934,7 +897,7 @@ extension Treatments.StateModel {
         } else {
             let simulated = await Task { [self] in
                 await apsManager.simulateDetermineBasal(
-                    simulatedCarbsAmount: carbs,
+                    simulatedCarbsAmount: totalCarbs,
                     simulatedBolusAmount: amount,
                     simulatedCarbsDate: date
                 )

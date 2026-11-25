@@ -1252,9 +1252,18 @@ extension SettingsExport {
                         let request: NSFetchRequest<MealPresetStored> = MealPresetStored.fetchRequest()
                         let mealPresets = try self.viewContext.fetch(request)
 
-                        return mealPresets.map { preset -> (dish: String, carbs: Decimal?, fat: Decimal?, protein: Decimal?) in
+                        return mealPresets.map { preset -> (
+                            dish: String,
+                            amount: Decimal?,
+                            isMl: Bool,
+                            carbs: Decimal?,
+                            fat: Decimal?,
+                            protein: Decimal?
+                        ) in
                             (
                                 dish: preset.dish ?? "Unknown Meal",
+                                amount: preset.amount?.decimalValue,
+                                isMl: preset.isMl,
                                 carbs: preset.carbs?.decimalValue,
                                 fat: preset.fat?.decimalValue,
                                 protein: preset.protein?.decimalValue
@@ -1266,6 +1275,17 @@ extension SettingsExport {
 
                     if !mealPresetData.isEmpty {
                         for mealPreset in mealPresetData {
+                            // Carbs, fat and protein below are per 100 g/ml of this amount.
+                            if let amount = mealPreset.amount {
+                                addSetting(
+                                    category: presetsCategory,
+                                    subcategory: mealPreset.dish,
+                                    name: "Amount",
+                                    value: String(describing: amount),
+                                    unit: mealPreset.isMl ? String(localized: "ml") : String(localized: "g")
+                                )
+                            }
+
                             if let carbs = mealPreset.carbs, carbs > 0 {
                                 addSetting(
                                     category: presetsCategory,

@@ -40,7 +40,7 @@ struct ForecastChart: View {
         let isBackdated = abs(state.date.timeIntervalSince(state.defaultDate)) > 1.0
 
         // When backdated, display no carbs as this label is only supposed to show current entered carbs
-        let displayedCarbs = isBackdated ? 0 : state.carbs
+        let displayedCarbs = isBackdated ? 0 : state.totalCarbs
 
         return HStack {
             HStack {
