@@ -40,6 +40,7 @@ struct ComplicationState: Codable, Equatable {
     var loopDate: Date?
     var limits: ClosedRange<Double>?
     var ringStops: [ComplicationRingStop]?
+    var loopsOnWatch: Bool?
 
     static let missingValue = "--"
     static let defaultUnits = "mg/dL"

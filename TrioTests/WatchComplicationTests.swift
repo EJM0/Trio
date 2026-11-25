@@ -555,6 +555,14 @@ import WatchConnectivity
         #expect(unknown.loopTimeText == "--")
     }
 
+    @Test("Trio Loop shows the watch while Trio on Watch loops") func loopSymbolOnWatch() {
+        var state = ComplicationState.sample(units: "mg/dL", date: now)
+        state.loopDate = now
+        state.loopsOnWatch = true
+        #expect(makeModel(.loop, state, at: now).loopSymbol == "applewatch")
+        #expect(makeModel(.loop, state, at: now.addingTimeInterval(10 * 60 + 31)).loopSymbol == "applewatch.slash")
+    }
+
     @Test("Timeline has an entry when the loop turns yellow and red") func loopFreshnessTransitionDates() {
         var state = ComplicationState.sample(units: "mg/dL", date: now)
         state.loopDate = now.addingTimeInterval(-2 * 60)
