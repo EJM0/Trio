@@ -102,8 +102,7 @@ extension Home.RootView {
 
     private var iobText: String {
         guard !trioOnWatch.status.replacesLoopRing else { return "--" }
-        return (Formatter.decimalFormatterWithTwoFractionDigits.string(from: state.currentIOB as NSNumber) ?? "0")
-            + String(localized: " U", comment: "Insulin unit")
+        return state.currentIOB.formattedIOB() + String(localized: " U", comment: "Insulin unit")
     }
 
     @ViewBuilder private var liveMealPanel: some View {
@@ -139,7 +138,8 @@ extension Home.RootView {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text("Insulin on board"))
                 .accessibilityValue(Text(
-                    iobText
+                    trioOnWatch.status.replacesLoopRing
+                        ? "--" : state.currentIOB.formattedIOB() + " " + UnitSpelling.spoken("U")
                 ))
 
                 Spacer()
