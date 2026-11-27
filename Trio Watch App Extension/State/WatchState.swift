@@ -1178,12 +1178,25 @@ import WidgetKit
         currentGlucose = Decimal(value).formatted(for: range.isMmol ? .mmolL : .mgdL)
         let inRange = Decimal(value) > range.low && Decimal(value) < range.high
         currentGlucoseColorString = inRange ? "#ffffff" : range.color(value).toHexString()
-        trend = latest.direction?.rawValue
+        trend = TrioOnWatchRules.arrowDirection(latest.direction?.rawValue) ?? ownTrendFromRecentReadings(isMmol: range.isMmol)
         if glucoseValues.count >= 2 {
             let change = glucoseValues[glucoseValues.count - 1].glucose - glucoseValues[glucoseValues.count - 2].glucose
             let formatted = range.isMmol ? String(format: "%.1f", change) : String(format: "%.0f", change)
             delta = change < 0 ? formatted : "+" + formatted
         }
+    }
+
+    /// The arrow for a watch-read reading the sensor sent without a trend: from the change since the reading before
+    /// it, as the delta under the value is.
+    private func ownTrendFromRecentReadings(isMmol: Bool) -> String? {
+        guard glucoseValues.count >= 2 else { return nil }
+        let latest = glucoseValues[glucoseValues.count - 1]
+        let previous = glucoseValues[glucoseValues.count - 2]
+        let toMgdl = isMmol ? 18.0182 : 1
+        return TrioOnWatchRules.direction(
+            changeMgdl: (latest.glucose - previous.glucose) * toMgdl,
+            over: latest.date.timeIntervalSince(previous.date)
+        )
     }
 
     private func showPhoneReadings() {

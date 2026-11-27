@@ -117,7 +117,13 @@ struct TrioOnWatchStatus: Equatable {
         guard let latest = readings.first, now.timeIntervalSince(latest.date) <= TrioOnWatchRules.readingMaxAge else {
             return nil
         }
-        return latest.direction
+        if let direction = TrioOnWatchRules.arrowDirection(latest.direction) { return direction }
+        // the sensor sent no trend: the change since the reading before, as the delta shows it
+        guard readings.count > 1 else { return nil }
+        return TrioOnWatchRules.direction(
+            changeMgdl: Double(latest.mgdl - readings[1].mgdl),
+            over: latest.date.timeIntervalSince(readings[1].date)
+        )
     }
 
     /// The watch gives insulin; the treatment buttons talk to the watch, not the phone.
@@ -129,6 +135,46 @@ struct TrioOnWatchStatus: Equatable {
 // MARK: - Shared rules
 
 enum TrioOnWatchRules {
+    /// The direction as sent, when it is one the bubble's arrow can show; nil for none, not computable or out of range.
+    static func arrowDirection(_ direction: String?) -> String? {
+        guard let direction, let parsed = BloodGlucose.Direction(rawValue: direction) else { return nil }
+        switch parsed {
+        case .doubleDown,
+             .doubleUp,
+             .flat,
+             .fortyFiveDown,
+             .fortyFiveUp,
+             .singleDown,
+             .singleUp,
+             .tripleDown,
+             .tripleUp:
+            return direction
+        case .none,
+             .notComputable,
+             .rateOutOfRange:
+            return nil
+        }
+    }
+
+    /// A direction from the change between two readings, for one the sensor sent without a trend: the Dexcom
+    /// thresholds in mg/dL per minute, mapped as the phone maps a sensor's trend. Nil when the readings are under a
+    /// minute or over 15 minutes apart.
+    static func direction(changeMgdl: Double, over interval: TimeInterval) -> String? {
+        guard interval >= 60, interval <= 15 * 60 else { return nil }
+        let rate = changeMgdl / (interval / 60)
+        let direction: BloodGlucose.Direction
+        switch rate {
+        case ...(-3): direction = .doubleDown
+        case ...(-2): direction = .singleDown
+        case ...(-1): direction = .fortyFiveDown
+        case ..<1: direction = .flat
+        case ..<2: direction = .fortyFiveUp
+        case ..<3: direction = .singleUp
+        default: direction = .doubleUp
+        }
+        return direction.rawValue
+    }
+
     /// iOS `LoopView.ringColor` grace and thresholds.
     static let loopLag: TimeInterval = 30
     /// A reading older than this shows "--" (iOS `CurrentGlucoseView`).
