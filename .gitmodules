@@ -41,7 +41,7 @@
 [submodule "OmnipodKit"]
 	path = OmnipodKit
 	url = https://github.com/EJM0/OmnipodKit.git
-	branch = my-dev-trio-on-watch
+	branch = my-trio-on-watch
 [submodule "AccuChekKit"]
 	path = AccuChekKit
 	url = https://github.com/loopandlearn/AccuChekKit
