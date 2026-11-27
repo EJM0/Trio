@@ -166,7 +166,7 @@ struct ComplicationModel {
     }
 
     var loopFreshness: ComplicationState.LoopFreshness {
-        isPlaceholder ? .unknown : displayedState.loopFreshness(at: referenceDate)
+        displayedState.loopFreshness(at: referenceDate)
     }
 
     var loopColor: Color {
@@ -185,7 +185,7 @@ struct ComplicationModel {
     }
 
     var loopTimeText: String {
-        guard !isPlaceholder, let time = displayedState.loopTime(at: referenceDate) else { return ComplicationState.missingValue }
+        guard let time = displayedState.loopTime(at: referenceDate) else { return ComplicationState.missingValue }
         return time.formatted(.timeOfDay.hour(.defaultDigits(amPM: .omitted)))
     }
 
@@ -284,12 +284,14 @@ struct ComplicationCircularContent: View {
     }
 
     private var loop: some View {
-        VStack(spacing: 1) {
+        VStack(spacing: 0) {
+            Text("Loop")
+                .font(.system(size: 9, weight: .semibold))
             Image(systemName: model.loopSymbol)
-                .font(.system(size: 22, weight: .semibold))
+                .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(model.loopColor)
             Text(model.loopTimeText)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 11, weight: .semibold))
         }
         .padding(.horizontal, 2)
     }
@@ -330,8 +332,11 @@ struct ComplicationCornerMain: View {
             switch model.kind {
             case .loop:
                 Image(systemName: model.loopSymbol)
-                    .font(.system(size: 20, weight: .semibold))
+                    .resizable()
+                    .scaledToFit()
+                    .fontWeight(.semibold)
                     .foregroundStyle(model.loopColor)
+                    .padding(4)
             case .iob:
                 Text(model.cornerMainText).foregroundStyle(model.valueColor)
             case .gauge:
