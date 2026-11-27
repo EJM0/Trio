@@ -32,14 +32,16 @@ struct GlucoseTrendView: View {
     /// The arrow's angle for a trend: up is -90, flat 0, down 90.
     static func degrees(for trend: String?) -> Double {
         switch trend {
-        case "DoubleUp",
+        case "TripleUp",
+             "DoubleUp",
              "SingleUp":
             return -90
         case "FortyFiveUp":
             return -45
         case "FortyFiveDown":
             return 45
-        case "DoubleDown",
+        case "TripleDown",
+             "DoubleDown",
              "SingleDown":
             return 90
         default:

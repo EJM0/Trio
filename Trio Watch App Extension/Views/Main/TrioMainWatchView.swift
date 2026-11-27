@@ -13,7 +13,6 @@ struct TrioMainWatchView: View {
     @State private var chartScrubSteps = 0.0
     /// The pages' crown focus; the chart takes focus while scrubbing and this restores it afterwards.
     @FocusState private var pagesFocused: Bool
-    @State private var rotationDegrees: Double = 0.0
     @State private var showingTempTargetSheet = false
 
     // view visbility
@@ -226,11 +225,6 @@ struct TrioMainWatchView: View {
                 // scrubbing over: hand the crown back to the pages on the next pass, once the chart has let go
                 guard !scrubbing else { return }
                 DispatchQueue.main.async { pagesFocused = true }
-            }
-            .onChange(of: state.trend) { _, newTrend in
-                withAnimation {
-                    updateRotation(for: newTrend)
-                }
             }
             // No separate bolus progress page: show a message only when a bolus fails or is unconfirmed (G-3).
             .onChange(of: loan?.bolus) { _, newBolus in
@@ -509,8 +503,10 @@ struct TrioMainWatchView: View {
         }
     #endif
 
-    private func updateRotation(for trend: String?) {
-        rotationDegrees = GlucoseTrendView.degrees(for: trend)
+    /// The trend arrow's angle, derived from the current trend rather than kept in view state: kept state started
+    /// at 0 (flat) and changed only when the trend did, so a view built after the trend arrived pointed flat.
+    private var rotationDegrees: Double {
+        GlucoseTrendView.degrees(for: state.trend)
     }
 
     /// Starts the "Meal & Bolus" flow from its first step, closing whatever was open, as if picked from the
